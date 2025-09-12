@@ -55,6 +55,7 @@ To eliminate the overhead of manual meeting documentation and follow-up tasks by
 - **Backend**: Next.js API Routes, Server Actions
 - **Database**: Neon (PostgreSQL)
 - **ORM**: Drizzle ORM + Drizzle Kit
+- **Cache & Rate Limiting**: Upstash Redis
 - **Authentication**: Kinde (Organizations, Teams, Users)
 - **AI/ML**: Integration with AI services for transcription and analysis
 
@@ -63,6 +64,8 @@ To eliminate the overhead of manual meeting documentation and follow-up tasks by
 - **Data Access Layer**: Strict separation with dedicated query functions
 - **Server Actions**: Primary method for database operations
 - **Type Safety**: Full TypeScript implementation with Drizzle schema validation
+- **Caching Strategy**: Redis-based caching for frequently accessed data and API responses
+- **Rate Limiting**: Upstash Redis for API rate limiting and abuse prevention
 
 ---
 
@@ -288,6 +291,49 @@ export async function createProject(data: CreateProjectInput) {
 - Rate limiting and security measures
 - Comprehensive error responses
 
+### 8.4 Caching & Performance Strategy
+
+**Redis Cache Implementation**:
+
+- **Session Caching**: User session data and authentication tokens
+- **Query Result Caching**: Frequently accessed project lists, AI templates, and user permissions
+- **AI Processing Cache**: Cache AI analysis results to avoid reprocessing identical content
+- **Transcription Cache**: Store processed transcriptions with TTL based on file modification
+- **Organization Data**: Cache organization and team hierarchies for faster access control
+
+**Cache Patterns**:
+
+```typescript
+// Example caching pattern
+export async function getCachedProjects(organizationId: string) {
+  const cacheKey = `projects:${organizationId}`;
+  const cached = await redis.get(cacheKey);
+
+  if (cached) return JSON.parse(cached);
+
+  const projects = await db.query.projects.findMany({
+    where: eq(projects.organizationId, organizationId),
+  });
+
+  await redis.setex(cacheKey, 300, JSON.stringify(projects)); // 5min TTL
+  return projects;
+}
+```
+
+**Rate Limiting Strategy**:
+
+- **API Endpoints**: 100 requests per minute per user
+- **File Uploads**: 10 uploads per hour per user
+- **AI Processing**: 50 requests per hour per organization
+- **AI Summary Generation**: 5 requests per minute per user (for generating summaries, action items, insights)
+- **Authentication**: 5 login attempts per 15 minutes per IP
+
+**Cache Invalidation**:
+
+- Event-driven cache invalidation on data mutations
+- TTL-based expiration for less critical data
+- Manual cache clearing for administrative operations
+
 ---
 
 ## 9. Security & Privacy
@@ -312,17 +358,21 @@ export async function createProject(data: CreateProjectInput) {
 
 ### 10.1 Response Times
 
-- Page load times < 2 seconds
+- Page load times < 2 seconds (with Redis caching)
 - Recording upload progress indicators
 - Real-time transcription status updates
 - AI processing completion notifications
+- Cached query responses < 100ms
+- Cache miss responses < 500ms
 
 ### 10.2 Scalability
 
 - Support for 10,000+ organizations
 - Concurrent recording processing
-- Database query optimization
+- Database query optimization with Redis caching layer
 - CDN integration for file delivery
+- Redis cluster support for high availability
+- Horizontal scaling with consistent cache invalidation
 
 ---
 
@@ -370,6 +420,8 @@ export async function createProject(data: CreateProjectInput) {
 - Large file upload and storage costs
 - Database performance under load
 - Third-party integration dependencies
+- Redis cache availability and data consistency
+- Cache invalidation complexity across distributed systems
 
 ### 13.2 Mitigation Strategies
 
@@ -377,6 +429,9 @@ export async function createProject(data: CreateProjectInput) {
 - Progressive file upload with resumption
 - Database sharding and read replicas
 - Circuit breaker patterns for integrations
+- Redis clustering with automatic failover
+- Cache warming strategies for critical data
+- Graceful degradation when cache is unavailable
 
 ---
 
