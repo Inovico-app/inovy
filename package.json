@@ -1,0 +1,25 @@
+{
+  "name": "inovy",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "check-types": "turbo check-types",
+    "dev:web": "turbo -F web dev",
+    "db:push": "turbo -F web db:push",
+    "db:studio": "turbo -F web db:studio",
+    "db:generate": "turbo -F web db:generate",
+    "db:migrate": "turbo -F web db:migrate"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "turbo": "^2.5.4"
+  },
+  "packageManager": "pnpm@10.13.1"
+}
+
