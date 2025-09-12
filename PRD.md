@@ -162,10 +162,11 @@ To eliminate the overhead of manual meeting documentation and follow-up tasks by
 - `content` (JSON, structured AI output)
 - `confidence_score` (Float, AI confidence rating)
 - `processing_status` (Enum: pending, completed, failed)
-- `action_items` (JSON Array, extracted tasks)
+- `action_items` (JSON Array, extracted tasks with priority and metadata)
 - `key_decisions` (JSON Array, important decisions)
 - `next_meeting_suggestions` (JSON, scheduling recommendations)
 - `email_recipients` (JSON Array, suggested recipients)
+- `task_priority_distribution` (JSON, summary of task priorities across the insight)
 - `created_at` (Timestamp)
 - `updated_at` (Timestamp)
 
@@ -173,8 +174,91 @@ To eliminate the overhead of manual meeting documentation and follow-up tasks by
 
 - **Create**: Generate insights from recordings using AI templates
 - **Read**: Retrieve insights by recording, aggregate insights by project
-- **Update**: Insight content and action item status
+- **Update**: Insight content, action item status, and priority levels
 - **Delete**: Insight removal with audit trail
+
+**Action Items Structure**:
+
+```typescript
+interface ActionItem {
+  id: string;
+  title: string;
+  description: string;
+  priority: "low" | "medium" | "high" | "urgent";
+  assignee?: string; // Extracted from meeting context
+  due_date?: string; // AI-suggested based on urgency and context
+  status: "pending" | "in_progress" | "completed" | "cancelled";
+  confidence_score: number; // AI confidence in task extraction
+  meeting_timestamp?: number; // When mentioned in recording (seconds)
+  dependencies?: string[]; // Related action item IDs
+  tags?: string[]; // AI-generated categorization
+}
+```
+
+**Priority Level Criteria**:
+
+- **Urgent**: Immediate action required, blocking issues, compliance matters
+- **High**: Important deadlines, key stakeholder requests, critical path items
+- **Medium**: Regular project tasks, scheduled follow-ups, routine activities
+- **Low**: Nice-to-have items, documentation tasks, future considerations
+
+### 4.5 Global Task Management
+
+**Purpose**: Provide users with a unified view of all their assigned tasks across all projects and organizations
+
+**Implementation Requirements**:
+
+**Data Aggregation**:
+
+- Query all AI Insights where action items contain the user as assignee
+- Aggregate tasks across multiple projects and organizations
+- Real-time updates when new tasks are assigned or status changes
+
+**Query Structure**:
+
+```typescript
+interface GlobalTaskQuery {
+  user_id: string;
+  organization_ids: string[]; // All orgs user has access to
+  filters?: {
+    priority?: ("low" | "medium" | "high" | "urgent")[];
+    status?: ("pending" | "in_progress" | "completed" | "cancelled")[];
+    project_ids?: string[];
+    due_date_range?: {
+      start?: string;
+      end?: string;
+    };
+    search?: string; // Search in title/description
+  };
+  sort_by?: "priority" | "due_date" | "created_at" | "project";
+  sort_order?: "asc" | "desc";
+  pagination?: {
+    page: number;
+    limit: number;
+  };
+}
+```
+
+**Global Task View Features**:
+
+- **Cross-Project Visibility**: Tasks from all accessible projects in one view
+- **Advanced Filtering**: By priority, status, project, due date, and search terms
+- **Bulk Actions**: Mark multiple tasks as completed, change status, reassign
+- **Task Context**: Show which project/recording each task originated from
+- **Due Date Management**: Visual indicators for overdue and upcoming tasks
+- **Progress Tracking**: Personal productivity metrics and completion rates
+
+**Caching Strategy**:
+
+- Cache user's global task list with 5-minute TTL
+- Invalidate cache on task status updates, new assignments, or completions
+- Use Redis sorted sets for efficient priority-based sorting
+
+**Performance Considerations**:
+
+- Index on action_items.assignee for fast user-based queries
+- Denormalized task data for faster global queries
+- Pagination to handle users with large task volumes
 
 ---
 
@@ -217,9 +301,11 @@ To eliminate the overhead of manual meeting documentation and follow-up tasks by
 **As a project manager, I want to:**
 
 - Apply AI templates to generate meeting summaries
-- Extract action items automatically
+- Extract action items automatically with priority levels
 - Identify key decisions and risks
-- Generate follow-up task lists
+- Generate prioritized follow-up task lists
+- Filter and sort tasks by urgency and priority
+- Track high-priority items across multiple meetings
 
 ### 6.3 Project Organization
 
@@ -238,6 +324,28 @@ To eliminate the overhead of manual meeting documentation and follow-up tasks by
 - Define organization-specific output formats
 - Set default templates for different meeting types
 - Share templates across teams
+- Configure priority classification rules for different meeting types
+
+### 6.5 Task Priority Management
+
+**As a team member, I want to:**
+
+- View action items sorted by priority level
+- Receive notifications for urgent tasks
+- Update task status and priority as needed
+- See priority-based task distribution in dashboards
+- Access a global task list showing all my assigned tasks across all projects
+- Filter my global tasks by project, priority, status, and due date
+- Mark tasks as completed from the global view
+
+**As a manager, I want to:**
+
+- Monitor team workload by priority levels
+- Reassign urgent tasks when necessary
+- Generate priority-based reports
+- Set organization-wide priority escalation rules
+- View global task lists for team members to monitor workload distribution
+- Generate cross-project task analytics and reports
 
 ---
 
@@ -252,8 +360,10 @@ To eliminate the overhead of manual meeting documentation and follow-up tasks by
 ### 7.2 Email Automation
 
 - Automated summary distribution to participants
-- Action item assignment notifications
-- Follow-up reminders based on AI insights
+- Priority-based action item assignment notifications
+- Urgent task escalation alerts
+- Follow-up reminders based on AI insights and priority levels
+- Daily/weekly priority task digests
 
 ### 7.3 File Storage
 
@@ -300,6 +410,7 @@ export async function createProject(data: CreateProjectInput) {
 - **AI Processing Cache**: Cache AI analysis results to avoid reprocessing identical content
 - **Transcription Cache**: Store processed transcriptions with TTL based on file modification
 - **Organization Data**: Cache organization and team hierarchies for faster access control
+- **Global Task Lists**: Cache user's aggregated task lists across all projects with priority-based sorting
 
 **Cache Patterns**:
 
@@ -317,6 +428,23 @@ export async function getCachedProjects(organizationId: string) {
 
   await redis.setex(cacheKey, 300, JSON.stringify(projects)); // 5min TTL
   return projects;
+}
+
+// Global task list caching pattern
+export async function getCachedGlobalTasks(
+  userId: string,
+  filters?: GlobalTaskQuery["filters"]
+) {
+  const filterHash = filters ? btoa(JSON.stringify(filters)) : "all";
+  const cacheKey = `global_tasks:${userId}:${filterHash}`;
+  const cached = await redis.get(cacheKey);
+
+  if (cached) return JSON.parse(cached);
+
+  const tasks = await aggregateUserTasks(userId, filters);
+
+  await redis.setex(cacheKey, 300, JSON.stringify(tasks)); // 5min TTL
+  return tasks;
 }
 ```
 
@@ -384,6 +512,9 @@ export async function getCachedProjects(organizationId: string) {
 - Video analysis and speaker identification
 - Advanced analytics and reporting
 - Mobile application development
+- Team-wide global task dashboards
+- Advanced task dependency tracking
+- Integration with external task management tools (Asana, Jira, etc.)
 
 ### 11.2 Integration Expansions
 
