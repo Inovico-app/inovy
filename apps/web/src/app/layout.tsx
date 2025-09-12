@@ -1,6 +1,8 @@
 import Header from "@/components/header";
 import Providers from "@/components/providers";
-import { AuthProvider } from "@/providers/AuthProvider";
+import { KindeAuthProvider } from "@/providers/AuthProvider";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
+import { SpeedInsights as VercelSpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../index.css";
@@ -30,14 +32,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
+        <KindeAuthProvider>
+          <VercelAnalytics />
+          <VercelSpeedInsights />
           <Providers>
             <div className="grid grid-rows-[auto_1fr] h-svh">
               <Header />
               {children}
             </div>
           </Providers>
-        </AuthProvider>
+        </KindeAuthProvider>
       </body>
     </html>
   );
