@@ -104,6 +104,12 @@ Before responding to any request, follow these steps:
 - Use only for Web API access in small components.
 - Avoid for data fetching or state management.
 
+### Error Handling
+
+- Use the Next-safe-action library for all server action error handling
+- Use the never-throw library for all error handling
+- Implement enterprise level error handling with proper logging and error messages
+
 ### Async Request APIs
 
 ```typescript
