@@ -1,4 +1,4 @@
-import Header from "@/components/header";
+import { PageLayout } from "@/components/page-layout";
 import Providers from "@/components/providers";
 import { KindeAuthProvider } from "@/providers/AuthProvider";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
@@ -36,10 +36,7 @@ export default function RootLayout({
           <VercelAnalytics />
           <VercelSpeedInsights />
           <Providers>
-            <div className="grid grid-rows-[auto_1fr] h-svh">
-              <Header />
-              {children}
-            </div>
+            <PageLayout>{children}</PageLayout>
           </Providers>
         </KindeAuthProvider>
       </body>
