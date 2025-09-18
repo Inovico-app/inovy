@@ -43,6 +43,7 @@
     "@types/node": "^24",
     "@types/react": "~19.1.12",
     "@types/react-dom": "^19",
+    "@types/ws": "^8.5.10",
     "drizzle-kit": "^0.31.4",
     "tailwindcss": "^4.1.13",
     "typescript": "^5"

@@ -1,5 +1,5 @@
 {
-  "id": "37603c9a-e680-48eb-9b32-36d87376a198",
+  "id": "b9004ee0-8bea-423a-aaa5-e880f14754a2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -55,16 +55,12 @@
         "organizations_kinde_id_unique": {
           "name": "organizations_kinde_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "kinde_id"
-          ]
+          "columns": ["kinde_id"]
         },
         "organizations_slug_unique": {
           "name": "organizations_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -134,12 +130,8 @@
           "name": "projects_organization_id_organizations_id_fk",
           "tableFrom": "projects",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -147,12 +139,8 @@
           "name": "projects_created_by_id_users_id_fk",
           "tableFrom": "projects",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -231,12 +219,8 @@
           "name": "users_organization_id_organizations_id_fk",
           "tableFrom": "users",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -246,9 +230,7 @@
         "users_kinde_id_unique": {
           "name": "users_kinde_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "kinde_id"
-          ]
+          "columns": ["kinde_id"]
         }
       },
       "policies": {},

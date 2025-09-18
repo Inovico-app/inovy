@@ -20,42 +20,44 @@ export class UserQueries {
    * Create a new user in the database
    */
   static async create(data: CreateUserDto): Promise<UserDto> {
-    const [user] = await db
-      .insert(users)
-      .values({
-        kindeId: data.kindeId,
-        email: data.email,
-        givenName: data.givenName || null,
-        familyName: data.familyName || null,
-        picture: data.picture || null,
-        organizationId: data.organizationId,
-      })
-      .returning();
+    return await db.transaction(async (tx) => {
+      const [user] = await tx
+        .insert(users)
+        .values({
+          kindeId: data.kindeId,
+          email: data.email,
+          givenName: data.givenName || null,
+          familyName: data.familyName || null,
+          picture: data.picture || null,
+          organizationId: data.organizationId,
+        })
+        .returning();
 
-    const result = {
-      id: user.id,
-      kindeId: user.kindeId,
-      email: user.email,
-      givenName: user.givenName,
-      familyName: user.familyName,
-      picture: user.picture,
-      organizationId: user.organizationId,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
+      const result = {
+        id: user.id,
+        kindeId: user.kindeId,
+        email: user.email,
+        givenName: user.givenName,
+        familyName: user.familyName,
+        picture: user.picture,
+        organizationId: user.organizationId,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
 
-    // Cache the newly created user
-    await CacheService.set(
-      CacheService.KEYS.USER_BY_KINDE(data.kindeId),
-      result,
-      { ttl: CacheService.TTL.USER }
-    );
+      // Cache the newly created user
+      await CacheService.set(
+        CacheService.KEYS.USER_BY_KINDE(data.kindeId),
+        result,
+        { ttl: CacheService.TTL.USER }
+      );
 
-    await CacheService.set(CacheService.KEYS.USER_BY_ID(result.id), result, {
-      ttl: CacheService.TTL.USER,
+      await CacheService.set(CacheService.KEYS.USER_BY_ID(result.id), result, {
+        ttl: CacheService.TTL.USER,
+      });
+
+      return result;
     });
-
-    return result;
   }
 
   /**
@@ -214,54 +216,58 @@ export class UserQueries {
     userId: string,
     data: UpdateUserDto
   ): Promise<UserDto | null> {
-    const result = await db
-      .update(users)
-      .set({
-        ...(data.email && { email: data.email }),
-        ...(data.givenName !== undefined && { givenName: data.givenName }),
-        ...(data.familyName !== undefined && { familyName: data.familyName }),
-        ...(data.picture !== undefined && { picture: data.picture }),
-        ...(data.organizationId && { organizationId: data.organizationId }),
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, userId))
-      .returning();
+    return await db.transaction(async (tx) => {
+      const result = await tx
+        .update(users)
+        .set({
+          ...(data.email && { email: data.email }),
+          ...(data.givenName !== undefined && { givenName: data.givenName }),
+          ...(data.familyName !== undefined && { familyName: data.familyName }),
+          ...(data.picture !== undefined && { picture: data.picture }),
+          ...(data.organizationId && { organizationId: data.organizationId }),
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userId))
+        .returning();
 
-    if (result.length === 0) return null;
+      if (result.length === 0) return null;
 
-    const user = result[0];
-    const updatedUser = {
-      id: user.id,
-      kindeId: user.kindeId,
-      email: user.email,
-      givenName: user.givenName,
-      familyName: user.familyName,
-      picture: user.picture,
-      organizationId: user.organizationId,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
+      const user = result[0];
+      const updatedUser = {
+        id: user.id,
+        kindeId: user.kindeId,
+        email: user.email,
+        givenName: user.givenName,
+        familyName: user.familyName,
+        picture: user.picture,
+        organizationId: user.organizationId,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
 
-    // Invalidate cache after update
-    await CacheService.INVALIDATION.invalidateUser(
-      userId,
-      user.kindeId,
-      user.organizationId
-    );
+      // Invalidate cache after update
+      await CacheService.INVALIDATION.invalidateUser(
+        userId,
+        user.kindeId,
+        user.organizationId
+      );
 
-    return updatedUser;
+      return updatedUser;
+    });
   }
 
   /**
    * Delete a user (hard delete)
    */
   static async delete(userId: string): Promise<boolean> {
-    const result = await db
-      .delete(users)
-      .where(eq(users.id, userId))
-      .returning();
+    return await db.transaction(async (tx) => {
+      const result = await tx
+        .delete(users)
+        .where(eq(users.id, userId))
+        .returning();
 
-    return result.length > 0;
+      return result.length > 0;
+    });
   }
 
   /**

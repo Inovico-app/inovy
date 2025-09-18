@@ -18,31 +18,35 @@ export class ProjectQueries {
    * Create a new project in the database
    */
   static async create(data: CreateProjectDto): Promise<ProjectDto> {
-    const [project] = await db
-      .insert(projects)
-      .values({
-        name: data.name,
-        description: data.description || null,
-        status: "active",
-        organizationId: data.organizationId,
-        createdById: data.createdById,
-      })
-      .returning();
+    return await db.transaction(async (tx) => {
+      const [project] = await tx
+        .insert(projects)
+        .values({
+          name: data.name,
+          description: data.description || null,
+          status: "active",
+          organizationId: data.organizationId,
+          createdById: data.createdById,
+        })
+        .returning();
 
-    const result = {
-      id: project.id,
-      name: project.name,
-      description: project.description,
-      status: project.status,
-      organizationId: project.organizationId,
-      createdAt: project.createdAt,
-      updatedAt: project.updatedAt,
-    };
+      const result = {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        status: project.status,
+        organizationId: project.organizationId,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+      };
 
-    // Invalidate related cache after creation
-    await CacheService.INVALIDATION.invalidateProjectCache(data.organizationId);
+      // Invalidate related cache after creation
+      await CacheService.INVALIDATION.invalidateProjectCache(
+        data.organizationId
+      );
 
-    return result;
+      return result;
+    });
   }
 
   /**
@@ -175,31 +179,33 @@ export class ProjectQueries {
     projectId: string,
     organizationId: string
   ): Promise<boolean> {
-    const result = await db
-      .update(projects)
-      .set({
-        status: "archived",
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(projects.id, projectId),
-          eq(projects.organizationId, organizationId)
+    return await db.transaction(async (tx) => {
+      const result = await tx
+        .update(projects)
+        .set({
+          status: "archived",
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(projects.id, projectId),
+            eq(projects.organizationId, organizationId)
+          )
         )
-      )
-      .returning();
+        .returning();
 
-    const success = result.length > 0;
+      const success = result.length > 0;
 
-    if (success) {
-      // Invalidate cache after soft delete
-      await CacheService.INVALIDATION.invalidateProject(
-        projectId,
-        organizationId
-      );
-    }
+      if (success) {
+        // Invalidate cache after soft delete
+        await CacheService.INVALIDATION.invalidateProject(
+          projectId,
+          organizationId
+        );
+      }
 
-    return success;
+      return success;
+    });
   }
 }
 

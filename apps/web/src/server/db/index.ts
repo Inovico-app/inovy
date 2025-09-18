@@ -1,16 +1,30 @@
 import { neonConfig, Pool } from "@neondatabase/serverless";
-import dotenv from "dotenv";
-import { drizzle } from "drizzle-orm/neon-http";
-// @ts-expect-error - ws does not have a type definition
-import ws from "ws";
-import * as schema from "./schema";
+import { drizzle } from "drizzle-orm/neon-serverless";
 
-dotenv.config();
+// Configure Neon for edge environments
+if (typeof window === "undefined") {
+  // Server-side configuration
+  neonConfig.fetchConnectionCache = true;
 
-// To work in edge environments (Cloudflare Workers, Vercel Edge, etc.), enable querying over fetch
-neonConfig.poolQueryViaFetch = true;
-neonConfig.webSocketConstructor = ws;
+  // For Node.js environments (not edge), use WebSocket
+  if (process.env.VERCEL_ENV !== "production" || !process.env.EDGE_RUNTIME) {
+    // Only import ws in Node.js environments
+    const ws = require("ws");
+    neonConfig.webSocketConstructor = ws;
+  } else {
+    // For Vercel Edge Runtime, use fetch-based queries
+    neonConfig.poolQueryViaFetch = true;
+  }
+}
 
-const postgres = new Pool({ connectionString: process.env.DATABASE_URL || "" });
-export const db = drizzle(postgres, { schema });
+// Create connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL!,
+  // Configure pool for serverless environments
+  max: 1, // Single connection for serverless
+  idleTimeoutMillis: 0, // Disable idle timeout
+  connectionTimeoutMillis: 10000, // 10 second connection timeout
+});
+
+export const db = drizzle(pool);
 

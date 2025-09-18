@@ -20,23 +20,25 @@ export class OrganizationQueries {
    * Create a new organization in the database
    */
   static async create(data: CreateOrganizationDto): Promise<OrganizationDto> {
-    const [organization] = await db
-      .insert(organizationsTable)
-      .values({
-        kindeId: data.kindeId,
-        name: data.name,
-        slug: data.slug,
-      })
-      .returning();
+    return await db.transaction(async (tx) => {
+      const [organization] = await tx
+        .insert(organizationsTable)
+        .values({
+          kindeId: data.kindeId,
+          name: data.name,
+          slug: data.slug,
+        })
+        .returning();
 
-    return {
-      id: organization.id,
-      kindeId: organization.kindeId,
-      name: organization.name,
-      slug: organization.slug,
-      createdAt: organization.createdAt,
-      updatedAt: organization.updatedAt,
-    };
+      return {
+        id: organization.id,
+        kindeId: organization.kindeId,
+        name: organization.name,
+        slug: organization.slug,
+        createdAt: organization.createdAt,
+        updatedAt: organization.updatedAt,
+      };
+    });
   }
 
   /**
@@ -114,21 +116,23 @@ export class OrganizationQueries {
   static async findByIdWithStats(
     organizationId: string
   ): Promise<OrganizationWithStatsDto | null> {
-    // Get basic organization data
-    const result = await db
-      .select({
-        ...getTableColumns(organizationsTable),
-        memberCount: count(users.id),
-        projectCount: count(projects.id),
-      })
-      .from(organizationsTable)
-      .leftJoin(users, eq(organizationsTable.id, users.organizationId))
-      .leftJoin(projects, eq(organizationsTable.id, projects.organizationId))
-      .where(eq(organizationsTable.id, organizationId));
+    return await db.transaction(async (tx) => {
+      // Get basic organization data
+      const result = await tx
+        .select({
+          ...getTableColumns(organizationsTable),
+          memberCount: count(users.id),
+          projectCount: count(projects.id),
+        })
+        .from(organizationsTable)
+        .leftJoin(users, eq(organizationsTable.id, users.organizationId))
+        .leftJoin(projects, eq(organizationsTable.id, projects.organizationId))
+        .where(eq(organizationsTable.id, organizationId));
 
-    if (result.length === 0) return null;
+      if (result.length === 0) return null;
 
-    return result[0];
+      return result[0];
+    });
   }
 
   /**
@@ -154,27 +158,29 @@ export class OrganizationQueries {
     organizationId: string,
     data: UpdateOrganizationDto
   ): Promise<OrganizationDto | null> {
-    const result = await db
-      .update(organizationsTable)
-      .set({
-        ...(data.name && { name: data.name }),
-        ...(data.slug && { slug: data.slug }),
-        updatedAt: new Date(),
-      })
-      .where(eq(organizationsTable.id, organizationId))
-      .returning();
+    return await db.transaction(async (tx) => {
+      const result = await tx
+        .update(organizationsTable)
+        .set({
+          ...(data.name && { name: data.name }),
+          ...(data.slug && { slug: data.slug }),
+          updatedAt: new Date(),
+        })
+        .where(eq(organizationsTable.id, organizationId))
+        .returning();
 
-    if (result.length === 0) return null;
+      if (result.length === 0) return null;
 
-    const organization = result[0];
-    return {
-      id: organization.id,
-      kindeId: organization.kindeId,
-      name: organization.name,
-      slug: organization.slug,
-      createdAt: organization.createdAt,
-      updatedAt: organization.updatedAt,
-    };
+      const organization = result[0];
+      return {
+        id: organization.id,
+        kindeId: organization.kindeId,
+        name: organization.name,
+        slug: organization.slug,
+        createdAt: organization.createdAt,
+        updatedAt: organization.updatedAt,
+      };
+    });
   }
 
   /**
@@ -182,12 +188,14 @@ export class OrganizationQueries {
    * Note: This should be used with extreme caution as it will orphan related data
    */
   static async delete(organizationId: string): Promise<boolean> {
-    const result = await db
-      .delete(organizationsTable)
-      .where(eq(organizationsTable.id, organizationId))
-      .returning();
+    return await db.transaction(async (tx) => {
+      const result = await tx
+        .delete(organizationsTable)
+        .where(eq(organizationsTable.id, organizationId))
+        .returning();
 
-    return result.length > 0;
+      return result.length > 0;
+    });
   }
 
   /**
