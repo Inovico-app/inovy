@@ -74,29 +74,35 @@ async function DashboardContent() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">New Project</CardTitle>
-              <PlusIcon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Create</div>
-              <p className="text-xs text-muted-foreground">
-                Start organizing your recordings
-              </p>
-            </CardContent>
-          </Card>
+          <Link href="/projects/create">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  New Project
+                </CardTitle>
+                <PlusIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">Create</div>
+                <p className="text-xs text-muted-foreground">
+                  Start organizing your recordings
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Projects</CardTitle>
-              <FolderIcon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">Active projects</p>
-            </CardContent>
-          </Card>
+          <Link href="/projects">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Projects</CardTitle>
+                <FolderIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">0</div>
+                <p className="text-xs text-muted-foreground">Active projects</p>
+              </CardContent>
+            </Card>
+          </Link>
 
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -143,8 +149,8 @@ async function DashboardContent() {
                 <span className="text-sm">
                   Create your first project to organize recordings
                 </span>
-                <Button size="sm">
-                  <Link href={"/projects" as any}>Create Project</Link>
+                <Button size="sm" asChild>
+                  <Link href="/projects/create">Create Project</Link>
                 </Button>
               </div>
               <div className="flex items-center gap-3">

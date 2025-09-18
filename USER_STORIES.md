@@ -17,6 +17,7 @@
 **Acceptance Criteria**: Clear, testable requirements
 **Priority**: High/Medium/Low
 **Effort**: Story Points (1-8 scale)
+**Status**: - [ ] Not Started | - [x] Completed
 
 ---
 
@@ -35,7 +36,7 @@
 - User session state is properly managed
 - Protected components check authentication status
 
-**Priority**: High | **Effort**: 2
+**Priority**: High | **Effort**: 2 | **Status**: - [x] Completed
 
 ### AUTH-002: User Organization Assignment
 
@@ -50,7 +51,7 @@
 - User can only access their organization's data
 - Organization context is available throughout the application
 
-**Priority**: High | **Effort**: 2
+**Priority**: High | **Effort**: 2 | **Status**: - [ ] Not Started
 
 ---
 
@@ -71,7 +72,7 @@
 - Organization ID automatically assigned from user context
 - User is redirected to project detail page after creation
 
-**Priority**: High | **Effort**: 3
+**Priority**: High | **Effort**: 3 | **Status**: - [x] Completed
 
 ### PROJ-002: View Project List
 
@@ -87,7 +88,7 @@
 - Provide search/filter functionality for project names
 - Show "Create New Project" button
 
-**Priority**: High | **Effort**: 3
+**Priority**: High | **Effort**: 3 | **Status**: - [ ] Not Started
 
 ### PROJ-003: View Project Details
 
@@ -103,7 +104,7 @@
 - Show project statistics (total recordings, recent activity)
 - Allow navigation back to project list
 
-**Priority**: High | **Effort**: 3
+**Priority**: High | **Effort**: 3 | **Status**: - [ ] Not Started
 
 ### PROJ-004: Edit Project
 
@@ -119,7 +120,7 @@
 - Success message after saving changes
 - Cancel option to discard changes
 
-**Priority**: Medium | **Effort**: 2
+**Priority**: Medium | **Effort**: 2 | **Status**: - [ ] Not Started
 
 ### PROJ-005: Archive Project
 
@@ -135,7 +136,7 @@
 - Recordings in archived projects remain accessible
 - Confirmation dialog before archiving
 
-**Priority**: Medium | **Effort**: 2
+**Priority**: Medium | **Effort**: 2 | **Status**: - [ ] Not Started
 
 ---
 

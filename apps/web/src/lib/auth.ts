@@ -1,14 +1,16 @@
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import type { KindeUser } from "@kinde-oss/kinde-auth-nextjs/types";
+import type {
+  KindeOrganization,
+  KindeUser,
+} from "@kinde-oss/kinde-auth-nextjs/types";
 import { Result, err, ok } from "neverthrow";
-import { redirect } from "next/navigation";
 import { logger } from "./logger";
 
 /**
  * Server-side authentication utilities with proper error handling
  */
 
-interface AuthUser {
+export interface AuthUser {
   id: string;
   email: string | null;
   given_name: string | null;
@@ -19,39 +21,7 @@ interface AuthUser {
 interface AuthSession {
   isAuthenticated: boolean;
   user: AuthUser | null;
-  organization: any | null;
-}
-
-export async function requireAuth(): Promise<
-  Result<{ user: AuthUser }, string>
-> {
-  try {
-    const { isAuthenticated, getUser } = getKindeServerSession();
-
-    if (!isAuthenticated) {
-      logger.auth.sessionCheck(false, { action: "requireAuth" });
-      redirect("/api/auth/login");
-    }
-
-    const userResult = await safeGetUser(getUser);
-
-    if (userResult.isErr()) {
-      logger.auth.error(
-        "Failed to get user in requireAuth",
-        new Error(userResult.error)
-      );
-      redirect("/api/auth/login");
-    }
-
-    const user = userResult.value;
-    logger.auth.sessionCheck(true, { userId: user.id, action: "requireAuth" });
-
-    return ok({ user });
-  } catch (error) {
-    const errorMessage = "Critical error in requireAuth";
-    logger.auth.error(errorMessage, error as Error);
-    return err(errorMessage);
-  }
+  organization: KindeOrganization | null;
 }
 
 export async function getAuthSession(): Promise<Result<AuthSession, string>> {
@@ -184,7 +154,7 @@ async function safeGetUser(
  * Safe wrapper for getOrganization() call
  */
 async function safeGetOrganization(
-  getOrganization: () => Promise<any>
+  getOrganization: () => Promise<KindeOrganization | null>
 ): Promise<Result<any, string>> {
   try {
     const organization = await getOrganization();
