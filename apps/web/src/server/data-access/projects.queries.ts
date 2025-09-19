@@ -7,6 +7,9 @@ import type {
   ProjectWithCreatorDto,
 } from "../dto/project.dto";
 
+const allowedStatus = ["active", "archived", "completed"] as const;
+export type AllowedStatus = (typeof allowedStatus)[number];
+
 /**
  * Database queries for Project operations
  * Pure data access layer - no business logic
@@ -153,7 +156,7 @@ export class ProjectQueries {
    */
   static async findByOrganizationWithCreator(filters: {
     organizationId: string;
-    status?: string;
+    status?: AllowedStatus;
   }): Promise<ProjectWithCreatorDto[]> {
     const whereConditions = [
       eq(projects.organizationId, filters.organizationId),
@@ -205,7 +208,7 @@ export class ProjectQueries {
    */
   static async countByOrganization(
     organizationId: string,
-    status?: string
+    status?: AllowedStatus
   ): Promise<number> {
     const whereConditions = [eq(projects.organizationId, organizationId)];
 

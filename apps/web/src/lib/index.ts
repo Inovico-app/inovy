@@ -8,7 +8,6 @@ export {
   authorizedActionClient,
   chainResults,
   combineResults,
-  handleResult,
   mapResult,
   publicActionClient,
   resultToActionResponse,
@@ -46,12 +45,7 @@ export {
 } from "./rbac";
 
 // Auth exports (re-export from existing auth module)
-export {
-  getAuthSession,
-  getUserSession,
-  requireAuth,
-  type AuthUser,
-} from "./auth";
+export { getAuthSession, getUserSession, type AuthUser } from "./auth";
 
 // Logger export (re-export from existing logger)
 export { logger } from "./logger";

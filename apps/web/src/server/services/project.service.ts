@@ -4,6 +4,7 @@ import { ActionErrors } from "../../lib/action-errors";
 import { getAuthSession, type AuthUser } from "../../lib/auth";
 import { logger } from "../../lib/logger";
 import { ProjectQueries } from "../data-access";
+import type { AllowedStatus } from "../data-access/projects.queries";
 import type {
   CreateProjectDto,
   ProjectDto,
@@ -129,60 +130,10 @@ export class ProjectService {
   }
 
   /**
-   * Get projects with custom filters
-   */
-  static async getProjectsWithFilters(
-    filters: Partial<Omit<ProjectFiltersDto, "organizationId">>
-  ): Promise<Result<ProjectWithCreatorDto[], string>> {
-    try {
-      // Check authentication and get session
-      const authResult = await getAuthSession();
-      if (authResult.isErr()) {
-        return err("Failed to get authentication session");
-      }
-
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser) {
-        return err("Authentication required");
-      }
-
-      // Ensure user exists in database
-      const syncResult = await findExistingUserByKindeId(authUser);
-      if (syncResult.isErr()) {
-        return err("Failed to find existing user by Kinde ID");
-      }
-
-      const dbUser = syncResult.value;
-
-      if (!dbUser?.organizationId) {
-        return err("Organization not found");
-      }
-
-      // Merge filters with organization requirement
-      const projectFilters: ProjectFiltersDto = {
-        organizationId: dbUser.organizationId,
-        ...filters,
-      };
-
-      const projects = await ProjectQueries.findByIdWithCreator(
-        filters.createdById ?? "",
-        projectFilters.organizationId
-      );
-
-      return ok(projects);
-    } catch (error) {
-      const errorMessage = "Failed to get projects with filters";
-      logger.error(errorMessage, { filters }, error as Error);
-      return err(errorMessage);
-    }
-  }
-
-  /**
    * Get project count for the authenticated user's organization
    */
   static async getProjectCount(
-    status?: string
+    status?: AllowedStatus
   ): Promise<Result<number, string>> {
     try {
       // Check authentication and get session

@@ -9,7 +9,9 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "lint": "eslint --ext .js,.jsx,.ts,.tsx src --fix --max-warnings 0",
+    "typecheck": "tsc"
   },
   "dependencies": {
     "@kinde-oss/kinde-auth-nextjs": "^2.9.2",
@@ -38,6 +40,7 @@
     "zod": "^4.1.9"
   },
   "devDependencies": {
+    "@next/eslint-plugin-next": "^15.5.3",
     "@tailwindcss/postcss": "^4.1.13",
     "@tanstack/react-query-devtools": "^5.89.0",
     "@types/node": "^24.5.2",
@@ -45,8 +48,13 @@
     "@types/react-dom": "^19.1.9",
     "@types/ws": "^8.18.1",
     "drizzle-kit": "^0.31.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^16.4.0",
     "tailwindcss": "^4.1.13",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.44.0"
   }
 }
 

@@ -76,11 +76,6 @@ export function CreateProjectForm() {
               disabled={isExecuting}
               required
             />
-            {result?.validationErrors?.name && (
-              <p className="text-sm text-red-600">
-                {result.validationErrors.name[0]}
-              </p>
-            )}
           </div>
 
           <div className="space-y-2">
@@ -93,11 +88,6 @@ export function CreateProjectForm() {
               placeholder="Enter project description (optional)"
               disabled={isExecuting}
             />
-            {result?.validationErrors?.description && (
-              <p className="text-sm text-red-600">
-                {result.validationErrors.description[0]}
-              </p>
-            )}
           </div>
 
           {result?.serverError && (
@@ -105,17 +95,6 @@ export function CreateProjectForm() {
               <p className="text-sm text-red-800">{result.serverError}</p>
               <p className="text-xs text-red-600 mt-1">
                 Smart error handling with Result types
-              </p>
-            </div>
-          )}
-
-          {result?.data?.success && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-              <p className="text-sm text-green-800">
-                Project created successfully! Redirecting...
-              </p>
-              <p className="text-xs text-green-600 mt-1">
-                ID: {result.data.projectId}
               </p>
             </div>
           )}

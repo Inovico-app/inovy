@@ -2,6 +2,8 @@
  * Data Transfer Objects for Project-related operations
  */
 
+import type { AllowedStatus } from "../data-access/projects.queries";
+
 export interface CreateProjectDto {
   name: string;
   description?: string;
@@ -36,7 +38,7 @@ export interface ProjectWithCreatorDto extends ProjectDto {
 
 export interface ProjectFiltersDto {
   organizationId: string;
-  status?: string;
+  status?: AllowedStatus;
   createdById?: string;
   limit?: number;
   offset?: number;
