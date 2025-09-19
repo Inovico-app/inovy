@@ -1,5 +1,4 @@
 import { count, eq, getTableColumns } from "drizzle-orm";
-import { CacheService } from "../cache";
 import { db } from "../db";
 import { organizationsTable, projects, users } from "../db/schema";
 import type {
@@ -45,25 +44,17 @@ export class OrganizationQueries {
    * Find an organization by Kinde ID
    */
   static async findByKindeId(kindeId: string): Promise<OrganizationDto | null> {
-    const cacheKey = CacheService.KEYS.ORG_BY_KINDE(kindeId);
+    const result = await db
+      .select({
+        ...getTableColumns(organizationsTable),
+      })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.kindeId, kindeId))
+      .limit(1);
 
-    return CacheService.withCache(
-      cacheKey,
-      async () => {
-        const result = await db
-          .select({
-            ...getTableColumns(organizationsTable),
-          })
-          .from(organizationsTable)
-          .where(eq(organizationsTable.kindeId, kindeId))
-          .limit(1);
+    if (result.length === 0) return null;
 
-        if (result.length === 0) return null;
-
-        return result[0];
-      },
-      { ttl: CacheService.TTL.ORGANIZATION }
-    );
+    return result[0];
   }
 
   /**
@@ -72,25 +63,17 @@ export class OrganizationQueries {
   static async findById(
     organizationId: string
   ): Promise<OrganizationDto | null> {
-    const cacheKey = CacheService.KEYS.ORG_BY_ID(organizationId);
+    const result = await db
+      .select({
+        ...getTableColumns(organizationsTable),
+      })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, organizationId))
+      .limit(1);
 
-    return CacheService.withCache(
-      cacheKey,
-      async () => {
-        const result = await db
-          .select({
-            ...getTableColumns(organizationsTable),
-          })
-          .from(organizationsTable)
-          .where(eq(organizationsTable.id, organizationId))
-          .limit(1);
+    if (result.length === 0) return null;
 
-        if (result.length === 0) return null;
-
-        return result[0];
-      },
-      { ttl: CacheService.TTL.ORGANIZATION }
-    );
+    return result[0];
   }
 
   /**

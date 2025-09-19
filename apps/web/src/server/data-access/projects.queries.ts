@@ -1,5 +1,4 @@
 import { and, eq } from "drizzle-orm";
-import { CacheService } from "../cache";
 import { db } from "../db";
 import { projects, users } from "../db/schema";
 import type {
@@ -30,7 +29,7 @@ export class ProjectQueries {
         })
         .returning();
 
-      const result = {
+      return {
         id: project.id,
         name: project.name,
         description: project.description,
@@ -39,13 +38,6 @@ export class ProjectQueries {
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
       };
-
-      // Invalidate related cache after creation
-      await CacheService.INVALIDATION.invalidateProjectCache(
-        data.organizationId
-      );
-
-      return result;
     });
   }
 
@@ -56,58 +48,50 @@ export class ProjectQueries {
     projectId: string,
     organizationId: string
   ): Promise<ProjectWithCreatorDto | null> {
-    const cacheKey = CacheService.KEYS.PROJECT_BY_ID(projectId);
+    const result = await db
+      .select({
+        id: projects.id,
+        name: projects.name,
+        description: projects.description,
+        status: projects.status,
+        organizationId: projects.organizationId,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt,
+        createdBy: {
+          id: users.id,
+          givenName: users.givenName,
+          familyName: users.familyName,
+          email: users.email,
+        },
+      })
+      .from(projects)
+      .leftJoin(users, eq(projects.createdById, users.id))
+      .where(
+        and(
+          eq(projects.id, projectId),
+          eq(projects.organizationId, organizationId)
+        )
+      )
+      .limit(1);
 
-    return CacheService.withCache(
-      cacheKey,
-      async () => {
-        const result = await db
-          .select({
-            id: projects.id,
-            name: projects.name,
-            description: projects.description,
-            status: projects.status,
-            organizationId: projects.organizationId,
-            createdAt: projects.createdAt,
-            updatedAt: projects.updatedAt,
-            createdBy: {
-              id: users.id,
-              givenName: users.givenName,
-              familyName: users.familyName,
-              email: users.email,
-            },
-          })
-          .from(projects)
-          .leftJoin(users, eq(projects.createdById, users.id))
-          .where(
-            and(
-              eq(projects.id, projectId),
-              eq(projects.organizationId, organizationId)
-            )
-          )
-          .limit(1);
+    if (result.length === 0) return null;
 
-        if (result.length === 0) return null;
-
-        const project = result[0];
-        return {
-          id: project.id,
-          name: project.name,
-          description: project.description,
-          status: project.status,
-          organizationId: project.organizationId,
-          createdAt: project.createdAt,
-          updatedAt: project.updatedAt,
-          createdBy: project.createdBy || {
-            id: "",
-            givenName: null,
-            familyName: null,
-            email: "Unknown",
-          },
-        };
+    const project = result[0];
+    return {
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      status: project.status,
+      organizationId: project.organizationId,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+      createdBy: project.createdBy || {
+        id: "",
+        givenName: null,
+        familyName: null,
+        email: "Unknown",
       },
-      { ttl: CacheService.TTL.PROJECT }
-    );
+    };
   }
 
   /**
@@ -117,36 +101,28 @@ export class ProjectQueries {
     projectId: string,
     organizationId: string
   ): Promise<ProjectDto | null> {
-    const cacheKey = `${CacheService.KEYS.PROJECT_BY_ID(projectId)}:basic`;
+    const result = await db
+      .select({
+        id: projects.id,
+        name: projects.name,
+        description: projects.description,
+        status: projects.status,
+        organizationId: projects.organizationId,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt,
+      })
+      .from(projects)
+      .where(
+        and(
+          eq(projects.id, projectId),
+          eq(projects.organizationId, organizationId)
+        )
+      )
+      .limit(1);
 
-    return CacheService.withCache(
-      cacheKey,
-      async () => {
-        const result = await db
-          .select({
-            id: projects.id,
-            name: projects.name,
-            description: projects.description,
-            status: projects.status,
-            organizationId: projects.organizationId,
-            createdAt: projects.createdAt,
-            updatedAt: projects.updatedAt,
-          })
-          .from(projects)
-          .where(
-            and(
-              eq(projects.id, projectId),
-              eq(projects.organizationId, organizationId)
-            )
-          )
-          .limit(1);
+    if (result.length === 0) return null;
 
-        if (result.length === 0) return null;
-
-        return result[0];
-      },
-      { ttl: CacheService.TTL.PROJECT }
-    );
+    return result[0];
   }
 
   /**
@@ -173,6 +149,79 @@ export class ProjectQueries {
   }
 
   /**
+   * Find projects by organization with creator information
+   */
+  static async findByOrganizationWithCreator(filters: {
+    organizationId: string;
+    status?: string;
+  }): Promise<ProjectWithCreatorDto[]> {
+    const whereConditions = [
+      eq(projects.organizationId, filters.organizationId),
+    ];
+
+    if (filters.status) {
+      whereConditions.push(eq(projects.status, filters.status));
+    }
+
+    const result = await db
+      .select({
+        id: projects.id,
+        name: projects.name,
+        description: projects.description,
+        status: projects.status,
+        organizationId: projects.organizationId,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt,
+        createdBy: {
+          id: users.id,
+          givenName: users.givenName,
+          familyName: users.familyName,
+          email: users.email,
+        },
+      })
+      .from(projects)
+      .leftJoin(users, eq(projects.createdById, users.id))
+      .where(and(...whereConditions));
+
+    return result.map((project) => ({
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      status: project.status,
+      organizationId: project.organizationId,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+      createdBy: project.createdBy || {
+        id: "",
+        givenName: null,
+        familyName: null,
+        email: "Unknown",
+      },
+    }));
+  }
+
+  /**
+   * Count projects by organization
+   */
+  static async countByOrganization(
+    organizationId: string,
+    status?: string
+  ): Promise<number> {
+    const whereConditions = [eq(projects.organizationId, organizationId)];
+
+    if (status) {
+      whereConditions.push(eq(projects.status, status));
+    }
+
+    const result = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(and(...whereConditions));
+
+    return result.length;
+  }
+
+  /**
    * Delete a project (soft delete by changing status)
    */
   static async softDelete(
@@ -194,17 +243,7 @@ export class ProjectQueries {
         )
         .returning();
 
-      const success = result.length > 0;
-
-      if (success) {
-        // Invalidate cache after soft delete
-        await CacheService.INVALIDATION.invalidateProject(
-          projectId,
-          organizationId
-        );
-      }
-
-      return success;
+      return result.length > 0;
     });
   }
 }

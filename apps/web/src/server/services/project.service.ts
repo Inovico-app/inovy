@@ -13,6 +13,7 @@ import type {
 import { checkProjectNameUnique } from "../helpers/project";
 import { findExistingUserByKindeId } from "../helpers/user";
 import type { CreateProjectInput } from "../validation/create-project";
+import { CacheService } from "./cache.service";
 
 /**
  * Business logic layer for Project operations
@@ -52,10 +53,18 @@ export class ProjectService {
         return err("User organization not found");
       }
 
-      // Get project with creator details using data access layer
-      const project = await ProjectQueries.findByIdWithCreator(
-        projectId,
-        dbUser.organizationId
+      // Get project with creator details using caching
+      const cacheKey = CacheService.KEYS.PROJECT_BY_ID(projectId);
+
+      const project = await CacheService.withCache(
+        cacheKey,
+        async () => {
+          return await ProjectQueries.findByIdWithCreator(
+            projectId,
+            dbUser.organizationId
+          );
+        },
+        { ttl: CacheService.TTL.PROJECT }
       );
 
       if (!project) {
@@ -156,8 +165,9 @@ export class ProjectService {
         ...filters,
       };
 
-      const projects = await ProjectQueries.findByOrganizationWithCreator(
-        projectFilters
+      const projects = await ProjectQueries.findByIdWithCreator(
+        filters.createdById ?? "",
+        projectFilters.organizationId
       );
 
       return ok(projects);
@@ -256,6 +266,8 @@ export class ProjectService {
       () => ProjectQueries.create(projectData),
       "project-creation"
     );
+
+    CacheService.INVALIDATION.invalidateProjectCache(dbUser.organizationId);
 
     return createResult;
   }

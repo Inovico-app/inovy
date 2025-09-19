@@ -222,6 +222,9 @@ inovy/
 ### Service Layer
 
 - **ProjectService** - Project business logic with authentication
+- **OrganizationService** - Organization business logic with authentication
+- **UserService** - User business logic with authentication
+- **CacheService** - Cache management with Upstash Redis
 - **CacheHealthService** - Cache monitoring and management
 - Authentication & authorization
 - Data validation and transformation

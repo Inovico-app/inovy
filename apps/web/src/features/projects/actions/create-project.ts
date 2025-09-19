@@ -7,8 +7,8 @@ import {
   resultToActionResponse,
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
-import { ProjectService } from "../../services";
-import { createProjectSchema } from "../../validation/create-project";
+import { ProjectService } from "../../../server/services";
+import { createProjectSchema } from "../../../server/validation/create-project";
 
 /**
  * Project creation using Result types throughout

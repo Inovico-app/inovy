@@ -1,5 +1,5 @@
+import { CacheHealthService } from "@/server/services";
 import { NextResponse } from "next/server";
-import { CacheHealthService } from "../../../../server/services/cache-health.service";
 
 /**
  * Cache health check API endpoint

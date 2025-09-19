@@ -1,6 +1,6 @@
+import { CacheService } from "@/lib/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "../../lib/logger";
-import { CacheService } from "../cache";
 
 /**
  * Cache middleware for API routes

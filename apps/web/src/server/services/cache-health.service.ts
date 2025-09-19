@@ -1,6 +1,6 @@
 import { Result, err, ok } from "neverthrow";
 import { logger } from "../../lib/logger";
-import { CacheService } from "../cache";
+import { CacheService } from "./cache.service";
 
 /**
  * Service for cache health monitoring and management

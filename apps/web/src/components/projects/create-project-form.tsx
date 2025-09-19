@@ -1,6 +1,6 @@
 "use client";
 
-import { createProjectAction } from "@/server/actions/project/create-project";
+import { createProjectAction } from "@/features/projects/actions/create-project";
 import { useAction } from "next-safe-action/hooks";
 import { useState } from "react";
 import { Button } from "../ui/button";

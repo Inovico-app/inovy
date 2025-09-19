@@ -1,5 +1,4 @@
 import { and, eq } from "drizzle-orm";
-import { CacheService } from "../cache";
 import { db } from "../db";
 import { organizationsTable, users } from "../db/schema";
 import type {
@@ -33,7 +32,7 @@ export class UserQueries {
         })
         .returning();
 
-      const result = {
+      return {
         id: user.id,
         kindeId: user.kindeId,
         email: user.email,
@@ -44,19 +43,6 @@ export class UserQueries {
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       };
-
-      // Cache the newly created user
-      await CacheService.set(
-        CacheService.KEYS.USER_BY_KINDE(data.kindeId),
-        result,
-        { ttl: CacheService.TTL.USER }
-      );
-
-      await CacheService.set(CacheService.KEYS.USER_BY_ID(result.id), result, {
-        ttl: CacheService.TTL.USER,
-      });
-
-      return result;
     });
   }
 
@@ -64,66 +50,50 @@ export class UserQueries {
    * Find a user by Kinde ID
    */
   static async findByKindeId(kindeId: string): Promise<UserDto | null> {
-    const cacheKey = CacheService.KEYS.USER_BY_KINDE(kindeId);
+    const result = await db
+      .select({
+        id: users.id,
+        kindeId: users.kindeId,
+        email: users.email,
+        givenName: users.givenName,
+        familyName: users.familyName,
+        picture: users.picture,
+        organizationId: users.organizationId,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
+      .from(users)
+      .where(eq(users.kindeId, kindeId))
+      .limit(1);
 
-    return CacheService.withCache(
-      cacheKey,
-      async () => {
-        const result = await db
-          .select({
-            id: users.id,
-            kindeId: users.kindeId,
-            email: users.email,
-            givenName: users.givenName,
-            familyName: users.familyName,
-            picture: users.picture,
-            organizationId: users.organizationId,
-            createdAt: users.createdAt,
-            updatedAt: users.updatedAt,
-          })
-          .from(users)
-          .where(eq(users.kindeId, kindeId))
-          .limit(1);
+    if (result.length === 0) return null;
 
-        if (result.length === 0) return null;
-
-        return result[0];
-      },
-      { ttl: CacheService.TTL.USER }
-    );
+    return result[0];
   }
 
   /**
    * Find a user by ID
    */
   static async findById(userId: string): Promise<UserDto | null> {
-    const cacheKey = CacheService.KEYS.USER_BY_ID(userId);
+    const result = await db
+      .select({
+        id: users.id,
+        kindeId: users.kindeId,
+        email: users.email,
+        givenName: users.givenName,
+        familyName: users.familyName,
+        picture: users.picture,
+        organizationId: users.organizationId,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
-    return CacheService.withCache(
-      cacheKey,
-      async () => {
-        const result = await db
-          .select({
-            id: users.id,
-            kindeId: users.kindeId,
-            email: users.email,
-            givenName: users.givenName,
-            familyName: users.familyName,
-            picture: users.picture,
-            organizationId: users.organizationId,
-            createdAt: users.createdAt,
-            updatedAt: users.updatedAt,
-          })
-          .from(users)
-          .where(eq(users.id, userId))
-          .limit(1);
+    if (result.length === 0) return null;
 
-        if (result.length === 0) return null;
-
-        return result[0];
-      },
-      { ttl: CacheService.TTL.USER }
-    );
+    return result[0];
   }
 
   /**
@@ -233,7 +203,7 @@ export class UserQueries {
       if (result.length === 0) return null;
 
       const user = result[0];
-      const updatedUser = {
+      return {
         id: user.id,
         kindeId: user.kindeId,
         email: user.email,
@@ -244,15 +214,6 @@ export class UserQueries {
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       };
-
-      // Invalidate cache after update
-      await CacheService.INVALIDATION.invalidateUser(
-        userId,
-        user.kindeId,
-        user.organizationId
-      );
-
-      return updatedUser;
     });
   }
 
