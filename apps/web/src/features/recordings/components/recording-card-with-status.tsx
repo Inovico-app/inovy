@@ -11,8 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card";
-import { useRecordingStatus } from "../../../hooks/use-recording-status";
 import type { RecordingDto } from "../../../server/dto";
+import { useRecordingStatus } from "../hooks/use-recording-status-query";
 import { StatusBadge } from "./status-badge";
 
 interface RecordingCardWithStatusProps {

@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TaskCard } from "./task-card";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Task } from "@/server/db/schema";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useExtractTasksMutation } from "../hooks/use-extract-tasks-mutation";
+import { TaskCard } from "./task-card";
 
 interface TaskListProps {
   recordingId: string;
@@ -16,36 +17,21 @@ interface TaskListProps {
 }
 
 export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
-  const [isGenerating, setIsGenerating] = useState(false);
   const [localTasks, setLocalTasks] = useState(tasks ?? []);
 
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    try {
-      const response = await fetch(`/api/extract-tasks/${recordingId}`, {
-        method: "POST",
-      });
+  const { extractTasks, isExtracting } = useExtractTasksMutation({
+    recordingId,
+    onSuccess: onRegenerate,
+  });
 
-      if (!response.ok) {
-        throw new Error("Failed to extract tasks");
-      }
-
-      const data = await response.json();
-      toast.success(`${data.extraction.totalExtracted} taken geëxtraheerd!`);
-
-      // Reload to get fresh data
-      if (onRegenerate) {
-        onRegenerate();
-      }
-    } catch (error) {
-      console.error("Error extracting tasks:", error);
-      toast.error("Fout bij extraheren van taken");
-    } finally {
-      setIsGenerating(false);
-    }
+  const handleGenerate = () => {
+    extractTasks();
   };
 
-  const handleStatusChange = async (taskId: string, newStatus: Task["status"]) => {
+  const handleStatusChange = async (
+    taskId: string,
+    newStatus: Task["status"]
+  ) => {
     try {
       // Optimistically update UI
       setLocalTasks((prev) =>
@@ -70,8 +56,8 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
           <p className="text-muted-foreground mb-4">
             Geen actiepunten beschikbaar
           </p>
-          <Button onClick={handleGenerate} disabled={isGenerating}>
-            {isGenerating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+          <Button onClick={handleGenerate} disabled={isExtracting}>
+            {isExtracting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Actiepunten extraheren
           </Button>
         </CardContent>
@@ -99,9 +85,9 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
             variant="outline"
             size="sm"
             onClick={handleGenerate}
-            disabled={isGenerating}
+            disabled={isExtracting}
           >
-            {isGenerating ? (
+            {isExtracting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               "Opnieuw extraheren"

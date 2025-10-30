@@ -1,4 +1,4 @@
-import { type Result, err, ok } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 import { ActionErrors, type ActionError } from "../../lib/action-errors";
 import { logger } from "../../lib/logger";
 import {
@@ -7,8 +7,8 @@ import {
   selectRecordingsByProjectId,
   updateRecordingMetadata as updateRecordingMetadataQuery,
 } from "../data-access/recordings.queries";
-import { type RecordingDto } from "../dto";
 import type { NewRecording, Recording } from "../db/schema";
+import { type RecordingDto } from "../dto";
 
 /**
  * Recording Service
@@ -198,12 +198,15 @@ export class RecordingService {
 
     // Verify recording belongs to the user's organization
     if (recording.organizationId !== organizationId) {
-      logger.warn("User attempted to update recording from different organization", {
-        component: "RecordingService.updateRecordingMetadata",
-        recordingId: id,
-        userOrgId: organizationId,
-        recordingOrgId: recording.organizationId,
-      });
+      logger.warn(
+        "User attempted to update recording from different organization",
+        {
+          component: "RecordingService.updateRecordingMetadata",
+          recordingId: id,
+          userOrgId: organizationId,
+          recordingOrgId: recording.organizationId,
+        }
+      );
 
       return err(
         ActionErrors.forbidden(

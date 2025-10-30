@@ -1,6 +1,7 @@
 import { PageLayout } from "@/components/page-layout";
 import Providers from "@/components/providers";
 import { KindeAuthProvider } from "@/providers/AuthProvider";
+import { QueryProvider } from "@/providers/QueryProvider";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 import { SpeedInsights as VercelSpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
@@ -35,9 +36,11 @@ export default function RootLayout({
         <KindeAuthProvider>
           <VercelAnalytics />
           <VercelSpeedInsights />
-          <Providers>
-            <PageLayout>{children}</PageLayout>
-          </Providers>
+          <QueryProvider>
+            <Providers>
+              <PageLayout>{children}</PageLayout>
+            </Providers>
+          </QueryProvider>
         </KindeAuthProvider>
       </body>
     </html>

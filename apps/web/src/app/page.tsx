@@ -7,14 +7,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { TaskCard } from "@/features/tasks/components/task-card";
 import { getUserSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import { TaskService } from "@/server/services";
 import { FolderIcon, ListTodoIcon, MicIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { TaskService } from "@/server/services";
-import { Badge } from "@/components/ui/badge";
-import { TaskCard } from "@/features/tasks/components/task-card";
 
 async function DashboardContent() {
   const userResult = await getUserSession();
@@ -142,7 +141,8 @@ async function DashboardContent() {
               <CardContent>
                 <div className="text-2xl font-bold">
                   {taskStats
-                    ? taskStats.byStatus.pending + taskStats.byStatus.in_progress
+                    ? taskStats.byStatus.pending +
+                      taskStats.byStatus.in_progress
                     : 0}
                 </div>
                 <p className="text-xs text-muted-foreground">

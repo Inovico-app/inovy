@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { useGenerateSummaryMutation } from "../hooks/use-generate-summary-mutation";
 
 interface SummaryContent {
   hoofdonderwerpen: string[];
@@ -35,34 +34,21 @@ export function RecordingSummary({
   summary,
   onRegenerate,
 }: RecordingSummaryProps) {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [localSummary, setLocalSummary] = useState(summary);
+  const {
+    generateSummary,
+    isGenerating,
+    summary: mutationSummary,
+  } = useGenerateSummaryMutation({
+    recordingId,
+    onSuccess: onRegenerate,
+  });
 
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    try {
-      const response = await fetch(`/api/summarize/${recordingId}`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to generate summary");
-      }
-
-      const data = await response.json();
-      setLocalSummary(data.summary);
-      toast.success("Samenvatting gegenereerd!");
-      
-      if (onRegenerate) {
-        onRegenerate();
-      }
-    } catch (error) {
-      console.error("Error generating summary:", error);
-      toast.error("Fout bij genereren van samenvatting");
-    } finally {
-      setIsGenerating(false);
-    }
+  const handleGenerate = () => {
+    generateSummary();
   };
+
+  // Use mutation summary if available, otherwise use prop summary
+  const localSummary = mutationSummary ?? summary;
 
   if (!localSummary) {
     return (
