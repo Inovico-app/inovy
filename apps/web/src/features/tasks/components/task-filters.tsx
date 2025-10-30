@@ -6,13 +6,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import type { TaskPriority, TaskStatus } from "@/server/db/schema/tasks";
-import { X } from "lucide-react";
+import { X, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface TaskFiltersProps {
   selectedPriorities: TaskPriority[];
   onPrioritiesChange: (priorities: TaskPriority[]) => void;
   selectedStatuses: TaskStatus[];
   onStatusesChange: (statuses: TaskStatus[]) => void;
+  selectedProjectIds: string[];
+  onProjectIdsChange: (projectIds: string[]) => void;
   taskCounts?: {
     low: number;
     medium: number;
@@ -25,6 +35,7 @@ interface TaskFiltersProps {
     completed: number;
     cancelled: number;
   };
+  projects?: Array<{ id: string; name: string; taskCount: number }>;
   onClearFilters?: () => void;
 }
 
@@ -62,8 +73,11 @@ export function TaskFilters({
   onPrioritiesChange,
   selectedStatuses,
   onStatusesChange,
+  selectedProjectIds,
+  onProjectIdsChange,
   taskCounts,
   statusCounts,
+  projects,
   onClearFilters,
 }: TaskFiltersProps) {
   const handlePriorityToggle = (priority: TaskPriority) => {
@@ -82,8 +96,18 @@ export function TaskFilters({
     }
   };
 
+  const handleProjectToggle = (projectId: string) => {
+    if (selectedProjectIds.includes(projectId)) {
+      onProjectIdsChange(selectedProjectIds.filter((id) => id !== projectId));
+    } else {
+      onProjectIdsChange([...selectedProjectIds, projectId]);
+    }
+  };
+
   const hasActiveFilters =
-    selectedPriorities.length > 0 || selectedStatuses.length > 0;
+    selectedPriorities.length > 0 ||
+    selectedStatuses.length > 0 ||
+    selectedProjectIds.length > 0;
 
   return (
     <Card>
@@ -169,6 +193,51 @@ export function TaskFilters({
             })}
           </div>
         </div>
+
+        {/* Project Filter */}
+        {projects && projects.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Projects
+            </h3>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full justify-between">
+                  <span className="text-sm">
+                    {selectedProjectIds.length === 0
+                      ? "All Projects"
+                      : selectedProjectIds.length === 1
+                        ? projects.find((p) => p.id === selectedProjectIds[0])
+                            ?.name
+                        : `${selectedProjectIds.length} projects`}
+                  </span>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="start">
+                <DropdownMenuLabel>Select Projects</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {projects.map((project) => {
+                  const isChecked = selectedProjectIds.includes(project.id);
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={project.id}
+                      checked={isChecked}
+                      onCheckedChange={() => handleProjectToggle(project.id)}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="truncate">{project.name}</span>
+                        <Badge variant="outline" className="ml-2 text-xs">
+                          {project.taskCount}
+                        </Badge>
+                      </div>
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
