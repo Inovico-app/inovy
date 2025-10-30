@@ -10,6 +10,7 @@ import { getUserProjects } from "@/features/projects/actions/get-user-projects";
 import { TaskCard } from "./task-card";
 import { TaskFilters } from "./task-filters";
 import { TaskSort, type SortField, type SortOrder } from "./task-sort";
+import { TaskSearch } from "./task-search";
 import { Loader } from "@/components/loader";
 import { toast } from "sonner";
 import { useQueryStates, parseAsArrayOf, parseAsString } from "nuqs";
@@ -38,6 +39,7 @@ export function GlobalTaskList() {
     projectIds: parseAsArrayOf(parseAsString).withDefault([]),
     sortBy: parseAsString.withDefault("priority"),
     sortOrder: parseAsString.withDefault("desc"),
+    search: parseAsString.withDefault(""),
   });
 
   // Parse priorities as TaskPriority[]
@@ -63,6 +65,9 @@ export function GlobalTaskList() {
   const sortOrder = (["asc", "desc"].includes(filters.sortOrder)
     ? filters.sortOrder
     : "desc") as SortOrder;
+
+  // Parse search query
+  const searchQuery = filters.search.trim();
 
   // Load all tasks and projects on mount
   useEffect(() => {
@@ -120,6 +125,18 @@ export function GlobalTaskList() {
       );
     }
 
+    // Filter by search query (case-insensitive, matches title, description, project, or recording)
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (task) =>
+          task.title.toLowerCase().includes(query) ||
+          task.description?.toLowerCase().includes(query) ||
+          task.project.name.toLowerCase().includes(query) ||
+          task.recording.title.toLowerCase().includes(query)
+      );
+    }
+
     // Sort tasks
     const sorted = [...filtered].sort((a, b) => {
       let comparison = 0;
@@ -157,6 +174,7 @@ export function GlobalTaskList() {
     selectedPriorities,
     selectedStatuses,
     selectedProjectIds,
+    searchQuery,
     sortBy,
     sortOrder,
     allTasks,
@@ -206,8 +224,17 @@ export function GlobalTaskList() {
     setFilters({ sortBy: newSortBy, sortOrder: newSortOrder });
   };
 
+  const handleSearchChange = (value: string) => {
+    setFilters({ search: value });
+  };
+
   const handleClearFilters = () => {
-    setFilters({ priorities: [], statuses: ["pending", "in_progress"], projectIds: [] });
+    setFilters({
+      priorities: [],
+      statuses: ["pending", "in_progress"],
+      projectIds: [],
+      search: "",
+    });
   };
 
   const handleStatusChange = useCallback(
@@ -340,7 +367,14 @@ export function GlobalTaskList() {
       </div>
 
       {/* Tasks List */}
-      <div className="lg:col-span-3">
+      <div className="lg:col-span-3 space-y-4">
+        {/* Search Bar */}
+        <TaskSearch
+          value={searchQuery}
+          onChange={handleSearchChange}
+          placeholder="Search by title, description, project, or recording..."
+        />
+
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
