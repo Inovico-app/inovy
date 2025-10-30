@@ -1,0 +1,25 @@
+name: Migrate to prod (drizzle)
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+env:
+  PROD_DATABASE_URL: ${{ secrets.DATABASE_URL }} # Production or primary database
+
+jobs:
+  pr-merged:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true # Ensure the PR was merged
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Drizzle Migrate
+        run: |
+          cd apps/web
+          npm run db:migrate
+
