@@ -1,8 +1,10 @@
 import { safeAsync, type ActionResult } from "@/lib";
-import { type Result, err, ok } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 import { ActionErrors } from "../../lib/action-errors";
 import { getAuthSession, type AuthUser } from "../../lib/auth";
+import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
+import { getCachedProjectByIdWithCreator } from "../cache";
 import { ProjectQueries } from "../data-access";
 import type { AllowedStatus } from "../data-access/projects.queries";
 import type {
@@ -14,7 +16,6 @@ import type {
 } from "../dto";
 import { checkProjectNameUnique } from "../helpers/project";
 import type { CreateProjectInput } from "../validation/create-project";
-import { CacheService } from "./cache.service";
 import { KindeUserService } from "./kinde-user.service";
 
 /**
@@ -43,18 +44,10 @@ export class ProjectService {
         return err("Authentication required");
       }
 
-      // Get project with creator ID using caching
-      const cacheKey = CacheService.KEYS.PROJECT_BY_ID(projectId);
-
-      const project = await CacheService.withCache(
-        cacheKey,
-        async () => {
-          return await ProjectQueries.findByIdWithCreator(
-            projectId,
-            organization.orgCode
-          );
-        },
-        { ttl: CacheService.TTL.PROJECT }
+      // Get project with creator ID using Next.js cache
+      const project = await getCachedProjectByIdWithCreator(
+        projectId,
+        organization.orgCode
       );
 
       if (!project) {
@@ -193,7 +186,7 @@ export class ProjectService {
       "project-creation"
     );
 
-    CacheService.INVALIDATION.invalidateProjectCache(orgCode);
+    CacheInvalidation.invalidateProjectCache(orgCode);
 
     return createResult;
   }

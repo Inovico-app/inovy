@@ -1,10 +1,12 @@
 import { err, ok, type Result } from "neverthrow";
 import { getAuthSession } from "../../lib/auth";
+import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import {
   TasksQueries,
   type TaskWithContext,
 } from "../data-access/tasks.queries";
+import { getCachedTasksByUser, getCachedTaskStats } from "../cache";
 import type { Task } from "../db/schema";
 import type {
   TaskDto,
@@ -12,7 +14,6 @@ import type {
   TaskStatsDto,
   TaskWithContextDto,
 } from "../dto";
-import { CacheService } from "./cache.service";
 
 /**
  * Business logic layer for Task operations
@@ -39,30 +40,11 @@ export class TaskService {
         return err("Authentication required");
       }
 
-      // Build cache key (without filters for now - can be enhanced later)
-      const cacheKey = CacheService.KEYS.TASKS_BY_USER(
+      // Get tasks using Next.js cache
+      const tasks = await getCachedTasksByUser(
         authUser.id,
-        organization.orgCode
-      );
-
-      const tasks = await CacheService.withCache(
-        cacheKey,
-        async () => {
-          const result = await TasksQueries.getTasksByOrganization(
-            organization.orgCode,
-            {
-              ...filters,
-              assigneeId: authUser.id, // Always filter by current user
-            }
-          );
-
-          if (result.isErr()) {
-            throw new Error(result.error.message);
-          }
-
-          return result.value;
-        },
-        { ttl: CacheService.TTL.TASK }
+        organization.orgCode,
+        filters
       );
 
       return ok(tasks.map((task) => this.toDto(task)));
@@ -132,49 +114,8 @@ export class TaskService {
         return err("Authentication required");
       }
 
-      const cacheKey = CacheService.KEYS.TASK_STATS(
-        authUser.id,
-        organization.orgCode
-      );
-
-      const stats = await CacheService.withCache(
-        cacheKey,
-        async () => {
-          const result = await TasksQueries.getTasksByOrganization(
-            organization.orgCode,
-            {
-              assigneeId: authUser.id,
-            }
-          );
-
-          if (result.isErr()) {
-            throw new Error(result.error.message);
-          }
-
-          const tasks = result.value;
-
-          // Calculate statistics
-          const stats: TaskStatsDto = {
-            total: tasks.length,
-            byStatus: {
-              pending: tasks.filter((t) => t.status === "pending").length,
-              in_progress: tasks.filter((t) => t.status === "in_progress")
-                .length,
-              completed: tasks.filter((t) => t.status === "completed").length,
-              cancelled: tasks.filter((t) => t.status === "cancelled").length,
-            },
-            byPriority: {
-              low: tasks.filter((t) => t.priority === "low").length,
-              medium: tasks.filter((t) => t.priority === "medium").length,
-              high: tasks.filter((t) => t.priority === "high").length,
-              urgent: tasks.filter((t) => t.priority === "urgent").length,
-            },
-          };
-
-          return stats;
-        },
-        { ttl: CacheService.TTL.TASK }
-      );
+      // Get stats using cached function
+      const stats = await getCachedTaskStats(authUser.id, organization.orgCode);
 
       return ok(stats);
     } catch (error) {
@@ -245,7 +186,7 @@ export class TaskService {
    * Called after task mutations (create, update, delete)
    */
   static async invalidateCache(userId: string, orgCode: string): Promise<void> {
-    await CacheService.INVALIDATION.invalidateTaskCache(userId, orgCode);
+    CacheInvalidation.invalidateTaskCache(userId, orgCode);
   }
 
   /**
