@@ -4,7 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { EditRecordingModal } from "../../../../../components/recordings/edit-recording-modal";
-import { Badge } from "../../../../../components/ui/badge";
+import { ProcessingError } from "../../../../../components/recordings/processing-error";
+import { RecordingDetailStatus } from "../../../../../components/recordings/recording-detail-status";
 import { Button } from "../../../../../components/ui/button";
 import {
   Card,
@@ -72,24 +73,6 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
     return `${mb.toFixed(2)} MB`;
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { label: "Pending", variant: "outline" as const },
-      processing: { label: "Processing", variant: "default" as const },
-      completed: { label: "Completed", variant: "secondary" as const },
-      failed: { label: "Failed", variant: "destructive" as const },
-    };
-
-    const config =
-      statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-
-    return (
-      <Badge variant={config.variant} className="capitalize">
-        {config.label}
-      </Badge>
-    );
-  };
-
   const isVideo = recording.fileMimeType.startsWith("video/");
   const isAudio = recording.fileMimeType.startsWith("audio/");
 
@@ -137,7 +120,10 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
             )}
           </div>
           <div className="flex gap-2 items-center">
-            {getStatusBadge(recording.transcriptionStatus)}
+            <RecordingDetailStatus
+              recordingId={recording.id}
+              initialStatus={recording.transcriptionStatus}
+            />
             <EditRecordingModal recording={recording} />
           </div>
         </div>
@@ -253,13 +239,11 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
                 </p>
               </div>
             ) : recording.transcriptionStatus === "failed" ? (
-              <div className="text-center py-8 text-destructive">
-                <p>Transcription failed</p>
-                <p className="text-sm mt-2">
-                  There was an error processing this recording. Please try
-                  uploading again.
-                </p>
-              </div>
+              <ProcessingError
+                title="Transcription Failed"
+                recordingTitle={recording.title}
+                message="There was an error transcribing this recording. This could be due to audio quality issues, unsupported audio format, or a temporary service issue."
+              />
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <p>Transcription pending</p>
