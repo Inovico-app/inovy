@@ -7,6 +7,7 @@ import {
   resultToActionResponse,
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
+import { getAuthSession } from "../../../lib/auth";
 import { ProjectService } from "../../../server/services";
 import { createProjectSchema } from "../../../server/validation/create-project";
 
@@ -29,10 +30,23 @@ export const createProjectAction = authorizedActionClient
       );
     }
 
+    // Get organization code from session
+    const authResult = await getAuthSession();
+    if (authResult.isErr() || !authResult.value.organization) {
+      throw ActionErrors.internal(
+        "Failed to get organization context",
+        undefined,
+        "create-project"
+      );
+    }
+
+    const orgCode = authResult.value.organization.orgCode;
+
     // All operations return Results - no exceptions thrown
     const result = await ProjectService.createProject(
       { name, description },
-      user
+      user,
+      orgCode
     );
 
     // Convert Result to action response (throws if error)

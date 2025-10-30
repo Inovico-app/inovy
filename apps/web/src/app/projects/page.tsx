@@ -1,3 +1,4 @@
+import { KindeUserService } from "@/server/services";
 import { CalendarIcon, FileTextIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "../../components/ui/button";
@@ -34,15 +35,25 @@ export default async function ProjectsPage() {
     });
   };
 
-  const getCreatorName = (createdBy: any) => {
-    const { givenName, familyName } = createdBy;
-    if (givenName && familyName) {
-      return `${givenName} ${familyName}`;
+  const getCreatorName = async (createdById: string) => {
+    const creator = await KindeUserService.getUserById(createdById);
+    if (creator.isErr()) {
+      return "Unknown Creator";
     }
-    if (givenName) {
-      return givenName;
+    if (!creator.value) {
+      return "Unknown Creator";
     }
-    return createdBy.email;
+    const { given_name, family_name } = creator.value;
+    if (given_name && family_name) {
+      return `${given_name} ${family_name}`;
+    }
+    if (given_name) {
+      return given_name;
+    }
+    if (family_name) {
+      return family_name;
+    }
+    return "Unknown Creator";
   };
 
   return (
@@ -100,7 +111,7 @@ export default async function ProjectsPage() {
                       </div>
                       <div className="flex items-center text-xs text-muted-foreground">
                         <FileTextIcon className="h-3 w-3 mr-1" />
-                        By {getCreatorName(project.createdBy)}
+                        By {getCreatorName(project.createdById)}
                       </div>
                     </div>
                   </CardContent>
