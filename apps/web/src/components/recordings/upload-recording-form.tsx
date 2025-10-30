@@ -1,18 +1,17 @@
 "use client";
 
-import { UploadIcon, XIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, useRef, type DragEvent, type ChangeEvent } from "react";
-import { toast } from "sonner";
 import { uploadRecordingFormAction } from "@/features/recordings/actions/upload-recording";
 import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE,
 } from "@/server/validation/recordings/upload-recording";
+import { UploadIcon, XIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 
 interface UploadRecordingFormProps {
   projectId: string;
@@ -76,14 +75,22 @@ export function UploadRecordingForm({
 
   const handleFileSelect = (selectedFile: File) => {
     // Validate file type
-    if (!ALLOWED_MIME_TYPES.includes(selectedFile.type as (typeof ALLOWED_MIME_TYPES)[number])) {
-      setError("Unsupported file type. Please upload mp3, mp4, wav, or m4a files.");
+    if (
+      !ALLOWED_MIME_TYPES.includes(
+        selectedFile.type as (typeof ALLOWED_MIME_TYPES)[number]
+      )
+    ) {
+      setError(
+        "Unsupported file type. Please upload mp3, mp4, wav, or m4a files."
+      );
       return;
     }
 
     // Validate file size
     if (selectedFile.size > MAX_FILE_SIZE) {
-      setError(`File size exceeds maximum of ${MAX_FILE_SIZE / 1024 / 1024}MB.`);
+      setError(
+        `File size exceeds maximum of ${MAX_FILE_SIZE / 1024 / 1024}MB.`
+      );
       return;
     }
 
@@ -158,8 +165,8 @@ export function UploadRecordingForm({
           router.push(`/projects/${projectId}`);
         }
       } else {
-        setError(result.error || "Failed to upload recording");
-        toast.error(result.error || "Failed to upload recording");
+        setError(result.error ?? "Failed to upload recording");
+        toast.error(result.error ?? "Failed to upload recording");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -174,7 +181,7 @@ export function UploadRecordingForm({
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
   };
 
   return (
@@ -185,7 +192,11 @@ export function UploadRecordingForm({
         <div
           className={`
             border-2 border-dashed rounded-lg p-8 text-center transition-colors
-            ${isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25"}
+            ${
+              isDragging
+                ? "border-primary bg-primary/5"
+                : "border-muted-foreground/25"
+            }
             ${file ? "bg-muted/50" : "bg-background"}
             ${isUploading ? "pointer-events-none opacity-50" : "cursor-pointer"}
           `}
@@ -213,7 +224,8 @@ export function UploadRecordingForm({
                   Drop your recording here or click to browse
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Supports MP3, MP4, WAV, M4A (max {MAX_FILE_SIZE / 1024 / 1024}MB)
+                  Supports MP3, MP4, WAV, M4A (max {MAX_FILE_SIZE / 1024 / 1024}
+                  MB)
                 </p>
               </div>
             </div>

@@ -1,8 +1,8 @@
 "use client";
 
+import type { RecordingDto } from "@/server/dto";
 import { EditIcon } from "lucide-react";
 import { useState } from "react";
-import type { RecordingDto } from "@/server/dto";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -36,7 +36,7 @@ export function EditRecordingModal({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        {trigger || (
+        {trigger ?? (
           <Button variant="outline" size="sm">
             <EditIcon className="h-4 w-4 mr-2" />
             Edit

@@ -24,7 +24,7 @@ export function EditRecordingForm({
   const router = useRouter();
 
   const [title, setTitle] = useState(recording.title);
-  const [description, setDescription] = useState(recording.description || "");
+  const [description, setDescription] = useState(recording.description ?? "");
   const [recordingDate, setRecordingDate] = useState(
     recording.recordingDate.toISOString().split("T")[0]
   );

@@ -1,11 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { authorizedActionClient, resultToActionResponse } from "@/lib";
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { RecordingService } from "@/server/services";
 import { updateRecordingMetadataSchema } from "@/server/validation/recordings/update-recording-metadata";
+import { revalidatePath } from "next/cache";
 
 /**
  * Update recording metadata using authorized action client
@@ -15,11 +15,11 @@ export const updateRecordingMetadataAction = authorizedActionClient
   .schema(updateRecordingMetadataSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
-    
+
     if (!user) {
       throw new Error("User not found");
     }
-    
+
     const { id, title, description, recordingDate } = parsedInput;
 
     logger.info("Updating recording metadata via action", {
@@ -46,7 +46,7 @@ export const updateRecordingMetadataAction = authorizedActionClient
       organization.orgCode,
       {
         title,
-        description: description || null,
+        description: description ?? null,
         recordingDate,
       }
     );

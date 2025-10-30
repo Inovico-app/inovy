@@ -1,15 +1,14 @@
 "use server";
 
-import { put } from "@vercel/blob";
-import { revalidatePath } from "next/cache";
 import { getAuthSession } from "@/lib/auth";
-import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { RecordingService } from "@/server/services";
 import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE,
 } from "@/server/validation/recordings/upload-recording";
+import { put } from "@vercel/blob";
+import { revalidatePath } from "next/cache";
 
 /**
  * Upload a recording file using FormData
@@ -21,7 +20,11 @@ export async function uploadRecordingFormAction(
   try {
     // Get auth session
     const authResult = await getAuthSession();
-    if (authResult.isErr() || !authResult.value.isAuthenticated || !authResult.value.user) {
+    if (
+      authResult.isErr() ||
+      !authResult.value.isAuthenticated ||
+      !authResult.value.user
+    ) {
       return { success: false, error: "Not authenticated" };
     }
 
@@ -49,10 +52,15 @@ export async function uploadRecordingFormAction(
     }
 
     // Validate file type
-    if (!ALLOWED_MIME_TYPES.includes(file.type as (typeof ALLOWED_MIME_TYPES)[number])) {
+    if (
+      !ALLOWED_MIME_TYPES.includes(
+        file.type as (typeof ALLOWED_MIME_TYPES)[number]
+      )
+    ) {
       return {
         success: false,
-        error: "Unsupported file type. Please upload mp3, mp4, wav, or m4a files",
+        error:
+          "Unsupported file type. Please upload mp3, mp4, wav, or m4a files",
       };
     }
 
@@ -86,7 +94,7 @@ export async function uploadRecordingFormAction(
     const result = await RecordingService.createRecording({
       projectId,
       title,
-      description: description || null,
+      description: description ?? null,
       fileUrl: blob.url,
       fileName: file.name,
       fileSize: file.size,
