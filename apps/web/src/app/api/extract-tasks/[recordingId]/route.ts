@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth";
-import { SummaryService } from "@/server/services/summary.service";
+import { TaskExtractionService } from "@/server/services/task-extraction.service";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { logger } from "@/lib/logger";
@@ -55,8 +55,8 @@ export async function POST(
       );
     }
 
-    logger.info("Starting summary generation", {
-      component: "SummarizeRoute",
+    logger.info("Starting task extraction", {
+      component: "ExtractTasksRoute",
       recordingId,
     });
 
@@ -72,16 +72,19 @@ export async function POST(
       utterances = transcriptionInsightResult.value.utterances ?? undefined;
     }
 
-    // Generate summary
-    const result = await SummaryService.generateSummary(
+    // Extract tasks
+    const result = await TaskExtractionService.extractTasks(
       recordingId,
+      recording.projectId,
       recording.transcriptionText,
+      recording.organizationId,
+      user.id,
       utterances
     );
 
     if (result.isErr()) {
-      logger.error("Summary generation failed", {
-        component: "SummarizeRoute",
+      logger.error("Task extraction failed", {
+        component: "ExtractTasksRoute",
         recordingId,
         error: result.error,
       });
@@ -94,93 +97,11 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      summary: result.value,
+      extraction: result.value,
     });
   } catch (error) {
-    logger.error("Error in summary API", {
-      component: "SummarizeRoute",
-      error,
-    });
-
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
-// GET endpoint to retrieve existing summary
-export async function GET(
-  request: NextRequest,
-  props: { params: Promise<{ recordingId: string }> }
-) {
-  try {
-    const { recordingId } = await props.params;
-
-    // Verify authentication
-    const authResult = await getAuthSession();
-    if (
-      authResult.isErr() ||
-      !authResult.value.isAuthenticated ||
-      !authResult.value.user
-    ) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Get recording
-    const recordingResult = await RecordingsQueries.selectRecordingById(
-      recordingId
-    );
-
-    if (recordingResult.isErr() || !recordingResult.value) {
-      return NextResponse.json(
-        { error: "Recording not found" },
-        { status: 404 }
-      );
-    }
-
-    const recording = recordingResult.value;
-
-    // Verify user has access
-    const user = authResult.value.user;
-    const organization = authResult.value.organization;
-
-    if (
-      recording.organizationId !== organization?.orgCode &&
-      recording.createdById !== user.id
-    ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    // Get existing summary
-    const summaryInsightResult = await AIInsightsQueries.getInsightByType(
-      recordingId,
-      "summary"
-    );
-
-    if (summaryInsightResult.isErr()) {
-      return NextResponse.json(
-        { error: "Failed to retrieve summary" },
-        { status: 500 }
-      );
-    }
-
-    const summaryInsight = summaryInsightResult.value;
-
-    if (!summaryInsight) {
-      return NextResponse.json({ error: "Summary not found" }, { status: 404 });
-    }
-
-    return NextResponse.json({
-      summary: {
-        content: summaryInsight.content,
-        confidence: summaryInsight.confidenceScore,
-        status: summaryInsight.processingStatus,
-      },
-    });
-  } catch (error) {
-    logger.error("Error retrieving summary", {
-      component: "SummarizeRoute.GET",
+    logger.error("Error in task extraction API", {
+      component: "ExtractTasksRoute",
       error,
     });
 
