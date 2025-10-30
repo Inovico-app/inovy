@@ -1,11 +1,11 @@
 "use client";
 
+import { updateRecordingMetadataAction } from "@/features/recordings/actions/update-recording-metadata";
+import type { RecordingDto } from "@/server/dto";
+import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useAction } from "next-safe-action/hooks";
-import { updateRecordingMetadataAction } from "@/features/recordings/actions/update-recording-metadata";
-import type { RecordingDto } from "@/server/dto";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -42,8 +42,7 @@ export function EditRecordingForm({
       }
     },
     onError: ({ error }) => {
-      const errorMessage =
-        error.serverError?.message || "Failed to update recording";
+      const errorMessage = error.serverError ?? "Failed to update recording";
       setError(errorMessage);
       toast.error(errorMessage);
     },

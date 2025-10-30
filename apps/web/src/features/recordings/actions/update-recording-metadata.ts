@@ -15,6 +15,11 @@ export const updateRecordingMetadataAction = authorizedActionClient
   .schema(updateRecordingMetadataSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
+    
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
     const { id, title, description, recordingDate } = parsedInput;
 
     logger.info("Updating recording metadata via action", {

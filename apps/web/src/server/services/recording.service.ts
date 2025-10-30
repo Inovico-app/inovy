@@ -144,8 +144,7 @@ export class RecordingService {
 
       return err(
         ActionErrors.notFound(
-          "Recording not found",
-          { recordingId: id },
+          "Recording",
           "RecordingService.updateRecordingMetadata"
         )
       );
