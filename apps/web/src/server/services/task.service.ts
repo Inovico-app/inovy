@@ -177,6 +177,62 @@ export class TaskService {
   }
 
   /**
+   * Update task status with authorization check
+   * Only allows the assignee or admins to update task status
+   */
+  static async updateTaskStatus(
+    taskId: string,
+    status: Task["status"]
+  ): Promise<Result<TaskDto, string>> {
+    try {
+      // Check authentication and get session
+      const authResult = await getAuthSession();
+      if (authResult.isErr()) {
+        return err("Failed to get authentication session");
+      }
+
+      const { user: authUser, organization } = authResult.value;
+
+      if (!authUser || !organization) {
+        return err("Authentication required");
+      }
+
+      // Get the task to verify ownership
+      const taskResult = await TasksQueries.getTaskById(taskId);
+      if (taskResult.isErr()) {
+        return err("Task not found");
+      }
+
+      const task = taskResult.value;
+
+      // Authorization check: only the assignee can update their own tasks
+      if (task.assigneeId !== authUser.id) {
+        return err("You are not authorized to update this task");
+      }
+
+      // Authorization check: verify task belongs to user's organization
+      if (task.organizationId !== organization.orgCode) {
+        return err("Task not found in your organization");
+      }
+
+      // Update the task status
+      const updateResult = await TasksQueries.updateTaskStatus(taskId, status);
+      if (updateResult.isErr()) {
+        return err(updateResult.error.message);
+      }
+
+      // Invalidate cache
+      await this.invalidateCache(authUser.id, organization.orgCode);
+
+      return ok(this.toDto(updateResult.value));
+    } catch (error) {
+      const errorMessage = "Failed to update task status";
+      logger.error(errorMessage, {}, error as Error);
+      return err(errorMessage);
+    }
+  }
+
+  /**
    * Invalidate task cache for a user
    * Called after task mutations (create, update, delete)
    */

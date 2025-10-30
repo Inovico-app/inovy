@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 
 export type SortField = "priority" | "dueDate" | "createdAt" | "project";
 export type SortOrder = "asc" | "desc";
