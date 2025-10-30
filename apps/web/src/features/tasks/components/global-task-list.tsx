@@ -7,6 +7,7 @@ import { getUserTasks } from "../actions/get-user-tasks";
 import { getUserProjects } from "@/features/projects/actions/get-user-projects";
 import { TaskCard } from "./task-card";
 import { TaskFilters } from "./task-filters";
+import { TaskSort, type SortField, type SortOrder } from "./task-sort";
 import { Loader } from "@/components/loader";
 import { toast } from "sonner";
 import { useQueryStates, parseAsArrayOf, parseAsString } from "nuqs";
@@ -20,11 +21,13 @@ export function GlobalTaskList() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Use nuqs for URL state management
-  // Default: show pending and in_progress tasks (hide completed)
+  // Default: show pending and in_progress tasks (hide completed), sort by priority desc
   const [filters, setFilters] = useQueryStates({
     priorities: parseAsArrayOf(parseAsString).withDefault([]),
     statuses: parseAsArrayOf(parseAsString).withDefault(["pending", "in_progress"]),
     projectIds: parseAsArrayOf(parseAsString).withDefault([]),
+    sortBy: parseAsString.withDefault("priority"),
+    sortOrder: parseAsString.withDefault("desc"),
   });
 
   // Parse priorities as TaskPriority[]
@@ -40,6 +43,16 @@ export function GlobalTaskList() {
 
   // Parse project IDs
   const selectedProjectIds = filters.projectIds;
+
+  // Parse sort parameters
+  const sortBy = (["priority", "dueDate", "createdAt", "project"].includes(
+    filters.sortBy
+  )
+    ? filters.sortBy
+    : "priority") as SortField;
+  const sortOrder = (["asc", "desc"].includes(filters.sortOrder)
+    ? filters.sortOrder
+    : "desc") as SortOrder;
 
   // Load all tasks and projects on mount
   useEffect(() => {
@@ -72,7 +85,7 @@ export function GlobalTaskList() {
     loadData();
   }, []);
 
-  // Filter tasks when filters change
+  // Filter and sort tasks when filters change
   useEffect(() => {
     let filtered = allTasks;
 
@@ -97,8 +110,47 @@ export function GlobalTaskList() {
       );
     }
 
-    setTasks(filtered);
-  }, [selectedPriorities, selectedStatuses, selectedProjectIds, allTasks]);
+    // Sort tasks
+    const sorted = [...filtered].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortBy) {
+        case "priority": {
+          const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
+          comparison =
+            priorityOrder[a.priority] - priorityOrder[b.priority];
+          break;
+        }
+        case "dueDate": {
+          const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+          const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+          comparison = aDate - bDate;
+          break;
+        }
+        case "createdAt": {
+          const aDate = new Date(a.createdAt).getTime();
+          const bDate = new Date(b.createdAt).getTime();
+          comparison = aDate - bDate;
+          break;
+        }
+        case "project": {
+          comparison = a.project.name.localeCompare(b.project.name);
+          break;
+        }
+      }
+
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+
+    setTasks(sorted);
+  }, [
+    selectedPriorities,
+    selectedStatuses,
+    selectedProjectIds,
+    sortBy,
+    sortOrder,
+    allTasks,
+  ]);
 
   // Calculate task counts by priority from all tasks
   const taskCounts = useMemo(() => {
@@ -140,6 +192,10 @@ export function GlobalTaskList() {
     setFilters({ projectIds });
   };
 
+  const handleSortChange = (newSortBy: SortField, newSortOrder: SortOrder) => {
+    setFilters({ sortBy: newSortBy, sortOrder: newSortOrder });
+  };
+
   const handleClearFilters = () => {
     setFilters({ priorities: [], statuses: ["pending", "in_progress"], projectIds: [] });
   };
@@ -166,17 +222,6 @@ export function GlobalTaskList() {
       </Card>
     );
   }
-
-  // Group tasks by priority for better organization
-  const tasksByPriority = useMemo(
-    () => ({
-      urgent: tasks.filter((t) => t.priority === "urgent"),
-      high: tasks.filter((t) => t.priority === "high"),
-      medium: tasks.filter((t) => t.priority === "medium"),
-      low: tasks.filter((t) => t.priority === "low"),
-    }),
-    [tasks]
-  );
 
   const totalPending = useMemo(
     () =>
@@ -215,9 +260,14 @@ export function GlobalTaskList() {
                   <Badge variant="secondary">{totalPending} pending</Badge>
                 )}
               </div>
+              <TaskSort
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSortChange={handleSortChange}
+              />
             </div>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-2">
             {tasks.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
                 <p>No tasks match the selected filters.</p>
@@ -230,61 +280,9 @@ export function GlobalTaskList() {
               </div>
             ) : (
               <>
-                {/* Urgent tasks */}
-                {tasksByPriority.urgent.length > 0 && (
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-red-700 dark:text-red-400">
-                      Urgent ({tasksByPriority.urgent.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {tasksByPriority.urgent.map((task) => (
-                        <TaskCard key={task.id} task={task} showContext />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* High priority tasks */}
-                {tasksByPriority.high.length > 0 && (
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-orange-700 dark:text-orange-400">
-                      High Priority ({tasksByPriority.high.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {tasksByPriority.high.map((task) => (
-                        <TaskCard key={task.id} task={task} showContext />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Medium priority tasks */}
-                {tasksByPriority.medium.length > 0 && (
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-400">
-                      Medium Priority ({tasksByPriority.medium.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {tasksByPriority.medium.map((task) => (
-                        <TaskCard key={task.id} task={task} showContext />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Low priority tasks */}
-                {tasksByPriority.low.length > 0 && (
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-400">
-                      Low Priority ({tasksByPriority.low.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {tasksByPriority.low.map((task) => (
-                        <TaskCard key={task.id} task={task} showContext />
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {tasks.map((task) => (
+                  <TaskCard key={task.id} task={task} showContext />
+                ))}
               </>
             )}
           </CardContent>
