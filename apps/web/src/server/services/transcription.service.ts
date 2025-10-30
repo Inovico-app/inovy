@@ -26,9 +26,12 @@ interface Utterance {
 }
 
 export class TranscriptionService {
-  private static deepgram = createClient(
-    process.env.DEEPGRAM_API_KEY || ""
-  );
+  private static getDeepgramClient() {
+    if (!process.env.DEEPGRAM_API_KEY) {
+      throw new Error("DEEPGRAM_API_KEY environment variable is not set");
+    }
+    return createClient(process.env.DEEPGRAM_API_KEY);
+  }
 
   /**
    * Transcribe an uploaded audio file using Deepgram Nova-3 Dutch
@@ -69,7 +72,8 @@ export class TranscriptionService {
       const insight = insightResult.value;
 
       // Call Deepgram API
-      const { result, error } = await this.deepgram.listen.prerecorded.transcribeUrl(
+      const deepgram = this.getDeepgramClient();
+      const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
         { url: fileUrl },
         {
           model: "nova-3",

@@ -51,7 +51,6 @@ export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
       if (result.success && result.recordingId) {
         // Save transcription (already done by live recording)
         toast.success("Opname succesvol opgeslagen!");
-        // @ts-expect-error - Dynamic route type issue
         router.push(`/projects/${projectId}/recordings/${result.recordingId}`);
       } else {
         toast.error(result.error || "Fout bij opslaan van opname");

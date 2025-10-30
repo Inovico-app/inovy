@@ -28,7 +28,7 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
   const [fullTranscript, setFullTranscript] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const connectionRef = useRef<unknown>(null);
+  const connectionRef = useRef<{ finish: () => void } | null>(null);
   const deepgramRef = useRef<unknown>(null);
 
   useEffect(() => {
@@ -139,7 +139,7 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
       mediaRecorder.start(250); // Send audio every 250ms
 
       // Store mediaRecorder for cleanup
-      (connection as Record<string, unknown>)._mediaRecorder = mediaRecorder;
+      (connection as unknown as Record<string, unknown>)._mediaRecorder = mediaRecorder;
     } catch (err) {
       console.error("Error starting transcription:", err);
       setError(
