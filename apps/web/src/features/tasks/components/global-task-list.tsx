@@ -10,7 +10,7 @@ import { Loader } from "@/components/loader";
 import { toast } from "sonner";
 import { useQueryStates, parseAsArrayOf, parseAsString } from "nuqs";
 import type { TaskWithContextDto } from "@/server/dto";
-import type { TaskPriority } from "@/server/db/schema/tasks";
+import type { TaskPriority, TaskStatus } from "@/server/db/schema/tasks";
 
 export function GlobalTaskList() {
   const [tasks, setTasks] = useState<TaskWithContextDto[]>([]);
@@ -18,13 +18,21 @@ export function GlobalTaskList() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Use nuqs for URL state management
+  // Default: show pending and in_progress tasks (hide completed)
   const [filters, setFilters] = useQueryStates({
     priorities: parseAsArrayOf(parseAsString).withDefault([]),
+    statuses: parseAsArrayOf(parseAsString).withDefault(["pending", "in_progress"]),
   });
 
   // Parse priorities as TaskPriority[]
   const selectedPriorities = filters.priorities.filter(
     (p): p is TaskPriority => ["low", "medium", "high", "urgent"].includes(p)
+  );
+
+  // Parse statuses as TaskStatus[]
+  const selectedStatuses = filters.statuses.filter(
+    (s): s is TaskStatus =>
+      ["pending", "in_progress", "completed", "cancelled"].includes(s)
   );
 
   // Load all tasks on mount
@@ -51,17 +59,26 @@ export function GlobalTaskList() {
     loadTasks();
   }, []);
 
-  // Filter tasks when selectedPriorities changes
+  // Filter tasks when selectedPriorities or selectedStatuses changes
   useEffect(() => {
-    if (selectedPriorities.length === 0) {
-      setTasks(allTasks);
-    } else {
-      const filtered = allTasks.filter((task) =>
+    let filtered = allTasks;
+
+    // Filter by priorities
+    if (selectedPriorities.length > 0) {
+      filtered = filtered.filter((task) =>
         selectedPriorities.includes(task.priority)
       );
-      setTasks(filtered);
     }
-  }, [selectedPriorities, allTasks]);
+
+    // Filter by statuses
+    if (selectedStatuses.length > 0) {
+      filtered = filtered.filter((task) =>
+        selectedStatuses.includes(task.status)
+      );
+    }
+
+    setTasks(filtered);
+  }, [selectedPriorities, selectedStatuses, allTasks]);
 
   // Calculate task counts by priority from all tasks
   const taskCounts = useMemo(() => {
@@ -73,12 +90,26 @@ export function GlobalTaskList() {
     };
   }, [allTasks]);
 
+  // Calculate task counts by status from all tasks
+  const statusCounts = useMemo(() => {
+    return {
+      pending: allTasks.filter((t) => t.status === "pending").length,
+      in_progress: allTasks.filter((t) => t.status === "in_progress").length,
+      completed: allTasks.filter((t) => t.status === "completed").length,
+      cancelled: allTasks.filter((t) => t.status === "cancelled").length,
+    };
+  }, [allTasks]);
+
   const handlePrioritiesChange = (priorities: TaskPriority[]) => {
     setFilters({ priorities });
   };
 
+  const handleStatusesChange = (statuses: TaskStatus[]) => {
+    setFilters({ statuses });
+  };
+
   const handleClearFilters = () => {
-    setFilters({ priorities: [] });
+    setFilters({ priorities: [], statuses: ["pending", "in_progress"] });
   };
 
   if (isLoading) {
@@ -129,7 +160,10 @@ export function GlobalTaskList() {
         <TaskFilters
           selectedPriorities={selectedPriorities}
           onPrioritiesChange={handlePrioritiesChange}
+          selectedStatuses={selectedStatuses}
+          onStatusesChange={handleStatusesChange}
           taskCounts={taskCounts}
+          statusCounts={statusCounts}
           onClearFilters={handleClearFilters}
         />
       </div>
