@@ -47,3 +47,37 @@ export async function selectRecordingById(
   }
 }
 
+/**
+ * Update recording metadata
+ */
+export async function updateRecordingMetadata(
+  id: string,
+  data: {
+    title?: string;
+    description?: string | null;
+    recordingDate?: Date;
+  }
+): Promise<Result<Recording, string>> {
+  try {
+    const [recording] = await db
+      .update(recordings)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(recordings.id, id))
+      .returning();
+
+    if (!recording) {
+      return err("Recording not found");
+    }
+
+    return ok(recording);
+  } catch (error) {
+    console.error("Error updating recording:", error);
+    return err(
+      error instanceof Error ? error.message : "Unknown database error"
+    );
+  }
+}
+

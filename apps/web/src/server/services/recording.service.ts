@@ -4,6 +4,7 @@ import { logger } from "../../lib/logger";
 import {
   insertRecording,
   selectRecordingById,
+  updateRecordingMetadata as updateRecordingMetadataQuery,
 } from "../data-access/recordings.queries";
 import { type RecordingDto } from "../dto";
 import type { NewRecording, Recording } from "../db/schema";
@@ -94,6 +95,109 @@ export class RecordingService {
     }
 
     return ok(this.toDto(recording));
+  }
+
+  /**
+   * Update recording metadata
+   * Verifies recording belongs to user's organization
+   */
+  static async updateRecordingMetadata(
+    id: string,
+    organizationId: string,
+    data: {
+      title: string;
+      description?: string | null;
+      recordingDate: Date;
+    }
+  ): Promise<Result<RecordingDto, ActionError>> {
+    logger.info("Updating recording metadata", {
+      component: "RecordingService.updateRecordingMetadata",
+      recordingId: id,
+    });
+
+    // First, fetch the recording to verify ownership
+    const recordingResult = await selectRecordingById(id);
+
+    if (recordingResult.isErr()) {
+      logger.error("Failed to fetch recording", {
+        component: "RecordingService.updateRecordingMetadata",
+        error: recordingResult.error,
+        recordingId: id,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to fetch recording",
+          new Error(recordingResult.error),
+          "RecordingService.updateRecordingMetadata"
+        )
+      );
+    }
+
+    const recording = recordingResult.value;
+
+    if (!recording) {
+      logger.warn("Recording not found", {
+        component: "RecordingService.updateRecordingMetadata",
+        recordingId: id,
+      });
+
+      return err(
+        ActionErrors.notFound(
+          "Recording not found",
+          { recordingId: id },
+          "RecordingService.updateRecordingMetadata"
+        )
+      );
+    }
+
+    // Verify recording belongs to the user's organization
+    if (recording.organizationId !== organizationId) {
+      logger.warn("User attempted to update recording from different organization", {
+        component: "RecordingService.updateRecordingMetadata",
+        recordingId: id,
+        userOrgId: organizationId,
+        recordingOrgId: recording.organizationId,
+      });
+
+      return err(
+        ActionErrors.forbidden(
+          "You don't have permission to update this recording",
+          {
+            recordingId: id,
+          },
+          "RecordingService.updateRecordingMetadata"
+        )
+      );
+    }
+
+    // Update the recording
+    const updateResult = await updateRecordingMetadataQuery(id, data);
+
+    if (updateResult.isErr()) {
+      logger.error("Failed to update recording in database", {
+        component: "RecordingService.updateRecordingMetadata",
+        error: updateResult.error,
+        recordingId: id,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to update recording",
+          new Error(updateResult.error),
+          "RecordingService.updateRecordingMetadata"
+        )
+      );
+    }
+
+    const updatedRecording = updateResult.value;
+
+    logger.info("Successfully updated recording metadata", {
+      component: "RecordingService.updateRecordingMetadata",
+      recordingId: id,
+    });
+
+    return ok(this.toDto(updatedRecording));
   }
 
   /**

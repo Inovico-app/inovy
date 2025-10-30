@@ -172,7 +172,7 @@
 - Allow manual date selection
 - Form validation and error messages
 
-**Priority**: High | **Effort**: 2
+**Priority**: High | **Effort**: 2 | **Status**: - [x] Completed
 
 ### REC-003: View Recording List
 
