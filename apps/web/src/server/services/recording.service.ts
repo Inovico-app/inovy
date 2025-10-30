@@ -1,0 +1,123 @@
+import { type Result, err, ok } from "neverthrow";
+import { ActionErrors, type ActionError } from "../../lib/action-errors";
+import { logger } from "../../lib/logger";
+import {
+  insertRecording,
+  selectRecordingById,
+} from "../data-access/recordings.queries";
+import { type RecordingDto } from "../dto";
+import type { NewRecording, Recording } from "../db/schema";
+
+/**
+ * Recording Service
+ * Handles business logic for recording management
+ */
+export class RecordingService {
+  /**
+   * Create a new recording
+   */
+  static async createRecording(
+    data: NewRecording
+  ): Promise<Result<RecordingDto, ActionError>> {
+    logger.info("Creating new recording", {
+      component: "RecordingService.createRecording",
+      projectId: data.projectId,
+      title: data.title,
+    });
+
+    const result = await insertRecording(data);
+
+    if (result.isErr()) {
+      logger.error("Failed to create recording in database", {
+        component: "RecordingService.createRecording",
+        error: result.error,
+        projectId: data.projectId,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to create recording",
+          new Error(result.error),
+          "RecordingService.createRecording"
+        )
+      );
+    }
+
+    const recording = result.value;
+
+    logger.info("Successfully created recording", {
+      component: "RecordingService.createRecording",
+      recordingId: recording.id,
+      projectId: recording.projectId,
+    });
+
+    return ok(this.toDto(recording));
+  }
+
+  /**
+   * Get a recording by ID
+   */
+  static async getRecordingById(
+    id: string
+  ): Promise<Result<RecordingDto | null, ActionError>> {
+    logger.info("Fetching recording by ID", {
+      component: "RecordingService.getRecordingById",
+      recordingId: id,
+    });
+
+    const result = await selectRecordingById(id);
+
+    if (result.isErr()) {
+      logger.error("Failed to fetch recording from database", {
+        component: "RecordingService.getRecordingById",
+        error: result.error,
+        recordingId: id,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to fetch recording",
+          new Error(result.error),
+          "RecordingService.getRecordingById"
+        )
+      );
+    }
+
+    const recording = result.value;
+
+    if (!recording) {
+      logger.warn("Recording not found", {
+        component: "RecordingService.getRecordingById",
+        recordingId: id,
+      });
+      return ok(null);
+    }
+
+    return ok(this.toDto(recording));
+  }
+
+  /**
+   * Convert database recording to DTO
+   */
+  private static toDto(recording: Recording): RecordingDto {
+    return {
+      id: recording.id,
+      projectId: recording.projectId,
+      title: recording.title,
+      description: recording.description,
+      fileUrl: recording.fileUrl,
+      fileName: recording.fileName,
+      fileSize: recording.fileSize,
+      fileMimeType: recording.fileMimeType,
+      duration: recording.duration,
+      recordingDate: recording.recordingDate,
+      transcriptionStatus: recording.transcriptionStatus,
+      transcriptionText: recording.transcriptionText,
+      organizationId: recording.organizationId,
+      createdById: recording.createdById,
+      createdAt: recording.createdAt,
+      updatedAt: recording.updatedAt,
+    };
+  }
+}
+

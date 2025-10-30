@@ -156,7 +156,7 @@
 - Upload progress indicator
 - Error handling for failed uploads
 
-**Priority**: High | **Effort**: 5
+**Priority**: High | **Effort**: 5 | **Status**: - [x] Completed
 
 ### REC-002: Add Recording Metadata
 
