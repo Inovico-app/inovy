@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { err, ok, Result } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 import { logger } from "@/lib/logger";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { CacheService } from "./cache.service";
@@ -168,18 +168,35 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
       // Update AI insight with summary
       await AIInsightsQueries.updateInsightContent(
         insight.id,
-        summaryContent,
+        summaryContent as unknown as Record<string, unknown>,
         confidence
       );
 
       // Cache the result
-      await CacheService.set(cacheKey, result, this.CACHE_TTL);
+      await CacheService.set(cacheKey, result, { ttl: this.CACHE_TTL });
 
       logger.info("Summary generated successfully", {
         component: "SummaryService.generateSummary",
         recordingId,
-        topicsCount: summaryContent.hoofdonderwerpen?.length || 0,
-        decisionsCount: summaryContent.beslissingen?.length || 0,
+        topicsCount: summaryContent.hoofdonderwerpen?.length ?? 0,
+        decisionsCount: summaryContent.beslissingen?.length ?? 0,
+      });
+
+      // Trigger task extraction in the background (fire and forget)
+      fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/extract-tasks/${recordingId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ).catch((error) => {
+        logger.error("Failed to trigger task extraction", {
+          component: "SummaryService.generateSummary",
+          recordingId,
+          error,
+        });
       });
 
       return ok(result);
@@ -202,7 +219,11 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
     recordingId: string
   ): Promise<Result<void, Error>> {
     const cacheKey = `${this.CACHE_PREFIX}${recordingId}`;
-    return CacheService.delete(cacheKey);
+    const result = await CacheService.delete(cacheKey);
+    if (result.isErr()) {
+      return err(new Error(result.error));
+    }
+    return ok(undefined);
   }
 }
 
