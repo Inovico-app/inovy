@@ -11,8 +11,8 @@ import {
   CardTitle,
 } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
-import { UploadRecordingModal } from "../../../components/recordings/upload-recording-modal";
-import { RecordingList } from "../../../components/recordings/recording-list";
+import { UploadRecordingModal } from "../../../features/recordings/components/upload-recording-modal";
+import { RecordingList } from "../../../features/recordings/components/recording-list";
 import { ProjectService } from "../../../server/services/project.service";
 
 interface ProjectDetailPageProps {

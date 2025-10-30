@@ -1,9 +1,8 @@
 "use client";
 
-import type { RecordingDto } from "@/server/dto";
-import { EditIcon } from "lucide-react";
+import { UploadIcon } from "lucide-react";
 import { useState } from "react";
-import { Button } from "../ui/button";
+import { Button } from "../../../components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,22 +10,23 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../ui/dialog";
-import { EditRecordingForm } from "./edit-recording-form";
+} from "../../../components/ui/dialog";
+import { UploadRecordingForm } from "./upload-recording-form";
 
-interface EditRecordingModalProps {
-  recording: RecordingDto;
+interface UploadRecordingModalProps {
+  projectId: string;
   trigger?: React.ReactNode;
 }
 
-export function EditRecordingModal({
-  recording,
+export function UploadRecordingModal({
+  projectId,
   trigger,
-}: EditRecordingModalProps) {
+}: UploadRecordingModalProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSuccess = () => {
     setIsOpen(false);
+    // The form will handle navigation/refresh
   };
 
   const handleCancel = () => {
@@ -37,21 +37,21 @@ export function EditRecordingModal({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {trigger ?? (
-          <Button variant="outline" size="sm">
-            <EditIcon className="h-4 w-4 mr-2" />
-            Edit
+          <Button>
+            <UploadIcon className="h-4 w-4 mr-2" />
+            Upload Recording
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Recording</DialogTitle>
+          <DialogTitle>Upload Recording</DialogTitle>
           <DialogDescription>
-            Update the recording title, description, or date
+            Upload an audio or video recording to process with AI
           </DialogDescription>
         </DialogHeader>
-        <EditRecordingForm
-          recording={recording}
+        <UploadRecordingForm
+          projectId={projectId}
           onSuccess={handleSuccess}
           onCancel={handleCancel}
         />

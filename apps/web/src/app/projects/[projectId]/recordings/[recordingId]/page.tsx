@@ -3,9 +3,6 @@ import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { EditRecordingModal } from "../../../../../components/recordings/edit-recording-modal";
-import { ProcessingError } from "../../../../../components/recordings/processing-error";
-import { RecordingDetailStatus } from "../../../../../components/recordings/recording-detail-status";
 import { Button } from "../../../../../components/ui/button";
 import {
   Card,
@@ -13,6 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../../../components/ui/card";
+import { EditRecordingModal } from "../../../../../features/recordings/components/edit-recording-modal";
+import { ProcessingError } from "../../../../../features/recordings/components/processing-error";
+import { RecordingDetailStatus } from "../../../../../features/recordings/components/recording-detail-status";
 import { ProjectService } from "../../../../../server/services/project.service";
 import { RecordingService } from "../../../../../server/services/recording.service";
 

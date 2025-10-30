@@ -1,32 +1,47 @@
 "use client";
 
 import { ClockIcon, FileAudioIcon, FileVideoIcon } from "lucide-react";
-import Link from "next/link";
 import type { Route } from "next";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import type { RecordingDto } from "../../server/dto";
-import { StatusBadge } from "./status-badge";
-import { useRecordingStatus } from "../../hooks/use-recording-status";
-import { toast } from "sonner";
+import Link from "next/link";
 import { useEffect, useRef } from "react";
+import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
+import { useRecordingStatus } from "../../../hooks/use-recording-status";
+import type { RecordingDto } from "../../../server/dto";
+import { StatusBadge } from "./status-badge";
 
 interface RecordingCardWithStatusProps {
   recording: RecordingDto;
 }
 
-export function RecordingCardWithStatus({ recording }: RecordingCardWithStatusProps) {
+export function RecordingCardWithStatus({
+  recording,
+}: RecordingCardWithStatusProps) {
   const previousStatusRef = useRef(recording.transcriptionStatus);
 
   const { status } = useRecordingStatus({
     recordingId: recording.id,
     initialStatus: recording.transcriptionStatus,
-    enabled: recording.transcriptionStatus === "pending" || recording.transcriptionStatus === "processing",
+    enabled:
+      recording.transcriptionStatus === "pending" ||
+      recording.transcriptionStatus === "processing",
     onStatusChange: (newStatus) => {
-      if (newStatus === "completed" && previousStatusRef.current !== "completed") {
+      if (
+        newStatus === "completed" &&
+        previousStatusRef.current !== "completed"
+      ) {
         toast.success("Transcription completed", {
           description: `Recording "${recording.title}" has been processed`,
         });
-      } else if (newStatus === "failed" && previousStatusRef.current !== "failed") {
+      } else if (
+        newStatus === "failed" &&
+        previousStatusRef.current !== "failed"
+      ) {
         toast.error("Transcription failed", {
           description: `Failed to process "${recording.title}"`,
         });
@@ -69,14 +84,18 @@ export function RecordingCardWithStatus({ recording }: RecordingCardWithStatusPr
 
   return (
     <Link
-      href={`/projects/${recording.projectId}/recordings/${recording.id}` as Route}
+      href={
+        `/projects/${recording.projectId}/recordings/${recording.id}` as Route
+      }
       className="block"
     >
       <Card className="hover:border-primary/50 transition-colors cursor-pointer">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg truncate">{recording.title}</CardTitle>
+              <CardTitle className="text-lg truncate">
+                {recording.title}
+              </CardTitle>
               {recording.description && (
                 <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                   {recording.description}
@@ -99,7 +118,9 @@ export function RecordingCardWithStatus({ recording }: RecordingCardWithStatusPr
               </div>
             )}
             <div className="flex items-center gap-1.5">
-              <span className="text-xs">{formatFileSize(recording.fileSize)}</span>
+              <span className="text-xs">
+                {formatFileSize(recording.fileSize)}
+              </span>
             </div>
           </div>
         </CardContent>

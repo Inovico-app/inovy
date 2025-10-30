@@ -1,9 +1,15 @@
-import { CalendarIcon, ClockIcon, FileAudioIcon } from "lucide-react";
-import Link from "next/link";
-import type { Route } from "next";
 import type { RecordingDto } from "@/server/dto";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { Badge } from "../ui/badge";
+import { CalendarIcon, ClockIcon, FileAudioIcon } from "lucide-react";
+import type { Route } from "next";
+import Link from "next/link";
+import { Badge } from "../../../components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
 import { EditRecordingModal } from "./edit-recording-modal";
 
 interface RecordingCardProps {
@@ -12,10 +18,24 @@ interface RecordingCardProps {
 }
 
 const STATUS_CONFIG = {
-  pending: { label: "Pending", className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" },
-  processing: { label: "Processing", className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
-  completed: { label: "Completed", className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" },
-  failed: { label: "Failed", className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" },
+  pending: {
+    label: "Pending",
+    className:
+      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  },
+  processing: {
+    label: "Processing",
+    className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  },
+  completed: {
+    label: "Completed",
+    className:
+      "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  },
+  failed: {
+    label: "Failed",
+    className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  },
 } as const;
 
 export function RecordingCard({ recording, projectId }: RecordingCardProps) {
@@ -50,7 +70,9 @@ export function RecordingCard({ recording, projectId }: RecordingCardProps) {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <Link
-              href={`/projects/${projectId}/recordings/${recording.id}` as Route}
+              href={
+                `/projects/${projectId}/recordings/${recording.id}` as Route
+              }
               className="hover:underline"
             >
               <CardTitle className="truncate">{recording.title}</CardTitle>
