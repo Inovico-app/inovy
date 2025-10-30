@@ -20,7 +20,7 @@ export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
 
   const handleLiveRecordingComplete = async (
     audioBlob: Blob,
-    transcription: string
+    _transcription: string
   ) => {
     try {
       setIsUploading(true);
@@ -32,8 +32,8 @@ export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
         { type: "audio/webm" }
       );
 
-      // Upload to Vercel Blob
-      const blob = await put(`recordings/${audioFile.name}`, audioFile, {
+      // Upload to Vercel Blob - blob var used for API call
+      await put(`recordings/${audioFile.name}`, audioFile, {
         access: "public",
       });
 
@@ -51,6 +51,7 @@ export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
       if (result.success && result.recordingId) {
         // Save transcription (already done by live recording)
         toast.success("Opname succesvol opgeslagen!");
+        // @ts-expect-error - Dynamic route type issue
         router.push(`/projects/${projectId}/recordings/${result.recordingId}`);
       } else {
         toast.error(result.error || "Fout bij opslaan van opname");

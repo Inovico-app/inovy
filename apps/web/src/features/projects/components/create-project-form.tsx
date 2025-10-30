@@ -3,16 +3,16 @@
 import { createProjectAction } from "@/features/projects/actions/create-project";
 import { useAction } from "next-safe-action/hooks";
 import { useState } from "react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../ui/card";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 /**
  * Smart project creation form using the new Result-based error handling

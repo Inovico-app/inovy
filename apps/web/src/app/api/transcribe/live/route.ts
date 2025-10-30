@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
 import { logger } from "@/lib/logger";
 

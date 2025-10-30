@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
@@ -29,7 +29,6 @@ export function LiveRecorder({ projectId, onRecordingComplete }: LiveRecorderPro
   } = useAudioRecorder();
 
   const {
-    isConnected,
     isTranscribing,
     transcript,
     fullTranscript,

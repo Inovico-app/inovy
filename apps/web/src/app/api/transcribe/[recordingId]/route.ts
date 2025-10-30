@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth";
 import { TranscriptionService } from "@/server/services/transcription.service";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";

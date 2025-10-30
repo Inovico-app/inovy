@@ -1,7 +1,7 @@
 import { db } from "@/server/db";
 import { aiInsights, type NewAIInsight, type AIInsight } from "@/server/db/schema";
 import { eq, and, desc } from "drizzle-orm";
-import { err, ok, Result } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 import { logger } from "@/lib/logger";
 
 export class AIInsightsQueries {
@@ -70,7 +70,7 @@ export class AIInsightsQueries {
    */
   static async getInsightByType(
     recordingId: string,
-    insightType: string
+    insightType: "transcription" | "summary" | "action_items" | "decisions" | "risks" | "next_steps"
   ): Promise<Result<AIInsight | null, Error>> {
     try {
       const [insight] = await db
@@ -84,7 +84,7 @@ export class AIInsightsQueries {
         )
         .limit(1);
 
-      return ok(insight || null);
+      return ok(insight ?? null);
     } catch (error) {
       logger.error("Failed to fetch AI insight by type", {
         component: "AIInsightsQueries.getInsightByType",
@@ -105,7 +105,7 @@ export class AIInsightsQueries {
    */
   static async updateInsightStatus(
     insightId: string,
-    status: string,
+    status: "pending" | "processing" | "completed" | "failed",
     errorMessage?: string
   ): Promise<Result<AIInsight, Error>> {
     try {

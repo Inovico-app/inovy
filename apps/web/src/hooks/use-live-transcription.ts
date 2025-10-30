@@ -28,8 +28,8 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
   const [fullTranscript, setFullTranscript] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const connectionRef = useRef<any>(null);
-  const deepgramRef = useRef<any>(null);
+  const connectionRef = useRef<unknown>(null);
+  const deepgramRef = useRef<unknown>(null);
 
   useEffect(() => {
     // Initialize Deepgram client (API key should be passed from environment)
@@ -75,7 +75,7 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
       });
 
       // Handle transcription results
-      connection.on(LiveTranscriptionEvents.Transcript, (data: any) => {
+      connection.on(LiveTranscriptionEvents.Transcript, (data: { channel?: { alternatives?: Array<{ transcript?: string; confidence?: number; words?: Array<{ speaker?: number }> }> }; is_final?: boolean }) => {
         const channel = data.channel;
         const alternative = channel?.alternatives?.[0];
         
@@ -112,7 +112,7 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
       });
 
       // Handle errors
-      connection.on(LiveTranscriptionEvents.Error, (err: any) => {
+      connection.on(LiveTranscriptionEvents.Error, (err: { message?: string }) => {
         console.error("Deepgram error:", err);
         setError(err.message || "Transcription error");
         setIsTranscribing(false);
@@ -139,7 +139,7 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
       mediaRecorder.start(250); // Send audio every 250ms
 
       // Store mediaRecorder for cleanup
-      (connection as any)._mediaRecorder = mediaRecorder;
+      (connection as Record<string, unknown>)._mediaRecorder = mediaRecorder;
     } catch (err) {
       console.error("Error starting transcription:", err);
       setError(
@@ -156,8 +156,9 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
       const connection = connectionRef.current;
       
       // Stop media recorder if exists
-      if ((connection as any)._mediaRecorder) {
-        (connection as any)._mediaRecorder.stop();
+      const connWithRecorder = connection as Record<string, { stop?: () => void }>;
+      if (connWithRecorder._mediaRecorder?.stop) {
+        connWithRecorder._mediaRecorder.stop();
       }
 
       connection.finish();

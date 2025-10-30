@@ -1,5 +1,5 @@
 import { createClient } from "@deepgram/sdk";
-import { err, ok, Result } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 import { logger } from "@/lib/logger";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
@@ -145,14 +145,14 @@ export class TranscriptionService {
       // Extract utterances if available
       if (result?.results?.utterances) {
         result.results.utterances.forEach((utt: {
-          speaker: number;
+          speaker?: number;
           transcript: string;
           start: number;
           end: number;
           confidence: number;
         }) => {
           utterances.push({
-            speaker: utt.speaker,
+            speaker: utt.speaker ?? 0,
             text: utt.transcript,
             start: utt.start,
             end: utt.end,
