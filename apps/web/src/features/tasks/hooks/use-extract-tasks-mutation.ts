@@ -36,15 +36,20 @@ export function useExtractTasksMutation({
     },
     onSuccess: (data) => {
       toast.success(`${data.extraction.totalExtracted} taken geëxtraheerd!`);
-      
+
       // Invalidate task queries to refetch fresh data
       void queryClient.invalidateQueries({
         queryKey: queryKeys.tasks.byRecording(recordingId),
       });
-      
+
       // Also invalidate general task lists
       void queryClient.invalidateQueries({
         queryKey: queryKeys.tasks.lists(),
+      });
+
+      // Invalidate user tasks for the global task list
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.tasks.userTasks(),
       });
 
       onSuccess?.();
