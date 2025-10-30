@@ -2,6 +2,7 @@ import { CalendarIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Route } from "next";
+import { Suspense } from "react";
 import { Button } from "../../../components/ui/button";
 import {
   Card,
@@ -15,7 +16,7 @@ interface ProjectDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function ProjectDetailPage({
+async function ProjectDetail({
   params,
 }: ProjectDetailPageProps) {
   const { id } = await params;
@@ -129,6 +130,28 @@ export default async function ProjectDetailPage({
         </div>
       </div>
     </div>
+  );
+}
+
+export default async function ProjectDetailPage({
+  params,
+}: ProjectDetailPageProps) {
+  // CACHE COMPONENTS: Wrap dynamic content in Suspense to enable static shell generation
+  // ProjectDetail accesses project data from the database, making it dynamic
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto py-8 px-4">
+          <div className="max-w-4xl mx-auto space-y-6">
+            <div className="h-12 bg-muted rounded animate-pulse" />
+            <div className="h-48 bg-muted rounded animate-pulse" />
+            <div className="h-48 bg-muted rounded animate-pulse" />
+          </div>
+        </div>
+      }
+    >
+      <ProjectDetail params={params} />
+    </Suspense>
   );
 }
 

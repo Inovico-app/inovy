@@ -1,6 +1,7 @@
 import { KindeUserService } from "@/server/services";
 import { CalendarIcon, FileTextIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 import { Button } from "../../components/ui/button";
 import {
   Card,
@@ -10,7 +11,7 @@ import {
 } from "../../components/ui/card";
 import { ProjectService } from "../../server/services/project.service";
 
-export default async function ProjectsPage() {
+async function ProjectsList() {
   const projectsResult = await ProjectService.getProjectsByOrganization();
 
   if (projectsResult.isErr()) {
@@ -138,6 +139,29 @@ export default async function ProjectsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default async function ProjectsPage() {
+  // CACHE COMPONENTS: Wrap dynamic content in Suspense to enable static shell generation
+  // ProjectsList accesses auth data to get projects, making it dynamic
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto py-8 px-4">
+          <div className="max-w-6xl mx-auto space-y-6">
+            <div className="h-12 bg-muted rounded animate-pulse" />
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-48 bg-muted rounded animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <ProjectsList />
+    </Suspense>
   );
 }
 
