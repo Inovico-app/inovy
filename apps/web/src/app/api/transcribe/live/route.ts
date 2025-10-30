@@ -1,10 +1,10 @@
-import { type NextRequest } from "next/server";
-import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
 import { logger } from "@/lib/logger";
+import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
+import { type NextRequest } from "next/server";
 
 /**
  * WebSocket-based live transcription endpoint
- * 
+ *
  * Note: Next.js doesn't natively support WebSocket in API routes.
  * This endpoint is designed to work with a WebSocket upgrade approach.
  * For production, consider using a separate WebSocket server or
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     // Check if we can upgrade to WebSocket
     const upgradeHeader = request.headers.get("upgrade");
-    
+
     if (upgradeHeader !== "websocket") {
       return new Response(
         JSON.stringify({
@@ -85,13 +85,10 @@ export async function GET(request: NextRequest) {
       error,
     });
 
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
 
