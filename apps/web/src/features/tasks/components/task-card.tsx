@@ -3,7 +3,15 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Circle, Clock, User, FolderIcon, MicIcon } from "lucide-react";
+import {
+  CheckCircle2,
+  Circle,
+  Clock,
+  User,
+  FolderIcon,
+  MicIcon,
+  PlayCircle,
+} from "lucide-react";
 import type { Task } from "@/server/db/schema";
 import type { TaskWithContextDto } from "@/server/dto";
 import Link from "next/link";
@@ -34,6 +42,14 @@ const statusLabels = {
   completed: "Voltooid",
   cancelled: "Geannuleerd",
 };
+
+// Helper function to format timestamp in MM:SS format
+function formatTimestamp(seconds: number | null): string {
+  if (seconds === null) return "";
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+}
 
 export function TaskCard({ task, onStatusChange, showContext = false }: TaskCardProps) {
   const handleStatusToggle = () => {
@@ -100,11 +116,28 @@ export function TaskCard({ task, onStatusChange, showContext = false }: TaskCard
                 </Link>
                 <span className="text-muted-foreground">•</span>
                 <Link
-                  href={`/projects/${taskWithContext.projectId}/recordings/${taskWithContext.recordingId}`}
+                  href={`/projects/${taskWithContext.projectId}/recordings/${taskWithContext.recordingId}${
+                    task.meetingTimestamp !== null
+                      ? `?t=${Math.floor(task.meetingTimestamp)}`
+                      : ""
+                  }`}
                   className="flex items-center gap-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  title={
+                    task.meetingTimestamp !== null
+                      ? `Jump to ${formatTimestamp(task.meetingTimestamp)} in recording`
+                      : "View recording"
+                  }
                 >
                   <MicIcon className="h-3 w-3" />
                   <span>{taskWithContext.recording.title}</span>
+                  {task.meetingTimestamp !== null && (
+                    <>
+                      <PlayCircle className="h-3 w-3 ml-0.5" />
+                      <span className="font-mono">
+                        {formatTimestamp(task.meetingTimestamp)}
+                      </span>
+                    </>
+                  )}
                 </Link>
               </div>
             )}
