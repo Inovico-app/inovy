@@ -1,6 +1,11 @@
 import { AlertCircleIcon } from "lucide-react";
-import { Button } from "../ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../../../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
 
 interface ProcessingErrorProps {
   title?: string;
@@ -45,7 +50,12 @@ export function ProcessingError({
           </div>
 
           {onRetry && (
-            <Button onClick={onRetry} variant="outline" size="sm" className="w-fit">
+            <Button
+              onClick={onRetry}
+              variant="outline"
+              size="sm"
+              className="w-fit"
+            >
               Retry Processing
             </Button>
           )}

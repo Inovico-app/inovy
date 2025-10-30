@@ -2,9 +2,9 @@
 
 import { SearchIcon, XIcon } from "lucide-react";
 import { useQueryState } from "nuqs";
-import { useState, useEffect } from "react";
-import { Input } from "../ui/input";
-import { Button } from "../ui/button";
+import { useEffect, useState } from "react";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
 
 export function RecordingSearch() {
   const [search, setSearch] = useQueryState("search", {

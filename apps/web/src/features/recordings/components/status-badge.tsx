@@ -6,8 +6,8 @@ import {
   ClockIcon,
   LoaderIcon,
 } from "lucide-react";
-import type { RecordingStatus } from "../../server/db/schema/recordings";
-import { Badge } from "../ui/badge";
+import { Badge } from "../../../components/ui/badge";
+import type { RecordingStatus } from "../../../server/db/schema/recordings";
 
 interface StatusBadgeProps {
   status: RecordingStatus;

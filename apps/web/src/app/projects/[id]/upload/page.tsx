@@ -1,8 +1,3 @@
-import { ArrowLeftIcon } from "lucide-react";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import type { Route } from "next";
-import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,8 +6,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { UploadRecordingForm } from "@/components/recordings/upload-recording-form";
+import { UploadRecordingForm } from "@/features/recordings/components/upload-recording-form";
 import { ProjectService } from "@/server/services";
+import { ArrowLeftIcon } from "lucide-react";
+import type { Route } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 interface UploadRecordingPageProps {
   params: Promise<{ id: string }>;
@@ -53,7 +53,8 @@ async function UploadRecordingContent({ params }: UploadRecordingPageProps) {
           <CardHeader>
             <CardTitle>Recording Details</CardTitle>
             <CardDescription>
-              Upload an audio or video recording and provide details about the meeting
+              Upload an audio or video recording and provide details about the
+              meeting
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -75,8 +76,9 @@ async function UploadRecordingContent({ params }: UploadRecordingPageProps) {
               <li>Maximum file size: 100MB</li>
             </ul>
             <p className="text-xs text-muted-foreground mt-4">
-              After uploading, your recording will be processed for transcription
-              and AI-powered analysis to extract action items and summaries.
+              After uploading, your recording will be processed for
+              transcription and AI-powered analysis to extract action items and
+              summaries.
             </p>
           </CardContent>
         </Card>
