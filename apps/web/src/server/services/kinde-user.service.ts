@@ -1,4 +1,4 @@
-import { Result, err, ok } from "neverthrow";
+import { type Result, err, ok } from "neverthrow";
 import { getKindeApiClient } from "../../lib/kinde-api";
 import { logger } from "../../lib/logger";
 import type {

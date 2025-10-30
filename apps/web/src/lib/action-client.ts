@@ -3,7 +3,7 @@
  * This approach eliminates custom error classes in favor of functional error handling
  */
 
-import { Result, err, ok } from "neverthrow";
+import { type Result, err, ok } from "neverthrow";
 import {
   createSafeActionClient,
   type MiddlewareResult,
@@ -190,11 +190,11 @@ async function authenticationMiddleware({
 /**
  * Convert ActionError to Error for next-safe-action compatibility
  */
-function createErrorForNextSafeAction(actionError: ActionError): Error {
-  const error = new Error(actionError.message);
+function createErrorForNextSafeAction(actionError: ActionError): Error & { actionError: ActionError } {
+  const error = new Error(actionError.message) as Error & { actionError: ActionError };
   error.name = "ActionError";
   // Attach the ActionError data to the Error object
-  (error as any).actionError = actionError;
+  error.actionError = actionError;
   return error;
 }
 
@@ -203,8 +203,8 @@ function createErrorForNextSafeAction(actionError: ActionError): Error {
  */
 function handleActionError(error: unknown): string {
   // Check if it's our ActionError wrapped in an Error
-  if (error instanceof Error && (error as any).actionError) {
-    const actionError = (error as any).actionError as ActionError;
+  if (error instanceof Error && 'actionError' in error) {
+    const actionError = (error as Error & { actionError: ActionError }).actionError;
 
     logger.error("Action error occurred", {
       code: actionError.code,
@@ -302,7 +302,12 @@ export function combineResults<T extends readonly unknown[]>(
     }
   }
 
-  return ok(results.map((r) => (r as any).value) as unknown as T);
+  return ok(results.map((r) => {
+    if (r.isOk()) {
+      return r.value;
+    }
+    throw new Error('Unexpected error state');
+  }) as unknown as T);
 }
 
 /**
@@ -311,7 +316,7 @@ export function combineResults<T extends readonly unknown[]>(
 export function validateInput<T>(
   schema: z.ZodSchema<T>,
   input: unknown,
-  context?: string
+  _context?: string
 ): ActionResult<T> {
   const result = schema.safeParse(input);
 

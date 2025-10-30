@@ -1,5 +1,5 @@
 import { safeAsync, type ActionResult } from "@/lib";
-import { Result, err, ok } from "neverthrow";
+import { type Result, err, ok } from "neverthrow";
 import { ActionErrors } from "../../lib/action-errors";
 import { getAuthSession, type AuthUser } from "../../lib/auth";
 import { logger } from "../../lib/logger";

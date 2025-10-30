@@ -1,4 +1,4 @@
-import { Result, err, ok } from "neverthrow";
+import { type Result, err, ok } from "neverthrow";
 import { logger } from "../../lib/logger";
 import redis from "../../lib/redis";
 
@@ -178,10 +178,7 @@ export class CacheService {
     /**
      * Invalidate user-related cache (Kinde user ID)
      */
-    async invalidateUser(
-      kindeUserId: string,
-      orgCode: string
-    ): Promise<void> {
+    async invalidateUser(kindeUserId: string, orgCode: string): Promise<void> {
       await Promise.all([
         CacheService.delete(CacheService.KEYS.USER_BY_KINDE_ID(kindeUserId)),
         CacheService.delete(CacheService.KEYS.USER_BY_ORG(orgCode)),

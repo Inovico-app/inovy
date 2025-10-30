@@ -48,29 +48,33 @@ export interface UserFiltersDto {
 }
 
 // Type guards for runtime validation
-export function isCreateUserDto(data: any): data is CreateUserDto {
+export function isCreateUserDto(data: unknown): data is CreateUserDto {
+  if (typeof data !== "object" || data === null) {
+    return false;
+  }
+  const record = data as Record<string, unknown>;
   return (
-    typeof data === "object" &&
-    data !== null &&
-    typeof data.kindeId === "string" &&
-    typeof data.email === "string" &&
-    typeof data.organizationId === "string" &&
-    (data.givenName === undefined || typeof data.givenName === "string") &&
-    (data.familyName === undefined || typeof data.familyName === "string") &&
-    (data.picture === undefined || typeof data.picture === "string")
+    typeof record.kindeId === "string" &&
+    typeof record.email === "string" &&
+    typeof record.organizationId === "string" &&
+    (record.givenName === undefined || typeof record.givenName === "string") &&
+    (record.familyName === undefined || typeof record.familyName === "string") &&
+    (record.picture === undefined || typeof record.picture === "string")
   );
 }
 
-export function isUpdateUserDto(data: any): data is UpdateUserDto {
+export function isUpdateUserDto(data: unknown): data is UpdateUserDto {
+  if (typeof data !== "object" || data === null) {
+    return false;
+  }
+  const record = data as Record<string, unknown>;
   return (
-    typeof data === "object" &&
-    data !== null &&
-    (data.email === undefined || typeof data.email === "string") &&
-    (data.givenName === undefined || typeof data.givenName === "string") &&
-    (data.familyName === undefined || typeof data.familyName === "string") &&
-    (data.picture === undefined || typeof data.picture === "string") &&
-    (data.organizationId === undefined ||
-      typeof data.organizationId === "string")
+    (record.email === undefined || typeof record.email === "string") &&
+    (record.givenName === undefined || typeof record.givenName === "string") &&
+    (record.familyName === undefined || typeof record.familyName === "string") &&
+    (record.picture === undefined || typeof record.picture === "string") &&
+    (record.organizationId === undefined ||
+      typeof record.organizationId === "string")
   );
 }
 

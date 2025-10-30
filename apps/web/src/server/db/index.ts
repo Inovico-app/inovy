@@ -9,6 +9,7 @@ if (typeof window === "undefined") {
   // For Node.js environments (not edge), use WebSocket
   if (process.env.VERCEL_ENV !== "production" || !process.env.EDGE_RUNTIME) {
     // Only import ws in Node.js environments
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const ws = require("ws");
     neonConfig.webSocketConstructor = ws;
   } else {

@@ -37,25 +37,30 @@ export interface OrganizationFiltersDto {
 
 // Type guards for runtime validation
 export function isCreateOrganizationDto(
-  data: any
+  data: unknown
 ): data is CreateOrganizationDto {
   return (
     typeof data === "object" &&
     data !== null &&
-    typeof data.kindeId === "string" &&
-    typeof data.name === "string" &&
-    typeof data.slug === "string"
+    "kindeId" in data &&
+    "name" in data &&
+    "slug" in data &&
+    typeof (data as Record<string, unknown>).kindeId === "string" &&
+    typeof (data as Record<string, unknown>).name === "string" &&
+    typeof (data as Record<string, unknown>).slug === "string"
   );
 }
 
 export function isUpdateOrganizationDto(
-  data: any
+  data: unknown
 ): data is UpdateOrganizationDto {
+  if (typeof data !== "object" || data === null) {
+    return false;
+  }
+  const record = data as Record<string, unknown>;
   return (
-    typeof data === "object" &&
-    data !== null &&
-    (data.name === undefined || typeof data.name === "string") &&
-    (data.slug === undefined || typeof data.slug === "string")
+    (record.name === undefined || typeof record.name === "string") &&
+    (record.slug === undefined || typeof record.slug === "string")
   );
 }
 

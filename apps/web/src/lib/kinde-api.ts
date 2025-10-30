@@ -1,5 +1,5 @@
 import { Organizations, Users, init } from "@kinde/management-api-js";
-import { Result, err, ok } from "neverthrow";
+import { type Result, err, ok } from "neverthrow";
 import { logger } from "./logger";
 
 /**
@@ -87,7 +87,7 @@ class KindeApiClient {
       return ok(this.accessToken);
     } catch (error) {
       const errorMessage = "Error obtaining Kinde access token";
-      logger.error(errorMessage, error as Error);
+      logger.error(errorMessage, {}, error as Error);
       return err(errorMessage);
     }
   }
@@ -118,7 +118,7 @@ class KindeApiClient {
       return ok(true);
     } catch (error) {
       const errorMessage = "Failed to initialize Kinde Management API";
-      logger.error(errorMessage, error as Error);
+      logger.error(errorMessage, {}, error as Error);
       return err(errorMessage);
     }
   }

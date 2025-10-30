@@ -1,5 +1,5 @@
 import { withAuth } from "@kinde-oss/kinde-auth-nextjs/middleware";
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 export default function middleware(req: NextRequest) {
   // Handle CORS for API routes

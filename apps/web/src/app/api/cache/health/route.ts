@@ -19,7 +19,7 @@ export async function GET() {
       cache: health,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to check cache health" },
       { status: 500 }

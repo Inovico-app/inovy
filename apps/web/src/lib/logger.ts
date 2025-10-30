@@ -11,7 +11,7 @@ interface LogContext {
   requestId?: string;
   component?: string;
   action?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface LogEntry {
