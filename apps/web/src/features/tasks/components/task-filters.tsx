@@ -1,20 +1,12 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import type { TaskPriority, TaskStatus } from "@/server/db/schema/tasks";
-import { X, ChevronDown } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { X } from "lucide-react";
+import { useArrayToggle } from "../hooks/use-array-toggle";
+import { FilterCheckboxGroup } from "./filter-checkbox-group";
+import { ProjectFilterDropdown } from "./project-filter-dropdown";
 
 interface TaskFiltersProps {
   selectedPriorities: TaskPriority[];
@@ -39,33 +31,34 @@ interface TaskFiltersProps {
   onClearFilters?: () => void;
 }
 
-const priorityOptions: Array<{
-  value: TaskPriority;
-  label: string;
-  color: string;
-}> = [
-  { value: "urgent", label: "Urgent", color: "text-red-700 dark:text-red-400" },
+const PRIORITY_OPTIONS = [
   {
-    value: "high",
+    value: "urgent" as const,
+    label: "Urgent",
+    color: "text-red-700 dark:text-red-400",
+  },
+  {
+    value: "high" as const,
     label: "High",
     color: "text-orange-700 dark:text-orange-400",
   },
   {
-    value: "medium",
+    value: "medium" as const,
     label: "Medium",
     color: "text-blue-700 dark:text-blue-400",
   },
-  { value: "low", label: "Low", color: "text-slate-700 dark:text-slate-400" },
+  {
+    value: "low" as const,
+    label: "Low",
+    color: "text-slate-700 dark:text-slate-400",
+  },
 ];
 
-const statusOptions: Array<{
-  value: TaskStatus;
-  label: string;
-}> = [
-  { value: "pending", label: "To Do" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
+const STATUS_OPTIONS = [
+  { value: "pending" as const, label: "To Do" },
+  { value: "in_progress" as const, label: "In Progress" },
+  { value: "completed" as const, label: "Completed" },
+  { value: "cancelled" as const, label: "Cancelled" },
 ];
 
 export function TaskFilters({
@@ -80,29 +73,9 @@ export function TaskFilters({
   projects,
   onClearFilters,
 }: TaskFiltersProps) {
-  const handlePriorityToggle = (priority: TaskPriority) => {
-    if (selectedPriorities.includes(priority)) {
-      onPrioritiesChange(selectedPriorities.filter((p) => p !== priority));
-    } else {
-      onPrioritiesChange([...selectedPriorities, priority]);
-    }
-  };
-
-  const handleStatusToggle = (status: TaskStatus) => {
-    if (selectedStatuses.includes(status)) {
-      onStatusesChange(selectedStatuses.filter((s) => s !== status));
-    } else {
-      onStatusesChange([...selectedStatuses, status]);
-    }
-  };
-
-  const handleProjectToggle = (projectId: string) => {
-    if (selectedProjectIds.includes(projectId)) {
-      onProjectIdsChange(selectedProjectIds.filter((id) => id !== projectId));
-    } else {
-      onProjectIdsChange([...selectedProjectIds, projectId]);
-    }
-  };
+  const togglePriority = useArrayToggle(selectedPriorities, onPrioritiesChange);
+  const toggleStatus = useArrayToggle(selectedStatuses, onStatusesChange);
+  const toggleProject = useArrayToggle(selectedProjectIds, onProjectIdsChange);
 
   const hasActiveFilters =
     selectedPriorities.length > 0 ||
@@ -128,115 +101,28 @@ export function TaskFilters({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Priority Filter */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            Priority
-          </h3>
-          <div className="space-y-2">
-            {priorityOptions.map((option) => {
-              const count = taskCounts?.[option.value] ?? 0;
-              const isChecked = selectedPriorities.includes(option.value);
+        <FilterCheckboxGroup
+          title="Priority"
+          options={PRIORITY_OPTIONS}
+          selectedValues={selectedPriorities}
+          onToggle={togglePriority}
+          counts={taskCounts}
+        />
 
-              return (
-                <div key={option.value} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`priority-${option.value}`}
-                    checked={isChecked}
-                    onCheckedChange={() => handlePriorityToggle(option.value)}
-                  />
-                  <Label
-                    htmlFor={`priority-${option.value}`}
-                    className="flex items-center gap-2 text-sm font-normal cursor-pointer flex-1"
-                  >
-                    <span className={option.color}>{option.label}</span>
-                    {taskCounts && (
-                      <Badge variant="outline" className="ml-auto text-xs">
-                        {count}
-                      </Badge>
-                    )}
-                  </Label>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <FilterCheckboxGroup
+          title="Status"
+          options={STATUS_OPTIONS}
+          selectedValues={selectedStatuses}
+          onToggle={toggleStatus}
+          counts={statusCounts}
+        />
 
-        {/* Status Filter */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-muted-foreground">Status</h3>
-          <div className="space-y-2">
-            {statusOptions.map((option) => {
-              const count = statusCounts?.[option.value] ?? 0;
-              const isChecked = selectedStatuses.includes(option.value);
-
-              return (
-                <div key={option.value} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`status-${option.value}`}
-                    checked={isChecked}
-                    onCheckedChange={() => handleStatusToggle(option.value)}
-                  />
-                  <Label
-                    htmlFor={`status-${option.value}`}
-                    className="flex items-center gap-2 text-sm font-normal cursor-pointer flex-1"
-                  >
-                    <span>{option.label}</span>
-                    {statusCounts && (
-                      <Badge variant="outline" className="ml-auto text-xs">
-                        {count}
-                      </Badge>
-                    )}
-                  </Label>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Project Filter */}
         {projects && projects.length > 0 && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Projects
-            </h3>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full justify-between">
-                  <span className="text-sm">
-                    {selectedProjectIds.length === 0
-                      ? "All Projects"
-                      : selectedProjectIds.length === 1
-                        ? projects.find((p) => p.id === selectedProjectIds[0])
-                            ?.name
-                        : `${selectedProjectIds.length} projects`}
-                  </span>
-                  <ChevronDown className="h-4 w-4 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="start">
-                <DropdownMenuLabel>Select Projects</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {projects.map((project) => {
-                  const isChecked = selectedProjectIds.includes(project.id);
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={project.id}
-                      checked={isChecked}
-                      onCheckedChange={() => handleProjectToggle(project.id)}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <span className="truncate">{project.name}</span>
-                        <Badge variant="outline" className="ml-2 text-xs">
-                          {project.taskCount}
-                        </Badge>
-                      </div>
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <ProjectFilterDropdown
+            projects={projects}
+            selectedProjectIds={selectedProjectIds}
+            onToggle={toggleProject}
+          />
         )}
       </CardContent>
     </Card>

@@ -23,6 +23,17 @@ export const queryKeys = {
       [...queryKeys.tasks.lists(), filters] as const,
     byRecording: (recordingId: string) =>
       [...queryKeys.tasks.all, "recording", recordingId] as const,
+    userTasks: () => [...queryKeys.tasks.all, "user"] as const,
+  },
+  projects: {
+    all: ["projects"] as const,
+    lists: () => [...queryKeys.projects.all, "list"] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.projects.lists(), filters] as const,
+    details: () => [...queryKeys.projects.all, "detail"] as const,
+    detail: (projectId: string) =>
+      [...queryKeys.projects.details(), projectId] as const,
+    userProjects: () => [...queryKeys.projects.all, "user"] as const,
   },
   summaries: {
     all: ["summaries"] as const,
