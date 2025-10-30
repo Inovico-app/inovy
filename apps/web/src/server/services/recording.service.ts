@@ -4,6 +4,7 @@ import { logger } from "../../lib/logger";
 import {
   insertRecording,
   selectRecordingById,
+  selectRecordingsByProjectId,
   updateRecordingMetadata as updateRecordingMetadataQuery,
 } from "../data-access/recordings.queries";
 import { type RecordingDto } from "../dto";
@@ -95,6 +96,51 @@ export class RecordingService {
     }
 
     return ok(this.toDto(recording));
+  }
+
+  /**
+   * Get all recordings for a project
+   * Returns recordings ordered by creation date (newest first)
+   */
+  static async getRecordingsByProjectId(
+    projectId: string,
+    options?: {
+      search?: string;
+    }
+  ): Promise<Result<RecordingDto[], ActionError>> {
+    logger.info("Fetching recordings for project", {
+      component: "RecordingService.getRecordingsByProjectId",
+      projectId,
+      search: options?.search,
+    });
+
+    const result = await selectRecordingsByProjectId(projectId, options);
+
+    if (result.isErr()) {
+      logger.error("Failed to fetch recordings from database", {
+        component: "RecordingService.getRecordingsByProjectId",
+        error: result.error,
+        projectId,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to fetch recordings",
+          new Error(result.error),
+          "RecordingService.getRecordingsByProjectId"
+        )
+      );
+    }
+
+    const recordings = result.value;
+
+    logger.info("Successfully fetched recordings", {
+      component: "RecordingService.getRecordingsByProjectId",
+      projectId,
+      count: recordings.length,
+    });
+
+    return ok(recordings.map((recording) => this.toDto(recording)));
   }
 
   /**
