@@ -24,6 +24,7 @@ export class CacheService {
     USER: 3600, // 1 hour - users change infrequently
     ORGANIZATION: 3600, // 1 hour - organizations change rarely
     SESSION: 1800, // 30 minutes - sessions need refresh
+    TASK: 300, // 5 minutes - tasks change frequently
   } as const;
 
   /**
@@ -51,6 +52,14 @@ export class CacheService {
     // Organization keys (Kinde organization codes)
     ORG_BY_CODE: (orgCode: string) =>
       `${CacheService.KEY_PREFIX}org:code:${orgCode}`,
+
+    // Task keys
+    TASKS_BY_USER: (userId: string, orgCode: string) =>
+      `${CacheService.KEY_PREFIX}task:user:${userId}:org:${orgCode}`,
+    TASKS_BY_ORG: (orgCode: string) =>
+      `${CacheService.KEY_PREFIX}task:org:${orgCode}`,
+    TASK_STATS: (userId: string, orgCode: string) =>
+      `${CacheService.KEY_PREFIX}task:stats:user:${userId}:org:${orgCode}`,
   } as const;
 
   /**
@@ -190,6 +199,19 @@ export class CacheService {
      */
     async invalidateOrganization(orgCode: string): Promise<void> {
       await CacheService.delete(CacheService.KEYS.ORG_BY_CODE(orgCode));
+    },
+
+    /**
+     * Invalidate all task-related cache for a user
+     */
+    async invalidateTaskCache(userId: string, orgCode: string): Promise<void> {
+      await Promise.all([
+        CacheService.delete(CacheService.KEYS.TASKS_BY_USER(userId, orgCode)),
+        CacheService.delete(CacheService.KEYS.TASK_STATS(userId, orgCode)),
+        CacheService.deletePattern(
+          `${CacheService.KEY_PREFIX}task:org:${orgCode}*`
+        ),
+      ]);
     },
   };
 

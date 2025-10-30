@@ -12,6 +12,9 @@ import { logger } from "@/lib/logger";
 import { FolderIcon, ListTodoIcon, MicIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
+import { TaskService } from "@/server/services";
+import { Badge } from "@/components/ui/badge";
+import { TaskCard } from "@/features/tasks/components/task-card";
 
 async function DashboardContent() {
   const userResult = await getUserSession();
@@ -58,6 +61,18 @@ async function DashboardContent() {
       </div>
     );
   }
+
+  // Get task statistics
+  const taskStatsResult = await TaskService.getTaskStats();
+  const taskStats = taskStatsResult.isOk() ? taskStatsResult.value : null;
+
+  // Get recent tasks (limit to 3 for dashboard)
+  const recentTasksResult = await TaskService.getTasksWithContext();
+  const recentTasks = recentTasksResult.isOk()
+    ? recentTasksResult.value
+        .filter((t) => t.status === "pending" || t.status === "in_progress")
+        .slice(0, 3)
+    : [];
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">
@@ -116,21 +131,51 @@ async function DashboardContent() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Pending Tasks
-              </CardTitle>
-              <ListTodoIcon className="h-4 w-4 text-muted-foreground" />
+          <Link href="/tasks">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Pending Tasks
+                </CardTitle>
+                <ListTodoIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {taskStats
+                    ? taskStats.byStatus.pending + taskStats.byStatus.in_progress
+                    : 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Action items to review
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+
+        {/* Recent Tasks Section */}
+        {recentTasks.length > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Recent Tasks</CardTitle>
+                  <CardDescription>
+                    Your most recent pending action items
+                  </CardDescription>
+                </div>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/tasks">View All Tasks</Link>
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">
-                Action items to review
-              </p>
+            <CardContent className="space-y-2">
+              {recentTasks.map((task) => (
+                <TaskCard key={task.id} task={task} showContext />
+              ))}
             </CardContent>
           </Card>
-        </div>
+        )}
 
         {/* Get Started Section */}
         <Card>

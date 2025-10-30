@@ -1,8 +1,22 @@
-import { db } from "@/server/db";
-import { tasks, type NewTask, type Task } from "@/server/db/schema";
-import { eq, and, desc, inArray, or, ilike } from "drizzle-orm";
-import { err, ok, type Result } from "neverthrow";
 import { logger } from "@/lib/logger";
+import { db } from "@/server/db";
+import { tasks, type NewTask, type Task, projects, recordings } from "@/server/db/schema";
+import { and, desc, eq, ilike, inArray, or } from "drizzle-orm";
+import { err, ok, type Result } from "neverthrow";
+
+/**
+ * Task with context information
+ */
+export interface TaskWithContext extends Task {
+  project: {
+    id: string;
+    name: string;
+  };
+  recording: {
+    id: string;
+    title: string;
+  };
+}
 
 export class TasksQueries {
   /**
@@ -146,6 +160,97 @@ export class TasksQueries {
       });
       return err(
         error instanceof Error ? error : new Error("Failed to fetch tasks")
+      );
+    }
+  }
+
+  /**
+   * Get all tasks for an organization with context (project and recording info)
+   * This includes joined data from projects and recordings tables
+   */
+  static async getTasksWithContext(
+    organizationId: string,
+    filters?: {
+      priorities?: ("low" | "medium" | "high" | "urgent")[];
+      statuses?: ("pending" | "in_progress" | "completed" | "cancelled")[];
+      projectIds?: string[];
+      assigneeId?: string;
+      search?: string;
+    }
+  ): Promise<Result<TaskWithContext[], Error>> {
+    try {
+      const conditions = [eq(tasks.organizationId, organizationId)];
+
+      // Apply filters
+      if (filters?.priorities && filters.priorities.length > 0) {
+        conditions.push(inArray(tasks.priority, filters.priorities));
+      }
+
+      if (filters?.statuses && filters.statuses.length > 0) {
+        conditions.push(inArray(tasks.status, filters.statuses));
+      }
+
+      if (filters?.projectIds && filters.projectIds.length > 0) {
+        conditions.push(inArray(tasks.projectId, filters.projectIds));
+      }
+
+      if (filters?.assigneeId) {
+        conditions.push(eq(tasks.assigneeId, filters.assigneeId));
+      }
+
+      if (filters?.search) {
+        conditions.push(
+          or(
+            ilike(tasks.title, `%${filters.search}%`),
+            ilike(tasks.description, `%${filters.search}%`)
+          )!
+        );
+      }
+
+      const taskList = await db
+        .select({
+          id: tasks.id,
+          recordingId: tasks.recordingId,
+          projectId: tasks.projectId,
+          title: tasks.title,
+          description: tasks.description,
+          priority: tasks.priority,
+          status: tasks.status,
+          assigneeId: tasks.assigneeId,
+          assigneeName: tasks.assigneeName,
+          dueDate: tasks.dueDate,
+          confidenceScore: tasks.confidenceScore,
+          meetingTimestamp: tasks.meetingTimestamp,
+          organizationId: tasks.organizationId,
+          createdById: tasks.createdById,
+          createdAt: tasks.createdAt,
+          updatedAt: tasks.updatedAt,
+          project: {
+            id: projects.id,
+            name: projects.name,
+          },
+          recording: {
+            id: recordings.id,
+            title: recordings.title,
+          },
+        })
+        .from(tasks)
+        .innerJoin(projects, eq(tasks.projectId, projects.id))
+        .innerJoin(recordings, eq(tasks.recordingId, recordings.id))
+        .where(and(...conditions))
+        .orderBy(desc(tasks.createdAt));
+
+      return ok(taskList);
+    } catch (error) {
+      logger.error("Failed to fetch tasks with context", {
+        component: "TasksQueries.getTasksWithContext",
+        organizationId,
+        error,
+      });
+      return err(
+        error instanceof Error
+          ? error
+          : new Error("Failed to fetch tasks with context")
       );
     }
   }

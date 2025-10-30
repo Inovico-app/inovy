@@ -3,12 +3,15 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Circle, Clock, User } from "lucide-react";
+import { CheckCircle2, Circle, Clock, User, FolderIcon, MicIcon } from "lucide-react";
 import type { Task } from "@/server/db/schema";
+import type { TaskWithContextDto } from "@/server/dto";
+import Link from "next/link";
 
 interface TaskCardProps {
-  task: Task;
+  task: Task | TaskWithContextDto;
   onStatusChange?: (taskId: string, status: Task["status"]) => void;
+  showContext?: boolean;
 }
 
 const priorityColors = {
@@ -32,13 +35,15 @@ const statusLabels = {
   cancelled: "Geannuleerd",
 };
 
-export function TaskCard({ task, onStatusChange }: TaskCardProps) {
+export function TaskCard({ task, onStatusChange, showContext = false }: TaskCardProps) {
   const handleStatusToggle = () => {
     if (!onStatusChange) return;
 
     const newStatus = task.status === "completed" ? "pending" : "completed";
     onStatusChange(task.id, newStatus);
   };
+
+  const taskWithContext = showContext && "project" in task ? task : null;
 
   return (
     <Card className={task.status === "completed" ? "opacity-60" : ""}>
@@ -81,6 +86,27 @@ export function TaskCard({ task, onStatusChange }: TaskCardProps) {
             {/* Description */}
             {task.description && (
               <p className="text-sm text-muted-foreground">{task.description}</p>
+            )}
+
+            {/* Context info (project and recording) */}
+            {taskWithContext && (
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <Link
+                  href={`/projects/${taskWithContext.projectId}`}
+                  className="flex items-center gap-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  <FolderIcon className="h-3 w-3" />
+                  <span>{taskWithContext.project.name}</span>
+                </Link>
+                <span className="text-muted-foreground">•</span>
+                <Link
+                  href={`/projects/${taskWithContext.projectId}/recordings/${taskWithContext.recordingId}`}
+                  className="flex items-center gap-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  <MicIcon className="h-3 w-3" />
+                  <span>{taskWithContext.recording.title}</span>
+                </Link>
+              </div>
             )}
 
             {/* Metadata */}
