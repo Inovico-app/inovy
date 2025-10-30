@@ -10,17 +10,22 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card";
+import { Skeleton } from "../../../components/ui/skeleton";
 import { UploadRecordingModal } from "../../../components/recordings/upload-recording-modal";
+import { RecordingList } from "../../../components/recordings/recording-list";
 import { ProjectService } from "../../../server/services/project.service";
 
 interface ProjectDetailPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ search?: string }>;
 }
 
 async function ProjectDetail({
   params,
+  searchParams,
 }: ProjectDetailPageProps) {
   const { id } = await params;
+  const { search } = await searchParams;
 
   const projectResult = await ProjectService.getProjectById(id);
 
@@ -111,19 +116,22 @@ async function ProjectDetail({
 
         {/* Recordings Section */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Recordings</CardTitle>
+            <UploadRecordingModal projectId={project.id} />
           </CardHeader>
           <CardContent>
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">No recordings yet</p>
-              <UploadRecordingModal
-                projectId={project.id}
-                trigger={
-                  <Button variant="outline">Upload Your First Recording</Button>
-                }
-              />
-            </div>
+            <Suspense
+              fallback={
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-32 w-full" />
+                  ))}
+                </div>
+              }
+            >
+              <RecordingList projectId={project.id} searchQuery={search} />
+            </Suspense>
           </CardContent>
         </Card>
 
@@ -140,6 +148,7 @@ async function ProjectDetail({
 
 export default async function ProjectDetailPage({
   params,
+  searchParams,
 }: ProjectDetailPageProps) {
   // CACHE COMPONENTS: Wrap dynamic content in Suspense to enable static shell generation
   // ProjectDetail accesses project data from the database, making it dynamic
@@ -155,7 +164,7 @@ export default async function ProjectDetailPage({
         </div>
       }
     >
-      <ProjectDetail params={params} />
+      <ProjectDetail params={params} searchParams={searchParams} />
     </Suspense>
   );
 }

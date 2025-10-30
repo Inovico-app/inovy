@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq, ilike } from "drizzle-orm";
 import { type Result, err, ok } from "neverthrow";
 import { db } from "../db";
 import { recordings, type NewRecording, type Recording } from "../db/schema";
@@ -41,6 +41,39 @@ export async function selectRecordingById(
     return ok(recording || null);
   } catch (error) {
     console.error("Error selecting recording:", error);
+    return err(
+      error instanceof Error ? error.message : "Unknown database error"
+    );
+  }
+}
+
+/**
+ * Get recordings by project ID
+ * Returns recordings ordered by creation date (newest first)
+ */
+export async function selectRecordingsByProjectId(
+  projectId: string,
+  options?: {
+    search?: string;
+  }
+): Promise<Result<Recording[], string>> {
+  try {
+    const conditions = [eq(recordings.projectId, projectId)];
+
+    // Add search condition if provided
+    if (options?.search) {
+      conditions.push(ilike(recordings.title, `%${options.search}%`));
+    }
+
+    const results = await db
+      .select()
+      .from(recordings)
+      .where(and(...conditions))
+      .orderBy(desc(recordings.createdAt));
+
+    return ok(results);
+  } catch (error) {
+    console.error("Error selecting recordings by project:", error);
     return err(
       error instanceof Error ? error.message : "Unknown database error"
     );

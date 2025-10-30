@@ -188,7 +188,7 @@
 - Provide search functionality within project recordings
 - Show transcription and AI processing status
 
-**Priority**: High | **Effort**: 3
+**Priority**: High | **Effort**: 3 | **Status**: - [x] Completed
 
 ### REC-004: View Recording Details
 
