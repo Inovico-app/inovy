@@ -8,6 +8,13 @@
       "when": 1761829361298,
       "tag": "0000_dazzling_sersi",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1761837850190,
+      "tag": "0001_thick_scalphunter",
+      "breakpoints": true
     }
   ]
 }

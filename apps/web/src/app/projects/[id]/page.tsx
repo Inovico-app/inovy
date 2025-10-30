@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card";
+import { UploadRecordingModal } from "../../../components/recordings/upload-recording-modal";
 import { ProjectService } from "../../../server/services/project.service";
 
 interface ProjectDetailPageProps {
@@ -63,11 +64,14 @@ async function ProjectDetail({
               </p>
             )}
           </div>
-          <Button asChild>
-            <Link href={`/projects/${project.id}/upload` as Route}>
-              Upload Recording
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link href={`/projects/${project.id}/upload` as Route}>
+                Upload Page
+              </Link>
+            </Button>
+            <UploadRecordingModal projectId={project.id} />
+          </div>
         </div>
 
         {/* Project Info */}
@@ -113,11 +117,12 @@ async function ProjectDetail({
           <CardContent>
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-4">No recordings yet</p>
-              <Button asChild variant="outline">
-                <Link href={`/projects/${project.id}/upload` as Route}>
-                  Upload Your First Recording
-                </Link>
-              </Button>
+              <UploadRecordingModal
+                projectId={project.id}
+                trigger={
+                  <Button variant="outline">Upload Your First Recording</Button>
+                }
+              />
             </div>
           </CardContent>
         </Card>
