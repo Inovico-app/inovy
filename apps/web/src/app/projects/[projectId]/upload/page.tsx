@@ -14,14 +14,14 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 interface UploadRecordingPageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ projectId: string }>;
 }
 
 async function UploadRecordingContent({ params }: UploadRecordingPageProps) {
-  const { id } = await params;
+  const { projectId } = await params;
 
   // Verify project exists
-  const projectResult = await ProjectService.getProjectById(id);
+  const projectResult = await ProjectService.getProjectById(projectId);
 
   if (projectResult.isErr() || !projectResult.value) {
     notFound();
@@ -35,7 +35,7 @@ async function UploadRecordingContent({ params }: UploadRecordingPageProps) {
         {/* Header */}
         <div>
           <Button variant="ghost" size="sm" asChild className="mb-4">
-            <Link href={`/projects/${id}` as Route}>
+            <Link href={`/projects/${projectId}` as Route}>
               <ArrowLeftIcon className="h-4 w-4 mr-2" />
               Back to Project
             </Link>
@@ -48,7 +48,7 @@ async function UploadRecordingContent({ params }: UploadRecordingPageProps) {
         </div>
 
         {/* Upload Mode Selector */}
-        <UploadModeSelector projectId={id} />
+        <UploadModeSelector projectId={projectId} />
 
         {/* Help Text */}
         <Card>
