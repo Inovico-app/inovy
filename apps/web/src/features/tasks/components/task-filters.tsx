@@ -1,12 +1,12 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
 import type { TaskPriority, TaskStatus } from "@/server/db/schema/tasks";
+import { X } from "lucide-react";
 
 interface TaskFiltersProps {
   selectedPriorities: TaskPriority[];
@@ -34,8 +34,16 @@ const priorityOptions: Array<{
   color: string;
 }> = [
   { value: "urgent", label: "Urgent", color: "text-red-700 dark:text-red-400" },
-  { value: "high", label: "High", color: "text-orange-700 dark:text-orange-400" },
-  { value: "medium", label: "Medium", color: "text-blue-700 dark:text-blue-400" },
+  {
+    value: "high",
+    label: "High",
+    color: "text-orange-700 dark:text-orange-400",
+  },
+  {
+    value: "medium",
+    label: "Medium",
+    color: "text-blue-700 dark:text-blue-400",
+  },
   { value: "low", label: "Low", color: "text-slate-700 dark:text-slate-400" },
 ];
 
@@ -74,7 +82,8 @@ export function TaskFilters({
     }
   };
 
-  const hasActiveFilters = selectedPriorities.length > 0 || selectedStatuses.length > 0;
+  const hasActiveFilters =
+    selectedPriorities.length > 0 || selectedStatuses.length > 0;
 
   return (
     <Card>
@@ -97,7 +106,9 @@ export function TaskFilters({
       <CardContent className="space-y-4">
         {/* Priority Filter */}
         <div className="space-y-3">
-          <h3 className="text-sm font-medium text-muted-foreground">Priority</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">
+            Priority
+          </h3>
           <div className="space-y-2">
             {priorityOptions.map((option) => {
               const count = taskCounts?.[option.value] ?? 0;
@@ -116,10 +127,7 @@ export function TaskFilters({
                   >
                     <span className={option.color}>{option.label}</span>
                     {taskCounts && (
-                      <Badge
-                        variant="outline"
-                        className="ml-auto text-xs"
-                      >
+                      <Badge variant="outline" className="ml-auto text-xs">
                         {count}
                       </Badge>
                     )}
@@ -151,10 +159,7 @@ export function TaskFilters({
                   >
                     <span>{option.label}</span>
                     {statusCounts && (
-                      <Badge
-                        variant="outline"
-                        className="ml-auto text-xs"
-                      >
+                      <Badge variant="outline" className="ml-auto text-xs">
                         {count}
                       </Badge>
                     )}
