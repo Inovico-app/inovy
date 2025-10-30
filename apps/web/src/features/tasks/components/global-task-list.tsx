@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getUserTasks } from "../actions/get-user-tasks";
+import { updateTaskStatus } from "../actions/update-task-status";
 import { getUserProjects } from "@/features/projects/actions/get-user-projects";
 import { TaskCard } from "./task-card";
 import { TaskFilters } from "./task-filters";
@@ -13,12 +15,20 @@ import { toast } from "sonner";
 import { useQueryStates, parseAsArrayOf, parseAsString } from "nuqs";
 import type { TaskWithContextDto } from "@/server/dto";
 import type { TaskPriority, TaskStatus } from "@/server/db/schema/tasks";
+import { Undo2 } from "lucide-react";
+
+interface UndoState {
+  taskId: string;
+  previousStatus: TaskStatus;
+  taskTitle: string;
+}
 
 export function GlobalTaskList() {
   const [tasks, setTasks] = useState<TaskWithContextDto[]>([]);
   const [allTasks, setAllTasks] = useState<TaskWithContextDto[]>([]);
   const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [undoState, setUndoState] = useState<UndoState | null>(null);
 
   // Use nuqs for URL state management
   // Default: show pending and in_progress tasks (hide completed), sort by priority desc
@@ -200,6 +210,87 @@ export function GlobalTaskList() {
     setFilters({ priorities: [], statuses: ["pending", "in_progress"], projectIds: [] });
   };
 
+  const handleStatusChange = useCallback(
+    async (taskId: string, newStatus: TaskStatus) => {
+      // Find the task in allTasks
+      const task = allTasks.find((t) => t.id === taskId);
+      if (!task) return;
+
+      const previousStatus = task.status;
+
+      // Optimistic update
+      setAllTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+      );
+
+      try {
+        // Update on server
+        const result = await updateTaskStatus({ taskId, status: newStatus });
+
+        if (!result.success) {
+          // Revert on error
+          setAllTasks((prev) =>
+            prev.map((t) => (t.id === taskId ? { ...t, status: previousStatus } : t))
+          );
+          toast.error(result.error ?? "Failed to update task status");
+          return;
+        }
+
+        // Show undo toast
+        const statusLabel =
+          newStatus === "completed"
+            ? "completed"
+            : newStatus === "in_progress"
+              ? "in progress"
+              : newStatus === "pending"
+                ? "pending"
+                : "cancelled";
+
+        setUndoState({ taskId, previousStatus, taskTitle: task.title });
+
+        toast.success(`Task marked as ${statusLabel}`, {
+          action: {
+            label: "Undo",
+            onClick: () => handleUndo(taskId, previousStatus, task.title),
+          },
+          duration: 5000,
+        });
+      } catch (error) {
+        // Revert on error
+        setAllTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? { ...t, status: previousStatus } : t))
+        );
+        toast.error("An unexpected error occurred");
+      }
+    },
+    [allTasks]
+  );
+
+  const handleUndo = async (
+    taskId: string,
+    previousStatus: TaskStatus,
+    taskTitle: string
+  ) => {
+    // Optimistic update back to previous status
+    setAllTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: previousStatus } : t))
+    );
+
+    try {
+      const result = await updateTaskStatus({ taskId, status: previousStatus });
+
+      if (!result.success) {
+        toast.error("Failed to undo status change");
+        return;
+      }
+
+      setUndoState(null);
+      toast.success("Status change undone");
+    } catch (error) {
+      toast.error("An unexpected error occurred");
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -281,7 +372,12 @@ export function GlobalTaskList() {
             ) : (
               <>
                 {tasks.map((task) => (
-                  <TaskCard key={task.id} task={task} showContext />
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    showContext
+                    onStatusChange={handleStatusChange}
+                  />
                 ))}
               </>
             )}

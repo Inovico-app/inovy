@@ -52,6 +52,34 @@ export class TasksQueries {
   }
 
   /**
+   * Get a single task by ID
+   */
+  static async getTaskById(taskId: string): Promise<Result<Task, Error>> {
+    try {
+      const [task] = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, taskId))
+        .limit(1);
+
+      if (!task) {
+        return err(new Error("Task not found"));
+      }
+
+      return ok(task);
+    } catch (error) {
+      logger.error("Failed to fetch task by ID", {
+        component: "TasksQueries.getTaskById",
+        taskId,
+        error,
+      });
+      return err(
+        error instanceof Error ? error : new Error("Failed to fetch task")
+      );
+    }
+  }
+
+  /**
    * Get all tasks for a recording
    */
   static async getTasksByRecordingId(
