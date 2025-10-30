@@ -3,11 +3,17 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Circle, Clock, User } from "lucide-react";
+import { CheckCircle2, Circle, Clock, User, Folder, Music } from "lucide-react";
+import Link from "next/link";
 import type { Task } from "@/server/db/schema";
 
 interface TaskCardProps {
-  task: Task;
+  task: Task & {
+    projectName?: string;
+    recordingTitle?: string;
+    projectId?: string;
+    recordingId?: string;
+  };
   onStatusChange?: (taskId: string, status: Task["status"]) => void;
 }
 
@@ -40,6 +46,9 @@ export function TaskCard({ task, onStatusChange }: TaskCardProps) {
     onStatusChange(task.id, newStatus);
   };
 
+  const projectId = task.projectId;
+  const recordingId = task.recordingId;
+
   return (
     <Card className={task.status === "completed" ? "opacity-60" : ""}>
       <CardContent className="p-4">
@@ -60,11 +69,11 @@ export function TaskCard({ task, onStatusChange }: TaskCardProps) {
           </Button>
 
           {/* Task content */}
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 space-y-2 min-w-0">
             {/* Title and priority */}
             <div className="flex items-start justify-between gap-2">
               <h3
-                className={`text-sm font-medium leading-tight ${
+                className={`text-sm font-medium leading-tight break-words ${
                   task.status === "completed" ? "line-through" : ""
                 }`}
               >
@@ -80,11 +89,37 @@ export function TaskCard({ task, onStatusChange }: TaskCardProps) {
 
             {/* Description */}
             {task.description && (
-              <p className="text-sm text-muted-foreground">{task.description}</p>
+              <p className="text-sm text-muted-foreground line-clamp-2">
+                {task.description}
+              </p>
+            )}
+
+            {/* Context links (Project and Recording) */}
+            {(task.projectName || task.recordingTitle) && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {task.projectName && projectId && (
+                  <Link
+                    href={`/projects/${projectId}`}
+                    className="inline-flex items-center gap-1 text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded transition-colors"
+                  >
+                    <Folder className="h-3 w-3" />
+                    <span className="truncate">{task.projectName}</span>
+                  </Link>
+                )}
+                {task.recordingTitle && recordingId && projectId && (
+                  <Link
+                    href={`/projects/${projectId}/recordings/${recordingId}`}
+                    className="inline-flex items-center gap-1 text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded transition-colors"
+                  >
+                    <Music className="h-3 w-3" />
+                    <span className="truncate">{task.recordingTitle}</span>
+                  </Link>
+                )}
+              </div>
             )}
 
             {/* Metadata */}
-            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-1">
               {/* Status */}
               <div className="flex items-center gap-1">
                 <Circle className="h-3 w-3" />
@@ -115,9 +150,7 @@ export function TaskCard({ task, onStatusChange }: TaskCardProps) {
               {/* Confidence */}
               {task.confidenceScore !== null && (
                 <div className="flex items-center gap-1">
-                  <span>
-                    {Math.round(task.confidenceScore * 100)}% vertrouwen
-                  </span>
+                  <span>{Math.round(task.confidenceScore * 100)}% zeker</span>
                 </div>
               )}
             </div>
