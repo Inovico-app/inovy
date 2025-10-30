@@ -1,14 +1,11 @@
-import {
-  CalendarIcon,
-  ClockIcon,
-  FileIcon,
-  ArrowLeftIcon,
-  PencilIcon,
-} from "lucide-react";
+import { ArrowLeftIcon, CalendarIcon, ClockIcon, FileIcon } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { Route } from "next";
 import { Suspense } from "react";
+import { EditRecordingModal } from "../../../../../components/recordings/edit-recording-modal";
+import { ProcessingError } from "../../../../../components/recordings/processing-error";
+import { RecordingDetailStatus } from "../../../../../components/recordings/recording-detail-status";
 import { Button } from "../../../../../components/ui/button";
 import {
   Card,
@@ -16,10 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../../../components/ui/card";
-import { Badge } from "../../../../../components/ui/badge";
-import { RecordingService } from "../../../../../server/services/recording.service";
 import { ProjectService } from "../../../../../server/services/project.service";
-import { EditRecordingModal } from "../../../../../components/recordings/edit-recording-modal";
+import { RecordingService } from "../../../../../server/services/recording.service";
 
 interface RecordingDetailPageProps {
   params: Promise<{ projectId: string; recordingId: string }>;
@@ -78,24 +73,6 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
     return `${mb.toFixed(2)} MB`;
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { label: "Pending", variant: "outline" as const },
-      processing: { label: "Processing", variant: "default" as const },
-      completed: { label: "Completed", variant: "secondary" as const },
-      failed: { label: "Failed", variant: "destructive" as const },
-    };
-
-    const config =
-      statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-
-    return (
-      <Badge variant={config.variant} className="capitalize">
-        {config.label}
-      </Badge>
-    );
-  };
-
   const isVideo = recording.fileMimeType.startsWith("video/");
   const isAudio = recording.fileMimeType.startsWith("audio/");
 
@@ -104,7 +81,10 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Breadcrumb Navigation */}
         <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/projects" className="hover:text-foreground transition-colors">
+          <Link
+            href="/projects"
+            className="hover:text-foreground transition-colors"
+          >
             Projects
           </Link>
           <span>/</span>
@@ -140,7 +120,10 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
             )}
           </div>
           <div className="flex gap-2 items-center">
-            {getStatusBadge(recording.transcriptionStatus)}
+            <RecordingDetailStatus
+              recordingId={recording.id}
+              initialStatus={recording.transcriptionStatus}
+            />
             <EditRecordingModal recording={recording} />
           </div>
         </div>
@@ -155,22 +138,32 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
               <div className="flex items-center gap-2">
                 <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">Date:</span>
-                <span className="text-sm">{formatDate(recording.recordingDate)}</span>
+                <span className="text-sm">
+                  {formatDate(recording.recordingDate)}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <ClockIcon className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">Duration:</span>
-                <span className="text-sm">{formatDuration(recording.duration)}</span>
+                <span className="text-sm">
+                  {formatDuration(recording.duration)}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <FileIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">File size:</span>
-                <span className="text-sm">{formatFileSize(recording.fileSize)}</span>
+                <span className="text-sm text-muted-foreground">
+                  File size:
+                </span>
+                <span className="text-sm">
+                  {formatFileSize(recording.fileSize)}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <FileIcon className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">Format:</span>
-                <span className="text-sm">{recording.fileName.split(".").pop()?.toUpperCase()}</span>
+                <span className="text-sm">
+                  {recording.fileName.split(".").pop()?.toUpperCase()}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -190,7 +183,10 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
                   preload="metadata"
                   controlsList="nodownload"
                 >
-                  <source src={recording.fileUrl} type={recording.fileMimeType} />
+                  <source
+                    src={recording.fileUrl}
+                    type={recording.fileMimeType}
+                  />
                   Your browser does not support the video player.
                 </video>
               )}
@@ -201,7 +197,10 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
                   preload="metadata"
                   controlsList="nodownload"
                 >
-                  <source src={recording.fileUrl} type={recording.fileMimeType} />
+                  <source
+                    src={recording.fileUrl}
+                    type={recording.fileMimeType}
+                  />
                   Your browser does not support the audio player.
                 </audio>
               )}
@@ -228,7 +227,9 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
             {recording.transcriptionStatus === "completed" &&
             recording.transcriptionText ? (
               <div className="prose prose-sm max-w-none dark:prose-invert">
-                <p className="whitespace-pre-wrap">{recording.transcriptionText}</p>
+                <p className="whitespace-pre-wrap">
+                  {recording.transcriptionText}
+                </p>
               </div>
             ) : recording.transcriptionStatus === "processing" ? (
               <div className="text-center py-8 text-muted-foreground">
@@ -238,18 +239,15 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
                 </p>
               </div>
             ) : recording.transcriptionStatus === "failed" ? (
-              <div className="text-center py-8 text-destructive">
-                <p>Transcription failed</p>
-                <p className="text-sm mt-2">
-                  There was an error processing this recording. Please try uploading again.
-                </p>
-              </div>
+              <ProcessingError
+                title="Transcription Failed"
+                recordingTitle={recording.title}
+                message="There was an error transcribing this recording. This could be due to audio quality issues, unsupported audio format, or a temporary service issue."
+              />
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <p>Transcription pending</p>
-                <p className="text-sm mt-2">
-                  Processing will begin shortly.
-                </p>
+                <p className="text-sm mt-2">Processing will begin shortly.</p>
               </div>
             )}
           </CardContent>
@@ -275,7 +273,9 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
           </CardHeader>
           <CardContent>
             <div className="text-center py-8 text-muted-foreground">
-              <p>Action items will appear here once AI processing is complete</p>
+              <p>
+                Action items will appear here once AI processing is complete
+              </p>
               <p className="text-sm mt-2">Coming soon in a future update</p>
             </div>
           </CardContent>
