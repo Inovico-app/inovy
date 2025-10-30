@@ -15,6 +15,13 @@
       "when": 1761837850190,
       "tag": "0001_thick_scalphunter",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1761842101019,
+      "tag": "0002_black_karen_page",
+      "breakpoints": true
     }
   ]
 }

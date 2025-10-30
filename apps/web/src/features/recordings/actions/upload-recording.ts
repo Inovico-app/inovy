@@ -126,6 +126,23 @@ export async function uploadRecordingFormAction(
     // Revalidate the project page
     revalidatePath(`/projects/${projectId}`);
 
+    // Trigger transcription in the background (fire and forget)
+    fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/transcribe/${recording.id}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    ).catch((error) => {
+      logger.error("Failed to trigger transcription", {
+        component: "uploadRecordingFormAction",
+        recordingId: recording.id,
+        error,
+      });
+    });
+
     return { success: true, recordingId: recording.id };
   } catch (error) {
     logger.error("Error in uploadRecordingFormAction", {

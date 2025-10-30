@@ -2,11 +2,10 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { UploadRecordingForm } from "@/features/recordings/components/upload-recording-form";
+import { UploadModeSelector } from "@/features/recordings/components/upload-mode-selector";
 import { ProjectService } from "@/server/services";
 import { ArrowLeftIcon } from "lucide-react";
 import type { Route } from "next";
@@ -42,43 +41,31 @@ async function UploadRecordingContent({ params }: UploadRecordingPageProps) {
             </Link>
           </Button>
 
-          <h1 className="text-3xl font-bold">Upload Recording</h1>
+          <h1 className="text-3xl font-bold">Opname toevoegen</h1>
           <p className="text-muted-foreground mt-2">
-            Upload a meeting recording to {project.name}
+            Upload een bestand of neem live op voor {project.name}
           </p>
         </div>
 
-        {/* Upload Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recording Details</CardTitle>
-            <CardDescription>
-              Upload an audio or video recording and provide details about the
-              meeting
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <UploadRecordingForm projectId={id} />
-          </CardContent>
-        </Card>
+        {/* Upload Mode Selector */}
+        <UploadModeSelector projectId={id} />
 
         {/* Help Text */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Supported Formats</CardTitle>
+            <CardTitle className="text-base">Ondersteunde formaten</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              <li>MP3 audio files (.mp3)</li>
-              <li>MP4 audio/video files (.mp4)</li>
-              <li>WAV audio files (.wav)</li>
-              <li>M4A audio files (.m4a)</li>
-              <li>Maximum file size: 100MB</li>
+              <li>MP3 audio bestanden (.mp3)</li>
+              <li>MP4 audio/video bestanden (.mp4)</li>
+              <li>WAV audio bestanden (.wav)</li>
+              <li>M4A audio bestanden (.m4a)</li>
+              <li>Maximale bestandsgrootte: 100MB</li>
             </ul>
             <p className="text-xs text-muted-foreground mt-4">
-              After uploading, your recording will be processed for
-              transcription and AI-powered analysis to extract action items and
-              summaries.
+              Na het uploaden wordt je opname automatisch getranscribeerd met AI-analyse
+              om actiepunten en samenvattingen te genereren.
             </p>
           </CardContent>
         </Card>
