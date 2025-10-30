@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getUserTasks } from "../actions/get-user-tasks";
+import { getUserProjects } from "@/features/projects/actions/get-user-projects";
 import { TaskCard } from "./task-card";
 import { TaskFilters } from "./task-filters";
 import { Loader } from "@/components/loader";
@@ -15,6 +16,7 @@ import type { TaskPriority, TaskStatus } from "@/server/db/schema/tasks";
 export function GlobalTaskList() {
   const [tasks, setTasks] = useState<TaskWithContextDto[]>([]);
   const [allTasks, setAllTasks] = useState<TaskWithContextDto[]>([]);
+  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Use nuqs for URL state management
@@ -22,6 +24,7 @@ export function GlobalTaskList() {
   const [filters, setFilters] = useQueryStates({
     priorities: parseAsArrayOf(parseAsString).withDefault([]),
     statuses: parseAsArrayOf(parseAsString).withDefault(["pending", "in_progress"]),
+    projectIds: parseAsArrayOf(parseAsString).withDefault([]),
   });
 
   // Parse priorities as TaskPriority[]
@@ -35,31 +38,41 @@ export function GlobalTaskList() {
       ["pending", "in_progress", "completed", "cancelled"].includes(s)
   );
 
-  // Load all tasks on mount
-  useEffect(() => {
-    const loadTasks = async () => {
-      try {
-        const result = await getUserTasks();
+  // Parse project IDs
+  const selectedProjectIds = filters.projectIds;
 
-        if (!result.success || !result.data) {
-          toast.error(result.error || "Failed to load tasks");
+  // Load all tasks and projects on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [tasksResult, projectsResult] = await Promise.all([
+          getUserTasks(),
+          getUserProjects(),
+        ]);
+
+        if (!tasksResult.success || !tasksResult.data) {
+          toast.error(tasksResult.error || "Failed to load tasks");
           return;
         }
 
-        setAllTasks(result.data);
-        setTasks(result.data);
+        setAllTasks(tasksResult.data);
+        setTasks(tasksResult.data);
+
+        if (projectsResult.success && projectsResult.data) {
+          setProjects(projectsResult.data);
+        }
       } catch (error) {
-        console.error("Error loading tasks:", error);
-        toast.error("Failed to load tasks");
+        console.error("Error loading data:", error);
+        toast.error("Failed to load data");
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadTasks();
+    loadData();
   }, []);
 
-  // Filter tasks when selectedPriorities or selectedStatuses changes
+  // Filter tasks when filters change
   useEffect(() => {
     let filtered = allTasks;
 
@@ -77,8 +90,15 @@ export function GlobalTaskList() {
       );
     }
 
+    // Filter by projects
+    if (selectedProjectIds.length > 0) {
+      filtered = filtered.filter((task) =>
+        selectedProjectIds.includes(task.projectId)
+      );
+    }
+
     setTasks(filtered);
-  }, [selectedPriorities, selectedStatuses, allTasks]);
+  }, [selectedPriorities, selectedStatuses, selectedProjectIds, allTasks]);
 
   // Calculate task counts by priority from all tasks
   const taskCounts = useMemo(() => {
@@ -100,6 +120,14 @@ export function GlobalTaskList() {
     };
   }, [allTasks]);
 
+  // Calculate task counts per project
+  const projectsWithCounts = useMemo(() => {
+    return projects.map((project) => ({
+      ...project,
+      taskCount: allTasks.filter((t) => t.projectId === project.id).length,
+    }));
+  }, [projects, allTasks]);
+
   const handlePrioritiesChange = (priorities: TaskPriority[]) => {
     setFilters({ priorities });
   };
@@ -108,8 +136,12 @@ export function GlobalTaskList() {
     setFilters({ statuses });
   };
 
+  const handleProjectIdsChange = (projectIds: string[]) => {
+    setFilters({ projectIds });
+  };
+
   const handleClearFilters = () => {
-    setFilters({ priorities: [], statuses: ["pending", "in_progress"] });
+    setFilters({ priorities: [], statuses: ["pending", "in_progress"], projectIds: [] });
   };
 
   if (isLoading) {
@@ -162,8 +194,11 @@ export function GlobalTaskList() {
           onPrioritiesChange={handlePrioritiesChange}
           selectedStatuses={selectedStatuses}
           onStatusesChange={handleStatusesChange}
+          selectedProjectIds={selectedProjectIds}
+          onProjectIdsChange={handleProjectIdsChange}
           taskCounts={taskCounts}
           statusCounts={statusCounts}
+          projects={projectsWithCounts}
           onClearFilters={handleClearFilters}
         />
       </div>
