@@ -16,7 +16,7 @@ import { RecordingList } from "../../../features/recordings/components/recording
 import { ProjectService } from "../../../server/services/project.service";
 
 interface ProjectDetailPageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ projectId: string }>;
   searchParams: Promise<{ search?: string }>;
 }
 
@@ -24,10 +24,10 @@ async function ProjectDetail({
   params,
   searchParams,
 }: ProjectDetailPageProps) {
-  const { id } = await params;
+  const { projectId } = await params;
   const { search } = await searchParams;
 
-  const projectResult = await ProjectService.getProjectById(id);
+  const projectResult = await ProjectService.getProjectById(projectId);
 
   if (projectResult.isErr()) {
     notFound();
