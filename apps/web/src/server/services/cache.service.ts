@@ -28,31 +28,29 @@ export class CacheService {
 
   /**
    * Cache key patterns for different entities
+   * Note: organizationId and userId are now Kinde IDs (strings)
    */
   static readonly KEYS = {
     // Project keys
     PROJECT_BY_ID: (id: string) => `${CacheService.KEY_PREFIX}project:${id}`,
-    PROJECT_BY_ORG: (orgId: string, status?: string) =>
-      `${CacheService.KEY_PREFIX}project:org:${orgId}${
+    PROJECT_BY_ORG: (orgCode: string, status?: string) =>
+      `${CacheService.KEY_PREFIX}project:org:${orgCode}${
         status ? `:${status}` : ""
       }`,
-    PROJECT_COUNT: (orgId: string, status?: string) =>
-      `${CacheService.KEY_PREFIX}project:count:${orgId}${
+    PROJECT_COUNT: (orgCode: string, status?: string) =>
+      `${CacheService.KEY_PREFIX}project:count:${orgCode}${
         status ? `:${status}` : ""
       }`,
 
-    // User keys
-    USER_BY_ID: (id: string) => `${CacheService.KEY_PREFIX}user:${id}`,
-    USER_BY_KINDE: (kindeId: string) =>
+    // User keys (Kinde IDs)
+    USER_BY_KINDE_ID: (kindeId: string) =>
       `${CacheService.KEY_PREFIX}user:kinde:${kindeId}`,
-    USER_BY_ORG: (orgId: string) =>
-      `${CacheService.KEY_PREFIX}user:org:${orgId}`,
+    USER_BY_ORG: (orgCode: string) =>
+      `${CacheService.KEY_PREFIX}user:org:${orgCode}`,
 
-    // Organization keys
-    ORG_BY_ID: (id: string) => `${CacheService.KEY_PREFIX}org:${id}`,
-    ORG_BY_KINDE: (kindeId: string) =>
-      `${CacheService.KEY_PREFIX}org:kinde:${kindeId}`,
-    ORG_BY_SLUG: (slug: string) => `${CacheService.KEY_PREFIX}org:slug:${slug}`,
+    // Organization keys (Kinde organization codes)
+    ORG_BY_CODE: (orgCode: string) =>
+      `${CacheService.KEY_PREFIX}org:code:${orgCode}`,
   } as const;
 
   /**
@@ -178,40 +176,23 @@ export class CacheService {
     },
 
     /**
-     * Invalidate user-related cache
+     * Invalidate user-related cache (Kinde user ID)
      */
     async invalidateUser(
-      userId: string,
-      kindeId: string,
-      organizationId: string
+      kindeUserId: string,
+      orgCode: string
     ): Promise<void> {
       await Promise.all([
-        CacheService.delete(CacheService.KEYS.USER_BY_ID(userId)),
-        CacheService.delete(CacheService.KEYS.USER_BY_KINDE(kindeId)),
-        CacheService.delete(CacheService.KEYS.USER_BY_ORG(organizationId)),
+        CacheService.delete(CacheService.KEYS.USER_BY_KINDE_ID(kindeUserId)),
+        CacheService.delete(CacheService.KEYS.USER_BY_ORG(orgCode)),
       ]);
     },
 
     /**
-     * Invalidate organization-related cache
+     * Invalidate organization-related cache (Kinde organization code)
      */
-    async invalidateOrganization(
-      orgId: string,
-      kindeId: string,
-      slug?: string
-    ): Promise<void> {
-      const deletePromises = [
-        CacheService.delete(CacheService.KEYS.ORG_BY_ID(orgId)),
-        CacheService.delete(CacheService.KEYS.ORG_BY_KINDE(kindeId)),
-      ];
-
-      if (slug) {
-        deletePromises.push(
-          CacheService.delete(CacheService.KEYS.ORG_BY_SLUG(slug))
-        );
-      }
-
-      await Promise.all(deletePromises);
+    async invalidateOrganization(orgCode: string): Promise<void> {
+      await CacheService.delete(CacheService.KEYS.ORG_BY_CODE(orgCode));
     },
   };
 

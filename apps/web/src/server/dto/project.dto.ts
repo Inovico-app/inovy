@@ -1,5 +1,6 @@
 /**
  * Data Transfer Objects for Project-related operations
+ * organizationId and createdById are now Kinde IDs (strings)
  */
 
 import type { AllowedStatus } from "../data-access/projects.queries";
@@ -7,8 +8,8 @@ import type { AllowedStatus } from "../data-access/projects.queries";
 export interface CreateProjectDto {
   name: string;
   description?: string;
-  organizationId: string;
-  createdById: string;
+  organizationId: string; // Kinde organization code
+  createdById: string; // Kinde user ID
 }
 
 export interface UpdateProjectDto {
@@ -22,17 +23,21 @@ export interface ProjectDto {
   name: string;
   description: string | null;
   status: string;
-  organizationId: string;
+  organizationId: string; // Kinde organization code
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface ProjectWithCreatorDto extends ProjectDto {
+  createdById: string; // Kinde user ID
+}
+
+export interface ProjectWithCreatorDetailsDto extends ProjectWithCreatorDto {
   createdBy: {
     id: string;
     givenName: string | null;
     familyName: string | null;
-    email: string;
+    email: string | null;
   };
 }
 

@@ -9,12 +9,13 @@ import type {
   CreateProjectDto,
   ProjectDto,
   ProjectFiltersDto,
+  ProjectWithCreatorDetailsDto,
   ProjectWithCreatorDto,
 } from "../dto";
 import { checkProjectNameUnique } from "../helpers/project";
-import { findExistingUserByKindeId } from "../helpers/user";
 import type { CreateProjectInput } from "../validation/create-project";
 import { CacheService } from "./cache.service";
+import { KindeUserService } from "./kinde-user.service";
 
 /**
  * Business logic layer for Project operations
@@ -23,11 +24,11 @@ import { CacheService } from "./cache.service";
 
 export class ProjectService {
   /**
-   * Get a project by ID for the authenticated user's organization
+   * Get a project by ID for the authenticated user's organization with creator details
    */
   static async getProjectById(
     projectId: string
-  ): Promise<Result<ProjectWithCreatorDto, string>> {
+  ): Promise<Result<ProjectWithCreatorDetailsDto, string>> {
     try {
       // Check authentication and get session
       const authResult = await getAuthSession();
@@ -38,23 +39,11 @@ export class ProjectService {
 
       const { user: authUser, organization } = authResult.value;
 
-      if (!authUser) {
+      if (!authUser || !organization) {
         return err("Authentication required");
       }
 
-      // Ensure user exists in database
-      const syncResult = await findExistingUserByKindeId(authUser);
-      if (syncResult.isErr()) {
-        return err("Failed to sync user data");
-      }
-
-      const dbUser = syncResult.value;
-
-      if (!dbUser?.organizationId) {
-        return err("User organization not found");
-      }
-
-      // Get project with creator details using caching
+      // Get project with creator ID using caching
       const cacheKey = CacheService.KEYS.PROJECT_BY_ID(projectId);
 
       const project = await CacheService.withCache(
@@ -62,7 +51,7 @@ export class ProjectService {
         async () => {
           return await ProjectQueries.findByIdWithCreator(
             projectId,
-            dbUser.organizationId
+            organization.orgCode
           );
         },
         { ttl: CacheService.TTL.PROJECT }
@@ -72,7 +61,31 @@ export class ProjectService {
         return err("Project not found");
       }
 
-      return ok(project);
+      // Fetch creator details from Kinde API
+      const creatorResult = await KindeUserService.getUserById(
+        project.createdById
+      );
+
+      if (creatorResult.isErr()) {
+        logger.warn("Failed to fetch creator details from Kinde", {
+          projectId,
+          createdById: project.createdById,
+        });
+      }
+
+      const creator = creatorResult.isOk() ? creatorResult.value : null;
+
+      const projectWithDetails: ProjectWithCreatorDetailsDto = {
+        ...project,
+        createdBy: {
+          id: project.createdById,
+          givenName: creator?.given_name || null,
+          familyName: creator?.family_name || null,
+          email: creator?.email || null,
+        },
+      };
+
+      return ok(projectWithDetails);
     } catch (error) {
       const errorMessage = "Failed to get project";
       logger.error(errorMessage, { projectId }, error as Error);
@@ -95,25 +108,13 @@ export class ProjectService {
 
       const { user: authUser, organization } = authResult.value;
 
-      if (!authUser) {
+      if (!authUser || !organization) {
         return err("Authentication required");
-      }
-
-      // Ensure user exists in database
-      const syncResult = await findExistingUserByKindeId(authUser);
-      if (syncResult.isErr()) {
-        return err("Failed to sync user data");
-      }
-
-      const dbUser = syncResult.value;
-
-      if (!dbUser?.organizationId) {
-        return err("User organization not found");
       }
 
       // Get all active projects in the organization using data access layer
       const filters: ProjectFiltersDto = {
-        organizationId: dbUser.organizationId,
+        organizationId: organization.orgCode,
         status: "active",
       };
 
@@ -144,25 +145,13 @@ export class ProjectService {
 
       const { user: authUser, organization } = authResult.value;
 
-      if (!authUser) {
+      if (!authUser || !organization) {
         return err("Authentication required");
-      }
-
-      // Ensure user exists in database
-      const syncResult = await findExistingUserByKindeId(authUser);
-      if (syncResult.isErr()) {
-        return err("Failed to find existing user by Kinde ID");
-      }
-
-      const dbUser = syncResult.value;
-
-      if (!dbUser?.organizationId) {
-        return err("Organization not found");
       }
 
       // Get count using data access layer
       const count = await ProjectQueries.countByOrganization(
-        dbUser.organizationId,
+        organization.orgCode,
         status
       );
 
@@ -179,25 +168,9 @@ export class ProjectService {
    */
   static async createProject(
     input: CreateProjectInput,
-    user: NonNullable<AuthUser>
+    user: NonNullable<AuthUser>,
+    orgCode: string
   ): Promise<ActionResult<ProjectDto>> {
-    // Ensure user exists
-    const userResult = await findExistingUserByKindeId(user);
-    if (userResult.isErr()) {
-      return err(ActionErrors.notFound("User", "create-project"));
-    }
-
-    const dbUser = userResult.value;
-    if (!dbUser) {
-      return err(
-        ActionErrors.internal(
-          "Unable to parse user from db response",
-          undefined,
-          "create-project"
-        )
-      );
-    }
-
     // Ensure project name is unique
     const projectNameUniqueResult = await checkProjectNameUnique(input.name);
     if (projectNameUniqueResult.isErr()) {
@@ -209,16 +182,18 @@ export class ProjectService {
     const projectData: CreateProjectDto = {
       name: input.name,
       description: input.description,
-      organizationId: dbUser.organizationId,
-      createdById: dbUser.id,
+      organizationId: orgCode, // Kinde organization code
+      createdById: user.id, // Kinde user ID
     };
+
+    console.log("DO WEG ET HERE, PROJECT DATA:", projectData);
 
     const createResult = await safeAsync(
       () => ProjectQueries.create(projectData),
       "project-creation"
     );
 
-    CacheService.INVALIDATION.invalidateProjectCache(dbUser.organizationId);
+    CacheService.INVALIDATION.invalidateProjectCache(orgCode);
 
     return createResult;
   }

@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../db";
-import { projects, users } from "../db/schema";
+import { projects } from "../db/schema";
 import type {
   CreateProjectDto,
   ProjectDto,
@@ -46,6 +46,7 @@ export class ProjectQueries {
 
   /**
    * Find a project by ID with creator information
+   * Note: createdById is now a Kinde user ID (string), creator details fetched separately
    */
   static async findByIdWithCreator(
     projectId: string,
@@ -58,17 +59,11 @@ export class ProjectQueries {
         description: projects.description,
         status: projects.status,
         organizationId: projects.organizationId,
+        createdById: projects.createdById,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
-        createdBy: {
-          id: users.id,
-          givenName: users.givenName,
-          familyName: users.familyName,
-          email: users.email,
-        },
       })
       .from(projects)
-      .leftJoin(users, eq(projects.createdById, users.id))
       .where(
         and(
           eq(projects.id, projectId),
@@ -86,14 +81,9 @@ export class ProjectQueries {
       description: project.description,
       status: project.status,
       organizationId: project.organizationId,
+      createdById: project.createdById,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
-      createdBy: project.createdBy || {
-        id: "",
-        givenName: null,
-        familyName: null,
-        email: "Unknown",
-      },
     };
   }
 
@@ -153,6 +143,7 @@ export class ProjectQueries {
 
   /**
    * Find projects by organization with creator information
+   * Note: createdById is now a Kinde user ID (string), creator details fetched separately
    */
   static async findByOrganizationWithCreator(filters: {
     organizationId: string;
@@ -173,17 +164,11 @@ export class ProjectQueries {
         description: projects.description,
         status: projects.status,
         organizationId: projects.organizationId,
+        createdById: projects.createdById,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
-        createdBy: {
-          id: users.id,
-          givenName: users.givenName,
-          familyName: users.familyName,
-          email: users.email,
-        },
       })
       .from(projects)
-      .leftJoin(users, eq(projects.createdById, users.id))
       .where(and(...whereConditions));
 
     return result.map((project) => ({
@@ -192,14 +177,9 @@ export class ProjectQueries {
       description: project.description,
       status: project.status,
       organizationId: project.organizationId,
+      createdById: project.createdById,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
-      createdBy: project.createdBy || {
-        id: "",
-        givenName: null,
-        familyName: null,
-        email: "Unknown",
-      },
     }));
   }
 

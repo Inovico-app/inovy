@@ -1,163 +1,91 @@
 import { Result, err, ok } from "neverthrow";
 import { ActionErrors, type ActionError } from "../../lib/action-errors";
-import { getAuthSession, type AuthUser } from "../../lib/auth";
+import { type AuthUser } from "../../lib/auth";
 import { logger } from "../../lib/logger";
-import { OrganizationQueries, UserQueries } from "../data-access";
-import type { UserDto } from "../dto";
+import type { KindeUserDto } from "../dto";
+import { KindeUserService } from "../services/kinde-user.service";
 
 /**
- * Check if user exists in database and if not, create them
+ * Ensure user exists in Kinde (create if needed on first signup)
+ * Since we're using Kinde as source of truth, this mainly validates the user exists
  */
-export async function findExistingUserByKindeId(
-  authUser: AuthUser
-): Promise<Result<UserDto | null, ActionError>> {
+export async function ensureUserExistsInKinde(
+  authUser: AuthUser,
+  orgCode: string
+): Promise<Result<KindeUserDto, ActionError>> {
   try {
-    // Safely attempt to find existing user
-    const existingUser = await UserQueries.findByKindeIdWithOrganization(
-      authUser.id
-    ).catch((error) => {
-      logger.error(
-        "Failed to query user by Kinde ID",
-        { kindeUserId: authUser.id },
-        error as Error
-      );
-      // throw error;
-    });
+    // Try to fetch user from Kinde
+    const userResult = await KindeUserService.getUserById(authUser.id);
 
-    if (existingUser) {
-      return ok({
-        id: existingUser.id,
-        givenName: existingUser.givenName,
-        familyName: existingUser.familyName,
-        picture: existingUser.picture,
-        kindeId: existingUser.kindeId,
-        email: existingUser.email,
-        organizationId: existingUser.organizationId,
-      });
-    }
-
-    // fetch user and organization details from Kinde so we can create the user in the database
-    const kindeUser = await getAuthSession();
-    if (kindeUser.isErr()) {
-      return err(
-        ActionErrors.internal(
-          "Failed to get Kinde details for user",
-          undefined,
-          "findExistingUserByKindeId"
-        )
-      );
-    }
-
-    const { organization: newOrganization, user: newUser } = kindeUser.value;
-
-    if (!newOrganization) {
-      return err(
-        ActionErrors.internal(
-          "Failed to get Kinde organization details for user",
-          undefined,
-          "findExistingUserByKindeId"
-        )
-      );
-    }
-
-    if (!newUser) {
-      return err(
-        ActionErrors.internal(
-          "Failed to get Kinde user details for user",
-          undefined,
-          "findExistingUserByKindeId"
-        )
-      );
-    }
-
-    // Find or create the organization in our database
-    let dbOrganization = await OrganizationQueries.findByKindeId(
-      newOrganization.orgCode
-    ).catch((error) => {
-      logger.error(
-        "Failed to query organization by Kinde ID",
-        { kindeOrgId: newOrganization.orgCode },
-        error as Error
-      );
-      // throw error;
-    });
-
-    // If organization doesn't exist, create it
-    if (!dbOrganization) {
-      // Create a unique slug from the organization code
-      const baseSlug = newOrganization.orgCode
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "-");
-
-      try {
-        dbOrganization = await OrganizationQueries.create({
-          kindeId: newOrganization.orgCode,
-          name:
-            newOrganization.orgName ??
-            `Organization ${newOrganization.orgCode}`,
-          slug: baseSlug,
-        });
-      } catch (error) {
-        // If it's a unique constraint error, try to find the existing organization
-        // This can happen in race conditions where multiple requests try to create the same org
-        logger.warn(
-          "Failed to create organization, attempting to find existing one",
-          {
-            kindeOrgId: newOrganization.orgCode,
-            error: (error as Error).message,
-          }
-        );
-
-        // Try to find the organization that was likely created by another request
-        dbOrganization = await OrganizationQueries.findByKindeId(
-          newOrganization.orgCode
-        );
-
-        if (!dbOrganization) {
-          logger.error(
-            "Failed to create organization and couldn't find existing one",
-            {
-              kindeOrgId: newOrganization.orgCode,
-            },
-            error as Error
-          );
-          throw error;
-        }
-      }
-    }
-
-    // Safely attempt to create user in the database with the correct organization UUID
-    const createUserResult = await UserQueries.create({
-      kindeId: newUser.id,
-      email: newUser.email || "",
-      givenName: newUser.given_name,
-      familyName: newUser.family_name,
-      picture: newUser.picture,
-      organizationId: dbOrganization.id, // Use the database UUID, not Kinde orgCode
-    }).catch((error) => {
-      logger.error(
-        "Failed to create user in database",
-        {
-          kindeUserId: newUser.id,
-          organizationId: dbOrganization!.id,
-        },
-        error as Error
-      );
-      throw error;
-    });
-
-    return ok(createUserResult);
-  } catch (error) {
-    const errorMessage = "Failed to find or create user in database";
-    logger.error(
-      errorMessage,
-      {
+    if (userResult.isErr()) {
+      logger.error("Failed to get user from Kinde", {
         kindeUserId: authUser.id,
+        error: userResult.error,
+      });
+      return err(
+        ActionErrors.internal(
+          "Failed to fetch user from Kinde",
+          undefined,
+          "ensureUserExistsInKinde"
+        )
+      );
+    }
+
+    // If user exists in Kinde, return it
+    if (userResult.value) {
+      return ok(userResult.value);
+    }
+
+    // If user doesn't exist in Kinde, create them (for new signups)
+    // This should rarely happen as Kinde typically creates users during auth flow
+    logger.info("Creating new user in Kinde for first signup", {
+      kindeUserId: authUser.id,
+      email: authUser.email,
+    });
+
+    const createResult = await KindeUserService.createUser({
+      profile: {
+        given_name: authUser.given_name || undefined,
+        family_name: authUser.family_name || undefined,
       },
+      identities: [
+        {
+          type: "email",
+          details: {
+            email: authUser.email || "",
+          },
+        },
+      ],
+      organization_codes: [orgCode],
+    });
+
+    if (createResult.isErr()) {
+      logger.error("Failed to create user in Kinde", {
+        kindeUserId: authUser.id,
+        error: createResult.error,
+      });
+      return err(
+        ActionErrors.internal(
+          "Failed to create user in Kinde",
+          undefined,
+          "ensureUserExistsInKinde"
+        )
+      );
+    }
+
+    return ok(createResult.value);
+  } catch (error) {
+    logger.error(
+      "Unexpected error in ensureUserExistsInKinde",
+      { kindeUserId: authUser.id },
       error as Error
     );
     return err(
-      ActionErrors.internal(errorMessage, error, "findExistingUserByKindeId")
+      ActionErrors.internal(
+        "Failed to ensure user exists",
+        undefined,
+        "ensureUserExistsInKinde"
+      )
     );
   }
 }
