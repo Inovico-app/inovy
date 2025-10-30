@@ -1,34 +1,18 @@
-import OpenAI from "openai";
-import { err, ok, type Result } from "neverthrow";
+import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
-import { CacheService } from "./cache.service";
-
-interface SummaryContent {
-  hoofdonderwerpen: string[];
-  beslissingen: string[];
-  sprekersBijdragen: {
-    spreker: string;
-    bijdragen: string[];
-  }[];
-  belangrijkeQuotes: {
-    spreker: string;
-    quote: string;
-  }[];
-}
-
-interface SummaryResult {
-  content: SummaryContent;
-  confidence: number;
-}
+import { err, ok, type Result } from "neverthrow";
+import OpenAI from "openai";
+import {
+  getCachedSummary,
+  type SummaryContent,
+  type SummaryResult,
+} from "../cache";
 
 export class SummaryService {
   private static openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY || "",
   });
-
-  private static readonly CACHE_PREFIX = "summary:";
-  private static readonly CACHE_TTL = 60 * 60 * 24 * 7; // 7 days
 
   /**
    * Generate meeting summary from transcription using OpenAI GPT-4
@@ -46,15 +30,14 @@ export class SummaryService {
       });
 
       // Check cache first
-      const cacheKey = `${this.CACHE_PREFIX}${recordingId}`;
-      const cachedResult = await CacheService.get<SummaryResult>(cacheKey);
+      const cachedResult = await getCachedSummary(recordingId);
 
-      if (cachedResult.isOk() && cachedResult.value) {
+      if (cachedResult) {
         logger.info("Returning cached summary", {
           component: "SummaryService.generateSummary",
           recordingId,
         });
-        return ok(cachedResult.value);
+        return ok(cachedResult);
       }
 
       // Create AI insight record
@@ -77,7 +60,9 @@ export class SummaryService {
         const uniqueSpeakers = [
           ...new Set(utterances.map((u) => u.speaker)),
         ].sort();
-        speakerContext = `\n\nDe transcriptie bevat ${uniqueSpeakers.length} verschillende spreker${uniqueSpeakers.length > 1 ? "s" : ""}.`;
+        speakerContext = `\n\nDe transcriptie bevat ${
+          uniqueSpeakers.length
+        } verschillende spreker${uniqueSpeakers.length > 1 ? "s" : ""}.`;
       }
 
       // Create prompt for Dutch meeting summary
@@ -172,8 +157,8 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
         confidence
       );
 
-      // Cache the result
-      await CacheService.set(cacheKey, result, { ttl: this.CACHE_TTL });
+      // Invalidate cache to pick up the new summary
+      CacheInvalidation.invalidateSummary(recordingId);
 
       logger.info("Summary generated successfully", {
         component: "SummaryService.generateSummary",
@@ -184,7 +169,9 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
 
       // Trigger task extraction in the background (fire and forget)
       fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/extract-tasks/${recordingId}`,
+        `${
+          process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+        }/api/extract-tasks/${recordingId}`,
         {
           method: "POST",
           headers: {
@@ -218,11 +205,7 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
   static async invalidateSummaryCache(
     recordingId: string
   ): Promise<Result<void, Error>> {
-    const cacheKey = `${this.CACHE_PREFIX}${recordingId}`;
-    const result = await CacheService.delete(cacheKey);
-    if (result.isErr()) {
-      return err(new Error(result.error));
-    }
+    CacheInvalidation.invalidateSummary(recordingId);
     return ok(undefined);
   }
 }
