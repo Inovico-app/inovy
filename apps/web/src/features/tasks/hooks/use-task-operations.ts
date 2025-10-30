@@ -4,7 +4,6 @@ import { queryKeys } from "@/lib/query-keys";
 import type { TaskStatus } from "@/server/db/schema/tasks";
 import type { TaskWithContextDto } from "@/server/dto";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
 import { toast } from "sonner";
 import { updateTaskStatus } from "../actions/update-task-status";
 
@@ -113,12 +112,10 @@ export function useTaskOperations(): UseTaskOperationsReturn {
     },
   });
 
-  const handleStatusChange = useCallback(
-    async (taskId: string, newStatus: TaskStatus) => {
-      mutation.mutate({ taskId, newStatus });
-    },
-    [mutation]
-  );
+  // React Compiler automatically memoizes this function
+  const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+    mutation.mutate({ taskId, newStatus });
+  };
 
   return {
     handleStatusChange,

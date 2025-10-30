@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 
 export interface UseAudioRecorderReturn {
   isRecording: boolean;
@@ -29,7 +29,8 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
 
-  const startRecording = useCallback(async () => {
+  // React Compiler automatically memoizes these functions
+  const startRecording = async () => {
     try {
       setError(null);
       audioChunksRef.current = [];
@@ -104,9 +105,9 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
           : "Failed to access microphone. Please check permissions."
       );
     }
-  }, [isRecording]);
+  };
 
-  const stopRecording = useCallback(async (): Promise<Blob | null> => {
+  const stopRecording = async (): Promise<Blob | null> => {
     return new Promise((resolve) => {
       if (!mediaRecorderRef.current) {
         resolve(null);
@@ -135,9 +136,9 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
 
       mediaRecorderRef.current.stop();
     });
-  }, []);
+  };
 
-  const pauseRecording = useCallback(() => {
+  const pauseRecording = () => {
     if (mediaRecorderRef.current && isRecording && !isPaused) {
       mediaRecorderRef.current.pause();
       setIsPaused(true);
@@ -145,9 +146,9 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
         clearInterval(durationIntervalRef.current);
       }
     }
-  }, [isRecording, isPaused]);
+  };
 
-  const resumeRecording = useCallback(() => {
+  const resumeRecording = () => {
     if (mediaRecorderRef.current && isRecording && isPaused) {
       mediaRecorderRef.current.resume();
       setIsPaused(false);
@@ -157,7 +158,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
         setDuration((Date.now() - startTimeRef.current) / 1000);
       }, 1000);
     }
-  }, [isRecording, isPaused, duration]);
+  };
 
   return {
     isRecording,

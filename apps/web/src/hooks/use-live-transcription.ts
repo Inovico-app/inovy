@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
 
 export interface TranscriptSegment {
@@ -42,7 +42,8 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
     };
   }, []);
 
-  const startTranscription = useCallback(async (stream: MediaStream) => {
+  // React Compiler automatically memoizes these functions
+  const startTranscription = async (stream: MediaStream) => {
     try {
       setError(null);
       
@@ -149,9 +150,9 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
       );
       setIsTranscribing(false);
     }
-  }, []);
+  };
 
-  const stopTranscription = useCallback(() => {
+  const stopTranscription = () => {
     if (connectionRef.current) {
       const connection = connectionRef.current;
       
@@ -167,7 +168,7 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
     
     setIsConnected(false);
     setIsTranscribing(false);
-  }, []);
+  };
 
   return {
     isConnected,

@@ -2,7 +2,6 @@
 
 import type { TaskPriority, TaskStatus } from "@/server/db/schema/tasks";
 import { parseAsArrayOf, parseAsString, useQueryStates } from "nuqs";
-import { useMemo } from "react";
 import type { SortField, SortOrder } from "../components/task-sort";
 
 const VALID_PRIORITIES: TaskPriority[] = ["low", "medium", "high", "urgent"];
@@ -50,37 +49,26 @@ export function useTaskFilters(): UseTaskFiltersReturn {
   });
 
   // Parse and validate filters
-  const selectedPriorities = useMemo(
-    () =>
-      filters.priorities.filter((p): p is TaskPriority =>
-        VALID_PRIORITIES.includes(p as TaskPriority)
-      ),
-    [filters.priorities]
+  // React Compiler automatically memoizes these derived values
+  const selectedPriorities = filters.priorities.filter((p): p is TaskPriority =>
+    VALID_PRIORITIES.includes(p as TaskPriority)
   );
 
-  const selectedStatuses = useMemo(
-    () =>
-      filters.statuses.filter((s): s is TaskStatus =>
-        VALID_STATUSES.includes(s as TaskStatus)
-      ),
-    [filters.statuses]
+  const selectedStatuses = filters.statuses.filter((s): s is TaskStatus =>
+    VALID_STATUSES.includes(s as TaskStatus)
   );
 
-  const sortBy = useMemo(
-    () =>
-      (VALID_SORT_FIELDS.includes(filters.sortBy as SortField)
-        ? filters.sortBy
-        : DEFAULT_SORT_BY) as SortField,
-    [filters.sortBy]
-  );
+  const sortBy = (
+    VALID_SORT_FIELDS.includes(filters.sortBy as SortField)
+      ? filters.sortBy
+      : DEFAULT_SORT_BY
+  ) as SortField;
 
-  const sortOrder = useMemo(
-    () =>
-      (VALID_SORT_ORDERS.includes(filters.sortOrder as SortOrder)
-        ? filters.sortOrder
-        : DEFAULT_SORT_ORDER) as SortOrder,
-    [filters.sortOrder]
-  );
+  const sortOrder = (
+    VALID_SORT_ORDERS.includes(filters.sortOrder as SortOrder)
+      ? filters.sortOrder
+      : DEFAULT_SORT_ORDER
+  ) as SortOrder;
 
   return {
     selectedPriorities,
