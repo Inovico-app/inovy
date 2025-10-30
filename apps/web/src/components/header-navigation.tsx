@@ -1,6 +1,7 @@
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import Link from "next/link";
+import type { Route } from "next";
 
 export async function HeaderNavigation() {
   const authResult = await getAuthSession();
@@ -31,7 +32,7 @@ export async function HeaderNavigation() {
       {links.map(({ to, label }) => (
         <Link
           key={to}
-          href={to as any}
+          href={to as Route}
           className="text-sm font-medium hover:underline underline-offset-4"
         >
           {label}

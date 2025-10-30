@@ -1,4 +1,4 @@
-import { Result, err, ok } from "neverthrow";
+import { type Result, err, ok } from "neverthrow";
 import { ActionErrors, type ActionError } from "../../lib/action-errors";
 import { type AuthUser } from "../../lib/auth";
 import { logger } from "../../lib/logger";

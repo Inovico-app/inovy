@@ -1,4 +1,4 @@
-import { Result, err, ok } from "neverthrow";
+import { type Result, err, ok } from "neverthrow";
 import { getKindeApiClient } from "../../lib/kinde-api";
 import { logger } from "../../lib/logger";
 import type {
@@ -83,7 +83,7 @@ export class KindeOrganizationService {
       return ok(organizations);
     } catch (error) {
       const errorMessage = "Failed to get organizations from Kinde";
-      logger.error(errorMessage, error as Error);
+      logger.error(errorMessage, {}, error as Error);
       return err(errorMessage);
     }
   }

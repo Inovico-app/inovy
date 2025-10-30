@@ -50,24 +50,28 @@ export interface ProjectFiltersDto {
 }
 
 // Type guards for runtime validation
-export function isCreateProjectDto(data: any): data is CreateProjectDto {
+export function isCreateProjectDto(data: unknown): data is CreateProjectDto {
+  if (typeof data !== "object" || data === null) {
+    return false;
+  }
+  const record = data as Record<string, unknown>;
   return (
-    typeof data === "object" &&
-    data !== null &&
-    typeof data.name === "string" &&
-    typeof data.organizationId === "string" &&
-    typeof data.createdById === "string" &&
-    (data.description === undefined || typeof data.description === "string")
+    typeof record.name === "string" &&
+    typeof record.organizationId === "string" &&
+    typeof record.createdById === "string" &&
+    (record.description === undefined || typeof record.description === "string")
   );
 }
 
-export function isUpdateProjectDto(data: any): data is UpdateProjectDto {
+export function isUpdateProjectDto(data: unknown): data is UpdateProjectDto {
+  if (typeof data !== "object" || data === null) {
+    return false;
+  }
+  const record = data as Record<string, unknown>;
   return (
-    typeof data === "object" &&
-    data !== null &&
-    (data.name === undefined || typeof data.name === "string") &&
-    (data.description === undefined || typeof data.description === "string") &&
-    (data.status === undefined || typeof data.status === "string")
+    (record.name === undefined || typeof record.name === "string") &&
+    (record.description === undefined || typeof record.description === "string") &&
+    (record.status === undefined || typeof record.status === "string")
   );
 }
 

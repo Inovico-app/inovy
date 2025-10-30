@@ -1,4 +1,4 @@
-import { Result, err, ok } from "neverthrow";
+import { type Result, err, ok } from "neverthrow";
 import { logger } from "../../lib/logger";
 import redis from "../../lib/redis";
 

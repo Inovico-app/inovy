@@ -3,7 +3,7 @@ import type {
   KindeOrganization,
   KindeUser,
 } from "@kinde-oss/kinde-auth-nextjs/types";
-import { Result, err, ok } from "neverthrow";
+import { type Result, err, ok } from "neverthrow";
 import { logger } from "./logger";
 
 /**
@@ -155,7 +155,7 @@ async function safeGetUser(
  */
 async function safeGetOrganization(
   getOrganization: () => Promise<KindeOrganization | null>
-): Promise<Result<any, string>> {
+): Promise<Result<KindeOrganization | null, string>> {
   try {
     const organization = await getOrganization();
     return ok(organization);

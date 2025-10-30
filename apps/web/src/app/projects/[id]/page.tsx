@@ -1,6 +1,7 @@
 import { CalendarIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Route } from "next";
 import { Button } from "../../../components/ui/button";
 import {
   Card,
@@ -62,7 +63,7 @@ export default async function ProjectDetailPage({
             )}
           </div>
           <Button asChild>
-            <Link href={`/projects/${project.id}/upload` as any}>
+            <Link href={`/projects/${project.id}/upload` as Route}>
               Upload Recording
             </Link>
           </Button>
@@ -112,7 +113,7 @@ export default async function ProjectDetailPage({
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-4">No recordings yet</p>
               <Button asChild variant="outline">
-                <Link href={`/projects/${project.id}/upload` as any}>
+                <Link href={`/projects/${project.id}/upload` as Route}>
                   Upload Your First Recording
                 </Link>
               </Button>
