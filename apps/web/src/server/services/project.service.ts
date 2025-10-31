@@ -269,5 +269,49 @@ export class ProjectService {
 
     return updateResult;
   }
+
+  /**
+   * Archive a project
+   */
+  static async archiveProject(
+    projectId: string,
+    orgCode: string
+  ): Promise<Result<boolean, string>> {
+    try {
+      const result = await ProjectQueries.softDelete(projectId, orgCode);
+
+      if (result) {
+        CacheInvalidation.invalidateProjectCache(orgCode);
+      }
+
+      return ok(result);
+    } catch (error) {
+      const errorMessage = "Failed to archive project";
+      logger.error(errorMessage, { projectId }, error as Error);
+      return err(errorMessage);
+    }
+  }
+
+  /**
+   * Unarchive a project
+   */
+  static async unarchiveProject(
+    projectId: string,
+    orgCode: string
+  ): Promise<Result<boolean, string>> {
+    try {
+      const result = await ProjectQueries.unarchive(projectId, orgCode);
+
+      if (result) {
+        CacheInvalidation.invalidateProjectCache(orgCode);
+      }
+
+      return ok(result);
+    } catch (error) {
+      const errorMessage = "Failed to unarchive project";
+      logger.error(errorMessage, { projectId }, error as Error);
+      return err(errorMessage);
+    }
+  }
 }
 

@@ -22,6 +22,7 @@ import { RecordingList } from "../../../features/recordings/components/recording
 import { ProjectService } from "../../../server/services/project.service";
 import { RecordingService } from "../../../server/services/recording.service";
 import { EditProjectModal } from "../../../features/projects/components/edit-project-modal";
+import { ArchiveProjectDialog } from "../../../features/projects/components/archive-project-dialog";
 
 interface ProjectDetailPageProps {
   params: Promise<{ projectId: string }>;
@@ -106,6 +107,12 @@ async function ProjectDetail({
                 name: project.name,
                 description: project.description,
               }}
+              variant="outline"
+            />
+            <ArchiveProjectDialog
+              projectId={project.id}
+              projectName={project.name}
+              isArchived={project.status === "archived"}
               variant="outline"
             />
             <UploadRecordingModal projectId={project.id} />

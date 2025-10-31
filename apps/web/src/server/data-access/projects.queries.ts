@@ -269,6 +269,32 @@ export class ProjectQueries {
   }
 
   /**
+   * Unarchive a project (restore from archived status)
+   */
+  static async unarchive(
+    projectId: string,
+    organizationId: string
+  ): Promise<boolean> {
+    return await db.transaction(async (tx) => {
+      const result = await tx
+        .update(projects)
+        .set({
+          status: "active",
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(projects.id, projectId),
+            eq(projects.organizationId, organizationId)
+          )
+        )
+        .returning();
+
+      return result.length > 0;
+    });
+  }
+
+  /**
    * Find projects by organization with recording counts
    */
   static async findByOrganizationWithRecordingCount(filters: {
