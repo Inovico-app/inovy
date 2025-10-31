@@ -1,7 +1,6 @@
 "use client";
 
-import type { RecordingDto } from "@/server/dto";
-import { EditIcon } from "lucide-react";
+import { PencilIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../../components/ui/button";
 import {
@@ -13,50 +12,48 @@ import {
   DialogTrigger,
 } from "../../../components/ui/dialog";
 import { EditRecordingForm } from "./edit-recording-form";
+import type { RecordingDto } from "../../../server/dto";
 
 interface EditRecordingModalProps {
   recording: RecordingDto;
-  trigger?: React.ReactNode;
+  variant?: "default" | "outline" | "ghost";
 }
 
 export function EditRecordingModal({
   recording,
-  trigger,
+  variant = "outline",
 }: EditRecordingModalProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const handleSuccess = () => {
-    setIsOpen(false);
-  };
-
-  const handleCancel = () => {
-    setIsOpen(false);
+    setOpen(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {trigger ?? (
-          <Button variant="outline" size="sm">
-            <EditIcon className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-        )}
+        <Button variant={variant} size="sm">
+          <PencilIcon className="h-4 w-4 mr-2" />
+          Edit
+        </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Edit Recording</DialogTitle>
           <DialogDescription>
-            Update the recording title, description, or date
+            Update your recording information. Changes will be reflected immediately.
           </DialogDescription>
         </DialogHeader>
         <EditRecordingForm
-          recording={recording}
+          recordingId={recording.id}
+          initialData={{
+            title: recording.title,
+            description: recording.description,
+            recordingDate: recording.recordingDate,
+          }}
           onSuccess={handleSuccess}
-          onCancel={handleCancel}
         />
       </DialogContent>
     </Dialog>
   );
 }
-

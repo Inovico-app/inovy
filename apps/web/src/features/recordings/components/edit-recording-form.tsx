@@ -1,141 +1,155 @@
 "use client";
 
-import { updateRecordingMetadataAction } from "@/features/recordings/actions/update-recording-metadata";
-import type { RecordingDto } from "@/server/dto";
-import { useAction } from "next-safe-action/hooks";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { z } from "zod";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
+import { updateRecordingAction } from "../actions/edit-recording";
+
+const formSchema = z.object({
+  title: z
+    .string()
+    .min(1, "Recording title is required")
+    .max(200, "Title must be less than 200 characters"),
+  description: z
+    .string()
+    .max(1000, "Description must be less than 1000 characters")
+    .optional(),
+  recordingDate: z.string().min(1, "Recording date is required"),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 interface EditRecordingFormProps {
-  recording: RecordingDto;
+  recordingId: string;
+  initialData: {
+    title: string;
+    description: string | null;
+    recordingDate: Date;
+  };
   onSuccess?: () => void;
-  onCancel?: () => void;
 }
 
 export function EditRecordingForm({
-  recording,
+  recordingId,
+  initialData,
   onSuccess,
-  onCancel,
 }: EditRecordingFormProps) {
   const router = useRouter();
 
-  const [title, setTitle] = useState(recording.title);
-  const [description, setDescription] = useState(recording.description ?? "");
-  const [recordingDate, setRecordingDate] = useState(
-    recording.recordingDate.toISOString().split("T")[0]
-  );
-  const [error, setError] = useState<string | null>(null);
+  // Format date for input (YYYY-MM-DD)
+  const formatDateForInput = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
-  const { execute, isExecuting } = useAction(updateRecordingMetadataAction, {
-    onSuccess: ({ data }) => {
-      if (data) {
-        toast.success("Recording updated successfully!");
-        if (onSuccess) {
-          onSuccess();
-        } else {
-          router.refresh();
-        }
-      }
-    },
-    onError: ({ error }) => {
-      const errorMessage = error.serverError ?? "Failed to update recording";
-      setError(errorMessage);
-      toast.error(errorMessage);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: initialData.title,
+      description: initialData.description || "",
+      recordingDate: formatDateForInput(initialData.recordingDate),
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: FormData) => {
+    try {
+      const result = await updateRecordingAction({
+        recordingId,
+        title: data.title,
+        description: data.description || undefined,
+        recordingDate: new Date(data.recordingDate),
+      });
 
-    if (!title.trim()) {
-      setError("Please enter a title for the recording");
-      return;
+      if (result?.serverError) {
+        toast.error(result.serverError);
+        return;
+      }
+
+      if (result?.validationErrors) {
+        const firstFieldErrors = Object.values(result.validationErrors)[0];
+        const firstError = Array.isArray(firstFieldErrors)
+          ? firstFieldErrors[0]
+          : firstFieldErrors?._errors?.[0];
+        toast.error(firstError || "Validation failed");
+        return;
+      }
+
+      toast.success("Recording updated successfully");
+      router.refresh();
+      onSuccess?.();
+    } catch (error) {
+      console.error("Error updating recording:", error);
+      toast.error("Failed to update recording");
     }
-
-    setError(null);
-
-    execute({
-      id: recording.id,
-      title: title.trim(),
-      description: description.trim() || undefined,
-      recordingDate: new Date(recordingDate),
-    });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Title Field */}
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="title">Title *</Label>
+        <Label htmlFor="title">
+          Recording Title <span className="text-red-500">*</span>
+        </Label>
         <Input
           id="title"
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
           placeholder="Enter recording title"
-          required
-          maxLength={200}
-          disabled={isExecuting}
+          {...register("title")}
+          aria-invalid={errors.title ? "true" : "false"}
         />
+        {errors.title && (
+          <p className="text-sm text-red-500">{errors.title.message}</p>
+        )}
       </div>
 
-      {/* Description Field */}
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
         <textarea
           id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
           placeholder="Enter recording description (optional)"
-          maxLength={1000}
-          disabled={isExecuting}
-          rows={4}
-          className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          {...register("description")}
+          aria-invalid={errors.description ? "true" : "false"}
         />
+        {errors.description && (
+          <p className="text-sm text-red-500">{errors.description.message}</p>
+        )}
       </div>
 
-      {/* Recording Date */}
       <div className="space-y-2">
-        <Label htmlFor="recordingDate">Recording Date *</Label>
+        <Label htmlFor="recordingDate">
+          Recording Date <span className="text-red-500">*</span>
+        </Label>
         <Input
           id="recordingDate"
           type="date"
-          value={recordingDate}
-          onChange={(e) => setRecordingDate(e.target.value)}
-          required
-          disabled={isExecuting}
-          max={new Date().toISOString().split("T")[0]}
+          {...register("recordingDate")}
+          aria-invalid={errors.recordingDate ? "true" : "false"}
         />
+        {errors.recordingDate && (
+          <p className="text-sm text-red-500">{errors.recordingDate.message}</p>
+        )}
       </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-          {error}
-        </div>
-      )}
-
-      {/* Action Buttons */}
-      <div className="flex gap-3 justify-end">
-        {onCancel && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={isExecuting}
-          >
-            Cancel
-          </Button>
-        )}
-        <Button type="submit" disabled={!title || isExecuting}>
-          {isExecuting ? "Saving..." : "Save Changes"}
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onSuccess}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting && <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />}
+          Save Changes
         </Button>
       </div>
     </form>
   );
 }
-
