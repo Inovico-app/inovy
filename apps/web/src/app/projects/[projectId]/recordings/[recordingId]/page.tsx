@@ -13,6 +13,7 @@ import {
 import { EditRecordingModal } from "../../../../../features/recordings/components/edit-recording-modal";
 import { ProcessingError } from "../../../../../features/recordings/components/processing-error";
 import { RecordingDetailStatus } from "../../../../../features/recordings/components/recording-detail-status";
+import { ArchiveRecordingDialog } from "../../../../../features/recordings/components/archive-recording-dialog";
 import { ProjectService } from "../../../../../server/services/project.service";
 import { RecordingService } from "../../../../../server/services/recording.service";
 
@@ -125,6 +126,11 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
               initialStatus={recording.transcriptionStatus}
             />
             <EditRecordingModal recording={recording} />
+            <ArchiveRecordingDialog
+              recordingId={recording.id}
+              recordingTitle={recording.title}
+              isArchived={recording.status === "archived"}
+            />
           </div>
         </div>
 

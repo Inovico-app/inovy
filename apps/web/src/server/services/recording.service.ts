@@ -7,6 +7,7 @@ import {
   selectRecordingsByProjectId,
   updateRecordingMetadata as updateRecordingMetadataQuery,
   getRecordingStatistics as getRecordingStatisticsQuery,
+  RecordingsQueries,
 } from "../data-access/recordings.queries";
 import type { NewRecording, Recording } from "../db/schema";
 import { type RecordingDto } from "../dto";
@@ -283,6 +284,78 @@ export class RecordingService {
   }
 
   /**
+   * Archive a recording (soft delete)
+   */
+  static async archiveRecording(
+    recordingId: string,
+    orgCode: string
+  ): Promise<Result<boolean, string>> {
+    logger.info("Archiving recording", {
+      component: "RecordingService.archiveRecording",
+      recordingId,
+    });
+
+    try {
+      const result = await RecordingsQueries.archiveRecording(
+        recordingId,
+        orgCode
+      );
+
+      if (result) {
+        logger.info("Successfully archived recording", {
+          component: "RecordingService.archiveRecording",
+          recordingId,
+        });
+      }
+
+      return ok(result);
+    } catch (error) {
+      logger.error("Failed to archive recording", {
+        component: "RecordingService.archiveRecording",
+        error,
+        recordingId,
+      });
+      return err("Failed to archive recording");
+    }
+  }
+
+  /**
+   * Unarchive a recording
+   */
+  static async unarchiveRecording(
+    recordingId: string,
+    orgCode: string
+  ): Promise<Result<boolean, string>> {
+    logger.info("Unarchiving recording", {
+      component: "RecordingService.unarchiveRecording",
+      recordingId,
+    });
+
+    try {
+      const result = await RecordingsQueries.unarchiveRecording(
+        recordingId,
+        orgCode
+      );
+
+      if (result) {
+        logger.info("Successfully unarchived recording", {
+          component: "RecordingService.unarchiveRecording",
+          recordingId,
+        });
+      }
+
+      return ok(result);
+    } catch (error) {
+      logger.error("Failed to unarchive recording", {
+        component: "RecordingService.unarchiveRecording",
+        error,
+        recordingId,
+      });
+      return err("Failed to unarchive recording");
+    }
+  }
+
+  /**
    * Convert database recording to DTO
    */
   private static toDto(recording: Recording): RecordingDto {
@@ -299,6 +372,7 @@ export class RecordingService {
       recordingDate: recording.recordingDate,
       transcriptionStatus: recording.transcriptionStatus,
       transcriptionText: recording.transcriptionText,
+      status: recording.status,
       organizationId: recording.organizationId,
       createdById: recording.createdById,
       createdAt: recording.createdAt,

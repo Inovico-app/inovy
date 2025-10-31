@@ -29,6 +29,13 @@
       "when": 1761913277334,
       "tag": "0003_goofy_doctor_strange",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1761920338600,
+      "tag": "0004_fat_nomad",
+      "breakpoints": true
     }
   ]
 }

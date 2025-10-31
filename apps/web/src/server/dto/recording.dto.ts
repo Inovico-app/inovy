@@ -1,4 +1,7 @@
-import type { RecordingStatus } from "../db/schema/recordings";
+import type {
+  RecordingStatus,
+  RecordingArchiveStatus,
+} from "../db/schema/recordings";
 
 export interface RecordingDto {
   id: string;
@@ -13,6 +16,7 @@ export interface RecordingDto {
   recordingDate: Date;
   transcriptionStatus: RecordingStatus;
   transcriptionText: string | null;
+  status: RecordingArchiveStatus;
   organizationId: string;
   createdById: string;
   createdAt: Date;

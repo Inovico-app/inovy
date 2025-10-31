@@ -50,15 +50,25 @@ export async function selectRecordingById(
 /**
  * Get recordings by project ID
  * Returns recordings ordered by creation date (newest first)
+ * By default, only returns active recordings unless includeArchived is true
  */
 export async function selectRecordingsByProjectId(
   projectId: string,
   options?: {
     search?: string;
+    includeArchived?: boolean;
+    statusFilter?: "active" | "archived";
   }
 ): Promise<Result<Recording[], string>> {
   try {
     const conditions = [eq(recordings.projectId, projectId)];
+
+    // Add status filter - by default only show active recordings
+    if (options?.statusFilter) {
+      conditions.push(eq(recordings.status, options.statusFilter));
+    } else if (!options?.includeArchived) {
+      conditions.push(eq(recordings.status, "active"));
+    }
 
     // Add search condition if provided
     if (options?.search) {
@@ -242,6 +252,56 @@ export async function getRecordingStatistics(projectId: string): Promise<
   }
 }
 
+/**
+ * Archive a recording (soft delete)
+ */
+export async function archiveRecording(
+  recordingId: string,
+  organizationId: string
+): Promise<boolean> {
+  return await db.transaction(async (tx) => {
+    const result = await tx
+      .update(recordings)
+      .set({
+        status: "archived",
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(recordings.id, recordingId),
+          eq(recordings.organizationId, organizationId)
+        )
+      );
+
+    return result.rowCount !== null && result.rowCount > 0;
+  });
+}
+
+/**
+ * Unarchive a recording
+ */
+export async function unarchiveRecording(
+  recordingId: string,
+  organizationId: string
+): Promise<boolean> {
+  return await db.transaction(async (tx) => {
+    const result = await tx
+      .update(recordings)
+      .set({
+        status: "active",
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(recordings.id, recordingId),
+          eq(recordings.organizationId, organizationId)
+        )
+      );
+
+    return result.rowCount !== null && result.rowCount > 0;
+  });
+}
+
 // Export as RecordingsQueries class for consistency
 export const RecordingsQueries = {
   insertRecording,
@@ -252,5 +312,7 @@ export const RecordingsQueries = {
   updateRecordingTranscription,
   countRecordingsByProjectId,
   getRecordingStatistics,
+  archiveRecording,
+  unarchiveRecording,
 };
 
