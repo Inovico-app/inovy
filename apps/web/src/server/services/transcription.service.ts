@@ -3,6 +3,7 @@ import { err, ok, type Result } from "neverthrow";
 import { logger } from "@/lib/logger";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
+import { NotificationService } from "./notification.service";
 
 interface TranscriptionResult {
   text: string;
@@ -102,6 +103,23 @@ export class TranscriptionService {
           "failed"
         );
 
+        // Create failure notification
+        const recording = await RecordingsQueries.selectRecordingById(recordingId);
+        if (recording.isOk() && recording.value) {
+          await NotificationService.createNotification({
+            recordingId,
+            projectId: recording.value.projectId,
+            userId: recording.value.createdById,
+            organizationId: recording.value.organizationId,
+            type: "transcription_failed",
+            title: "Transcriptie mislukt",
+            message: `De transcriptie van "${recording.value.title}" is mislukt.`,
+            metadata: {
+              error: error.message,
+            },
+          });
+        }
+
         return err(new Error(`Transcription failed: ${error.message}`));
       }
 
@@ -186,6 +204,25 @@ export class TranscriptionService {
         speakersDetected: speakers.length,
         utterancesCount: utterances.length,
       });
+
+      // Create success notification
+      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      if (recording.isOk() && recording.value) {
+        await NotificationService.createNotification({
+          recordingId,
+          projectId: recording.value.projectId,
+          userId: recording.value.createdById,
+          organizationId: recording.value.organizationId,
+          type: "transcription_completed",
+          title: "Transcriptie voltooid",
+          message: `De transcriptie van "${recording.value.title}" is voltooid.`,
+          metadata: {
+            speakersDetected: speakers.length,
+            utterancesCount: utterances.length,
+            confidence,
+          },
+        });
+      }
 
       // Trigger summary generation in the background (fire and forget)
       fetch(

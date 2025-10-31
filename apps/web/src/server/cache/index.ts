@@ -10,4 +10,8 @@ export {
   type SummaryResult,
 } from "./summary.cache";
 export { getCachedTasksByUser, getCachedTaskStats } from "./task.cache";
+export {
+  getCachedNotifications,
+  getCachedUnreadCount,
+} from "./notification.cache";
 

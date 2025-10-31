@@ -30,6 +30,12 @@ export const CacheTags = {
 
   // Organization tags
   organization: (orgCode: string) => `org:${orgCode}`,
+
+  // Notification tags
+  notifications: (userId: string, orgCode: string) =>
+    `notifications:user:${userId}:org:${orgCode}`,
+  notificationUnreadCount: (userId: string, orgCode: string) =>
+    `notification-unread-count:user:${userId}:org:${orgCode}`,
 } as const;
 
 /**
@@ -99,6 +105,16 @@ export const CacheInvalidation = {
    */
   invalidateSummary(recordingId: string): void {
     invalidateCache(CacheTags.summary(recordingId));
+  },
+
+  /**
+   * Invalidate notification cache for a user
+   */
+  invalidateNotifications(userId: string, orgCode: string): void {
+    invalidateCache(
+      CacheTags.notifications(userId, orgCode),
+      CacheTags.notificationUnreadCount(userId, orgCode)
+    );
   },
 } as const;
 

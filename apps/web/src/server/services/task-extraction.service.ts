@@ -2,6 +2,8 @@ import OpenAI from "openai";
 import { err, ok, type Result } from "neverthrow";
 import { logger } from "@/lib/logger";
 import { TasksQueries } from "@/server/data-access/tasks.queries";
+import { RecordingsQueries } from "@/server/data-access/recordings.queries";
+import { NotificationService } from "./notification.service";
 
 interface ExtractedTask {
   title: string;
@@ -145,6 +147,24 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
         logger.error("No content in OpenAI response", {
           component: "TaskExtractionService.extractTasks",
         });
+
+        // Create failure notification
+        const recording = await RecordingsQueries.selectRecordingById(recordingId);
+        if (recording.isOk() && recording.value) {
+          await NotificationService.createNotification({
+            recordingId,
+            projectId: recording.value.projectId,
+            userId: recording.value.createdById,
+            organizationId: recording.value.organizationId,
+            type: "tasks_failed",
+            title: "Taakextractie mislukt",
+            message: `De taakextractie uit "${recording.value.title}" is mislukt.`,
+            metadata: {
+              error: "No response from OpenAI",
+            },
+          });
+        }
+
         return err(new Error("No response from OpenAI"));
       }
 
@@ -205,6 +225,23 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
         tasksExtracted: createdTasks.length,
         totalAttempted: extractionResult.tasks.length,
       });
+
+      // Create success notification
+      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      if (recording.isOk() && recording.value) {
+        await NotificationService.createNotification({
+          recordingId,
+          projectId: recording.value.projectId,
+          userId: recording.value.createdById,
+          organizationId: recording.value.organizationId,
+          type: "tasks_completed",
+          title: "Taken geëxtraheerd",
+          message: `${createdTasks.length} ${createdTasks.length === 1 ? "taak" : "taken"} geëxtraheerd uit "${recording.value.title}".`,
+          metadata: {
+            tasksCount: createdTasks.length,
+          },
+        });
+      }
 
       return ok({
         tasks: extractionResult.tasks,
