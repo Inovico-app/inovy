@@ -16,6 +16,14 @@ export const recordingArchiveStatusEnum = ["active", "archived"] as const;
 export type RecordingArchiveStatus =
   (typeof recordingArchiveStatusEnum)[number];
 
+export const workflowStatusEnum = [
+  "idle",
+  "running",
+  "completed",
+  "failed",
+] as const;
+export type WorkflowStatus = (typeof workflowStatusEnum)[number];
+
 export const recordings = pgTable("recordings", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id")
@@ -42,6 +50,11 @@ export const recordings = pgTable("recordings", {
   status: text("status", { enum: recordingArchiveStatusEnum })
     .notNull()
     .default("active"),
+  workflowStatus: text("workflow_status", { enum: workflowStatusEnum })
+    .notNull()
+    .default("idle"),
+  workflowError: text("workflow_error"),
+  workflowRetryCount: integer("workflow_retry_count").notNull().default(0),
   organizationId: text("organization_id").notNull(), // Kinde organization code
   createdById: text("created_by_id").notNull(), // Kinde user ID
   createdAt: timestamp("created_at", { withTimezone: true })

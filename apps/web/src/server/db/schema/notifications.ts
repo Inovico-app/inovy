@@ -9,6 +9,7 @@ export const notificationTypeEnum = [
   "summary_failed",
   "tasks_completed",
   "tasks_failed",
+  "recording_processed",
 ] as const;
 export type NotificationType = (typeof notificationTypeEnum)[number];
 

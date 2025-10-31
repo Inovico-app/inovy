@@ -224,22 +224,8 @@ export class TranscriptionService {
         });
       }
 
-      // Trigger summary generation in the background (fire and forget)
-      fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/summarize/${recordingId}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      ).catch((error) => {
-        logger.error("Failed to trigger summary generation", {
-          component: "TranscriptionService.transcribeUploadedFile",
-          recordingId,
-          error,
-        });
-      });
+      // Note: Sequential processing is now handled by the workflow
+      // No need to trigger summary generation here
 
       return ok({
         text: transcriptionText,

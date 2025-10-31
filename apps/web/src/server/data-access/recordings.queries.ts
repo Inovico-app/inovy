@@ -187,6 +187,48 @@ export async function updateRecordingTranscription(
 }
 
 /**
+ * Update recording with partial data (generic update)
+ */
+export async function updateRecording(
+  id: string,
+  data: Partial<
+    Pick<
+      Recording,
+      | "workflowStatus"
+      | "workflowError"
+      | "workflowRetryCount"
+      | "title"
+      | "description"
+      | "recordingDate"
+      | "transcriptionStatus"
+      | "transcriptionText"
+    >
+  >
+): Promise<Result<Recording, string>> {
+  try {
+    const [recording] = await db
+      .update(recordings)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(recordings.id, id))
+      .returning();
+
+    if (!recording) {
+      return err("Recording not found");
+    }
+
+    return ok(recording);
+  } catch (error) {
+    console.error("Error updating recording:", error);
+    return err(
+      error instanceof Error ? error.message : "Unknown database error"
+    );
+  }
+}
+
+/**
  * Count recordings by project ID
  */
 export async function countRecordingsByProjectId(
@@ -331,6 +373,7 @@ export const RecordingsQueries = {
   updateRecordingMetadata,
   updateRecordingTranscriptionStatus,
   updateRecordingTranscription,
+  updateRecording,
   countRecordingsByProjectId,
   getRecordingStatistics,
   archiveRecording,
