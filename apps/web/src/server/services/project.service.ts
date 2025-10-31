@@ -13,6 +13,7 @@ import type {
   ProjectFiltersDto,
   ProjectWithCreatorDetailsDto,
   ProjectWithCreatorDto,
+  ProjectWithRecordingCountDto,
 } from "../dto";
 import { checkProjectNameUnique } from "../helpers/project";
 import type { CreateProjectInput } from "../validation/create-project";
@@ -118,6 +119,42 @@ export class ProjectService {
       return ok(projects);
     } catch (error) {
       const errorMessage = "Failed to get projects";
+      logger.error(errorMessage, {}, error as Error);
+      return err(errorMessage);
+    }
+  }
+
+  /**
+   * Get all projects with recording counts for the authenticated user's organization
+   */
+  static async getProjectsByOrganizationWithRecordingCount(
+    status?: AllowedStatus
+  ): Promise<Result<ProjectWithRecordingCountDto[], string>> {
+    try {
+      // Check authentication and get session
+      const authResult = await getAuthSession();
+      if (authResult.isErr()) {
+        return err("Failed to get authentication session");
+      }
+
+      const { user: authUser, organization } = authResult.value;
+
+      if (!authUser || !organization) {
+        return err("Authentication required");
+      }
+
+      // Get projects with recording counts
+      const filters: ProjectFiltersDto = {
+        organizationId: organization.orgCode,
+        status: status || "active",
+      };
+
+      const projects =
+        await ProjectQueries.findByOrganizationWithRecordingCount(filters);
+
+      return ok(projects);
+    } catch (error) {
+      const errorMessage = "Failed to get projects with recording counts";
       logger.error(errorMessage, {}, error as Error);
       return err(errorMessage);
     }

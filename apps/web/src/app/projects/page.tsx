@@ -1,7 +1,8 @@
 import { KindeUserService } from "@/server/services";
-import { CalendarIcon, FileTextIcon, PlusIcon } from "lucide-react";
+import { CalendarIcon, FileTextIcon, FolderIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Button } from "../../components/ui/button";
 import {
   Card,
@@ -10,9 +11,15 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { ProjectService } from "../../server/services/project.service";
+import { ProjectSearch } from "../../features/projects/components/project-search";
 
-async function ProjectsList() {
-  const projectsResult = await ProjectService.getProjectsByOrganization();
+interface ProjectsListProps {
+  searchQuery?: string;
+}
+
+async function ProjectsList({ searchQuery }: ProjectsListProps) {
+  const projectsResult =
+    await ProjectService.getProjectsByOrganizationWithRecordingCount();
 
   if (projectsResult.isErr()) {
     return (
@@ -26,7 +33,15 @@ async function ProjectsList() {
     );
   }
 
-  const projects = projectsResult.value;
+  let projects = projectsResult.value;
+
+  // Filter projects by search query
+  if (searchQuery) {
+    const query = searchQuery.toLowerCase();
+    projects = projects.filter((project) =>
+      project.name.toLowerCase().includes(query)
+    );
+  }
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", {
@@ -58,28 +73,11 @@ async function ProjectsList() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Projects</h1>
-            <p className="text-muted-foreground mt-2">
-              Organize your meeting recordings by project
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/projects/create">
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Create New Project
-            </Link>
-          </Button>
-        </div>
-
-        {/* Projects Grid */}
-        {projects.length > 0 ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
+    <>
+      {/* Projects Grid */}
+      {projects.length > 0 ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {projects.map((project) => (
               <Card
                 key={project.id}
                 className="hover:shadow-lg transition-shadow cursor-pointer"
@@ -107,6 +105,13 @@ async function ProjectsList() {
                     )}
                     <div className="space-y-2">
                       <div className="flex items-center text-xs text-muted-foreground">
+                        <FolderIcon className="h-3 w-3 mr-1" />
+                        {project.recordingCount}{" "}
+                        {project.recordingCount === 1
+                          ? "recording"
+                          : "recordings"}
+                      </div>
+                      <div className="flex items-center text-xs text-muted-foreground">
                         <CalendarIcon className="h-3 w-3 mr-1" />
                         Created {formatDate(project.createdAt)}
                       </div>
@@ -119,49 +124,98 @@ async function ProjectsList() {
                 </Link>
               </Card>
             ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="text-center py-12">
-              <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
-              <p className="text-muted-foreground mb-6">
-                Create your first project to start organizing your meeting
-                recordings.
-              </p>
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="text-center py-12">
+            <h3 className="text-lg font-semibold mb-2">
+              {searchQuery ? "No projects found" : "No projects yet"}
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              {searchQuery
+                ? "Try adjusting your search criteria."
+                : "Create your first project to start organizing your meeting recordings."}
+            </p>
+            {!searchQuery && (
               <Button asChild>
                 <Link href="/projects/create">
                   <PlusIcon className="h-4 w-4 mr-2" />
                   Create Your First Project
                 </Link>
               </Button>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </>
+  );
+}
+
+async function ProjectsPageContent({
+  searchParamsPromise,
+}: {
+  searchParamsPromise: Promise<{ search?: string }>;
+}) {
+  const { search } = await searchParamsPromise;
+
+  return (
+    <div className="container mx-auto py-8 px-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Projects</h1>
+            <p className="text-muted-foreground mt-2">
+              Organize your meeting recordings by project
+            </p>
+          </div>
+          <Button asChild>
+            <Link href="/projects/create">
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Create New Project
+            </Link>
+          </Button>
+        </div>
+
+        {/* Search */}
+        <div className="mb-6">
+          <ProjectSearch />
+        </div>
+
+        {/* Projects List */}
+        <ProjectsList searchQuery={search} />
       </div>
     </div>
   );
 }
 
-export default async function ProjectsPage() {
+interface ProjectsPageProps {
+  searchParams: Promise<{ search?: string }>;
+}
+
+export default function ProjectsPage({ searchParams }: ProjectsPageProps) {
   // CACHE COMPONENTS: Wrap dynamic content in Suspense to enable static shell generation
   // ProjectsList accesses auth data to get projects, making it dynamic
   return (
-    <Suspense
-      fallback={
-        <div className="container mx-auto py-8 px-4">
-          <div className="max-w-6xl mx-auto space-y-6">
-            <div className="h-12 bg-muted rounded animate-pulse" />
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-48 bg-muted rounded animate-pulse" />
-              ))}
+    <NuqsAdapter>
+      <Suspense
+        fallback={
+          <div className="container mx-auto py-8 px-4">
+            <div className="max-w-6xl mx-auto space-y-6">
+              <div className="h-12 bg-muted rounded animate-pulse" />
+              <div className="h-12 bg-muted rounded animate-pulse" />
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-48 bg-muted rounded animate-pulse" />
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      }
-    >
-      <ProjectsList />
-    </Suspense>
+        }
+      >
+        <ProjectsPageContent searchParamsPromise={searchParams} />
+      </Suspense>
+    </NuqsAdapter>
   );
 }
 

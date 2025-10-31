@@ -176,6 +176,27 @@ export async function updateRecordingTranscription(
   }
 }
 
+/**
+ * Count recordings by project ID
+ */
+export async function countRecordingsByProjectId(
+  projectId: string
+): Promise<Result<number, string>> {
+  try {
+    const results = await db
+      .select()
+      .from(recordings)
+      .where(eq(recordings.projectId, projectId));
+
+    return ok(results.length);
+  } catch (error) {
+    console.error("Error counting recordings:", error);
+    return err(
+      error instanceof Error ? error.message : "Unknown database error"
+    );
+  }
+}
+
 // Export as RecordingsQueries class for consistency
 export const RecordingsQueries = {
   insertRecording,
@@ -184,5 +205,6 @@ export const RecordingsQueries = {
   updateRecordingMetadata,
   updateRecordingTranscriptionStatus,
   updateRecordingTranscription,
+  countRecordingsByProjectId,
 };
 

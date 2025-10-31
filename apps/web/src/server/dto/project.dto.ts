@@ -41,6 +41,10 @@ export interface ProjectWithCreatorDetailsDto extends ProjectWithCreatorDto {
   };
 }
 
+export interface ProjectWithRecordingCountDto extends ProjectWithCreatorDto {
+  recordingCount: number;
+}
+
 export interface ProjectFiltersDto {
   organizationId: string;
   status?: AllowedStatus;
