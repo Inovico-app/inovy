@@ -58,7 +58,7 @@ export function EditRecordingForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: initialData.title,
-      description: initialData.description || "",
+      description: initialData.description ?? "",
       recordingDate: formatDateForInput(initialData.recordingDate),
     },
   });
@@ -68,7 +68,7 @@ export function EditRecordingForm({
       const result = await updateRecordingAction({
         recordingId,
         title: data.title,
-        description: data.description || undefined,
+        description: data.description ?? undefined,
         recordingDate: new Date(data.recordingDate),
       });
 
@@ -82,7 +82,7 @@ export function EditRecordingForm({
         const firstError = Array.isArray(firstFieldErrors)
           ? firstFieldErrors[0]
           : firstFieldErrors?._errors?.[0];
-        toast.error(firstError || "Validation failed");
+        toast.error(firstError ?? "Validation failed");
         return;
       }
 

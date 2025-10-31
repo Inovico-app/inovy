@@ -12,8 +12,7 @@ export const updateRecordingSchema = z.object({
     .optional()
     .nullable(),
   recordingDate: z.coerce.date({
-    required_error: "Recording date is required",
-    invalid_type_error: "Invalid date format",
+    message: "Recording date is required",
   }),
 });
 
