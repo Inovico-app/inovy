@@ -88,7 +88,7 @@
 - Provide search/filter functionality for project names
 - Show "Create New Project" button
 
-**Priority**: High | **Effort**: 3 | **Status**: - [ ] Not Started
+**Priority**: High | **Effort**: 3 | **Status**: - [x] Completed
 
 ### PROJ-003: View Project Details
 
@@ -104,7 +104,7 @@
 - Show project statistics (total recordings, recent activity)
 - Allow navigation back to project list
 
-**Priority**: High | **Effort**: 3 | **Status**: - [ ] Not Started
+**Priority**: High | **Effort**: 3 | **Status**: - [x] Completed
 
 ### PROJ-004: Edit Project
 
@@ -120,7 +120,7 @@
 - Success message after saving changes
 - Cancel option to discard changes
 
-**Priority**: Medium | **Effort**: 2 | **Status**: - [ ] Not Started
+**Priority**: Medium | **Effort**: 2 | **Status**: - [x] Completed
 
 ### PROJ-005: Archive Project
 
@@ -136,7 +136,7 @@
 - Recordings in archived projects remain accessible
 - Confirmation dialog before archiving
 
-**Priority**: Medium | **Effort**: 2 | **Status**: - [ ] Not Started
+**Priority**: Medium | **Effort**: 2 | **Status**: - [x] Completed
 
 ---
 
@@ -357,7 +357,7 @@
 - Project names clearly displayed with tasks
 - Easy navigation to source project/recording
 
-**Priority**: Medium | **Effort**: 3
+**Priority**: Medium | **Effort**: 3 | **Status**: - [x] Completed
 
 ### TASK-005: Sort Tasks
 
@@ -373,7 +373,7 @@
 - Clear indication of current sort method
 - Combine sorting with filtering
 
-**Priority**: Medium | **Effort**: 2
+**Priority**: Medium | **Effort**: 2 | **Status**: - [x] Completed
 
 ### TASK-006: Update Task Status
 
