@@ -197,6 +197,51 @@ export async function countRecordingsByProjectId(
   }
 }
 
+/**
+ * Get recording statistics for a project
+ */
+export async function getRecordingStatistics(projectId: string): Promise<
+  Result<
+    {
+      totalCount: number;
+      lastRecordingDate: Date | null;
+      recentCount: number; // last 7 days
+    },
+    string
+  >
+> {
+  try {
+    const allRecordings = await db
+      .select()
+      .from(recordings)
+      .where(eq(recordings.projectId, projectId))
+      .orderBy(desc(recordings.createdAt));
+
+    const totalCount = allRecordings.length;
+    const lastRecordingDate =
+      allRecordings.length > 0 ? allRecordings[0].createdAt : null;
+
+    // Count recordings from last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const recentCount = allRecordings.filter(
+      (r) => r.createdAt >= sevenDaysAgo
+    ).length;
+
+    return ok({
+      totalCount,
+      lastRecordingDate,
+      recentCount,
+    });
+  } catch (error) {
+    console.error("Error getting recording statistics:", error);
+    return err(
+      error instanceof Error ? error.message : "Unknown database error"
+    );
+  }
+}
+
 // Export as RecordingsQueries class for consistency
 export const RecordingsQueries = {
   insertRecording,
@@ -206,5 +251,6 @@ export const RecordingsQueries = {
   updateRecordingTranscriptionStatus,
   updateRecordingTranscription,
   countRecordingsByProjectId,
+  getRecordingStatistics,
 };
 
