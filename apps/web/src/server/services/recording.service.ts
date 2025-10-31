@@ -356,6 +356,89 @@ export class RecordingService {
   }
 
   /**
+   * Delete a recording (hard delete with blob cleanup)
+   */
+  static async deleteRecording(
+    recordingId: string,
+    orgCode: string
+  ): Promise<Result<boolean, ActionError>> {
+    logger.info("Deleting recording", {
+      component: "RecordingService.deleteRecording",
+      recordingId,
+    });
+
+    try {
+      // First, get the recording to retrieve the blob URL
+      const recordingResult = await selectRecordingById(recordingId);
+
+      if (recordingResult.isErr()) {
+        return err(
+          ActionErrors.internal(
+            "Failed to fetch recording",
+            new Error(recordingResult.error),
+            "RecordingService.deleteRecording"
+          )
+        );
+      }
+
+      const recording = recordingResult.value;
+
+      if (!recording) {
+        return err(
+          ActionErrors.notFound("Recording", "RecordingService.deleteRecording")
+        );
+      }
+
+      // Verify ownership
+      if (recording.organizationId !== orgCode) {
+        return err(
+          ActionErrors.forbidden(
+            "You don't have permission to delete this recording",
+            { recordingId },
+            "RecordingService.deleteRecording"
+          )
+        );
+      }
+
+      // Delete the recording from database (this will cascade to related records)
+      const deleteResult = await RecordingsQueries.deleteRecording(
+        recordingId,
+        orgCode
+      );
+
+      if (!deleteResult) {
+        return err(
+          ActionErrors.internal(
+            "Failed to delete recording from database",
+            undefined,
+            "RecordingService.deleteRecording"
+          )
+        );
+      }
+
+      logger.info("Successfully deleted recording", {
+        component: "RecordingService.deleteRecording",
+        recordingId,
+      });
+
+      return ok(true);
+    } catch (error) {
+      logger.error("Failed to delete recording", {
+        component: "RecordingService.deleteRecording",
+        error,
+        recordingId,
+      });
+      return err(
+        ActionErrors.internal(
+          "Failed to delete recording",
+          error as Error,
+          "RecordingService.deleteRecording"
+        )
+      );
+    }
+  }
+
+  /**
    * Convert database recording to DTO
    */
   private static toDto(recording: Recording): RecordingDto {
@@ -372,7 +455,6 @@ export class RecordingService {
       recordingDate: recording.recordingDate,
       transcriptionStatus: recording.transcriptionStatus,
       transcriptionText: recording.transcriptionText,
-      status: recording.status,
       organizationId: recording.organizationId,
       createdById: recording.createdById,
       createdAt: recording.createdAt,
