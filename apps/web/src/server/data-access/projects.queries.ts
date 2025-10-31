@@ -206,6 +206,43 @@ export class ProjectQueries {
   }
 
   /**
+   * Update a project
+   */
+  static async update(
+    projectId: string,
+    organizationId: string,
+    data: { name?: string; description?: string | null }
+  ): Promise<ProjectDto | null> {
+    return await db.transaction(async (tx) => {
+      const [project] = await tx
+        .update(projects)
+        .set({
+          ...data,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(projects.id, projectId),
+            eq(projects.organizationId, organizationId)
+          )
+        )
+        .returning();
+
+      if (!project) return null;
+
+      return {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        status: project.status,
+        organizationId: project.organizationId,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+      };
+    });
+  }
+
+  /**
    * Delete a project (soft delete by changing status)
    */
   static async softDelete(
@@ -217,6 +254,32 @@ export class ProjectQueries {
         .update(projects)
         .set({
           status: "archived",
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(projects.id, projectId),
+            eq(projects.organizationId, organizationId)
+          )
+        )
+        .returning();
+
+      return result.length > 0;
+    });
+  }
+
+  /**
+   * Unarchive a project (restore from archived status)
+   */
+  static async unarchive(
+    projectId: string,
+    organizationId: string
+  ): Promise<boolean> {
+    return await db.transaction(async (tx) => {
+      const result = await tx
+        .update(projects)
+        .set({
+          status: "active",
           updatedAt: new Date(),
         })
         .where(

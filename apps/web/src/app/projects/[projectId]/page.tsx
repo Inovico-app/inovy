@@ -21,6 +21,8 @@ import { UploadRecordingModal } from "../../../features/recordings/components/up
 import { RecordingList } from "../../../features/recordings/components/recording-list";
 import { ProjectService } from "../../../server/services/project.service";
 import { RecordingService } from "../../../server/services/recording.service";
+import { EditProjectModal } from "../../../features/projects/components/edit-project-modal";
+import { ArchiveProjectDialog } from "../../../features/projects/components/archive-project-dialog";
 
 interface ProjectDetailPageProps {
   params: Promise<{ projectId: string }>;
@@ -99,11 +101,20 @@ async function ProjectDetail({
             )}
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <Link href={`/projects/${project.id}/upload` as Route}>
-                Upload Page
-              </Link>
-            </Button>
+            <EditProjectModal
+              projectId={project.id}
+              initialData={{
+                name: project.name,
+                description: project.description,
+              }}
+              variant="outline"
+            />
+            <ArchiveProjectDialog
+              projectId={project.id}
+              projectName={project.name}
+              isArchived={project.status === "archived"}
+              variant="outline"
+            />
             <UploadRecordingModal projectId={project.id} />
           </div>
         </div>

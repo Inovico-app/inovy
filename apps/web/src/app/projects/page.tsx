@@ -12,14 +12,17 @@ import {
 } from "../../components/ui/card";
 import { ProjectService } from "../../server/services/project.service";
 import { ProjectSearch } from "../../features/projects/components/project-search";
+import { ProjectTabs } from "../../features/projects/components/project-tabs";
+import type { AllowedStatus } from "../../server/data-access/projects.queries";
 
 interface ProjectsListProps {
   searchQuery?: string;
+  status?: AllowedStatus;
 }
 
-async function ProjectsList({ searchQuery }: ProjectsListProps) {
+async function ProjectsList({ searchQuery, status = "active" }: ProjectsListProps) {
   const projectsResult =
-    await ProjectService.getProjectsByOrganizationWithRecordingCount();
+    await ProjectService.getProjectsByOrganizationWithRecordingCount(status);
 
   if (projectsResult.isErr()) {
     return (
@@ -129,14 +132,20 @@ async function ProjectsList({ searchQuery }: ProjectsListProps) {
         <Card>
           <CardContent className="text-center py-12">
             <h3 className="text-lg font-semibold mb-2">
-              {searchQuery ? "No projects found" : "No projects yet"}
+              {searchQuery
+                ? "No projects found"
+                : status === "archived"
+                  ? "No archived projects"
+                  : "No projects yet"}
             </h3>
             <p className="text-muted-foreground mb-6">
               {searchQuery
                 ? "Try adjusting your search criteria."
-                : "Create your first project to start organizing your meeting recordings."}
+                : status === "archived"
+                  ? "Projects you archive will appear here."
+                  : "Create your first project to start organizing your meeting recordings."}
             </p>
-            {!searchQuery && (
+            {!searchQuery && status === "active" && (
               <Button asChild>
                 <Link href="/projects/create">
                   <PlusIcon className="h-4 w-4 mr-2" />
@@ -154,9 +163,10 @@ async function ProjectsList({ searchQuery }: ProjectsListProps) {
 async function ProjectsPageContent({
   searchParamsPromise,
 }: {
-  searchParamsPromise: Promise<{ search?: string }>;
+  searchParamsPromise: Promise<{ search?: string; status?: string }>;
 }) {
-  const { search } = await searchParamsPromise;
+  const { search, status } = await searchParamsPromise;
+  const projectStatus = (status === "archived" ? "archived" : "active") as AllowedStatus;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -177,20 +187,25 @@ async function ProjectsPageContent({
           </Button>
         </div>
 
+        {/* Tabs */}
+        <div className="mb-6">
+          <ProjectTabs />
+        </div>
+
         {/* Search */}
         <div className="mb-6">
           <ProjectSearch />
         </div>
 
         {/* Projects List */}
-        <ProjectsList searchQuery={search} />
+        <ProjectsList searchQuery={search} status={projectStatus} />
       </div>
     </div>
   );
 }
 
 interface ProjectsPageProps {
-  searchParams: Promise<{ search?: string }>;
+  searchParams: Promise<{ search?: string; status?: string }>;
 }
 
 export default function ProjectsPage({ searchParams }: ProjectsPageProps) {
