@@ -23,6 +23,7 @@ import { ProjectService } from "../../../server/services/project.service";
 import { RecordingService } from "../../../server/services/recording.service";
 import { EditProjectModal } from "../../../features/projects/components/edit-project-modal";
 import { ArchiveProjectDialog } from "../../../features/projects/components/archive-project-dialog";
+import { DeleteProjectDialog } from "../../../features/projects/components/delete-project-dialog";
 
 interface ProjectDetailPageProps {
   params: Promise<{ projectId: string }>;
@@ -113,6 +114,12 @@ async function ProjectDetail({
               projectId={project.id}
               projectName={project.name}
               isArchived={project.status === "archived"}
+              variant="outline"
+            />
+            <DeleteProjectDialog
+              projectId={project.id}
+              projectName={project.name}
+              recordingCount={statistics.totalCount}
               variant="outline"
             />
             <UploadRecordingModal projectId={project.id} />

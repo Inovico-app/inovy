@@ -1,12 +1,13 @@
-import { safeAsync, type ActionResult } from "@/lib";
+import { safeAsync, type ActionResult, ActionErrors } from "@/lib";
+import { del } from "@vercel/blob";
 import { err, ok, type Result } from "neverthrow";
-import { ActionErrors } from "../../lib/action-errors";
 import { getAuthSession, type AuthUser } from "../../lib/auth";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { getCachedProjectByIdWithCreator } from "../cache";
 import { ProjectQueries } from "../data-access";
 import type { AllowedStatus } from "../data-access/projects.queries";
+import { selectRecordingsByProjectId } from "../data-access/recordings.queries";
 import type {
   CreateProjectDto,
   ProjectDto,
@@ -311,6 +312,160 @@ export class ProjectService {
       const errorMessage = "Failed to unarchive project";
       logger.error(errorMessage, { projectId }, error as Error);
       return err(errorMessage);
+    }
+  }
+
+  /**
+   * Get project statistics (recording counts, etc.)
+   */
+  static async getProjectStatistics(
+    projectId: string,
+    orgCode: string
+  ): Promise<Result<{ recordingCount: number }, string>> {
+    try {
+      const stats = await ProjectQueries.getProjectStatistics(
+        projectId,
+        orgCode
+      );
+
+      if (!stats) {
+        return err("Project not found");
+      }
+
+      return ok(stats);
+    } catch (error) {
+      const errorMessage = "Failed to get project statistics";
+      logger.error(errorMessage, { projectId }, error as Error);
+      return err(errorMessage);
+    }
+  }
+
+  /**
+   * Delete a project permanently (hard delete with blob cleanup)
+   * WARNING: This is destructive and cannot be undone
+   */
+  static async deleteProject(
+    projectId: string,
+    orgCode: string,
+    userId: string
+  ): Promise<ActionResult<boolean>> {
+    logger.info("Deleting project", {
+      component: "ProjectService.deleteProject",
+      projectId,
+    });
+
+    try {
+      // First, get the project to verify ownership
+      const projectResult = await ProjectQueries.findByIdWithCreator(
+        projectId,
+        orgCode
+      );
+
+      if (!projectResult) {
+        return err(
+          ActionErrors.notFound("Project", "ProjectService.deleteProject")
+        );
+      }
+
+      // Verify ownership - only creator can delete
+      if (projectResult.createdById !== userId) {
+        return err(
+          ActionErrors.forbidden(
+            "Only the project creator can delete this project",
+            { projectId },
+            "ProjectService.deleteProject"
+          )
+        );
+      }
+
+      // Get all recordings for this project to delete their files from blob storage
+      const recordingsResult = await selectRecordingsByProjectId(projectId, {
+        includeArchived: true, // Include all recordings
+      });
+
+      if (recordingsResult.isErr()) {
+        logger.error("Failed to fetch recordings for project deletion", {
+          component: "ProjectService.deleteProject",
+          error: recordingsResult.error,
+          projectId,
+        });
+        return err(
+          ActionErrors.internal(
+            "Failed to fetch project recordings",
+            new Error(recordingsResult.error),
+            "ProjectService.deleteProject"
+          )
+        );
+      }
+
+      const recordings = recordingsResult.value;
+
+      logger.info("Deleting recordings from blob storage", {
+        component: "ProjectService.deleteProject",
+        projectId,
+        recordingCount: recordings.length,
+      });
+
+      // Delete all recording files from Vercel Blob storage
+      const blobDeletionPromises = recordings.map(async (recording) => {
+        try {
+          await del(recording.fileUrl);
+          logger.info("Deleted recording file from blob storage", {
+            component: "ProjectService.deleteProject",
+            recordingId: recording.id,
+            fileUrl: recording.fileUrl,
+          });
+        } catch (error) {
+          // Log error but don't fail the entire operation
+          // Files might already be deleted or blob URL might be invalid
+          logger.warn("Failed to delete recording file from blob storage", {
+            component: "ProjectService.deleteProject",
+            recordingId: recording.id,
+            fileUrl: recording.fileUrl,
+            error,
+          });
+        }
+      });
+
+      // Wait for all blob deletions to complete (or fail individually)
+      await Promise.allSettled(blobDeletionPromises);
+
+      // Delete the project from database (cascade will handle related records)
+      const deleteResult = await ProjectQueries.hardDelete(projectId, orgCode);
+
+      if (!deleteResult) {
+        return err(
+          ActionErrors.internal(
+            "Failed to delete project from database",
+            undefined,
+            "ProjectService.deleteProject"
+          )
+        );
+      }
+
+      // Invalidate all project caches
+      CacheInvalidation.invalidateProjectCache(orgCode);
+
+      logger.info("Successfully deleted project", {
+        component: "ProjectService.deleteProject",
+        projectId,
+        recordingsDeleted: recordings.length,
+      });
+
+      return ok(true);
+    } catch (error) {
+      logger.error("Failed to delete project", {
+        component: "ProjectService.deleteProject",
+        error,
+        projectId,
+      });
+      return err(
+        ActionErrors.internal(
+          "Failed to delete project",
+          error as Error,
+          "ProjectService.deleteProject"
+        )
+      );
     }
   }
 }

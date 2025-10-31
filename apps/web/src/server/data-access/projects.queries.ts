@@ -338,5 +338,54 @@ export class ProjectQueries {
       recordingCount: project.recordingCount,
     }));
   }
+
+  /**
+   * Get statistics about a project (recording counts, etc.)
+   */
+  static async getProjectStatistics(
+    projectId: string,
+    organizationId: string
+  ): Promise<{ recordingCount: number } | null> {
+    const result = await db
+      .select({
+        recordingCount: sql<number>`cast(count(${recordings.id}) as int)`,
+      })
+      .from(projects)
+      .leftJoin(recordings, eq(projects.id, recordings.projectId))
+      .where(
+        and(
+          eq(projects.id, projectId),
+          eq(projects.organizationId, organizationId)
+        )
+      )
+      .groupBy(projects.id)
+      .limit(1);
+
+    if (result.length === 0) return null;
+
+    return result[0];
+  }
+
+  /**
+   * Hard delete a project (permanently removes project and cascades to related data)
+   * WARNING: This is destructive and cannot be undone
+   */
+  static async hardDelete(
+    projectId: string,
+    organizationId: string
+  ): Promise<boolean> {
+    return await db.transaction(async (tx) => {
+      const result = await tx
+        .delete(projects)
+        .where(
+          and(
+            eq(projects.id, projectId),
+            eq(projects.organizationId, organizationId)
+          )
+        );
+
+      return result.rowCount !== null && result.rowCount > 0;
+    });
+  }
 }
 
