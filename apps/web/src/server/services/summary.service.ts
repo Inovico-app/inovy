@@ -1,6 +1,7 @@
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
+import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { err, ok, type Result } from "neverthrow";
 import OpenAI from "openai";
 import {
@@ -8,6 +9,7 @@ import {
   type SummaryContent,
   type SummaryResult,
 } from "../cache";
+import { NotificationService } from "./notification.service";
 
 export class SummaryService {
   private static openai = new OpenAI({
@@ -121,6 +123,24 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
           "failed",
           "No response from OpenAI"
         );
+
+        // Create failure notification
+        const recording = await RecordingsQueries.selectRecordingById(recordingId);
+        if (recording.isOk() && recording.value) {
+          await NotificationService.createNotification({
+            recordingId,
+            projectId: recording.value.projectId,
+            userId: recording.value.createdById,
+            organizationId: recording.value.organizationId,
+            type: "summary_failed",
+            title: "Samenvatting mislukt",
+            message: `De samenvatting van "${recording.value.title}" is mislukt.`,
+            metadata: {
+              error: "No response from OpenAI",
+            },
+          });
+        }
+
         return err(new Error("No content in OpenAI response"));
       }
 
@@ -139,6 +159,24 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
           "failed",
           "Failed to parse summary"
         );
+
+        // Create failure notification
+        const recording = await RecordingsQueries.selectRecordingById(recordingId);
+        if (recording.isOk() && recording.value) {
+          await NotificationService.createNotification({
+            recordingId,
+            projectId: recording.value.projectId,
+            userId: recording.value.createdById,
+            organizationId: recording.value.organizationId,
+            type: "summary_failed",
+            title: "Samenvatting mislukt",
+            message: `De samenvatting van "${recording.value.title}" is mislukt.`,
+            metadata: {
+              error: "Failed to parse summary",
+            },
+          });
+        }
+
         return err(new Error("Failed to parse OpenAI response"));
       }
 
@@ -166,6 +204,24 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
         topicsCount: summaryContent.hoofdonderwerpen?.length ?? 0,
         decisionsCount: summaryContent.beslissingen?.length ?? 0,
       });
+
+      // Create success notification
+      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      if (recording.isOk() && recording.value) {
+        await NotificationService.createNotification({
+          recordingId,
+          projectId: recording.value.projectId,
+          userId: recording.value.createdById,
+          organizationId: recording.value.organizationId,
+          type: "summary_completed",
+          title: "Samenvatting voltooid",
+          message: `De samenvatting van "${recording.value.title}" is voltooid.`,
+          metadata: {
+            topicsCount: summaryContent.hoofdonderwerpen?.length ?? 0,
+            decisionsCount: summaryContent.beslissingen?.length ?? 0,
+          },
+        });
+      }
 
       // Trigger task extraction in the background (fire and forget)
       fetch(

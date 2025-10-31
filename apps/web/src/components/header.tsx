@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { HeaderAuthButtons } from "./header-auth-buttons";
 import { HeaderNavigation } from "./header-navigation";
 import { ModeToggle } from "./mode-toggle";
+import { NotificationBell } from "@/features/notifications/components/notification-bell";
 
 export function Header() {
   return (
@@ -17,6 +18,13 @@ export function Header() {
           </Suspense>
         </div>
         <div className="flex items-center gap-3">
+          <Suspense
+            fallback={
+              <div className="h-9 w-9 bg-muted animate-pulse rounded" />
+            }
+          >
+            <NotificationBell />
+          </Suspense>
           <Suspense
             fallback={
               <div className="h-9 w-16 bg-muted animate-pulse rounded" />
