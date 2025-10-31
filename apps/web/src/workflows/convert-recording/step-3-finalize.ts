@@ -9,10 +9,12 @@ import { CacheInvalidation } from "@/lib/cache-utils";
  * 
  * @param recordingId - The recording ID
  * @param projectId - The project ID
+ * @param orgCode - The organization code
  */
 export async function executeFinalStep(
   recordingId: string,
-  projectId: string
+  projectId: string,
+  orgCode: string
 ): Promise<void> {
   try {
     logger.info("Workflow Step 3: Finalizing", {
@@ -21,9 +23,8 @@ export async function executeFinalStep(
     });
 
     // Invalidate React Query caches
-    CacheInvalidation.invalidateRecording(recordingId);
     CacheInvalidation.invalidateSummary(recordingId);
-    CacheInvalidation.invalidateProject(projectId);
+    CacheInvalidation.invalidateProject(projectId, orgCode);
 
     logger.info("Workflow Step 3: Finalization completed", {
       component: "ConvertRecordingWorkflow",

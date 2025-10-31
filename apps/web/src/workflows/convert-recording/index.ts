@@ -42,7 +42,7 @@ export async function convertRecordingIntoAiInsights(
     });
 
     // Update workflow status to running
-    await updateWorkflowStatus(recordingId, "running", null, 0);
+    await updateWorkflowStatus(recordingId, "running", undefined, 0);
 
     // Get recording details
     const recordingResult = await RecordingsQueries.selectRecordingById(
@@ -120,17 +120,21 @@ export async function convertRecordingIntoAiInsights(
     if (!summaryCompleted || !tasksCompleted) {
       const errors: string[] = [];
       if (!summaryCompleted) {
-        const error =
-          summaryResult.status === "fulfilled"
-            ? summaryResult.value.error.message
-            : String(summaryResult.reason);
+        let error = "Unknown error";
+        if (summaryResult.status === "fulfilled" && summaryResult.value.isErr()) {
+          error = summaryResult.value.error.message;
+        } else if (summaryResult.status === "rejected") {
+          error = String(summaryResult.reason);
+        }
         errors.push(`Summary: ${error}`);
       }
       if (!tasksCompleted) {
-        const error =
-          taskExtractionResult.status === "fulfilled"
-            ? taskExtractionResult.value.error.message
-            : String(taskExtractionResult.reason);
+        let error = "Unknown error";
+        if (taskExtractionResult.status === "fulfilled" && taskExtractionResult.value.isErr()) {
+          error = taskExtractionResult.value.error.message;
+        } else if (taskExtractionResult.status === "rejected") {
+          error = String(taskExtractionResult.reason);
+        }
         errors.push(`Tasks: ${error}`);
       }
 
@@ -146,10 +150,10 @@ export async function convertRecordingIntoAiInsights(
         : 0;
 
     // Step 3: Finalize
-    await executeFinalStep(recordingId, recording.projectId);
+    await executeFinalStep(recordingId, recording.projectId, recording.organizationId);
 
     // Update workflow status to completed
-    await updateWorkflowStatus(recordingId, "completed", null);
+    await updateWorkflowStatus(recordingId, "completed", undefined);
 
     const duration = Date.now() - startTime;
     logger.info("Workflow: Completed successfully", {
