@@ -6,6 +6,7 @@ import {
   selectRecordingById,
   selectRecordingsByProjectId,
   updateRecordingMetadata as updateRecordingMetadataQuery,
+  getRecordingStatistics as getRecordingStatisticsQuery,
 } from "../data-access/recordings.queries";
 import type { NewRecording, Recording } from "../db/schema";
 import { type RecordingDto } from "../dto";
@@ -246,6 +247,39 @@ export class RecordingService {
     });
 
     return ok(this.toDto(updatedRecording));
+  }
+
+  /**
+   * Get recording statistics for a project
+   */
+  static async getProjectRecordingStatistics(projectId: string): Promise<
+    Result<
+      {
+        totalCount: number;
+        lastRecordingDate: Date | null;
+        recentCount: number;
+      },
+      string
+    >
+  > {
+    logger.info("Getting recording statistics", {
+      component: "RecordingService.getProjectRecordingStatistics",
+      projectId,
+    });
+
+    const result = await getRecordingStatisticsQuery(projectId);
+
+    if (result.isErr()) {
+      logger.error("Failed to get recording statistics", {
+        component: "RecordingService.getProjectRecordingStatistics",
+        error: result.error,
+        projectId,
+      });
+
+      return err(result.error);
+    }
+
+    return ok(result.value);
   }
 
   /**

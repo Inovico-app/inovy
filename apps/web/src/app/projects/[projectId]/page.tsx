@@ -1,4 +1,10 @@
-import { CalendarIcon, UserIcon } from "lucide-react";
+import {
+  ActivityIcon,
+  CalendarIcon,
+  ClockIcon,
+  FolderIcon,
+  UserIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Route } from "next";
@@ -14,6 +20,7 @@ import { Skeleton } from "../../../components/ui/skeleton";
 import { UploadRecordingModal } from "../../../features/recordings/components/upload-recording-modal";
 import { RecordingList } from "../../../features/recordings/components/recording-list";
 import { ProjectService } from "../../../server/services/project.service";
+import { RecordingService } from "../../../server/services/recording.service";
 
 interface ProjectDetailPageProps {
   params: Promise<{ projectId: string }>;
@@ -35,12 +42,34 @@ async function ProjectDetail({
 
   const project = projectResult.value;
 
+  // Get recording statistics
+  const statisticsResult =
+    await RecordingService.getProjectRecordingStatistics(projectId);
+  const statistics = statisticsResult.isOk()
+    ? statisticsResult.value
+    : { totalCount: 0, lastRecordingDate: null, recentCount: 0 };
+
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
+  };
+
+  const formatRelativeTime = (date: Date | null) => {
+    if (!date) return "Never";
+
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+    if (diffInDays === 0) return "Today";
+    if (diffInDays === 1) return "Yesterday";
+    if (diffInDays < 7) return `${diffInDays} days ago`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
+    return `${Math.floor(diffInDays / 365)} years ago`;
   };
 
   const getCreatorName = () => {
@@ -110,6 +139,58 @@ async function ProjectDetail({
               >
                 {project.status}
               </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Project Statistics */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Project Statistics</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="flex items-start space-x-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                  <FolderIcon className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Total Recordings
+                  </p>
+                  <p className="text-2xl font-bold">{statistics.totalCount}</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                  <ActivityIcon className="h-5 w-5 text-green-600 dark:text-green-300" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Recent Activity
+                  </p>
+                  <p className="text-2xl font-bold">{statistics.recentCount}</p>
+                  <p className="text-xs text-muted-foreground">Last 7 days</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                  <ClockIcon className="h-5 w-5 text-purple-600 dark:text-purple-300" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Last Recording
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {formatRelativeTime(statistics.lastRecordingDate)}
+                  </p>
+                  {statistics.lastRecordingDate && (
+                    <p className="text-xs text-muted-foreground">
+                      {formatDate(statistics.lastRecordingDate)}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
