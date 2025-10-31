@@ -1,4 +1,3 @@
-import { ProtectedPage } from "@/components/protected-page";
 import {
   Card,
   CardContent,
@@ -10,11 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getAuthSession } from "@/lib/auth";
 import Link from "next/link";
-import { Suspense } from "react";
 import { getOrganizationMembers } from "@/server/data-access/organization.queries";
 import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
 
-async function OrganizationContent() {
+export default async function OrganizationPage() {
   const authResult = await getAuthSession();
 
   if (authResult.isErr()) {
@@ -50,7 +48,7 @@ async function OrganizationContent() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto max-w-2xl py-8 px-4">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Organization</h1>
@@ -141,25 +139,5 @@ async function OrganizationContent() {
         <Link href={"/settings" as any}>← Back to Settings</Link>
       </Button>
     </div>
-  );
-}
-
-export default function OrganizationPage() {
-  return (
-    <ProtectedPage>
-      <div className="container mx-auto max-w-2xl py-8 px-4">
-        <Suspense
-          fallback={
-            <div className="space-y-4">
-              <div className="h-8 bg-muted rounded w-1/3 animate-pulse" />
-              <div className="h-40 bg-muted rounded animate-pulse" />
-              <div className="h-64 bg-muted rounded animate-pulse" />
-            </div>
-          }
-        >
-          <OrganizationContent />
-        </Suspense>
-      </div>
-    </ProtectedPage>
   );
 }
