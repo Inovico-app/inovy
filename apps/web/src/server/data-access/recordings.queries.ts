@@ -1,5 +1,5 @@
 import { and, desc, eq, ilike } from "drizzle-orm";
-import { type Result, err, ok } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 import { db } from "../db";
 import { recordings, type NewRecording, type Recording } from "../db/schema";
 
@@ -302,6 +302,27 @@ export async function unarchiveRecording(
   });
 }
 
+/**
+ * Delete a recording (hard delete)
+ */
+export async function deleteRecording(
+  recordingId: string,
+  organizationId: string
+): Promise<boolean> {
+  return await db.transaction(async (tx) => {
+    const result = await tx
+      .delete(recordings)
+      .where(
+        and(
+          eq(recordings.id, recordingId),
+          eq(recordings.organizationId, organizationId)
+        )
+      );
+
+    return result.rowCount !== null && result.rowCount > 0;
+  });
+}
+
 // Export as RecordingsQueries class for consistency
 export const RecordingsQueries = {
   insertRecording,
@@ -314,5 +335,6 @@ export const RecordingsQueries = {
   getRecordingStatistics,
   archiveRecording,
   unarchiveRecording,
+  deleteRecording,
 };
 

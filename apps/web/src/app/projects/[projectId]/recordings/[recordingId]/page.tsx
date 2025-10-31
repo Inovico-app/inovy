@@ -14,6 +14,7 @@ import { EditRecordingModal } from "../../../../../features/recordings/component
 import { ProcessingError } from "../../../../../features/recordings/components/processing-error";
 import { RecordingDetailStatus } from "../../../../../features/recordings/components/recording-detail-status";
 import { ArchiveRecordingDialog } from "../../../../../features/recordings/components/archive-recording-dialog";
+import { DeleteRecordingDialog } from "../../../../../features/recordings/components/delete-recording-dialog";
 import { ProjectService } from "../../../../../server/services/project.service";
 import { RecordingService } from "../../../../../server/services/recording.service";
 
@@ -130,6 +131,11 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
               recordingId={recording.id}
               recordingTitle={recording.title}
               isArchived={recording.status === "archived"}
+            />
+            <DeleteRecordingDialog
+              recordingId={recording.id}
+              recordingTitle={recording.title}
+              projectId={projectId}
             />
           </div>
         </div>
