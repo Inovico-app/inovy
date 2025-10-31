@@ -96,7 +96,9 @@ export class OrganizationAssignmentService {
       const orgCode = `org-${emailLocal}-${timestamp}`
         .toLowerCase()
         .replace(/[^a-z0-9-]/g, "-");
-      const orgName = `${user.given_name ?? user.email ?? "User"}'s Organization`;
+      const orgName = `${
+        user.given_name ?? user.email ?? "User"
+      }'s Organization`;
 
       logger.info("Creating default organization for user", {
         userId: user.id,

@@ -9,9 +9,9 @@ import {
 } from "@/components/ui/card";
 import { TaskCard } from "@/features/tasks/components/task-card";
 import { ensureUserOrganization } from "@/features/auth/actions/ensure-organization";
-import { getUserSession } from "@/lib/auth";
+import { getUserSession, getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import { TaskService } from "@/server/services";
+import { DashboardService, TaskService } from "@/server/services";
 import { FolderIcon, ListTodoIcon, MicIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -77,6 +77,20 @@ async function DashboardContent() {
         .slice(0, 3)
     : [];
 
+  // Get dashboard overview with real data
+  const authResult = await getAuthSession();
+  let dashboardOverview = null;
+
+  if (authResult.isOk() && authResult.value.organization) {
+    const orgCode = (authResult.value.organization as any).org_code;
+    if (orgCode) {
+      const dashboardResult = await DashboardService.getDashboardOverview(
+        orgCode
+      );
+      dashboardOverview = dashboardResult.isOk() ? dashboardResult.value : null;
+    }
+  }
+
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">
       <div className="space-y-8">
@@ -117,7 +131,9 @@ async function DashboardContent() {
                 <FolderIcon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0</div>
+                <div className="text-2xl font-bold">
+                  {dashboardOverview?.stats.totalProjects ?? 0}
+                </div>
                 <p className="text-xs text-muted-foreground">Active projects</p>
               </CardContent>
             </Card>
@@ -129,7 +145,9 @@ async function DashboardContent() {
               <MicIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">
+                {dashboardOverview?.stats.totalRecordings ?? 0}
+              </div>
               <p className="text-xs text-muted-foreground">Total recordings</p>
             </CardContent>
           </Card>
