@@ -4,6 +4,7 @@ import { ArchiveIcon, ArchiveRestoreIcon, Loader2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Button } from "../../../components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../../../components/ui/dialog";
-import { Button } from "../../../components/ui/button";
 import { archiveProjectAction } from "../actions/archive-project";
 import { unarchiveProjectAction } from "../actions/unarchive-project";
 
@@ -109,13 +109,18 @@ export function ArchiveProjectDialog({
               <>
                 This will archive <strong>{projectName}</strong>. Archived
                 projects won't appear in your main project list, but all
-                recordings will remain accessible via the Archived Projects view.
+                recordings will remain accessible via the Archived Projects
+                view.
               </>
             )}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={isLoading}
+          >
             Cancel
           </Button>
           <Button

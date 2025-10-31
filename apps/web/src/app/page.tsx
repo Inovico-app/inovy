@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TaskCard } from "@/features/tasks/components/task-card";
+import { ensureUserOrganization } from "@/features/auth/actions/ensure-organization";
 import { getUserSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { TaskService } from "@/server/services";
@@ -16,6 +17,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 async function DashboardContent() {
+  // Ensure user has organization assigned
+  await ensureUserOrganization();
+
   const userResult = await getUserSession();
 
   if (userResult.isErr()) {

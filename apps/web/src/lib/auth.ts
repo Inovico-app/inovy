@@ -16,6 +16,7 @@ export interface AuthUser {
   given_name: string | null;
   family_name: string | null;
   picture: string | null;
+  organization_code?: string;
 }
 
 interface AuthSession {
@@ -139,6 +140,7 @@ async function safeGetUser(
       given_name: kindeUser.given_name || null,
       family_name: kindeUser.family_name || null,
       picture: kindeUser.picture || null,
+      organization_code: kindeUser.organization_code || undefined,
     };
 
     return ok(user);
