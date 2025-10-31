@@ -53,7 +53,7 @@ function EditProfileContent() {
         );
         // Use a small delay to ensure UI updates
         setTimeout(() => {
-          router.push("/settings/profile" as any);
+          router.push("/settings/profile");
         }, 500);
       } else {
         setErrors({ submit: result.error || "Failed to update profile" });
@@ -141,7 +141,7 @@ function EditProfileContent() {
                   disabled={isLoading}
                   asChild
                 >
-                  <Link href={"/settings/profile" as any}>Cancel</Link>
+                  <Link href="/settings/profile">Cancel</Link>
                 </Button>
               </div>
             </form>

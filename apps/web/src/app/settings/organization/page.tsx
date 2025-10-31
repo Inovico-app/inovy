@@ -11,8 +11,9 @@ import { getAuthSession } from "@/lib/auth";
 import Link from "next/link";
 import { getOrganizationMembers } from "@/server/data-access/organization.queries";
 import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
+import { Suspense } from "react";
 
-export default async function OrganizationPage() {
+async function OrganizationContent() {
   const authResult = await getAuthSession();
 
   if (authResult.isErr()) {
@@ -34,8 +35,8 @@ export default async function OrganizationPage() {
     );
   }
 
-  const orgCode = (organization as any).org_code || (organization as any).code;
-  const orgName = (organization as any).display_name || (organization as any).name || "Organization";
+  const orgCode = (organization as unknown as Record<string, unknown>).org_code as string | undefined || (organization as unknown as Record<string, unknown>).code as string | undefined;
+  const orgName = (organization as unknown as Record<string, unknown>).display_name as string | undefined ?? (organization as unknown as Record<string, unknown>).name as string | undefined ?? "Organization";
 
   // Fetch organization members
   let members: Array<{ id: string; email: string | null; given_name: string | null; family_name: string | null; roles?: string[] }> = [];
@@ -136,8 +137,16 @@ export default async function OrganizationPage() {
 
       {/* Back Button */}
       <Button variant="outline" asChild>
-        <Link href={"/settings" as any}>← Back to Settings</Link>
+        <Link href="/settings">← Back to Settings</Link>
       </Button>
     </div>
+  );
+}
+
+export default function OrganizationPage() {
+  return (
+    <Suspense fallback={<div>Loading organization data...</div>}>
+      <OrganizationContent />
+    </Suspense>
   );
 }

@@ -9,7 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { getUserSession, getAuthSession } from "@/lib/auth";
 import Link from "next/link";
-import type { Route } from "next";
 import { Suspense } from "react";
 import { CalendarIcon, MailIcon, UserIcon, Building2Icon } from "lucide-react";
 
@@ -36,7 +35,7 @@ async function ProfileContent() {
 
   const auth = authResult.value;
   const organization = auth.organization;
-  const orgName = (organization as any)?.display_name || (organization as any)?.name || "Personal Organization";
+  const orgName = (organization as unknown as Record<string, unknown>)?.display_name as string | undefined ?? (organization as unknown as Record<string, unknown>)?.name as string | undefined ?? "Personal Organization";
 
   // Format account creation date
   const accountCreatedDate = new Date().toLocaleDateString("en-US", {
@@ -127,19 +126,30 @@ async function ProfileContent() {
 
 export default function ProfilePage() {
   return (
-    <ProtectedPage>
-      <div className="container mx-auto max-w-2xl py-8 px-4">
-        <Suspense
-          fallback={
-            <div className="space-y-4">
-              <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
-              <div className="h-64 bg-muted rounded animate-pulse" />
-            </div>
-          }
-        >
-          <ProfileContent />
-        </Suspense>
-      </div>
-    </ProtectedPage>
+    <Suspense
+      fallback={
+        <div className="container mx-auto max-w-2xl py-8 px-4">
+          <div className="space-y-4">
+            <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
+            <div className="h-64 bg-muted rounded animate-pulse" />
+          </div>
+        </div>
+      }
+    >
+      <ProtectedPage>
+        <div className="container mx-auto max-w-2xl py-8 px-4">
+          <Suspense
+            fallback={
+              <div className="space-y-4">
+                <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
+                <div className="h-64 bg-muted rounded animate-pulse" />
+              </div>
+            }
+          >
+            <ProfileContent />
+          </Suspense>
+        </div>
+      </ProtectedPage>
+    </Suspense>
   );
 }
