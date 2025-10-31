@@ -1,10 +1,11 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db";
-import { projects } from "../db/schema";
+import { projects, recordings } from "../db/schema";
 import type {
   CreateProjectDto,
   ProjectDto,
   ProjectWithCreatorDto,
+  ProjectWithRecordingCountDto,
 } from "../dto/project.dto";
 
 const allowedStatus = ["active", "archived", "completed"] as const;
@@ -228,6 +229,51 @@ export class ProjectQueries {
 
       return result.length > 0;
     });
+  }
+
+  /**
+   * Find projects by organization with recording counts
+   */
+  static async findByOrganizationWithRecordingCount(filters: {
+    organizationId: string;
+    status?: AllowedStatus;
+  }): Promise<ProjectWithRecordingCountDto[]> {
+    const whereConditions = [
+      eq(projects.organizationId, filters.organizationId),
+    ];
+
+    if (filters.status) {
+      whereConditions.push(eq(projects.status, filters.status));
+    }
+
+    const result = await db
+      .select({
+        id: projects.id,
+        name: projects.name,
+        description: projects.description,
+        status: projects.status,
+        organizationId: projects.organizationId,
+        createdById: projects.createdById,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt,
+        recordingCount: sql<number>`cast(count(${recordings.id}) as int)`,
+      })
+      .from(projects)
+      .leftJoin(recordings, eq(projects.id, recordings.projectId))
+      .where(and(...whereConditions))
+      .groupBy(projects.id);
+
+    return result.map((project) => ({
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      status: project.status,
+      organizationId: project.organizationId,
+      createdById: project.createdById,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+      recordingCount: project.recordingCount,
+    }));
   }
 }
 
