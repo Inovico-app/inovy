@@ -74,9 +74,15 @@ export async function getAuthSession(): Promise<Result<AuthSession, string>> {
       action: "getAuthSession",
     });
 
+    // Extract org_code from KindeOrganization (different property name)
+    const orgCode = organization ? (organization as any).org_code : undefined;
+
     return ok({
       isAuthenticated: true,
-      user,
+      user: {
+        ...user,
+        organization_code: orgCode,
+      },
       organization,
     });
   } catch (error) {
@@ -140,7 +146,6 @@ async function safeGetUser(
       given_name: kindeUser.given_name || null,
       family_name: kindeUser.family_name || null,
       picture: kindeUser.picture || null,
-      organization_code: kindeUser.organization_code || undefined,
     };
 
     return ok(user);

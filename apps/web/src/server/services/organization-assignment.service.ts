@@ -1,7 +1,7 @@
-import { type Result, err, ok } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 import { ActionErrors, type ActionError } from "../../lib/action-errors";
-import { logger } from "../../lib/logger";
 import type { AuthUser } from "../../lib/auth";
+import { logger } from "../../lib/logger";
 import type { KindeOrganizationDto } from "../dto";
 import { KindeOrganizationService } from "./kinde-organization.service";
 import { KindeUserService } from "./kinde-user.service";
@@ -67,7 +67,11 @@ export class OrganizationAssignmentService {
 
       return ok(orgResult.value);
     } catch (error) {
-      logger.error("Error in ensureUserOrganization", { userId: user.id }, error as Error);
+      logger.error(
+        "Error in ensureUserOrganization",
+        { userId: user.id },
+        error as Error
+      );
 
       return err(
         ActionErrors.internal(
@@ -87,10 +91,12 @@ export class OrganizationAssignmentService {
   ): Promise<Result<KindeOrganizationDto, ActionError>> {
     try {
       // Generate organization code and name from user email
-      const emailLocal = user.email.split("@")[0] || "user";
+      const emailLocal = (user.email ?? "user").split("@")[0] ?? "user";
       const timestamp = Date.now().toString().slice(-6);
-      const orgCode = `org-${emailLocal}-${timestamp}`.toLowerCase().replace(/[^a-z0-9-]/g, "-");
-      const orgName = `${user.given_name || user.email}'s Organization`;
+      const orgCode = `org-${emailLocal}-${timestamp}`
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, "-");
+      const orgName = `${user.given_name ?? user.email ?? "User"}'s Organization`;
 
       logger.info("Creating default organization for user", {
         userId: user.id,
@@ -99,9 +105,11 @@ export class OrganizationAssignmentService {
       });
 
       // Create organization in Kinde
-      const createOrgResult = await KindeOrganizationService.createOrganization({
-        name: orgName,
-      });
+      const createOrgResult = await KindeOrganizationService.createOrganization(
+        {
+          name: orgName,
+        }
+      );
 
       if (createOrgResult.isErr()) {
         logger.error("Failed to create default organization", {
@@ -149,7 +157,11 @@ export class OrganizationAssignmentService {
 
       return ok(newOrganization);
     } catch (error) {
-      logger.error("Error creating default organization", { userId: user.id }, error as Error);
+      logger.error(
+        "Error creating default organization",
+        { userId: user.id },
+        error as Error
+      );
 
       return err(
         ActionErrors.internal(
@@ -161,3 +173,4 @@ export class OrganizationAssignmentService {
     }
   }
 }
+
