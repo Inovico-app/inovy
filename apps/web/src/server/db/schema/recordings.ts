@@ -12,6 +12,10 @@ export type RecordingStatus = (typeof recordingStatusEnum)[number];
 export const recordingModeEnum = ["live", "upload"] as const;
 export type RecordingMode = (typeof recordingModeEnum)[number];
 
+export const recordingArchiveStatusEnum = ["active", "archived"] as const;
+export type RecordingArchiveStatus =
+  (typeof recordingArchiveStatusEnum)[number];
+
 export const recordings = pgTable("recordings", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id")
@@ -35,6 +39,9 @@ export const recordings = pgTable("recordings", {
     .notNull()
     .default("upload"),
   language: text("language").notNull().default("nl"), // ISO 639-1 language code
+  status: text("status", { enum: recordingArchiveStatusEnum })
+    .notNull()
+    .default("active"),
   organizationId: text("organization_id").notNull(), // Kinde organization code
   createdById: text("created_by_id").notNull(), // Kinde user ID
   createdAt: timestamp("created_at", { withTimezone: true })
