@@ -206,6 +206,43 @@ export class ProjectQueries {
   }
 
   /**
+   * Update a project
+   */
+  static async update(
+    projectId: string,
+    organizationId: string,
+    data: { name?: string; description?: string | null }
+  ): Promise<ProjectDto | null> {
+    return await db.transaction(async (tx) => {
+      const [project] = await tx
+        .update(projects)
+        .set({
+          ...data,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(projects.id, projectId),
+            eq(projects.organizationId, organizationId)
+          )
+        )
+        .returning();
+
+      if (!project) return null;
+
+      return {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        status: project.status,
+        organizationId: project.organizationId,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+      };
+    });
+  }
+
+  /**
    * Delete a project (soft delete by changing status)
    */
   static async softDelete(

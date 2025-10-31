@@ -227,5 +227,47 @@ export class ProjectService {
 
     return createResult;
   }
+
+  /**
+   * Update a project
+   */
+  static async updateProject(
+    projectId: string,
+    input: { name?: string; description?: string },
+    orgCode: string
+  ): Promise<ActionResult<ProjectDto>> {
+    // If name is being updated, check uniqueness
+    if (input.name) {
+      const projectNameUniqueResult = await checkProjectNameUnique(input.name);
+      if (projectNameUniqueResult.isErr()) {
+        return err(
+          ActionErrors.conflict(
+            "Project name is already taken",
+            "update-project"
+          )
+        );
+      }
+    }
+
+    const updateResult = await safeAsync(
+      async () => {
+        const project = await ProjectQueries.update(projectId, orgCode, {
+          name: input.name,
+          description: input.description,
+        });
+        if (!project) {
+          throw new Error("Project not found");
+        }
+        return project;
+      },
+      "project-update"
+    );
+
+    if (updateResult.isOk()) {
+      CacheInvalidation.invalidateProjectCache(orgCode);
+    }
+
+    return updateResult;
+  }
 }
 
