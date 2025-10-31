@@ -9,6 +9,7 @@ import {
 } from "@/server/validation/recordings/upload-recording";
 import { put } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
+import { convertRecordingIntoAiInsights } from "@/workflows/convert-recording";
 
 /**
  * Upload a recording file using FormData
@@ -126,17 +127,9 @@ export async function uploadRecordingFormAction(
     // Revalidate the project page
     revalidatePath(`/projects/${projectId}`);
 
-    // Trigger transcription in the background (fire and forget)
-    fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/transcribe/${recording.id}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    ).catch((error) => {
-      logger.error("Failed to trigger transcription", {
+    // Trigger AI processing workflow in the background (fire and forget)
+    convertRecordingIntoAiInsights(recording.id).catch((error) => {
+      logger.error("Failed to trigger AI processing workflow", {
         component: "uploadRecordingFormAction",
         recordingId: recording.id,
         error,
