@@ -11,14 +11,14 @@ const settingsSections = [
     title: "Profile Settings",
     description: "Manage your personal account information",
     icon: UserIcon,
-    href: "/settings/profile",
+    href: "/settings/profile" as Route,
   },
   {
     id: "organization",
     title: "Organization",
     description: "View organization information and members",
     icon: Building2Icon,
-    href: "/settings/organization",
+    href: "/settings/organization" as Route,
   },
 ];
 
