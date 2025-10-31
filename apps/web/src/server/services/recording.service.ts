@@ -455,6 +455,7 @@ export class RecordingService {
       recordingDate: recording.recordingDate,
       transcriptionStatus: recording.transcriptionStatus,
       transcriptionText: recording.transcriptionText,
+      status: recording.status,
       organizationId: recording.organizationId,
       createdById: recording.createdById,
       createdAt: recording.createdAt,
