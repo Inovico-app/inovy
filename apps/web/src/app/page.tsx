@@ -7,9 +7,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { TaskCard } from "@/features/tasks/components/task-card";
 import { ensureUserOrganization } from "@/features/auth/actions/ensure-organization";
-import { getUserSession, getAuthSession } from "@/lib/auth";
+import { TaskCard } from "@/features/tasks/components/task-card";
+import { getAuthSession, getUserSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { DashboardService, TaskService } from "@/server/services";
 import { FolderIcon, ListTodoIcon, MicIcon, PlusIcon } from "lucide-react";
@@ -82,7 +82,9 @@ async function DashboardContent() {
   let dashboardOverview = null;
 
   if (authResult.isOk() && authResult.value.organization) {
-    const orgCode = (authResult.value.organization as any).org_code;
+    const orgCode = (
+      authResult.value.organization as unknown as Record<string, unknown>
+    ).org_code as string | undefined;
     if (orgCode) {
       const dashboardResult = await DashboardService.getDashboardOverview(
         orgCode
