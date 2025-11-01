@@ -5,10 +5,10 @@ import { MAX_RETRIES, RETRY_DELAYS } from "./types";
 
 /**
  * Step 2b: Extract tasks using OpenAI
- * 
+ *
  * This step analyzes the transcription and extracts action items with priorities,
  * assignees, and due dates. Runs in parallel with summary generation (Step 2a).
- * 
+ *
  * @param recordingId - The recording to extract tasks from
  * @param projectId - The project this recording belongs to
  * @param transcriptionText - The transcribed text
@@ -27,6 +27,8 @@ export async function executeTaskExtractionStep(
   utterances?: Array<{ speaker: number; text: string; start: number }>,
   retryCount = 0
 ): Promise<Result<number, Error>> {
+  "use step";
+
   try {
     logger.info("Workflow Step 2b: Starting task extraction", {
       component: "ConvertRecordingWorkflow",
@@ -45,7 +47,8 @@ export async function executeTaskExtractionStep(
 
     if (result.isErr()) {
       if (retryCount < MAX_RETRIES) {
-        const delay = RETRY_DELAYS[retryCount] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
+        const delay =
+          RETRY_DELAYS[retryCount] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
         logger.warn("Task extraction failed, retrying...", {
           component: "ConvertRecordingWorkflow",
           recordingId,

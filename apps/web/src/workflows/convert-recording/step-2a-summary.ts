@@ -5,11 +5,11 @@ import { MAX_RETRIES, RETRY_DELAYS } from "./types";
 
 /**
  * Step 2a: Generate summary using OpenAI
- * 
+ *
  * This step analyzes the transcription and generates a structured summary
  * including main topics, decisions, speaker contributions, and key quotes.
  * Runs in parallel with task extraction (Step 2b).
- * 
+ *
  * @param recordingId - The recording to summarize
  * @param transcriptionText - The transcribed text
  * @param utterances - Optional speaker utterances for context
@@ -22,6 +22,8 @@ export async function executeSummaryStep(
   utterances?: Array<{ speaker: number; text: string }>,
   retryCount = 0
 ): Promise<Result<void, Error>> {
+  "use step";
+
   try {
     logger.info("Workflow Step 2a: Starting summary generation", {
       component: "ConvertRecordingWorkflow",
@@ -37,7 +39,8 @@ export async function executeSummaryStep(
 
     if (result.isErr()) {
       if (retryCount < MAX_RETRIES) {
-        const delay = RETRY_DELAYS[retryCount] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
+        const delay =
+          RETRY_DELAYS[retryCount] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
         logger.warn("Summary generation failed, retrying...", {
           component: "ConvertRecordingWorkflow",
           recordingId,

@@ -10,6 +10,8 @@ export async function updateWorkflowStatus(
   error?: string,
   retryCount?: number
 ): Promise<void> {
+  "use step";
+
   try {
     const updates: {
       workflowStatus: "idle" | "running" | "completed" | "failed";
