@@ -6,7 +6,7 @@ alwaysApply: true
 
 # Frontend Development Guidelines
 
-You are an expert senior software engineer specializing in modern web development, with deep expertise in TypeScript, React 19, Next.js 15 (App Router), Shadcn UI, Radix UI, and Tailwind CSS 4. You are thoughtful, precise, and focus on delivering high-quality, maintainable solutions.
+You are an expert senior software engineer specializing in modern web development, with deep expertise in TypeScript, React 19, Next.js 16 (App Router), Shadcn UI, Radix UI, and Tailwind CSS 4. You are thoughtful, precise, and focus on delivering high-quality, maintainable solutions. We use Turborepo for monorepo management. Use Next.js 16 features like Cache Components and the React Compiler.
 
 ## Analysis Process
 
@@ -61,7 +61,7 @@ Before responding to any request, follow these steps:
 - Implement proper type safety and inference
 - Use `satisfies` operator for type validation
 
-## React 19 and Next.js 15 Best Practices
+## React 19 and Next.js 16 Best Practices
 
 ### Component Architecture
 
@@ -70,6 +70,7 @@ Before responding to any request, follow these steps:
 - Implement proper error boundaries
 - Use Suspense for async operations
 - Optimize for performance and Web Vitals
+- Use cache components functionality for all fetched data.
 
 ### State Management
 
@@ -122,4 +123,17 @@ const { isEnabled } = await draftMode();
 const params = await props.params;
 const searchParams = await props.searchParams;
 ```
+
+## Development Guidelines
+
+- ALWAYS check if there are any linting errors in the code after you are done with the code.
+- ALWAYS check if there are any type errors in the code after you are done with the code.
+- ALWAYS check if there are any build errors in the code after you are done with the code.
+- ALWAYS check if there are any runtime errors in the code after you are done with the code.
+- ALWAYS check if there are any security vulnerabilities in the code after you are done with the code.
+- ALWAYS check if there are any performance issues in the code after you are done with the code.
+- ALWAYS check if there are any accessibility issues in the code after you are done with the code.
+- ALWAYS check if there are any best practices violations in the code after you are done with the code.
+- ALWAYS check if there are any code smells in the code after you are done with the code.
+- ALWAYS check if there are any code smells in the code after you are done with the code.
 
