@@ -5,10 +5,10 @@ import { MAX_RETRIES, RETRY_DELAYS } from "./types";
 
 /**
  * Step 1: Transcribe audio using Deepgram
- * 
+ *
  * This step takes the uploaded audio file and transcribes it using Deepgram Nova-3.
  * Includes automatic retry logic for transient failures.
- * 
+ *
  * @param recordingId - The recording to transcribe
  * @param fileUrl - URL of the audio file in Vercel Blob
  * @param retryCount - Current retry attempt (for internal use)
@@ -19,6 +19,8 @@ export async function executeTranscriptionStep(
   fileUrl: string,
   retryCount = 0
 ): Promise<Result<void, Error>> {
+  "use step";
+
   try {
     logger.info("Workflow Step 1: Starting transcription", {
       component: "ConvertRecordingWorkflow",
@@ -33,7 +35,8 @@ export async function executeTranscriptionStep(
 
     if (result.isErr()) {
       if (retryCount < MAX_RETRIES) {
-        const delay = RETRY_DELAYS[retryCount] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
+        const delay =
+          RETRY_DELAYS[retryCount] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
         logger.warn("Transcription failed, retrying...", {
           component: "ConvertRecordingWorkflow",
           recordingId,

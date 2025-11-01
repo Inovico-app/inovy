@@ -1,12 +1,12 @@
-import { logger } from "@/lib/logger";
 import { CacheInvalidation } from "@/lib/cache-utils";
+import { logger } from "@/lib/logger";
 
 /**
  * Step 3: Invalidate caches and finalize workflow
- * 
+ *
  * This step ensures all relevant caches are invalidated so that the UI
  * reflects the latest processed data (transcription, summary, tasks).
- * 
+ *
  * @param recordingId - The recording ID
  * @param projectId - The project ID
  * @param orgCode - The organization code
@@ -16,6 +16,8 @@ export async function executeFinalStep(
   projectId: string,
   orgCode: string
 ): Promise<void> {
+  "use step";
+
   try {
     logger.info("Workflow Step 3: Finalizing", {
       component: "ConvertRecordingWorkflow",

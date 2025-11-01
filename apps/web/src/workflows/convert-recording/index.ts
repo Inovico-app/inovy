@@ -1,38 +1,37 @@
-"use server";
-
 import { logger } from "@/lib/logger";
-import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
+import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { NotificationService } from "@/server/services/notification.service";
 import { err, ok, type Result } from "neverthrow";
-import { updateWorkflowStatus } from "./update-status";
 import { executeTranscriptionStep } from "./step-1-transcription";
 import { executeSummaryStep } from "./step-2a-summary";
 import { executeTaskExtractionStep } from "./step-2b-tasks";
 import { executeFinalStep } from "./step-3-finalize";
 import type { WorkflowResult } from "./types";
+import { updateWorkflowStatus } from "./update-status";
 
 /**
  * Main Workflow: Convert Recording Into AI Insights
- * 
+ *
  * This workflow orchestrates the complete AI processing pipeline:
  * 1. Transcribe audio using Deepgram
  * 2. Generate summary and extract tasks in parallel using OpenAI
  * 3. Invalidate caches and trigger notifications
- * 
+ *
  * Features:
  * - Automatic retries with exponential backoff
  * - Workflow status tracking in database
  * - Error handling with detailed logging
  * - Cache invalidation
  * - Parallel execution where possible
- * 
+ *
  * @param recordingId - The recording to process
  * @returns WorkflowResult with completion status
  */
 export async function convertRecordingIntoAiInsights(
   recordingId: string
 ): Promise<Result<WorkflowResult, Error>> {
+  "use workflow";
   const startTime = Date.now();
 
   try {
@@ -74,7 +73,10 @@ export async function convertRecordingIntoAiInsights(
       recordingId
     );
 
-    if (updatedRecording.isErr() || !updatedRecording.value?.transcriptionText) {
+    if (
+      updatedRecording.isErr() ||
+      !updatedRecording.value?.transcriptionText
+    ) {
       const errorMsg = "Transcription text not available";
       await updateWorkflowStatus(recordingId, "failed", errorMsg);
       return err(new Error(errorMsg));
@@ -88,9 +90,10 @@ export async function convertRecordingIntoAiInsights(
       "transcription"
     );
 
-    const utterances = transcriptionInsight.isOk() && transcriptionInsight.value
-      ? transcriptionInsight.value.utterances ?? undefined
-      : undefined;
+    const utterances =
+      transcriptionInsight.isOk() && transcriptionInsight.value
+        ? transcriptionInsight.value.utterances ?? undefined
+        : undefined;
 
     // Step 2: Run summary and task extraction in parallel
     logger.info("Workflow Step 2: Starting parallel processing", {
@@ -121,7 +124,10 @@ export async function convertRecordingIntoAiInsights(
       const errors: string[] = [];
       if (!summaryCompleted) {
         let error = "Unknown error";
-        if (summaryResult.status === "fulfilled" && summaryResult.value.isErr()) {
+        if (
+          summaryResult.status === "fulfilled" &&
+          summaryResult.value.isErr()
+        ) {
           error = summaryResult.value.error.message;
         } else if (summaryResult.status === "rejected") {
           error = String(summaryResult.reason);
@@ -130,7 +136,10 @@ export async function convertRecordingIntoAiInsights(
       }
       if (!tasksCompleted) {
         let error = "Unknown error";
-        if (taskExtractionResult.status === "fulfilled" && taskExtractionResult.value.isErr()) {
+        if (
+          taskExtractionResult.status === "fulfilled" &&
+          taskExtractionResult.value.isErr()
+        ) {
           error = taskExtractionResult.value.error.message;
         } else if (taskExtractionResult.status === "rejected") {
           error = String(taskExtractionResult.reason);
@@ -150,7 +159,11 @@ export async function convertRecordingIntoAiInsights(
         : 0;
 
     // Step 3: Finalize
-    await executeFinalStep(recordingId, recording.projectId, recording.organizationId);
+    await executeFinalStep(
+      recordingId,
+      recording.projectId,
+      recording.organizationId
+    );
 
     // Update workflow status to completed
     await updateWorkflowStatus(recordingId, "completed", undefined);
@@ -171,7 +184,9 @@ export async function convertRecordingIntoAiInsights(
       organizationId: recording.organizationId,
       type: "recording_processed",
       title: "Opname verwerkt",
-      message: `"${recording.title}" is succesvol verwerkt. ${tasksExtracted} ${tasksExtracted === 1 ? "taak" : "taken"} geëxtraheerd.`,
+      message: `"${recording.title}" is succesvol verwerkt. ${tasksExtracted} ${
+        tasksExtracted === 1 ? "taak" : "taken"
+      } geëxtraheerd.`,
       metadata: {
         tasksExtracted,
         durationMs: duration,
