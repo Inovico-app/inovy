@@ -26,8 +26,8 @@ export default function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // Protect all routes except auth callback, static files, and public pages
-    "/((?!api/auth|_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Protect all routes except auth callback, static files, and public pages and vercel workflow routes
+    "/((?!api/auth|_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|.well-known/workflow/)).*)",
   ],
 };
 
