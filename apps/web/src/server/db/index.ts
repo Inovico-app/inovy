@@ -1,13 +1,16 @@
 import { neonConfig, Pool } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-serverless";
+import ws from "ws";
 
-// Configure Neon for edge environments
+// Configure Neon for different runtime environments
 if (typeof window === "undefined") {
-  // For Node.js environments (not edge), use WebSocket
-  if (process.env.VERCEL_ENV !== "production" || !process.env.EDGE_RUNTIME) {
-    // Only import ws in Node.js environments - use eval to prevent bundlers from trying to include it
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    neonConfig.webSocketConstructor = eval("require")("ws");
+  // Check if we're in an edge runtime environment
+  const isEdgeRuntime =
+    process.env.VERCEL_ENV === "production" && process.env.EDGE_RUNTIME;
+
+  if (!isEdgeRuntime) {
+    // For Node.js environments (not edge), use WebSocket
+    neonConfig.webSocketConstructor = ws;
   } else {
     // For Vercel Edge Runtime, use fetch-based queries
     neonConfig.poolQueryViaFetch = true;

@@ -1,5 +1,6 @@
 "use server";
 
+import { convertRecordingIntoAiInsights } from "@/features/ai-insights/workflows/convert-recording";
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { RecordingService } from "@/server/services";
@@ -9,7 +10,6 @@ import {
 } from "@/server/validation/recordings/upload-recording";
 import { put } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
-import { convertRecordingIntoAiInsights } from "@/workflows/convert-recording";
 
 /**
  * Upload a recording file using FormData
