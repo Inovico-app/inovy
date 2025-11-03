@@ -337,6 +337,7 @@ export class TaskService {
       isManuallyEdited: task.isManuallyEdited,
       lastEditedAt: task.lastEditedAt,
       lastEditedById: task.lastEditedById,
+      lastEditedByName: task.lastEditedByName,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
     };
@@ -364,6 +365,7 @@ export class TaskService {
       isManuallyEdited: task.isManuallyEdited,
       lastEditedAt: task.lastEditedAt,
       lastEditedById: task.lastEditedById,
+      lastEditedByName: task.lastEditedByName,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       project: task.project,

@@ -19,8 +19,8 @@ export function useUpdateTaskMetadataMutation(
   return useMutation({
     mutationFn: async (input: UpdateTaskMetadataInput) => {
       const result = await updateTaskMetadata(input);
-      if (!result.success || !result.data) {
-        throw new Error(result.error ?? "Failed to update task");
+      if (result.serverError || !result.data) {
+        throw new Error(result.serverError ?? "Failed to update task");
       }
       return result.data;
     },
@@ -51,7 +51,7 @@ export function useUpdateTaskMetadataMutation(
                   dueDate: variables.dueDate
                     ? new Date(variables.dueDate)
                     : task.dueDate,
-                  isManuallyEdited: true,
+                  isManuallyEdited: "true" as const,
                   lastEditedAt: new Date(),
                 }
               : task

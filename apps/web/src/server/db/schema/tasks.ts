@@ -40,16 +40,13 @@ export const tasks = pgTable("tasks", {
     .$type<"true" | "false">(), // Track if task has been manually edited
   lastEditedAt: timestamp("last_edited_at", { withTimezone: true }), // Last manual edit timestamp
   lastEditedById: text("last_edited_by_id"), // Kinde user ID who last edited
+  lastEditedByName: text("last_edited_by_name"), // Display name of who last edited
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-  lastEditedAt: timestamp("last_edited_at", { withTimezone: true }),
-  lastEditedById: text("last_edited_by_id"),
-  lastEditedByName: text("last_edited_by_name"),
-  isManuallyEdited: boolean("is_manually_edited").notNull().default(false),
 });
 
 export type Task = typeof tasks.$inferSelect;

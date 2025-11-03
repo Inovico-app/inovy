@@ -65,7 +65,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
       priority,
       status,
       assigneeId: assigneeId ?? undefined,
-      dueDate: dueDate ?? undefined,
+      dueDate: dueDate ? (new Date(dueDate) as unknown as Date | null) : undefined,
     });
   };
 
