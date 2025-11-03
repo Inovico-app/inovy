@@ -20,6 +20,8 @@ import {
 import { ArchiveRecordingDialog } from "../../../../../features/recordings/components/archive-recording-dialog";
 import { DeleteRecordingDialog } from "../../../../../features/recordings/components/delete-recording-dialog";
 import { EditRecordingModal } from "../../../../../features/recordings/components/edit-recording-modal";
+import { EditSummaryDialog } from "../../../../../features/recordings/components/edit-summary-dialog";
+import { SummaryVersionHistoryDialog } from "../../../../../features/recordings/components/summary-version-history-dialog";
 import { RecordingDetailStatus } from "../../../../../features/recordings/components/recording-detail-status";
 import { TranscriptionSection } from "../../../../../features/recordings/components/transcription-section";
 import { TaskCard } from "../../../../../features/tasks/components/task-card-with-edit";
@@ -261,7 +263,23 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
         {/* AI-Generated Summary */}
         <Card>
           <CardHeader>
-            <CardTitle>AI-Generated Summary</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CardTitle>AI-Generated Summary</CardTitle>
+                {summary?.isManuallyEdited && (
+                  <Badge variant="secondary">Edited</Badge>
+                )}
+              </div>
+              {summary && (
+                <div className="flex items-center gap-2">
+                  <SummaryVersionHistoryDialog recordingId={recordingId} />
+                  <EditSummaryDialog
+                    recordingId={recordingId}
+                    summary={summary.content}
+                  />
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {summary ? (
