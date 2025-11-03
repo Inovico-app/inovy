@@ -9,7 +9,7 @@ on:
       - "apps/web/src/server/db/migrations/**"
 
 env:
-  PROD_DATABASE_URL: ${{ secrets.DATABASE_URL }} # Production or primary database
+  DATABASE_URL: ${{ secrets.DATABASE_URL }} # Production or primary database
 
 jobs:
   pr-merged:
