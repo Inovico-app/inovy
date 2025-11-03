@@ -26,10 +26,12 @@ import { updateWorkflowStatus } from "./update-status";
  * - Parallel execution where possible
  *
  * @param recordingId - The recording to process
+ * @param isReprocessing - Whether this is a reprocessing operation (skips transcription if already exists)
  * @returns WorkflowResult with completion status
  */
 export async function convertRecordingIntoAiInsights(
-  recordingId: string
+  recordingId: string,
+  isReprocessing = false
 ): Promise<Result<WorkflowResult, Error>> {
   "use workflow";
   const startTime = Date.now();
@@ -38,6 +40,7 @@ export async function convertRecordingIntoAiInsights(
     logger.info("Workflow: Starting AI insights conversion", {
       component: "ConvertRecordingWorkflow",
       recordingId,
+      isReprocessing,
     });
 
     // Update workflow status to running
@@ -56,33 +59,48 @@ export async function convertRecordingIntoAiInsights(
 
     const recording = recordingResult.value;
 
-    // Step 1: Transcribe audio
-    const transcriptionResult = await executeTranscriptionStep(
-      recordingId,
-      recording.fileUrl
-    );
+    // Step 1: Transcribe audio (skip if reprocessing and transcription exists)
+    let transcriptionText = recording.transcriptionText;
 
-    if (transcriptionResult.isErr()) {
-      const errorMsg = `Transcription failed: ${transcriptionResult.error.message}`;
-      await updateWorkflowStatus(recordingId, "failed", errorMsg);
-      return err(transcriptionResult.error);
+    if (!isReprocessing || !transcriptionText) {
+      const transcriptionResult = await executeTranscriptionStep(
+        recordingId,
+        recording.fileUrl
+      );
+
+      if (transcriptionResult.isErr()) {
+        const errorMsg = `Transcription failed: ${transcriptionResult.error.message}`;
+        await updateWorkflowStatus(recordingId, "failed", errorMsg);
+        return err(transcriptionResult.error);
+      }
+
+      // Get transcription data for subsequent steps
+      const updatedRecording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+
+      if (
+        updatedRecording.isErr() ||
+        !updatedRecording.value?.transcriptionText
+      ) {
+        const errorMsg = "Transcription text not available";
+        await updateWorkflowStatus(recordingId, "failed", errorMsg);
+        return err(new Error(errorMsg));
+      }
+
+      transcriptionText = updatedRecording.value.transcriptionText;
+    } else {
+      logger.info("Workflow: Skipping transcription (reprocessing)", {
+        component: "ConvertRecordingWorkflow",
+        recordingId,
+      });
     }
 
-    // Get transcription data for subsequent steps
-    const updatedRecording = await RecordingsQueries.selectRecordingById(
-      recordingId
-    );
-
-    if (
-      updatedRecording.isErr() ||
-      !updatedRecording.value?.transcriptionText
-    ) {
+    if (!transcriptionText) {
       const errorMsg = "Transcription text not available";
       await updateWorkflowStatus(recordingId, "failed", errorMsg);
       return err(new Error(errorMsg));
     }
-
-    const transcriptionText = updatedRecording.value.transcriptionText;
 
     // Get utterances for context
     const transcriptionInsight = await AIInsightsQueries.getInsightByType(
@@ -177,19 +195,29 @@ export async function convertRecordingIntoAiInsights(
     });
 
     // Send final success notification
+    const notificationTitle = isReprocessing
+      ? "Opname opnieuw verwerkt"
+      : "Opname verwerkt";
+    const notificationMessage = isReprocessing
+      ? `"${recording.title}" is succesvol opnieuw verwerkt. ${tasksExtracted} ${
+          tasksExtracted === 1 ? "taak" : "taken"
+        } geëxtraheerd.`
+      : `"${recording.title}" is succesvol verwerkt. ${tasksExtracted} ${
+          tasksExtracted === 1 ? "taak" : "taken"
+        } geëxtraheerd.`;
+
     await NotificationService.createNotification({
       recordingId,
       projectId: recording.projectId,
       userId: recording.createdById,
       organizationId: recording.organizationId,
       type: "recording_processed",
-      title: "Opname verwerkt",
-      message: `"${recording.title}" is succesvol verwerkt. ${tasksExtracted} ${
-        tasksExtracted === 1 ? "taak" : "taken"
-      } geëxtraheerd.`,
+      title: notificationTitle,
+      message: notificationMessage,
       metadata: {
         tasksExtracted,
         durationMs: duration,
+        isReprocessing,
       },
     });
 

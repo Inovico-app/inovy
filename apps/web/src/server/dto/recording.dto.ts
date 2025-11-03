@@ -1,6 +1,7 @@
 import type {
   RecordingStatus,
   RecordingArchiveStatus,
+  WorkflowStatus,
 } from "../db/schema/recordings";
 
 export interface RecordingDto {
@@ -20,6 +21,11 @@ export interface RecordingDto {
   transcriptionLastEditedById: string | null;
   transcriptionLastEditedAt: Date | null;
   status: RecordingArchiveStatus;
+  workflowStatus: WorkflowStatus;
+  workflowError: string | null;
+  workflowRetryCount: number;
+  lastReprocessedAt: Date | null;
+  reprocessingTriggeredById: string | null;
   organizationId: string;
   createdById: string;
   createdAt: Date;
