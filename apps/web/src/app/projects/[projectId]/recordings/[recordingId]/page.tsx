@@ -20,8 +20,8 @@ import {
 import { ArchiveRecordingDialog } from "../../../../../features/recordings/components/archive-recording-dialog";
 import { DeleteRecordingDialog } from "../../../../../features/recordings/components/delete-recording-dialog";
 import { EditRecordingModal } from "../../../../../features/recordings/components/edit-recording-modal";
-import { ProcessingError } from "../../../../../features/recordings/components/processing-error";
 import { RecordingDetailStatus } from "../../../../../features/recordings/components/recording-detail-status";
+import { TranscriptionSection } from "../../../../../features/recordings/components/transcription-section";
 import { TaskCard } from "../../../../../features/tasks/components/task-card-with-edit";
 import { getCachedSummary } from "../../../../../server/cache/summary.cache";
 import { TasksQueries } from "../../../../../server/data-access/tasks.queries";
@@ -246,39 +246,17 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
         </Card>
 
         {/* Transcription */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Transcription</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recording.transcriptionStatus === "completed" &&
-            recording.transcriptionText ? (
-              <div className="prose prose-sm max-w-none dark:prose-invert">
-                <p className="whitespace-pre-wrap">
-                  {recording.transcriptionText}
-                </p>
-              </div>
-            ) : recording.transcriptionStatus === "processing" ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>Transcription in progress...</p>
-                <p className="text-sm mt-2">
-                  This may take a few minutes depending on the recording length.
-                </p>
-              </div>
-            ) : recording.transcriptionStatus === "failed" ? (
-              <ProcessingError
-                title="Transcription Failed"
-                recordingTitle={recording.title}
-                message="There was an error transcribing this recording. This could be due to audio quality issues, unsupported audio format, or a temporary service issue."
-              />
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>Transcription pending</p>
-                <p className="text-sm mt-2">Processing will begin shortly.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <TranscriptionSection
+          recordingId={recording.id}
+          recordingTitle={recording.title}
+          transcriptionStatus={recording.transcriptionStatus}
+          transcriptionText={recording.transcriptionText}
+          isTranscriptionManuallyEdited={
+            recording.isTranscriptionManuallyEdited
+          }
+          transcriptionLastEditedById={recording.transcriptionLastEditedById}
+          transcriptionLastEditedAt={recording.transcriptionLastEditedAt}
+        />
 
         {/* AI-Generated Summary */}
         <Card>

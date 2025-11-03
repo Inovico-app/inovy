@@ -5,4 +5,5 @@ export * from "./tasks";
 export * from "./task-history";
 export * from "./task-tags";
 export * from "./notifications";
+export * from "./transcription-history";
 

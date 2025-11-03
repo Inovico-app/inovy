@@ -7,4 +7,5 @@ export { ProjectService } from "./project.service";
 export { RecordingService } from "./recording.service";
 export { TaskService } from "./task.service";
 export { NotificationService } from "./notification.service";
+export { TranscriptionEditService } from "./transcription-edit.service";
 

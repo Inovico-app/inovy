@@ -16,6 +16,9 @@ export interface RecordingDto {
   recordingDate: Date;
   transcriptionStatus: RecordingStatus;
   transcriptionText: string | null;
+  isTranscriptionManuallyEdited: boolean;
+  transcriptionLastEditedById: string | null;
+  transcriptionLastEditedAt: Date | null;
   status: RecordingArchiveStatus;
   organizationId: string;
   createdById: string;

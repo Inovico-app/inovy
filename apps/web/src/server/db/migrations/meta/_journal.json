@@ -5,50 +5,15 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1761829361298,
-      "tag": "0000_dazzling_sersi",
+      "when": 1762183511088,
+      "tag": "0000_init_db",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1761837850190,
-      "tag": "0001_thick_scalphunter",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1761842101019,
-      "tag": "0002_black_karen_page",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1761913277334,
-      "tag": "0003_goofy_doctor_strange",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1761920338600,
-      "tag": "0004_fat_nomad",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1761923170984,
-      "tag": "0005_dizzy_sprite",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1762172122317,
-      "tag": "0006_motionless_gorilla_man",
+      "when": 1762183606459,
+      "tag": "0001_deep_ink",
       "breakpoints": true
     }
   ]

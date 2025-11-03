@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, integer, boolean } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
 
 export const recordingStatusEnum = [
@@ -43,6 +43,13 @@ export const recordings = pgTable("recordings", {
     .notNull()
     .default("pending"),
   transcriptionText: text("transcription_text"),
+  isTranscriptionManuallyEdited: boolean("is_transcription_manually_edited")
+    .notNull()
+    .default(false),
+  transcriptionLastEditedById: text("transcription_last_edited_by_id"),
+  transcriptionLastEditedAt: timestamp("transcription_last_edited_at", {
+    withTimezone: true,
+  }),
   recordingMode: text("recording_mode", { enum: recordingModeEnum })
     .notNull()
     .default("upload"),
