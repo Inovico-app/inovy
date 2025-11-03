@@ -1,0 +1,167 @@
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { ChatService } from "@/server/services/chat.service";
+import { ProjectService } from "@/server/services/project.service";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+
+const chatRequestSchema = z.object({
+  message: z.string().min(1).max(2000),
+  conversationId: z.string().uuid().optional(),
+});
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> }
+) {
+  try {
+    const { projectId } = await params;
+    const { getUser, getOrganization } = getKindeServerSession();
+    const user = await getUser();
+    const organization = await getOrganization();
+
+    if (!user || !organization) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify user has access to the project
+    const projectResult = await ProjectService.getProjectById(projectId);
+    if (projectResult.isErr()) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+
+    const project = projectResult.value;
+    if (project.organizationId !== organization.orgCode) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Parse request body
+    const body = await request.json();
+    const validationResult = chatRequestSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: validationResult.error },
+        { status: 400 }
+      );
+    }
+
+    const { message, conversationId } = validationResult.data;
+
+    // Create or get conversation
+    let activeConversationId = conversationId;
+
+    if (!activeConversationId) {
+      const conversationResult = await ChatService.createConversation(
+        projectId,
+        user.id,
+        organization.orgCode
+      );
+
+      if (conversationResult.isErr()) {
+        logger.error("Failed to create conversation", {
+          error: conversationResult.error,
+        });
+        return NextResponse.json(
+          { error: "Failed to create conversation" },
+          { status: 500 }
+        );
+      }
+
+      activeConversationId = conversationResult.value.conversationId;
+    }
+
+    // Stream the response
+    const streamResult = await ChatService.streamResponse(
+      activeConversationId,
+      message,
+      projectId
+    );
+
+    if (streamResult.isErr()) {
+      logger.error("Failed to stream response", { error: streamResult.error });
+      return NextResponse.json(
+        { error: "Failed to generate response" },
+        { status: 500 }
+      );
+    }
+
+    // Return the streaming response with conversation ID in headers
+    const response = streamResult.value.stream;
+    response.headers.set("X-Conversation-Id", activeConversationId);
+    response.headers.set(
+      "X-Sources",
+      JSON.stringify(streamResult.value.sources)
+    );
+
+    return response;
+  } catch (error) {
+    logger.error("Error in chat API", { error });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+// GET endpoint to retrieve conversation history
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> }
+) {
+  try {
+    const { projectId } = await params;
+    const { getUser, getOrganization } = getKindeServerSession();
+    const user = await getUser();
+    const organization = await getOrganization();
+
+    if (!user || !organization) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify user has access to the project
+    const projectResult = await ProjectService.getProjectById(projectId);
+    if (projectResult.isErr()) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+
+    const project = projectResult.value;
+    if (project.organizationId !== organization.orgCode) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Get conversation ID from query params
+    const { searchParams } = new URL(request.url);
+    const conversationId = searchParams.get("conversationId");
+
+    if (!conversationId) {
+      return NextResponse.json(
+        { error: "conversationId is required" },
+        { status: 400 }
+      );
+    }
+
+    // Get conversation history
+    const historyResult =
+      await ChatService.getConversationHistory(conversationId);
+
+    if (historyResult.isErr()) {
+      logger.error("Failed to get conversation history", {
+        error: historyResult.error,
+      });
+      return NextResponse.json(
+        { error: "Failed to get conversation history" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ messages: historyResult.value });
+  } catch (error) {
+    logger.error("Error getting conversation history", { error });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+

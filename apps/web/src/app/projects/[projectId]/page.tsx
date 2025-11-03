@@ -24,6 +24,7 @@ import { RecordingService } from "../../../server/services/recording.service";
 import { EditProjectModal } from "../../../features/projects/components/edit-project-modal";
 import { ArchiveProjectDialog } from "../../../features/projects/components/archive-project-dialog";
 import { DeleteProjectDialog } from "../../../features/projects/components/delete-project-dialog";
+import { ChatButton } from "../../../features/chat/components/chat-button";
 
 interface ProjectDetailPageProps {
   params: Promise<{ projectId: string }>;
@@ -102,6 +103,7 @@ async function ProjectDetail({
             )}
           </div>
           <div className="flex gap-2">
+            <ChatButton projectId={project.id} projectName={project.name} />
             <EditProjectModal
               projectId={project.id}
               initialData={{

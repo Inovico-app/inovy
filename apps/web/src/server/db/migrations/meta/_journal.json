@@ -29,6 +29,13 @@
       "when": 1762191652310,
       "tag": "0008_add_reprocessing_tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1762193410761,
+      "tag": "0009_add_chat_schema_and_pgvector",
+      "breakpoints": true
     }
   ]
 }
