@@ -19,7 +19,6 @@
   "dependencies": {},
   "devDependencies": {
     "turbo": "^2.5.4"
-  },
-  "packageManager": "pnpm@10"
+  }
 }
 
