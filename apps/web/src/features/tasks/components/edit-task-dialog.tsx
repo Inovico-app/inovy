@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,8 +22,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TaskDescriptionEditor } from "./task-description-editor";
+import { TaskTagSelector } from "./task-tag-selector";
+import { TaskVersionHistoryDialog } from "./task-version-history-dialog";
 import { useOrganizationMembers } from "../hooks/use-organization-members";
 import { useUpdateTaskMetadataMutation } from "../hooks/use-update-task-metadata-mutation";
+import { useTaskTags } from "../hooks/use-task-tags";
 import type { TaskDto } from "@/server/dto";
 import type { TaskPriority, TaskStatus } from "@/server/db/schema/tasks";
 
@@ -46,14 +49,23 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
       ? new Date(task.dueDate).toISOString().slice(0, 16)
       : ""
   );
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   const { members, isLoading: membersLoading } = useOrganizationMembers();
+  const { data: taskTags, isLoading: tagsLoading } = useTaskTags(task.id);
   const mutation = useUpdateTaskMetadataMutation({
     onSuccess: () => {
       setOpen(false);
       onSuccess?.();
     },
   });
+
+  // Initialize tag selection when task tags are loaded
+  useEffect(() => {
+    if (taskTags) {
+      setSelectedTagIds(taskTags.map((tag) => tag.id));
+    }
+  }, [taskTags]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +78,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
       status,
       assigneeId: assigneeId ?? undefined,
       dueDate: dueDate ? (new Date(dueDate) as unknown as Date | null) : undefined,
+      tagIds: selectedTagIds,
     });
   };
 
@@ -80,6 +93,9 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
         ? new Date(task.dueDate).toISOString().slice(0, 16)
         : ""
     );
+    if (taskTags) {
+      setSelectedTagIds(taskTags.map((tag) => tag.id));
+    }
   };
 
   return (
@@ -100,11 +116,16 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Edit Task</DialogTitle>
-            <DialogDescription>
-              Update the task details. Changes will be tracked in version
-              history.
-            </DialogDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle>Edit Task</DialogTitle>
+                <DialogDescription>
+                  Update the task details. Changes will be tracked in version
+                  history.
+                </DialogDescription>
+              </div>
+              <TaskVersionHistoryDialog taskId={task.id} />
+            </div>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -213,6 +234,14 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
                 onChange={(e) => setDueDate(e.target.value)}
               />
             </div>
+
+            {/* Tags */}
+            {!tagsLoading && (
+              <TaskTagSelector
+                selectedTagIds={selectedTagIds}
+                onTagsChange={setSelectedTagIds}
+              />
+            )}
           </div>
 
           <DialogFooter>
