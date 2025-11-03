@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Send, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Send } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 interface Source {
   contentId: string;
@@ -70,12 +70,13 @@ export function ProjectChatInterface({
         },
         body: JSON.stringify({
           message: userMessage,
-          conversationId,
+          ...(conversationId && { conversationId }),
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to get response");
+        const error = await response.json();
+        throw new Error(error.error ?? "Failed to get response");
       }
 
       // Extract headers
@@ -160,7 +161,9 @@ export function ProjectChatInterface({
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+            className={`flex ${
+              message.role === "user" ? "justify-end" : "justify-start"
+            }`}
           >
             <Card
               className={`max-w-[80%] p-4 ${
@@ -182,7 +185,9 @@ export function ProjectChatInterface({
                         className="text-xs"
                       >
                         <Link
-                          href={`/projects/${projectId}/recordings/${source.recordingId ?? source.contentId}`}
+                          href={`/projects/${projectId}/recordings/${
+                            source.recordingId ?? source.contentId
+                          }`}
                           className="text-primary hover:underline font-medium"
                         >
                           {source.title}
@@ -262,3 +267,4 @@ export function ProjectChatInterface({
     </div>
   );
 }
+
