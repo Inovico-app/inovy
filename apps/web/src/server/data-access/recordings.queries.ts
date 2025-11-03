@@ -187,6 +187,40 @@ export async function updateRecordingTranscription(
 }
 
 /**
+ * Update recording transcription with manual edit tracking
+ */
+export async function updateRecordingTranscriptionWithEdit(
+  id: string,
+  transcriptionText: string,
+  editedById: string
+): Promise<Result<Recording, string>> {
+  try {
+    const [recording] = await db
+      .update(recordings)
+      .set({
+        transcriptionText,
+        isTranscriptionManuallyEdited: true,
+        transcriptionLastEditedById: editedById,
+        transcriptionLastEditedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(recordings.id, id))
+      .returning();
+
+    if (!recording) {
+      return err("Recording not found");
+    }
+
+    return ok(recording);
+  } catch (error) {
+    console.error("Error updating transcription with edit:", error);
+    return err(
+      error instanceof Error ? error.message : "Unknown database error"
+    );
+  }
+}
+
+/**
  * Update recording with partial data (generic update)
  */
 export async function updateRecording(
@@ -373,6 +407,7 @@ export const RecordingsQueries = {
   updateRecordingMetadata,
   updateRecordingTranscriptionStatus,
   updateRecordingTranscription,
+  updateRecordingTranscriptionWithEdit,
   updateRecording,
   countRecordingsByProjectId,
   getRecordingStatistics,
