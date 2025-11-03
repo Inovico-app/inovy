@@ -181,6 +181,52 @@ export class AIInsightsQueries {
   }
 
   /**
+   * Update insight content with manual edit tracking
+   */
+  static async updateInsightWithEdit(
+    insightId: string,
+    content: Record<string, unknown>,
+    userId: string
+  ): Promise<Result<AIInsight, string>> {
+    try {
+      const [updated] = await db
+        .update(aiInsights)
+        .set({
+          content,
+          isManuallyEdited: true,
+          lastEditedById: userId,
+          lastEditedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(aiInsights.id, insightId))
+        .returning();
+
+      if (!updated) {
+        return err("Insight not found");
+      }
+
+      logger.info("AI insight updated with manual edit", {
+        component: "AIInsightsQueries.updateInsightWithEdit",
+        insightId,
+        userId,
+      });
+
+      return ok(updated);
+    } catch (error) {
+      logger.error("Failed to update AI insight with edit tracking", {
+        component: "AIInsightsQueries.updateInsightWithEdit",
+        insightId,
+        error,
+      });
+      return err(
+        error instanceof Error
+          ? error.message
+          : "Failed to update AI insight with edit tracking"
+      );
+    }
+  }
+
+  /**
    * Delete an insight
    */
   static async deleteInsight(
