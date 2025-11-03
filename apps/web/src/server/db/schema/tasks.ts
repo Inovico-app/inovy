@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, real, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, real, integer, boolean } from "drizzle-orm/pg-core";
 import { recordings } from "./recordings";
 import { projects } from "./projects";
 
@@ -40,6 +40,7 @@ export const tasks = pgTable("tasks", {
     .$type<"true" | "false">(), // Track if task has been manually edited
   lastEditedAt: timestamp("last_edited_at", { withTimezone: true }), // Last manual edit timestamp
   lastEditedById: text("last_edited_by_id"), // Kinde user ID who last edited
+  lastEditedByName: text("last_edited_by_name"), // Display name of who last edited
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

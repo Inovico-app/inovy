@@ -263,6 +263,7 @@ export class TasksQueries {
           isManuallyEdited: tasks.isManuallyEdited,
           lastEditedAt: tasks.lastEditedAt,
           lastEditedById: tasks.lastEditedById,
+          lastEditedByName: tasks.lastEditedByName,
           createdAt: tasks.createdAt,
           updatedAt: tasks.updatedAt,
           project: {

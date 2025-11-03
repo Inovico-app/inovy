@@ -22,6 +22,7 @@ export interface TaskDto {
   isManuallyEdited: "true" | "false";
   lastEditedAt: Date | null;
   lastEditedById: string | null;
+  lastEditedByName: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
