@@ -1,6 +1,15 @@
 import { logger } from "@/lib/logger";
 import { db } from "@/server/db";
-import { tasks, type NewTask, type Task, projects, recordings } from "@/server/db/schema";
+import {
+  tasks,
+  type NewTask,
+  type Task,
+  projects,
+  recordings,
+  taskHistory,
+  type NewTaskHistory,
+  type TaskHistory,
+} from "@/server/db/schema";
 import { and, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { err, ok, type Result } from "neverthrow";
 
@@ -251,6 +260,9 @@ export class TasksQueries {
           meetingTimestamp: tasks.meetingTimestamp,
           organizationId: tasks.organizationId,
           createdById: tasks.createdById,
+          isManuallyEdited: tasks.isManuallyEdited,
+          lastEditedAt: tasks.lastEditedAt,
+          lastEditedById: tasks.lastEditedById,
           createdAt: tasks.createdAt,
           updatedAt: tasks.updatedAt,
           project: {
@@ -385,6 +397,140 @@ export class TasksQueries {
       });
       return err(
         error instanceof Error ? error : new Error("Failed to delete task")
+      );
+    }
+  }
+
+  /**
+   * Update task metadata with history tracking
+   * This method updates specified fields and marks the task as manually edited
+   */
+  static async updateTaskMetadata(
+    taskId: string,
+    updates: Partial<Omit<Task, "id" | "createdAt" | "updatedAt">>,
+    userId: string
+  ): Promise<Result<Task, Error>> {
+    try {
+      // First, get the current task to track changes
+      const taskResult = await this.getTaskById(taskId);
+      if (taskResult.isErr()) {
+        return err(taskResult.error);
+      }
+
+      const currentTask = taskResult.value;
+
+      // Update the task with manual edit tracking
+      const [updated] = await db
+        .update(tasks)
+        .set({
+          ...updates,
+          isManuallyEdited: "true",
+          lastEditedAt: new Date(),
+          lastEditedById: userId,
+          updatedAt: new Date(),
+        })
+        .where(eq(tasks.id, taskId))
+        .returning();
+
+      if (!updated) {
+        return err(new Error("Task not found"));
+      }
+
+      // Create history entries for each changed field
+      const historyEntries: NewTaskHistory[] = [];
+      
+      for (const [field, newValue] of Object.entries(updates)) {
+        const oldValue = currentTask[field as keyof Task];
+        
+        // Only create history if value actually changed
+        if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+          historyEntries.push({
+            taskId,
+            field,
+            oldValue: oldValue as unknown,
+            newValue: newValue as unknown,
+            changedById: userId,
+          });
+        }
+      }
+
+      // Insert history entries if any
+      if (historyEntries.length > 0) {
+        await db.insert(taskHistory).values(historyEntries);
+      }
+
+      logger.info("Task metadata updated", {
+        component: "TasksQueries.updateTaskMetadata",
+        taskId,
+        changedFields: historyEntries.map(e => e.field),
+      });
+
+      return ok(updated);
+    } catch (error) {
+      logger.error("Failed to update task metadata", {
+        component: "TasksQueries.updateTaskMetadata",
+        taskId,
+        error,
+      });
+      return err(
+        error instanceof Error ? error : new Error("Failed to update task metadata")
+      );
+    }
+  }
+
+  /**
+   * Get task history (audit trail)
+   * Returns all changes made to a task
+   */
+  static async getTaskHistory(
+    taskId: string
+  ): Promise<Result<TaskHistory[], Error>> {
+    try {
+      const history = await db
+        .select()
+        .from(taskHistory)
+        .where(eq(taskHistory.taskId, taskId))
+        .orderBy(desc(taskHistory.changedAt));
+
+      return ok(history);
+    } catch (error) {
+      logger.error("Failed to fetch task history", {
+        component: "TasksQueries.getTaskHistory",
+        taskId,
+        error,
+      });
+      return err(
+        error instanceof Error ? error : new Error("Failed to fetch task history")
+      );
+    }
+  }
+
+  /**
+   * Create a task history entry manually
+   * Useful for recording changes made outside the normal update flow
+   */
+  static async createTaskHistoryEntry(
+    data: NewTaskHistory
+  ): Promise<Result<TaskHistory, Error>> {
+    try {
+      const [entry] = await db.insert(taskHistory).values(data).returning();
+
+      logger.info("Task history entry created", {
+        component: "TasksQueries.createTaskHistoryEntry",
+        taskId: data.taskId,
+        field: data.field,
+      });
+
+      return ok(entry);
+    } catch (error) {
+      logger.error("Failed to create task history entry", {
+        component: "TasksQueries.createTaskHistoryEntry",
+        error,
+      });
+      return err(
+        error instanceof Error
+          ? error
+          : new Error("Failed to create task history entry")
       );
     }
   }

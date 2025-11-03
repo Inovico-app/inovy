@@ -6,13 +6,16 @@ import {
   TasksQueries,
   type TaskWithContext,
 } from "../data-access/tasks.queries";
+import { TaskTagsQueries } from "../data-access/task-tags.queries";
 import { getCachedTasksByUser, getCachedTaskStats } from "../cache";
-import type { Task } from "../db/schema";
+import type { Task, TaskHistory } from "../db/schema";
 import type {
   TaskDto,
   TaskFiltersDto,
   TaskStatsDto,
   TaskWithContextDto,
+  TaskHistoryDto,
+  UpdateTaskMetadataDto,
 } from "../dto";
 
 /**
@@ -182,6 +185,129 @@ export class TaskService {
   }
 
   /**
+   * Update task metadata with authorization and history tracking
+   * Allows updating task fields like title, description, priority, status, etc.
+   */
+  static async updateTaskMetadata(
+    input: UpdateTaskMetadataDto
+  ): Promise<Result<TaskDto, string>> {
+    try {
+      // Check authentication and get session
+      const authResult = await getAuthSession();
+      if (authResult.isErr()) {
+        return err("Failed to get authentication session");
+      }
+
+      const { user: authUser, organization } = authResult.value;
+
+      if (!authUser || !organization) {
+        return err("Authentication required");
+      }
+
+      // Get the task to verify ownership and authorization
+      const taskResult = await TasksQueries.getTaskById(input.taskId);
+      if (taskResult.isErr()) {
+        return err("Task not found");
+      }
+
+      const task = taskResult.value;
+
+      // Authorization check: verify task belongs to user's organization
+      if (task.organizationId !== organization.orgCode) {
+        return err("Task not found in your organization");
+      }
+
+      // Authorization check: only the assignee or admins can update tasks
+      // For now, we allow the assignee to update their own tasks
+      if (task.assigneeId !== authUser.id) {
+        return err("You are not authorized to update this task");
+      }
+
+      // Prepare updates (remove taskId and tagIds from the update object)
+      const { taskId, tagIds, ...taskUpdates } = input;
+
+      // Update task metadata with history tracking
+      const updateResult = await TasksQueries.updateTaskMetadata(
+        taskId,
+        taskUpdates,
+        authUser.id
+      );
+
+      if (updateResult.isErr()) {
+        return err(updateResult.error.message);
+      }
+
+      // Handle tag assignments if provided
+      if (tagIds !== undefined) {
+        const tagResult = await TaskTagsQueries.assignTagsToTask(taskId, tagIds);
+        if (tagResult.isErr()) {
+          logger.error("Failed to assign tags to task", {
+            taskId,
+            error: tagResult.error.message,
+          });
+          // Don't fail the whole operation if tag assignment fails
+        }
+      }
+
+      // Invalidate cache
+      await this.invalidateCache(authUser.id, organization.orgCode);
+
+      return ok(this.toDto(updateResult.value));
+    } catch (error) {
+      const errorMessage = "Failed to update task metadata";
+      logger.error(errorMessage, {}, error as Error);
+      return err(errorMessage);
+    }
+  }
+
+  /**
+   * Get task history (audit trail)
+   * Returns all changes made to a task with authorization check
+   */
+  static async getTaskHistory(
+    taskId: string
+  ): Promise<Result<TaskHistoryDto[], string>> {
+    try {
+      // Check authentication and get session
+      const authResult = await getAuthSession();
+      if (authResult.isErr()) {
+        return err("Failed to get authentication session");
+      }
+
+      const { user: authUser, organization } = authResult.value;
+
+      if (!authUser || !organization) {
+        return err("Authentication required");
+      }
+
+      // Get the task to verify authorization
+      const taskResult = await TasksQueries.getTaskById(taskId);
+      if (taskResult.isErr()) {
+        return err("Task not found");
+      }
+
+      const task = taskResult.value;
+
+      // Authorization check: verify task belongs to user's organization
+      if (task.organizationId !== organization.orgCode) {
+        return err("Task not found in your organization");
+      }
+
+      // Get task history
+      const historyResult = await TasksQueries.getTaskHistory(taskId);
+      if (historyResult.isErr()) {
+        return err(historyResult.error.message);
+      }
+
+      return ok(historyResult.value.map((entry) => this.toHistoryDto(entry)));
+    } catch (error) {
+      const errorMessage = "Failed to get task history";
+      logger.error(errorMessage, {}, error as Error);
+      return err(errorMessage);
+    }
+  }
+
+  /**
    * Invalidate task cache for a user
    * Called after task mutations (create, update, delete)
    */
@@ -208,6 +334,9 @@ export class TaskService {
       meetingTimestamp: task.meetingTimestamp,
       organizationId: task.organizationId,
       createdById: task.createdById,
+      isManuallyEdited: task.isManuallyEdited,
+      lastEditedAt: task.lastEditedAt,
+      lastEditedById: task.lastEditedById,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
     };
@@ -232,10 +361,28 @@ export class TaskService {
       meetingTimestamp: task.meetingTimestamp,
       organizationId: task.organizationId,
       createdById: task.createdById,
+      isManuallyEdited: task.isManuallyEdited,
+      lastEditedAt: task.lastEditedAt,
+      lastEditedById: task.lastEditedById,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       project: task.project,
       recording: task.recording,
+    };
+  }
+
+  /**
+   * Convert database task history to DTO
+   */
+  private static toHistoryDto(entry: TaskHistory): TaskHistoryDto {
+    return {
+      id: entry.id,
+      taskId: entry.taskId,
+      field: entry.field,
+      oldValue: entry.oldValue,
+      newValue: entry.newValue,
+      changedById: entry.changedById,
+      changedAt: entry.changedAt,
     };
   }
 }

@@ -22,6 +22,12 @@ export const POLICIES = {
   "recordings:update": "recordings:update",
   "recordings:delete": "recordings:delete",
 
+  // Task management
+  "tasks:create": "tasks:create",
+  "tasks:read": "tasks:read",
+  "tasks:update": "tasks:update",
+  "tasks:delete": "tasks:delete",
+
   // Organization management
   "organizations:create": "organizations:create",
   "organizations:read": "organizations:read",
@@ -66,6 +72,10 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "recordings:read",
     "recordings:update",
     "recordings:delete",
+    "tasks:create",
+    "tasks:read",
+    "tasks:update",
+    "tasks:delete",
     "organizations:create",
     "organizations:read",
     "organizations:update",
@@ -84,6 +94,10 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "recordings:read",
     "recordings:update",
     "recordings:delete",
+    "tasks:create",
+    "tasks:read",
+    "tasks:update",
+    "tasks:delete",
     "organizations:read",
     "organizations:update",
     "users:read",
@@ -95,9 +109,17 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "recordings:create",
     "recordings:read",
     "recordings:update",
+    "tasks:create",
+    "tasks:read",
+    "tasks:update",
     "users:read",
   ],
-  [ROLES.VIEWER]: ["projects:read", "recordings:read", "users:read"],
+  [ROLES.VIEWER]: [
+    "projects:read",
+    "recordings:read",
+    "tasks:read",
+    "users:read",
+  ],
 };
 
 /**
