@@ -30,8 +30,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const orgCode = (organization as unknown as Record<string, unknown>)
-      .org_code as string | undefined;
+    const orgCode = organization.orgCode;
 
     if (!orgCode) {
       return NextResponse.json(
@@ -135,8 +134,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const orgCode = (organization as unknown as Record<string, unknown>)
-      .org_code as string | undefined;
+    const orgCode = organization.orgCode;
 
     if (!orgCode) {
       return NextResponse.json(
