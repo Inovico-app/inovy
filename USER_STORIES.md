@@ -4,10 +4,10 @@
 
 ### Document Information
 
-- **Version**: 1.0
-- **Date**: September 12, 2025
-- **Based on**: MVP.md v1.0
-- **Total Stories**: 45 user stories across 8 feature areas
+- **Version**: 2.0
+- **Date**: November 3, 2025
+- **Based on**: MVP.md v1.0 + AI Features Enhancement
+- **Total Stories**: 72 user stories across 12 feature areas
 
 ---
 
@@ -597,9 +597,570 @@
 
 ---
 
+## 9. AI Insights Management
+
+### AI-MGMT-001: Reprocess AI Insights
+
+**As an** organization member  
+**I want** to reprocess AI insights from a recording with the same settings  
+**So that** I can regenerate insights if the original processing had issues
+
+**Acceptance Criteria**:
+
+- User can trigger reprocessing from recording detail page
+- Reprocessing uses the same AI settings as original processing
+- Existing insights are backed up before reprocessing
+- Status indicator shows "reprocessing" state
+- User receives notification when reprocessing completes
+- Reprocessed results replace previous insights
+- Error handling for failed reprocessing attempts
+- Audit trail shows when insights were reprocessed
+
+**Priority**: Medium | **Effort**: 4 | **Status**: - [ ] Not Started
+
+### AI-MGMT-002: View Reprocessing Status
+
+**As an** organization member  
+**I want** to see when AI insights are being reprocessed  
+**So that** I know when new results will be available
+
+**Acceptance Criteria**:
+
+- Clear visual indicator during reprocessing
+- Progress bar or percentage for reprocessing status
+- Estimated time remaining displayed
+- Cannot trigger duplicate reprocessing while in progress
+- Real-time status updates without page refresh
+- Error messages if reprocessing fails
+- History of previous reprocessing attempts
+
+**Priority**: Medium | **Effort**: 2 | **Status**: - [ ] Not Started
+
+### AI-MGMT-003: Edit Recording Summary
+
+**As an** organization member  
+**I want** to edit the AI-generated summary text  
+**So that** I can correct or enhance the summary content
+
+**Acceptance Criteria**:
+
+- Inline editing interface for summary text
+- Rich text editor with formatting options
+- Save and cancel buttons for edits
+- Auto-save draft functionality
+- Version history of summary edits
+- Display edit timestamp and editor name
+- Validation for required content
+- Undo/redo functionality
+- Mark summary as "manually edited" indicator
+
+**Priority**: Medium | **Effort**: 3 | **Status**: - [ ] Not Started
+
+### AI-MGMT-004: Edit Transcription Content
+
+**As an** organization member  
+**I want** to edit the transcription text  
+**So that** I can correct misrecognized words or phrases
+
+**Acceptance Criteria**:
+
+- Inline editing interface for transcription text
+- Search and replace functionality
+- Highlight edited sections
+- Preserve speaker labels if present
+- Timestamp preservation during edits
+- Version history of transcription edits
+- Display edit timestamp and editor name
+- Bulk edit capabilities for repeated errors
+- Export edited transcription
+
+**Priority**: Medium | **Effort**: 3 | **Status**: - [ ] Not Started
+
+### AI-MGMT-005: Edit Task Metadata
+
+**As an** organization member  
+**I want** to edit extracted tasks (title, description, priority, due date)  
+**So that** I can refine AI suggestions to match actual requirements
+
+**Acceptance Criteria**:
+
+- Edit task title and description inline
+- Change task priority with dropdown
+- Set or modify due dates
+- Add or edit assignees
+- Add custom tags or labels
+- Edit task status
+- Maintain link to source recording/timestamp
+- Indicate when task has been manually edited
+- Save button with validation
+- Audit trail of task modifications
+
+**Priority**: Medium | **Effort**: 3 | **Status**: - [ ] Not Started
+
+---
+
+## 10. AI Chatbot
+
+### CHAT-001: Project-Level Chatbot
+
+**As an** organization member  
+**I want** to chat with an AI about a specific project's recordings and summaries  
+**So that** I can quickly find information and get insights
+
+**Acceptance Criteria**:
+
+- Chat interface accessible from project detail page
+- AI has access to all project recordings, transcriptions, and summaries
+- Natural language query processing
+- Relevant, contextual responses based on project data
+- Real-time streaming responses
+- Ability to ask follow-up questions with conversation context
+- Clear indication of chatbot vs user messages
+- Error handling for failed queries
+- Loading indicators during response generation
+
+**Priority**: High | **Effort**: 8 | **Status**: - [ ] Not Started
+
+### CHAT-002: Organization-Level Chatbot
+
+**As an** organization admin  
+**I want** to chat with an AI about all organization data  
+**So that** I can get cross-project insights and find information across all recordings
+
+**Acceptance Criteria**:
+
+- Chat interface accessible from main dashboard or settings
+- AI has access to all organization projects, recordings, and summaries
+- Cross-project query capabilities
+- Natural language query processing
+- Real-time streaming responses
+- Ability to filter or focus on specific projects in conversation
+- Admin role verification before accessing
+- Clear indication of organization-wide context
+- Performance optimization for large data sets
+
+**Priority**: High | **Effort**: 8 | **Status**: - [ ] Not Started
+
+### CHAT-003: Chatbot Context Selection
+
+**As an** organization member  
+**I want** to choose between project-level or organization-level context for the chatbot  
+**So that** I can control the scope of information being queried
+
+**Acceptance Criteria**:
+
+- Context selector in chatbot interface
+- Toggle between project and organization context
+- Clear visual indication of current context
+- Context selection persists during conversation session
+- Different context options based on user role
+- Conversation history separated by context
+- Ability to switch context mid-conversation
+- Warning when switching contexts that may clear conversation
+
+**Priority**: High | **Effort**: 3 | **Status**: - [ ] Not Started
+
+### CHAT-004: Chatbot RBAC Enforcement
+
+**As a** system  
+**I want** to enforce role-based access control for organization-level chatbot access  
+**So that** only authorized users (admins) can query organization-wide data
+
+**Acceptance Criteria**:
+
+- Organization-level chatbot access restricted to admin role
+- Non-admin users only see project-level option
+- Clear error message if unauthorized access attempted
+- Role verification on every chatbot query
+- Audit logging of chatbot access attempts
+- Organization context option hidden for non-admins
+- Proper error handling for permission checks
+- Session validation for role changes
+
+**Priority**: High | **Effort**: 4 | **Status**: - [ ] Not Started
+
+### CHAT-005: Chatbot Source Citations
+
+**As an** organization member  
+**I want** the chatbot to cite which recordings/summaries it's referencing  
+**So that** I can verify information and navigate to source material
+
+**Acceptance Criteria**:
+
+- Citations included in chatbot responses
+- Clickable links to source recordings
+- Display recording title and date in citations
+- Show relevant excerpt or timestamp from source
+- Multiple sources cited when appropriate
+- Citations formatted clearly and consistently
+- Navigate directly to cited section in recording
+- Show confidence level for cited information
+
+**Priority**: Medium | **Effort**: 5 | **Status**: - [ ] Not Started
+
+### CHAT-006: Chatbot Conversation History
+
+**As an** organization member  
+**I want** to see my previous chatbot conversations  
+**So that** I can reference past queries and maintain context
+
+**Acceptance Criteria**:
+
+- List of previous conversations with timestamps
+- Search through conversation history
+- Resume previous conversations
+- Delete conversation history
+- Export conversation as text or PDF
+- Conversations organized by project/organization context
+- Pagination for long conversation lists
+- Auto-archive old conversations
+- Restore deleted conversations within time window
+
+**Priority**: Low | **Effort**: 4 | **Status**: - [ ] Not Started
+
+---
+
+## 11. Google Workspace Integration
+
+### GOOGLE-001: Google OAuth Integration
+
+**As an** organization member  
+**I want** to connect my Google account  
+**So that** the system can access my Gmail, Calendar, and Drive
+
+**Acceptance Criteria**:
+
+- OAuth 2.0 authentication flow with Google
+- Request appropriate scopes (Gmail, Calendar, Drive)
+- Secure token storage and refresh mechanism
+- Connection status displayed in settings
+- Clear explanation of permissions requested
+- Handle authentication errors gracefully
+- Support for multiple Google account connections
+- Automatic token refresh before expiration
+- Connection success/failure notifications
+
+**Priority**: High | **Effort**: 5 | **Status**: - [ ] Not Started
+
+### GOOGLE-002: Create Calendar Events from Tasks
+
+**As an** organization member  
+**I want** AI-extracted tasks to automatically create Google Calendar events  
+**So that** I can schedule action items without manual entry
+
+**Acceptance Criteria**:
+
+- Automatic calendar event creation for extracted tasks
+- Event title uses task title
+- Event description includes task details and recording link
+- Default event duration (configurable, e.g., 30 minutes)
+- Due date used as event date/time
+- Events marked with custom label/color
+- Option to enable/disable auto-creation per task
+- Bulk calendar creation for multiple tasks
+- Error handling for calendar API failures
+- Success notification with link to created event
+
+**Priority**: High | **Effort**: 6 | **Status**: - [ ] Not Started
+
+### GOOGLE-003: Create Gmail Draft from Summary
+
+**As an** organization member  
+**I want** to create Gmail draft emails containing meeting summaries  
+**So that** I can easily share insights with stakeholders
+
+**Acceptance Criteria**:
+
+- One-click draft creation from recording detail page
+- Draft includes formatted summary content
+- Subject line auto-generated from recording title
+- Recording metadata included in draft footer
+- Link back to recording in draft body
+- To/CC fields left blank for user to fill
+- Draft saved to Gmail drafts folder (not sent)
+- Customizable email template
+- Error handling for Gmail API failures
+- Success notification with link to draft in Gmail
+
+**Priority**: High | **Effort**: 5 | **Status**: - [ ] Not Started
+
+### GOOGLE-004: Configure Auto-Action Settings
+
+**As an** organization member  
+**I want** to configure which AI insights trigger automatic Google actions  
+**So that** I can control automation behavior
+
+**Acceptance Criteria**:
+
+- Settings page for Google integration preferences
+- Toggle auto-creation of calendar events
+- Toggle auto-creation of email drafts
+- Configure default calendar event duration
+- Configure email template preferences
+- Set which task priorities trigger auto-actions
+- Project-level override of global settings
+- Preview of auto-action behavior
+- Save and cancel functionality
+- Settings changes take effect immediately
+
+**Priority**: Medium | **Effort**: 4 | **Status**: - [ ] Not Started
+
+### GOOGLE-005: View Integration Status
+
+**As an** organization member  
+**I want** to see the status of Google integrations and recent actions taken  
+**So that** I can verify automation is working correctly
+
+**Acceptance Criteria**:
+
+- Dashboard showing Google connection status
+- List of recent auto-created calendar events
+- List of recent auto-created email drafts
+- Timestamps for each action
+- Success/failure status for each action
+- Error messages for failed actions
+- Retry option for failed actions
+- Filter by action type (calendar/email)
+- Export action history
+- Clear action history option
+
+**Priority**: Medium | **Effort**: 3 | **Status**: - [ ] Not Started
+
+### GOOGLE-006: Disconnect Google Account
+
+**As an** organization member  
+**I want** to disconnect my Google account  
+**So that** I can revoke access when no longer needed
+
+**Acceptance Criteria**:
+
+- Disconnect button in settings
+- Confirmation dialog before disconnecting
+- Token revocation through Google OAuth
+- Clear all stored Google credentials
+- Disable all auto-actions after disconnect
+- Notification of successful disconnection
+- Option to reconnect after disconnection
+- No data loss from recordings/tasks after disconnect
+- Audit log of connection/disconnection events
+
+**Priority**: Low | **Effort**: 2 | **Status**: - [ ] Not Started
+
+### GOOGLE-007: Customize Email Draft Templates
+
+**As an** organization member  
+**I want** to customize the template used for Gmail draft generation  
+**So that** emails match my communication style
+
+**Acceptance Criteria**:
+
+- Template editor in settings
+- Variables for dynamic content (summary, date, project, etc.)
+- Rich text formatting options
+- Preview of rendered template
+- Multiple template support (default, formal, brief)
+- Reset to default template option
+- Save custom templates
+- Template validation before saving
+- Import/export template functionality
+
+**Priority**: Low | **Effort**: 4 | **Status**: - [ ] Not Started
+
+### GOOGLE-008: Customize Calendar Event Details
+
+**As an** organization member  
+**I want** to customize how tasks are converted to calendar events  
+**So that** events match my workflow preferences
+
+**Acceptance Criteria**:
+
+- Configure default event duration
+- Configure default event reminders
+- Choose calendar for event creation
+- Set event color/category
+- Configure event description template
+- Set default event visibility (public/private)
+- Configure time of day for events without specific time
+- Add default attendees option
+- Configure event location field
+- Save preferences per project or globally
+
+**Priority**: Low | **Effort**: 3 | **Status**: - [ ] Not Started
+
+---
+
+## 12. Microsoft Integration
+
+### MS-001: Microsoft OAuth Integration
+
+**As an** organization member  
+**I want** to connect my Microsoft account  
+**So that** the system can access my Outlook, Calendar, and SharePoint
+
+**Acceptance Criteria**:
+
+- OAuth 2.0 authentication flow with Microsoft
+- Request appropriate scopes (Mail, Calendar, Files)
+- Secure token storage and refresh mechanism
+- Connection status displayed in settings
+- Clear explanation of permissions requested
+- Handle authentication errors gracefully
+- Support for multiple Microsoft account connections
+- Automatic token refresh before expiration
+- Connection success/failure notifications
+
+**Priority**: High | **Effort**: 5 | **Status**: - [ ] Not Started
+
+### MS-002: Create Outlook Calendar Events from Tasks
+
+**As an** organization member  
+**I want** AI-extracted tasks to automatically create Outlook Calendar events  
+**So that** I can schedule action items in my Microsoft workflow
+
+**Acceptance Criteria**:
+
+- Automatic calendar event creation for extracted tasks
+- Event title uses task title
+- Event description includes task details and recording link
+- Default event duration (configurable, e.g., 30 minutes)
+- Due date used as event date/time
+- Events marked with custom category/color
+- Option to enable/disable auto-creation per task
+- Bulk calendar creation for multiple tasks
+- Error handling for Outlook API failures
+- Success notification with link to created event
+
+**Priority**: High | **Effort**: 6 | **Status**: - [ ] Not Started
+
+### MS-003: Create Outlook Draft from Summary
+
+**As an** organization member  
+**I want** to create Outlook draft emails containing meeting summaries  
+**So that** I can easily share insights with stakeholders
+
+**Acceptance Criteria**:
+
+- One-click draft creation from recording detail page
+- Draft includes formatted summary content
+- Subject line auto-generated from recording title
+- Recording metadata included in draft footer
+- Link back to recording in draft body
+- To/CC fields left blank for user to fill
+- Draft saved to Outlook drafts folder (not sent)
+- Customizable email template
+- Error handling for Outlook API failures
+- Success notification with link to draft in Outlook
+
+**Priority**: High | **Effort**: 5 | **Status**: - [ ] Not Started
+
+### MS-004: Configure Auto-Action Settings
+
+**As an** organization member  
+**I want** to configure which AI insights trigger automatic Microsoft actions  
+**So that** I can control automation behavior
+
+**Acceptance Criteria**:
+
+- Settings page for Microsoft integration preferences
+- Toggle auto-creation of calendar events
+- Toggle auto-creation of email drafts
+- Configure default calendar event duration
+- Configure email template preferences
+- Set which task priorities trigger auto-actions
+- Project-level override of global settings
+- Preview of auto-action behavior
+- Save and cancel functionality
+- Settings changes take effect immediately
+
+**Priority**: Medium | **Effort**: 4 | **Status**: - [ ] Not Started
+
+### MS-005: View Integration Status
+
+**As an** organization member  
+**I want** to see the status of Microsoft integrations and recent actions taken  
+**So that** I can verify automation is working correctly
+
+**Acceptance Criteria**:
+
+- Dashboard showing Microsoft connection status
+- List of recent auto-created calendar events
+- List of recent auto-created email drafts
+- Timestamps for each action
+- Success/failure status for each action
+- Error messages for failed actions
+- Retry option for failed actions
+- Filter by action type (calendar/email)
+- Export action history
+- Clear action history option
+
+**Priority**: Medium | **Effort**: 3 | **Status**: - [ ] Not Started
+
+### MS-006: Disconnect Microsoft Account
+
+**As an** organization member  
+**I want** to disconnect my Microsoft account  
+**So that** I can revoke access when no longer needed
+
+**Acceptance Criteria**:
+
+- Disconnect button in settings
+- Confirmation dialog before disconnecting
+- Token revocation through Microsoft OAuth
+- Clear all stored Microsoft credentials
+- Disable all auto-actions after disconnect
+- Notification of successful disconnection
+- Option to reconnect after disconnection
+- No data loss from recordings/tasks after disconnect
+- Audit log of connection/disconnection events
+
+**Priority**: Low | **Effort**: 2 | **Status**: - [ ] Not Started
+
+### MS-007: Customize Email Draft Templates
+
+**As an** organization member  
+**I want** to customize the template used for Outlook draft generation  
+**So that** emails match my communication style
+
+**Acceptance Criteria**:
+
+- Template editor in settings
+- Variables for dynamic content (summary, date, project, etc.)
+- Rich text formatting options
+- Preview of rendered template
+- Multiple template support (default, formal, brief)
+- Reset to default template option
+- Save custom templates
+- Template validation before saving
+- Import/export template functionality
+
+**Priority**: Low | **Effort**: 4 | **Status**: - [ ] Not Started
+
+### MS-008: Customize Calendar Event Details
+
+**As an** organization member  
+**I want** to customize how tasks are converted to calendar events  
+**So that** events match my workflow preferences
+
+**Acceptance Criteria**:
+
+- Configure default event duration
+- Configure default event reminders
+- Choose calendar for event creation
+- Set event color/category
+- Configure event description template
+- Set default event visibility (public/private)
+- Configure time of day for events without specific time
+- Add default attendees option
+- Configure event location field
+- Save preferences per project or globally
+
+**Priority**: Low | **Effort**: 3 | **Status**: - [ ] Not Started
+
+---
+
 ## Story Prioritization Summary
 
-### High Priority (Must Have - 27 stories)
+### High Priority (Must Have - 39 stories)
 
 Core functionality required for MVP launch:
 
@@ -610,8 +1171,11 @@ Core functionality required for MVP launch:
 - Task management core features (4 stories)
 - Dashboard and navigation (2 stories)
 - Essential UI/UX (3 stories)
+- AI Chatbot core features (4 stories)
+- Google Workspace integration core (3 stories)
+- Microsoft integration core (3 stories)
 
-### Medium Priority (Should Have - 12 stories)
+### Medium Priority (Should Have - 23 stories)
 
 Important but not critical for initial launch:
 
@@ -619,14 +1183,21 @@ Important but not critical for initial launch:
 - Advanced task features (4 stories)
 - Enhanced UI features (2 stories)
 - Additional settings (1 story)
+- AI Insights Management (5 stories)
+- AI Chatbot advanced features (1 story)
+- Google Workspace configuration (2 stories)
+- Microsoft integration configuration (2 stories)
 
-### Low Priority (Nice to Have - 6 stories)
+### Low Priority (Nice to Have - 16 stories)
 
 Can be deferred to post-MVP:
 
 - Profile management (3 stories)
 - Organization details (1 story)
 - Advanced dashboard features (2 stories)
+- AI Chatbot conversation history (1 story)
+- Google Workspace customization (3 stories)
+- Microsoft integration customization (3 stories)
 
 ---
 
@@ -659,5 +1230,41 @@ Can be deferred to post-MVP:
 
 ---
 
-_This user story collection provides a comprehensive roadmap for MVP development, ensuring all core functionality is captured in testable, implementable chunks._
+## Summary Statistics
+
+- **Total Stories**: 72 (45 MVP + 27 new features)
+- **Total Effort**: 216 story points (111 MVP + 105 new features)
+- **Feature Areas**: 12 (8 MVP + 4 new)
+- **High Priority**: 39 stories (54%)
+- **Medium Priority**: 23 stories (32%)
+- **Low Priority**: 10 stories (14%)
+
+### New Feature Areas Added
+
+1. **AI Insights Management** (5 stories, 15 effort points)
+
+   - Reprocessing capabilities
+   - Editing AI-generated content
+   - Enhanced task management
+
+2. **AI Chatbot** (6 stories, 28 effort points)
+
+   - Project and organization-level context
+   - RBAC enforcement
+   - Source citations and history
+
+3. **Google Workspace Integration** (8 stories, 32 effort points)
+
+   - OAuth integration
+   - Calendar and Gmail automation
+   - Customization and status monitoring
+
+4. **Microsoft Integration** (8 stories, 30 effort points)
+   - OAuth integration
+   - Outlook Calendar and email automation
+   - Customization and status monitoring
+
+---
+
+_This user story collection provides a comprehensive roadmap for MVP development and post-MVP enhancements, ensuring all core functionality and advanced features are captured in testable, implementable chunks._
 
