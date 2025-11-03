@@ -2,7 +2,6 @@ import {
   ArrowLeftIcon,
   CalendarIcon,
   CheckCircle2Icon,
-  CircleIcon,
   ClockIcon,
   FileIcon,
 } from "lucide-react";
@@ -23,6 +22,7 @@ import { DeleteRecordingDialog } from "../../../../../features/recordings/compon
 import { EditRecordingModal } from "../../../../../features/recordings/components/edit-recording-modal";
 import { ProcessingError } from "../../../../../features/recordings/components/processing-error";
 import { RecordingDetailStatus } from "../../../../../features/recordings/components/recording-detail-status";
+import { TaskCard } from "../../../../../features/tasks/components/task-card-with-edit";
 import { getCachedSummary } from "../../../../../server/cache/summary.cache";
 import { TasksQueries } from "../../../../../server/data-access/tasks.queries";
 import { ProjectService } from "../../../../../server/services/project.service";
@@ -423,97 +423,7 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
             {tasks.length > 0 ? (
               <div className="space-y-4">
                 {tasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="border rounded-lg p-4 hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        {task.status === "completed" ? (
-                          <CheckCircle2Icon className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                        ) : (
-                          <CircleIcon className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm mb-1">
-                            {task.title}
-                          </h4>
-                          {task.description && (
-                            <p className="text-sm text-muted-foreground mb-2">
-                              {task.description}
-                            </p>
-                          )}
-                          <div className="flex flex-wrap items-center gap-2">
-                            {/* Priority Badge */}
-                            <Badge
-                              variant={
-                                task.priority === "urgent"
-                                  ? "destructive"
-                                  : task.priority === "high"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                            >
-                              {task.priority}
-                            </Badge>
-
-                            {/* Status Badge */}
-                            <Badge
-                              variant={
-                                task.status === "completed"
-                                  ? "default"
-                                  : "outline"
-                              }
-                            >
-                              {task.status.replace("_", " ")}
-                            </Badge>
-
-                            {/* Assignee */}
-                            {task.assigneeName && (
-                              <span className="text-xs text-muted-foreground">
-                                Assigned to: {task.assigneeName}
-                              </span>
-                            )}
-
-                            {/* Due Date */}
-                            {task.dueDate && (
-                              <span className="text-xs text-muted-foreground">
-                                Due:{" "}
-                                {new Date(task.dueDate).toLocaleDateString(
-                                  "en-US",
-                                  {
-                                    month: "short",
-                                    day: "numeric",
-                                    year: "numeric",
-                                  }
-                                )}
-                              </span>
-                            )}
-
-                            {/* Meeting Timestamp */}
-                            {task.meetingTimestamp !== null &&
-                              task.meetingTimestamp !== undefined && (
-                                <span className="text-xs text-muted-foreground">
-                                  at {Math.floor(task.meetingTimestamp / 60)}:
-                                  {String(task.meetingTimestamp % 60).padStart(
-                                    2,
-                                    "0"
-                                  )}
-                                </span>
-                              )}
-
-                            {/* Confidence Score */}
-                            {task.confidenceScore && (
-                              <Badge variant="outline" className="text-xs">
-                                {(task.confidenceScore * 100).toFixed(0)}%
-                                confidence
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <TaskCard key={task.id} task={task} />
                 ))}
               </div>
             ) : recording.transcriptionStatus === "completed" ? (

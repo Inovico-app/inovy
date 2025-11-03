@@ -48,5 +48,10 @@ export const queryKeys = {
       [...queryKeys.notifications.lists(), filters] as const,
     unreadCount: () => [...queryKeys.notifications.all, "unread-count"] as const,
   },
+  organization: {
+    all: ["organization"] as const,
+    members: (orgCode: string) =>
+      [...queryKeys.organization.all, "members", orgCode] as const,
+  },
 } as const;
 

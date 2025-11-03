@@ -24,6 +24,10 @@ export interface TaskDto {
   lastEditedById: string | null;
   createdAt: Date;
   updatedAt: Date;
+  lastEditedAt: Date | null;
+  lastEditedById: string | null;
+  lastEditedByName: string | null;
+  isManuallyEdited: boolean;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, real, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, real, integer, boolean } from "drizzle-orm/pg-core";
 import { recordings } from "./recordings";
 import { projects } from "./projects";
 
@@ -46,6 +46,10 @@ export const tasks = pgTable("tasks", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  lastEditedAt: timestamp("last_edited_at", { withTimezone: true }),
+  lastEditedById: text("last_edited_by_id"),
+  lastEditedByName: text("last_edited_by_name"),
+  isManuallyEdited: boolean("is_manually_edited").notNull().default(false),
 });
 
 export type Task = typeof tasks.$inferSelect;
