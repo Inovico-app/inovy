@@ -1,0 +1,2 @@
+ALTER TABLE "chat_conversations" ALTER COLUMN "project_id" DROP NOT NULL;--> statement-breakpoint
+CREATE INDEX "chat_conversations_organization_id_idx" ON "chat_conversations" USING btree ("organization_id");

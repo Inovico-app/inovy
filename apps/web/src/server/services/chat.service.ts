@@ -39,6 +39,35 @@ export class ChatService {
   }
 
   /**
+   * Create a new organization-level conversation
+   */
+  static async createOrganizationConversation(
+    userId: string,
+    organizationId: string
+  ): Promise<Result<{ conversationId: string }, Error>> {
+    try {
+      const conversation: NewChatConversation = {
+        projectId: null,
+        userId,
+        organizationId,
+      };
+
+      const result = await ChatQueries.createConversation(conversation);
+
+      return ok({ conversationId: result.id });
+    } catch (error) {
+      logger.error("Error creating organization conversation", {
+        error,
+        organizationId,
+        userId,
+      });
+      return err(
+        error instanceof Error ? error : new Error("Unknown error")
+      );
+    }
+  }
+
+  /**
    * Get conversation history
    */
   static async getConversationHistory(conversationId: string) {
@@ -90,6 +119,29 @@ Guidelines:
 - When discussing tasks, mention their priority and status
 - Provide timestamps when available for transcription references
 - If asked about specific topics across multiple recordings, synthesize the information clearly`;
+  }
+
+  /**
+   * Build system prompt for organization-level context
+   */
+  private static buildOrganizationSystemPrompt(): string {
+    return `You are an AI assistant helping users find information across all their organization's recordings and meetings.
+
+Your role:
+- Answer questions based on the provided context from all organization recordings, transcriptions, summaries, and tasks
+- Cite sources by mentioning the project name, recording title, and date when referencing specific information
+- Be concise and accurate in your responses
+- When discussing cross-project topics, clearly indicate which projects the information comes from
+- If information is not found in the context, clearly state that you don't have that information in the available recordings
+- Use Dutch language when the user asks questions in Dutch, otherwise use English
+
+Guidelines:
+- Focus on factual information from the recordings across all projects
+- When discussing tasks, mention their priority, status, and which project they belong to
+- Provide timestamps when available for transcription references
+- Synthesize information across multiple projects and recordings when relevant
+- Help identify patterns, trends, and insights across the organization's data
+- When asked about specific topics, search across all projects to provide comprehensive answers`;
   }
 
   /**
@@ -331,6 +383,138 @@ Please answer the user's question based on this information.`
         error,
         conversationId,
         projectId,
+      });
+      return err(
+        error instanceof Error ? error : new Error("Unknown error")
+      );
+    }
+  }
+
+  /**
+   * Stream organization-level chat response (returns a StreamableValue for use with Vercel AI SDK)
+   */
+  static async streamOrganizationResponse(
+    conversationId: string,
+    userMessage: string,
+    organizationId: string
+  ) {
+    try {
+      logger.info("Streaming organization chat response", {
+        conversationId,
+        organizationId,
+      });
+
+      // Get conversation to verify access
+      const conversation =
+        await ChatQueries.getConversationById(conversationId);
+      if (!conversation) {
+        throw new Error("Conversation not found");
+      }
+
+      // Verify this is an organization-level conversation
+      if (conversation.projectId !== null) {
+        throw new Error("This is not an organization-level conversation");
+      }
+
+      // Save user message
+      const userMessageEntry: NewChatMessage = {
+        conversationId,
+        role: "user",
+        content: userMessage,
+      };
+      await ChatQueries.createMessage(userMessageEntry);
+
+      // Get relevant context using organization-wide vector search
+      const contextResult =
+        await VectorSearchService.getRelevantContextOrganizationWide(
+          userMessage,
+          organizationId
+        );
+
+      let context = "";
+      let sources: SourceReference[] = [];
+
+      if (contextResult.isOk()) {
+        context = contextResult.value.context;
+        sources = contextResult.value.sources.map((source) => ({
+          contentId: source.contentId,
+          contentType: source.contentType,
+          title: source.title,
+          excerpt: source.excerpt,
+          similarityScore: source.similarityScore,
+          recordingId: source.recordingId,
+          timestamp: source.timestamp,
+        }));
+      }
+
+      // Get conversation history
+      const messages = await ChatQueries.getMessagesByConversationId(
+        conversationId
+      );
+
+      // Build conversation history for context (last 10 messages)
+      const conversationHistory: CoreMessage[] = messages
+        .slice(-10)
+        .map((msg) => ({
+          role: msg.role as "user" | "assistant",
+          content: msg.content,
+        }));
+
+      // Build system prompt for organization
+      const systemPrompt = this.buildOrganizationSystemPrompt();
+
+      // Create the full prompt with context
+      const contextPrompt = context
+        ? `Here is relevant information from across all organization recordings and projects:
+
+${context}
+
+Please answer the user's question based on this information. When referencing information, mention which project it comes from.`
+        : "No relevant information was found in the organization's recordings. Let the user know you don't have specific information to answer their question.";
+
+      // Stream response from GPT-4-turbo
+      const result = await streamText({
+        model: this.openai("gpt-4-turbo"),
+        system: systemPrompt,
+        messages: [
+          ...conversationHistory,
+          {
+            role: "user",
+            content: `${contextPrompt}\n\nUser question: ${userMessage}`,
+          },
+        ],
+        temperature: 0.7,
+        async onFinish({ text }) {
+          // Save assistant message after streaming is complete
+          const assistantMessageEntry: NewChatMessage = {
+            conversationId,
+            role: "assistant",
+            content: text,
+            sources,
+          };
+          await ChatQueries.createMessage(assistantMessageEntry);
+
+          // Update conversation title if it's the first exchange
+          if (messages.length === 1 && !conversation.title) {
+            const title =
+              userMessage.length > 50
+                ? userMessage.substring(0, 50) + "..."
+                : userMessage;
+            await ChatQueries.updateConversationTitle(conversationId, title);
+          }
+
+          logger.info("Organization chat streaming completed", {
+            conversationId,
+          });
+        },
+      });
+
+      return ok({ stream: result.toTextStreamResponse(), sources });
+    } catch (error) {
+      logger.error("Error streaming organization chat response", {
+        error,
+        conversationId,
+        organizationId,
       });
       return err(
         error instanceof Error ? error : new Error("Unknown error")

@@ -1,11 +1,13 @@
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
+import { EmbeddingService } from "@/server/services/embedding.service";
 
 /**
- * Step 3: Invalidate caches and finalize workflow
+ * Step 3: Invalidate caches, create embeddings, and finalize workflow
  *
  * This step ensures all relevant caches are invalidated so that the UI
  * reflects the latest processed data (transcription, summary, tasks).
+ * It also creates embeddings for the chat feature.
  *
  * @param recordingId - The recording ID
  * @param projectId - The project ID
@@ -23,6 +25,30 @@ export async function executeFinalStep(
       component: "ConvertRecordingWorkflow",
       recordingId,
     });
+
+    // Create embeddings for chat feature (async, don't block workflow)
+    EmbeddingService.indexRecording(recordingId, projectId, orgCode)
+      .then((result) => {
+        if (result.isOk()) {
+          logger.info("Embeddings created successfully for recording", {
+            component: "ConvertRecordingWorkflow",
+            recordingId,
+          });
+        } else {
+          logger.error("Failed to create embeddings for recording", {
+            component: "ConvertRecordingWorkflow",
+            recordingId,
+            error: result.error,
+          });
+        }
+      })
+      .catch((error) => {
+        logger.error("Error creating embeddings for recording", {
+          component: "ConvertRecordingWorkflow",
+          recordingId,
+          error,
+        });
+      });
 
     // Invalidate React Query caches
     CacheInvalidation.invalidateSummary(recordingId);

@@ -12,7 +12,13 @@ import { TaskCard } from "@/features/tasks/components/task-card";
 import { getAuthSession, getUserSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { DashboardService, TaskService } from "@/server/services";
-import { FolderIcon, ListTodoIcon, MicIcon, PlusIcon } from "lucide-react";
+import {
+  FolderIcon,
+  ListTodoIcon,
+  MicIcon,
+  PlusIcon,
+  Building2,
+} from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -176,6 +182,41 @@ async function DashboardContent() {
             </Card>
           </Link>
         </div>
+
+        {/* Organization Chat Feature */}
+        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Building2 className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <CardTitle className="flex items-center gap-2">
+                  Organization-Wide Chat
+                  <span className="text-xs font-normal bg-primary/10 text-primary px-2 py-1 rounded-full">
+                    New
+                  </span>
+                </CardTitle>
+                <CardDescription>
+                  Search and ask questions across all projects
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Get instant answers from all your recordings, transcriptions, and
+              tasks across the entire organization. Perfect for finding
+              cross-project insights and patterns.
+            </p>
+            <Button asChild className="w-full sm:w-auto">
+              <Link href="/chat">
+                <Building2 className="mr-2 h-4 w-4" />
+                Open Organization Chat
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Recent Tasks Section */}
         {recentTasks.length > 0 && (
