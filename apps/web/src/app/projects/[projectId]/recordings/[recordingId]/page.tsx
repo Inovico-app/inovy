@@ -1,8 +1,16 @@
-import { ArrowLeftIcon, CalendarIcon, ClockIcon, FileIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  CalendarIcon,
+  CheckCircle2Icon,
+  CircleIcon,
+  ClockIcon,
+  FileIcon,
+} from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { Badge } from "../../../../../components/ui/badge";
 import { Button } from "../../../../../components/ui/button";
 import {
   Card,
@@ -10,11 +18,13 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../../../components/ui/card";
+import { ArchiveRecordingDialog } from "../../../../../features/recordings/components/archive-recording-dialog";
+import { DeleteRecordingDialog } from "../../../../../features/recordings/components/delete-recording-dialog";
 import { EditRecordingModal } from "../../../../../features/recordings/components/edit-recording-modal";
 import { ProcessingError } from "../../../../../features/recordings/components/processing-error";
 import { RecordingDetailStatus } from "../../../../../features/recordings/components/recording-detail-status";
-import { ArchiveRecordingDialog } from "../../../../../features/recordings/components/archive-recording-dialog";
-import { DeleteRecordingDialog } from "../../../../../features/recordings/components/delete-recording-dialog";
+import { getCachedSummary } from "../../../../../server/cache/summary.cache";
+import { TasksQueries } from "../../../../../server/data-access/tasks.queries";
 import { ProjectService } from "../../../../../server/services/project.service";
 import { RecordingService } from "../../../../../server/services/recording.service";
 
@@ -25,11 +35,14 @@ interface RecordingDetailPageProps {
 async function RecordingDetail({ params }: RecordingDetailPageProps) {
   const { projectId, recordingId } = await params;
 
-  // Fetch recording and project in parallel
-  const [recordingResult, projectResult] = await Promise.all([
-    RecordingService.getRecordingById(recordingId),
-    ProjectService.getProjectById(projectId),
-  ]);
+  // Fetch recording, project, summary, and tasks in parallel
+  const [recordingResult, projectResult, summary, tasksResult] =
+    await Promise.all([
+      RecordingService.getRecordingById(recordingId),
+      ProjectService.getProjectById(projectId),
+      getCachedSummary(recordingId),
+      TasksQueries.getTasksByRecordingId(recordingId),
+    ]);
 
   if (recordingResult.isErr() || projectResult.isErr()) {
     notFound();
@@ -46,6 +59,8 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
   if (recording.projectId !== projectId) {
     notFound();
   }
+
+  const tasks = tasksResult.isOk() ? tasksResult.value : [];
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", {
@@ -265,31 +280,259 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
           </CardContent>
         </Card>
 
-        {/* AI Insights Placeholder */}
+        {/* AI-Generated Summary */}
         <Card>
           <CardHeader>
             <CardTitle>AI-Generated Summary</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              <p>AI summary will appear here once transcription is complete</p>
-              <p className="text-sm mt-2">Coming soon in a future update</p>
-            </div>
+            {summary ? (
+              <div className="space-y-6">
+                {/* Main Topics */}
+                {summary.content.hoofdonderwerpen &&
+                  summary.content.hoofdonderwerpen.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-sm mb-2">
+                        Main Topics
+                      </h3>
+                      <ul className="space-y-1">
+                        {summary.content.hoofdonderwerpen.map((topic, idx) => (
+                          <li
+                            key={idx}
+                            className="text-sm text-muted-foreground flex items-start gap-2"
+                          >
+                            <span className="text-primary mt-1">•</span>
+                            <span>{topic}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                {/* Decisions */}
+                {summary.content.beslissingen &&
+                  summary.content.beslissingen.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-sm mb-2">Decisions</h3>
+                      <ul className="space-y-1">
+                        {summary.content.beslissingen.map((decision, idx) => (
+                          <li
+                            key={idx}
+                            className="text-sm text-muted-foreground flex items-start gap-2"
+                          >
+                            <CheckCircle2Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                            <span>{decision}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                {/* Speaker Contributions */}
+                {summary.content.sprekersBijdragen &&
+                  summary.content.sprekersBijdragen.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-sm mb-2">
+                        Speaker Contributions
+                      </h3>
+                      <div className="space-y-3">
+                        {summary.content.sprekersBijdragen.map(
+                          (speaker, idx) => (
+                            <div key={idx}>
+                              <p className="font-medium text-sm mb-1">
+                                {speaker.spreker}
+                              </p>
+                              <ul className="space-y-1 ml-4">
+                                {speaker.bijdragen.map((contribution, cIdx) => (
+                                  <li
+                                    key={cIdx}
+                                    className="text-sm text-muted-foreground"
+                                  >
+                                    • {contribution}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                {/* Important Quotes */}
+                {summary.content.belangrijkeQuotes &&
+                  summary.content.belangrijkeQuotes.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-sm mb-2">
+                        Important Quotes
+                      </h3>
+                      <div className="space-y-2">
+                        {summary.content.belangrijkeQuotes.map((quote, idx) => (
+                          <div
+                            key={idx}
+                            className="border-l-2 border-primary pl-3 py-1"
+                          >
+                            <p className="text-sm italic text-muted-foreground">
+                              &quot;{quote.quote}&quot;
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              — {quote.spreker}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                {/* Confidence Score */}
+                {summary.confidence && (
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>AI Confidence:</span>
+                      <Badge variant="outline">
+                        {(summary.confidence * 100).toFixed(0)}%
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : recording.transcriptionStatus === "completed" ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No summary available yet</p>
+                <p className="text-sm mt-2">
+                  Summary generation may still be in progress
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Summary will be generated after transcription completes</p>
+                <p className="text-sm mt-2">
+                  Please wait for the transcription to finish
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Action Items Placeholder */}
+        {/* Extracted Action Items */}
         <Card>
           <CardHeader>
             <CardTitle>Extracted Action Items</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              <p>
-                Action items will appear here once AI processing is complete
-              </p>
-              <p className="text-sm mt-2">Coming soon in a future update</p>
-            </div>
+            {tasks.length > 0 ? (
+              <div className="space-y-4">
+                {tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="border rounded-lg p-4 hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        {task.status === "completed" ? (
+                          <CheckCircle2Icon className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        ) : (
+                          <CircleIcon className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm mb-1">
+                            {task.title}
+                          </h4>
+                          {task.description && (
+                            <p className="text-sm text-muted-foreground mb-2">
+                              {task.description}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {/* Priority Badge */}
+                            <Badge
+                              variant={
+                                task.priority === "urgent"
+                                  ? "destructive"
+                                  : task.priority === "high"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {task.priority}
+                            </Badge>
+
+                            {/* Status Badge */}
+                            <Badge
+                              variant={
+                                task.status === "completed"
+                                  ? "default"
+                                  : "outline"
+                              }
+                            >
+                              {task.status.replace("_", " ")}
+                            </Badge>
+
+                            {/* Assignee */}
+                            {task.assigneeName && (
+                              <span className="text-xs text-muted-foreground">
+                                Assigned to: {task.assigneeName}
+                              </span>
+                            )}
+
+                            {/* Due Date */}
+                            {task.dueDate && (
+                              <span className="text-xs text-muted-foreground">
+                                Due:{" "}
+                                {new Date(task.dueDate).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  }
+                                )}
+                              </span>
+                            )}
+
+                            {/* Meeting Timestamp */}
+                            {task.meetingTimestamp !== null &&
+                              task.meetingTimestamp !== undefined && (
+                                <span className="text-xs text-muted-foreground">
+                                  at {Math.floor(task.meetingTimestamp / 60)}:
+                                  {String(task.meetingTimestamp % 60).padStart(
+                                    2,
+                                    "0"
+                                  )}
+                                </span>
+                              )}
+
+                            {/* Confidence Score */}
+                            {task.confidenceScore && (
+                              <Badge variant="outline" className="text-xs">
+                                {(task.confidenceScore * 100).toFixed(0)}%
+                                confidence
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : recording.transcriptionStatus === "completed" ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No action items extracted yet</p>
+                <p className="text-sm mt-2">
+                  Task extraction may still be in progress
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>
+                  Action items will be extracted after transcription completes
+                </p>
+                <p className="text-sm mt-2">
+                  Please wait for the transcription to finish
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
