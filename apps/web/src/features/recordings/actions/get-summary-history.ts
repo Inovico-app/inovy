@@ -1,0 +1,24 @@
+"use server";
+
+import { authorizedActionClient } from "@/lib/action-client";
+import { SummaryEditService } from "@/server/services/summary-edit.service";
+import { z } from "zod";
+
+/**
+ * Server action to get summary version history
+ */
+export const getSummaryHistory = authorizedActionClient
+  .metadata({ policy: "recordings:read" })
+  .schema(z.object({ recordingId: z.string().uuid() }))
+  .action(async ({ parsedInput }) => {
+    const result = await SummaryEditService.getSummaryHistory(
+      parsedInput.recordingId
+    );
+    
+    if (result.isErr()) {
+      throw new Error(result.error.message);
+    }
+    
+    return result.value;
+  });
+

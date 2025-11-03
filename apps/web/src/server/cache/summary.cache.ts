@@ -23,6 +23,9 @@ export interface SummaryContent {
 export interface SummaryResult {
   content: SummaryContent;
   confidence: number;
+  isManuallyEdited?: boolean;
+  lastEditedById?: string | null;
+  lastEditedAt?: Date | null;
 }
 
 /**
@@ -50,6 +53,9 @@ export async function getCachedSummary(
     return {
       content: insight.content as unknown as SummaryContent,
       confidence: insight.confidenceScore ?? 0.85,
+      isManuallyEdited: insight.isManuallyEdited,
+      lastEditedById: insight.lastEditedById,
+      lastEditedAt: insight.lastEditedAt,
     };
   }
 
