@@ -5,9 +5,9 @@ export const chatConversations = pgTable(
   "chat_conversations",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    projectId: uuid("project_id")
-      .notNull()
-      .references(() => projects.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "cascade",
+    }), // Made nullable for organization-level conversations
     userId: text("user_id").notNull(), // Kinde user ID
     organizationId: text("organization_id").notNull(), // Kinde organization code
     title: text("title"), // Optional title, auto-generated from first message
@@ -23,6 +23,9 @@ export const chatConversations = pgTable(
       table.projectId
     ),
     userIdIdx: index("chat_conversations_user_id_idx").on(table.userId),
+    organizationIdIdx: index("chat_conversations_organization_id_idx").on(
+      table.organizationId
+    ),
   })
 );
 

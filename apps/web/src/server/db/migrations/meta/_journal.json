@@ -36,6 +36,13 @@
       "when": 1762193410761,
       "tag": "0009_add_chat_schema_and_pgvector",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1762202193329,
+      "tag": "0010_parched_rattler",
+      "breakpoints": true
     }
   ]
 }

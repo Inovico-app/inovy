@@ -7,7 +7,7 @@ import {
   type ChatConversation,
   type ChatMessage,
 } from "@/server/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 
 export class ChatQueries {
@@ -73,6 +73,35 @@ export class ChatQueries {
       logger.error("Error getting conversations by project", {
         error,
         projectId,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get conversations by organization ID (for organization-level chatbot)
+   */
+  static async getConversationsByOrganizationId(
+    organizationId: string,
+    userId: string
+  ): Promise<ChatConversation[]> {
+    try {
+      return await db
+        .select()
+        .from(chatConversations)
+        .where(
+          and(
+            eq(chatConversations.organizationId, organizationId),
+            eq(chatConversations.userId, userId),
+            sql`${chatConversations.projectId} IS NULL` // Only organization-level conversations
+          )
+        )
+        .orderBy(desc(chatConversations.updatedAt));
+    } catch (error) {
+      logger.error("Error getting conversations by organization", {
+        error,
+        organizationId,
         userId,
       });
       throw error;

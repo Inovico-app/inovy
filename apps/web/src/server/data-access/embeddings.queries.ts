@@ -80,19 +80,102 @@ export class EmbeddingsQueries {
         `
       );
 
-      return results.rows.map((row: any) => ({
-        id: row.id,
-        projectId: row.project_id,
-        contentType: row.content_type,
-        contentId: row.content_id,
-        contentText: row.content_text,
-        metadata: row.metadata,
-        similarity: parseFloat(row.similarity),
+      return results.rows.map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        projectId: row.project_id as string,
+        contentType: row.content_type as string,
+        contentId: row.content_id as string,
+        contentText: row.content_text as string,
+        metadata: row.metadata as Record<string, unknown> | null,
+        similarity: parseFloat(row.similarity as string),
       }));
     } catch (error) {
       logger.error("Error searching similar embeddings", {
         error,
         projectId,
+        options,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Search for similar embeddings across all projects in an organization
+   * Uses vector similarity without project filtering
+   */
+  static async searchSimilarOrganizationWide(
+    queryEmbedding: number[],
+    organizationId: string,
+    options: {
+      matchThreshold?: number;
+      matchCount?: number;
+    } = {}
+  ): Promise<
+    Array<{
+      id: string;
+      projectId: string;
+      contentType: string;
+      contentId: string;
+      contentText: string;
+      metadata: Record<string, unknown> | null;
+      similarity: number;
+    }>
+  > {
+    const { matchThreshold = 0.5, matchCount = 15 } = options;
+
+    try {
+      // Convert JavaScript array to PostgreSQL vector format
+      const vectorString = `[${queryEmbedding.join(",")}]`;
+
+      // First, get all project IDs for the organization
+      const projectsResult = await db.execute(
+        sql`
+          SELECT id FROM projects 
+          WHERE organization_id = ${organizationId} 
+          AND archived_at IS NULL
+        `
+      );
+
+      const projectIds = projectsResult.rows.map(
+        (row: Record<string, unknown>) => row.id as string
+      );
+
+      if (projectIds.length === 0) {
+        return [];
+      }
+
+      // Search across all organization projects using vector similarity
+      const results = await db.execute(
+        sql`
+          SELECT 
+            ce.id,
+            ce.project_id,
+            ce.content_type,
+            ce.content_id,
+            ce.content_text,
+            ce.metadata,
+            1 - (ce.embedding <=> ${vectorString}::vector(1536)) as similarity
+          FROM chat_embeddings ce
+          WHERE ce.project_id = ANY(${projectIds}::uuid[])
+          AND 1 - (ce.embedding <=> ${vectorString}::vector(1536)) > ${matchThreshold}
+          ORDER BY ce.embedding <=> ${vectorString}::vector(1536)
+          LIMIT ${matchCount}
+        `
+      );
+
+      return results.rows.map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        projectId: row.project_id as string,
+        contentType: row.content_type as string,
+        contentId: row.content_id as string,
+        contentText: row.content_text as string,
+        metadata: row.metadata as Record<string, unknown> | null,
+        similarity: parseFloat(row.similarity as string),
+      }));
+    } catch (error) {
+      logger.error("Error searching similar embeddings organization-wide", {
+        error,
+        organizationId,
         options,
       });
       throw error;

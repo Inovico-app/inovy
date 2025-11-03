@@ -1,7 +1,6 @@
 import { logger } from "@/lib/logger";
 import { EmbeddingsQueries } from "@/server/data-access/embeddings.queries";
 import { EmbeddingService } from "./embedding.service";
-import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { err, ok, type Result } from "neverthrow";
 
 export interface SearchResult {
@@ -224,6 +223,133 @@ export class VectorSearchService {
       return ok({ context, sources });
     } catch (error) {
       logger.error("Error getting relevant context", { error, query, projectId });
+      return err(
+        error instanceof Error ? error : new Error("Unknown error")
+      );
+    }
+  }
+
+  /**
+   * Search for relevant content across all projects in an organization
+   */
+  static async searchOrganizationWide(
+    query: string,
+    organizationId: string,
+    options: {
+      matchThreshold?: number;
+      matchCount?: number;
+    } = {}
+  ): Promise<Result<SearchResult[], Error>> {
+    try {
+      logger.info("Performing organization-wide vector search", {
+        query,
+        organizationId,
+        options,
+      });
+
+      // Generate embedding for the query
+      const queryEmbeddingResult =
+        await EmbeddingService.generateEmbedding(query);
+
+      if (queryEmbeddingResult.isErr()) {
+        return err(queryEmbeddingResult.error);
+      }
+
+      const queryEmbedding = queryEmbeddingResult.value;
+
+      // Search for similar embeddings across organization
+      const results = await EmbeddingsQueries.searchSimilarOrganizationWide(
+        queryEmbedding,
+        organizationId,
+        {
+          matchThreshold: options.matchThreshold || 0.5,
+          matchCount: options.matchCount || 15,
+        }
+      );
+
+      // Transform results
+      const searchResults: SearchResult[] = results.map((result) => ({
+        id: result.id,
+        contentType: result.contentType as SearchResult["contentType"],
+        contentId: result.contentId,
+        contentText: result.contentText,
+        similarity: result.similarity,
+        metadata: (result.metadata as SearchResult["metadata"]) || {},
+      }));
+
+      logger.info("Organization-wide vector search completed", {
+        query,
+        organizationId,
+        resultsCount: searchResults.length,
+      });
+
+      return ok(searchResults);
+    } catch (error) {
+      logger.error("Error performing organization-wide vector search", {
+        error,
+        query,
+        organizationId,
+      });
+      return err(
+        error instanceof Error ? error : new Error("Unknown error")
+      );
+    }
+  }
+
+  /**
+   * Get relevant context for a user query across organization
+   */
+  static async getRelevantContextOrganizationWide(
+    query: string,
+    organizationId: string
+  ): Promise<
+    Result<
+      {
+        context: string;
+        sources: Array<{
+          contentId: string;
+          contentType: "recording" | "transcription" | "summary" | "task";
+          title: string;
+          excerpt: string;
+          similarityScore: number;
+          recordingId?: string;
+          timestamp?: number;
+          projectId?: string;
+        }>;
+      },
+      Error
+    >
+  > {
+    try {
+      const searchResult = await this.searchOrganizationWide(
+        query,
+        organizationId,
+        {
+          matchThreshold: 0.6, // Higher threshold for better relevance
+          matchCount: 12, // Get more results for org-wide search
+        }
+      );
+
+      if (searchResult.isErr()) {
+        return err(searchResult.error);
+      }
+
+      const results = searchResult.value;
+
+      const context = this.buildContextFromResults(results);
+      const sources = this.formatSourceCitations(results).map((source) => ({
+        ...source,
+        projectId: results.find((r) => r.contentId === source.contentId)
+          ?.metadata.projectId as string | undefined,
+      }));
+
+      return ok({ context, sources });
+    } catch (error) {
+      logger.error("Error getting organization-wide relevant context", {
+        error,
+        query,
+        organizationId,
+      });
       return err(
         error instanceof Error ? error : new Error("Unknown error")
       );
