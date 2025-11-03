@@ -23,6 +23,8 @@ import { EditRecordingModal } from "../../../../../features/recordings/component
 import { EditSummaryDialog } from "../../../../../features/recordings/components/edit-summary-dialog";
 import { SummaryVersionHistoryDialog } from "../../../../../features/recordings/components/summary-version-history-dialog";
 import { RecordingDetailStatus } from "../../../../../features/recordings/components/recording-detail-status";
+import { ReprocessButton } from "../../../../../features/recordings/components/reprocess-button";
+import { ReprocessingStatusIndicator } from "../../../../../features/recordings/components/reprocessing-status-indicator";
 import { TranscriptionSection } from "../../../../../features/recordings/components/transcription-section";
 import { TaskCard } from "../../../../../features/tasks/components/task-card-with-edit";
 import { getCachedSummary } from "../../../../../server/cache/summary.cache";
@@ -138,10 +140,16 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
               </p>
             )}
           </div>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap">
             <RecordingDetailStatus
               recordingId={recording.id}
               initialStatus={recording.transcriptionStatus}
+            />
+            <ReprocessButton
+              recordingId={recording.id}
+              recordingTitle={recording.title}
+              workflowStatus={recording.workflowStatus}
+              isArchived={recording.status === "archived"}
             />
             <EditRecordingModal recording={recording} />
             <ArchiveRecordingDialog
@@ -156,6 +164,12 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
             />
           </div>
         </div>
+
+        {/* Reprocessing Status Indicator */}
+        <ReprocessingStatusIndicator
+          recordingId={recording.id}
+          initialWorkflowStatus={recording.workflowStatus}
+        />
 
         {/* Metadata */}
         <Card>

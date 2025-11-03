@@ -231,6 +231,8 @@ export async function updateRecording(
       | "workflowStatus"
       | "workflowError"
       | "workflowRetryCount"
+      | "lastReprocessedAt"
+      | "reprocessingTriggeredById"
       | "title"
       | "description"
       | "recordingDate"

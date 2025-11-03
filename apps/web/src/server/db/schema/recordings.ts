@@ -62,6 +62,8 @@ export const recordings = pgTable("recordings", {
     .default("idle"),
   workflowError: text("workflow_error"),
   workflowRetryCount: integer("workflow_retry_count").notNull().default(0),
+  lastReprocessedAt: timestamp("last_reprocessed_at", { withTimezone: true }),
+  reprocessingTriggeredById: text("reprocessing_triggered_by_id"), // Kinde user ID
   organizationId: text("organization_id").notNull(), // Kinde organization code
   createdById: text("created_by_id").notNull(), // Kinde user ID
   createdAt: timestamp("created_at", { withTimezone: true })
