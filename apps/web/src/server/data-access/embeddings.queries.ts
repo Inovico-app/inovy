@@ -1,7 +1,7 @@
+import { logger } from "@/lib/logger";
 import { db } from "@/server/db";
 import { chatEmbeddings, type NewChatEmbedding } from "@/server/db/schema";
-import { eq, and, sql } from "drizzle-orm";
-import { logger } from "@/lib/logger";
+import { and, eq, sql } from "drizzle-orm";
 
 export class EmbeddingsQueries {
   /**

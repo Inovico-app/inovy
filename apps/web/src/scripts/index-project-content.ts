@@ -1,16 +1,19 @@
 /**
  * Script to index existing project content into vector embeddings
- * 
+ *
+ * CRITICAL: This script must be run with --env-file flag to load environment variables
+ * BEFORE the script starts, because the database connection is initialized at module import time.
+ *
  * Usage:
- * - Set PROJECT_ID and ORGANIZATION_ID environment variables
- * - Run: tsx src/scripts/index-project-content.ts
+ *   PROJECT_ID=xxx ORGANIZATION_ID=yyy npx tsx --env-file=.env.local src/scripts/index-project-content.ts
+ *
+ * Or use the npm script:
+ *   pnpm run index-project
+ *   (Make sure to set PROJECT_ID and ORGANIZATION_ID in your .env.local file first)
  */
 
-import { EmbeddingService } from "@/server/services/embedding.service";
 import { logger } from "@/lib/logger";
-import dotenv from "dotenv";
-
-dotenv.config({ path: ".env.local" });
+import { EmbeddingService } from "@/server/services/embedding.service";
 
 async function main() {
   const projectId = process.env.PROJECT_ID;
@@ -18,7 +21,9 @@ async function main() {
 
   if (!projectId || !organizationId) {
     console.error("Error: PROJECT_ID and ORGANIZATION_ID must be set");
-    console.error("Usage: PROJECT_ID=xxx ORGANIZATION_ID=yyy tsx src/scripts/index-project-content.ts");
+    console.error(
+      "Usage: PROJECT_ID=xxx ORGANIZATION_ID=yyy tsx src/scripts/index-project-content.ts"
+    );
     process.exit(1);
   }
 
