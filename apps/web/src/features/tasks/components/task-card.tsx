@@ -11,10 +11,12 @@ import {
   FolderIcon,
   MicIcon,
   PlayCircle,
+  Edit,
 } from "lucide-react";
 import type { Task } from "@/server/db/schema";
 import type { TaskWithContextDto } from "@/server/dto";
 import Link from "next/link";
+import { TaskEditDialog } from "./task-edit-dialog";
 
 interface TaskCardProps {
   task: Task | TaskWithContextDto;
@@ -82,21 +84,35 @@ export function TaskCard({ task, onStatusChange, showContext = false }: TaskCard
 
           {/* Task content */}
           <div className="flex-1 space-y-2">
-            {/* Title and priority */}
+            {/* Title, priority, and edit button */}
             <div className="flex items-start justify-between gap-2">
-              <h3
-                className={`text-sm font-medium leading-tight ${
-                  task.status === "completed" ? "line-through" : ""
-                }`}
-              >
-                {task.title}
-              </h3>
-              <Badge
-                variant="outline"
-                className={`shrink-0 ${priorityColors[task.priority]}`}
-              >
-                {priorityLabels[task.priority]}
-              </Badge>
+              <div className="flex-1 flex items-start gap-2">
+                <h3
+                  className={`text-sm font-medium leading-tight ${
+                    task.status === "completed" ? "line-through" : ""
+                  }`}
+                >
+                  {task.title}
+                </h3>
+                {task.isManuallyEdited === "true" && (
+                  <Badge variant="secondary" className="text-xs">
+                    Bewerkt
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Badge
+                  variant="outline"
+                  className={priorityColors[task.priority]}
+                >
+                  {priorityLabels[task.priority]}
+                </Badge>
+                <TaskEditDialog task={task} trigger={
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                    <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                } />
+              </div>
             </div>
 
             {/* Description */}

@@ -34,6 +34,12 @@ export const tasks = pgTable("tasks", {
   meetingTimestamp: integer("meeting_timestamp"), // Timestamp in recording (seconds)
   organizationId: text("organization_id").notNull(), // Kinde organization code
   createdById: text("created_by_id").notNull(), // Kinde user ID who created (or AI)
+  isManuallyEdited: text("is_manually_edited")
+    .notNull()
+    .default("false")
+    .$type<"true" | "false">(), // Track if task has been manually edited
+  lastEditedAt: timestamp("last_edited_at", { withTimezone: true }), // Last manual edit timestamp
+  lastEditedById: text("last_edited_by_id"), // Kinde user ID who last edited
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
