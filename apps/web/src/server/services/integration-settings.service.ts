@@ -1,5 +1,5 @@
 import { type Result, err, ok } from "neverthrow";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { db } from "../db";
 import { integrationSettings, type IntegrationSettings } from "../db/schema";
 import { logger } from "../../lib/logger";
@@ -45,7 +45,7 @@ export class IntegrationSettingsService {
           and(
             eq(integrationSettings.userId, userId),
             eq(integrationSettings.provider, provider),
-            eq(integrationSettings.projectId, null)
+            isNull(integrationSettings.projectId)
           )
         )
         .limit(1);
@@ -160,7 +160,7 @@ export class IntegrationSettingsService {
             eq(integrationSettings.provider, provider),
             projectId
               ? eq(integrationSettings.projectId, projectId)
-              : eq(integrationSettings.projectId, null)
+              : isNull(integrationSettings.projectId)
           )
         );
 

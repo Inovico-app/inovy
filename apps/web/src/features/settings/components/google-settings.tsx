@@ -89,7 +89,7 @@ export function GoogleSettings({ projectId }: GoogleSettingsProps) {
     setSaving(true);
 
     // Build priority filter array
-    const priorities: string[] = [];
+    const priorities: Array<"low" | "medium" | "high" | "urgent"> = [];
     if (priorityFilter.low) priorities.push("low");
     if (priorityFilter.medium) priorities.push("medium");
     if (priorityFilter.high) priorities.push("high");

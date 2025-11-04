@@ -1,11 +1,11 @@
-import { type Result, err, ok } from "neverthrow";
 import { google } from "googleapis";
-import { GoogleOAuthService } from "./google-oauth.service";
+import { type Result, err, ok } from "neverthrow";
 import { createGoogleOAuthClient } from "../../lib/google-oauth";
 import { logger } from "../../lib/logger";
 import { db } from "../db";
-import { autoActions } from "../db/schema";
 import type { Task } from "../db/schema";
+import { autoActions } from "../db/schema";
+import { GoogleOAuthService } from "./google-oauth.service";
 
 /**
  * Google Calendar Service
@@ -70,7 +70,12 @@ export class GoogleCalendarService {
           dateTime: endDate.toISOString(),
           timeZone: "UTC",
         },
-        colorId: task.priority === "urgent" ? "11" : task.priority === "high" ? "9" : undefined, // Red for urgent, blue for high
+        colorId:
+          task.priority === "urgent"
+            ? "11"
+            : task.priority === "high"
+            ? "9"
+            : undefined, // Red for urgent, blue for high
       };
 
       const response = await calendar.events.insert({
@@ -143,7 +148,11 @@ export class GoogleCalendarService {
   ): Promise<
     Result<
       {
-        successful: Array<{ taskId: string; eventId: string; eventUrl: string }>;
+        successful: Array<{
+          taskId: string;
+          eventId: string;
+          eventUrl: string;
+        }>;
         failed: Array<{ taskId: string; error: string }>;
       },
       string
@@ -151,7 +160,11 @@ export class GoogleCalendarService {
   > {
     try {
       const results = {
-        successful: [] as Array<{ taskId: string; eventId: string; eventUrl: string }>,
+        successful: [] as Array<{
+          taskId: string;
+          eventId: string;
+          eventUrl: string;
+        }>,
         failed: [] as Array<{ taskId: string; error: string }>,
       };
 

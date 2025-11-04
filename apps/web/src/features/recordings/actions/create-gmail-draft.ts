@@ -6,8 +6,8 @@ import { logger } from "@/lib/logger";
 import { GoogleGmailService } from "@/server/services/google-gmail.service";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { db } from "@/server/db";
-import { recordings } from "@/server/db/schema";
-import { eq } from "drizzle-orm";
+import { recordings, aiInsights } from "@/server/db/schema";
+import { eq, and } from "drizzle-orm";
 
 const createGmailDraftSchema = z.object({
   recordingId: z.string().uuid(),
@@ -87,13 +87,28 @@ export async function createGmailDraft(
       };
     }
 
-    // Check if recording has a summary
-    if (!recording.summary) {
+    // Get the summary from ai_insights
+    const [summaryInsight] = await db
+      .select()
+      .from(aiInsights)
+      .where(
+        and(
+          eq(aiInsights.recordingId, recording.id),
+          eq(aiInsights.insightType, "summary")
+        )
+      )
+      .limit(1);
+
+    if (!summaryInsight || !summaryInsight.content) {
       return {
         success: false,
         error: "Recording does not have a summary yet",
       };
     }
+
+    const summaryText = typeof summaryInsight.content === 'string' 
+      ? summaryInsight.content 
+      : JSON.stringify(summaryInsight.content);
 
     logger.info("Creating Gmail draft from recording", {
       userId: user.id,
@@ -104,6 +119,7 @@ export async function createGmailDraft(
     const result = await GoogleGmailService.createDraftFromSummary(
       user.id,
       recording,
+      summaryText,
       {
         subject: validatedData.subject,
         additionalContent: validatedData.additionalContent,

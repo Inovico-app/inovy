@@ -27,7 +27,7 @@ export async function getRecentAutoActions(
 > {
   const limit = options?.limit || 50;
 
-  let query = db
+  const query = db
     .select({
       action: autoActions,
       recordingTitle: recordings.title,

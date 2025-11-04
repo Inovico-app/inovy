@@ -18,6 +18,7 @@ export class GoogleGmailService {
   static async createDraftFromSummary(
     userId: string,
     recording: Recording,
+    summary: string,
     options?: {
       subject?: string;
       additionalContent?: string;
@@ -66,11 +67,11 @@ export class GoogleGmailService {
       htmlBody += "</div>";
 
       // Add summary content
-      if (recording.summary) {
+      if (summary) {
         htmlBody += "<div style='margin-bottom: 20px;'>";
         htmlBody += "<h3>Summary</h3>";
         // Convert plain text summary to HTML paragraphs
-        const summaryParagraphs = recording.summary
+        const summaryParagraphs = summary
           .split("\n\n")
           .map((p) => `<p>${p.trim()}</p>`)
           .join("");

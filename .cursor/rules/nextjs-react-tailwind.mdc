@@ -44,7 +44,7 @@ Before responding to any request, follow these steps:
 - Follow DRY (Don't Repeat Yourself) principle
 - Implement early returns for better readability
 - Structure components logically: exports, subcomponents, helpers, types
-- Use LF line endings insteead of CRLF
+- Use LF line endings instead of CRLF
 
 ### Naming Conventions
 
@@ -136,4 +136,9 @@ const searchParams = await props.searchParams;
 - ALWAYS check if there are any best practices violations in the code after you are done with the code.
 - ALWAYS check if there are any code smells in the code after you are done with the code.
 - ALWAYS check if there are any code smells in the code after you are done with the code.
+
+## Database
+
+- If the project is using Drizzle ORM, use the Drizzle ORM schema to generate the database schema.
+- When creating a new database schema, make sure to name the migration file with a descriptive name.
 
