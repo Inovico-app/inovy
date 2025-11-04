@@ -32,7 +32,9 @@ export { generateApplicationErrorMessage } from "./error-messages";
 
 // RBAC exports
 export {
+  canAccessOrganizationChat,
   getUserPolicies,
+  isOrganizationAdmin,
   POLICIES,
   POLICY_KEYS,
   ROLES,
@@ -45,7 +47,12 @@ export {
 } from "./rbac";
 
 // Auth exports (re-export from existing auth module)
-export { getAuthSession, getUserSession, type AuthUser } from "./auth";
+export {
+  getAuthSession,
+  getAuthSessionWithRoles,
+  getUserSession,
+  type AuthUser,
+} from "./auth";
 
 // Logger export (re-export from existing logger)
 export { logger } from "./logger";

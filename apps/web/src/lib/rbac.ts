@@ -39,6 +39,10 @@ export const POLICIES = {
   "users:update": "users:update",
   "users:delete": "users:delete",
 
+  // Chat management
+  "chat:project": "chat:project",
+  "chat:organization": "chat:organization",
+
   // Admin actions
   "admin:all": "admin:all",
 } as const;
@@ -83,6 +87,8 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "users:read",
     "users:update",
     "users:delete",
+    "chat:project",
+    "chat:organization",
     "admin:all",
   ],
   [ROLES.MANAGER]: [
@@ -101,6 +107,7 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "organizations:read",
     "organizations:update",
     "users:read",
+    "chat:project",
   ],
   [ROLES.USER]: [
     "projects:create",
@@ -113,12 +120,14 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "tasks:read",
     "tasks:update",
     "users:read",
+    "chat:project",
   ],
   [ROLES.VIEWER]: [
     "projects:read",
     "recordings:read",
     "tasks:read",
     "users:read",
+    "chat:project",
   ],
 };
 
@@ -133,13 +142,11 @@ export interface SessionWithRoles {
 }
 
 /**
- * Get user roles from Kinde (you may need to adjust this based on your Kinde setup)
- * This is a placeholder - you'll need to implement based on how Kinde provides roles
+ * Get user roles from AuthUser
+ * Returns roles from user object or defaults to USER
  */
 function getUserRoles(user: AuthUser): Role[] {
-  // For now, return a default role - you'll need to implement this based on Kinde
-  // This could come from Kinde permissions, custom claims, or database lookup
-  return [ROLES.USER];
+  return user.roles ?? [ROLES.USER];
 }
 
 /**
@@ -149,7 +156,7 @@ export function userIsAuthorized(
   session: SessionWithRoles,
   policy: PolicyKey
 ): { isAuthorized: boolean; requiredRoles: Role[] } {
-  const userRoles = session.user.roles || getUserRoles(session.user);
+  const userRoles = session.user.roles ?? getUserRoles(session.user);
 
   // Find which roles have access to this policy
   const requiredRoles = Object.entries(ROLE_POLICIES)
@@ -168,7 +175,7 @@ export function userIsAuthorized(
  * Check if a user has a specific role
  */
 export function userHasRole(session: SessionWithRoles, role: Role): boolean {
-  const userRoles = session.user.roles || getUserRoles(session.user);
+  const userRoles = session.user.roles ?? getUserRoles(session.user);
   return userRoles.includes(role);
 }
 
@@ -179,7 +186,7 @@ export function userHasAnyRole(
   session: SessionWithRoles,
   roles: Role[]
 ): boolean {
-  const userRoles = session.user.roles || getUserRoles(session.user);
+  const userRoles = session.user.roles ?? getUserRoles(session.user);
   return roles.some((role) => userRoles.includes(role));
 }
 
@@ -187,15 +194,35 @@ export function userHasAnyRole(
  * Get all policies a user has access to
  */
 export function getUserPolicies(session: SessionWithRoles): PolicyKey[] {
-  const userRoles = session.user.roles || getUserRoles(session.user);
+  const userRoles = session.user.roles ?? getUserRoles(session.user);
 
   const policies = new Set<PolicyKey>();
 
   userRoles.forEach((role) => {
-    const rolePolicies = ROLE_POLICIES[role] || [];
+    const rolePolicies = ROLE_POLICIES[role] ?? [];
     rolePolicies.forEach((policy) => policies.add(policy));
   });
 
   return Array.from(policies);
+}
+
+/**
+ * Check if a user is an organization admin
+ * This is a convenience method that checks if the user has the ADMIN role
+ */
+export function isOrganizationAdmin(
+  user: AuthUser | (AuthUser & { roles: Role[] })
+): boolean {
+  const roles = user.roles ?? getUserRoles(user);
+  return roles.includes(ROLES.ADMIN);
+}
+
+/**
+ * Check if a user can access organization-level chat
+ */
+export function canAccessOrganizationChat(
+  user: AuthUser | (AuthUser & { roles: Role[] })
+): boolean {
+  return isOrganizationAdmin(user);
 }
 

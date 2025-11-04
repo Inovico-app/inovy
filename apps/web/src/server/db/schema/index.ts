@@ -11,4 +11,5 @@ export * from "./reprocessing-history";
 export * from "./chat-embeddings";
 export * from "./chat-conversations";
 export * from "./chat-messages";
+export * from "./chat-audit-log";
 
