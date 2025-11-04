@@ -1,6 +1,7 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
-import { OAuth2Client } from "google-auth-library";
 import { google } from "googleapis";
+
+type OAuth2Client = InstanceType<typeof google.auth.OAuth2>;
 
 /**
  * Google OAuth Configuration
