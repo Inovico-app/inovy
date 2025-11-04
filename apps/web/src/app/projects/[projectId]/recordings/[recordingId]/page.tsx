@@ -26,6 +26,7 @@ import { RecordingDetailStatus } from "../../../../../features/recordings/compon
 import { ReprocessButton } from "../../../../../features/recordings/components/reprocess-button";
 import { ReprocessingStatusIndicator } from "../../../../../features/recordings/components/reprocessing-status-indicator";
 import { TranscriptionSection } from "../../../../../features/recordings/components/transcription-section";
+import { RecordingPlayerWrapper } from "../../../../../features/recordings/components/recording-player-wrapper";
 import { TaskCard } from "../../../../../features/tasks/components/task-card-with-edit";
 import { getCachedSummary } from "../../../../../server/cache/summary.cache";
 import { TasksQueries } from "../../../../../server/data-access/tasks.queries";
@@ -213,50 +214,19 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
         </Card>
 
         {/* Media Player */}
-        <Card>
+        <Card id="player">
           <CardHeader>
             <CardTitle>Playback</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="w-full">
-              {isVideo && (
-                <video
-                  controls
-                  className="w-full rounded-lg"
-                  preload="metadata"
-                  controlsList="nodownload"
-                >
-                  <source
-                    src={recording.fileUrl}
-                    type={recording.fileMimeType}
-                  />
-                  Your browser does not support the video player.
-                </video>
-              )}
-              {isAudio && (
-                <audio
-                  controls
-                  className="w-full"
-                  preload="metadata"
-                  controlsList="nodownload"
-                >
-                  <source
-                    src={recording.fileUrl}
-                    type={recording.fileMimeType}
-                  />
-                  Your browser does not support the audio player.
-                </audio>
-              )}
-              {!isVideo && !isAudio && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Playback not supported for this file type</p>
-                  <Button variant="outline" className="mt-4" asChild>
-                    <a href={recording.fileUrl} download={recording.fileName}>
-                      Download File
-                    </a>
-                  </Button>
-                </div>
-              )}
+              <RecordingPlayerWrapper
+                fileUrl={recording.fileUrl}
+                fileMimeType={recording.fileMimeType}
+                fileName={recording.fileName}
+                isVideo={isVideo}
+                isAudio={isAudio}
+              />
             </div>
           </CardContent>
         </Card>

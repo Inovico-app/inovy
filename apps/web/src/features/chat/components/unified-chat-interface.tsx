@@ -20,7 +20,6 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import {
-  Source,
   Sources,
   SourcesContent,
   SourcesTrigger,
@@ -30,9 +29,11 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { Building2, FolderOpen } from "lucide-react";
 import { useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChatContextSelector } from "./chat-context-selector";
+import { CitationMarker } from "./citation-marker";
 import { ContextSwitchDialog } from "./context-switch-dialog";
+import { EnhancedSourceCard } from "./enhanced-source-card";
 
 interface SourceReference {
   contentId: string;
@@ -41,6 +42,9 @@ interface SourceReference {
   excerpt: string;
   similarityScore: number;
   recordingId?: string;
+  timestamp?: number;
+  recordingDate?: string;
+  projectName?: string;
   projectId?: string;
 }
 
@@ -113,6 +117,9 @@ export function UnifiedChatInterface({
     Record<string, SourceReference[]>
   >({});
 
+  // Refs for source cards to enable scrolling
+  const sourceRefsMap = useRef<Record<string, Record<number, HTMLDivElement | null>>>({});
+
   // Extract sources from message metadata
   useEffect(() => {
     const newSourcesMap: Record<string, SourceReference[]> = {};
@@ -128,6 +135,56 @@ export function UnifiedChatInterface({
 
     setMessageSourcesMap(newSourcesMap);
   }, [messages]);
+
+  // Parse text for inline citations and replace with CitationMarker components
+  const parseCitations = (text: string, messageId: string) => {
+    const citationRegex = /\[(\d+)\]/g;
+    const parts: (string | React.ReactElement)[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = citationRegex.exec(text)) !== null) {
+      // Add text before citation
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+
+      // Add citation marker
+      const citationNumber = parseInt(match[1] || "0", 10);
+      parts.push(
+        <CitationMarker
+          key={`${messageId}-citation-${match.index}`}
+          citationNumber={citationNumber}
+          onClick={() => scrollToSource(messageId, citationNumber - 1)}
+        />
+      );
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts;
+  };
+
+  // Scroll to a specific source card
+  const scrollToSource = (messageId: string, sourceIndex: number) => {
+    const sourceRef = sourceRefsMap.current[messageId]?.[sourceIndex];
+    if (sourceRef) {
+      sourceRef.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+      // Briefly highlight the source
+      sourceRef.classList.add("ring-2", "ring-primary");
+      setTimeout(() => {
+        sourceRef.classList.remove("ring-2", "ring-primary");
+      }, 2000);
+    }
+  };
 
   // Reset conversation when context changes
   useEffect(() => {
@@ -281,79 +338,87 @@ export function UnifiedChatInterface({
               getEmptyStateContent()
             ) : (
               <>
-                {messages.map((message) => (
-                  <Message key={message.id} from={message.role}>
-                    <MessageAvatar
-                      src={
-                        message.role === "user"
-                          ? "/placeholder-user.png"
-                          : "/placeholder-assistant.png"
-                      }
-                      name={message.role === "user" ? "Me" : "AI"}
-                    />
-                    <MessageContent>
-                      <div className="whitespace-pre-wrap break-words">
-                        {message.parts.map((part, index) =>
-                          part.type === "text" ? (
-                            <span key={index}>{part.text}</span>
-                          ) : null
-                        )}
-                      </div>
+                {messages.map((message) => {
+                  // Initialize source refs for this message if needed
+                  if (!sourceRefsMap.current[message.id]) {
+                    sourceRefsMap.current[message.id] = {};
+                  }
 
-                      {/* Show sources for assistant messages */}
-                      {message.role === "assistant" &&
-                        messageSourcesMap[message.id]?.length > 0 && (
-                          <Sources>
-                            <SourcesTrigger
-                              count={messageSourcesMap[message.id].length}
-                            />
-                            <SourcesContent>
-                              {messageSourcesMap[message.id].map(
-                                (source, index) => {
-                                  // For organization context, use source.projectId
-                                  // For project context, use projectId from query state
-                                  const targetProjectId =
-                                    context === "organization"
-                                      ? source.projectId
-                                      : projectId;
+                  return (
+                    <Message key={message.id} from={message.role}>
+                      <MessageAvatar
+                        src={
+                          message.role === "user"
+                            ? "/placeholder-user.png"
+                            : "/placeholder-assistant.png"
+                        }
+                        name={message.role === "user" ? "Me" : "AI"}
+                      />
+                      <MessageContent>
+                        <div className="whitespace-pre-wrap break-words">
+                          {message.parts.map((part, index) => {
+                            if (part.type === "text") {
+                              // Parse citations for assistant messages
+                              if (message.role === "assistant") {
+                                const parsedContent = parseCitations(
+                                  part.text || "",
+                                  message.id
+                                );
+                                return (
+                                  <span key={index}>
+                                    {parsedContent.map((element, i) => (
+                                      <span key={i}>{element}</span>
+                                    ))}
+                                  </span>
+                                );
+                              }
+                              return <span key={index}>{part.text}</span>;
+                            }
+                            return null;
+                          })}
+                        </div>
 
-                                  const href =
-                                    targetProjectId && source.recordingId
-                                      ? `/projects/${targetProjectId}/recordings/${source.recordingId}`
-                                      : "#";
+                        {/* Show sources for assistant messages */}
+                        {message.role === "assistant" &&
+                          messageSourcesMap[message.id]?.length > 0 && (
+                            <Sources>
+                              <SourcesTrigger
+                                count={messageSourcesMap[message.id].length}
+                              />
+                              <SourcesContent>
+                                {messageSourcesMap[message.id].map(
+                                  (source, index) => {
+                                    // For organization context, use source.projectId
+                                    // For project context, use projectId from query state
+                                    const enhancedSource = {
+                                      ...source,
+                                      projectId:
+                                        context === "organization"
+                                          ? source.projectId
+                                          : projectId ?? undefined,
+                                    };
 
-                                  return (
-                                    <Source
-                                      key={`${source.contentId}-${index}`}
-                                      href={href}
-                                      title={source.title}
-                                    >
-                                      <div className="flex flex-col gap-1">
-                                        <div className="flex items-center gap-2">
-                                          <span className="font-medium">
-                                            {source.title}
-                                          </span>
-                                          <Badge
-                                            variant="outline"
-                                            className="text-xs"
-                                          >
-                                            {source.contentType}
-                                          </Badge>
-                                        </div>
-                                        <p className="text-muted-foreground text-xs">
-                                          {source.excerpt}
-                                        </p>
-                                      </div>
-                                    </Source>
-                                  );
-                                }
-                              )}
-                            </SourcesContent>
-                          </Sources>
-                        )}
-                    </MessageContent>
-                  </Message>
-                ))}
+                                    return (
+                                      <EnhancedSourceCard
+                                        key={`${source.contentId}-${index}`}
+                                        source={enhancedSource}
+                                        sourceIndex={index}
+                                        ref={(el) => {
+                                          if (el) {
+                                            sourceRefsMap.current[message.id]![index] = el;
+                                          }
+                                        }}
+                                      />
+                                    );
+                                  }
+                                )}
+                              </SourcesContent>
+                            </Sources>
+                          )}
+                      </MessageContent>
+                    </Message>
+                  );
+                })}
               </>
             )}
           </ConversationContent>

@@ -9,9 +9,12 @@ interface SourceReference {
   contentType: "recording" | "transcription" | "summary" | "task";
   title: string;
   excerpt: string;
-  similarityScore?: number;
+  similarityScore: number;
   recordingId?: string;
   timestamp?: number;
+  recordingDate?: string;
+  projectName?: string;
+  projectId?: string;
 }
 
 export const chatMessages = pgTable(
