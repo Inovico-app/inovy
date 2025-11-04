@@ -1,6 +1,7 @@
 import { logger } from "@/lib/logger";
 import { NotificationService } from "@/server/services/notification.service";
-import { ok, type Result } from "neverthrow";
+import type { WorkflowResult } from "@/workflows/lib/workflow-result";
+import { success } from "@/workflows/lib/workflow-result";
 
 interface NotificationParams {
   recordingId: string;
@@ -24,7 +25,7 @@ interface NotificationParams {
  */
 export async function sendSuccessNotification(
   params: NotificationParams
-): Promise<Result<void, Error>> {
+): Promise<WorkflowResult<void>> {
   "use step";
 
   const {
@@ -72,6 +73,6 @@ export async function sendSuccessNotification(
     isReprocessing,
   });
 
-  return ok(undefined);
+  return success(undefined);
 }
 

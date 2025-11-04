@@ -1,7 +1,7 @@
 import { withAuth } from "@kinde-oss/kinde-auth-nextjs/middleware";
 import { type NextRequest, NextResponse } from "next/server";
 
-export default function middleware(req: NextRequest) {
+export default function proxy(req: NextRequest) {
   // Handle CORS for API routes
   if (req.nextUrl.pathname.startsWith("/api/")) {
     const res = NextResponse.next();
@@ -27,7 +27,10 @@ export default function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     // Protect all routes except auth callback, static files, and public pages and vercel workflow routes
-    "/((?!api/auth|_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|.well-known/workflow/)).*)",
+    {
+      source:
+        "/((?!_next/static|_next/image|favicon.ico|.well-known/workflow/).*)",
+    },
   ],
 };
 

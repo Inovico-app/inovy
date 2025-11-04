@@ -1,15 +1,16 @@
 import { logger } from "@/lib/logger";
-import { err, ok, type Result } from "neverthrow";
-import { getAiInsightsStep } from "./step-ai-insights";
-import { executeFinalStep } from "./step-finalize";
-import { getRecordingStep } from "./step-get-recording";
-import { sendSuccessNotification } from "./step-send-notification";
-import { executeSummaryStep } from "./step-summary";
-import { executeTaskExtractionStep } from "./step-tasks";
-import { executeTranscriptionStep } from "./step-transcription";
-import { validateParallelResults } from "./step-validate-parallel-results";
+import type { WorkflowResult as SerializableResult } from "@/workflows/lib/workflow-result";
+import { failure, success } from "@/workflows/lib/workflow-result";
+import { updateWorkflowStatus } from "../shared/update-status";
+import { getAiInsightsStep } from "./steps/step-ai-insights";
+import { executeFinalStep } from "./steps/step-finalize";
+import { getRecordingStep } from "./steps/step-get-recording";
+import { sendSuccessNotification } from "./steps/step-send-notification";
+import { executeSummaryStep } from "./steps/step-summary";
+import { executeTaskExtractionStep } from "./steps/step-tasks";
+import { executeTranscriptionStep } from "./steps/step-transcription";
+import { validateParallelResults } from "./steps/step-validate-parallel-results";
 import type { WorkflowResult } from "./types";
-import { updateWorkflowStatus } from "./update-status";
 
 /**
  * Main Workflow: Convert Recording Into AI Insights
@@ -33,7 +34,7 @@ import { updateWorkflowStatus } from "./update-status";
 export async function convertRecordingIntoAiInsights(
   recordingId: string,
   isReprocessing = false
-): Promise<Result<WorkflowResult, Error>> {
+): Promise<SerializableResult<WorkflowResult>> {
   "use workflow";
 
   const startTime = Date.now();
@@ -50,10 +51,10 @@ export async function convertRecordingIntoAiInsights(
 
     const recordingResult = await getRecordingStep(recordingId);
 
-    if (recordingResult.isErr() || !recordingResult.value) {
+    if (!recordingResult.success || !recordingResult.value) {
       const errorMsg = "Recording not found";
       await updateWorkflowStatus(recordingId, "failed", errorMsg);
-      return err(new Error(errorMsg));
+      return failure(errorMsg);
     }
 
     const recording = recordingResult.value;
@@ -67,22 +68,22 @@ export async function convertRecordingIntoAiInsights(
         recording.fileUrl
       );
 
-      if (transcriptionResult.isErr()) {
-        const errorMsg = `Transcription failed: ${transcriptionResult.error.message}`;
+      if (!transcriptionResult.success) {
+        const errorMsg = `Transcription failed: ${transcriptionResult.error}`;
         await updateWorkflowStatus(recordingId, "failed", errorMsg);
-        return err(transcriptionResult.error);
+        return failure(transcriptionResult.error);
       }
 
       // Get transcription data for subsequent steps
       const updatedRecording = await getRecordingStep(recordingId);
 
       if (
-        updatedRecording.isErr() ||
+        !updatedRecording.success ||
         !updatedRecording.value?.transcriptionText
       ) {
         const errorMsg = "Transcription text not available";
         await updateWorkflowStatus(recordingId, "failed", errorMsg);
-        return err(new Error(errorMsg));
+        return failure(errorMsg);
       }
 
       transcriptionText = updatedRecording.value.transcriptionText;
@@ -96,14 +97,14 @@ export async function convertRecordingIntoAiInsights(
     if (!transcriptionText) {
       const errorMsg = "Transcription text not available";
       await updateWorkflowStatus(recordingId, "failed", errorMsg);
-      return err(new Error(errorMsg));
+      return failure(errorMsg);
     }
 
     // Get utterances for context
     const transcriptionInsight = await getAiInsightsStep(recordingId);
 
     const utterances =
-      transcriptionInsight.isOk() && transcriptionInsight.value
+      transcriptionInsight.success && transcriptionInsight.value
         ? transcriptionInsight.value.utterances ?? undefined
         : undefined;
 
@@ -132,14 +133,14 @@ export async function convertRecordingIntoAiInsights(
       taskExtractionResult
     );
 
-    if (validationResult.isErr()) {
+    if (!validationResult.success) {
       // logs are sent in the validateParallelResults step
-      return err(validationResult.error);
+      return failure(validationResult.error);
     }
 
     const tasksExtracted =
       taskExtractionResult.status === "fulfilled" &&
-      taskExtractionResult.value.isOk()
+      taskExtractionResult.value.success
         ? taskExtractionResult.value.value
         : 0;
 
@@ -173,7 +174,7 @@ export async function convertRecordingIntoAiInsights(
       isReprocessing,
     });
 
-    return ok({
+    return success({
       recordingId,
       transcriptionCompleted: true,
       summaryCompleted: true,
@@ -191,10 +192,7 @@ export async function convertRecordingIntoAiInsights(
     });
 
     await updateWorkflowStatus(recordingId, "failed", errorMsg);
-
-    return err(
-      error instanceof Error ? error : new Error("Workflow execution failed")
-    );
+    return failure(errorMsg);
   }
 }
 

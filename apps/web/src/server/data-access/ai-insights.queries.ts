@@ -1,8 +1,12 @@
-import { db } from "@/server/db";
-import { aiInsights, type NewAIInsight, type AIInsight } from "@/server/db/schema";
-import { eq, and, desc } from "drizzle-orm";
-import { err, ok, type Result } from "neverthrow";
 import { logger } from "@/lib/logger";
+import { db } from "@/server/db";
+import {
+  aiInsights,
+  type AIInsight,
+  type NewAIInsight,
+} from "@/server/db/schema";
+import { and, desc, eq } from "drizzle-orm";
+import { err, ok, type Result } from "neverthrow";
 
 export class AIInsightsQueries {
   /**
@@ -34,7 +38,9 @@ export class AIInsightsQueries {
         error,
       });
       return err(
-        error instanceof Error ? error : new Error("Failed to create AI insight")
+        error instanceof Error
+          ? error
+          : new Error("Failed to create AI insight")
       );
     }
   }
@@ -60,7 +66,9 @@ export class AIInsightsQueries {
         error,
       });
       return err(
-        error instanceof Error ? error : new Error("Failed to fetch AI insights")
+        error instanceof Error
+          ? error
+          : new Error("Failed to fetch AI insights")
       );
     }
   }
@@ -70,7 +78,13 @@ export class AIInsightsQueries {
    */
   static async getInsightByType(
     recordingId: string,
-    insightType: "transcription" | "summary" | "action_items" | "decisions" | "risks" | "next_steps"
+    insightType:
+      | "transcription"
+      | "summary"
+      | "action_items"
+      | "decisions"
+      | "risks"
+      | "next_steps"
   ): Promise<Result<AIInsight | null, Error>> {
     try {
       const [insight] = await db
@@ -229,9 +243,7 @@ export class AIInsightsQueries {
   /**
    * Delete an insight
    */
-  static async deleteInsight(
-    insightId: string
-  ): Promise<Result<void, Error>> {
+  static async deleteInsight(insightId: string): Promise<Result<void, Error>> {
     try {
       await db.delete(aiInsights).where(eq(aiInsights.id, insightId));
 
@@ -248,7 +260,9 @@ export class AIInsightsQueries {
         error,
       });
       return err(
-        error instanceof Error ? error : new Error("Failed to delete AI insight")
+        error instanceof Error
+          ? error
+          : new Error("Failed to delete AI insight")
       );
     }
   }
