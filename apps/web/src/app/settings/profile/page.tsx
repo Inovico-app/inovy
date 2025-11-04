@@ -1,4 +1,5 @@
 import { ProtectedPage } from "@/components/protected-page";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -6,11 +7,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { getUserSession, getAuthSession } from "@/lib/auth";
+import { getAuthSession, getUserSession } from "@/lib/auth";
+import { Building2Icon, CalendarIcon, MailIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { CalendarIcon, MailIcon, UserIcon, Building2Icon } from "lucide-react";
 
 async function ProfileContent() {
   const userResult = await getUserSession();
@@ -35,7 +35,14 @@ async function ProfileContent() {
 
   const auth = authResult.value;
   const organization = auth.organization;
-  const orgName = (organization as unknown as Record<string, unknown>)?.display_name as string | undefined ?? (organization as unknown as Record<string, unknown>)?.name as string | undefined ?? "Personal Organization";
+  const orgName =
+    ((organization as unknown as Record<string, unknown>)?.display_name as
+      | string
+      | undefined) ??
+    ((organization as unknown as Record<string, unknown>)?.name as
+      | string
+      | undefined) ??
+    "Personal Organization";
 
   // Format account creation date
   const accountCreatedDate = new Date().toLocaleDateString("en-US", {
@@ -67,7 +74,9 @@ async function ProfileContent() {
               <UserIcon className="h-5 w-5 text-blue-600 dark:text-blue-300" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-muted-foreground">Full Name</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Full Name
+              </p>
               <p className="text-lg font-semibold">
                 {user.given_name && user.family_name
                   ? `${user.given_name} ${user.family_name}`
@@ -83,7 +92,9 @@ async function ProfileContent() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-muted-foreground">Email</p>
-              <p className="text-lg font-semibold">{user.email || "Not available"}</p>
+              <p className="text-lg font-semibold">
+                {user.email || "Not available"}
+              </p>
             </div>
           </div>
 
@@ -93,7 +104,9 @@ async function ProfileContent() {
               <Building2Icon className="h-5 w-5 text-purple-600 dark:text-purple-300" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-muted-foreground">Organization</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Organization
+              </p>
               <p className="text-lg font-semibold">{orgName}</p>
             </div>
           </div>
@@ -104,7 +117,9 @@ async function ProfileContent() {
               <CalendarIcon className="h-5 w-5 text-orange-600 dark:text-orange-300" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-muted-foreground">Account Created</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Account Created
+              </p>
               <p className="text-lg font-semibold">{accountCreatedDate}</p>
             </div>
           </div>
@@ -153,3 +168,4 @@ export default function ProfilePage() {
     </Suspense>
   );
 }
+

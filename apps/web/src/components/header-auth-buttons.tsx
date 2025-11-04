@@ -5,6 +5,17 @@ import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
 import { LoginLink, LogoutLink } from "@kinde-oss/kinde-auth-nextjs/components";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Settings, User } from "lucide-react";
+import Link from "next/link";
 
 export function HeaderAuthButtons() {
   const { user, isAuthenticated, isLoading, error } = useKindeBrowserClient();
@@ -69,17 +80,55 @@ export function HeaderAuthButtons() {
   }
 
   if (isAuthenticated && user) {
+    // Get user initials for avatar fallback
+    const initials = user.given_name && user.family_name
+      ? `${user.given_name[0]}${user.family_name[0]}`.toUpperCase()
+      : user.email?.[0]?.toUpperCase() ?? "U";
+
     return (
-      <>
-        <span className="text-sm text-muted-foreground">
-          {user?.email || "Unknown user"}
-        </span>
-        <LogoutLink onClick={handleLogoutClick}>
-          <Button variant="outline" size="sm">
-            Logout
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+            <Avatar className="h-9 w-9">
+              <AvatarImage src={user.picture ?? undefined} alt={user.email ?? "User"} />
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
           </Button>
-        </LogoutLink>
-      </>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="end" forceMount>
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-medium leading-none">
+                {user.given_name && user.family_name
+                  ? `${user.given_name} ${user.family_name}`
+                  : user.email}
+              </p>
+              <p className="text-xs leading-none text-muted-foreground">
+                {user.email}
+              </p>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/settings/profile" className="cursor-pointer">
+              <User className="mr-2 h-4 w-4" />
+              <span>Profile</span>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/settings" className="cursor-pointer">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Settings</span>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <LogoutLink onClick={handleLogoutClick} className="cursor-pointer w-full">
+              <span>Log out</span>
+            </LogoutLink>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     );
   }
 
