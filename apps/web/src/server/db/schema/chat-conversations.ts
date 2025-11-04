@@ -12,6 +12,8 @@ export const chatConversations = pgTable(
     organizationId: text("organization_id").notNull(), // Kinde organization code
     context: text("context", { enum: ["project", "organization"] }).notNull(), // Conversation context
     title: text("title"), // Optional title, auto-generated from first message
+    deletedAt: timestamp("deleted_at", { withTimezone: true }), // Soft delete timestamp
+    archivedAt: timestamp("archived_at", { withTimezone: true }), // Archive timestamp
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -28,6 +30,15 @@ export const chatConversations = pgTable(
       table.organizationId
     ),
     contextIdx: index("chat_conversations_context_idx").on(table.context),
+    deletedAtIdx: index("chat_conversations_deleted_at_idx").on(
+      table.deletedAt
+    ),
+    archivedAtIdx: index("chat_conversations_archived_at_idx").on(
+      table.archivedAt
+    ),
+    userDeletedUpdatedIdx: index(
+      "chat_conversations_user_deleted_updated_idx"
+    ).on(table.userId, table.deletedAt, table.updatedAt),
   })
 );
 

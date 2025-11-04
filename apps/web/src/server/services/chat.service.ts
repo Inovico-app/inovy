@@ -1,6 +1,7 @@
 import { logger } from "@/lib/logger";
 import { ChatQueries } from "@/server/data-access/chat.queries";
 import {
+  type ChatConversation,
   type NewChatConversation,
   type NewChatMessage,
   type SourceReference,
@@ -559,6 +560,265 @@ Please answer the user's question based on this information. When referencing in
       return ok(undefined);
     } catch (error) {
       logger.error("Error deleting conversation", { error, conversationId });
+      return err(error instanceof Error ? error : new Error("Unknown error"));
+    }
+  }
+
+  /**
+   * List conversations with pagination
+   */
+  static async listConversations(params: {
+    userId: string;
+    organizationId?: string;
+    projectId?: string;
+    context?: "project" | "organization";
+    filter?: "all" | "active" | "archived" | "deleted";
+    page?: number;
+    limit?: number;
+  }): Promise<
+    Result<{ conversations: ChatConversation[]; total: number }, Error>
+  > {
+    try {
+      const result = await ChatQueries.getConversationsWithPagination(params);
+      return ok(result);
+    } catch (error) {
+      logger.error("Error listing conversations", { error, params });
+      return err(error instanceof Error ? error : new Error("Unknown error"));
+    }
+  }
+
+  /**
+   * Search conversations
+   */
+  static async searchConversations(params: {
+    userId: string;
+    query: string;
+    organizationId?: string;
+    projectId?: string;
+    context?: "project" | "organization";
+    limit?: number;
+  }): Promise<Result<ChatConversation[], Error>> {
+    try {
+      const conversations = await ChatQueries.searchConversations(params);
+      return ok(conversations);
+    } catch (error) {
+      logger.error("Error searching conversations", { error, params });
+      return err(error instanceof Error ? error : new Error("Unknown error"));
+    }
+  }
+
+  /**
+   * Soft delete conversation
+   */
+  static async softDeleteConversation(
+    conversationId: string,
+    userId: string
+  ): Promise<Result<void, Error>> {
+    try {
+      // Verify ownership
+      const conversation = await ChatQueries.getConversationById(
+        conversationId
+      );
+      if (!conversation) {
+        return err(new Error("Conversation not found"));
+      }
+      if (conversation.userId !== userId) {
+        return err(new Error("Unauthorized"));
+      }
+
+      await ChatQueries.softDeleteConversation(conversationId);
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Error soft deleting conversation", {
+        error,
+        conversationId,
+      });
+      return err(error instanceof Error ? error : new Error("Unknown error"));
+    }
+  }
+
+  /**
+   * Restore conversation
+   */
+  static async restoreConversation(
+    conversationId: string,
+    userId: string
+  ): Promise<Result<boolean, Error>> {
+    try {
+      // Verify ownership
+      const conversation = await ChatQueries.getConversationById(
+        conversationId
+      );
+      if (!conversation) {
+        return err(new Error("Conversation not found"));
+      }
+      if (conversation.userId !== userId) {
+        return err(new Error("Unauthorized"));
+      }
+
+      const restored = await ChatQueries.restoreConversation(conversationId);
+      return ok(restored);
+    } catch (error) {
+      logger.error("Error restoring conversation", { error, conversationId });
+      return err(error instanceof Error ? error : new Error("Unknown error"));
+    }
+  }
+
+  /**
+   * Archive conversation
+   */
+  static async archiveConversation(
+    conversationId: string,
+    userId: string
+  ): Promise<Result<void, Error>> {
+    try {
+      // Verify ownership
+      const conversation = await ChatQueries.getConversationById(
+        conversationId
+      );
+      if (!conversation) {
+        return err(new Error("Conversation not found"));
+      }
+      if (conversation.userId !== userId) {
+        return err(new Error("Unauthorized"));
+      }
+
+      await ChatQueries.archiveConversation(conversationId);
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Error archiving conversation", { error, conversationId });
+      return err(error instanceof Error ? error : new Error("Unknown error"));
+    }
+  }
+
+  /**
+   * Unarchive conversation
+   */
+  static async unarchiveConversation(
+    conversationId: string,
+    userId: string
+  ): Promise<Result<void, Error>> {
+    try {
+      // Verify ownership
+      const conversation = await ChatQueries.getConversationById(
+        conversationId
+      );
+      if (!conversation) {
+        return err(new Error("Conversation not found"));
+      }
+      if (conversation.userId !== userId) {
+        return err(new Error("Unauthorized"));
+      }
+
+      await ChatQueries.unarchiveConversation(conversationId);
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Error unarchiving conversation", {
+        error,
+        conversationId,
+      });
+      return err(error instanceof Error ? error : new Error("Unknown error"));
+    }
+  }
+
+  /**
+   * Get conversation statistics
+   */
+  static async getConversationStats(
+    userId: string,
+    organizationId?: string
+  ): Promise<
+    Result<
+      { active: number; archived: number; deleted: number; total: number },
+      Error
+    >
+  > {
+    try {
+      const stats = await ChatQueries.getConversationStats(
+        userId,
+        organizationId
+      );
+      return ok(stats);
+    } catch (error) {
+      logger.error("Error getting conversation stats", { error, userId });
+      return err(error instanceof Error ? error : new Error("Unknown error"));
+    }
+  }
+
+  /**
+   * Export conversation as text
+   */
+  static async exportConversationAsText(
+    conversationId: string,
+    userId: string
+  ): Promise<Result<string, Error>> {
+    try {
+      // Verify ownership
+      const conversation = await ChatQueries.getConversationById(
+        conversationId
+      );
+      if (!conversation) {
+        return err(new Error("Conversation not found"));
+      }
+      if (conversation.userId !== userId) {
+        return err(new Error("Unauthorized"));
+      }
+
+      // Get messages
+      const messages = await ChatQueries.getMessagesByConversationId(
+        conversationId
+      );
+
+      // Import export utility dynamically
+      const { formatConversationAsText } = await import(
+        "@/lib/export-utils"
+      );
+      const text = formatConversationAsText(conversation, messages);
+
+      return ok(text);
+    } catch (error) {
+      logger.error("Error exporting conversation as text", {
+        error,
+        conversationId,
+      });
+      return err(error instanceof Error ? error : new Error("Unknown error"));
+    }
+  }
+
+  /**
+   * Export conversation as PDF
+   */
+  static async exportConversationAsPDF(
+    conversationId: string,
+    userId: string
+  ): Promise<Result<Blob, Error>> {
+    try {
+      // Verify ownership
+      const conversation = await ChatQueries.getConversationById(
+        conversationId
+      );
+      if (!conversation) {
+        return err(new Error("Conversation not found"));
+      }
+      if (conversation.userId !== userId) {
+        return err(new Error("Unauthorized"));
+      }
+
+      // Get messages
+      const messages = await ChatQueries.getMessagesByConversationId(
+        conversationId
+      );
+
+      // Import export utility dynamically
+      const { generateConversationPDF } = await import("@/lib/export-utils");
+      const pdf = await generateConversationPDF(conversation, messages);
+
+      return ok(pdf);
+    } catch (error) {
+      logger.error("Error exporting conversation as PDF", {
+        error,
+        conversationId,
+      });
       return err(error instanceof Error ? error : new Error("Unknown error"));
     }
   }
