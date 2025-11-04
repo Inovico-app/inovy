@@ -1,12 +1,10 @@
-import { type Result, err, ok } from "neverthrow";
-import { type NewChatAuditLog } from "../db/schema";
+import { err, ok, type Result } from "neverthrow";
 import { logger } from "../../lib/logger";
 import {
-  insertAuditLog,
-  getAuditLogsByOrganization,
-  getAccessDenialLogs,
+  ChatAuditQueries,
   type AuditLogFilters,
 } from "../data-access/chat-audit.queries";
+import { type NewChatAuditLog } from "../db/schema";
 
 /**
  * Chat Audit Service
@@ -56,7 +54,7 @@ export class ChatAuditService {
       metadata: params.metadata ?? null,
     };
 
-    const result = await insertAuditLog(logEntry);
+    const result = await ChatAuditQueries.insert(logEntry);
 
     if (result.isErr()) {
       return err(result.error);
@@ -90,7 +88,7 @@ export class ChatAuditService {
       metadata: params.metadata ?? null,
     };
 
-    const result = await insertAuditLog(logEntry);
+    const result = await ChatAuditQueries.insert(logEntry);
 
     if (result.isErr()) {
       return err(result.error);
@@ -109,11 +107,11 @@ export class ChatAuditService {
   /**
    * Get audit logs for an organization with optional filters
    */
-  static async getAuditLogs(
-    organizationId: string,
-    filters?: AuditLogFilters
-  ) {
-    const result = await getAuditLogsByOrganization(organizationId, filters);
+  static async getAuditLogs(organizationId: string, filters?: AuditLogFilters) {
+    const result = await ChatAuditQueries.findByOrganization(
+      organizationId,
+      filters
+    );
 
     if (result.isErr()) {
       return err(result.error);
@@ -136,7 +134,11 @@ export class ChatAuditService {
     organizationId: string,
     since?: Date
   ): Promise<Result<number, string>> {
-    const result = await getAccessDenialLogs(userId, organizationId, since);
+    const result = await ChatAuditQueries.findAccessDenials(
+      userId,
+      organizationId,
+      since
+    );
 
     if (result.isErr()) {
       return err(result.error);

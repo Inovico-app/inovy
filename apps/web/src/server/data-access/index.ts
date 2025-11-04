@@ -8,5 +8,5 @@ export { NotificationsQueries } from "./notifications.queries";
 export { ReprocessingQueries } from "./reprocessing.queries";
 export { EmbeddingsQueries } from "./embeddings.queries";
 export { ChatQueries } from "./chat.queries";
-export * from "./chat-audit.queries";
+export { ChatAuditQueries, type AuditLogFilters } from "./chat-audit.queries";
 
