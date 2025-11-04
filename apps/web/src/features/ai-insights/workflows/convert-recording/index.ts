@@ -1,12 +1,13 @@
 import { logger } from "@/lib/logger";
-import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
-import { RecordingsQueries } from "@/server/data-access/recordings.queries";
-import { NotificationService } from "@/server/services/notification.service";
 import { err, ok, type Result } from "neverthrow";
-import { executeTranscriptionStep } from "./step-1-transcription";
-import { executeSummaryStep } from "./step-2a-summary";
-import { executeTaskExtractionStep } from "./step-2b-tasks";
-import { executeFinalStep } from "./step-3-finalize";
+import { getAiInsightsStep } from "./step-ai-insights";
+import { executeFinalStep } from "./step-finalize";
+import { getRecordingStep } from "./step-get-recording";
+import { sendSuccessNotification } from "./step-send-notification";
+import { executeSummaryStep } from "./step-summary";
+import { executeTaskExtractionStep } from "./step-tasks";
+import { executeTranscriptionStep } from "./step-transcription";
+import { validateParallelResults } from "./step-validate-parallel-results";
 import type { WorkflowResult } from "./types";
 import { updateWorkflowStatus } from "./update-status";
 
@@ -34,6 +35,7 @@ export async function convertRecordingIntoAiInsights(
   isReprocessing = false
 ): Promise<Result<WorkflowResult, Error>> {
   "use workflow";
+
   const startTime = Date.now();
 
   try {
@@ -46,10 +48,7 @@ export async function convertRecordingIntoAiInsights(
     // Update workflow status to running
     await updateWorkflowStatus(recordingId, "running", undefined, 0);
 
-    // Get recording details
-    const recordingResult = await RecordingsQueries.selectRecordingById(
-      recordingId
-    );
+    const recordingResult = await getRecordingStep(recordingId);
 
     if (recordingResult.isErr() || !recordingResult.value) {
       const errorMsg = "Recording not found";
@@ -75,9 +74,7 @@ export async function convertRecordingIntoAiInsights(
       }
 
       // Get transcription data for subsequent steps
-      const updatedRecording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const updatedRecording = await getRecordingStep(recordingId);
 
       if (
         updatedRecording.isErr() ||
@@ -103,10 +100,7 @@ export async function convertRecordingIntoAiInsights(
     }
 
     // Get utterances for context
-    const transcriptionInsight = await AIInsightsQueries.getInsightByType(
-      recordingId,
-      "transcription"
-    );
+    const transcriptionInsight = await getAiInsightsStep(recordingId);
 
     const utterances =
       transcriptionInsight.isOk() && transcriptionInsight.value
@@ -131,43 +125,16 @@ export async function convertRecordingIntoAiInsights(
       ),
     ]);
 
-    // Check results
-    const summaryCompleted =
-      summaryResult.status === "fulfilled" && summaryResult.value.isOk();
-    const tasksCompleted =
-      taskExtractionResult.status === "fulfilled" &&
-      taskExtractionResult.value.isOk();
+    // Validate parallel processing results
+    const validationResult = await validateParallelResults(
+      recordingId,
+      summaryResult,
+      taskExtractionResult
+    );
 
-    if (!summaryCompleted || !tasksCompleted) {
-      const errors: string[] = [];
-      if (!summaryCompleted) {
-        let error = "Unknown error";
-        if (
-          summaryResult.status === "fulfilled" &&
-          summaryResult.value.isErr()
-        ) {
-          error = summaryResult.value.error.message;
-        } else if (summaryResult.status === "rejected") {
-          error = String(summaryResult.reason);
-        }
-        errors.push(`Summary: ${error}`);
-      }
-      if (!tasksCompleted) {
-        let error = "Unknown error";
-        if (
-          taskExtractionResult.status === "fulfilled" &&
-          taskExtractionResult.value.isErr()
-        ) {
-          error = taskExtractionResult.value.error.message;
-        } else if (taskExtractionResult.status === "rejected") {
-          error = String(taskExtractionResult.reason);
-        }
-        errors.push(`Tasks: ${error}`);
-      }
-
-      const errorMsg = errors.join("; ");
-      await updateWorkflowStatus(recordingId, "failed", errorMsg);
-      return err(new Error(`Parallel processing failed: ${errorMsg}`));
+    if (validationResult.isErr()) {
+      // logs are sent in the validateParallelResults step
+      return err(validationResult.error);
     }
 
     const tasksExtracted =
@@ -195,30 +162,15 @@ export async function convertRecordingIntoAiInsights(
     });
 
     // Send final success notification
-    const notificationTitle = isReprocessing
-      ? "Opname opnieuw verwerkt"
-      : "Opname verwerkt";
-    const notificationMessage = isReprocessing
-      ? `"${recording.title}" is succesvol opnieuw verwerkt. ${tasksExtracted} ${
-          tasksExtracted === 1 ? "taak" : "taken"
-        } geëxtraheerd.`
-      : `"${recording.title}" is succesvol verwerkt. ${tasksExtracted} ${
-          tasksExtracted === 1 ? "taak" : "taken"
-        } geëxtraheerd.`;
-
-    await NotificationService.createNotification({
+    await sendSuccessNotification({
       recordingId,
+      recordingTitle: recording.title,
       projectId: recording.projectId,
       userId: recording.createdById,
       organizationId: recording.organizationId,
-      type: "recording_processed",
-      title: notificationTitle,
-      message: notificationMessage,
-      metadata: {
-        tasksExtracted,
-        durationMs: duration,
-        isReprocessing,
-      },
+      tasksExtracted,
+      durationMs: duration,
+      isReprocessing,
     });
 
     return ok({
