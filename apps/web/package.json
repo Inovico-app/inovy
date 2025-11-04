@@ -54,6 +54,7 @@
     "dotenv": "^17.2.2",
     "drizzle-orm": "^0.44.5",
     "embla-carousel-react": "^8.6.0",
+    "googleapis": "^164.1.0",
     "lucide-react": "^0.544.0",
     "motion": "^12.23.24",
     "nanoid": "^5.1.6",
