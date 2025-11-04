@@ -78,8 +78,10 @@ export async function createProjectFormAction(
     const firstError = Array.isArray(firstFieldErrors)
       ? firstFieldErrors[0]
       : firstFieldErrors?._errors?.[0];
-    throw new Error(firstError || "Validation failed");
+    throw new Error(firstError ?? "Validation failed");
   }
+
+  console.log("RESULT DO WE GET FSDFJSDAKJHKHASDHFASHDFHKASD", result);
 
   if (result?.data?.id) {
     redirect(`/projects/${result.data.id}`);
