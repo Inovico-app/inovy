@@ -12,13 +12,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createProjectAction } from "@/features/projects/actions/create-project";
 import { useAction } from "next-safe-action/hooks";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 /**
  * Smart project creation form using the new Result-based error handling
  * Demonstrates clean error handling without custom error classes
  */
 export function CreateProjectForm() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
@@ -27,11 +30,13 @@ export function CreateProjectForm() {
     {
       onSuccess: ({ data }) => {
         if (data?.id) {
-          console.log("Project created successfully:", data.id);
+          toast.success(`Project created successfully: ${data.name}`);
+          router.push(`/projects/${data.id}`);
         }
       },
-      onError: ({ error }) => {
-        console.error("Action failed:", error);
+      onError: (error) => {
+        toast.error("Failed to create project. Please try again.");
+        throw new Error(JSON.stringify(error.error));
       },
     }
   );
