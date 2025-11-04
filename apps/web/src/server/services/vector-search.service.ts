@@ -165,6 +165,9 @@ export class VectorSearchService {
     similarityScore: number;
     recordingId?: string;
     timestamp?: number;
+    recordingDate?: string;
+    projectName?: string;
+    projectId?: string;
   }> {
     return results.map((result) => ({
       contentId: result.contentId,
@@ -181,6 +184,9 @@ export class VectorSearchService {
         result.metadata.recordingId ??
         (result.contentType === "transcription" ? result.contentId : undefined),
       timestamp: result.metadata.timestamp,
+      recordingDate: result.metadata.recordingDate as string | undefined,
+      projectName: result.metadata.projectName as string | undefined,
+      projectId: result.metadata.projectId as string | undefined,
     }));
   }
 
@@ -202,6 +208,9 @@ export class VectorSearchService {
           similarityScore: number;
           recordingId?: string;
           timestamp?: number;
+          recordingDate?: string;
+          projectName?: string;
+          projectId?: string;
         }>;
       },
       Error
@@ -317,6 +326,8 @@ export class VectorSearchService {
           similarityScore: number;
           recordingId?: string;
           timestamp?: number;
+          recordingDate?: string;
+          projectName?: string;
           projectId?: string;
         }>;
       },
