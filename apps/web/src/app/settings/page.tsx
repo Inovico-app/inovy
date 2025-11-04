@@ -9,6 +9,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { UserIcon, Building2Icon } from "lucide-react";
 import { GoogleConnection } from "@/features/settings/components/google-connection";
+import { GoogleSettings } from "@/features/settings/components/google-settings";
 
 const settingsSections = [
   {
@@ -64,9 +65,10 @@ export default function SettingsPage() {
         </div>
 
         {/* Google Workspace Integration */}
-        <div>
-          <h2 className="text-2xl font-bold mb-4">Integrations</h2>
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold">Integrations</h2>
           <GoogleConnection />
+          <GoogleSettings />
         </div>
 
         {/* Back Button */}
