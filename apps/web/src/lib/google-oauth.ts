@@ -12,16 +12,17 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
 const OAUTH_ENCRYPTION_KEY = process.env.OAUTH_ENCRYPTION_KEY;
 
-// Validate required environment variables
-if (
-  !GOOGLE_CLIENT_ID ||
-  !GOOGLE_CLIENT_SECRET ||
-  !GOOGLE_REDIRECT_URI ||
-  !OAUTH_ENCRYPTION_KEY
-) {
-  throw new Error(
-    "Missing required Google OAuth environment variables: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, OAUTH_ENCRYPTION_KEY"
-  );
+function validateEnvironment() {
+  if (
+    !GOOGLE_CLIENT_ID ||
+    !GOOGLE_CLIENT_SECRET ||
+    !GOOGLE_REDIRECT_URI ||
+    !OAUTH_ENCRYPTION_KEY
+  ) {
+    throw new Error(
+      "Missing required Google OAuth environment variables: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, OAUTH_ENCRYPTION_KEY"
+    );
+  }
 }
 
 // Scopes for Google Workspace integration
@@ -35,6 +36,7 @@ export const GOOGLE_SCOPES = [
  * Create OAuth2 client for Google
  */
 export function createGoogleOAuthClient(): OAuth2Client {
+  validateEnvironment();
   return new google.auth.OAuth2(
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
@@ -161,6 +163,7 @@ const AUTH_TAG_LENGTH = 16; // 128 bits
  * Returns base64 encoded string: iv:authTag:encryptedData
  */
 export function encryptToken(token: string): string {
+  validateEnvironment();
   if (!OAUTH_ENCRYPTION_KEY) {
     throw new Error("OAUTH_ENCRYPTION_KEY not configured");
   }
@@ -190,6 +193,7 @@ export function encryptToken(token: string): string {
  * Expects format: iv:authTag:encryptedData
  */
 export function decryptToken(encryptedToken: string): string {
+  validateEnvironment();
   if (!OAUTH_ENCRYPTION_KEY) {
     throw new Error("OAUTH_ENCRYPTION_KEY not configured");
   }
