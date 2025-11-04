@@ -1,7 +1,9 @@
-import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { ChatService } from "@/server/services/chat.service";
+import { ChatAuditService } from "@/server/services/chat-audit.service";
 import { logger } from "@/lib/logger";
+import { getAuthSessionWithRoles } from "@/lib/auth";
+import { canAccessOrganizationChat } from "@/lib/rbac";
 import { z } from "zod";
 
 const chatRequestSchema = z.object({
@@ -10,26 +12,34 @@ const chatRequestSchema = z.object({
 });
 
 /**
- * Check if user is an admin in the organization
- * For now, we'll use a simple approach - this can be extended with proper RBAC
+ * Extract request metadata for audit logging
  */
-async function isAdminUser(_userId: string, _organizationId: string): Promise<boolean> {
-  // TODO: Implement proper admin check using Kinde permissions or database
-  // For now, we'll allow all authenticated users in the organization
-  // In production, you should check against Kinde roles or a database table
-  return true;
+function getRequestMetadata(request: NextRequest) {
+  return {
+    ipAddress: request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? "unknown",
+    userAgent: request.headers.get("user-agent") ?? "unknown",
+  };
 }
 
 export async function POST(request: NextRequest) {
+  const metadata = getRequestMetadata(request);
+  
   try {
-    const { getUser, getOrganization } = getKindeServerSession();
-    const user = await getUser();
-    const organization = await getOrganization();
+    // Get authenticated session with roles
+    const sessionResult = await getAuthSessionWithRoles();
 
-    if (!user || !organization) {
+    if (sessionResult.isErr()) {
+      logger.error("Failed to get auth session", { error: sessionResult.error });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const session = sessionResult.value;
+
+    if (!session.isAuthenticated || !session.user || !session.organization) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { user, organization } = session;
     const orgCode = organization.orgCode;
 
     if (!orgCode) {
@@ -39,13 +49,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user is admin
-    const isAdmin = await isAdminUser(user.id, orgCode);
-    if (!isAdmin) {
+    // Check if user has permission to access organization-level chat
+    const hasAccess = canAccessOrganizationChat(user);
+
+    // Log access attempt
+    await ChatAuditService.logChatAccess({
+      userId: user.id,
+      organizationId: orgCode,
+      chatContext: "organization",
+      granted: hasAccess,
+      ipAddress: metadata.ipAddress,
+      userAgent: metadata.userAgent,
+      metadata: {
+        userRoles: user.roles,
+        endpoint: "POST /api/chat/organization",
+      },
+    });
+
+    if (!hasAccess) {
+      logger.warn("Organization chat access denied", {
+        userId: user.id,
+        organizationId: orgCode,
+        userRoles: user.roles,
+      });
+
       return NextResponse.json(
         {
           error: "Forbidden",
-          message: "Organization-level chat is only available to administrators",
+          message: "Organization-level chat requires administrator privileges",
+          requiredRole: "admin",
         },
         { status: 403 }
       );
@@ -63,6 +95,16 @@ export async function POST(request: NextRequest) {
     }
 
     const { message, conversationId } = validationResult.data;
+
+    // Log the query
+    await ChatAuditService.logChatQuery({
+      userId: user.id,
+      organizationId: orgCode,
+      chatContext: "organization",
+      query: message,
+      ipAddress: metadata.ipAddress,
+      userAgent: metadata.userAgent,
+    });
 
     // Create or get conversation
     let activeConversationId = conversationId;
@@ -125,15 +167,24 @@ export async function POST(request: NextRequest) {
 
 // GET endpoint to retrieve conversation history
 export async function GET(request: NextRequest) {
-  try {
-    const { getUser, getOrganization } = getKindeServerSession();
-    const user = await getUser();
-    const organization = await getOrganization();
+  const metadata = getRequestMetadata(request);
 
-    if (!user || !organization) {
+  try {
+    // Get authenticated session with roles
+    const sessionResult = await getAuthSessionWithRoles();
+
+    if (sessionResult.isErr()) {
+      logger.error("Failed to get auth session", { error: sessionResult.error });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const session = sessionResult.value;
+
+    if (!session.isAuthenticated || !session.user || !session.organization) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { user, organization } = session;
     const orgCode = organization.orgCode;
 
     if (!orgCode) {
@@ -143,13 +194,35 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check if user is admin
-    const isAdmin = await isAdminUser(user.id, orgCode);
-    if (!isAdmin) {
+    // Check if user has permission to access organization-level chat
+    const hasAccess = canAccessOrganizationChat(user);
+
+    // Log access attempt
+    await ChatAuditService.logChatAccess({
+      userId: user.id,
+      organizationId: orgCode,
+      chatContext: "organization",
+      granted: hasAccess,
+      ipAddress: metadata.ipAddress,
+      userAgent: metadata.userAgent,
+      metadata: {
+        userRoles: user.roles,
+        endpoint: "GET /api/chat/organization",
+      },
+    });
+
+    if (!hasAccess) {
+      logger.warn("Organization chat access denied", {
+        userId: user.id,
+        organizationId: orgCode,
+        userRoles: user.roles,
+      });
+
       return NextResponse.json(
         {
           error: "Forbidden",
-          message: "Organization-level chat is only available to administrators",
+          message: "Organization-level chat requires administrator privileges",
+          requiredRole: "admin",
         },
         { status: 403 }
       );
@@ -189,4 +262,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

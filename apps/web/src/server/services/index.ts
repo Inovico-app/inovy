@@ -12,4 +12,5 @@ export { TranscriptionEditService } from "./transcription-edit.service";
 export { EmbeddingService } from "./embedding.service";
 export { VectorSearchService } from "./vector-search.service";
 export { ChatService } from "./chat.service";
+export { ChatAuditService } from "./chat-audit.service";
 
