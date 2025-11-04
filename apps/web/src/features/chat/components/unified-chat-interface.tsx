@@ -275,7 +275,7 @@ export function UnifiedChatInterface({
         </div>
 
         {/* Conversation */}
-        <Conversation className="flex-1">
+        <Conversation>
           <ConversationContent>
             {messages.length === 0 ? (
               getEmptyStateContent()
@@ -310,10 +310,18 @@ export function UnifiedChatInterface({
                             <SourcesContent>
                               {messageSourcesMap[message.id].map(
                                 (source, index) => {
+                                  // For organization context, use source.projectId
+                                  // For project context, use projectId from query state
+                                  const targetProjectId =
+                                    context === "organization"
+                                      ? source.projectId
+                                      : projectId;
+
                                   const href =
-                                    source.projectId && source.recordingId
-                                      ? `/projects/${source.projectId}/recordings/${source.recordingId}`
+                                    targetProjectId && source.recordingId
+                                      ? `/projects/${targetProjectId}/recordings/${source.recordingId}`
                                       : "#";
+
                                   return (
                                     <Source
                                       key={`${source.contentId}-${index}`}

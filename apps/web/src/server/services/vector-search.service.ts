@@ -176,7 +176,10 @@ export class VectorSearchService {
           ? result.contentText.substring(0, 200) + "..."
           : result.contentText,
       similarityScore: result.similarity,
-      recordingId: result.metadata.recordingId,
+      // For transcriptions, the contentId IS the recordingId
+      recordingId:
+        result.metadata.recordingId ??
+        (result.contentType === "transcription" ? result.contentId : undefined),
       timestamp: result.metadata.timestamp,
     }));
   }
