@@ -1,4 +1,4 @@
-import { safeAsync, type ActionResult, ActionErrors } from "@/lib";
+import { ActionErrors, safeAsync, type ActionResult } from "@/lib";
 import { del } from "@vercel/blob";
 import { err, ok, type Result } from "neverthrow";
 import { getAuthSession, type AuthUser } from "../../lib/auth";
@@ -217,8 +217,6 @@ export class ProjectService {
       createdById: user.id, // Kinde user ID
     };
 
-    console.log("DO WEG ET HERE, PROJECT DATA:", projectData);
-
     const createResult = await safeAsync(
       () => ProjectQueries.create(projectData),
       "project-creation"
@@ -250,19 +248,16 @@ export class ProjectService {
       }
     }
 
-    const updateResult = await safeAsync(
-      async () => {
-        const project = await ProjectQueries.update(projectId, orgCode, {
-          name: input.name,
-          description: input.description,
-        });
-        if (!project) {
-          throw new Error("Project not found");
-        }
-        return project;
-      },
-      "project-update"
-    );
+    const updateResult = await safeAsync(async () => {
+      const project = await ProjectQueries.update(projectId, orgCode, {
+        name: input.name,
+        description: input.description,
+      });
+      if (!project) {
+        throw new Error("Project not found");
+      }
+      return project;
+    }, "project-update");
 
     if (updateResult.isOk()) {
       CacheInvalidation.invalidateProjectCache(orgCode);

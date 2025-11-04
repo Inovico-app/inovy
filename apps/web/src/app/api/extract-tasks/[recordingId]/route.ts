@@ -1,9 +1,9 @@
-import { type NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth";
-import { TaskExtractionService } from "@/server/services/task-extraction.service";
-import { RecordingsQueries } from "@/server/data-access/recordings.queries";
-import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { logger } from "@/lib/logger";
+import { RecordingService } from "@/server/services";
+import { AIInsightService } from "@/server/services/ai-insight.service";
+import { TaskExtractionService } from "@/server/services/task-extraction.service";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(
   request: NextRequest,
@@ -23,7 +23,7 @@ export async function POST(
     }
 
     // Get recording
-    const recordingResult = await RecordingsQueries.selectRecordingById(
+    const recordingResult = await RecordingService.getRecordingById(
       recordingId
     );
 
@@ -62,13 +62,13 @@ export async function POST(
 
     // Get transcription insight for utterances
     const transcriptionInsightResult =
-      await AIInsightsQueries.getInsightByType(recordingId, "transcription");
+      await AIInsightService.getInsightByTypeInternal(
+        recordingId,
+        "transcription"
+      );
 
     let utterances;
-    if (
-      transcriptionInsightResult.isOk() &&
-      transcriptionInsightResult.value
-    ) {
+    if (transcriptionInsightResult.isOk() && transcriptionInsightResult.value) {
       utterances = transcriptionInsightResult.value.utterances ?? undefined;
     }
 

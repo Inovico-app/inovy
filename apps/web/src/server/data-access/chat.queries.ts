@@ -1,14 +1,14 @@
+import { logger } from "@/lib/logger";
 import { db } from "@/server/db";
 import {
   chatConversations,
   chatMessages,
-  type NewChatConversation,
-  type NewChatMessage,
   type ChatConversation,
   type ChatMessage,
+  type NewChatConversation,
+  type NewChatMessage,
 } from "@/server/db/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
-import { logger } from "@/lib/logger";
+import { and, desc, eq, sql } from "drizzle-orm";
 
 export class ChatQueries {
   /**
@@ -137,7 +137,10 @@ export class ChatQueries {
    */
   static async createMessage(message: NewChatMessage): Promise<ChatMessage> {
     try {
-      const [result] = await db.insert(chatMessages).values(message).returning();
+      const [result] = await db
+        .insert(chatMessages)
+        .values(message)
+        .returning();
 
       // Update conversation's updatedAt timestamp
       await db

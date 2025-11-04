@@ -2,12 +2,12 @@ import { err, ok, type Result } from "neverthrow";
 import { ActionErrors, type ActionError } from "../../lib/action-errors";
 import { logger } from "../../lib/logger";
 import {
+  getRecordingStatistics as getRecordingStatisticsQuery,
   insertRecording,
+  RecordingsQueries,
   selectRecordingById,
   selectRecordingsByProjectId,
   updateRecordingMetadata as updateRecordingMetadataQuery,
-  getRecordingStatistics as getRecordingStatisticsQuery,
-  RecordingsQueries,
 } from "../data-access/recordings.queries";
 import type { NewRecording, Recording } from "../db/schema";
 import { type RecordingDto } from "../dto";

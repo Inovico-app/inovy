@@ -27,7 +27,10 @@ export const ConversationContent = ({
   className,
   ...props
 }: ConversationContentProps) => (
-  <StickToBottom.Content className={cn("p-4", className)} {...props} />
+  <StickToBottom.Content
+    className={cn("p-4 max-w-screen-lg mx-auto w-full", className)}
+    {...props}
+  />
 );
 
 export type ConversationEmptyStateProps = ComponentProps<"div"> & {
@@ -95,3 +98,4 @@ export const ConversationScrollButton = ({
     )
   );
 };
+

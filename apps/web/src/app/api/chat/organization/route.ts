@@ -1,9 +1,9 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { ChatService } from "@/server/services/chat.service";
-import { ChatAuditService } from "@/server/services/chat-audit.service";
-import { logger } from "@/lib/logger";
 import { getAuthSessionWithRoles } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 import { canAccessOrganizationChat } from "@/lib/rbac";
+import { ChatAuditService } from "@/server/services/chat-audit.service";
+import { ChatService } from "@/server/services/chat.service";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const chatRequestSchema = z.object({
@@ -16,20 +16,25 @@ const chatRequestSchema = z.object({
  */
 function getRequestMetadata(request: NextRequest) {
   return {
-    ipAddress: request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? "unknown",
+    ipAddress:
+      request.headers.get("x-forwarded-for") ??
+      request.headers.get("x-real-ip") ??
+      "unknown",
     userAgent: request.headers.get("user-agent") ?? "unknown",
   };
 }
 
 export async function POST(request: NextRequest) {
   const metadata = getRequestMetadata(request);
-  
+
   try {
     // Get authenticated session with roles
     const sessionResult = await getAuthSessionWithRoles();
 
     if (sessionResult.isErr()) {
-      logger.error("Failed to get auth session", { error: sessionResult.error });
+      logger.error("Failed to get auth session", {
+        error: sessionResult.error,
+      });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -143,13 +148,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return the streaming response with conversation ID and sources in headers
+    // Return the streaming response with conversation ID in header
     const response = streamResult.value.stream;
 
     // Clone the response to add custom headers
     const headers = new Headers(response.headers);
     headers.set("X-Conversation-Id", activeConversationId);
-    headers.set("X-Sources", JSON.stringify(streamResult.value.sources));
 
     return new Response(response.body, {
       status: response.status,
@@ -174,7 +178,9 @@ export async function GET(request: NextRequest) {
     const sessionResult = await getAuthSessionWithRoles();
 
     if (sessionResult.isErr()) {
-      logger.error("Failed to get auth session", { error: sessionResult.error });
+      logger.error("Failed to get auth session", {
+        error: sessionResult.error,
+      });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -240,8 +246,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Get conversation history
-    const historyResult =
-      await ChatService.getConversationHistory(conversationId);
+    const historyResult = await ChatService.getConversationHistory(
+      conversationId
+    );
 
     if (historyResult.isErr()) {
       logger.error("Failed to get conversation history", {
@@ -262,3 +269,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

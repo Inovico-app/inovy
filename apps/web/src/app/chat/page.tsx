@@ -1,14 +1,12 @@
 import { ProtectedPage } from "@/components/protected-page";
-import { OrganizationChatInterface } from "@/features/chat/components/organization-chat-interface";
+import { Card } from "@/components/ui/card";
+import { UnifiedChatInterface } from "@/features/chat/components/unified-chat-interface";
+import { getUserProjects } from "@/features/projects/actions/get-user-projects";
 import { getAuthSessionWithRoles } from "@/lib/auth";
 import { canAccessOrganizationChat } from "@/lib/rbac";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import { Suspense } from "react";
-import { Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 async function ChatPageContent() {
   // Get session with roles
@@ -24,10 +22,15 @@ async function ChatPageContent() {
     redirect("/api/auth/login");
   }
 
-  // Check if user has access to organization chat
-  const hasAccess = canAccessOrganizationChat(session.user);
+  // Check if user is admin
+  const isAdmin = canAccessOrganizationChat(session.user);
 
-  if (!hasAccess) {
+  // Get user's projects
+  const projectsResult = await getUserProjects();
+  const projects = projectsResult.success ? projectsResult.data ?? [] : [];
+
+  // If no projects and not admin, show error
+  if (projects.length === 0 && !isAdmin) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] p-4">
         <Card className="max-w-md w-full p-6">
@@ -36,24 +39,10 @@ async function ChatPageContent() {
               <AlertCircle className="h-8 w-8 text-destructive" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold">Administrator Access Required</h2>
+              <h2 className="text-xl font-semibold">No Projects Available</h2>
               <p className="text-muted-foreground">
-                Organization-wide chat is only available to administrators. This
-                feature allows searching across all projects and recordings in
-                your organization.
-              </p>
-            </div>
-            <div className="pt-4 space-y-2 w-full">
-              <Button asChild className="w-full">
-                <Link href="/projects">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Projects
-                </Link>
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                You can still use project-level chat from any project page. Contact
-                your organization administrator if you need access to
-                organization-wide chat.
+                You don't have access to any projects yet. Please create a
+                project or contact your organization administrator for access.
               </p>
             </div>
           </div>
@@ -64,7 +53,12 @@ async function ChatPageContent() {
 
   return (
     <div className="h-[calc(100vh-4rem)]">
-      <OrganizationChatInterface />
+      <UnifiedChatInterface
+        isAdmin={isAdmin}
+        projects={projects}
+        defaultContext={isAdmin ? "organization" : "project"}
+        defaultProjectId={projects[0]?.id}
+      />
     </div>
   );
 }
@@ -89,3 +83,4 @@ export default function OrganizationChatPage() {
     </Suspense>
   );
 }
+

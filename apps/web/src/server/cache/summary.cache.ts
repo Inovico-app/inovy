@@ -1,6 +1,6 @@
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
-import { AIInsightsQueries } from "../data-access/ai-insights.queries";
+import { AIInsightService } from "../services/ai-insight.service";
 
 /**
  * Cached summary queries
@@ -38,7 +38,7 @@ export async function getCachedSummary(
   cacheTag(CacheTags.summary(recordingId));
 
   // Check if we have an existing summary in the database
-  const insightResult = await AIInsightsQueries.getInsightByType(
+  const insightResult = await AIInsightService.getInsightByTypeInternal(
     recordingId,
     "summary"
   );

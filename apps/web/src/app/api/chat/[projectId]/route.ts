@@ -1,8 +1,8 @@
-import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { type NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { ChatService } from "@/server/services/chat.service";
 import { ProjectService } from "@/server/services/project.service";
-import { logger } from "@/lib/logger";
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const chatRequestSchema = z.object({
@@ -86,13 +86,12 @@ export async function POST(
       );
     }
 
-    // Return the streaming response with conversation ID and sources in headers
+    // Return the streaming response with conversation ID in header
     const response = streamResult.value.stream;
-    
+
     // Clone the response to add custom headers
     const headers = new Headers(response.headers);
     headers.set("X-Conversation-Id", activeConversationId);
-    headers.set("X-Sources", JSON.stringify(streamResult.value.sources));
 
     return new Response(response.body, {
       status: response.status,
@@ -146,8 +145,9 @@ export async function GET(
     }
 
     // Get conversation history
-    const historyResult =
-      await ChatService.getConversationHistory(conversationId);
+    const historyResult = await ChatService.getConversationHistory(
+      conversationId
+    );
 
     if (historyResult.isErr()) {
       logger.error("Failed to get conversation history", {

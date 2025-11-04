@@ -1,7 +1,7 @@
 import { logger } from "@/lib/logger";
 import { EmbeddingsQueries } from "@/server/data-access/embeddings.queries";
-import { EmbeddingService } from "./embedding.service";
 import { err, ok, type Result } from "neverthrow";
+import { EmbeddingService } from "./embedding.service";
 
 export interface SearchResult {
   id: string;
@@ -38,8 +38,9 @@ export class VectorSearchService {
       logger.info("Performing vector search", { query, projectId, options });
 
       // Generate embedding for the query
-      const queryEmbeddingResult =
-        await EmbeddingService.generateEmbedding(query);
+      const queryEmbeddingResult = await EmbeddingService.generateEmbedding(
+        query
+      );
 
       if (queryEmbeddingResult.isErr()) {
         return err(queryEmbeddingResult.error);
@@ -75,10 +76,12 @@ export class VectorSearchService {
 
       return ok(searchResults);
     } catch (error) {
-      logger.error("Error performing vector search", { error, query, projectId });
-      return err(
-        error instanceof Error ? error : new Error("Unknown error")
-      );
+      logger.error("Error performing vector search", {
+        error,
+        query,
+        projectId,
+      });
+      return err(error instanceof Error ? error : new Error("Unknown error"));
     }
   }
 
@@ -154,9 +157,7 @@ export class VectorSearchService {
   /**
    * Format search results as source citations
    */
-  static formatSourceCitations(
-    results: SearchResult[]
-  ): Array<{
+  static formatSourceCitations(results: SearchResult[]): Array<{
     contentId: string;
     contentType: "recording" | "transcription" | "summary" | "task";
     title: string;
@@ -169,15 +170,16 @@ export class VectorSearchService {
       contentId: result.contentId,
       contentType: result.contentType,
       title:
-        result.metadata.title ||
-        result.metadata.recordingTitle ||
-        "Untitled",
+        result.metadata.title || result.metadata.recordingTitle || "Untitled",
       excerpt:
         result.contentText.length > 200
           ? result.contentText.substring(0, 200) + "..."
           : result.contentText,
       similarityScore: result.similarity,
-      recordingId: result.metadata.recordingId,
+      // For transcriptions, the contentId IS the recordingId
+      recordingId:
+        result.metadata.recordingId ??
+        (result.contentType === "transcription" ? result.contentId : undefined),
       timestamp: result.metadata.timestamp,
     }));
   }
@@ -222,10 +224,12 @@ export class VectorSearchService {
 
       return ok({ context, sources });
     } catch (error) {
-      logger.error("Error getting relevant context", { error, query, projectId });
-      return err(
-        error instanceof Error ? error : new Error("Unknown error")
-      );
+      logger.error("Error getting relevant context", {
+        error,
+        query,
+        projectId,
+      });
+      return err(error instanceof Error ? error : new Error("Unknown error"));
     }
   }
 
@@ -248,8 +252,9 @@ export class VectorSearchService {
       });
 
       // Generate embedding for the query
-      const queryEmbeddingResult =
-        await EmbeddingService.generateEmbedding(query);
+      const queryEmbeddingResult = await EmbeddingService.generateEmbedding(
+        query
+      );
 
       if (queryEmbeddingResult.isErr()) {
         return err(queryEmbeddingResult.error);
@@ -290,9 +295,7 @@ export class VectorSearchService {
         query,
         organizationId,
       });
-      return err(
-        error instanceof Error ? error : new Error("Unknown error")
-      );
+      return err(error instanceof Error ? error : new Error("Unknown error"));
     }
   }
 
@@ -350,9 +353,7 @@ export class VectorSearchService {
         query,
         organizationId,
       });
-      return err(
-        error instanceof Error ? error : new Error("Unknown error")
-      );
+      return err(error instanceof Error ? error : new Error("Unknown error"));
     }
   }
 }
