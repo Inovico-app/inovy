@@ -25,6 +25,7 @@ export class ChatService {
         projectId,
         userId,
         organizationId,
+        context: "project",
       };
 
       const result = await ChatQueries.createConversation(conversation);
@@ -50,6 +51,7 @@ export class ChatService {
         projectId: null,
         userId,
         organizationId,
+        context: "organization",
       };
 
       const result = await ChatQueries.createConversation(conversation);

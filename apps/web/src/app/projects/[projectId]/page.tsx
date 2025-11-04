@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { Route } from "next";
 import { Suspense } from "react";
 import { Button } from "../../../components/ui/button";
 import {
@@ -17,24 +16,21 @@ import {
   CardTitle,
 } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
-import { UploadRecordingModal } from "../../../features/recordings/components/upload-recording-modal";
-import { RecordingList } from "../../../features/recordings/components/recording-list";
-import { ProjectService } from "../../../server/services/project.service";
-import { RecordingService } from "../../../server/services/recording.service";
-import { EditProjectModal } from "../../../features/projects/components/edit-project-modal";
+import { ChatButton } from "../../../features/chat/components/chat-button";
 import { ArchiveProjectDialog } from "../../../features/projects/components/archive-project-dialog";
 import { DeleteProjectDialog } from "../../../features/projects/components/delete-project-dialog";
-import { ChatButton } from "../../../features/chat/components/chat-button";
+import { EditProjectModal } from "../../../features/projects/components/edit-project-modal";
+import { RecordingList } from "../../../features/recordings/components/recording-list";
+import { UploadRecordingModal } from "../../../features/recordings/components/upload-recording-modal";
+import { ProjectService } from "../../../server/services/project.service";
+import { RecordingService } from "../../../server/services/recording.service";
 
 interface ProjectDetailPageProps {
   params: Promise<{ projectId: string }>;
   searchParams: Promise<{ search?: string }>;
 }
 
-async function ProjectDetail({
-  params,
-  searchParams,
-}: ProjectDetailPageProps) {
+async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
   const { projectId } = await params;
   const { search } = await searchParams;
 
@@ -47,8 +43,9 @@ async function ProjectDetail({
   const project = projectResult.value;
 
   // Get recording statistics
-  const statisticsResult =
-    await RecordingService.getProjectRecordingStatistics(projectId);
+  const statisticsResult = await RecordingService.getProjectRecordingStatistics(
+    projectId
+  );
   const statistics = statisticsResult.isOk()
     ? statisticsResult.value
     : { totalCount: 0, lastRecordingDate: null, recentCount: 0 };

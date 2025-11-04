@@ -10,6 +10,7 @@ export const chatConversations = pgTable(
     }), // Made nullable for organization-level conversations
     userId: text("user_id").notNull(), // Kinde user ID
     organizationId: text("organization_id").notNull(), // Kinde organization code
+    context: text("context", { enum: ["project", "organization"] }).notNull(), // Conversation context
     title: text("title"), // Optional title, auto-generated from first message
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -26,6 +27,7 @@ export const chatConversations = pgTable(
     organizationIdIdx: index("chat_conversations_organization_id_idx").on(
       table.organizationId
     ),
+    contextIdx: index("chat_conversations_context_idx").on(table.context),
   })
 );
 
