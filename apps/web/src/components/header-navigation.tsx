@@ -1,10 +1,10 @@
 "use client";
 
+import { useUserRole } from "@/hooks/use-user-role";
+import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { Route } from "next";
 import { useEffect, useState } from "react";
-import { useUserRole } from "@/hooks/use-user-role";
 
 interface NavLink {
   to: string;
@@ -16,7 +16,7 @@ const navLinks: NavLink[] = [
   { to: "/", label: "Dashboard" },
   { to: "/projects", label: "Projects" },
   { to: "/tasks", label: "Tasks" },
-  { to: "/chat", label: "Organization Chat", requiresAdmin: true },
+  { to: "/chat", label: "Chat" },
 ];
 
 function isActive(pathname: string, href: string): boolean {

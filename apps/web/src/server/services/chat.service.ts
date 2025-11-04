@@ -1,11 +1,15 @@
 import { logger } from "@/lib/logger";
 import { ChatQueries } from "@/server/data-access/chat.queries";
-import { ProjectService } from "./project.service";
-import { VectorSearchService } from "./vector-search.service";
-import { type NewChatConversation, type NewChatMessage, type SourceReference } from "@/server/db/schema";
-import { err, ok, type Result } from "neverthrow";
+import {
+  type NewChatConversation,
+  type NewChatMessage,
+  type SourceReference,
+} from "@/server/db/schema";
 import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, type CoreMessage } from "ai";
+import { err, ok, type Result } from "neverthrow";
+import { ProjectService } from "./project.service";
+import { VectorSearchService } from "./vector-search.service";
 
 export class ChatService {
   private static openai = createOpenAI({
@@ -30,12 +34,11 @@ export class ChatService {
 
       const result = await ChatQueries.createConversation(conversation);
 
+      logger.info("Created conversation", { conversationId: result.id });
       return ok({ conversationId: result.id });
     } catch (error) {
       logger.error("Error creating conversation", { error, projectId, userId });
-      return err(
-        error instanceof Error ? error : new Error("Unknown error")
-      );
+      return err(error instanceof Error ? error : new Error("Unknown error"));
     }
   }
 
@@ -63,9 +66,7 @@ export class ChatService {
         organizationId,
         userId,
       });
-      return err(
-        error instanceof Error ? error : new Error("Unknown error")
-      );
+      return err(error instanceof Error ? error : new Error("Unknown error"));
     }
   }
 
@@ -84,18 +85,14 @@ export class ChatService {
         error,
         conversationId,
       });
-      return err(
-        error instanceof Error ? error : new Error("Unknown error")
-      );
+      return err(error instanceof Error ? error : new Error("Unknown error"));
     }
   }
 
   /**
    * Build system prompt with project context
    */
-  private static async buildSystemPrompt(
-    projectId: string
-  ): Promise<string> {
+  private static async buildSystemPrompt(projectId: string): Promise<string> {
     const projectResult = await ProjectService.getProjectById(projectId);
 
     if (projectResult.isErr()) {
@@ -158,7 +155,9 @@ Guidelines:
       logger.info("Generating chat response", { conversationId, projectId });
 
       // Get conversation to verify access
-      const conversation = await ChatQueries.getConversationById(conversationId);
+      const conversation = await ChatQueries.getConversationById(
+        conversationId
+      );
       if (!conversation) {
         throw new Error("Conversation not found");
       }
@@ -266,9 +265,7 @@ Please answer the user's question based on this information.`
         conversationId,
         projectId,
       });
-      return err(
-        error instanceof Error ? error : new Error("Unknown error")
-      );
+      return err(error instanceof Error ? error : new Error("Unknown error"));
     }
   }
 
@@ -284,7 +281,9 @@ Please answer the user's question based on this information.`
       logger.info("Streaming chat response", { conversationId, projectId });
 
       // Get conversation to verify access
-      const conversation = await ChatQueries.getConversationById(conversationId);
+      const conversation = await ChatQueries.getConversationById(
+        conversationId
+      );
       if (!conversation) {
         throw new Error("Conversation not found");
       }
@@ -379,16 +378,14 @@ Please answer the user's question based on this information.`
         },
       });
 
-      return ok({ stream: result.toTextStreamResponse(), sources });
+      return ok({ stream: result.toUIMessageStreamResponse(), sources });
     } catch (error) {
       logger.error("Error streaming chat response", {
         error,
         conversationId,
         projectId,
       });
-      return err(
-        error instanceof Error ? error : new Error("Unknown error")
-      );
+      return err(error instanceof Error ? error : new Error("Unknown error"));
     }
   }
 
@@ -407,8 +404,9 @@ Please answer the user's question based on this information.`
       });
 
       // Get conversation to verify access
-      const conversation =
-        await ChatQueries.getConversationById(conversationId);
+      const conversation = await ChatQueries.getConversationById(
+        conversationId
+      );
       if (!conversation) {
         throw new Error("Conversation not found");
       }
@@ -518,9 +516,7 @@ Please answer the user's question based on this information. When referencing in
         conversationId,
         organizationId,
       });
-      return err(
-        error instanceof Error ? error : new Error("Unknown error")
-      );
+      return err(error instanceof Error ? error : new Error("Unknown error"));
     }
   }
 
@@ -535,9 +531,7 @@ Please answer the user's question based on this information. When referencing in
       return ok(undefined);
     } catch (error) {
       logger.error("Error deleting conversation", { error, conversationId });
-      return err(
-        error instanceof Error ? error : new Error("Unknown error")
-      );
+      return err(error instanceof Error ? error : new Error("Unknown error"));
     }
   }
 }

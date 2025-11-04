@@ -27,6 +27,7 @@ import {
 } from "@/components/ai-elements/sources";
 import { Badge } from "@/components/ui/badge";
 import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { Building2, FolderOpen } from "lucide-react";
 import { useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
@@ -91,20 +92,21 @@ export function UnifiedChatInterface({
     ? projects.find((p) => p.id === projectId)?.name
     : undefined;
 
-  // Determine API endpoint based on context
-  const endpoint =
-    context === "organization"
-      ? "/api/chat/organization"
-      : `/api/chat/${projectId}`;
-
-  // Use AI SDK v6 Beta's useChat hook
-  // Using default transport with custom api endpoint
+  // Use unified API endpoint for both contexts
   const { messages, status, error, setMessages, sendMessage } = useChat({
-    // @ts-expect-error - api is not in the type
-    api: endpoint,
     id: `${context}-${projectId ?? "org"}`, // Unique ID per context
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+      body: {
+        context,
+        ...(context === "project" && projectId ? { projectId } : {}),
+      },
+    }),
     onError: (err: Error) => {
       console.error("Chat error:", err);
+    },
+    onFinish: ({ message, messages }) => {
+      console.log("WHAT GETS CALLED HERE/ ON FINISH", { message, messages });
     },
   });
 
@@ -271,7 +273,7 @@ export function UnifiedChatInterface({
                           ? "/placeholder-user.png"
                           : "/placeholder-assistant.png"
                       }
-                      name={message.role === "user" ? "You" : "AI"}
+                      name={message.role === "user" ? "Me" : "AI"}
                     />
                     <MessageContent>
                       <div className="whitespace-pre-wrap break-words">
