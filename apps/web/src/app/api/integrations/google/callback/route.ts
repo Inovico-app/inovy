@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getUserSession } from "../../../../../lib/auth";
 import { GoogleOAuthService } from "../../../../../server/services/google-oauth.service";
 import { logger } from "../../../../../lib/logger";

@@ -9,9 +9,8 @@ import Link from "next/link";
 import type { Route } from "next";
 import { UserIcon, Building2Icon } from "lucide-react";
 import { GoogleConnection } from "@/features/settings/components/google-connection";
-// TODO: Add back when GOOGLE-004 and GOOGLE-005 are merged
-// import { GoogleSettings } from "@/features/settings/components/google-settings";
-// import { GoogleStatusDashboard } from "@/features/settings/components/google-status-dashboard";
+import { GoogleSettings } from "@/features/settings/components/google-settings";
+import { GoogleStatusDashboard } from "@/features/settings/components/google-status-dashboard";
 
 const settingsSections = [
   {
@@ -70,9 +69,8 @@ export default function SettingsPage() {
         <div className="space-y-6">
           <h2 className="text-2xl font-bold">Integrations</h2>
           <GoogleConnection />
-          {/* TODO: Add back when GOOGLE-004 and GOOGLE-005 are merged */}
-          {/* <GoogleSettings /> */}
-          {/* <GoogleStatusDashboard /> */}
+          <GoogleSettings />
+          <GoogleStatusDashboard />
         </div>
 
         {/* Back Button */}
