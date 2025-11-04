@@ -10,6 +10,7 @@ import type { Route } from "next";
 import { UserIcon, Building2Icon } from "lucide-react";
 import { GoogleConnection } from "@/features/settings/components/google-connection";
 import { GoogleSettings } from "@/features/settings/components/google-settings";
+import { GoogleStatusDashboard } from "@/features/settings/components/google-status-dashboard";
 
 const settingsSections = [
   {
@@ -69,6 +70,7 @@ export default function SettingsPage() {
           <h2 className="text-2xl font-bold">Integrations</h2>
           <GoogleConnection />
           <GoogleSettings />
+          <GoogleStatusDashboard />
         </div>
 
         {/* Back Button */}
