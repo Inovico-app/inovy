@@ -86,13 +86,12 @@ export async function POST(
       );
     }
 
-    // Return the streaming response with conversation ID and sources in headers
+    // Return the streaming response with conversation ID in header
     const response = streamResult.value.stream;
 
     // Clone the response to add custom headers
     const headers = new Headers(response.headers);
     headers.set("X-Conversation-Id", activeConversationId);
-    headers.set("X-Sources", JSON.stringify(streamResult.value.sources));
 
     return new Response(response.body, {
       status: response.status,

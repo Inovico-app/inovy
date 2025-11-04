@@ -95,6 +95,7 @@ export function UnifiedChatInterface({
   // Use unified API endpoint for both contexts
   const { messages, status, error, setMessages, sendMessage } = useChat({
     id: `${context}-${projectId ?? "org"}`, // Unique ID per context
+    // @ts-expect-error - DefaultChatTransport is not assignable to ChatTransport
     transport: new DefaultChatTransport({
       api: "/api/chat",
       body: {
@@ -105,18 +106,33 @@ export function UnifiedChatInterface({
     onError: (err: Error) => {
       console.error("Chat error:", err);
     },
-    onFinish: ({ message, messages }) => {
-      console.log("WHAT GETS CALLED HERE/ ON FINISH", { message, messages });
-    },
   });
 
-  // Parse sources from message metadata (we'll pass them via headers)
-  const [sources, setSources] = useState<SourceReference[]>([]);
+  // Track sources per message using message metadata
+  const [messageSourcesMap, setMessageSourcesMap] = useState<
+    Record<string, SourceReference[]>
+  >({});
+
+  // Extract sources from message metadata
+  useEffect(() => {
+    const newSourcesMap: Record<string, SourceReference[]> = {};
+
+    messages.forEach((message) => {
+      if (message.role === "assistant" && message.metadata) {
+        const metadata = message.metadata as { sources?: SourceReference[] };
+        if (metadata.sources && Array.isArray(metadata.sources)) {
+          newSourcesMap[message.id] = metadata.sources;
+        }
+      }
+    });
+
+    setMessageSourcesMap(newSourcesMap);
+  }, [messages]);
 
   // Reset conversation when context changes
   useEffect(() => {
     setMessages([]);
-    setSources([]);
+    setMessageSourcesMap({});
   }, [context, projectId, setMessages]);
 
   const handleContextChange = (
@@ -285,43 +301,48 @@ export function UnifiedChatInterface({
                       </div>
 
                       {/* Show sources for assistant messages */}
-                      {message.role === "assistant" && sources.length > 0 && (
-                        <Sources>
-                          <SourcesTrigger count={sources.length} />
-                          <SourcesContent>
-                            {sources.map((source, index) => {
-                              const href =
-                                source.projectId && source.recordingId
-                                  ? `/projects/${source.projectId}/recordings/${source.recordingId}`
-                                  : "#";
-                              return (
-                                <Source
-                                  key={`${source.contentId}-${index}`}
-                                  href={href}
-                                  title={source.title}
-                                >
-                                  <div className="flex flex-col gap-1">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium">
-                                        {source.title}
-                                      </span>
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs"
-                                      >
-                                        {source.contentType}
-                                      </Badge>
-                                    </div>
-                                    <p className="text-muted-foreground text-xs">
-                                      {source.excerpt}
-                                    </p>
-                                  </div>
-                                </Source>
-                              );
-                            })}
-                          </SourcesContent>
-                        </Sources>
-                      )}
+                      {message.role === "assistant" &&
+                        messageSourcesMap[message.id]?.length > 0 && (
+                          <Sources>
+                            <SourcesTrigger
+                              count={messageSourcesMap[message.id].length}
+                            />
+                            <SourcesContent>
+                              {messageSourcesMap[message.id].map(
+                                (source, index) => {
+                                  const href =
+                                    source.projectId && source.recordingId
+                                      ? `/projects/${source.projectId}/recordings/${source.recordingId}`
+                                      : "#";
+                                  return (
+                                    <Source
+                                      key={`${source.contentId}-${index}`}
+                                      href={href}
+                                      title={source.title}
+                                    >
+                                      <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-medium">
+                                            {source.title}
+                                          </span>
+                                          <Badge
+                                            variant="outline"
+                                            className="text-xs"
+                                          >
+                                            {source.contentType}
+                                          </Badge>
+                                        </div>
+                                        <p className="text-muted-foreground text-xs">
+                                          {source.excerpt}
+                                        </p>
+                                      </div>
+                                    </Source>
+                                  );
+                                }
+                              )}
+                            </SourcesContent>
+                          </Sources>
+                        )}
                     </MessageContent>
                   </Message>
                 ))}

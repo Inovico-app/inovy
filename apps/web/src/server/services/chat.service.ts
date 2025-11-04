@@ -13,7 +13,7 @@ import { VectorSearchService } from "./vector-search.service";
 
 export class ChatService {
   private static openai = createOpenAI({
-    apiKey: process.env.OPENAI_API_KEY || "",
+    apiKey: process.env.OPENAI_API_KEY ?? "",
   });
 
   /**
@@ -344,7 +344,7 @@ Please answer the user's question based on this information.`
         : "No relevant information was found in the project recordings. Let the user know you don't have specific information to answer their question.";
 
       // Stream response from GPT-4-turbo
-      const result = await streamText({
+      const result = streamText({
         model: this.openai("gpt-4-turbo"),
         system: systemPrompt,
         messages: [
@@ -378,7 +378,14 @@ Please answer the user's question based on this information.`
         },
       });
 
-      return ok({ stream: result.toUIMessageStreamResponse(), sources });
+      // Return stream with sources as metadata in the response
+      return ok({
+        stream: result.toUIMessageStreamResponse({
+          messageMetadata: () => ({
+            sources,
+          }),
+        }),
+      });
     } catch (error) {
       logger.error("Error streaming chat response", {
         error,
@@ -473,7 +480,7 @@ Please answer the user's question based on this information. When referencing in
         : "No relevant information was found in the organization's recordings. Let the user know you don't have specific information to answer their question.";
 
       // Stream response from GPT-4-turbo
-      const result = await streamText({
+      const result = streamText({
         model: this.openai("gpt-4-turbo"),
         system: systemPrompt,
         messages: [
@@ -509,7 +516,14 @@ Please answer the user's question based on this information. When referencing in
         },
       });
 
-      return ok({ stream: result.toTextStreamResponse(), sources });
+      // Return stream with sources as metadata in the response
+      return ok({
+        stream: result.toUIMessageStreamResponse({
+          messageMetadata: () => ({
+            sources,
+          }),
+        }),
+      });
     } catch (error) {
       logger.error("Error streaming organization chat response", {
         error,
