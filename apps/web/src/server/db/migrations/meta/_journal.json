@@ -50,7 +50,13 @@
       "when": 1762248074470,
       "tag": "0011_add_chat_audit_log",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1762273544919,
+      "tag": "0012_add_chat_context",
+      "breakpoints": true
     }
   ]
 }
-
