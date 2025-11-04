@@ -36,6 +36,7 @@ import { CitationMarker } from "./citation-marker";
 import { ContextSwitchDialog } from "./context-switch-dialog";
 import { EnhancedSourceCard } from "./enhanced-source-card";
 import { ConversationHistorySidebar } from "./conversation-history-sidebar";
+import { getConversationMessagesAction } from "../actions/conversation-history";
 
 interface SourceReference {
   contentId: string;
@@ -210,8 +211,37 @@ export function UnifiedChatInterface({
   };
 
   // Handle resume conversation
-  const handleResumeConversation = (id: string) => {
+  const handleResumeConversation = async (id: string) => {
     setConversationId(id);
+    
+    // Load conversation history
+    try {
+      const result = await getConversationMessagesAction({ conversationId: id });
+      if (result?.data) {
+        // Convert ChatMessage[] to format expected by useChat
+        const loadedMessages = result.data.map((msg) => ({
+          id: msg.id,
+          role: msg.role as "user" | "assistant",
+          content: msg.content,
+          createdAt: msg.createdAt,
+          parts: [{ type: "text" as const, text: msg.content }],
+          metadata: msg.sources ? { sources: msg.sources } : undefined,
+        }));
+        
+        setMessages(loadedMessages);
+        
+        // Extract sources from loaded messages
+        const sourcesMap: Record<string, SourceReference[]> = {};
+        result.data.forEach((msg) => {
+          if (msg.role === "assistant" && msg.sources) {
+            sourcesMap[msg.id] = msg.sources as SourceReference[];
+          }
+        });
+        setMessageSourcesMap(sourcesMap);
+      }
+    } catch (error) {
+      console.error("Failed to load conversation history:", error);
+    }
   };
 
   const handleContextChange = (

@@ -177,3 +177,20 @@ export const getConversationStatsAction = authorizedActionClient
     return result.value;
   });
 
+export const getConversationMessagesAction = authorizedActionClient
+  .metadata({ policy: "chat:project" })
+  .schema(conversationIdSchema)
+  .action(async ({ parsedInput: { conversationId }, ctx: { user } }) => {
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
+    const result = await ChatService.getConversationHistory(conversationId);
+
+    if (result.isErr()) {
+      throw result.error;
+    }
+
+    return result.value;
+  });
+
