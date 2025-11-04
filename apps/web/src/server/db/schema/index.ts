@@ -12,4 +12,8 @@ export * from "./chat-embeddings";
 export * from "./chat-conversations";
 export * from "./chat-messages";
 export * from "./chat-audit-log";
+export * from "./oauth-connections";
+export * from "./auto-actions";
+export * from "./integration-settings";
+export * from "./integration-templates";
 

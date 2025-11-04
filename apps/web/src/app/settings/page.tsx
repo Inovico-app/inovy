@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { Route } from "next";
 import { UserIcon, Building2Icon } from "lucide-react";
+import { GoogleConnection } from "@/features/settings/components/google-connection";
 
 const settingsSections = [
   {
@@ -60,6 +61,12 @@ export default function SettingsPage() {
               </Link>
             );
           })}
+        </div>
+
+        {/* Google Workspace Integration */}
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Integrations</h2>
+          <GoogleConnection />
         </div>
 
         {/* Back Button */}
