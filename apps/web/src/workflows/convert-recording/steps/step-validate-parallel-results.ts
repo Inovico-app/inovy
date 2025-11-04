@@ -1,6 +1,7 @@
 import { logger } from "@/lib/logger";
-import { err, ok, type Result } from "neverthrow";
-import { updateWorkflowStatus } from "./update-status";
+import type { WorkflowResult } from "@/workflows/lib/workflow-result";
+import { failure, success } from "@/workflows/lib/workflow-result";
+import { updateWorkflowStatus } from "../../shared/update-status";
 
 /**
  * Validate Parallel Processing Results Step
@@ -15,24 +16,27 @@ import { updateWorkflowStatus } from "./update-status";
  */
 export async function validateParallelResults(
   recordingId: string,
-  summaryResult: PromiseSettledResult<Result<void, Error>>,
-  taskExtractionResult: PromiseSettledResult<Result<number, Error>>
-): Promise<Result<void, Error>> {
+  summaryResult: PromiseSettledResult<WorkflowResult<void>>,
+  taskExtractionResult: PromiseSettledResult<WorkflowResult<number>>
+): Promise<WorkflowResult<void>> {
   "use step";
 
   const summaryCompleted =
-    summaryResult.status === "fulfilled" && summaryResult.value.isOk();
+    summaryResult.status === "fulfilled" && summaryResult.value.success;
   const tasksCompleted =
     taskExtractionResult.status === "fulfilled" &&
-    taskExtractionResult.value.isOk();
+    taskExtractionResult.value.success;
 
   if (!summaryCompleted || !tasksCompleted) {
     const errors: string[] = [];
 
     if (!summaryCompleted) {
       let error = "Unknown error";
-      if (summaryResult.status === "fulfilled" && summaryResult.value.isErr()) {
-        error = summaryResult.value.error.message;
+      if (
+        summaryResult.status === "fulfilled" &&
+        !summaryResult.value.success
+      ) {
+        error = summaryResult.value.error;
       } else if (summaryResult.status === "rejected") {
         error = String(summaryResult.reason);
       }
@@ -43,9 +47,9 @@ export async function validateParallelResults(
       let error = "Unknown error";
       if (
         taskExtractionResult.status === "fulfilled" &&
-        taskExtractionResult.value.isErr()
+        !taskExtractionResult.value.success
       ) {
-        error = taskExtractionResult.value.error.message;
+        error = taskExtractionResult.value.error;
       } else if (taskExtractionResult.status === "rejected") {
         error = String(taskExtractionResult.reason);
       }
@@ -61,7 +65,7 @@ export async function validateParallelResults(
     });
 
     await updateWorkflowStatus(recordingId, "failed", errorMsg);
-    return err(new Error(`Parallel processing failed: ${errorMsg}`));
+    return failure(`Parallel processing failed: ${errorMsg}`);
   }
 
   logger.info("Workflow: Parallel processing validation successful", {
@@ -69,6 +73,6 @@ export async function validateParallelResults(
     recordingId,
   });
 
-  return ok(undefined);
+  return success(undefined);
 }
 

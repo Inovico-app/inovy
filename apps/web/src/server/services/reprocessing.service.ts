@@ -1,12 +1,12 @@
-import { err, ok, type Result } from "neverthrow";
 import { ActionErrors, type ActionError } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { ReprocessingQueries } from "../data-access/reprocessing.queries";
-import { RecordingsQueries } from "../data-access/recordings.queries";
+import { convertRecordingIntoAiInsights } from "@/workflows/convert-recording";
+import { err, ok, type Result } from "neverthrow";
 import { AIInsightsQueries } from "../data-access/ai-insights.queries";
+import { RecordingsQueries } from "../data-access/recordings.queries";
+import { ReprocessingQueries } from "../data-access/reprocessing.queries";
 import { TasksQueries } from "../data-access/tasks.queries";
 import type { NewReprocessingHistory } from "../db/schema/reprocessing-history";
-import { convertRecordingIntoAiInsights } from "@/features/ai-insights/workflows/convert-recording";
 
 /**
  * Reprocessing Service
@@ -289,8 +289,9 @@ export class ReprocessingService {
         backupData: backupResult.value,
       };
 
-      const historyResult =
-        await ReprocessingQueries.createReprocessingHistory(historyData);
+      const historyResult = await ReprocessingQueries.createReprocessingHistory(
+        historyData
+      );
 
       if (historyResult.isErr()) {
         logger.error("Failed to create reprocessing history", {
@@ -316,43 +317,45 @@ export class ReprocessingService {
       });
 
       // Trigger the AI workflow (fire and forget with error handling)
-      convertRecordingIntoAiInsights(recordingId, true).then(
-        async (result) => {
-          if (result.isOk()) {
-            // Update reprocessing history to completed
-            await ReprocessingQueries.updateReprocessingHistory(
-              reprocessingHistory.id,
-              {
-                status: "completed",
-                completedAt: new Date(),
-              }
-            );
+      convertRecordingIntoAiInsights(recordingId, true).then(async (result) => {
+        if (result && result.success && result.value.status === "completed") {
+          // Update reprocessing history to completed
+          await ReprocessingQueries.updateReprocessingHistory(
+            reprocessingHistory.id,
+            {
+              status: "completed",
+              completedAt: new Date(),
+            }
+          );
 
-            logger.info("Reprocessing completed successfully", {
-              component: "ReprocessingService.triggerReprocessing",
-              recordingId,
-              reprocessingId: reprocessingHistory.id,
-            });
-          } else {
-            // Update reprocessing history to failed
-            await ReprocessingQueries.updateReprocessingHistory(
-              reprocessingHistory.id,
-              {
-                status: "failed",
-                completedAt: new Date(),
-                errorMessage: result.error.message,
-              }
-            );
+          logger.info("Reprocessing completed successfully", {
+            component: "ReprocessingService.triggerReprocessing",
+            recordingId,
+            reprocessingId: reprocessingHistory.id,
+          });
+        } else {
+          // Update reprocessing history to failed
+          const errorMessage = result?.success
+            ? result.value.error || "Unknown workflow error"
+            : result?.error || "Workflow execution failed";
 
-            logger.error("Reprocessing failed", {
-              component: "ReprocessingService.triggerReprocessing",
-              recordingId,
-              reprocessingId: reprocessingHistory.id,
-              error: result.error,
-            });
-          }
+          await ReprocessingQueries.updateReprocessingHistory(
+            reprocessingHistory.id,
+            {
+              status: "failed",
+              completedAt: new Date(),
+              errorMessage,
+            }
+          );
+
+          logger.error("Reprocessing failed", {
+            component: "ReprocessingService.triggerReprocessing",
+            recordingId,
+            reprocessingId: reprocessingHistory.id,
+            error: errorMessage,
+          });
         }
-      );
+      });
 
       logger.info("Reprocessing triggered successfully", {
         component: "ReprocessingService.triggerReprocessing",

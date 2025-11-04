@@ -1,7 +1,8 @@
 import { logger } from "@/lib/logger";
 import { SummaryService } from "@/server/services/summary.service";
-import { err, ok, type Result } from "neverthrow";
-import { MAX_RETRIES, RETRY_DELAYS } from "./types";
+import type { WorkflowResult } from "@/workflows/lib/workflow-result";
+import { failure, success } from "@/workflows/lib/workflow-result";
+import { MAX_RETRIES, RETRY_DELAYS } from "../types";
 
 /**
  * Step 2a: Generate summary using OpenAI
@@ -21,7 +22,7 @@ export async function executeSummaryStep(
   transcriptionText: string,
   utterances?: Array<{ speaker: number; text: string }>,
   retryCount = 0
-): Promise<Result<void, Error>> {
+): Promise<WorkflowResult<void>> {
   "use step";
 
   try {
@@ -57,7 +58,7 @@ export async function executeSummaryStep(
         );
       }
 
-      return err(result.error);
+      return failure(result.error);
     }
 
     logger.info("Workflow Step 2a: Summary completed", {
@@ -65,14 +66,14 @@ export async function executeSummaryStep(
       recordingId,
     });
 
-    return ok(undefined);
+    return success(undefined);
   } catch (error) {
     logger.error("Workflow Step 2a: Summary error", {
       component: "ConvertRecordingWorkflow",
       recordingId,
       error,
     });
-    return err(
+    return failure(
       error instanceof Error ? error : new Error("Summary generation failed")
     );
   }

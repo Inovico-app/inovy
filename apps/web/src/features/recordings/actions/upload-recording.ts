@@ -1,6 +1,5 @@
 "use server";
 
-import { convertRecordingIntoAiInsights } from "@/features/ai-insights/workflows/convert-recording";
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { RecordingService } from "@/server/services";
@@ -8,8 +7,10 @@ import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE,
 } from "@/server/validation/recordings/upload-recording";
+import { convertRecordingIntoAiInsights } from "@/workflows/convert-recording";
 import { put } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
+import { start } from "workflow/api";
 
 /**
  * Upload a recording file using FormData
@@ -128,13 +129,49 @@ export async function uploadRecordingFormAction(
     revalidatePath(`/projects/${projectId}`);
 
     // Trigger AI processing workflow in the background (fire and forget)
-    convertRecordingIntoAiInsights(recording.id).catch((error) => {
+    const workflowRun = await start(convertRecordingIntoAiInsights, [
+      recording.id,
+    ]).catch((error) => {
       logger.error("Failed to trigger AI processing workflow", {
         component: "uploadRecordingFormAction",
         recordingId: recording.id,
         error,
       });
     });
+
+    const workflowResult = await workflowRun?.returnValue;
+
+    if (workflowResult && !workflowResult.success) {
+      logger.error("Failed to get workflow result", {
+        component: "uploadRecordingFormAction",
+        recordingId: recording.id,
+        error: workflowResult.error,
+      });
+      return {
+        success: false,
+        error: "Workflow execution failed, reason: " + workflowResult.error,
+      };
+    }
+
+    if (workflowResult?.success && workflowResult.value?.status === "failed") {
+      logger.error("Workflow completed with failure status", {
+        component: "uploadRecordingFormAction",
+        recordingId: recording.id,
+        error: workflowResult.value.error,
+      });
+      return {
+        success: false,
+        error:
+          "Workflow execution failed, reason: " + workflowResult.value.error,
+      };
+    }
+
+    if (workflowResult) {
+      logger.info("AI processing workflow started", {
+        component: "uploadRecordingFormAction",
+        recordingId: recording.id,
+      });
+    }
 
     return { success: true, recordingId: recording.id };
   } catch (error) {

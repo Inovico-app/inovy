@@ -1,7 +1,8 @@
 import { logger } from "@/lib/logger";
 import { TaskExtractionService } from "@/server/services/task-extraction.service";
-import { err, ok, type Result } from "neverthrow";
-import { MAX_RETRIES, RETRY_DELAYS } from "./types";
+import type { WorkflowResult } from "@/workflows/lib/workflow-result";
+import { failure, success } from "@/workflows/lib/workflow-result";
+import { MAX_RETRIES, RETRY_DELAYS } from "../types";
 
 /**
  * Step 2b: Extract tasks using OpenAI
@@ -26,7 +27,7 @@ export async function executeTaskExtractionStep(
   createdById: string,
   utterances?: Array<{ speaker: number; text: string; start: number }>,
   retryCount = 0
-): Promise<Result<number, Error>> {
+): Promise<WorkflowResult<number>> {
   "use step";
 
   try {
@@ -68,7 +69,7 @@ export async function executeTaskExtractionStep(
         );
       }
 
-      return err(result.error);
+      return failure(result.error);
     }
 
     logger.info("Workflow Step 2b: Task extraction completed", {
@@ -77,14 +78,14 @@ export async function executeTaskExtractionStep(
       tasksExtracted: result.value.totalExtracted,
     });
 
-    return ok(result.value.totalExtracted);
+    return success(result.value.totalExtracted);
   } catch (error) {
     logger.error("Workflow Step 2b: Task extraction error", {
       component: "ConvertRecordingWorkflow",
       recordingId,
       error,
     });
-    return err(
+    return failure(
       error instanceof Error ? error : new Error("Task extraction failed")
     );
   }
