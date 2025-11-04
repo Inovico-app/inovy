@@ -25,15 +25,17 @@ import {
   SourcesTrigger,
 } from "@/components/ai-elements/sources";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { Building2, FolderOpen } from "lucide-react";
+import { Building2, FolderOpen, History, Plus } from "lucide-react";
 import { useQueryState } from "nuqs";
 import { useEffect, useRef, useState } from "react";
 import { ChatContextSelector } from "./chat-context-selector";
 import { CitationMarker } from "./citation-marker";
 import { ContextSwitchDialog } from "./context-switch-dialog";
 import { EnhancedSourceCard } from "./enhanced-source-card";
+import { ConversationHistorySidebar } from "./conversation-history-sidebar";
 
 interface SourceReference {
   contentId: string;
@@ -84,12 +86,17 @@ export function UnifiedChatInterface({
     defaultValue: initialProjectId,
   });
 
+  const [conversationId, setConversationId] = useQueryState("conversationId");
+
   // Context switch dialog state
   const [showSwitchDialog, setShowSwitchDialog] = useState(false);
   const [pendingContext, setPendingContext] = useState<{
     context: "organization" | "project";
     projectId?: string;
   } | null>(null);
+
+  // Sidebar state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Get current project name
   const currentProjectName = projectId
@@ -98,13 +105,14 @@ export function UnifiedChatInterface({
 
   // Use unified API endpoint for both contexts
   const { messages, status, error, setMessages, sendMessage } = useChat({
-    id: `${context}-${projectId ?? "org"}`, // Unique ID per context
+    id: conversationId ?? `${context}-${projectId ?? "org"}`, // Use conversationId if resuming
     // @ts-expect-error - DefaultChatTransport is not assignable to ChatTransport
     transport: new DefaultChatTransport({
       api: "/api/chat",
       body: {
         context,
         ...(context === "project" && projectId ? { projectId } : {}),
+        ...(conversationId ? { conversationId } : {}),
       },
     }),
     onError: (err: Error) => {
@@ -186,11 +194,25 @@ export function UnifiedChatInterface({
     }
   };
 
-  // Reset conversation when context changes
+  // Reset conversation when context changes or starting new conversation
   useEffect(() => {
+    if (!conversationId) {
+      setMessages([]);
+      setMessageSourcesMap({});
+    }
+  }, [context, projectId, conversationId, setMessages]);
+
+  // Handle new conversation
+  const handleNewConversation = () => {
+    setConversationId(null);
     setMessages([]);
     setMessageSourcesMap({});
-  }, [context, projectId, setMessages]);
+  };
+
+  // Handle resume conversation
+  const handleResumeConversation = (id: string) => {
+    setConversationId(id);
+  };
 
   const handleContextChange = (
     newContext: "organization" | "project",
@@ -309,11 +331,27 @@ export function UnifiedChatInterface({
 
   return (
     <>
+      <ConversationHistorySidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        context={context}
+        projectId={projectId ?? undefined}
+        currentConversationId={conversationId ?? undefined}
+        onSelectConversation={handleResumeConversation}
+      />
+
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="border-b p-4 bg-background">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsSidebarOpen(true)}
+              >
+                <History className="h-4 w-4" />
+              </Button>
               <ChatContextSelector
                 currentContext={context}
                 currentProjectId={projectId ?? undefined}
@@ -323,6 +361,16 @@ export function UnifiedChatInterface({
               />
               {getContextBadge()}
             </div>
+            {messages.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNewConversation}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                New
+              </Button>
+            )}
           </div>
           <p className="text-sm text-muted-foreground mt-2">
             {context === "organization"

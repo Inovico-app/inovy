@@ -57,6 +57,13 @@
       "when": 1762273544919,
       "tag": "0012_add_chat_context",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1762275197670,
+      "tag": "0013_add_conversation_history_fields",
+      "breakpoints": true
     }
   ]
 }
