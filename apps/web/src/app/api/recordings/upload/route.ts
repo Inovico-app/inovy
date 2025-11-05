@@ -141,15 +141,25 @@ export async function POST(request: NextRequest) {
     revalidatePath(`/projects/${projectId}`);
 
     // Trigger AI processing workflow in the background (fire and forget)
-    const runConversion = await start(convertRecordingIntoAiInsights, [
-      recording.id,
-    ]);
-
-    logger.info("AI processing workflow triggered", {
-      component: "POST /api/recordings/upload",
-      recordingId: recording.id,
-      run: { id: runConversion.runId, status: runConversion.status },
-    });
+    // Don't await to prevent response body lock issues
+    start(convertRecordingIntoAiInsights, [recording.id])
+      .then((runConversion) => {
+        logger.info("AI processing workflow triggered from upload recording", {
+          component: "POST /api/recordings/upload",
+          recordingId: recording.id,
+          run: { id: runConversion.runId, status: runConversion.status },
+        });
+      })
+      .catch((error) => {
+        logger.error(
+          "Failed to trigger AI processing workflow from upload recording",
+          {
+            component: "POST /api/recordings/upload",
+            recordingId: recording.id,
+            error,
+          }
+        );
+      });
 
     return NextResponse.json(
       { success: true, recordingId: recording.id },
