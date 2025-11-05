@@ -1,12 +1,12 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { ChatService } from "@/server/services/chat.service";
 import {
   conversationIdSchema,
   listConversationsSchema,
   searchConversationsSchema,
 } from "@/server/validation/chat/conversation-history";
-import { ChatService } from "@/server/services/chat.service";
 import { revalidatePath } from "next/cache";
 
 export const listConversationsAction = authorizedActionClient

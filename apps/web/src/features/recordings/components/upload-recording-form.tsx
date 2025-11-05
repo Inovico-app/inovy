@@ -1,13 +1,18 @@
 "use client";
 
-import { uploadRecordingFormAction } from "@/features/recordings/actions/upload-recording";
 import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE,
 } from "@/server/validation/recordings/upload-recording";
 import { UploadIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+} from "react";
 import { toast } from "sonner";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -26,6 +31,7 @@ export function UploadRecordingForm({
 }: UploadRecordingFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
@@ -37,6 +43,15 @@ export function UploadRecordingForm({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // Cleanup on unmount - abort any ongoing upload
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -112,6 +127,20 @@ export function UploadRecordingForm({
     }
   };
 
+  const handleCancelUpload = () => {
+    if (abortControllerRef.current && isUploading) {
+      abortControllerRef.current.abort();
+      toast.info("Upload cancelled");
+      setIsUploading(false);
+      setUploadProgress(0);
+      setError(null);
+    }
+
+    if (onCancel) {
+      onCancel();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -129,12 +158,17 @@ export function UploadRecordingForm({
     setError(null);
     setUploadProgress(0);
 
+    // Create a new abort controller for this upload
+    abortControllerRef.current = new AbortController();
+
+    let progressInterval: NodeJS.Timeout | null = null;
+
     try {
       // Simulate progress (since we can't track actual upload progress easily)
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setUploadProgress((prev) => {
           if (prev >= 90) {
-            clearInterval(progressInterval);
+            if (progressInterval) clearInterval(progressInterval);
             return 90;
           }
           return prev + 10;
@@ -149,11 +183,24 @@ export function UploadRecordingForm({
       formData.append("description", description.trim());
       formData.append("recordingDate", recordingDate);
 
-      // Upload recording
-      const result = await uploadRecordingFormAction(formData);
+      // Upload recording via API route with abort signal
+      const response = await fetch("/api/recordings/upload", {
+        method: "POST",
+        body: formData,
+        signal: abortControllerRef.current.signal,
+      });
 
-      clearInterval(progressInterval);
+      if (progressInterval) clearInterval(progressInterval);
       setUploadProgress(100);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({
+          error: "Failed to upload recording",
+        }));
+        throw new Error(errorData.error ?? "Failed to upload recording");
+      }
+
+      const result = await response.json();
 
       if (result.success && result.recordingId) {
         toast.success("Recording uploaded successfully!");
@@ -169,10 +216,22 @@ export function UploadRecordingForm({
         toast.error(result.error ?? "Failed to upload recording");
       }
     } catch (err) {
+      // Clear progress interval if it's still running
+      if (progressInterval) clearInterval(progressInterval);
+
+      // Handle abort error differently from other errors
+      if (err instanceof Error && err.name === "AbortError") {
+        setError("Upload cancelled");
+        return; // Don't show error toast for intentional cancellation
+      }
+
       setError(err instanceof Error ? err.message : "An error occurred");
-      toast.error("An error occurred during upload");
+      toast.error(
+        err instanceof Error ? err.message : "An error occurred during upload"
+      );
     } finally {
       setIsUploading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -325,13 +384,8 @@ export function UploadRecordingForm({
       {/* Action Buttons */}
       <div className="flex gap-3 justify-end">
         {onCancel && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={isUploading}
-          >
-            Cancel
+          <Button type="button" variant="outline" onClick={handleCancelUpload}>
+            {isUploading ? "Cancel Upload" : "Cancel"}
           </Button>
         )}
         <Button type="submit" disabled={!file || !title || isUploading}>

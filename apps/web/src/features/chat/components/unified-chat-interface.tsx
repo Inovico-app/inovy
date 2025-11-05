@@ -31,12 +31,12 @@ import { DefaultChatTransport } from "ai";
 import { Building2, FolderOpen, History, Plus } from "lucide-react";
 import { useQueryState } from "nuqs";
 import { useEffect, useRef, useState } from "react";
+import { getConversationMessagesAction } from "../actions/conversation-history";
 import { ChatContextSelector } from "./chat-context-selector";
 import { CitationMarker } from "./citation-marker";
 import { ContextSwitchDialog } from "./context-switch-dialog";
-import { EnhancedSourceCard } from "./enhanced-source-card";
 import { ConversationHistorySidebar } from "./conversation-history-sidebar";
-import { getConversationMessagesAction } from "../actions/conversation-history";
+import { EnhancedSourceCard } from "./enhanced-source-card";
 
 interface SourceReference {
   contentId: string;
@@ -127,7 +127,9 @@ export function UnifiedChatInterface({
   >({});
 
   // Refs for source cards to enable scrolling
-  const sourceRefsMap = useRef<Record<string, Record<number, HTMLDivElement | null>>>({});
+  const sourceRefsMap = useRef<
+    Record<string, Record<number, HTMLDivElement | null>>
+  >({});
 
   // Extract sources from message metadata
   useEffect(() => {
@@ -213,10 +215,12 @@ export function UnifiedChatInterface({
   // Handle resume conversation
   const handleResumeConversation = async (id: string) => {
     setConversationId(id);
-    
+
     // Load conversation history
     try {
-      const result = await getConversationMessagesAction({ conversationId: id });
+      const result = await getConversationMessagesAction({
+        conversationId: id,
+      });
       if (result?.data) {
         // Convert ChatMessage[] to format expected by useChat
         const loadedMessages = result.data.map((msg) => ({
@@ -227,9 +231,9 @@ export function UnifiedChatInterface({
           parts: [{ type: "text" as const, text: msg.content }],
           metadata: msg.sources ? { sources: msg.sources } : undefined,
         }));
-        
+
         setMessages(loadedMessages);
-        
+
         // Extract sources from loaded messages
         const sourcesMap: Record<string, SourceReference[]> = {};
         result.data.forEach((msg) => {
@@ -483,7 +487,9 @@ export function UnifiedChatInterface({
                                         sourceIndex={index}
                                         ref={(el) => {
                                           if (el) {
-                                            sourceRefsMap.current[message.id]![index] = el;
+                                            sourceRefsMap.current[message.id]![
+                                              index
+                                            ] = el;
                                           }
                                         }}
                                       />

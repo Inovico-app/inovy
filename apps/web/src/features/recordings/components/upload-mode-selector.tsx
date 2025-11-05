@@ -1,14 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UploadRecordingForm } from "./upload-recording-form";
-import { LiveRecorder } from "./live-recorder";
-import { useRouter } from "next/navigation";
-import { uploadRecordingFormAction } from "../actions/upload-recording";
 import { put } from "@vercel/blob";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
+import { LiveRecorder } from "./live-recorder";
+import { UploadRecordingForm } from "./upload-recording-form";
 
 interface UploadModeSelectorProps {
   projectId: string;
@@ -16,7 +21,7 @@ interface UploadModeSelectorProps {
 
 export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
   const router = useRouter();
-  const [isUploading, setIsUploading] = useState(false);
+  const [_isUploading, setIsUploading] = useState(false);
 
   const handleLiveRecordingComplete = async (
     audioBlob: Blob,
@@ -41,23 +46,40 @@ export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
       const formData = new FormData();
       formData.append("file", audioFile);
       formData.append("projectId", projectId);
-      formData.append("title", `Live opname ${new Date().toLocaleString("nl-NL")}`);
+      formData.append(
+        "title",
+        `Live opname ${new Date().toLocaleString("nl-NL")}`
+      );
       formData.append("description", "Live opgenomen gesprek");
       formData.append("recordingDate", new Date().toISOString());
 
-      // Save recording with transcription
-      const result = await uploadRecordingFormAction(formData);
+      // Upload recording via API route
+      const response = await fetch("/api/recordings/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({
+          error: "Fout bij opslaan van opname",
+        }));
+        throw new Error(errorData.error ?? "Fout bij opslaan van opname");
+      }
+
+      const result = await response.json();
 
       if (result.success && result.recordingId) {
         // Save transcription (already done by live recording)
         toast.success("Opname succesvol opgeslagen!");
         router.push(`/projects/${projectId}/recordings/${result.recordingId}`);
       } else {
-        toast.error(result.error || "Fout bij opslaan van opname");
+        toast.error(result.error ?? "Fout bij opslaan van opname");
       }
     } catch (error) {
       console.error("Error saving live recording:", error);
-      toast.error("Fout bij opslaan van opname");
+      toast.error(
+        error instanceof Error ? error.message : "Fout bij opslaan van opname"
+      );
     } finally {
       setIsUploading(false);
     }
@@ -75,7 +97,8 @@ export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
           <CardHeader>
             <CardTitle>Opname details</CardTitle>
             <CardDescription>
-              Upload een audio of video bestand en voeg details toe over de vergadering
+              Upload een audio of video bestand en voeg details toe over de
+              vergadering
             </CardDescription>
           </CardHeader>
           <CardContent>

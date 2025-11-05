@@ -13,9 +13,9 @@ export const ALLOWED_MIME_TYPES = [
 ] as const;
 
 /**
- * Maximum file size: 100MB
+ * Maximum file size: 500MB
  */
-export const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB in bytes
+export const MAX_FILE_SIZE = 100 * 1024 * 1024 * 5; // 500MB in bytes
 
 /**
  * Schema for uploading a recording
