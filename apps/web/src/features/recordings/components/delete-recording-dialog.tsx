@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2Icon, Loader2Icon } from "lucide-react";
+import { Loader2Icon, Trash2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -72,8 +72,8 @@ export function DeleteRecordingDialog({
 
       toast.success(`Recording "${recordingTitle}" deleted successfully`);
       setOpen(false);
-      router.push(`/projects/${projectId}`);
       router.refresh();
+      router.push(`/projects/${projectId}`);
     } catch (error) {
       console.error("Error deleting recording:", error);
       const errorMessage = "Failed to delete recording";
@@ -143,9 +143,7 @@ export function DeleteRecordingDialog({
             <p className="text-sm text-destructive font-medium">
               ⚠️ Recording to be deleted:
             </p>
-            <p className="text-sm mt-1 font-mono break-all">
-              {recordingTitle}
-            </p>
+            <p className="text-sm mt-1 font-mono break-all">{recordingTitle}</p>
           </div>
         </div>
 

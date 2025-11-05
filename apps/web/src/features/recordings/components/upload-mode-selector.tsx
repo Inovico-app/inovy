@@ -71,6 +71,9 @@ export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
       if (result.success && result.recordingId) {
         // Save transcription (already done by live recording)
         toast.success("Opname succesvol opgeslagen!");
+
+        // Refresh the router cache to get updated data
+        router.refresh();
         router.push(`/projects/${projectId}/recordings/${result.recordingId}`);
       } else {
         toast.error(result.error ?? "Fout bij opslaan van opname");

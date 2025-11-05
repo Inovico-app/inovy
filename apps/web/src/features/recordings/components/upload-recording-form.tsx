@@ -205,6 +205,9 @@ export function UploadRecordingForm({
       if (result.success && result.recordingId) {
         toast.success("Recording uploaded successfully!");
 
+        // Refresh the router cache to get updated data
+        router.refresh();
+
         if (onSuccess) {
           onSuccess(result.recordingId);
         } else {
