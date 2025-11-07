@@ -1,15 +1,8 @@
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db";
-import { autoActions, recordings, tasks } from "../db/schema";
-import { eq, and, desc } from "drizzle-orm";
 import type { AutoAction } from "../db/schema";
+import { autoActions, recordings, tasks } from "../db/schema";
 
-/**
- * Data access layer for auto actions
- */
-
-/**
- * Get recent auto actions for a user
- */
 export async function getRecentAutoActions(
   userId: string,
   provider: "google" | "microsoft",
@@ -18,15 +11,9 @@ export async function getRecentAutoActions(
     type?: "calendar_event" | "email_draft";
   }
 ): Promise<
-  Array<
-    AutoAction & {
-      recordingTitle?: string;
-      taskTitle?: string;
-    }
-  >
+  Array<AutoAction & { recordingTitle?: string; taskTitle?: string }>
 > {
   const limit = options?.limit || 50;
-
   const query = db
     .select({
       action: autoActions,
@@ -45,9 +32,7 @@ export async function getRecentAutoActions(
     )
     .orderBy(desc(autoActions.createdAt))
     .limit(limit);
-
   const results = await query;
-
   return results.map((r) => ({
     ...r.action,
     recordingTitle: r.recordingTitle || undefined,
@@ -55,9 +40,6 @@ export async function getRecentAutoActions(
   }));
 }
 
-/**
- * Get action counts by status
- */
 export async function getAutoActionStats(
   userId: string,
   provider: "google" | "microsoft"
@@ -75,7 +57,6 @@ export async function getAutoActionStats(
     .where(
       and(eq(autoActions.userId, userId), eq(autoActions.provider, provider))
     );
-
   return {
     total: actions.length,
     completed: actions.filter((a) => a.status === "completed").length,
@@ -88,9 +69,6 @@ export async function getAutoActionStats(
   };
 }
 
-/**
- * Retry a failed action
- */
 export async function retryAutoAction(
   actionId: string,
   userId: string
@@ -100,11 +78,9 @@ export async function retryAutoAction(
     .from(autoActions)
     .where(and(eq(autoActions.id, actionId), eq(autoActions.userId, userId)))
     .limit(1);
-
   if (!action || action.status !== "failed") {
     return null;
   }
-
   const [updated] = await db
     .update(autoActions)
     .set({
@@ -115,7 +91,6 @@ export async function retryAutoAction(
     })
     .where(eq(autoActions.id, actionId))
     .returning();
-
   return updated || null;
 }
 

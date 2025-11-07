@@ -1,5 +1,4 @@
 import { desc, eq } from "drizzle-orm";
-import { err, ok, type Result } from "neverthrow";
 import { db } from "../db";
 import {
   summaryHistory,
@@ -16,17 +15,10 @@ export class SummaryHistoryQueries {
    */
   static async insertSummaryHistory(
     data: NewSummaryHistory
-  ): Promise<Result<SummaryHistory, Error>> {
-    try {
-      const [history] = await db
-        .insert(summaryHistory)
-        .values(data)
-        .returning();
+  ): Promise<SummaryHistory> {
+    const [history] = await db.insert(summaryHistory).values(data).returning();
 
-      return ok(history);
-    } catch (error) {
-      return err(error as Error);
-    }
+    return history;
   }
 
   /**
@@ -35,38 +27,26 @@ export class SummaryHistoryQueries {
    */
   static async selectSummaryHistoryByRecordingId(
     recordingId: string
-  ): Promise<Result<SummaryHistory[], Error>> {
-    try {
-      const history = await db
-        .select()
-        .from(summaryHistory)
-        .where(eq(summaryHistory.recordingId, recordingId))
-        .orderBy(desc(summaryHistory.versionNumber));
-
-      return ok(history);
-    } catch (error) {
-      return err(error as Error);
-    }
+  ): Promise<SummaryHistory[]> {
+    return await db
+      .select()
+      .from(summaryHistory)
+      .where(eq(summaryHistory.recordingId, recordingId))
+      .orderBy(desc(summaryHistory.versionNumber));
   }
 
   /**
    * Get the latest version number for a recording
    */
-  static async getLatestVersionNumber(
-    recordingId: string
-  ): Promise<Result<number, Error>> {
-    try {
-      const result = await db
-        .select({ versionNumber: summaryHistory.versionNumber })
-        .from(summaryHistory)
-        .where(eq(summaryHistory.recordingId, recordingId))
-        .orderBy(desc(summaryHistory.versionNumber))
-        .limit(1);
+  static async getLatestVersionNumber(recordingId: string): Promise<number> {
+    const result = await db
+      .select({ versionNumber: summaryHistory.versionNumber })
+      .from(summaryHistory)
+      .where(eq(summaryHistory.recordingId, recordingId))
+      .orderBy(desc(summaryHistory.versionNumber))
+      .limit(1);
 
-      return ok(result[0]?.versionNumber ?? 0);
-    } catch (error) {
-      return err(error as Error);
-    }
+    return result[0]?.versionNumber ?? 0;
   }
 }
 

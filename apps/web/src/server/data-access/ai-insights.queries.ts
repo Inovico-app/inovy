@@ -1,4 +1,3 @@
-import { logger } from "@/lib/logger";
 import { db } from "@/server/db";
 import {
   aiInsights,
@@ -6,76 +5,26 @@ import {
   type NewAIInsight,
 } from "@/server/db/schema";
 import { and, desc, eq } from "drizzle-orm";
-import { err, ok, type Result } from "neverthrow";
 
 export class AIInsightsQueries {
-  /**
-   * Create a new AI insight
-   */
-  static async createAIInsight(
-    data: NewAIInsight
-  ): Promise<Result<AIInsight, Error>> {
-    try {
-      const [insight] = await db
-        .insert(aiInsights)
-        .values({
-          ...data,
-          updatedAt: new Date(),
-        })
-        .returning();
-
-      logger.info("AI insight created", {
-        component: "AIInsightsQueries.createAIInsight",
-        insightId: insight.id,
-        recordingId: data.recordingId,
-        insightType: data.insightType,
-      });
-
-      return ok(insight);
-    } catch (error) {
-      logger.error("Failed to create AI insight", {
-        component: "AIInsightsQueries.createAIInsight",
-        error,
-      });
-      return err(
-        error instanceof Error
-          ? error
-          : new Error("Failed to create AI insight")
-      );
-    }
+  static async createAIInsight(data: NewAIInsight): Promise<AIInsight> {
+    const [insight] = await db
+      .insert(aiInsights)
+      .values({ ...data, updatedAt: new Date() })
+      .returning();
+    return insight;
   }
 
-  /**
-   * Get all insights for a recording
-   */
   static async getInsightsByRecordingId(
     recordingId: string
-  ): Promise<Result<AIInsight[], Error>> {
-    try {
-      const insights = await db
-        .select()
-        .from(aiInsights)
-        .where(eq(aiInsights.recordingId, recordingId))
-        .orderBy(desc(aiInsights.createdAt));
-
-      return ok(insights);
-    } catch (error) {
-      logger.error("Failed to fetch AI insights", {
-        component: "AIInsightsQueries.getInsightsByRecordingId",
-        recordingId,
-        error,
-      });
-      return err(
-        error instanceof Error
-          ? error
-          : new Error("Failed to fetch AI insights")
-      );
-    }
+  ): Promise<AIInsight[]> {
+    return await db
+      .select()
+      .from(aiInsights)
+      .where(eq(aiInsights.recordingId, recordingId))
+      .orderBy(desc(aiInsights.createdAt));
   }
 
-  /**
-   * Get a specific insight by type and recording
-   */
   static async getInsightByType(
     recordingId: string,
     insightType:
@@ -85,186 +34,72 @@ export class AIInsightsQueries {
       | "decisions"
       | "risks"
       | "next_steps"
-  ): Promise<Result<AIInsight | null, Error>> {
-    try {
-      const [insight] = await db
-        .select()
-        .from(aiInsights)
-        .where(
-          and(
-            eq(aiInsights.recordingId, recordingId),
-            eq(aiInsights.insightType, insightType)
-          )
+  ): Promise<AIInsight | null> {
+    const [insight] = await db
+      .select()
+      .from(aiInsights)
+      .where(
+        and(
+          eq(aiInsights.recordingId, recordingId),
+          eq(aiInsights.insightType, insightType)
         )
-        .limit(1);
-
-      return ok(insight ?? null);
-    } catch (error) {
-      logger.error("Failed to fetch AI insight by type", {
-        component: "AIInsightsQueries.getInsightByType",
-        recordingId,
-        insightType,
-        error,
-      });
-      return err(
-        error instanceof Error
-          ? error
-          : new Error("Failed to fetch AI insight by type")
-      );
-    }
+      )
+      .limit(1);
+    return insight ?? null;
   }
 
-  /**
-   * Update insight status
-   */
   static async updateInsightStatus(
     insightId: string,
     status: "pending" | "processing" | "completed" | "failed",
     errorMessage?: string
-  ): Promise<Result<AIInsight, Error>> {
-    try {
-      const [updated] = await db
-        .update(aiInsights)
-        .set({
-          processingStatus: status,
-          errorMessage,
-          updatedAt: new Date(),
-        })
-        .where(eq(aiInsights.id, insightId))
-        .returning();
-
-      logger.info("AI insight status updated", {
-        component: "AIInsightsQueries.updateInsightStatus",
-        insightId,
-        status,
-      });
-
-      return ok(updated);
-    } catch (error) {
-      logger.error("Failed to update AI insight status", {
-        component: "AIInsightsQueries.updateInsightStatus",
-        insightId,
-        error,
-      });
-      return err(
-        error instanceof Error
-          ? error
-          : new Error("Failed to update AI insight status")
-      );
-    }
+  ): Promise<AIInsight | undefined> {
+    const [updated] = await db
+      .update(aiInsights)
+      .set({ processingStatus: status, errorMessage, updatedAt: new Date() })
+      .where(eq(aiInsights.id, insightId))
+      .returning();
+    return updated;
   }
 
-  /**
-   * Update insight content
-   */
   static async updateInsightContent(
     insightId: string,
     content: Record<string, unknown>,
     confidenceScore?: number
-  ): Promise<Result<AIInsight, Error>> {
-    try {
-      const [updated] = await db
-        .update(aiInsights)
-        .set({
-          content,
-          confidenceScore,
-          processingStatus: "completed",
-          updatedAt: new Date(),
-        })
-        .where(eq(aiInsights.id, insightId))
-        .returning();
-
-      logger.info("AI insight content updated", {
-        component: "AIInsightsQueries.updateInsightContent",
-        insightId,
-      });
-
-      return ok(updated);
-    } catch (error) {
-      logger.error("Failed to update AI insight content", {
-        component: "AIInsightsQueries.updateInsightContent",
-        insightId,
-        error,
-      });
-      return err(
-        error instanceof Error
-          ? error
-          : new Error("Failed to update AI insight content")
-      );
-    }
+  ): Promise<AIInsight | undefined> {
+    const [updated] = await db
+      .update(aiInsights)
+      .set({
+        content,
+        confidenceScore,
+        processingStatus: "completed",
+        updatedAt: new Date(),
+      })
+      .where(eq(aiInsights.id, insightId))
+      .returning();
+    return updated;
   }
 
-  /**
-   * Update insight content with manual edit tracking
-   */
   static async updateInsightWithEdit(
     insightId: string,
     content: Record<string, unknown>,
     userId: string
-  ): Promise<Result<AIInsight, string>> {
-    try {
-      const [updated] = await db
-        .update(aiInsights)
-        .set({
-          content,
-          isManuallyEdited: true,
-          lastEditedById: userId,
-          lastEditedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(aiInsights.id, insightId))
-        .returning();
-
-      if (!updated) {
-        return err("Insight not found");
-      }
-
-      logger.info("AI insight updated with manual edit", {
-        component: "AIInsightsQueries.updateInsightWithEdit",
-        insightId,
-        userId,
-      });
-
-      return ok(updated);
-    } catch (error) {
-      logger.error("Failed to update AI insight with edit tracking", {
-        component: "AIInsightsQueries.updateInsightWithEdit",
-        insightId,
-        error,
-      });
-      return err(
-        error instanceof Error
-          ? error.message
-          : "Failed to update AI insight with edit tracking"
-      );
-    }
+  ): Promise<AIInsight | undefined> {
+    const [updated] = await db
+      .update(aiInsights)
+      .set({
+        content,
+        isManuallyEdited: true,
+        lastEditedById: userId,
+        lastEditedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(aiInsights.id, insightId))
+      .returning();
+    return updated;
   }
 
-  /**
-   * Delete an insight
-   */
-  static async deleteInsight(insightId: string): Promise<Result<void, Error>> {
-    try {
-      await db.delete(aiInsights).where(eq(aiInsights.id, insightId));
-
-      logger.info("AI insight deleted", {
-        component: "AIInsightsQueries.deleteInsight",
-        insightId,
-      });
-
-      return ok(undefined);
-    } catch (error) {
-      logger.error("Failed to delete AI insight", {
-        component: "AIInsightsQueries.deleteInsight",
-        insightId,
-        error,
-      });
-      return err(
-        error instanceof Error
-          ? error
-          : new Error("Failed to delete AI insight")
-      );
-    }
+  static async deleteInsight(insightId: string): Promise<void> {
+    await db.delete(aiInsights).where(eq(aiInsights.id, insightId));
   }
 }
 

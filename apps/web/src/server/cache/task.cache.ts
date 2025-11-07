@@ -22,16 +22,10 @@ export async function getCachedTasksByUser(
     CacheTags.tasksByOrg(orgCode)
   );
 
-  const result = await TasksQueries.getTasksByOrganization(orgCode, {
+  return await TasksQueries.getTasksByOrganization(orgCode, {
     ...filters,
     assigneeId: userId,
   });
-
-  if (result.isErr()) {
-    throw new Error(result.error.message);
-  }
-
-  return result.value;
 }
 
 /**
@@ -42,35 +36,11 @@ export async function getCachedTaskStats(
   orgCode: string
 ): Promise<TaskStatsDto> {
   "use cache";
-  cacheTag(CacheTags.taskStats(userId, orgCode), CacheTags.tasksByOrg(orgCode));
+  cacheTag(
+    CacheTags.tasksByUser(userId, orgCode),
+    CacheTags.tasksByOrg(orgCode)
+  );
 
-  const result = await TasksQueries.getTasksByOrganization(orgCode, {
-    assigneeId: userId,
-  });
-
-  if (result.isErr()) {
-    throw new Error(result.error.message);
-  }
-
-  const tasks = result.value;
-
-  // Calculate statistics
-  const stats: TaskStatsDto = {
-    total: tasks.length,
-    byStatus: {
-      pending: tasks.filter((t) => t.status === "pending").length,
-      in_progress: tasks.filter((t) => t.status === "in_progress").length,
-      completed: tasks.filter((t) => t.status === "completed").length,
-      cancelled: tasks.filter((t) => t.status === "cancelled").length,
-    },
-    byPriority: {
-      low: tasks.filter((t) => t.priority === "low").length,
-      medium: tasks.filter((t) => t.priority === "medium").length,
-      high: tasks.filter((t) => t.priority === "high").length,
-      urgent: tasks.filter((t) => t.priority === "urgent").length,
-    },
-  };
-
-  return stats;
+  return await TasksQueries.getTaskStats(orgCode, userId);
 }
 
