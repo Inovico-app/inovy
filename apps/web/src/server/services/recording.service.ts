@@ -1,5 +1,6 @@
 import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
+import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import type { NewRecording, Recording } from "../db/schema";
@@ -24,6 +25,12 @@ export class RecordingService {
 
     try {
       const recording = await RecordingsQueries.insertRecording(data);
+
+      // Invalidate recordings cache for this project
+      CacheInvalidation.invalidateProjectRecordings(
+        recording.projectId,
+        recording.organizationId
+      );
 
       logger.info("Successfully created recording", {
         component: "RecordingService.createRecording",
@@ -203,6 +210,13 @@ export class RecordingService {
         );
       }
 
+      // Invalidate cache for this recording
+      CacheInvalidation.invalidateRecording(
+        id,
+        updatedRecording.projectId,
+        organizationId
+      );
+
       logger.info("Successfully updated recording metadata", {
         component: "RecordingService.updateRecordingMetadata",
         recordingId: id,
@@ -274,12 +288,32 @@ export class RecordingService {
     });
 
     try {
+      // Get recording first to know its projectId
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+      if (!recording) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "RecordingService.archiveRecording"
+          )
+        );
+      }
+
       const result = await RecordingsQueries.archiveRecording(
         recordingId,
         orgCode
       );
 
       if (result) {
+        // Invalidate cache for this recording
+        CacheInvalidation.invalidateRecording(
+          recordingId,
+          recording.projectId,
+          orgCode
+        );
+
         logger.info("Successfully archived recording", {
           component: "RecordingService.archiveRecording",
           recordingId,
@@ -316,12 +350,32 @@ export class RecordingService {
     });
 
     try {
+      // Get recording first to know its projectId
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+      if (!recording) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "RecordingService.unarchiveRecording"
+          )
+        );
+      }
+
       const result = await RecordingsQueries.unarchiveRecording(
         recordingId,
         orgCode
       );
 
       if (result) {
+        // Invalidate cache for this recording
+        CacheInvalidation.invalidateRecording(
+          recordingId,
+          recording.projectId,
+          orgCode
+        );
+
         logger.info("Successfully unarchived recording", {
           component: "RecordingService.unarchiveRecording",
           recordingId,
@@ -392,6 +446,13 @@ export class RecordingService {
           )
         );
       }
+
+      // Invalidate cache for this recording
+      CacheInvalidation.invalidateRecording(
+        recordingId,
+        recording.projectId,
+        orgCode
+      );
 
       logger.info("Successfully deleted recording", {
         component: "RecordingService.deleteRecording",

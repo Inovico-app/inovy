@@ -11,7 +11,8 @@ import { ensureUserOrganization } from "@/features/auth/actions/ensure-organizat
 import { TaskCard } from "@/features/tasks/components/task-card";
 import { getAuthSession, getUserSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import { DashboardService, TaskService } from "@/server/services";
+import { getCachedDashboardOverview, getCachedTaskStats } from "@/server/cache";
+import { TaskService } from "@/server/services";
 import {
   FolderIcon,
   ListTodoIcon,
@@ -71,8 +72,8 @@ async function DashboardContent() {
     );
   }
 
-  // Get task statistics
-  const taskStatsResult = await TaskService.getTaskStats();
+  // Get task statistics (cached)
+  const taskStatsResult = await getCachedTaskStats(user.id, user.org_code ?? "");
   const taskStats = taskStatsResult.isOk() ? taskStatsResult.value : null;
 
   // Get recent tasks (limit to 3 for dashboard)
@@ -83,7 +84,7 @@ async function DashboardContent() {
         .slice(0, 3)
     : [];
 
-  // Get dashboard overview with real data
+  // Get dashboard overview with real data (cached)
   const authResult = await getAuthSession();
   let dashboardOverview = null;
 
@@ -92,9 +93,7 @@ async function DashboardContent() {
       authResult.value.organization as unknown as Record<string, unknown>
     ).org_code as string | undefined;
     if (orgCode) {
-      const dashboardResult = await DashboardService.getDashboardOverview(
-        orgCode
-      );
+      const dashboardResult = await getCachedDashboardOverview(orgCode);
       dashboardOverview = dashboardResult.isOk() ? dashboardResult.value : null;
     }
   }
