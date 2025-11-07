@@ -19,17 +19,11 @@ export async function getCachedNotifications(
   "use cache";
   cacheTag(CacheTags.notifications(userId, orgCode));
 
-  const result = await NotificationsQueries.getNotificationsByUser(
+  return await NotificationsQueries.getNotificationsByUser(
     userId,
     orgCode,
     filters
   );
-
-  if (result.isErr()) {
-    throw new Error(result.error.message);
-  }
-
-  return result.value;
 }
 
 /**
@@ -45,12 +39,6 @@ export async function getCachedUnreadCount(
     CacheTags.notifications(userId, orgCode)
   );
 
-  const result = await NotificationsQueries.getUnreadCount(userId, orgCode);
-
-  if (result.isErr()) {
-    throw new Error(result.error.message);
-  }
-
-  return result.value;
+  return await NotificationsQueries.getUnreadCount(userId, orgCode);
 }
 

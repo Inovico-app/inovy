@@ -1,7 +1,6 @@
+import { getAuthSession, logger } from "@/lib";
+import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { type NextRequest, NextResponse } from "next/server";
-import { getUserSession } from "../../../../../lib/auth";
-import { GoogleOAuthService } from "../../../../../server/services/google-oauth.service";
-import { logger } from "../../../../../lib/logger";
 
 /**
  * GET /api/integrations/google/callback
@@ -28,15 +27,12 @@ export async function GET(request: NextRequest) {
     if (!code) {
       logger.error("No authorization code received from Google");
       return NextResponse.redirect(
-        new URL(
-          "/settings?google_error=no_code",
-          request.url
-        )
+        new URL("/settings?google_error=no_code", request.url)
       );
     }
 
     // Verify user is authenticated
-    const sessionResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
     if (sessionResult.isErr()) {
       logger.error(
@@ -45,21 +41,15 @@ export async function GET(request: NextRequest) {
         new Error(sessionResult.error)
       );
       return NextResponse.redirect(
-        new URL(
-          "/settings?google_error=auth_required",
-          request.url
-        )
+        new URL("/settings?google_error=auth_required", request.url)
       );
     }
 
-    const user = sessionResult.value;
+    const { user } = sessionResult.value;
 
     if (!user) {
       return NextResponse.redirect(
-        new URL(
-          "/settings?google_error=auth_required",
-          request.url
-        )
+        new URL("/settings?google_error=auth_required", request.url)
       );
     }
 
@@ -76,10 +66,7 @@ export async function GET(request: NextRequest) {
             received: stateData.userId,
           });
           return NextResponse.redirect(
-            new URL(
-              "/settings?google_error=invalid_state",
-              request.url
-            )
+            new URL("/settings?google_error=invalid_state", request.url)
           );
         }
 
@@ -88,19 +75,13 @@ export async function GET(request: NextRequest) {
         if (stateAge > 10 * 60 * 1000) {
           logger.error("State parameter expired", { stateAge });
           return NextResponse.redirect(
-            new URL(
-              "/settings?google_error=state_expired",
-              request.url
-            )
+            new URL("/settings?google_error=state_expired", request.url)
           );
         }
       } catch (stateError) {
         logger.error("Invalid state parameter", {}, stateError as Error);
         return NextResponse.redirect(
-          new URL(
-            "/settings?google_error=invalid_state",
-            request.url
-          )
+          new URL("/settings?google_error=invalid_state", request.url)
         );
       }
     }
@@ -112,11 +93,11 @@ export async function GET(request: NextRequest) {
       logger.error(
         "Failed to store Google OAuth connection",
         { userId: user.id },
-        new Error(result.error)
+        new Error(result.error.message)
       );
       return NextResponse.redirect(
         new URL(
-          `/settings?google_error=${encodeURIComponent(result.error)}`,
+          `/settings?google_error=${encodeURIComponent(result.error.message)}`,
           request.url
         )
       );
@@ -129,17 +110,10 @@ export async function GET(request: NextRequest) {
 
     // Redirect to settings with success message
     return NextResponse.redirect(
-      new URL(
-        "/settings?google_success=true",
-        request.url
-      )
+      new URL("/settings?google_success=true", request.url)
     );
   } catch (error) {
-    logger.error(
-      "Error in Google OAuth callback",
-      {},
-      error as Error
-    );
+    logger.error("Error in Google OAuth callback", {}, error as Error);
     return NextResponse.redirect(
       new URL(
         "/settings?google_error=callback_failed",

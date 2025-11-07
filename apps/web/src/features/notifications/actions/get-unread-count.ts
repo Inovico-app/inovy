@@ -14,12 +14,12 @@ export async function getUnreadCount(): Promise<{
     if (result.isErr()) {
       logger.error("Failed to get unread count", {
         component: "getUnreadCount",
-        error: result.error,
+        error: result.error.message,
       });
 
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 

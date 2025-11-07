@@ -1,8 +1,6 @@
 "use server";
 
-import {
-  authorizedActionClient,
-} from "../../../lib/action-client";
+import { authorizedActionClient } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
 import { getAuthSession } from "../../../lib/auth";
 import { ProjectService } from "../../../server/services";
@@ -44,7 +42,7 @@ export const archiveProjectAction = authorizedActionClient
 
     if (result.isErr()) {
       throw ActionErrors.internal(
-        result.error,
+        result.error.message,
         undefined,
         "archive-project"
       );

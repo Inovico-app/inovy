@@ -44,7 +44,7 @@ export const unarchiveProjectAction = authorizedActionClient
 
     if (result.isErr()) {
       throw ActionErrors.internal(
-        result.error,
+        result.error.message,
         undefined,
         "unarchive-project"
       );

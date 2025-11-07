@@ -1,3 +1,4 @@
+import { TaskService } from "@/server/services";
 import {
   ArrowLeftIcon,
   CalendarIcon,
@@ -21,15 +22,14 @@ import { ArchiveRecordingDialog } from "../../../../../features/recordings/compo
 import { DeleteRecordingDialog } from "../../../../../features/recordings/components/delete-recording-dialog";
 import { EditRecordingModal } from "../../../../../features/recordings/components/edit-recording-modal";
 import { EditSummaryDialog } from "../../../../../features/recordings/components/edit-summary-dialog";
-import { SummaryVersionHistoryDialog } from "../../../../../features/recordings/components/summary-version-history-dialog";
 import { RecordingDetailStatus } from "../../../../../features/recordings/components/recording-detail-status";
+import { RecordingPlayerWrapper } from "../../../../../features/recordings/components/recording-player-wrapper";
 import { ReprocessButton } from "../../../../../features/recordings/components/reprocess-button";
 import { ReprocessingStatusIndicator } from "../../../../../features/recordings/components/reprocessing-status-indicator";
+import { SummaryVersionHistoryDialog } from "../../../../../features/recordings/components/summary-version-history-dialog";
 import { TranscriptionSection } from "../../../../../features/recordings/components/transcription-section";
-import { RecordingPlayerWrapper } from "../../../../../features/recordings/components/recording-player-wrapper";
 import { TaskCard } from "../../../../../features/tasks/components/task-card-with-edit";
 import { getCachedSummary } from "../../../../../server/cache/summary.cache";
-import { TasksQueries } from "../../../../../server/data-access/tasks.queries";
 import { ProjectService } from "../../../../../server/services/project.service";
 import { RecordingService } from "../../../../../server/services/recording.service";
 
@@ -46,7 +46,7 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
       RecordingService.getRecordingById(recordingId),
       ProjectService.getProjectById(projectId),
       getCachedSummary(recordingId),
-      TasksQueries.getTasksByRecordingId(recordingId),
+      TaskService.getTasksByRecordingId(recordingId),
     ]);
 
   if (recordingResult.isErr() || projectResult.isErr()) {

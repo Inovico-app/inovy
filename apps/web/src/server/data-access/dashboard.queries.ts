@@ -1,6 +1,6 @@
+import { count, desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import { projects, recordings } from "../db/schema";
-import { count, desc, eq } from "drizzle-orm";
 
 /**
  * Dashboard Data Access Queries
@@ -73,3 +73,4 @@ export async function getDashboardStats(organizationId: string) {
     totalRecordings: totalRecordings[0]?.count ?? 0,
   };
 }
+

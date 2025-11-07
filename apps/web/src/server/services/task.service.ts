@@ -1,20 +1,21 @@
-import { err, ok, type Result } from "neverthrow";
+import { ActionErrors, type ActionResult } from "@/lib";
+import { err, ok } from "neverthrow";
 import { getAuthSession } from "../../lib/auth";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
+import { getCachedTasksByUser, getCachedTaskStats } from "../cache";
+import { TaskTagsQueries } from "../data-access/task-tags.queries";
 import {
   TasksQueries,
   type TaskWithContext,
 } from "../data-access/tasks.queries";
-import { TaskTagsQueries } from "../data-access/task-tags.queries";
-import { getCachedTasksByUser, getCachedTaskStats } from "../cache";
-import type { Task, TaskHistory } from "../db/schema";
+import type { Task, TaskHistory, TaskTag } from "../db/schema";
 import type {
   TaskDto,
   TaskFiltersDto,
+  TaskHistoryDto,
   TaskStatsDto,
   TaskWithContextDto,
-  TaskHistoryDto,
   UpdateTaskMetadataDto,
 } from "../dto";
 
@@ -29,32 +30,95 @@ export class TaskService {
    */
   static async getTasksByAssignee(
     filters?: Omit<TaskFiltersDto, "assigneeId" | "organizationId">
-  ): Promise<Result<TaskDto[], string>> {
+  ): Promise<ActionResult<TaskDto[]>> {
     try {
-      // Check authentication and get session
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
-        return err("Failed to get authentication session");
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "TaskService.getTasksByAssignee"
+          )
+        );
       }
 
       const { user: authUser, organization } = authResult.value;
 
       if (!authUser || !organization) {
-        return err("Authentication required");
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "TaskService.getTasksByAssignee"
+          )
+        );
       }
 
-      // Get tasks using Next.js cache
       const tasks = await getCachedTasksByUser(
         authUser.id,
         organization.orgCode,
         filters
       );
 
-      return ok(tasks.map((task) => this.toDto(task)));
+      return ok(tasks.map((task: Task) => this.toDto(task)));
     } catch (error) {
-      const errorMessage = "Failed to get tasks";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to get tasks", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to get tasks",
+          error as Error,
+          "TaskService.getTasksByAssignee"
+        )
+      );
+    }
+  }
+
+  static async getTasksByRecordingId(
+    recordingId: string
+  ): Promise<ActionResult<TaskDto[]>> {
+    try {
+      const authResult = await getAuthSession();
+      if (authResult.isErr()) {
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "TaskService.getTasksByRecordingId"
+          )
+        );
+      }
+
+      const { user: authUser, organization } = authResult.value;
+
+      if (!authUser || !organization) {
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "TaskService.getTasksByRecordingId"
+          )
+        );
+      }
+
+      const tasks = await TasksQueries.getTasksByRecordingId(recordingId);
+
+      if (!tasks) {
+        return err(
+          ActionErrors.notFound("Tasks", "TaskService.getTasksByRecordingId")
+        );
+      }
+
+      return ok(tasks.map((task: Task) => this.toDto(task)));
+    } catch (error) {
+      logger.error("Failed to get tasks by recording ID", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to get tasks by recording ID",
+          error as Error,
+          "TaskService.getTasksByRecordingId"
+        )
+      );
     }
   }
 
@@ -64,67 +128,92 @@ export class TaskService {
    */
   static async getTasksWithContext(
     filters?: Omit<TaskFiltersDto, "assigneeId" | "organizationId">
-  ): Promise<Result<TaskWithContextDto[], string>> {
+  ): Promise<ActionResult<TaskWithContextDto[]>> {
     try {
-      // Check authentication and get session
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
-        return err("Failed to get authentication session");
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "TaskService.getTasksWithContext"
+          )
+        );
       }
 
       const { user: authUser, organization } = authResult.value;
 
       if (!authUser || !organization) {
-        return err("Authentication required");
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "TaskService.getTasksWithContext"
+          )
+        );
       }
 
-      // For context data, we skip caching as it includes joined data
-      // that might be stale across tables
-      const result = await TasksQueries.getTasksWithContext(
+      const tasks = await TasksQueries.getTasksWithContext(
         organization.orgCode,
         {
           ...filters,
-          assigneeId: authUser.id, // Always filter by current user
+          assigneeId: authUser.id,
         }
       );
 
-      if (result.isErr()) {
-        return err(result.error.message);
-      }
-
-      return ok(result.value.map((task) => this.toContextDto(task)));
+      return ok(tasks.map((task) => this.toContextDto(task)));
     } catch (error) {
-      const errorMessage = "Failed to get tasks with context";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to get tasks with context", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to get tasks with context",
+          error as Error,
+          "TaskService.getTasksWithContext"
+        )
+      );
     }
   }
 
   /**
    * Get task statistics for the authenticated user
    */
-  static async getTaskStats(): Promise<Result<TaskStatsDto, string>> {
+  static async getTaskStats(): Promise<ActionResult<TaskStatsDto>> {
     try {
-      // Check authentication and get session
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
-        return err("Failed to get authentication session");
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "TaskService.getTaskStats"
+          )
+        );
       }
 
       const { user: authUser, organization } = authResult.value;
 
       if (!authUser || !organization) {
-        return err("Authentication required");
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "TaskService.getTaskStats"
+          )
+        );
       }
 
-      // Get stats using cached function
       const stats = await getCachedTaskStats(authUser.id, organization.orgCode);
 
       return ok(stats);
     } catch (error) {
-      const errorMessage = "Failed to get task statistics";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to get task statistics", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to get task statistics",
+          error as Error,
+          "TaskService.getTaskStats"
+        )
+      );
     }
   }
 
@@ -135,52 +224,80 @@ export class TaskService {
   static async updateTaskStatus(
     taskId: string,
     status: Task["status"]
-  ): Promise<Result<TaskDto, string>> {
+  ): Promise<ActionResult<TaskDto>> {
     try {
-      // Check authentication and get session
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
-        return err("Failed to get authentication session");
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "TaskService.updateTaskStatus"
+          )
+        );
       }
 
       const { user: authUser, organization } = authResult.value;
 
       if (!authUser || !organization) {
-        return err("Authentication required");
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "TaskService.updateTaskStatus"
+          )
+        );
       }
 
-      // Get the task to verify ownership
-      const taskResult = await TasksQueries.getTaskById(taskId);
-      if (taskResult.isErr()) {
-        return err("Task not found");
+      const task = await TasksQueries.getTaskById(taskId);
+      if (!task) {
+        return err(
+          ActionErrors.notFound("Task", "TaskService.updateTaskStatus")
+        );
       }
 
-      const task = taskResult.value;
-
-      // Authorization check: only the assignee can update their own tasks
       if (task.assigneeId !== authUser.id) {
-        return err("You are not authorized to update this task");
+        return err(
+          ActionErrors.forbidden(
+            "You are not authorized to update this task",
+            { taskId },
+            "TaskService.updateTaskStatus"
+          )
+        );
       }
 
-      // Authorization check: verify task belongs to user's organization
       if (task.organizationId !== organization.orgCode) {
-        return err("Task not found in your organization");
+        return err(
+          ActionErrors.notFound(
+            "Task not found in your organization",
+            "TaskService.updateTaskStatus"
+          )
+        );
       }
 
-      // Update the task status
-      const updateResult = await TasksQueries.updateTaskStatus(taskId, status);
-      if (updateResult.isErr()) {
-        return err(updateResult.error.message);
+      const updated = await TasksQueries.updateTaskStatus(taskId, status);
+      if (!updated) {
+        return err(
+          ActionErrors.internal(
+            "Failed to update task status",
+            undefined,
+            "TaskService.updateTaskStatus"
+          )
+        );
       }
 
-      // Invalidate cache
       await this.invalidateCache(authUser.id, organization.orgCode);
 
-      return ok(this.toDto(updateResult.value));
+      return ok(this.toDto(updated));
     } catch (error) {
-      const errorMessage = "Failed to update task status";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to update task status", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to update task status",
+          error as Error,
+          "TaskService.updateTaskStatus"
+        )
+      );
     }
   }
 
@@ -190,73 +307,98 @@ export class TaskService {
    */
   static async updateTaskMetadata(
     input: UpdateTaskMetadataDto
-  ): Promise<Result<TaskDto, string>> {
+  ): Promise<ActionResult<TaskDto>> {
     try {
-      // Check authentication and get session
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
-        return err("Failed to get authentication session");
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "TaskService.updateTaskMetadata"
+          )
+        );
       }
 
       const { user: authUser, organization } = authResult.value;
 
       if (!authUser || !organization) {
-        return err("Authentication required");
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "TaskService.updateTaskMetadata"
+          )
+        );
       }
 
-      // Get the task to verify ownership and authorization
-      const taskResult = await TasksQueries.getTaskById(input.taskId);
-      if (taskResult.isErr()) {
-        return err("Task not found");
+      const task = await TasksQueries.getTaskById(input.taskId);
+      if (!task) {
+        return err(
+          ActionErrors.notFound("Task", "TaskService.updateTaskMetadata")
+        );
       }
 
-      const task = taskResult.value;
-
-      // Authorization check: verify task belongs to user's organization
       if (task.organizationId !== organization.orgCode) {
-        return err("Task not found in your organization");
+        return err(
+          ActionErrors.notFound(
+            "Task not found in your organization",
+            "TaskService.updateTaskMetadata"
+          )
+        );
       }
 
-      // Authorization check: only the assignee or admins can update tasks
-      // For now, we allow the assignee to update their own tasks
       if (task.assigneeId !== authUser.id) {
-        return err("You are not authorized to update this task");
+        return err(
+          ActionErrors.forbidden(
+            "You are not authorized to update this task",
+            { taskId: input.taskId },
+            "TaskService.updateTaskMetadata"
+          )
+        );
       }
 
-      // Prepare updates (remove taskId and tagIds from the update object)
       const { taskId, tagIds, ...taskUpdates } = input;
 
-      // Update task metadata with history tracking
-      const updateResult = await TasksQueries.updateTaskMetadata(
+      const updated = await TasksQueries.updateTaskMetadata(
         taskId,
         taskUpdates,
         authUser.id
       );
 
-      if (updateResult.isErr()) {
-        return err(updateResult.error.message);
+      if (!updated) {
+        return err(
+          ActionErrors.internal(
+            "Failed to update task metadata",
+            undefined,
+            "TaskService.updateTaskMetadata"
+          )
+        );
       }
 
-      // Handle tag assignments if provided
       if (tagIds !== undefined) {
-        const tagResult = await TaskTagsQueries.assignTagsToTask(taskId, tagIds);
-        if (tagResult.isErr()) {
+        try {
+          await TaskTagsQueries.assignTagsToTask(taskId, tagIds);
+        } catch (tagError) {
           logger.error("Failed to assign tags to task", {
             taskId,
-            error: tagResult.error.message,
+            error: tagError,
           });
-          // Don't fail the whole operation if tag assignment fails
         }
       }
 
-      // Invalidate cache
       await this.invalidateCache(authUser.id, organization.orgCode);
 
-      return ok(this.toDto(updateResult.value));
+      return ok(this.toDto(updated));
     } catch (error) {
-      const errorMessage = "Failed to update task metadata";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to update task metadata", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to update task metadata",
+          error as Error,
+          "TaskService.updateTaskMetadata"
+        )
+      );
     }
   }
 
@@ -266,44 +408,172 @@ export class TaskService {
    */
   static async getTaskHistory(
     taskId: string
-  ): Promise<Result<TaskHistoryDto[], string>> {
+  ): Promise<ActionResult<TaskHistoryDto[]>> {
     try {
-      // Check authentication and get session
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
-        return err("Failed to get authentication session");
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "TaskService.getTaskHistory"
+          )
+        );
       }
 
       const { user: authUser, organization } = authResult.value;
 
       if (!authUser || !organization) {
-        return err("Authentication required");
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "TaskService.getTaskHistory"
+          )
+        );
       }
 
-      // Get the task to verify authorization
-      const taskResult = await TasksQueries.getTaskById(taskId);
-      if (taskResult.isErr()) {
-        return err("Task not found");
+      const task = await TasksQueries.getTaskById(taskId);
+      if (!task) {
+        return err(ActionErrors.notFound("Task", "TaskService.getTaskHistory"));
       }
 
-      const task = taskResult.value;
-
-      // Authorization check: verify task belongs to user's organization
       if (task.organizationId !== organization.orgCode) {
-        return err("Task not found in your organization");
+        return err(
+          ActionErrors.notFound(
+            "Task not found in your organization",
+            "TaskService.getTaskHistory"
+          )
+        );
       }
 
-      // Get task history
-      const historyResult = await TasksQueries.getTaskHistory(taskId);
-      if (historyResult.isErr()) {
-        return err(historyResult.error.message);
-      }
+      const history = await TasksQueries.getTaskHistory(taskId);
 
-      return ok(historyResult.value.map((entry) => this.toHistoryDto(entry)));
+      return ok(history.map((entry) => this.toHistoryDto(entry)));
     } catch (error) {
-      const errorMessage = "Failed to get task history";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to get task history", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to get task history",
+          error as Error,
+          "TaskService.getTaskHistory"
+        )
+      );
+    }
+  }
+
+  /**
+   * Get all tags for an organization
+   */
+  static async getTagsByOrganization(
+    organizationId: string
+  ): Promise<ActionResult<TaskTag[]>> {
+    logger.info("Fetching tags for organization", {
+      component: "TaskService.getTagsByOrganization",
+      organizationId,
+    });
+
+    try {
+      const tags = await TaskTagsQueries.getTagsByOrganization(organizationId);
+
+      logger.info("Successfully fetched organization tags", {
+        component: "TaskService.getTagsByOrganization",
+        organizationId,
+        count: tags.length,
+      });
+
+      return ok(tags);
+    } catch (error) {
+      logger.error("Failed to get tags by organization from database", {
+        component: "TaskService.getTagsByOrganization",
+        error,
+        organizationId,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to get tags",
+          error as Error,
+          "TaskService.getTagsByOrganization"
+        )
+      );
+    }
+  }
+
+  /**
+   * Create a new tag for an organization
+   */
+  static async createTag(data: {
+    name: string;
+    color: string;
+    organizationId: string;
+  }): Promise<ActionResult<TaskTag>> {
+    logger.info("Creating new tag", {
+      component: "TaskService.createTag",
+      name: data.name,
+      organizationId: data.organizationId,
+    });
+
+    try {
+      const tag = await TaskTagsQueries.createTag(data);
+
+      logger.info("Successfully created tag", {
+        component: "TaskService.createTag",
+        tagId: tag.id,
+        name: data.name,
+      });
+
+      return ok(tag);
+    } catch (error) {
+      logger.error("Failed to create tag in database", {
+        component: "TaskService.createTag",
+        error,
+        data,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to create tag",
+          error as Error,
+          "TaskService.createTag"
+        )
+      );
+    }
+  }
+
+  /**
+   * Get tags assigned to a specific task
+   */
+  static async getTaskTags(taskId: string): Promise<ActionResult<TaskTag[]>> {
+    logger.info("Fetching tags for task", {
+      component: "TaskService.getTaskTags",
+      taskId,
+    });
+
+    try {
+      const tags = await TaskTagsQueries.getTaskTags(taskId);
+
+      logger.info("Successfully fetched task tags", {
+        component: "TaskService.getTaskTags",
+        taskId,
+        count: tags.length,
+      });
+
+      return ok(tags);
+    } catch (error) {
+      logger.error("Failed to get task tags from database", {
+        component: "TaskService.getTaskTags",
+        error,
+        taskId,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to get task tags",
+          error as Error,
+          "TaskService.getTaskTags"
+        )
+      );
     }
   }
 

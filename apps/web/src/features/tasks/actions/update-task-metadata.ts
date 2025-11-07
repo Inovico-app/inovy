@@ -18,7 +18,7 @@ export const updateTaskMetadata = authorizedActionClient
     const result = await TaskService.updateTaskMetadata(parsedInput);
     
     if (result.isErr()) {
-      throw new Error(result.error);
+      throw new Error(result.error.message);
     }
     
     return result.value;

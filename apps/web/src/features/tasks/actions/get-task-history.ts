@@ -15,7 +15,7 @@ export const getTaskHistory = authorizedActionClient
     const result = await TaskService.getTaskHistory(parsedInput.taskId);
     
     if (result.isErr()) {
-      throw new Error(result.error);
+      throw new Error(result.error.message);
     }
     
     return result.value;

@@ -26,7 +26,7 @@ export const getOrganizationUsers = authorizedActionClient
     );
     
     if (result.isErr()) {
-      throw new Error(result.error);
+      throw new Error(result.error.message);
     }
     
     return result.value;

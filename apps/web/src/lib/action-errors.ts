@@ -3,6 +3,8 @@
  * This provides structured error handling without custom error classes
  */
 
+import type { Result } from "neverthrow";
+
 export type ErrorCode =
   | "UNAUTHENTICATED"
   | "FORBIDDEN"
@@ -24,6 +26,11 @@ export interface ActionError {
   metadata?: Record<string, unknown>;
   context?: string; // Additional context about where the error occurred
 }
+
+/**
+ * Standard Result type for service layer operations
+ */
+export type ActionResult<T> = Result<T, ActionError>;
 
 /**
  * Helper function to create ActionError objects

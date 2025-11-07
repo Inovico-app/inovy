@@ -20,12 +20,12 @@ export async function getNotifications(
     if (result.isErr()) {
       logger.error("Failed to get notifications", {
         component: "getNotifications",
-        error: result.error,
+        error: result.error.message,
       });
 
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 

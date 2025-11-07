@@ -1,4 +1,5 @@
-import { type Result, err, ok } from "neverthrow";
+import { err, ok } from "neverthrow";
+import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { getKindeApiClient } from "../../lib/kinde-api";
 import { logger } from "../../lib/logger";
 import type {
@@ -19,13 +20,19 @@ export class KindeUserService {
    */
   static async getUserById(
     kindeUserId: string
-  ): Promise<Result<KindeUserDto | null, string>> {
+  ): Promise<ActionResult<KindeUserDto | null>> {
     try {
       const client = getKindeApiClient();
       const apiResult = await client.getUsersApi();
 
       if (apiResult.isErr()) {
-        return err(apiResult.error);
+        return err(
+          ActionErrors.internal(
+            "Failed to get user by ID from Kinde",
+            apiResult.error,
+            "KindeUserService.getUserById"
+          )
+        );
       }
 
       const UsersApi = apiResult.value;
@@ -48,9 +55,18 @@ export class KindeUserService {
 
       return ok(user);
     } catch (error) {
-      const errorMessage = `Failed to get user by ID from Kinde: ${kindeUserId}`;
-      logger.error(errorMessage, { kindeUserId }, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to get user by ID from Kinde",
+        { kindeUserId },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to get user by ID from Kinde",
+          error as Error,
+          "KindeUserService.getUserById"
+        )
+      );
     }
   }
 
@@ -59,13 +75,19 @@ export class KindeUserService {
    */
   static async getUsersByOrganization(
     orgCode: string
-  ): Promise<Result<KindeOrganizationUserDto[], string>> {
+  ): Promise<ActionResult<KindeOrganizationUserDto[]>> {
     try {
       const client = getKindeApiClient();
       const apiResult = await client.getOrganizationsApi();
 
       if (apiResult.isErr()) {
-        return err(apiResult.error);
+        return err(
+          ActionErrors.internal(
+            "Failed to get users for organization",
+            apiResult.error,
+            "KindeUserService.getUsersByOrganization"
+          )
+        );
       }
 
       const OrganizationsApi = apiResult.value;
@@ -89,9 +111,18 @@ export class KindeUserService {
 
       return ok(users);
     } catch (error) {
-      const errorMessage = `Failed to get users for organization: ${orgCode}`;
-      logger.error(errorMessage, { orgCode }, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to get users for organization",
+        { orgCode },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to get users for organization",
+          error as Error,
+          "KindeUserService.getUsersByOrganization"
+        )
+      );
     }
   }
 
@@ -100,13 +131,19 @@ export class KindeUserService {
    */
   static async createUser(
     data: CreateKindeUserDto
-  ): Promise<Result<KindeUserDto, string>> {
+  ): Promise<ActionResult<KindeUserDto>> {
     try {
       const client = getKindeApiClient();
       const apiResult = await client.getUsersApi();
 
       if (apiResult.isErr()) {
-        return err(apiResult.error);
+        return err(
+          ActionErrors.internal(
+            "Failed to create user in Kinde",
+            apiResult.error,
+            "KindeUserService.createUser"
+          )
+        );
       }
 
       const UsersApi = apiResult.value;
@@ -115,7 +152,13 @@ export class KindeUserService {
       });
 
       if (!response?.id) {
-        return err("Failed to create user - no ID returned");
+        return err(
+          ActionErrors.internal(
+            "Failed to create user - no ID returned",
+            undefined,
+            "KindeUserService.createUser"
+          )
+        );
       }
 
       const user: KindeUserDto = {
@@ -133,9 +176,14 @@ export class KindeUserService {
 
       return ok(user);
     } catch (error) {
-      const errorMessage = "Failed to create user in Kinde";
-      logger.error(errorMessage, { data }, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to create user in Kinde", { data }, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to create user in Kinde",
+          error as Error,
+          "KindeUserService.createUser"
+        )
+      );
     }
   }
 
@@ -145,13 +193,19 @@ export class KindeUserService {
   static async updateUser(
     kindeUserId: string,
     data: UpdateKindeUserDto
-  ): Promise<Result<KindeUserDto, string>> {
+  ): Promise<ActionResult<KindeUserDto>> {
     try {
       const client = getKindeApiClient();
       const apiResult = await client.getUsersApi();
 
       if (apiResult.isErr()) {
-        return err(apiResult.error);
+        return err(
+          ActionErrors.internal(
+            "Failed to update user in Kinde",
+            apiResult.error,
+            "KindeUserService.updateUser"
+          )
+        );
       }
 
       const UsersApi = apiResult.value;
@@ -168,7 +222,9 @@ export class KindeUserService {
       }
 
       if (!updatedUserResult.value) {
-        return err("User not found after update");
+        return err(
+          ActionErrors.notFound("User", "KindeUserService.updateUser")
+        );
       }
 
       logger.info("Successfully updated user in Kinde", {
@@ -177,24 +233,37 @@ export class KindeUserService {
 
       return ok(updatedUserResult.value);
     } catch (error) {
-      const errorMessage = `Failed to update user in Kinde: ${kindeUserId}`;
-      logger.error(errorMessage, { kindeUserId, data }, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to update user in Kinde",
+        { kindeUserId, data },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to update user in Kinde",
+          error as Error,
+          "KindeUserService.updateUser"
+        )
+      );
     }
   }
 
   /**
    * Delete a user from Kinde
    */
-  static async deleteUser(
-    kindeUserId: string
-  ): Promise<Result<boolean, string>> {
+  static async deleteUser(kindeUserId: string): Promise<ActionResult<boolean>> {
     try {
       const client = getKindeApiClient();
       const apiResult = await client.getUsersApi();
 
       if (apiResult.isErr()) {
-        return err(apiResult.error);
+        return err(
+          ActionErrors.internal(
+            "Failed to delete user from Kinde",
+            apiResult.error,
+            "KindeUserService.deleteUser"
+          )
+        );
       }
 
       const UsersApi = apiResult.value;
@@ -208,9 +277,18 @@ export class KindeUserService {
 
       return ok(true);
     } catch (error) {
-      const errorMessage = `Failed to delete user from Kinde: ${kindeUserId}`;
-      logger.error(errorMessage, { kindeUserId }, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to delete user from Kinde",
+        { kindeUserId },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to delete user from Kinde",
+          error as Error,
+          "KindeUserService.deleteUser"
+        )
+      );
     }
   }
 
@@ -220,13 +298,19 @@ export class KindeUserService {
   static async addUserToOrganization(
     kindeUserId: string,
     orgCode: string
-  ): Promise<Result<boolean, string>> {
+  ): Promise<ActionResult<boolean>> {
     try {
       const client = getKindeApiClient();
       const apiResult = await client.getOrganizationsApi();
 
       if (apiResult.isErr()) {
-        return err(apiResult.error);
+        return err(
+          ActionErrors.internal(
+            "Failed to add user to organization",
+            apiResult.error,
+            "KindeUserService.addUserToOrganization"
+          )
+        );
       }
 
       const OrganizationsApi = apiResult.value;
@@ -244,9 +328,18 @@ export class KindeUserService {
 
       return ok(true);
     } catch (error) {
-      const errorMessage = `Failed to add user to organization: ${kindeUserId} -> ${orgCode}`;
-      logger.error(errorMessage, { kindeUserId, orgCode }, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to add user to organization",
+        { kindeUserId, orgCode },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to add user to organization",
+          error as Error,
+          "KindeUserService.addUserToOrganization"
+        )
+      );
     }
   }
 
@@ -256,13 +349,19 @@ export class KindeUserService {
   static async removeUserFromOrganization(
     kindeUserId: string,
     orgCode: string
-  ): Promise<Result<boolean, string>> {
+  ): Promise<ActionResult<boolean>> {
     try {
       const client = getKindeApiClient();
       const apiResult = await client.getOrganizationsApi();
 
       if (apiResult.isErr()) {
-        return err(apiResult.error);
+        return err(
+          ActionErrors.internal(
+            "Failed to remove user from organization",
+            apiResult.error,
+            "KindeUserService.removeUserFromOrganization"
+          )
+        );
       }
 
       const OrganizationsApi = apiResult.value;
@@ -278,9 +377,18 @@ export class KindeUserService {
 
       return ok(true);
     } catch (error) {
-      const errorMessage = `Failed to remove user from organization: ${kindeUserId} -> ${orgCode}`;
-      logger.error(errorMessage, { kindeUserId, orgCode }, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to remove user from organization",
+        { kindeUserId, orgCode },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to remove user from organization",
+          error as Error,
+          "KindeUserService.removeUserFromOrganization"
+        )
+      );
     }
   }
 }

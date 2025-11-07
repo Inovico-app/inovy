@@ -31,7 +31,8 @@ async function ProjectsList({
       <div className="container mx-auto py-8 px-4">
         <div className="text-center">
           <p className="text-red-500">
-            Failed to load projects: {projectsResult.error}
+            Failed to load projects:{" "}
+            {projectsResult.error?.message ?? "Unknown error"}
           </p>
         </div>
       </div>

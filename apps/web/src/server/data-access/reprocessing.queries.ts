@@ -4,39 +4,19 @@ import {
   type NewReprocessingHistory,
   type ReprocessingHistory,
 } from "@/server/db/schema/reprocessing-history";
-import { eq, desc } from "drizzle-orm";
-import { err, ok, type Result } from "neverthrow";
+import { desc, eq } from "drizzle-orm";
 
 export class ReprocessingQueries {
-  /**
-   * Create a new reprocessing history record
-   */
   static async createReprocessingHistory(
     data: NewReprocessingHistory
-  ): Promise<Result<ReprocessingHistory, Error>> {
-    try {
-      const [history] = await db
-        .insert(reprocessingHistory)
-        .values(data)
-        .returning();
-
-      if (!history) {
-        return err(new Error("Failed to create reprocessing history"));
-      }
-
-      return ok(history);
-    } catch (error) {
-      return err(
-        error instanceof Error
-          ? error
-          : new Error("Failed to create reprocessing history")
-      );
-    }
+  ): Promise<ReprocessingHistory> {
+    const [history] = await db
+      .insert(reprocessingHistory)
+      .values(data)
+      .returning();
+    return history;
   }
 
-  /**
-   * Update reprocessing history status
-   */
   static async updateReprocessingHistory(
     id: string,
     updates: {
@@ -44,125 +24,57 @@ export class ReprocessingQueries {
       completedAt?: Date;
       errorMessage?: string | null;
     }
-  ): Promise<Result<ReprocessingHistory, Error>> {
-    try {
-      const [updated] = await db
-        .update(reprocessingHistory)
-        .set(updates)
-        .where(eq(reprocessingHistory.id, id))
-        .returning();
-
-      if (!updated) {
-        return err(new Error("Reprocessing history not found"));
-      }
-
-      return ok(updated);
-    } catch (error) {
-      return err(
-        error instanceof Error
-          ? error
-          : new Error("Failed to update reprocessing history")
-      );
-    }
+  ): Promise<ReprocessingHistory | undefined> {
+    const [updated] = await db
+      .update(reprocessingHistory)
+      .set(updates)
+      .where(eq(reprocessingHistory.id, id))
+      .returning();
+    return updated;
   }
 
-  /**
-   * Get reprocessing history by ID
-   */
   static async getReprocessingHistoryById(
     id: string
-  ): Promise<Result<ReprocessingHistory | null, Error>> {
-    try {
-      const [history] = await db
-        .select()
-        .from(reprocessingHistory)
-        .where(eq(reprocessingHistory.id, id))
-        .limit(1);
-
-      return ok(history ?? null);
-    } catch (error) {
-      return err(
-        error instanceof Error
-          ? error
-          : new Error("Failed to get reprocessing history")
-      );
-    }
+  ): Promise<ReprocessingHistory | null> {
+    const [history] = await db
+      .select()
+      .from(reprocessingHistory)
+      .where(eq(reprocessingHistory.id, id))
+      .limit(1);
+    return history ?? null;
   }
 
-  /**
-   * Get all reprocessing history for a recording
-   */
   static async getReprocessingHistoryByRecordingId(
     recordingId: string
-  ): Promise<Result<ReprocessingHistory[], Error>> {
-    try {
-      const histories = await db
-        .select()
-        .from(reprocessingHistory)
-        .where(eq(reprocessingHistory.recordingId, recordingId))
-        .orderBy(desc(reprocessingHistory.startedAt));
-
-      return ok(histories);
-    } catch (error) {
-      return err(
-        error instanceof Error
-          ? error
-          : new Error("Failed to get reprocessing history")
-      );
-    }
+  ): Promise<ReprocessingHistory[]> {
+    return await db
+      .select()
+      .from(reprocessingHistory)
+      .where(eq(reprocessingHistory.recordingId, recordingId))
+      .orderBy(desc(reprocessingHistory.startedAt));
   }
 
-  /**
-   * Get the most recent reprocessing history for a recording
-   */
   static async getLatestReprocessingHistory(
     recordingId: string
-  ): Promise<Result<ReprocessingHistory | null, Error>> {
-    try {
-      const [history] = await db
-        .select()
-        .from(reprocessingHistory)
-        .where(eq(reprocessingHistory.recordingId, recordingId))
-        .orderBy(desc(reprocessingHistory.startedAt))
-        .limit(1);
-
-      return ok(history ?? null);
-    } catch (error) {
-      return err(
-        error instanceof Error
-          ? error
-          : new Error("Failed to get latest reprocessing history")
-      );
-    }
+  ): Promise<ReprocessingHistory | null> {
+    const [history] = await db
+      .select()
+      .from(reprocessingHistory)
+      .where(eq(reprocessingHistory.recordingId, recordingId))
+      .orderBy(desc(reprocessingHistory.startedAt))
+      .limit(1);
+    return history ?? null;
   }
 
-  /**
-   * Check if a recording is currently being reprocessed
-   */
-  static async isRecordingReprocessing(
-    recordingId: string
-  ): Promise<Result<boolean, Error>> {
-    try {
-      const [history] = await db
-        .select()
-        .from(reprocessingHistory)
-        .where(eq(reprocessingHistory.recordingId, recordingId))
-        .orderBy(desc(reprocessingHistory.startedAt))
-        .limit(1);
-
-      if (!history) {
-        return ok(false);
-      }
-
-      // Check if status is running or pending
-      return ok(history.status === "running" || history.status === "pending");
-    } catch (error) {
-      return err(
-        error instanceof Error
-          ? error
-          : new Error("Failed to check reprocessing status")
-      );
-    }
+  static async isRecordingReprocessing(recordingId: string): Promise<boolean> {
+    const [history] = await db
+      .select()
+      .from(reprocessingHistory)
+      .where(eq(reprocessingHistory.recordingId, recordingId))
+      .orderBy(desc(reprocessingHistory.startedAt))
+      .limit(1);
+    if (!history) return false;
+    return history.status === "running" || history.status === "pending";
   }
 }
 

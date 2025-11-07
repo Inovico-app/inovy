@@ -1,13 +1,14 @@
-import { ActionErrors, safeAsync, type ActionResult } from "@/lib";
+import { ActionErrors, type ActionResult } from "@/lib";
 import { del } from "@vercel/blob";
-import { err, ok, type Result } from "neverthrow";
+import { err, ok } from "neverthrow";
 import { getAuthSession, type AuthUser } from "../../lib/auth";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { getCachedProjectByIdWithCreator } from "../cache";
 import { ProjectQueries } from "../data-access";
 import type { AllowedStatus } from "../data-access/projects.queries";
-import { selectRecordingsByProjectId } from "../data-access/recordings.queries";
+import { RecordingsQueries } from "../data-access/recordings.queries";
+import type { Recording } from "../db/schema";
 import type {
   CreateProjectDto,
   ProjectDto,
@@ -16,7 +17,6 @@ import type {
   ProjectWithCreatorDto,
   ProjectWithRecordingCountDto,
 } from "../dto";
-import { checkProjectNameUnique } from "../helpers/project";
 import type { CreateProjectInput } from "../validation/create-project";
 import { KindeUserService } from "./kinde-user.service";
 
@@ -24,26 +24,37 @@ import { KindeUserService } from "./kinde-user.service";
  * Business logic layer for Project operations
  * Orchestrates data access and handles business rules
  */
-
 export class ProjectService {
   /**
    * Get a project by ID for the authenticated user's organization with creator details
    */
   static async getProjectById(
     projectId: string
-  ): Promise<Result<ProjectWithCreatorDetailsDto, string>> {
+  ): Promise<ActionResult<ProjectWithCreatorDetailsDto>> {
     try {
       // Check authentication and get session
       const authResult = await getAuthSession();
 
       if (authResult.isErr()) {
-        return err("Failed to get authentication session");
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "ProjectService.getProjectById"
+          )
+        );
       }
 
       const { user: authUser, organization } = authResult.value;
 
       if (!authUser || !organization) {
-        return err("Authentication required");
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "ProjectService.getProjectById"
+          )
+        );
       }
 
       // Get project with creator ID using Next.js cache
@@ -53,7 +64,9 @@ export class ProjectService {
       );
 
       if (!project) {
-        return err("Project not found");
+        return err(
+          ActionErrors.notFound("Project", "ProjectService.getProjectById")
+        );
       }
 
       // Fetch creator details from Kinde API
@@ -74,17 +87,22 @@ export class ProjectService {
         ...project,
         createdBy: {
           id: project.createdById,
-          givenName: creator?.given_name || null,
-          familyName: creator?.family_name || null,
-          email: creator?.email || null,
+          givenName: creator?.given_name ?? null,
+          familyName: creator?.family_name ?? null,
+          email: creator?.email ?? null,
         },
       };
 
       return ok(projectWithDetails);
     } catch (error) {
-      const errorMessage = "Failed to get project";
-      logger.error(errorMessage, { projectId }, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to get project", { projectId }, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to get project",
+          error as Error,
+          "ProjectService.getProjectById"
+        )
+      );
     }
   }
 
@@ -92,19 +110,31 @@ export class ProjectService {
    * Get all projects for the authenticated user's organization
    */
   static async getProjectsByOrganization(): Promise<
-    Result<ProjectWithCreatorDto[], string>
+    ActionResult<ProjectWithCreatorDto[]>
   > {
     try {
       // Check authentication and get session
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
-        return err("Failed to get authentication session");
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "ProjectService.getProjectsByOrganization"
+          )
+        );
       }
 
       const { user: authUser, organization } = authResult.value;
 
       if (!authUser || !organization) {
-        return err("Authentication required");
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "ProjectService.getProjectsByOrganization"
+          )
+        );
       }
 
       // Get all active projects in the organization using data access layer
@@ -121,7 +151,13 @@ export class ProjectService {
     } catch (error) {
       const errorMessage = "Failed to get projects";
       logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      return err(
+        ActionErrors.internal(
+          "Failed to get projects",
+          error as Error,
+          "ProjectService.getProjectsByOrganization"
+        )
+      );
     }
   }
 
@@ -130,24 +166,36 @@ export class ProjectService {
    */
   static async getProjectsByOrganizationWithRecordingCount(
     status?: AllowedStatus
-  ): Promise<Result<ProjectWithRecordingCountDto[], string>> {
+  ): Promise<ActionResult<ProjectWithRecordingCountDto[]>> {
     try {
       // Check authentication and get session
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
-        return err("Failed to get authentication session");
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "ProjectService.getProjectsByOrganizationWithRecordingCount"
+          )
+        );
       }
 
       const { user: authUser, organization } = authResult.value;
 
       if (!authUser || !organization) {
-        return err("Authentication required");
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "ProjectService.getProjectsByOrganizationWithRecordingCount"
+          )
+        );
       }
 
       // Get projects with recording counts
       const filters: ProjectFiltersDto = {
         organizationId: organization.orgCode,
-        status: status || "active",
+        status: status ?? "active",
       };
 
       const projects =
@@ -157,7 +205,13 @@ export class ProjectService {
     } catch (error) {
       const errorMessage = "Failed to get projects with recording counts";
       logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      return err(
+        ActionErrors.internal(
+          "Failed to get projects with recording counts",
+          error as Error,
+          "ProjectService.getProjectsByOrganizationWithRecordingCount"
+        )
+      );
     }
   }
 
@@ -166,18 +220,30 @@ export class ProjectService {
    */
   static async getProjectCount(
     status?: AllowedStatus
-  ): Promise<Result<number, string>> {
+  ): Promise<ActionResult<number>> {
     try {
       // Check authentication and get session
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
-        return err("Failed to get authentication session");
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "ProjectService.getProjectCount"
+          )
+        );
       }
 
       const { user: authUser, organization } = authResult.value;
 
       if (!authUser || !organization) {
-        return err("Authentication required");
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "ProjectService.getProjectCount"
+          )
+        );
       }
 
       // Get count using data access layer
@@ -190,7 +256,13 @@ export class ProjectService {
     } catch (error) {
       const errorMessage = "Failed to get project count";
       logger.error(errorMessage, { status }, error as Error);
-      return err(errorMessage);
+      return err(
+        ActionErrors.internal(
+          "Failed to get project count",
+          error as Error,
+          "ProjectService.getProjectCount"
+        )
+      );
     }
   }
 
@@ -202,29 +274,37 @@ export class ProjectService {
     user: NonNullable<AuthUser>,
     orgCode: string
   ): Promise<ActionResult<ProjectDto>> {
-    // Ensure project name is unique
-    const projectNameUniqueResult = await checkProjectNameUnique(input.name);
-    if (projectNameUniqueResult.isErr()) {
+    // Validate project name uniqueness
+    const existing = await ProjectQueries.findByName(input.name);
+    if (existing) {
       return err(
         ActionErrors.conflict("Project name is already taken", "create-project")
       );
     }
-
     const projectData: CreateProjectDto = {
       name: input.name,
       description: input.description,
-      organizationId: orgCode, // Kinde organization code
-      createdById: user.id, // Kinde user ID
+      organizationId: orgCode,
+      createdById: user.id,
     };
-
-    const createResult = await safeAsync(
-      () => ProjectQueries.create(projectData),
-      "project-creation"
-    );
-
-    CacheInvalidation.invalidateProjectCache(orgCode);
-
-    return createResult;
+    try {
+      const project = await ProjectQueries.create(projectData);
+      CacheInvalidation.invalidateProjectCache(orgCode);
+      return ok(project);
+    } catch (error) {
+      logger.error(
+        "Failed to create project",
+        { input, orgCode, user },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to create project",
+          error as Error,
+          "ProjectService.createProject"
+        )
+      );
+    }
   }
 
   /**
@@ -235,10 +315,9 @@ export class ProjectService {
     input: { name?: string; description?: string },
     orgCode: string
   ): Promise<ActionResult<ProjectDto>> {
-    // If name is being updated, check uniqueness
     if (input.name) {
-      const projectNameUniqueResult = await checkProjectNameUnique(input.name);
-      if (projectNameUniqueResult.isErr()) {
+      const existing = await ProjectQueries.findByName(input.name);
+      if (existing && existing.id !== projectId) {
         return err(
           ActionErrors.conflict(
             "Project name is already taken",
@@ -247,23 +326,32 @@ export class ProjectService {
         );
       }
     }
-
-    const updateResult = await safeAsync(async () => {
+    try {
       const project = await ProjectQueries.update(projectId, orgCode, {
         name: input.name,
         description: input.description,
       });
       if (!project) {
-        throw new Error("Project not found");
+        return err(
+          ActionErrors.notFound("Project", "ProjectService.updateProject")
+        );
       }
-      return project;
-    }, "project-update");
-
-    if (updateResult.isOk()) {
       CacheInvalidation.invalidateProjectCache(orgCode);
+      return ok(project);
+    } catch (error) {
+      logger.error(
+        "Failed to update project",
+        { projectId, input, orgCode },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to update project",
+          error as Error,
+          "ProjectService.updateProject"
+        )
+      );
     }
-
-    return updateResult;
   }
 
   /**
@@ -272,7 +360,7 @@ export class ProjectService {
   static async archiveProject(
     projectId: string,
     orgCode: string
-  ): Promise<Result<boolean, string>> {
+  ): Promise<ActionResult<boolean>> {
     try {
       const result = await ProjectQueries.softDelete(projectId, orgCode);
 
@@ -284,7 +372,13 @@ export class ProjectService {
     } catch (error) {
       const errorMessage = "Failed to archive project";
       logger.error(errorMessage, { projectId }, error as Error);
-      return err(errorMessage);
+      return err(
+        ActionErrors.internal(
+          "Failed to archive project",
+          error as Error,
+          "ProjectService.archiveProject"
+        )
+      );
     }
   }
 
@@ -294,7 +388,7 @@ export class ProjectService {
   static async unarchiveProject(
     projectId: string,
     orgCode: string
-  ): Promise<Result<boolean, string>> {
+  ): Promise<ActionResult<boolean>> {
     try {
       const result = await ProjectQueries.unarchive(projectId, orgCode);
 
@@ -306,7 +400,13 @@ export class ProjectService {
     } catch (error) {
       const errorMessage = "Failed to unarchive project";
       logger.error(errorMessage, { projectId }, error as Error);
-      return err(errorMessage);
+      return err(
+        ActionErrors.internal(
+          "Failed to unarchive project",
+          error as Error,
+          "ProjectService.unarchiveProject"
+        )
+      );
     }
   }
 
@@ -316,7 +416,7 @@ export class ProjectService {
   static async getProjectStatistics(
     projectId: string,
     orgCode: string
-  ): Promise<Result<{ recordingCount: number }, string>> {
+  ): Promise<ActionResult<{ recordingCount: number }>> {
     try {
       const stats = await ProjectQueries.getProjectStatistics(
         projectId,
@@ -324,14 +424,25 @@ export class ProjectService {
       );
 
       if (!stats) {
-        return err("Project not found");
+        return err(
+          ActionErrors.notFound(
+            "Project",
+            "ProjectService.getProjectStatistics"
+          )
+        );
       }
 
       return ok(stats);
     } catch (error) {
       const errorMessage = "Failed to get project statistics";
       logger.error(errorMessage, { projectId }, error as Error);
-      return err(errorMessage);
+      return err(
+        ActionErrors.internal(
+          "Failed to get project statistics",
+          error as Error,
+          "ProjectService.getProjectStatistics"
+        )
+      );
     }
   }
 
@@ -348,22 +459,19 @@ export class ProjectService {
       component: "ProjectService.deleteProject",
       projectId,
     });
-
     try {
       // First, get the project to verify ownership
-      const projectResult = await ProjectQueries.findByIdWithCreator(
+      const project = await ProjectQueries.findByIdWithCreator(
         projectId,
         orgCode
       );
-
-      if (!projectResult) {
+      if (!project) {
         return err(
           ActionErrors.notFound("Project", "ProjectService.deleteProject")
         );
       }
-
       // Verify ownership - only creator can delete
-      if (projectResult.createdById !== userId) {
+      if (project.createdById !== userId) {
         return err(
           ActionErrors.forbidden(
             "Only the project creator can delete this project",
@@ -372,35 +480,16 @@ export class ProjectService {
           )
         );
       }
-
       // Get all recordings for this project to delete their files from blob storage
-      const recordingsResult = await selectRecordingsByProjectId(projectId, {
-        includeArchived: true, // Include all recordings
-      });
-
-      if (recordingsResult.isErr()) {
-        logger.error("Failed to fetch recordings for project deletion", {
-          component: "ProjectService.deleteProject",
-          error: recordingsResult.error,
-          projectId,
+      const recordings: Recording[] =
+        await RecordingsQueries.selectRecordingsByProjectId(projectId, {
+          includeArchived: true,
         });
-        return err(
-          ActionErrors.internal(
-            "Failed to fetch project recordings",
-            new Error(recordingsResult.error),
-            "ProjectService.deleteProject"
-          )
-        );
-      }
-
-      const recordings = recordingsResult.value;
-
       logger.info("Deleting recordings from blob storage", {
         component: "ProjectService.deleteProject",
         projectId,
         recordingCount: recordings.length,
       });
-
       // Delete all recording files from Vercel Blob storage
       const blobDeletionPromises = recordings.map(async (recording) => {
         try {
@@ -411,8 +500,6 @@ export class ProjectService {
             fileUrl: recording.fileUrl,
           });
         } catch (error) {
-          // Log error but don't fail the entire operation
-          // Files might already be deleted or blob URL might be invalid
           logger.warn("Failed to delete recording file from blob storage", {
             component: "ProjectService.deleteProject",
             recordingId: recording.id,
@@ -421,13 +508,9 @@ export class ProjectService {
           });
         }
       });
-
-      // Wait for all blob deletions to complete (or fail individually)
       await Promise.allSettled(blobDeletionPromises);
-
       // Delete the project from database (cascade will handle related records)
       const deleteResult = await ProjectQueries.hardDelete(projectId, orgCode);
-
       if (!deleteResult) {
         return err(
           ActionErrors.internal(
@@ -437,16 +520,13 @@ export class ProjectService {
           )
         );
       }
-
       // Invalidate all project caches
       CacheInvalidation.invalidateProjectCache(orgCode);
-
       logger.info("Successfully deleted project", {
         component: "ProjectService.deleteProject",
         projectId,
         recordingsDeleted: recordings.length,
       });
-
       return ok(true);
     } catch (error) {
       logger.error("Failed to delete project", {

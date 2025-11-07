@@ -51,7 +51,7 @@ export const archiveRecordingAction = authorizedActionClient
 
     if (result.isErr()) {
       throw ActionErrors.internal(
-        result.error,
+        result.error.message,
         undefined,
         "archive-recording"
       );

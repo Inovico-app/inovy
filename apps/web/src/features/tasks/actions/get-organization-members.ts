@@ -2,7 +2,7 @@
 
 import { logger } from "@/lib/logger";
 import { getAuthSession } from "@/lib/auth";
-import { getOrganizationMembers } from "@/server/data-access/organization.queries";
+import { OrganizationService } from "@/server/services";
 
 export interface OrganizationMember {
   id: string;
@@ -36,8 +36,10 @@ export async function getOrgMembers(): Promise<{
       };
     }
 
-    // Fetch organization members
-    const membersResult = await getOrganizationMembers(organization.orgCode);
+    // Fetch organization members via service layer
+    const membersResult = await OrganizationService.getOrganizationMembers(
+      organization.orgCode
+    );
 
     if (membersResult.isErr()) {
       logger.error("Failed to fetch organization members", {

@@ -1,5 +1,5 @@
-import { err, ok, type Result } from "neverthrow";
-import { ActionErrors, type ActionError } from "../../lib/action-errors";
+import { err, ok } from "neverthrow";
+import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import type { AuthUser } from "../../lib/auth";
 import { logger } from "../../lib/logger";
 import type { KindeOrganizationDto } from "../dto";
@@ -17,7 +17,7 @@ export class OrganizationAssignmentService {
    */
   static async ensureUserOrganization(
     user: AuthUser
-  ): Promise<Result<KindeOrganizationDto, ActionError>> {
+  ): Promise<ActionResult<KindeOrganizationDto>> {
     try {
       // First, get all organizations for the user
       if (!user.organization_code) {
@@ -88,7 +88,7 @@ export class OrganizationAssignmentService {
    */
   private static async createDefaultOrganizationForUser(
     user: AuthUser
-  ): Promise<Result<KindeOrganizationDto, ActionError>> {
+  ): Promise<ActionResult<KindeOrganizationDto>> {
     try {
       // Generate organization code and name from user email
       const emailLocal = (user.email ?? "user").split("@")[0] ?? "user";

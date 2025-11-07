@@ -35,12 +35,12 @@ export async function updateTaskStatus(
         component: "updateTaskStatus",
         taskId,
         status,
-        error: result.error,
+        error: result.error.message,
       });
 
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 

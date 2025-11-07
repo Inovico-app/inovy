@@ -1,3 +1,4 @@
+import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { ChatQueries } from "@/server/data-access/chat.queries";
 import {
@@ -8,7 +9,7 @@ import {
 } from "@/server/db/schema";
 import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, type CoreMessage } from "ai";
-import { err, ok, type Result } from "neverthrow";
+import { err, ok } from "neverthrow";
 import { ProjectService } from "./project.service";
 import { VectorSearchService } from "./vector-search.service";
 
@@ -24,7 +25,7 @@ export class ChatService {
     projectId: string,
     userId: string,
     organizationId: string
-  ): Promise<Result<{ conversationId: string }, Error>> {
+  ): Promise<ActionResult<{ conversationId: string }>> {
     try {
       const conversation: NewChatConversation = {
         projectId,
@@ -39,7 +40,13 @@ export class ChatService {
       return ok({ conversationId: result.id });
     } catch (error) {
       logger.error("Error creating conversation", { error, projectId, userId });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Failed to create conversation",
+          error as Error,
+          "ChatService.createConversation"
+        )
+      );
     }
   }
 
@@ -49,7 +56,7 @@ export class ChatService {
   static async createOrganizationConversation(
     userId: string,
     organizationId: string
-  ): Promise<Result<{ conversationId: string }, Error>> {
+  ): Promise<ActionResult<{ conversationId: string }>> {
     try {
       const conversation: NewChatConversation = {
         projectId: null,
@@ -67,7 +74,13 @@ export class ChatService {
         organizationId,
         userId,
       });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Failed to create organization conversation",
+          error as Error,
+          "ChatService.createOrganizationConversation"
+        )
+      );
     }
   }
 
@@ -554,13 +567,19 @@ Please answer the user's question based on this information. When referencing in
    */
   static async deleteConversation(
     conversationId: string
-  ): Promise<Result<void, Error>> {
+  ): Promise<ActionResult<void>> {
     try {
       await ChatQueries.deleteConversation(conversationId);
       return ok(undefined);
     } catch (error) {
       logger.error("Error deleting conversation", { error, conversationId });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Failed to delete conversation",
+          error as Error,
+          "ChatService.deleteConversation"
+        )
+      );
     }
   }
 
@@ -575,15 +594,21 @@ Please answer the user's question based on this information. When referencing in
     filter?: "all" | "active" | "archived" | "deleted";
     page?: number;
     limit?: number;
-  }): Promise<
-    Result<{ conversations: ChatConversation[]; total: number }, Error>
+  }  ): Promise<
+    ActionResult<{ conversations: ChatConversation[]; total: number }>
   > {
     try {
       const result = await ChatQueries.getConversationsWithPagination(params);
       return ok(result);
     } catch (error) {
       logger.error("Error listing conversations", { error, params });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Failed to list conversations",
+          error as Error,
+          "ChatService.listConversations"
+        )
+      );
     }
   }
 
@@ -597,13 +622,19 @@ Please answer the user's question based on this information. When referencing in
     projectId?: string;
     context?: "project" | "organization";
     limit?: number;
-  }): Promise<Result<ChatConversation[], Error>> {
+  }): Promise<ActionResult<ChatConversation[]>> {
     try {
       const conversations = await ChatQueries.searchConversations(params);
       return ok(conversations);
     } catch (error) {
       logger.error("Error searching conversations", { error, params });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Failed to search conversations",
+          error as Error,
+          "ChatService.searchConversations"
+        )
+      );
     }
   }
 
@@ -613,17 +644,27 @@ Please answer the user's question based on this information. When referencing in
   static async softDeleteConversation(
     conversationId: string,
     userId: string
-  ): Promise<Result<void, Error>> {
+  ): Promise<ActionResult<void>> {
     try {
-      // Verify ownership
       const conversation = await ChatQueries.getConversationById(
         conversationId
       );
       if (!conversation) {
-        return err(new Error("Conversation not found"));
+        return err(
+          ActionErrors.notFound(
+            "Conversation",
+            "ChatService.softDeleteConversation"
+          )
+        );
       }
       if (conversation.userId !== userId) {
-        return err(new Error("Unauthorized"));
+        return err(
+          ActionErrors.forbidden(
+            "Unauthorized to delete this conversation",
+            { conversationId },
+            "ChatService.softDeleteConversation"
+          )
+        );
       }
 
       await ChatQueries.softDeleteConversation(conversationId);
@@ -633,7 +674,13 @@ Please answer the user's question based on this information. When referencing in
         error,
         conversationId,
       });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Failed to soft delete conversation",
+          error as Error,
+          "ChatService.softDeleteConversation"
+        )
+      );
     }
   }
 
@@ -643,24 +690,37 @@ Please answer the user's question based on this information. When referencing in
   static async restoreConversation(
     conversationId: string,
     userId: string
-  ): Promise<Result<boolean, Error>> {
+  ): Promise<ActionResult<boolean>> {
     try {
-      // Verify ownership
       const conversation = await ChatQueries.getConversationById(
         conversationId
       );
       if (!conversation) {
-        return err(new Error("Conversation not found"));
+        return err(
+          ActionErrors.notFound("Conversation", "ChatService.restoreConversation")
+        );
       }
       if (conversation.userId !== userId) {
-        return err(new Error("Unauthorized"));
+        return err(
+          ActionErrors.forbidden(
+            "Unauthorized to restore this conversation",
+            { conversationId },
+            "ChatService.restoreConversation"
+          )
+        );
       }
 
       const restored = await ChatQueries.restoreConversation(conversationId);
       return ok(restored);
     } catch (error) {
       logger.error("Error restoring conversation", { error, conversationId });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Failed to restore conversation",
+          error as Error,
+          "ChatService.restoreConversation"
+        )
+      );
     }
   }
 
@@ -670,24 +730,40 @@ Please answer the user's question based on this information. When referencing in
   static async archiveConversation(
     conversationId: string,
     userId: string
-  ): Promise<Result<void, Error>> {
+  ): Promise<ActionResult<void>> {
     try {
-      // Verify ownership
       const conversation = await ChatQueries.getConversationById(
         conversationId
       );
       if (!conversation) {
-        return err(new Error("Conversation not found"));
+        return err(
+          ActionErrors.notFound(
+            "Conversation",
+            "ChatService.archiveConversation"
+          )
+        );
       }
       if (conversation.userId !== userId) {
-        return err(new Error("Unauthorized"));
+        return err(
+          ActionErrors.forbidden(
+            "Unauthorized to archive this conversation",
+            { conversationId },
+            "ChatService.archiveConversation"
+          )
+        );
       }
 
       await ChatQueries.archiveConversation(conversationId);
       return ok(undefined);
     } catch (error) {
       logger.error("Error archiving conversation", { error, conversationId });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Failed to archive conversation",
+          error as Error,
+          "ChatService.archiveConversation"
+        )
+      );
     }
   }
 
@@ -697,17 +773,27 @@ Please answer the user's question based on this information. When referencing in
   static async unarchiveConversation(
     conversationId: string,
     userId: string
-  ): Promise<Result<void, Error>> {
+  ): Promise<ActionResult<void>> {
     try {
-      // Verify ownership
       const conversation = await ChatQueries.getConversationById(
         conversationId
       );
       if (!conversation) {
-        return err(new Error("Conversation not found"));
+        return err(
+          ActionErrors.notFound(
+            "Conversation",
+            "ChatService.unarchiveConversation"
+          )
+        );
       }
       if (conversation.userId !== userId) {
-        return err(new Error("Unauthorized"));
+        return err(
+          ActionErrors.forbidden(
+            "Unauthorized to unarchive this conversation",
+            { conversationId },
+            "ChatService.unarchiveConversation"
+          )
+        );
       }
 
       await ChatQueries.unarchiveConversation(conversationId);
@@ -717,7 +803,13 @@ Please answer the user's question based on this information. When referencing in
         error,
         conversationId,
       });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Failed to unarchive conversation",
+          error as Error,
+          "ChatService.unarchiveConversation"
+        )
+      );
     }
   }
 
@@ -728,10 +820,12 @@ Please answer the user's question based on this information. When referencing in
     userId: string,
     organizationId?: string
   ): Promise<
-    Result<
-      { active: number; archived: number; deleted: number; total: number },
-      Error
-    >
+    ActionResult<{
+      active: number;
+      archived: number;
+      deleted: number;
+      total: number;
+    }>
   > {
     try {
       const stats = await ChatQueries.getConversationStats(
@@ -741,7 +835,13 @@ Please answer the user's question based on this information. When referencing in
       return ok(stats);
     } catch (error) {
       logger.error("Error getting conversation stats", { error, userId });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Failed to get conversation statistics",
+          error as Error,
+          "ChatService.getConversationStats"
+        )
+      );
     }
   }
 
@@ -751,25 +851,33 @@ Please answer the user's question based on this information. When referencing in
   static async exportConversationAsText(
     conversationId: string,
     userId: string
-  ): Promise<Result<string, Error>> {
+  ): Promise<ActionResult<string>> {
     try {
-      // Verify ownership
       const conversation = await ChatQueries.getConversationById(
         conversationId
       );
       if (!conversation) {
-        return err(new Error("Conversation not found"));
+        return err(
+          ActionErrors.notFound(
+            "Conversation",
+            "ChatService.exportConversationAsText"
+          )
+        );
       }
       if (conversation.userId !== userId) {
-        return err(new Error("Unauthorized"));
+        return err(
+          ActionErrors.forbidden(
+            "Unauthorized to export this conversation",
+            { conversationId },
+            "ChatService.exportConversationAsText"
+          )
+        );
       }
 
-      // Get messages
       const messages = await ChatQueries.getMessagesByConversationId(
         conversationId
       );
 
-      // Import export utility dynamically
       const { formatConversationAsText } = await import(
         "@/lib/export-utils"
       );
@@ -781,7 +889,13 @@ Please answer the user's question based on this information. When referencing in
         error,
         conversationId,
       });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Failed to export conversation as text",
+          error as Error,
+          "ChatService.exportConversationAsText"
+        )
+      );
     }
   }
 
@@ -791,25 +905,33 @@ Please answer the user's question based on this information. When referencing in
   static async exportConversationAsPDF(
     conversationId: string,
     userId: string
-  ): Promise<Result<Blob, Error>> {
-    try {
-      // Verify ownership
+  ): Promise<ActionResult<Blob>> {
+    try{
       const conversation = await ChatQueries.getConversationById(
         conversationId
       );
       if (!conversation) {
-        return err(new Error("Conversation not found"));
+        return err(
+          ActionErrors.notFound(
+            "Conversation",
+            "ChatService.exportConversationAsPDF"
+          )
+        );
       }
       if (conversation.userId !== userId) {
-        return err(new Error("Unauthorized"));
+        return err(
+          ActionErrors.forbidden(
+            "Unauthorized to export this conversation",
+            { conversationId },
+            "ChatService.exportConversationAsPDF"
+          )
+        );
       }
 
-      // Get messages
       const messages = await ChatQueries.getMessagesByConversationId(
         conversationId
       );
 
-      // Import export utility dynamically
       const { generateConversationPDF } = await import("@/lib/export-utils");
       const pdf = await generateConversationPDF(conversation, messages);
 
@@ -819,7 +941,13 @@ Please answer the user's question based on this information. When referencing in
         error,
         conversationId,
       });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Failed to export conversation as PDF",
+          error as Error,
+          "ChatService.exportConversationAsPDF"
+        )
+      );
     }
   }
 }

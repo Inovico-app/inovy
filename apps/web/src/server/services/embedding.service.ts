@@ -1,15 +1,16 @@
+import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { EmbeddingsQueries } from "@/server/data-access/embeddings.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
-import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { TasksQueries } from "@/server/data-access/tasks.queries";
 import { type NewChatEmbedding } from "@/server/db/schema";
-import { err, ok, type Result } from "neverthrow";
+import { err, ok } from "neverthrow";
 import OpenAI from "openai";
 
 export class EmbeddingService {
   private static openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || "",
+    apiKey: process.env.OPENAI_API_KEY ?? "",
   });
 
   private static readonly EMBEDDING_MODEL = "text-embedding-3-small";
@@ -21,7 +22,7 @@ export class EmbeddingService {
    */
   static async generateEmbedding(
     text: string
-  ): Promise<Result<number[], Error>> {
+  ): Promise<ActionResult<number[]>> {
     try {
       const response = await this.openai.embeddings.create({
         model: this.EMBEDDING_MODEL,
@@ -31,14 +32,24 @@ export class EmbeddingService {
       const embedding = response.data[0]?.embedding;
 
       if (!embedding) {
-        return err(new Error("Failed to generate embedding"));
+        return err(
+          ActionErrors.internal(
+            "Failed to generate embedding",
+            undefined,
+            "EmbeddingService.generateEmbedding"
+          )
+        );
       }
 
       return ok(embedding);
     } catch (error) {
       logger.error("Error generating embedding", { error });
       return err(
-        error instanceof Error ? error : new Error("Unknown error")
+        ActionErrors.internal(
+          "Error generating embedding",
+          error as Error,
+          "EmbeddingService.generateEmbedding"
+        )
       );
     }
   }
@@ -48,7 +59,7 @@ export class EmbeddingService {
    */
   static async generateEmbeddingsBatch(
     texts: string[]
-  ): Promise<Result<number[][], Error>> {
+  ): Promise<ActionResult<number[][]>> {
     try {
       const response = await this.openai.embeddings.create({
         model: this.EMBEDDING_MODEL,
@@ -58,14 +69,24 @@ export class EmbeddingService {
       const embeddings = response.data.map((item) => item.embedding);
 
       if (embeddings.length !== texts.length) {
-        return err(new Error("Mismatch in embedding count"));
+        return err(
+          ActionErrors.internal(
+            "Mismatch in embedding count",
+            undefined,
+            "EmbeddingService.generateEmbeddingsBatch"
+          )
+        );
       }
 
       return ok(embeddings);
     } catch (error) {
       logger.error("Error generating embeddings batch", { error });
       return err(
-        error instanceof Error ? error : new Error("Unknown error")
+        ActionErrors.internal(
+          "Error generating embeddings batch",
+          error as Error,
+          "EmbeddingService.generateEmbeddingsBatch"
+        )
       );
     }
   }
@@ -95,7 +116,7 @@ export class EmbeddingService {
         }
         // If single paragraph is too long, split by sentences
         if (paragraph.length > maxChars) {
-          const sentences = paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph];
+          const sentences = paragraph.match(/[^.!?]+[.!?]+/g) ?? [paragraph];
           currentChunk = "";
           for (const sentence of sentences) {
             if ((currentChunk + sentence).length <= maxChars) {
@@ -117,7 +138,7 @@ export class EmbeddingService {
       chunks.push(currentChunk);
     }
 
-    return chunks;
+    return chunks.length > 0 ? chunks : [text];
   }
 
   /**
@@ -127,20 +148,21 @@ export class EmbeddingService {
     recordingId: string,
     projectId: string,
     organizationId: string
-  ): Promise<Result<void, Error>> {
+  ): Promise<ActionResult<void>> {
     try {
       logger.info("Indexing recording transcription", { recordingId });
 
-      const recordingResult = await RecordingsQueries.selectRecordingById(recordingId);
-
-      if (recordingResult.isErr()) {
-        return err(new Error(recordingResult.error));
-      }
-
-      const recording = recordingResult.value;
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
 
       if (!recording || !recording.transcriptionText) {
-        return err(new Error("Recording or transcription not found"));
+        return err(
+          ActionErrors.notFound(
+            "Recording or transcription",
+            "EmbeddingService.indexRecordingTranscription"
+          )
+        );
       }
 
       // Check if already indexed
@@ -175,7 +197,7 @@ export class EmbeddingService {
           organizationId,
           contentType: "transcription" as const,
           contentId: recordingId,
-          contentText: chunks[index] || "",
+          contentText: chunks[index] ?? "",
           embedding,
           metadata: {
             recordingTitle: recording.title,
@@ -204,7 +226,11 @@ export class EmbeddingService {
         recordingId,
       });
       return err(
-        error instanceof Error ? error : new Error("Unknown error")
+        ActionErrors.internal(
+          "Error indexing recording transcription",
+          error as Error,
+          "EmbeddingService.indexRecordingTranscription"
+        )
       );
     }
   }
@@ -216,23 +242,24 @@ export class EmbeddingService {
     recordingId: string,
     projectId: string,
     organizationId: string
-  ): Promise<Result<void, Error>> {
+  ): Promise<ActionResult<void>> {
     try {
       logger.info("Indexing recording summary", { recordingId });
 
-      const summariesResult = await AIInsightsQueries.getInsightsByRecordingId(
+      const summaries = await AIInsightsQueries.getInsightsByRecordingId(
         recordingId
       );
-
-      if (summariesResult.isErr()) {
-        return err(summariesResult.error);
-      }
-
-      const summaries = summariesResult.value;
-      const summary = summaries.find((s: { insightType: string }) => s.insightType === "summary");
+      const summary = summaries.find(
+        (s: { insightType: string }) => s.insightType === "summary"
+      );
 
       if (!summary || !summary.content) {
-        return err(new Error("Summary not found"));
+        return err(
+          ActionErrors.notFound(
+            "Summary",
+            "EmbeddingService.indexRecordingSummary"
+          )
+        );
       }
 
       // Check if already indexed
@@ -241,7 +268,9 @@ export class EmbeddingService {
         "summary"
       );
       if (hasExisting) {
-        logger.info("Summary already indexed, skipping", { summaryId: summary.id });
+        logger.info("Summary already indexed, skipping", {
+          summaryId: summary.id,
+        });
         return ok(undefined);
       }
 
@@ -256,8 +285,9 @@ export class EmbeddingService {
       }
 
       // Get recording details for metadata
-      const recordingResult = await RecordingsQueries.selectRecordingById(recordingId);
-      const recording = recordingResult.isOk() ? recordingResult.value : null;
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
 
       // Create embedding entry
       await EmbeddingsQueries.createEmbedding({
@@ -280,7 +310,11 @@ export class EmbeddingService {
     } catch (error) {
       logger.error("Error indexing recording summary", { error, recordingId });
       return err(
-        error instanceof Error ? error : new Error("Unknown error")
+        ActionErrors.internal(
+          "Error indexing recording summary",
+          error as Error,
+          "EmbeddingService.indexRecordingSummary"
+        )
       );
     }
   }
@@ -292,17 +326,11 @@ export class EmbeddingService {
     recordingId: string,
     projectId: string,
     organizationId: string
-  ): Promise<Result<void, Error>> {
+  ): Promise<ActionResult<void>> {
     try {
       logger.info("Indexing recording tasks", { recordingId });
 
-      const tasksResult = await TasksQueries.getTasksByRecordingId(recordingId);
-
-      if (tasksResult.isErr()) {
-        return err(tasksResult.error);
-      }
-
-      const tasks = tasksResult.value;
+      const tasks = await TasksQueries.getTasksByRecordingId(recordingId);
 
       if (!tasks || tasks.length === 0) {
         logger.info("No tasks found for recording", { recordingId });
@@ -310,8 +338,9 @@ export class EmbeddingService {
       }
 
       // Get recording details for metadata
-      const recordingResult = await RecordingsQueries.selectRecordingById(recordingId);
-      const recording = recordingResult.isOk() ? recordingResult.value : null;
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
 
       const embeddingEntries: NewChatEmbedding[] = [];
 
@@ -338,7 +367,9 @@ export class EmbeddingService {
         // Create text representations of tasks
         const taskTexts = tasksToIndex.map(
           (task) =>
-            `Task: ${task.title}\nDescription: ${task.description || "N/A"}\nPriority: ${task.priority}\nStatus: ${task.status}`
+            `Task: ${task.title}\nDescription: ${
+              task.description ?? "N/A"
+            }\nPriority: ${task.priority}\nStatus: ${task.status}`
         );
 
         // Generate embeddings
@@ -357,8 +388,8 @@ export class EmbeddingService {
             organizationId,
             contentType: "task" as const,
             contentId: task.id,
-            contentText: taskTexts[index] || "",
-            embedding: embeddings[index] || [],
+            contentText: taskTexts[index] ?? "",
+            embedding: embeddings[index] ?? [],
             metadata: {
               title: task.title,
               priority: task.priority,
@@ -390,7 +421,11 @@ export class EmbeddingService {
     } catch (error) {
       logger.error("Error indexing recording tasks", { error, recordingId });
       return err(
-        error instanceof Error ? error : new Error("Unknown error")
+        ActionErrors.internal(
+          "Error indexing recording tasks",
+          error as Error,
+          "EmbeddingService.indexRecordingTasks"
+        )
       );
     }
   }
@@ -402,7 +437,7 @@ export class EmbeddingService {
     recordingId: string,
     projectId: string,
     organizationId: string
-  ): Promise<Result<void, Error>> {
+  ): Promise<ActionResult<void>> {
     try {
       logger.info("Starting full recording indexing", { recordingId });
 
@@ -451,7 +486,11 @@ export class EmbeddingService {
     } catch (error) {
       logger.error("Error indexing recording", { error, recordingId });
       return err(
-        error instanceof Error ? error : new Error("Unknown error")
+        ActionErrors.internal(
+          "Error indexing recording",
+          error as Error,
+          "EmbeddingService.indexRecording"
+        )
       );
     }
   }
@@ -462,19 +501,13 @@ export class EmbeddingService {
   static async indexProject(
     projectId: string,
     organizationId: string
-  ): Promise<Result<{ indexed: number; failed: number }, Error>> {
+  ): Promise<ActionResult<{ indexed: number; failed: number }>> {
     try {
       logger.info("Starting project indexing", { projectId });
 
-      const recordingsResult = await RecordingsQueries.selectRecordingsByProjectId(
+      const recordings = await RecordingsQueries.selectRecordingsByProjectId(
         projectId
       );
-
-      if (recordingsResult.isErr()) {
-        return err(new Error(recordingsResult.error));
-      }
-
-      const recordings = recordingsResult.value;
 
       let indexed = 0;
       let failed = 0;
@@ -499,7 +532,11 @@ export class EmbeddingService {
     } catch (error) {
       logger.error("Error indexing project", { error, projectId });
       return err(
-        error instanceof Error ? error : new Error("Unknown error")
+        ActionErrors.internal(
+          "Error indexing project",
+          error as Error,
+          "EmbeddingService.indexProject"
+        )
       );
     }
   }

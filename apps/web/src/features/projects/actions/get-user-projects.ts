@@ -18,12 +18,12 @@ export async function getUserProjects(): Promise<{
     if (result.isErr()) {
       logger.error("Failed to get user projects", {
         component: "getUserProjects",
-        error: result.error,
+        error: result.error.message,
       });
 
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 
