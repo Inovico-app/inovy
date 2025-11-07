@@ -202,7 +202,20 @@ export class TaskService {
         );
       }
 
-      const stats = await getCachedTaskStats(authUser.id, organization.orgCode);
+      // Extract org_code from organization
+      const orgCode = (organization as unknown as Record<string, unknown>).org_code as string | undefined;
+      
+      if (!orgCode) {
+        return err(
+          ActionErrors.forbidden(
+            "Organization code required",
+            undefined,
+            "TaskService.getTaskStats"
+          )
+        );
+      }
+
+      const stats = await getCachedTaskStats(authUser.id, orgCode);
 
       return ok(stats);
     } catch (error) {

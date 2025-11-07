@@ -1,7 +1,8 @@
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
-import { TasksQueries } from "../data-access/tasks.queries";
 import type { TaskFiltersDto, TaskStatsDto } from "../dto";
+import { TasksQueries } from "../data-access/tasks.queries";
+import { TaskService } from "../services";
 
 /**
  * Cached task queries
@@ -22,9 +23,8 @@ export async function getCachedTasksByUser(
     CacheTags.tasksByOrg(orgCode)
   );
 
-  return await TasksQueries.getTasksByOrganization(orgCode, {
+  return await TaskService.getTasksByAssignee({
     ...filters,
-    assigneeId: userId,
   });
 }
 
