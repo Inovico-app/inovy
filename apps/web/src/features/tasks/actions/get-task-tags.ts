@@ -1,7 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
-import { TaskTagsQueries } from "@/server/data-access";
+import { TaskService } from "@/server/services";
 import { z } from "zod";
 
 /**
@@ -11,7 +11,7 @@ export const getTaskTags = authorizedActionClient
   .metadata({ policy: "tasks:read" })
   .schema(z.object({ taskId: z.string().uuid() }))
   .action(async ({ parsedInput }) => {
-    const result = await TaskTagsQueries.getTaskTags(parsedInput.taskId);
+    const result = await TaskService.getTaskTags(parsedInput.taskId);
     
     if (result.isErr()) {
       throw new Error("Failed to fetch task tags");

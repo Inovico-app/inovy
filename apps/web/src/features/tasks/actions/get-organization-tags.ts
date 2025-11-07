@@ -1,7 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
-import { TaskTagsQueries } from "@/server/data-access";
+import { TaskService } from "@/server/services";
 import { getAuthSession } from "@/lib/auth";
 import { z } from "zod";
 
@@ -19,7 +19,7 @@ export const getOrganizationTags = authorizedActionClient
     }
     
     const { organization } = authResult.value;
-    const result = await TaskTagsQueries.getTagsByOrganization(organization.orgCode);
+    const result = await TaskService.getTagsByOrganization(organization.orgCode);
     
     if (result.isErr()) {
       throw new Error("Failed to fetch tags");

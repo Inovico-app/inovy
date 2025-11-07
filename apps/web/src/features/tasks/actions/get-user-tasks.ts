@@ -34,12 +34,12 @@ export async function getUserTasks(
     if (result.isErr()) {
       logger.error("Failed to get user tasks", {
         component: "getUserTasks",
-        error: result.error,
+        error: result.error.message,
       });
 
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 

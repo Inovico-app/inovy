@@ -10,7 +10,9 @@ export async function getOrganizationMembers(orgCode: string): Promise<
   }>
 > {
   const result = await KindeUserService.getUsersByOrganization(orgCode);
-  if (result.isErr()) throw new Error(result.error);
+  if (result.isErr()) {
+    throw new Error(result.error.message);
+  }
   return result.value.map((user) => ({
     id: user.id,
     email: user.email || null,

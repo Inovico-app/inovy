@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getAuthSession } from "@/lib/auth";
 import Link from "next/link";
-import { getOrganizationMembers } from "@/server/data-access/organization.queries";
+import { OrganizationService } from "@/server/services";
 import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
 import { Suspense } from "react";
 
@@ -42,7 +42,7 @@ async function OrganizationContent() {
   let members: Array<{ id: string; email: string | null; given_name: string | null; family_name: string | null; roles?: string[] }> = [];
 
   if (orgCode) {
-    const membersResult = await getOrganizationMembers(orgCode);
+    const membersResult = await OrganizationService.getOrganizationMembers(orgCode);
     if (membersResult.isOk()) {
       members = membersResult.value;
     }

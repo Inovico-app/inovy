@@ -34,12 +34,12 @@ export async function markNotificationRead(
       logger.error("Failed to mark notification as read", {
         component: "markNotificationRead",
         notificationId,
-        error: result.error,
+        error: result.error.message,
       });
 
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 

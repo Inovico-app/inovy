@@ -104,12 +104,12 @@ export async function createCalendarEvent(
       logger.error("Failed to create calendar event", {
         userId: user.id,
         taskId: task.id,
-        error: result.error,
+        error: result.error.message,
       });
 
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 
@@ -220,7 +220,7 @@ export async function createCalendarEventsForTasks(input: {
     if (result.isErr()) {
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 

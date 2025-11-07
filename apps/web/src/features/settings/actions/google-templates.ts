@@ -35,7 +35,7 @@ export async function getEmailTemplates(): Promise<{
     if (result.isErr()) {
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 
@@ -81,7 +81,7 @@ export async function getCalendarTemplates(): Promise<{
     if (result.isErr()) {
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 
@@ -128,7 +128,7 @@ export async function saveEmailTemplate(input: {
     if (result.isErr()) {
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 
@@ -182,7 +182,7 @@ export async function saveCalendarTemplate(input: {
     if (result.isErr()) {
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 
@@ -225,7 +225,7 @@ export async function deleteTemplate(templateId: string): Promise<{
     if (result.isErr()) {
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 

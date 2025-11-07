@@ -39,7 +39,7 @@ export async function getGoogleSettings(projectId?: string): Promise<{
     if (result.isErr()) {
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 
@@ -119,7 +119,7 @@ export async function updateGoogleSettings(
     if (result.isErr()) {
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 
@@ -174,7 +174,7 @@ export async function resetGoogleSettings(projectId?: string): Promise<{
     if (result.isErr()) {
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 

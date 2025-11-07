@@ -1,7 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
-import { TaskTagsQueries } from "@/server/data-access";
+import { TaskService } from "@/server/services";
 import { getAuthSession } from "@/lib/auth";
 import { z } from "zod";
 
@@ -25,7 +25,7 @@ export const createTag = authorizedActionClient
     
     const { organization } = authResult.value;
     
-    const result = await TaskTagsQueries.createTag({
+    const result = await TaskService.createTag({
       name: parsedInput.name,
       color: parsedInput.color,
       organizationId: organization.orgCode,

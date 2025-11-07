@@ -10,6 +10,7 @@ import {
   type TaskHistory,
 } from "@/server/db/schema";
 import { and, desc, eq, ilike, inArray, or } from "drizzle-orm";
+import type { TaskStatsDto } from "../dto";
 
 export interface TaskWithContext extends Task {
   project: { id: string; name: string };
@@ -204,6 +205,44 @@ export class TasksQueries {
   ): Promise<TaskHistory> {
     const [entry] = await db.insert(taskHistory).values(data).returning();
     return entry;
+  }
+
+  static async getTaskStats(
+    organizationId: string,
+    userId: string
+  ): Promise<TaskStatsDto> {
+    const userTasks = await db
+      .select()
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.organizationId, organizationId),
+          eq(tasks.assigneeId, userId)
+        )
+      );
+
+    const stats: TaskStatsDto = {
+      total: userTasks.length,
+      byStatus: {
+        pending: 0,
+        in_progress: 0,
+        completed: 0,
+        cancelled: 0,
+      },
+      byPriority: {
+        low: 0,
+        medium: 0,
+        high: 0,
+        urgent: 0,
+      },
+    };
+
+    for (const task of userTasks) {
+      stats.byStatus[task.status]++;
+      stats.byPriority[task.priority]++;
+    }
+
+    return stats;
   }
 }
 

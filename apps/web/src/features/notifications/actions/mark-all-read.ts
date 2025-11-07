@@ -14,12 +14,12 @@ export async function markAllNotificationsRead(): Promise<{
     if (result.isErr()) {
       logger.error("Failed to mark all notifications as read", {
         component: "markAllNotificationsRead",
-        error: result.error,
+        error: result.error.message,
       });
 
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 

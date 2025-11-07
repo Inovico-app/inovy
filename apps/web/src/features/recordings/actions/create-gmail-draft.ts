@@ -130,12 +130,12 @@ export async function createGmailDraft(
       logger.error("Failed to create Gmail draft", {
         userId: user.id,
         recordingId: recording.id,
-        error: result.error,
+        error: result.error.message,
       });
 
       return {
         success: false,
-        error: result.error,
+        error: result.error.message,
       };
     }
 

@@ -9,7 +9,7 @@ import {
   TasksQueries,
   type TaskWithContext,
 } from "../data-access/tasks.queries";
-import type { Task, TaskHistory } from "../db/schema";
+import type { Task, TaskHistory, TaskTag } from "../db/schema";
 import type {
   TaskDto,
   TaskFiltersDto,
@@ -457,6 +457,121 @@ export class TaskService {
           "Failed to get task history",
           error as Error,
           "TaskService.getTaskHistory"
+        )
+      );
+    }
+  }
+
+  /**
+   * Get all tags for an organization
+   */
+  static async getTagsByOrganization(
+    organizationId: string
+  ): Promise<ActionResult<TaskTag[]>> {
+    logger.info("Fetching tags for organization", {
+      component: "TaskService.getTagsByOrganization",
+      organizationId,
+    });
+
+    try {
+      const tags = await TaskTagsQueries.getTagsByOrganization(organizationId);
+
+      logger.info("Successfully fetched organization tags", {
+        component: "TaskService.getTagsByOrganization",
+        organizationId,
+        count: tags.length,
+      });
+
+      return ok(tags);
+    } catch (error) {
+      logger.error("Failed to get tags by organization from database", {
+        component: "TaskService.getTagsByOrganization",
+        error,
+        organizationId,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to get tags",
+          error as Error,
+          "TaskService.getTagsByOrganization"
+        )
+      );
+    }
+  }
+
+  /**
+   * Create a new tag for an organization
+   */
+  static async createTag(data: {
+    name: string;
+    color: string;
+    organizationId: string;
+  }): Promise<ActionResult<TaskTag>> {
+    logger.info("Creating new tag", {
+      component: "TaskService.createTag",
+      name: data.name,
+      organizationId: data.organizationId,
+    });
+
+    try {
+      const tag = await TaskTagsQueries.createTag(data);
+
+      logger.info("Successfully created tag", {
+        component: "TaskService.createTag",
+        tagId: tag.id,
+        name: data.name,
+      });
+
+      return ok(tag);
+    } catch (error) {
+      logger.error("Failed to create tag in database", {
+        component: "TaskService.createTag",
+        error,
+        data,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to create tag",
+          error as Error,
+          "TaskService.createTag"
+        )
+      );
+    }
+  }
+
+  /**
+   * Get tags assigned to a specific task
+   */
+  static async getTaskTags(taskId: string): Promise<ActionResult<TaskTag[]>> {
+    logger.info("Fetching tags for task", {
+      component: "TaskService.getTaskTags",
+      taskId,
+    });
+
+    try {
+      const tags = await TaskTagsQueries.getTaskTags(taskId);
+
+      logger.info("Successfully fetched task tags", {
+        component: "TaskService.getTaskTags",
+        taskId,
+        count: tags.length,
+      });
+
+      return ok(tags);
+    } catch (error) {
+      logger.error("Failed to get task tags from database", {
+        component: "TaskService.getTaskTags",
+        error,
+        taskId,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to get task tags",
+          error as Error,
+          "TaskService.getTaskTags"
         )
       );
     }

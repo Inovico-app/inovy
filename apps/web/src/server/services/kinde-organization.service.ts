@@ -25,7 +25,7 @@ export class KindeOrganizationService {
       const apiResult = await client.getOrganizationsApi();
 
       if (apiResult.isErr()) {
-        return ActionErrors.internal(
+        return err(
           ActionErrors.internal(
             "Failed to get organization from Kinde",
             apiResult.error,
