@@ -74,6 +74,54 @@ export class TaskService {
     }
   }
 
+  static async getTasksByRecordingId(
+    recordingId: string
+  ): Promise<ActionResult<TaskDto[]>> {
+    try {
+      const authResult = await getAuthSession();
+      if (authResult.isErr()) {
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "TaskService.getTasksByRecordingId"
+          )
+        );
+      }
+
+      const { user: authUser, organization } = authResult.value;
+
+      if (!authUser || !organization) {
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "TaskService.getTasksByRecordingId"
+          )
+        );
+      }
+
+      const tasks = await TasksQueries.getTasksByRecordingId(recordingId);
+
+      if (!tasks) {
+        return err(
+          ActionErrors.notFound("Tasks", "TaskService.getTasksByRecordingId")
+        );
+      }
+
+      return ok(tasks.map((task: Task) => this.toDto(task)));
+    } catch (error) {
+      logger.error("Failed to get tasks by recording ID", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to get tasks by recording ID",
+          error as Error,
+          "TaskService.getTasksByRecordingId"
+        )
+      );
+    }
+  }
+
   /**
    * Get tasks with context (project and recording info) for the authenticated user
    * Includes joined data for display purposes

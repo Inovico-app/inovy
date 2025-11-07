@@ -1,8 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth";
-import { TranscriptionService } from "@/server/services/transcription.service";
-import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { logger } from "@/lib/logger";
+import { RecordingService } from "@/server/services";
+import { TranscriptionService } from "@/server/services/transcription.service";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(
   request: NextRequest,
@@ -22,18 +22,33 @@ export async function POST(
     }
 
     // Get recording
-    const recordingResult = await RecordingsQueries.selectRecordingById(
+    const recordingResult = await RecordingService.getRecordingById(
       recordingId
     );
 
-    if (recordingResult.isErr() || !recordingResult.value) {
+    if (recordingResult.isErr()) {
+      logger.error("Recording not found", {
+        recordingId,
+        error: recordingResult.error?.message ?? "Unknown error",
+      });
       return NextResponse.json(
-        { error: "Recording not found" },
+        { error: recordingResult.error?.message ?? "Unknown error" },
         { status: 404 }
       );
     }
 
     const recording = recordingResult.value;
+
+    if (!recording) {
+      logger.error("Recording not found", {
+        recordingId,
+        error: "Recording not found",
+      });
+      return NextResponse.json(
+        { error: "Recording not found" },
+        { status: 404 }
+      );
+    }
 
     // Verify user has access to this recording
     const user = authResult.value.user;

@@ -2,13 +2,8 @@
 
 import { getUserSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import {
-  getRecentAutoActions,
-  getAutoActionStats,
-  retryAutoAction,
-} from "@/server/data-access/auto-actions.queries";
 import type { AutoAction } from "@/server/db/schema";
-
+import { AutoActionsService } from "@/server/services/auto-actions.service";
 /**
  * Get recent Google integration actions
  */
@@ -48,15 +43,38 @@ export async function getGoogleIntegrationStatus(options?: {
     const user = userResult.value;
 
     const [actions, stats] = await Promise.all([
-      getRecentAutoActions(user.id, "google", options),
-      getAutoActionStats(user.id, "google"),
+      AutoActionsService.getRecentAutoActions(user.id, "google", options),
+      AutoActionsService.getAutoActionStats(user.id, "google"),
     ]);
+
+    if (actions.isErr()) {
+      logger.error("Failed to get recent auto actions", {
+        userId: user.id,
+        error: actions.error,
+      });
+    }
+
+    if (stats.isErr()) {
+      logger.error("Failed to get auto action stats", {
+        userId: user.id,
+        error: stats.error,
+      });
+    }
 
     return {
       success: true,
       data: {
-        actions,
-        stats,
+        actions: actions.isOk() ? actions.value : [],
+        stats: stats.isOk()
+          ? stats.value
+          : {
+              total: 0,
+              completed: 0,
+              failed: 0,
+              pending: 0,
+              calendarEvents: 0,
+              emailDrafts: 0,
+            },
       },
     };
   } catch (error) {
@@ -91,7 +109,7 @@ export async function retryFailedAction(actionId: string): Promise<{
 
     const user = userResult.value;
 
-    const action = await retryAutoAction(actionId, user.id);
+    const action = await AutoActionsService.retryAutoAction(actionId, user.id);
 
     if (!action) {
       return {
