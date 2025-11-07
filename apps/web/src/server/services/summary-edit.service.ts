@@ -1,8 +1,8 @@
-import { err, ok, type Result } from "neverthrow";
+import { err, ok } from "neverthrow";
+import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { ActionErrors, type ActionError } from "@/lib/action-errors";
-import { SummaryHistoryQueries } from "../data-access/summary-history.queries";
 import { AIInsightsQueries } from "../data-access/ai-insights.queries";
+import { SummaryHistoryQueries } from "../data-access/summary-history.queries";
 
 export interface UpdateSummaryInput {
   recordingId: string;
@@ -20,65 +20,31 @@ export class SummaryEditService {
   static async updateSummary(
     input: UpdateSummaryInput,
     userId: string
-  ): Promise<Result<{ success: boolean; versionNumber: number }, ActionError>> {
+  ): Promise<ActionResult<{ success: boolean; versionNumber: number }>> {
     try {
       // Get existing summary insight
-      const summaryInsightResult = await AIInsightsQueries.getInsightByType(
+      const summaryInsight = await AIInsightsQueries.getInsightByType(
         input.recordingId,
         "summary"
       );
 
-      if (summaryInsightResult.isErr()) {
-        logger.error("Failed to fetch summary insight", {
-          component: "SummaryEditService.updateSummary",
-          error: summaryInsightResult.error,
-          recordingId: input.recordingId,
-        });
-
-        return err(
-          ActionErrors.internal(
-            "Failed to fetch summary",
-            new Error(summaryInsightResult.error.message || "Unknown error"),
-            "SummaryEditService.updateSummary"
-          )
-        );
-      }
-
-      const summaryInsight = summaryInsightResult.value;
-
       if (!summaryInsight) {
         return err(
-          ActionErrors.badRequest(
-            "Summary not found",
+          ActionErrors.notFound(
+            "Summary",
             "SummaryEditService.updateSummary"
           )
         );
       }
 
       // Get the latest version number
-      const latestVersionResult =
-        await SummaryHistoryQueries.getLatestVersionNumber(input.recordingId);
-
-      if (latestVersionResult.isErr()) {
-        logger.error("Failed to get latest version number", {
-          component: "SummaryEditService.updateSummary",
-          error: latestVersionResult.error,
-          recordingId: input.recordingId,
-        });
-
-        return err(
-          ActionErrors.internal(
-            "Failed to get version number",
-            latestVersionResult.error,
-            "SummaryEditService.updateSummary"
-          )
-        );
-      }
-
-      const newVersion = latestVersionResult.value + 1;
+      const latestVersion = await SummaryHistoryQueries.getLatestVersionNumber(
+        input.recordingId
+      );
+      const newVersion = latestVersion + 1;
 
       // Save the current summary as a history entry
-      const historyResult = await SummaryHistoryQueries.insertSummaryHistory({
+      await SummaryHistoryQueries.insertSummaryHistory({
         recordingId: input.recordingId,
         content: summaryInsight.content,
         editedById: userId,
@@ -86,40 +52,18 @@ export class SummaryEditService {
         changeDescription: input.changeDescription ?? null,
       });
 
-      if (historyResult.isErr()) {
-        logger.error("Failed to save summary history", {
-          component: "SummaryEditService.updateSummary",
-          error: historyResult.error,
-          recordingId: input.recordingId,
-        });
-
-        return err(
-          ActionErrors.internal(
-            "Failed to save summary history",
-            historyResult.error,
-            "SummaryEditService.updateSummary"
-          )
-        );
-      }
-
       // Update the summary insight with new content and mark as edited
-      const updateResult = await AIInsightsQueries.updateInsightWithEdit(
+      const updated = await AIInsightsQueries.updateInsightWithEdit(
         summaryInsight.id,
         input.content,
         userId
       );
 
-      if (updateResult.isErr()) {
-        logger.error("Failed to update summary insight", {
-          component: "SummaryEditService.updateSummary",
-          error: updateResult.error,
-          recordingId: input.recordingId,
-        });
-
+      if (!updated) {
         return err(
           ActionErrors.internal(
             "Failed to update summary",
-            new Error(updateResult.error),
+            undefined,
             "SummaryEditService.updateSummary"
           )
         );
@@ -154,7 +98,7 @@ export class SummaryEditService {
   static async getSummaryHistory(
     recordingId: string
   ): Promise<
-    Result<
+    ActionResult<
       Array<{
         id: string;
         versionNumber: number;
@@ -162,33 +106,16 @@ export class SummaryEditService {
         editedById: string;
         editedAt: Date;
         changeDescription: string | null;
-      }>,
-      ActionError
+      }>
     >
   > {
     try {
-      const historyResult =
+      const history =
         await SummaryHistoryQueries.selectSummaryHistoryByRecordingId(
           recordingId
         );
 
-      if (historyResult.isErr()) {
-        logger.error("Failed to get summary history", {
-          component: "SummaryEditService.getSummaryHistory",
-          error: historyResult.error,
-          recordingId,
-        });
-
-        return err(
-          ActionErrors.internal(
-            "Failed to get summary history",
-            historyResult.error,
-            "SummaryEditService.getSummaryHistory"
-          )
-        );
-      }
-
-      return ok(historyResult.value);
+      return ok(history);
     } catch (error) {
       logger.error("Unexpected error getting summary history", {
         component: "SummaryEditService.getSummaryHistory",
@@ -205,4 +132,3 @@ export class SummaryEditService {
     }
   }
 }
-

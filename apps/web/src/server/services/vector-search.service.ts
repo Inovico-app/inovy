@@ -1,6 +1,7 @@
+import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { EmbeddingsQueries } from "@/server/data-access/embeddings.queries";
-import { err, ok, type Result } from "neverthrow";
+import { err, ok } from "neverthrow";
 import { EmbeddingService } from "./embedding.service";
 
 export interface SearchResult {
@@ -33,7 +34,7 @@ export class VectorSearchService {
       matchThreshold?: number;
       matchCount?: number;
     } = {}
-  ): Promise<Result<SearchResult[], Error>> {
+  ): Promise<ActionResult<SearchResult[]>> {
     try {
       logger.info("Performing vector search", { query, projectId, options });
 
@@ -81,7 +82,13 @@ export class VectorSearchService {
         query,
         projectId,
       });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Error performing vector search",
+          error as Error,
+          "VectorSearchService.search"
+        )
+      );
     }
   }
 
@@ -197,24 +204,21 @@ export class VectorSearchService {
     query: string,
     projectId: string
   ): Promise<
-    Result<
-      {
-        context: string;
-        sources: Array<{
-          contentId: string;
-          contentType: "recording" | "transcription" | "summary" | "task";
-          title: string;
-          excerpt: string;
-          similarityScore: number;
-          recordingId?: string;
-          timestamp?: number;
-          recordingDate?: string;
-          projectName?: string;
-          projectId?: string;
-        }>;
-      },
-      Error
-    >
+    ActionResult<{
+      context: string;
+      sources: Array<{
+        contentId: string;
+        contentType: "recording" | "transcription" | "summary" | "task";
+        title: string;
+        excerpt: string;
+        similarityScore: number;
+        recordingId?: string;
+        timestamp?: number;
+        recordingDate?: string;
+        projectName?: string;
+        projectId?: string;
+      }>;
+    }>
   > {
     try {
       const searchResult = await this.search(query, projectId, {
@@ -238,7 +242,13 @@ export class VectorSearchService {
         query,
         projectId,
       });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Error getting relevant context",
+          error as Error,
+          "VectorSearchService.getRelevantContext"
+        )
+      );
     }
   }
 
@@ -252,7 +262,7 @@ export class VectorSearchService {
       matchThreshold?: number;
       matchCount?: number;
     } = {}
-  ): Promise<Result<SearchResult[], Error>> {
+  ): Promise<ActionResult<SearchResult[]>> {
     try {
       logger.info("Performing organization-wide vector search", {
         query,
@@ -304,7 +314,13 @@ export class VectorSearchService {
         query,
         organizationId,
       });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Error performing organization-wide vector search",
+          error as Error,
+          "VectorSearchService.searchOrganizationWide"
+        )
+      );
     }
   }
 
@@ -315,24 +331,21 @@ export class VectorSearchService {
     query: string,
     organizationId: string
   ): Promise<
-    Result<
-      {
-        context: string;
-        sources: Array<{
-          contentId: string;
-          contentType: "recording" | "transcription" | "summary" | "task";
-          title: string;
-          excerpt: string;
-          similarityScore: number;
-          recordingId?: string;
-          timestamp?: number;
-          recordingDate?: string;
-          projectName?: string;
-          projectId?: string;
-        }>;
-      },
-      Error
-    >
+    ActionResult<{
+      context: string;
+      sources: Array<{
+        contentId: string;
+        contentType: "recording" | "transcription" | "summary" | "task";
+        title: string;
+        excerpt: string;
+        similarityScore: number;
+        recordingId?: string;
+        timestamp?: number;
+        recordingDate?: string;
+        projectName?: string;
+        projectId?: string;
+      }>;
+    }>
   > {
     try {
       const searchResult = await this.searchOrganizationWide(
@@ -364,7 +377,13 @@ export class VectorSearchService {
         query,
         organizationId,
       });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          "Error getting organization-wide relevant context",
+          error as Error,
+          "VectorSearchService.getRelevantContextOrganizationWide"
+        )
+      );
     }
   }
 }

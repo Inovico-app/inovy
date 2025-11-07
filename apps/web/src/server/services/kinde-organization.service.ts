@@ -1,4 +1,5 @@
-import { type Result, err, ok } from "neverthrow";
+import { err, ok } from "neverthrow";
+import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { getKindeApiClient } from "../../lib/kinde-api";
 import { logger } from "../../lib/logger";
 import type {
@@ -18,13 +19,19 @@ export class KindeOrganizationService {
    */
   static async getOrganizationById(
     orgCode: string
-  ): Promise<Result<KindeOrganizationDto | null, string>> {
+  ): Promise<ActionResult<KindeOrganizationDto | null>> {
     try {
       const client = getKindeApiClient();
       const apiResult = await client.getOrganizationsApi();
 
       if (apiResult.isErr()) {
-        return err(apiResult.error);
+        return ActionErrors.internal(
+          ActionErrors.internal(
+            "Failed to get organization from Kinde",
+            apiResult.error,
+            "KindeOrganizationService.getOrganizationById"
+          )
+        );
       }
 
       const OrganizationsApi = apiResult.value;
@@ -45,9 +52,18 @@ export class KindeOrganizationService {
 
       return ok(organization);
     } catch (error) {
-      const errorMessage = `Failed to get organization from Kinde: ${orgCode}`;
-      logger.error(errorMessage, { orgCode }, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to get organization from Kinde",
+        { orgCode },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to get organization from Kinde",
+          error as Error,
+          "KindeOrganizationService.getOrganizationById"
+        )
+      );
     }
   }
 
@@ -55,14 +71,20 @@ export class KindeOrganizationService {
    * Get all organizations
    */
   static async getAllOrganizations(): Promise<
-    Result<KindeOrganizationDto[], string>
+    ActionResult<KindeOrganizationDto[]>
   > {
     try {
       const client = getKindeApiClient();
       const apiResult = await client.getOrganizationsApi();
 
       if (apiResult.isErr()) {
-        return err(apiResult.error);
+        return err(
+          ActionErrors.internal(
+            "Failed to get organizations from Kinde",
+            apiResult.error,
+            "KindeOrganizationService.getAllOrganizations"
+          )
+        );
       }
 
       const OrganizationsApi = apiResult.value;
@@ -82,9 +104,18 @@ export class KindeOrganizationService {
 
       return ok(organizations);
     } catch (error) {
-      const errorMessage = "Failed to get organizations from Kinde";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to get organizations from Kinde",
+        {},
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to get organizations from Kinde",
+          error as Error,
+          "KindeOrganizationService.getAllOrganizations"
+        )
+      );
     }
   }
 
@@ -93,13 +124,19 @@ export class KindeOrganizationService {
    */
   static async createOrganization(
     data: CreateKindeOrganizationDto
-  ): Promise<Result<KindeOrganizationDto, string>> {
+  ): Promise<ActionResult<KindeOrganizationDto>> {
     try {
       const client = getKindeApiClient();
       const apiResult = await client.getOrganizationsApi();
 
       if (apiResult.isErr()) {
-        return err(apiResult.error);
+        return err(
+          ActionErrors.internal(
+            "Failed to create organization from Kinde",
+            apiResult.error,
+            "KindeOrganizationService.createOrganization"
+          )
+        );
       }
 
       const OrganizationsApi = apiResult.value;
@@ -108,7 +145,13 @@ export class KindeOrganizationService {
       });
 
       if (!response?.organization?.code) {
-        return err("Failed to create organization - no code returned");
+        return err(
+          ActionErrors.internal(
+            "Failed to create organization - no code returned",
+            undefined,
+            "KindeOrganizationService.createOrganization"
+          )
+        );
       }
 
       const organization: KindeOrganizationDto = {
@@ -124,9 +167,18 @@ export class KindeOrganizationService {
 
       return ok(organization);
     } catch (error) {
-      const errorMessage = "Failed to create organization in Kinde";
-      logger.error(errorMessage, { data }, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to create organization in Kinde",
+        { data },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to create organization in Kinde",
+          error as Error,
+          "KindeOrganizationService.createOrganization"
+        )
+      );
     }
   }
 
@@ -136,13 +188,19 @@ export class KindeOrganizationService {
   static async updateOrganization(
     orgCode: string,
     data: UpdateKindeOrganizationDto
-  ): Promise<Result<KindeOrganizationDto, string>> {
+  ): Promise<ActionResult<KindeOrganizationDto>> {
     try {
       const client = getKindeApiClient();
       const apiResult = await client.getOrganizationsApi();
 
       if (apiResult.isErr()) {
-        return err(apiResult.error);
+        return err(
+          ActionErrors.internal(
+            "Failed to update organization from Kinde",
+            apiResult.error,
+            "KindeOrganizationService.updateOrganization"
+          )
+        );
       }
 
       const OrganizationsApi = apiResult.value;
@@ -159,7 +217,12 @@ export class KindeOrganizationService {
       }
 
       if (!updatedOrgResult.value) {
-        return err("Organization not found after update");
+        return err(
+          ActionErrors.notFound(
+            "Organization",
+            "KindeOrganizationService.updateOrganization"
+          )
+        );
       }
 
       logger.info("Successfully updated organization in Kinde", {
@@ -168,9 +231,18 @@ export class KindeOrganizationService {
 
       return ok(updatedOrgResult.value);
     } catch (error) {
-      const errorMessage = `Failed to update organization in Kinde: ${orgCode}`;
-      logger.error(errorMessage, { orgCode, data }, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to update organization in Kinde",
+        { orgCode, data },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to update organization in Kinde",
+          error as Error,
+          "KindeOrganizationService.updateOrganization"
+        )
+      );
     }
   }
 
@@ -179,13 +251,19 @@ export class KindeOrganizationService {
    */
   static async deleteOrganization(
     orgCode: string
-  ): Promise<Result<boolean, string>> {
+  ): Promise<ActionResult<boolean>> {
     try {
       const client = getKindeApiClient();
       const apiResult = await client.getOrganizationsApi();
 
       if (apiResult.isErr()) {
-        return err(apiResult.error);
+        return err(
+          ActionErrors.internal(
+            "Failed to delete organization from Kinde",
+            apiResult.error,
+            "KindeOrganizationService.deleteOrganization"
+          )
+        );
       }
 
       const OrganizationsApi = apiResult.value;
@@ -199,9 +277,18 @@ export class KindeOrganizationService {
 
       return ok(true);
     } catch (error) {
-      const errorMessage = `Failed to delete organization from Kinde: ${orgCode}`;
-      logger.error(errorMessage, { orgCode }, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to delete organization from Kinde",
+        { orgCode },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to delete organization from Kinde",
+          error as Error,
+          "KindeOrganizationService.deleteOrganization"
+        )
+      );
     }
   }
 }

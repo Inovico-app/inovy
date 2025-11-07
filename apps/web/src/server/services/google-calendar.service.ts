@@ -1,10 +1,10 @@
 import { google } from "googleapis";
-import { type Result, err, ok } from "neverthrow";
+import { err, ok } from "neverthrow";
+import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { createGoogleOAuthClient } from "../../lib/google-oauth";
 import { logger } from "../../lib/logger";
-import { db } from "../db";
+import { AutoActionsQueries } from "../data-access";
 import type { Task } from "../db/schema";
-import { autoActions } from "../db/schema";
 import { GoogleOAuthService } from "./google-oauth.service";
 
 /**
@@ -22,13 +22,19 @@ export class GoogleCalendarService {
       duration?: number; // in minutes, default 30
       description?: string;
     }
-  ): Promise<Result<{ eventId: string; eventUrl: string }, string>> {
+  ): Promise<ActionResult<{ eventId: string; eventUrl: string }>> {
     try {
       // Get valid access token
       const tokenResult = await GoogleOAuthService.getValidAccessToken(userId);
 
       if (tokenResult.isErr()) {
-        return err(tokenResult.error);
+        return err(
+          ActionErrors.internal(
+            "Failed to get valid access token",
+            tokenResult.error,
+            "GoogleCalendarService.createEventFromTask"
+          )
+        );
       }
 
       const accessToken = tokenResult.value;
@@ -84,7 +90,13 @@ export class GoogleCalendarService {
       });
 
       if (!response.data.id || !response.data.htmlLink) {
-        return err("Failed to create calendar event - no event ID returned");
+        return err(
+          ActionErrors.internal(
+            "Failed to create calendar event - no event ID returned",
+            undefined,
+            "GoogleCalendarService.createEventFromTask"
+          )
+        );
       }
 
       logger.info("Created Google Calendar event from task", {
@@ -93,8 +105,8 @@ export class GoogleCalendarService {
         eventId: response.data.id,
       });
 
-      // Record the action in auto_actions table
-      await db.insert(autoActions).values({
+      // Record the action in auto_actions table via DAL
+      await AutoActionsQueries.createAutoAction({
         userId,
         type: "calendar_event",
         provider: "google",
@@ -118,7 +130,7 @@ export class GoogleCalendarService {
 
       // Record failed action
       try {
-        await db.insert(autoActions).values({
+        await AutoActionsQueries.createAutoAction({
           userId,
           type: "calendar_event",
           provider: "google",
@@ -132,7 +144,13 @@ export class GoogleCalendarService {
         logger.error("Failed to record failed action", {}, dbError as Error);
       }
 
-      return err(errorMessage);
+      return err(
+        ActionErrors.internal(
+          errorMessage,
+          error as Error,
+          "GoogleCalendarService.createEventFromTask"
+        )
+      );
     }
   }
 
@@ -146,17 +164,14 @@ export class GoogleCalendarService {
       duration?: number;
     }
   ): Promise<
-    Result<
-      {
-        successful: Array<{
-          taskId: string;
-          eventId: string;
-          eventUrl: string;
-        }>;
-        failed: Array<{ taskId: string; error: string }>;
-      },
-      string
-    >
+    ActionResult<{
+      successful: Array<{
+        taskId: string;
+        eventId: string;
+        eventUrl: string;
+      }>;
+      failed: Array<{ taskId: string; error: string }>;
+    }>
   > {
     try {
       const results = {
@@ -180,7 +195,7 @@ export class GoogleCalendarService {
         } else {
           results.failed.push({
             taskId: task.id,
-            error: result.error,
+            error: result.error.message,
           });
         }
       }
@@ -194,11 +209,18 @@ export class GoogleCalendarService {
 
       return ok(results);
     } catch (error) {
-      const errorMessage = `Failed to create calendar events: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`;
-      logger.error(errorMessage, { userId }, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to create calendar events",
+        { userId },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to create calendar events",
+          error as Error,
+          "GoogleCalendarService.createEventsFromTasks"
+        )
+      );
     }
   }
 
@@ -208,12 +230,18 @@ export class GoogleCalendarService {
   static async getEvent(
     userId: string,
     eventId: string
-  ): Promise<Result<unknown, string>> {
+  ): Promise<ActionResult<unknown>> {
     try {
       const tokenResult = await GoogleOAuthService.getValidAccessToken(userId);
 
       if (tokenResult.isErr()) {
-        return err(tokenResult.error);
+        return err(
+          ActionErrors.internal(
+            "Failed to get valid access token",
+            tokenResult.error,
+            "GoogleCalendarService.getEvent"
+          )
+        );
       }
 
       const accessToken = tokenResult.value;
@@ -232,11 +260,18 @@ export class GoogleCalendarService {
 
       return ok(response.data);
     } catch (error) {
-      const errorMessage = `Failed to get calendar event: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`;
-      logger.error(errorMessage, { userId, eventId }, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to get calendar event",
+        { userId, eventId },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to get calendar event",
+          error as Error,
+          "GoogleCalendarService.getEvent"
+        )
+      );
     }
   }
 }

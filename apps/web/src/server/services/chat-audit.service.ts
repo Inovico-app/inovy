@@ -1,4 +1,5 @@
-import { err, ok, type Result } from "neverthrow";
+import { err, ok } from "neverthrow";
+import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { logger } from "../../lib/logger";
 import {
   ChatAuditQueries,
@@ -39,35 +40,42 @@ export class ChatAuditService {
    */
   static async logChatAccess(
     params: ChatAccessLogParams
-  ): Promise<Result<void, string>> {
-    const action = params.granted ? "access_granted" : "access_denied";
+  ): Promise<ActionResult<void>> {
+    try {
+      const action = params.granted ? "access_granted" : "access_denied";
 
-    const logEntry: NewChatAuditLog = {
-      userId: params.userId,
-      organizationId: params.organizationId,
-      chatContext: params.chatContext,
-      projectId: params.projectId ?? null,
-      action,
-      query: null,
-      ipAddress: params.ipAddress ?? null,
-      userAgent: params.userAgent ?? null,
-      metadata: params.metadata ?? null,
-    };
+      const logEntry: NewChatAuditLog = {
+        userId: params.userId,
+        organizationId: params.organizationId,
+        chatContext: params.chatContext,
+        projectId: params.projectId ?? null,
+        action,
+        query: null,
+        ipAddress: params.ipAddress ?? null,
+        userAgent: params.userAgent ?? null,
+        metadata: params.metadata ?? null,
+      };
 
-    const result = await ChatAuditQueries.insert(logEntry);
+      await ChatAuditQueries.insert(logEntry);
 
-    if (result.isErr()) {
-      return err(result.error);
+      logger.info("Chat access logged", {
+        userId: params.userId,
+        organizationId: params.organizationId,
+        chatContext: params.chatContext,
+        action,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Failed to log chat access", { params }, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to log chat access",
+          error as Error,
+          "ChatAuditService.logChatAccess"
+        )
+      );
     }
-
-    logger.info("Chat access logged", {
-      userId: params.userId,
-      organizationId: params.organizationId,
-      chatContext: params.chatContext,
-      action,
-    });
-
-    return ok(undefined);
   }
 
   /**
@@ -75,55 +83,80 @@ export class ChatAuditService {
    */
   static async logChatQuery(
     params: ChatQueryLogParams
-  ): Promise<Result<void, string>> {
-    const logEntry: NewChatAuditLog = {
-      userId: params.userId,
-      organizationId: params.organizationId,
-      chatContext: params.chatContext,
-      projectId: params.projectId ?? null,
-      action: "query_executed",
-      query: params.query,
-      ipAddress: params.ipAddress ?? null,
-      userAgent: params.userAgent ?? null,
-      metadata: params.metadata ?? null,
-    };
+  ): Promise<ActionResult<void>> {
+    try {
+      const logEntry: NewChatAuditLog = {
+        userId: params.userId,
+        organizationId: params.organizationId,
+        chatContext: params.chatContext,
+        projectId: params.projectId ?? null,
+        action: "query_executed",
+        query: params.query,
+        ipAddress: params.ipAddress ?? null,
+        userAgent: params.userAgent ?? null,
+        metadata: params.metadata ?? null,
+      };
 
-    const result = await ChatAuditQueries.insert(logEntry);
+      await ChatAuditQueries.insert(logEntry);
 
-    if (result.isErr()) {
-      return err(result.error);
+      logger.info("Chat query logged", {
+        userId: params.userId,
+        organizationId: params.organizationId,
+        chatContext: params.chatContext,
+        queryLength: params.query.length,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Failed to log chat query", { params }, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to log chat query",
+          error as Error,
+          "ChatAuditService.logChatQuery"
+        )
+      );
     }
-
-    logger.info("Chat query logged", {
-      userId: params.userId,
-      organizationId: params.organizationId,
-      chatContext: params.chatContext,
-      queryLength: params.query.length,
-    });
-
-    return ok(undefined);
   }
 
   /**
    * Get audit logs for an organization with optional filters
    */
-  static async getAuditLogs(organizationId: string, filters?: AuditLogFilters) {
-    const result = await ChatAuditQueries.findByOrganization(
-      organizationId,
-      filters
-    );
+  static async getAuditLogs(
+    organizationId: string,
+    filters?: AuditLogFilters
+  ): Promise<
+    ActionResult<
+      Awaited<ReturnType<typeof ChatAuditQueries.findByOrganization>>
+    >
+  > {
+    try {
+      const logs = await ChatAuditQueries.findByOrganization(
+        organizationId,
+        filters
+      );
 
-    if (result.isErr()) {
-      return err(result.error);
+      logger.info("Retrieved audit logs", {
+        organizationId,
+        count: logs.length,
+        filters,
+      });
+
+      return ok(logs);
+    } catch (error) {
+      logger.error(
+        "Failed to retrieve audit logs",
+        { organizationId, filters },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to retrieve audit logs",
+          error as Error,
+          "ChatAuditService.getAuditLogs"
+        )
+      );
     }
-
-    logger.info("Retrieved audit logs", {
-      organizationId,
-      count: result.value.length,
-      filters,
-    });
-
-    return ok(result.value);
   }
 
   /**
@@ -133,17 +166,29 @@ export class ChatAuditService {
     userId: string,
     organizationId: string,
     since?: Date
-  ): Promise<Result<number, string>> {
-    const result = await ChatAuditQueries.findAccessDenials(
-      userId,
-      organizationId,
-      since
-    );
+  ): Promise<ActionResult<number>> {
+    try {
+      const denials = await ChatAuditQueries.findAccessDenials(
+        userId,
+        organizationId,
+        since
+      );
 
-    if (result.isErr()) {
-      return err(result.error);
+      return ok(denials.length);
+    } catch (error) {
+      logger.error(
+        "Failed to get access denial count",
+        { userId, organizationId },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to get access denial count",
+          error as Error,
+          "ChatAuditService.getAccessDenialCount"
+        )
+      );
     }
-
-    return ok(result.value.length);
   }
 }
+

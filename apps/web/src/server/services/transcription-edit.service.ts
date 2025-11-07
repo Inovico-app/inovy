@@ -1,5 +1,5 @@
-import { err, ok, type Result } from "neverthrow";
-import { ActionErrors, type ActionError } from "../../lib/action-errors";
+import { err, ok } from "neverthrow";
+import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { logger } from "../../lib/logger";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { TranscriptionHistoryQueries } from "../data-access/transcription-history.queries";
@@ -16,155 +16,99 @@ export class TranscriptionEditService {
   static async updateTranscription(
     input: UpdateTranscriptionInput,
     userId: string
-  ): Promise<Result<{ success: boolean; versionNumber: number }, ActionError>> {
+  ): Promise<ActionResult<{ success: boolean; versionNumber: number }>> {
     logger.info("Updating transcription", {
       component: "TranscriptionEditService.updateTranscription",
       recordingId: input.recordingId,
       userId,
     });
 
-    // Get the current recording to store in history
-    const recordingResult = await RecordingsQueries.selectRecordingById(
-      input.recordingId
-    );
-
-    if (recordingResult.isErr()) {
-      logger.error("Failed to fetch recording", {
-        component: "TranscriptionEditService.updateTranscription",
-        error: recordingResult.error,
-        recordingId: input.recordingId,
-      });
-
-      return err(
-        ActionErrors.internal(
-          "Failed to fetch recording",
-          new Error(recordingResult.error),
-          "TranscriptionEditService.updateTranscription"
-        )
-      );
-    }
-
-    const recording = recordingResult.value;
-
-    if (!recording) {
-      logger.warn("Recording not found", {
-        component: "TranscriptionEditService.updateTranscription",
-        recordingId: input.recordingId,
-      });
-
-      return err(
-        ActionErrors.notFound(
-          "Recording not found",
-          "TranscriptionEditService.updateTranscription"
-        )
-      );
-    }
-
-    // Check if there's existing transcription content to save in history
-    if (!recording.transcriptionText) {
-      logger.warn("No existing transcription to edit", {
-        component: "TranscriptionEditService.updateTranscription",
-        recordingId: input.recordingId,
-      });
-
-      return err(
-        ActionErrors.validation("No existing transcription to edit", {
-          context: "TranscriptionEditService.updateTranscription",
-        })
-      );
-    }
-
-    // Get the latest version number
-    const versionResult =
-      await TranscriptionHistoryQueries.getLatestVersionNumber(
+    try {
+      // Get the current recording to store in history
+      const recording = await RecordingsQueries.selectRecordingById(
         input.recordingId
       );
 
-    if (versionResult.isErr()) {
-      logger.error("Failed to get latest version number", {
-        component: "TranscriptionEditService.updateTranscription",
-        error: versionResult.error,
-        recordingId: input.recordingId,
-      });
+      if (!recording) {
+        logger.warn("Recording not found", {
+          component: "TranscriptionEditService.updateTranscription",
+          recordingId: input.recordingId,
+        });
 
-      return err(
-        ActionErrors.internal(
-          "Failed to get version history",
-          versionResult.error,
-          "TranscriptionEditService.updateTranscription"
-        )
-      );
-    }
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "TranscriptionEditService.updateTranscription"
+          )
+        );
+      }
 
-    const currentVersion = versionResult.value;
-    const newVersion = currentVersion + 1;
+      // Check if there's existing transcription content to save in history
+      if (!recording.transcriptionText) {
+        logger.warn("No existing transcription to edit", {
+          component: "TranscriptionEditService.updateTranscription",
+          recordingId: input.recordingId,
+        });
 
-    // Save current transcription to history before updating
-    const historyResult =
+        return err(
+          ActionErrors.validation("No existing transcription to edit", {
+            context: "TranscriptionEditService.updateTranscription",
+          })
+        );
+      }
+
+      // Get the latest version number
+      const currentVersion =
+        await TranscriptionHistoryQueries.getLatestVersionNumber(
+          input.recordingId
+        );
+      const newVersion = currentVersion + 1;
+
+      // Save current transcription to history before updating
       await TranscriptionHistoryQueries.insertTranscriptionHistory({
         recordingId: input.recordingId,
-        content: input.content, // Save the NEW content as the new version
+        content: input.content,
         editedById: userId,
         versionNumber: newVersion,
         changeDescription: input.changeDescription,
       });
 
-    if (historyResult.isErr()) {
-      logger.error("Failed to save transcription history", {
-        component: "TranscriptionEditService.updateTranscription",
-        error: historyResult.error,
-        recordingId: input.recordingId,
-      });
-
-      return err(
-        ActionErrors.internal(
-          "Failed to save transcription history",
-          historyResult.error,
-          "TranscriptionEditService.updateTranscription"
-        )
-      );
-    }
-
-    // Update the recording with new transcription
-    const updateResult =
+      // Update the recording with new transcription
       await RecordingsQueries.updateRecordingTranscriptionWithEdit(
         input.recordingId,
         input.content,
         userId
       );
 
-    if (updateResult.isErr()) {
-      logger.error("Failed to update recording transcription", {
+      logger.info("Successfully updated transcription", {
         component: "TranscriptionEditService.updateTranscription",
-        error: updateResult.error,
+        recordingId: input.recordingId,
+        versionNumber: newVersion,
+      });
+
+      return ok({ success: true, versionNumber: newVersion });
+    } catch (error) {
+      logger.error("Failed to update transcription", {
+        component: "TranscriptionEditService.updateTranscription",
+        error,
         recordingId: input.recordingId,
       });
 
       return err(
         ActionErrors.internal(
           "Failed to update transcription",
-          new Error(updateResult.error),
+          error as Error,
           "TranscriptionEditService.updateTranscription"
         )
       );
     }
-
-    logger.info("Successfully updated transcription", {
-      component: "TranscriptionEditService.updateTranscription",
-      recordingId: input.recordingId,
-      versionNumber: newVersion,
-    });
-
-    return ok({ success: true, versionNumber: newVersion });
   }
 
   /**
    * Get transcription version history for a recording
    */
-  static async getTranscriptionHistory(
-    recordingId: string
-  ): Promise<
-    Result<
+  static async getTranscriptionHistory(recordingId: string): Promise<
+    ActionResult<
       Array<{
         id: string;
         versionNumber: number;
@@ -172,8 +116,7 @@ export class TranscriptionEditService {
         editedById: string;
         editedAt: Date;
         changeDescription: string | null;
-      }>,
-      ActionError
+      }>
     >
   > {
     logger.info("Fetching transcription history", {
@@ -181,43 +124,43 @@ export class TranscriptionEditService {
       recordingId,
     });
 
-    const historyResult =
-      await TranscriptionHistoryQueries.selectTranscriptionHistoryByRecordingId(
-        recordingId
-      );
+    try {
+      const history =
+        await TranscriptionHistoryQueries.selectTranscriptionHistoryByRecordingId(
+          recordingId
+        );
 
-    if (historyResult.isErr()) {
+      const mapped = history.map((entry) => ({
+        id: entry.id,
+        versionNumber: entry.versionNumber,
+        content: entry.content,
+        editedById: entry.editedById,
+        editedAt: entry.editedAt,
+        changeDescription: entry.changeDescription,
+      }));
+
+      logger.info("Successfully fetched transcription history", {
+        component: "TranscriptionEditService.getTranscriptionHistory",
+        recordingId,
+        count: mapped.length,
+      });
+
+      return ok(mapped);
+    } catch (error) {
       logger.error("Failed to fetch transcription history", {
         component: "TranscriptionEditService.getTranscriptionHistory",
-        error: historyResult.error,
+        error,
         recordingId,
       });
 
       return err(
         ActionErrors.internal(
           "Failed to fetch transcription history",
-          historyResult.error,
+          error as Error,
           "TranscriptionEditService.getTranscriptionHistory"
         )
       );
     }
-
-    const history = historyResult.value.map((entry) => ({
-      id: entry.id,
-      versionNumber: entry.versionNumber,
-      content: entry.content,
-      editedById: entry.editedById,
-      editedAt: entry.editedAt,
-      changeDescription: entry.changeDescription,
-    }));
-
-    logger.info("Successfully fetched transcription history", {
-      component: "TranscriptionEditService.getTranscriptionHistory",
-      recordingId,
-      count: history.length,
-    });
-
-    return ok(history);
   }
 
   /**
@@ -227,9 +170,7 @@ export class TranscriptionEditService {
     recordingId: string,
     versionNumber: number,
     userId: string
-  ): Promise<
-    Result<{ success: boolean; newVersionNumber: number }, ActionError>
-  > {
+  ): Promise<ActionResult<{ success: boolean; newVersionNumber: number }>> {
     logger.info("Restoring transcription version", {
       component: "TranscriptionEditService.restoreTranscriptionVersion",
       recordingId,
@@ -237,65 +178,63 @@ export class TranscriptionEditService {
       userId,
     });
 
-    // Get the version to restore
-    const versionResult =
-      await TranscriptionHistoryQueries.selectTranscriptionVersion(
-        recordingId,
-        versionNumber
+    try {
+      // Get the version to restore
+      const version =
+        await TranscriptionHistoryQueries.selectTranscriptionVersion(
+          recordingId,
+          versionNumber
+        );
+
+      if (!version) {
+        logger.warn("Transcription version not found", {
+          component: "TranscriptionEditService.restoreTranscriptionVersion",
+          recordingId,
+          versionNumber,
+        });
+
+        return err(
+          ActionErrors.notFound(
+            "Transcription version",
+            "TranscriptionEditService.restoreTranscriptionVersion"
+          )
+        );
+      }
+
+      // Use the update method to restore (which will create a new version)
+      const result = await this.updateTranscription(
+        {
+          recordingId,
+          content: version.content,
+          changeDescription: `Restored from version ${versionNumber}`,
+        },
+        userId
       );
 
-    if (versionResult.isErr()) {
-      logger.error("Failed to fetch transcription version", {
+      if (result.isErr()) {
+        return err(result.error);
+      }
+
+      return ok({
+        success: result.value.success,
+        newVersionNumber: result.value.versionNumber,
+      });
+    } catch (error) {
+      logger.error("Failed to restore transcription version", {
         component: "TranscriptionEditService.restoreTranscriptionVersion",
-        error: versionResult.error,
+        error,
         recordingId,
         versionNumber,
       });
 
       return err(
         ActionErrors.internal(
-          "Failed to fetch transcription version",
-          versionResult.error,
+          "Failed to restore transcription version",
+          error as Error,
           "TranscriptionEditService.restoreTranscriptionVersion"
         )
       );
     }
-
-    const version = versionResult.value;
-
-    if (!version) {
-      logger.warn("Transcription version not found", {
-        component: "TranscriptionEditService.restoreTranscriptionVersion",
-        recordingId,
-        versionNumber,
-      });
-
-      return err(
-        ActionErrors.notFound(
-          "Transcription version not found",
-          "TranscriptionEditService.restoreTranscriptionVersion"
-        )
-      );
-    }
-
-    // Use the update method to restore (which will create a new version)
-    const result = await this.updateTranscription(
-      {
-        recordingId,
-        content: version.content,
-        changeDescription: `Restored from version ${versionNumber}`,
-      },
-      userId
-    );
-
-    if (result.isErr()) {
-      return err(result.error);
-    }
-
-    return ok({
-      success: result.value.success,
-      newVersionNumber: result.value.versionNumber,
-    });
   }
 }
 
