@@ -1,13 +1,12 @@
-import { type Result, err, ok } from "neverthrow";
-import { eq, and } from "drizzle-orm";
-import { db } from "../db";
-import {
-  integrationTemplates,
-  type IntegrationTemplate,
-  type EmailTemplateContent,
-  type CalendarTemplateContent,
-} from "../db/schema";
+import { ActionErrors, type ActionResult } from "@/lib";
+import { err, ok } from "neverthrow";
 import { logger } from "../../lib/logger";
+import { IntegrationTemplatesQueries } from "../data-access/integration-templates.queries";
+import {
+  type CalendarTemplateContent,
+  type EmailTemplateContent,
+  type IntegrationTemplate,
+} from "../db/schema";
 
 /**
  * Template Service
@@ -21,30 +20,28 @@ export class TemplateService {
     userId: string,
     provider: "google" | "microsoft",
     templateType: "email" | "calendar"
-  ): Promise<Result<IntegrationTemplate[], string>> {
+  ): Promise<ActionResult<IntegrationTemplate[]>> {
     try {
-      const templates = await db
-        .select()
-        .from(integrationTemplates)
-        .where(
-          and(
-            eq(integrationTemplates.userId, userId),
-            eq(integrationTemplates.provider, provider),
-            eq(integrationTemplates.templateType, templateType)
-          )
-        );
-
+      const templates = await IntegrationTemplatesQueries.getByUser(
+        userId,
+        provider,
+        templateType
+      );
       return ok(templates);
     } catch (error) {
-      const errorMessage = `Failed to get templates: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`;
+      const errorMessage = "Failed to get templates";
       logger.error(
         errorMessage,
         { userId, provider, templateType },
         error as Error
       );
-      return err(errorMessage);
+      return err(
+        ActionErrors.internal(
+          errorMessage,
+          undefined,
+          "TemplateService.getTemplates"
+        )
+      );
     }
   }
 
@@ -55,32 +52,28 @@ export class TemplateService {
     userId: string,
     provider: "google" | "microsoft",
     templateType: "email" | "calendar"
-  ): Promise<Result<IntegrationTemplate | null, string>> {
+  ): Promise<ActionResult<IntegrationTemplate | null>> {
     try {
-      const [template] = await db
-        .select()
-        .from(integrationTemplates)
-        .where(
-          and(
-            eq(integrationTemplates.userId, userId),
-            eq(integrationTemplates.provider, provider),
-            eq(integrationTemplates.templateType, templateType),
-            eq(integrationTemplates.isDefault, true)
-          )
-        )
-        .limit(1);
-
-      return ok(template || null);
+      const template = await IntegrationTemplatesQueries.getDefault(
+        userId,
+        provider,
+        templateType
+      );
+      return ok(template);
     } catch (error) {
-      const errorMessage = `Failed to get default template: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`;
+      const errorMessage = "Failed to get default template";
       logger.error(
         errorMessage,
         { userId, provider, templateType },
         error as Error
       );
-      return err(errorMessage);
+      return err(
+        ActionErrors.internal(
+          errorMessage,
+          undefined,
+          "TemplateService.getDefaultTemplate"
+        )
+      );
     }
   }
 
@@ -97,42 +90,33 @@ export class TemplateService {
       content: EmailTemplateContent | CalendarTemplateContent;
       isDefault?: boolean;
     }
-  ): Promise<Result<IntegrationTemplate, string>> {
+  ): Promise<ActionResult<IntegrationTemplate>> {
     try {
       // If setting as default, unset other defaults first
       if (data.isDefault) {
-        await db
-          .update(integrationTemplates)
-          .set({ isDefault: false })
-          .where(
-            and(
-              eq(integrationTemplates.userId, userId),
-              eq(integrationTemplates.provider, provider),
-              eq(integrationTemplates.templateType, templateType)
-            )
-          );
+        await IntegrationTemplatesQueries.unsetDefaults(
+          userId,
+          provider,
+          templateType
+        );
       }
 
       // Update existing template
       if (data.id) {
-        const [updated] = await db
-          .update(integrationTemplates)
-          .set({
+        const updated = await IntegrationTemplatesQueries.update(
+          data.id,
+          userId,
+          {
             name: data.name,
             content: data.content,
-            isDefault: data.isDefault || false,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(integrationTemplates.id, data.id),
-              eq(integrationTemplates.userId, userId)
-            )
-          )
-          .returning();
+            isDefault: data.isDefault ?? false,
+          }
+        );
 
         if (!updated) {
-          return err("Failed to update template");
+          return err(
+            ActionErrors.notFound("Template", "TemplateService.saveTemplate")
+          );
         }
 
         logger.info("Updated template", { userId, templateId: data.id });
@@ -140,34 +124,30 @@ export class TemplateService {
       }
 
       // Create new template
-      const [created] = await db
-        .insert(integrationTemplates)
-        .values({
-          userId,
-          provider,
-          templateType,
-          name: data.name,
-          content: data.content,
-          isDefault: data.isDefault || false,
-        })
-        .returning();
-
-      if (!created) {
-        return err("Failed to create template");
-      }
+      const created = await IntegrationTemplatesQueries.create({
+        userId,
+        provider,
+        templateType,
+        name: data.name,
+        content: data.content,
+        isDefault: data.isDefault ?? false,
+      });
 
       logger.info("Created template", { userId, templateId: created.id });
       return ok(created);
     } catch (error) {
-      const errorMessage = `Failed to save template: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`;
       logger.error(
-        errorMessage,
+        "Failed to save template",
         { userId, provider, templateType },
         error as Error
       );
-      return err(errorMessage);
+      return err(
+        ActionErrors.internal(
+          "Failed to save template",
+          error as Error,
+          "TemplateService.saveTemplate"
+        )
+      );
     }
   }
 
@@ -177,25 +157,24 @@ export class TemplateService {
   static async deleteTemplate(
     templateId: string,
     userId: string
-  ): Promise<Result<boolean, string>> {
+  ): Promise<ActionResult<boolean>> {
     try {
-      await db
-        .delete(integrationTemplates)
-        .where(
-          and(
-            eq(integrationTemplates.id, templateId),
-            eq(integrationTemplates.userId, userId)
-          )
-        );
-
+      await IntegrationTemplatesQueries.delete(templateId, userId);
       logger.info("Deleted template", { userId, templateId });
       return ok(true);
     } catch (error) {
-      const errorMessage = `Failed to delete template: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`;
-      logger.error(errorMessage, { userId, templateId }, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to delete template",
+        { userId, templateId },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to delete template",
+          error as Error,
+          "TemplateService.deleteTemplate"
+        )
+      );
     }
   }
 
@@ -212,18 +191,18 @@ export class TemplateService {
       duration?: string;
       [key: string]: string | undefined;
     }
-  ): EmailTemplateContent {
+  ): ActionResult<EmailTemplateContent> {
     const substitute = (text: string): string => {
       return text.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-        return variables[key] || match;
+        return variables[key] ?? match;
       });
     };
 
-    return {
+    return ok({
       subject: substitute(template.subject),
       body: substitute(template.body),
       footer: template.footer ? substitute(template.footer) : undefined,
-    };
+    });
   }
 
   /**
@@ -238,14 +217,14 @@ export class TemplateService {
       assignee?: string;
       [key: string]: string | undefined;
     }
-  ): CalendarTemplateContent {
+  ): ActionResult<CalendarTemplateContent> {
     const substitute = (text: string): string => {
       return text.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-        return variables[key] || match;
+        return variables[key] ?? match;
       });
     };
 
-    return {
+    return ok({
       titleFormat: substitute(template.titleFormat),
       descriptionFormat: substitute(template.descriptionFormat),
       location: template.location ? substitute(template.location) : undefined,
@@ -253,14 +232,14 @@ export class TemplateService {
       colorId: template.colorId,
       visibility: template.visibility,
       defaultAttendees: template.defaultAttendees,
-    };
+    });
   }
 
   /**
    * Get default email template content
    */
-  static getDefaultEmailContent(): EmailTemplateContent {
-    return {
+  static getDefaultEmailContent(): ActionResult<EmailTemplateContent> {
+    return ok({
       subject: "Meeting Summary: {{recordingTitle}}",
       body: `<h2>{{recordingTitle}}</h2>
 
@@ -270,14 +249,14 @@ export class TemplateService {
 <h3>Summary</h3>
 {{summary}}`,
       footer: `<p>This summary was generated by Inovy.</p>`,
-    };
+    });
   }
 
   /**
    * Get default calendar template content
    */
-  static getDefaultCalendarContent(): CalendarTemplateContent {
-    return {
+  static getDefaultCalendarContent(): ActionResult<CalendarTemplateContent> {
+    return ok({
       titleFormat: "{{taskTitle}}",
       descriptionFormat: `Task: {{taskTitle}}
 
@@ -289,7 +268,7 @@ Assigned to: {{assignee}}
 Created from Inovy recording`,
       reminders: [15],
       visibility: "default",
-    };
+    });
   }
 }
 

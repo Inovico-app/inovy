@@ -1,7 +1,7 @@
-import { ActionErrors, type ActionError } from "@/lib/action-errors";
+import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { convertRecordingIntoAiInsights } from "@/workflows/convert-recording";
-import { err, ok, type Result } from "neverthrow";
+import { err, ok } from "neverthrow";
 import { AIInsightsQueries } from "../data-access/ai-insights.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { ReprocessingQueries } from "../data-access/reprocessing.queries";
@@ -18,21 +18,17 @@ export class ReprocessingService {
    */
   static async canReprocess(
     recordingId: string
-  ): Promise<Result<{ canReprocess: boolean; reason?: string }, ActionError>> {
+  ): Promise<ActionResult<{ canReprocess: boolean; reason?: string }>> {
     try {
       // Get recording
-      const recordingResult = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording = await RecordingsQueries.selectRecordingById(recordingId);
 
-      if (recordingResult.isErr() || !recordingResult.value) {
+      if (!recording) {
         return ok({
           canReprocess: false,
           reason: "Recording not found",
         });
       }
-
-      const recording = recordingResult.value;
 
       // Check if recording has a valid file
       if (!recording.fileUrl) {
@@ -59,25 +55,11 @@ export class ReprocessingService {
       }
 
       // Check if there's an active reprocessing
-      const isReprocessingResult =
-        await ReprocessingQueries.isRecordingReprocessing(recordingId);
+      const isReprocessing = await ReprocessingQueries.isRecordingReprocessing(
+        recordingId
+      );
 
-      if (isReprocessingResult.isErr()) {
-        logger.error("Failed to check reprocessing status", {
-          component: "ReprocessingService.canReprocess",
-          recordingId,
-          error: isReprocessingResult.error,
-        });
-        return err(
-          ActionErrors.internal(
-            "Failed to check reprocessing status",
-            isReprocessingResult.error,
-            "ReprocessingService.canReprocess"
-          )
-        );
-      }
-
-      if (isReprocessingResult.value) {
+      if (isReprocessing) {
         return ok({
           canReprocess: false,
           reason: "Recording is already being reprocessed",
@@ -94,7 +76,7 @@ export class ReprocessingService {
       return err(
         ActionErrors.internal(
           "Failed to check reprocessing eligibility",
-          error instanceof Error ? error : new Error("Unknown error"),
+          error as Error,
           "ReprocessingService.canReprocess"
         )
       );
@@ -105,32 +87,29 @@ export class ReprocessingService {
    * Backup current insights before reprocessing
    */
   static async backupCurrentInsights(recordingId: string): Promise<
-    Result<
-      {
-        transcription?: {
-          text: string;
-          utterances?: unknown[];
-          insightId: string;
-        };
-        summary?: {
-          content: Record<string, unknown>;
-          insightId: string;
-        };
-        tasks?: Array<{
-          id: string;
-          title: string;
-          description: string | null;
-          priority: string;
-          status: string;
-          assigneeId: string | null;
-          assigneeName: string | null;
-          dueDate: Date | null;
-          confidenceScore: number | null;
-          meetingTimestamp: number | null;
-        }>;
-      },
-      ActionError
-    >
+    ActionResult<{
+      transcription?: {
+        text: string;
+        utterances?: unknown[];
+        insightId: string;
+      };
+      summary?: {
+        content: Record<string, unknown>;
+        insightId: string;
+      };
+      tasks?: Array<{
+        id: string;
+        title: string;
+        description: string | null;
+        priority: string;
+        status: string;
+        assigneeId: string | null;
+        assigneeName: string | null;
+        dueDate: Date | null;
+        confidenceScore: number | null;
+        meetingTimestamp: number | null;
+      }>;
+    }>
   > {
     try {
       const backup: {
@@ -158,26 +137,17 @@ export class ReprocessingService {
       } = {};
 
       // Get recording for transcription text
-      const recordingResult = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording = await RecordingsQueries.selectRecordingById(recordingId);
 
-      if (recordingResult.isOk() && recordingResult.value) {
-        const recording = recordingResult.value;
-
+      if (recording) {
         // Backup transcription if exists
         if (recording.transcriptionText) {
-          const transcriptionInsightResult =
-            await AIInsightsQueries.getInsightByType(
-              recordingId,
-              "transcription"
-            );
+          const transcriptionInsight = await AIInsightsQueries.getInsightByType(
+            recordingId,
+            "transcription"
+          );
 
-          if (
-            transcriptionInsightResult.isOk() &&
-            transcriptionInsightResult.value
-          ) {
-            const transcriptionInsight = transcriptionInsightResult.value;
+          if (transcriptionInsight) {
             backup.transcription = {
               text: recording.transcriptionText,
               utterances: transcriptionInsight.utterances as unknown[],
@@ -188,13 +158,12 @@ export class ReprocessingService {
       }
 
       // Backup summary
-      const summaryInsightResult = await AIInsightsQueries.getInsightByType(
+      const summaryInsight = await AIInsightsQueries.getInsightByType(
         recordingId,
         "summary"
       );
 
-      if (summaryInsightResult.isOk() && summaryInsightResult.value) {
-        const summaryInsight = summaryInsightResult.value;
+      if (summaryInsight) {
         backup.summary = {
           content: summaryInsight.content,
           insightId: summaryInsight.id,
@@ -202,10 +171,10 @@ export class ReprocessingService {
       }
 
       // Backup tasks
-      const tasksResult = await TasksQueries.getTasksByRecordingId(recordingId);
+      const tasks = await TasksQueries.getTasksByRecordingId(recordingId);
 
-      if (tasksResult.isOk() && tasksResult.value.length > 0) {
-        backup.tasks = tasksResult.value.map((task) => ({
+      if (tasks.length > 0) {
+        backup.tasks = tasks.map((task) => ({
           id: task.id,
           title: task.title,
           description: task.description,
@@ -237,7 +206,7 @@ export class ReprocessingService {
       return err(
         ActionErrors.internal(
           "Failed to backup current insights",
-          error instanceof Error ? error : new Error("Unknown error"),
+          error as Error,
           "ReprocessingService.backupCurrentInsights"
         )
       );
@@ -250,7 +219,7 @@ export class ReprocessingService {
   static async triggerReprocessing(
     recordingId: string,
     triggeredById: string
-  ): Promise<Result<{ reprocessingId: string }, ActionError>> {
+  ): Promise<ActionResult<{ reprocessingId: string }>> {
     try {
       logger.info("Starting reprocessing trigger", {
         component: "ReprocessingService.triggerReprocessing",
@@ -289,26 +258,8 @@ export class ReprocessingService {
         backupData: backupResult.value,
       };
 
-      const historyResult = await ReprocessingQueries.createReprocessingHistory(
-        historyData
-      );
-
-      if (historyResult.isErr()) {
-        logger.error("Failed to create reprocessing history", {
-          component: "ReprocessingService.triggerReprocessing",
-          recordingId,
-          error: historyResult.error,
-        });
-        return err(
-          ActionErrors.internal(
-            "Failed to create reprocessing history",
-            historyResult.error,
-            "ReprocessingService.triggerReprocessing"
-          )
-        );
-      }
-
-      const reprocessingHistory = historyResult.value;
+      const reprocessingHistory =
+        await ReprocessingQueries.createReprocessingHistory(historyData);
 
       // Update recording with reprocessing info
       await RecordingsQueries.updateRecording(recordingId, {
@@ -373,7 +324,7 @@ export class ReprocessingService {
       return err(
         ActionErrors.internal(
           "Failed to trigger reprocessing",
-          error instanceof Error ? error : new Error("Unknown error"),
+          error as Error,
           "ReprocessingService.triggerReprocessing"
         )
       );
@@ -384,31 +335,16 @@ export class ReprocessingService {
    * Get reprocessing status for a recording
    */
   static async getReprocessingStatus(recordingId: string): Promise<
-    Result<
-      {
-        isReprocessing: boolean;
-        status?: string;
-        startedAt?: Date;
-        errorMessage?: string | null;
-      },
-      ActionError
-    >
+    ActionResult<{
+      isReprocessing: boolean;
+      status?: string;
+      startedAt?: Date;
+      errorMessage?: string | null;
+    }>
   > {
     try {
-      const latestHistoryResult =
+      const latestHistory =
         await ReprocessingQueries.getLatestReprocessingHistory(recordingId);
-
-      if (latestHistoryResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get reprocessing status",
-            latestHistoryResult.error,
-            "ReprocessingService.getReprocessingStatus"
-          )
-        );
-      }
-
-      const latestHistory = latestHistoryResult.value;
 
       if (!latestHistory) {
         return ok({ isReprocessing: false });
@@ -433,11 +369,10 @@ export class ReprocessingService {
       return err(
         ActionErrors.internal(
           "Failed to get reprocessing status",
-          error instanceof Error ? error : new Error("Unknown error"),
+          error as Error,
           "ReprocessingService.getReprocessingStatus"
         )
       );
     }
   }
 }
-

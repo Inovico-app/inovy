@@ -1,8 +1,9 @@
-import OpenAI from "openai";
-import { err, ok, type Result } from "neverthrow";
+import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { TasksQueries } from "@/server/data-access/tasks.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
+import { TasksQueries } from "@/server/data-access/tasks.queries";
+import { err, ok } from "neverthrow";
+import OpenAI from "openai";
 import { NotificationService } from "./notification.service";
 
 interface ExtractedTask {
@@ -51,13 +52,7 @@ export class TaskExtractionService {
       "haast",
       "hoogste prioriteit",
     ],
-    medium: [
-      "binnenkort",
-      "volgende week",
-      "regulier",
-      "normaal",
-      "standaard",
-    ],
+    medium: ["binnenkort", "volgende week", "regulier", "normaal", "standaard"],
     low: [
       "ooit",
       "misschien",
@@ -80,7 +75,7 @@ export class TaskExtractionService {
     organizationId: string,
     createdById: string,
     utterances?: Array<{ speaker: number; text: string; start: number }>
-  ): Promise<Result<TaskExtractionResult, Error>> {
+  ): Promise<ActionResult<TaskExtractionResult>> {
     try {
       logger.info("Starting task extraction", {
         component: "TaskExtractionService.extractTasks",
@@ -149,23 +144,31 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
         });
 
         // Create failure notification
-        const recording = await RecordingsQueries.selectRecordingById(recordingId);
-        if (recording.isOk() && recording.value) {
+        const recording = await RecordingsQueries.selectRecordingById(
+          recordingId
+        );
+        if (recording) {
           await NotificationService.createNotification({
             recordingId,
-            projectId: recording.value.projectId,
-            userId: recording.value.createdById,
-            organizationId: recording.value.organizationId,
+            projectId: recording.projectId,
+            userId: recording.createdById,
+            organizationId: recording.organizationId,
             type: "tasks_failed",
             title: "Taakextractie mislukt",
-            message: `De taakextractie uit "${recording.value.title}" is mislukt.`,
+            message: `De taakextractie uit "${recording.title}" is mislukt.`,
             metadata: {
               error: "No response from OpenAI",
             },
           });
         }
 
-        return err(new Error("No response from OpenAI"));
+        return err(
+          ActionErrors.internal(
+            "No response from OpenAI",
+            undefined,
+            "TaskExtractionService.extractTasks"
+          )
+        );
       }
 
       // Parse JSON response
@@ -178,7 +181,13 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
           error: parseError,
           responseContent,
         });
-        return err(new Error("Failed to parse task extraction response"));
+        return err(
+          ActionErrors.internal(
+            "Failed to parse task extraction response",
+            parseError as Error,
+            "TaskExtractionService.extractTasks"
+          )
+        );
       }
 
       if (!extractionResult.tasks || !Array.isArray(extractionResult.tasks)) {
@@ -186,35 +195,41 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
           component: "TaskExtractionService.extractTasks",
           extractionResult,
         });
-        return err(new Error("Invalid task extraction format"));
+        return err(
+          ActionErrors.internal(
+            "Invalid task extraction format",
+            undefined,
+            "TaskExtractionService.extractTasks"
+          )
+        );
       }
 
       // Create tasks in database
       const createdTasks = [];
       for (const task of extractionResult.tasks) {
-        const taskResult = await TasksQueries.createTask({
-          recordingId,
-          projectId,
-          title: task.title,
-          description: task.description ?? null,
-          priority: task.priority,
-          status: "pending",
-          assigneeId: null, // Will be assigned later
-          assigneeName: task.assigneeName ?? null,
-          dueDate: task.dueDate ? new Date(task.dueDate) : null,
-          confidenceScore: task.confidenceScore ?? null,
-          meetingTimestamp: task.meetingTimestamp ?? null,
-          organizationId,
-          createdById,
-        });
+        try {
+          const createdTask = await TasksQueries.createTask({
+            recordingId,
+            projectId,
+            title: task.title,
+            description: task.description ?? null,
+            priority: task.priority,
+            status: "pending",
+            assigneeId: null,
+            assigneeName: task.assigneeName ?? null,
+            dueDate: task.dueDate ? new Date(task.dueDate) : null,
+            confidenceScore: task.confidenceScore ?? null,
+            meetingTimestamp: task.meetingTimestamp ?? null,
+            organizationId,
+            createdById,
+          });
 
-        if (taskResult.isOk()) {
-          createdTasks.push(taskResult.value);
-        } else {
+          createdTasks.push(createdTask);
+        } catch (taskError) {
           logger.warn("Failed to create individual task", {
             component: "TaskExtractionService.extractTasks",
             task,
-            error: taskResult.error,
+            error: taskError,
           });
         }
       }
@@ -227,16 +242,20 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
       });
 
       // Create success notification
-      const recording = await RecordingsQueries.selectRecordingById(recordingId);
-      if (recording.isOk() && recording.value) {
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+      if (recording) {
         await NotificationService.createNotification({
           recordingId,
-          projectId: recording.value.projectId,
-          userId: recording.value.createdById,
-          organizationId: recording.value.organizationId,
+          projectId: recording.projectId,
+          userId: recording.createdById,
+          organizationId: recording.organizationId,
           type: "tasks_completed",
           title: "Taken geëxtraheerd",
-          message: `${createdTasks.length} ${createdTasks.length === 1 ? "taak" : "taken"} geëxtraheerd uit "${recording.value.title}".`,
+          message: `${createdTasks.length} ${
+            createdTasks.length === 1 ? "taak" : "taken"
+          } geëxtraheerd uit "${recording.title}".`,
           metadata: {
             tasksCount: createdTasks.length,
           },
@@ -254,9 +273,11 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
         error,
       });
       return err(
-        error instanceof Error
-          ? error
-          : new Error("Failed to extract tasks")
+        ActionErrors.internal(
+          "Failed to extract tasks",
+          error as Error,
+          "TaskExtractionService.extractTasks"
+        )
       );
     }
   }
@@ -267,13 +288,9 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
   static async updateTaskPriority(
     taskId: string,
     priority: "low" | "medium" | "high" | "urgent"
-  ): Promise<Result<void, Error>> {
+  ): Promise<ActionResult<void>> {
     try {
-      const result = await TasksQueries.updateTask(taskId, { priority });
-      
-      if (result.isErr()) {
-        return err(result.error);
-      }
+      await TasksQueries.updateTask(taskId, { priority });
 
       logger.info("Task priority updated", {
         component: "TaskExtractionService.updateTaskPriority",
@@ -289,9 +306,11 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
         error,
       });
       return err(
-        error instanceof Error
-          ? error
-          : new Error("Failed to update task priority")
+        ActionErrors.internal(
+          "Failed to update task priority",
+          error as Error,
+          "TaskExtractionService.updateTaskPriority"
+        )
       );
     }
   }

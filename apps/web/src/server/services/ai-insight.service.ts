@@ -1,4 +1,5 @@
-import { err, ok, type Result } from "neverthrow";
+import { err, ok } from "neverthrow";
+import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { getAuthSession } from "../../lib/auth";
 import { logger } from "../../lib/logger";
 import { AIInsightsQueries } from "../data-access/ai-insights.queries";
@@ -22,19 +23,19 @@ export class AIInsightService {
    */
   static async createAIInsight(
     data: NewAIInsight
-  ): Promise<Result<AIInsightDto, string>> {
+  ): Promise<ActionResult<AIInsightDto>> {
     try {
-      const result = await AIInsightsQueries.createAIInsight(data);
-
-      if (result.isErr()) {
-        return err(result.error.message);
-      }
-
-      return ok(this.toDto(result.value));
+      const insight = await AIInsightsQueries.createAIInsight(data);
+      return ok(this.toDto(insight));
     } catch (error) {
-      const errorMessage = "Failed to create AI insight";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to create AI insight", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to create AI insight",
+          error as Error,
+          "AIInsightService.createAIInsight"
+        )
+      );
     }
   }
 
@@ -43,37 +44,45 @@ export class AIInsightService {
    */
   static async getInsightsByRecordingId(
     recordingId: string
-  ): Promise<Result<AIInsightDto[], string>> {
+  ): Promise<ActionResult<AIInsightDto[]>> {
     try {
-      // Check authentication and get session
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
-        return err("Failed to get authentication session");
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "AIInsightService.getInsightsByRecordingId"
+          )
+        );
       }
 
       const { user: authUser, organization } = authResult.value;
 
       if (!authUser || !organization) {
-        return err("Authentication required");
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "AIInsightService.getInsightsByRecordingId"
+          )
+        );
       }
 
-      // Note: In a full implementation, you'd want to verify that the recording
-      // belongs to the user's organization. For now, we trust the recordingId
-      // is valid and accessible to the authenticated user.
-
-      const result = await AIInsightsQueries.getInsightsByRecordingId(
+      const insights = await AIInsightsQueries.getInsightsByRecordingId(
         recordingId
       );
 
-      if (result.isErr()) {
-        return err(result.error.message);
-      }
-
-      return ok(result.value.map((insight) => this.toDto(insight)));
+      return ok(insights.map((insight) => this.toDto(insight)));
     } catch (error) {
-      const errorMessage = "Failed to get AI insights";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to get AI insights", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to get AI insights",
+          error as Error,
+          "AIInsightService.getInsightsByRecordingId"
+        )
+      );
     }
   }
 
@@ -83,21 +92,22 @@ export class AIInsightService {
    */
   static async getInsightsByRecordingIdInternal(
     recordingId: string
-  ): Promise<Result<AIInsightDto[], string>> {
+  ): Promise<ActionResult<AIInsightDto[]>> {
     try {
-      const result = await AIInsightsQueries.getInsightsByRecordingId(
+      const insights = await AIInsightsQueries.getInsightsByRecordingId(
         recordingId
       );
 
-      if (result.isErr()) {
-        return err(result.error.message);
-      }
-
-      return ok(result.value.map((insight) => this.toDto(insight)));
+      return ok(insights.map((insight) => this.toDto(insight)));
     } catch (error) {
-      const errorMessage = "Failed to get AI insights";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to get AI insights", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to get AI insights",
+          error as Error,
+          "AIInsightService.getInsightsByRecordingIdInternal"
+        )
+      );
     }
   }
 
@@ -107,34 +117,46 @@ export class AIInsightService {
   static async getInsightByType(
     recordingId: string,
     insightType: InsightType
-  ): Promise<Result<AIInsightDto | null, string>> {
+  ): Promise<ActionResult<AIInsightDto | null>> {
     try {
-      // Check authentication and get session
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
-        return err("Failed to get authentication session");
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "AIInsightService.getInsightByType"
+          )
+        );
       }
 
       const { user: authUser, organization } = authResult.value;
 
       if (!authUser || !organization) {
-        return err("Authentication required");
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "AIInsightService.getInsightByType"
+          )
+        );
       }
 
-      const result = await AIInsightsQueries.getInsightByType(
+      const insight = await AIInsightsQueries.getInsightByType(
         recordingId,
         insightType
       );
 
-      if (result.isErr()) {
-        return err(result.error.message);
-      }
-
-      return ok(result.value ? this.toDto(result.value) : null);
+      return ok(insight ? this.toDto(insight) : null);
     } catch (error) {
-      const errorMessage = "Failed to get AI insight by type";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to get AI insight by type", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to get AI insight by type",
+          error as Error,
+          "AIInsightService.getInsightByType"
+        )
+      );
     }
   }
 
@@ -145,22 +167,23 @@ export class AIInsightService {
   static async getInsightByTypeInternal(
     recordingId: string,
     insightType: InsightType
-  ): Promise<Result<AIInsightDto | null, string>> {
+  ): Promise<ActionResult<AIInsightDto | null>> {
     try {
-      const result = await AIInsightsQueries.getInsightByType(
+      const insight = await AIInsightsQueries.getInsightByType(
         recordingId,
         insightType
       );
 
-      if (result.isErr()) {
-        return err(result.error.message);
-      }
-
-      return ok(result.value ? this.toDto(result.value) : null);
+      return ok(insight ? this.toDto(insight) : null);
     } catch (error) {
-      const errorMessage = "Failed to get AI insight by type";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to get AI insight by type", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to get AI insight by type",
+          error as Error,
+          "AIInsightService.getInsightByTypeInternal"
+        )
+      );
     }
   }
 
@@ -170,23 +193,33 @@ export class AIInsightService {
    */
   static async updateInsightStatus(
     input: UpdateAIInsightStatusDto
-  ): Promise<Result<AIInsightDto, string>> {
+  ): Promise<ActionResult<AIInsightDto>> {
     try {
-      const result = await AIInsightsQueries.updateInsightStatus(
+      const insight = await AIInsightsQueries.updateInsightStatus(
         input.insightId,
         input.status,
         input.errorMessage
       );
 
-      if (result.isErr()) {
-        return err(result.error.message);
+      if (!insight) {
+        return err(
+          ActionErrors.notFound(
+            "AI Insight",
+            "AIInsightService.updateInsightStatus"
+          )
+        );
       }
 
-      return ok(this.toDto(result.value));
+      return ok(this.toDto(insight));
     } catch (error) {
-      const errorMessage = "Failed to update AI insight status";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to update AI insight status", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to update AI insight status",
+          error as Error,
+          "AIInsightService.updateInsightStatus"
+        )
+      );
     }
   }
 
@@ -196,98 +229,138 @@ export class AIInsightService {
    */
   static async updateInsightContent(
     input: UpdateAIInsightContentDto
-  ): Promise<Result<AIInsightDto, string>> {
+  ): Promise<ActionResult<AIInsightDto>> {
     try {
-      const result = await AIInsightsQueries.updateInsightContent(
+      const insight = await AIInsightsQueries.updateInsightContent(
         input.insightId,
         input.content,
         input.confidenceScore
       );
 
-      if (result.isErr()) {
-        return err(result.error.message);
+      if (!insight) {
+        return err(
+          ActionErrors.notFound(
+            "AI Insight",
+            "AIInsightService.updateInsightContent"
+          )
+        );
       }
 
-      return ok(this.toDto(result.value));
+      return ok(this.toDto(insight));
     } catch (error) {
-      const errorMessage = "Failed to update AI insight content";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to update AI insight content", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to update AI insight content",
+          error as Error,
+          "AIInsightService.updateInsightContent"
+        )
+      );
     }
   }
 
   /**
    * Update insight content with manual edit tracking and authorization
-   * Only allows the authenticated user to edit insights in their organization
    */
   static async updateInsightWithEdit(
     input: Omit<UpdateAIInsightWithEditDto, "userId">
-  ): Promise<Result<AIInsightDto, string>> {
+  ): Promise<ActionResult<AIInsightDto>> {
     try {
-      // Check authentication and get session
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
-        return err("Failed to get authentication session");
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "AIInsightService.updateInsightWithEdit"
+          )
+        );
       }
 
       const { user: authUser, organization } = authResult.value;
 
       if (!authUser || !organization) {
-        return err("Authentication required");
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "AIInsightService.updateInsightWithEdit"
+          )
+        );
       }
 
-      // Note: In a full implementation, you'd want to verify that the insight
-      // belongs to a recording in the user's organization.
-
-      const result = await AIInsightsQueries.updateInsightWithEdit(
+      const insight = await AIInsightsQueries.updateInsightWithEdit(
         input.insightId,
         input.content,
         authUser.id
       );
 
-      if (result.isErr()) {
-        return err(result.error);
+      if (!insight) {
+        return err(
+          ActionErrors.notFound(
+            "AI Insight",
+            "AIInsightService.updateInsightWithEdit"
+          )
+        );
       }
 
-      return ok(this.toDto(result.value));
+      return ok(this.toDto(insight));
     } catch (error) {
-      const errorMessage = "Failed to update AI insight with edit tracking";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to update AI insight with edit tracking",
+        {},
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to update AI insight with edit tracking",
+          error as Error,
+          "AIInsightService.updateInsightWithEdit"
+        )
+      );
     }
   }
 
   /**
    * Delete an insight with authorization check
    */
-  static async deleteInsight(insightId: string): Promise<Result<void, string>> {
+  static async deleteInsight(insightId: string): Promise<ActionResult<void>> {
     try {
-      // Check authentication and get session
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
-        return err("Failed to get authentication session");
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "AIInsightService.deleteInsight"
+          )
+        );
       }
 
       const { user: authUser, organization } = authResult.value;
 
       if (!authUser || !organization) {
-        return err("Authentication required");
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "AIInsightService.deleteInsight"
+          )
+        );
       }
 
-      // Note: In a full implementation, you'd want to verify that the insight
-      // belongs to a recording in the user's organization.
-
-      const result = await AIInsightsQueries.deleteInsight(insightId);
-
-      if (result.isErr()) {
-        return err(result.error.message);
-      }
+      await AIInsightsQueries.deleteInsight(insightId);
 
       return ok(undefined);
     } catch (error) {
-      const errorMessage = "Failed to delete AI insight";
-      logger.error(errorMessage, {}, error as Error);
-      return err(errorMessage);
+      logger.error("Failed to delete AI insight", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to delete AI insight",
+          error as Error,
+          "AIInsightService.deleteInsight"
+        )
+      );
     }
   }
 
@@ -313,4 +386,3 @@ export class AIInsightService {
     };
   }
 }
-

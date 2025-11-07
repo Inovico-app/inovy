@@ -1,5 +1,6 @@
 import { createClient } from "@deepgram/sdk";
-import { err, ok, type Result } from "neverthrow";
+import { err, ok } from "neverthrow";
+import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
@@ -40,7 +41,7 @@ export class TranscriptionService {
   static async transcribeUploadedFile(
     recordingId: string,
     fileUrl: string
-  ): Promise<Result<TranscriptionResult, Error>> {
+  ): Promise<ActionResult<TranscriptionResult>> {
     try {
       logger.info("Starting transcription for uploaded file", {
         component: "TranscriptionService.transcribeUploadedFile",
@@ -55,22 +56,12 @@ export class TranscriptionService {
       );
 
       // Create AI insight record
-      const insightResult = await AIInsightsQueries.createAIInsight({
+      const insight = await AIInsightsQueries.createAIInsight({
         recordingId,
         insightType: "transcription",
         content: {},
         processingStatus: "processing",
       });
-
-      if (insightResult.isErr()) {
-        logger.error("Failed to create AI insight record", {
-          component: "TranscriptionService.transcribeUploadedFile",
-          error: insightResult.error,
-        });
-        return err(insightResult.error);
-      }
-
-      const insight = insightResult.value;
 
       // Call Deepgram API
       const deepgram = this.getDeepgramClient();
@@ -105,33 +96,45 @@ export class TranscriptionService {
 
         // Create failure notification
         const recording = await RecordingsQueries.selectRecordingById(recordingId);
-        if (recording.isOk() && recording.value) {
+        if (recording) {
           await NotificationService.createNotification({
             recordingId,
-            projectId: recording.value.projectId,
-            userId: recording.value.createdById,
-            organizationId: recording.value.organizationId,
+            projectId: recording.projectId,
+            userId: recording.createdById,
+            organizationId: recording.organizationId,
             type: "transcription_failed",
             title: "Transcriptie mislukt",
-            message: `De transcriptie van "${recording.value.title}" is mislukt.`,
+            message: `De transcriptie van "${recording.title}" is mislukt.`,
             metadata: {
               error: error.message,
             },
           });
         }
 
-        return err(new Error(`Transcription failed: ${error.message}`));
+        return err(
+          ActionErrors.internal(
+            `Transcription failed: ${error.message}`,
+            new Error(error.message),
+            "TranscriptionService.transcribeUploadedFile"
+          )
+        );
       }
 
       // Extract transcription data
       const channel = result?.results?.channels?.[0];
       const alternatives = channel?.alternatives?.[0];
-      
+
       if (!alternatives?.transcript) {
         logger.error("No transcription text in response", {
           component: "TranscriptionService.transcribeUploadedFile",
         });
-        return err(new Error("No transcription text in response"));
+        return err(
+          ActionErrors.internal(
+            "No transcription text in response",
+            undefined,
+            "TranscriptionService.transcribeUploadedFile"
+          )
+        );
       }
 
       const transcriptionText = alternatives.transcript;
@@ -146,7 +149,7 @@ export class TranscriptionService {
         const speakerMap = new Map<number, number>();
 
         // Count utterances per speaker
-        words.forEach((word: {speaker?: number}) => {
+        words.forEach((word: { speaker?: number }) => {
           if (word.speaker !== undefined) {
             speakerMap.set(
               word.speaker,
@@ -166,30 +169,36 @@ export class TranscriptionService {
 
       // Extract utterances if available
       if (result?.results?.utterances) {
-        result.results.utterances.forEach((utt: {
-          speaker?: number;
-          transcript: string;
-          start: number;
-          end: number;
-          confidence: number;
-        }) => {
-          utterances.push({
-            speaker: utt.speaker ?? 0,
-            text: utt.transcript,
-            start: utt.start,
-            end: utt.end,
-            confidence: utt.confidence,
-          });
-        });
+        result.results.utterances.forEach(
+          (utt: {
+            speaker?: number;
+            transcript: string;
+            start: number;
+            end: number;
+            confidence: number;
+          }) => {
+            utterances.push({
+              speaker: utt.speaker ?? 0,
+              text: utt.transcript,
+              start: utt.start,
+              end: utt.end,
+              confidence: utt.confidence,
+            });
+          }
+        );
       }
 
       // Update AI insight with transcription data
-      await AIInsightsQueries.updateInsightContent(insight.id, {
-        text: transcriptionText,
-        confidence,
-        speakers,
-        utterances,
-      }, confidence);
+      await AIInsightsQueries.updateInsightContent(
+        insight.id,
+        {
+          text: transcriptionText,
+          confidence,
+          speakers,
+          utterances,
+        },
+        confidence
+      );
 
       // Update recording with transcription text
       await RecordingsQueries.updateRecordingTranscription(
@@ -207,15 +216,15 @@ export class TranscriptionService {
 
       // Create success notification
       const recording = await RecordingsQueries.selectRecordingById(recordingId);
-      if (recording.isOk() && recording.value) {
+      if (recording) {
         await NotificationService.createNotification({
           recordingId,
-          projectId: recording.value.projectId,
-          userId: recording.value.createdById,
-          organizationId: recording.value.organizationId,
+          projectId: recording.projectId,
+          userId: recording.createdById,
+          organizationId: recording.organizationId,
           type: "transcription_completed",
           title: "Transcriptie voltooid",
-          message: `De transcriptie van "${recording.value.title}" is voltooid.`,
+          message: `De transcriptie van "${recording.title}" is voltooid.`,
           metadata: {
             speakersDetected: speakers.length,
             utterancesCount: utterances.length,
@@ -223,9 +232,6 @@ export class TranscriptionService {
           },
         });
       }
-
-      // Note: Sequential processing is now handled by the workflow
-      // No need to trigger summary generation here
 
       return ok({
         text: transcriptionText,
@@ -240,9 +246,11 @@ export class TranscriptionService {
         error,
       });
       return err(
-        error instanceof Error
-          ? error
-          : new Error("Unknown error during transcription")
+        ActionErrors.internal(
+          "Unknown error during transcription",
+          error as Error,
+          "TranscriptionService.transcribeUploadedFile"
+        )
       );
     }
   }
@@ -256,7 +264,7 @@ export class TranscriptionService {
     speakers: Speaker[],
     utterances: Utterance[],
     confidence: number
-  ): Promise<Result<void, Error>> {
+  ): Promise<ActionResult<void>> {
     try {
       logger.info("Saving live transcription", {
         component: "TranscriptionService.saveLiveTranscription",
@@ -264,7 +272,7 @@ export class TranscriptionService {
       });
 
       // Create AI insight record
-      const insightResult = await AIInsightsQueries.createAIInsight({
+      await AIInsightsQueries.createAIInsight({
         recordingId,
         insightType: "transcription",
         content: {
@@ -278,10 +286,6 @@ export class TranscriptionService {
         speakersDetected: speakers.length,
         utterances,
       });
-
-      if (insightResult.isErr()) {
-        return err(insightResult.error);
-      }
 
       // Update recording with transcription text
       await RecordingsQueries.updateRecordingTranscription(
@@ -303,9 +307,11 @@ export class TranscriptionService {
         error,
       });
       return err(
-        error instanceof Error
-          ? error
-          : new Error("Failed to save live transcription")
+        ActionErrors.internal(
+          "Failed to save live transcription",
+          error as Error,
+          "TranscriptionService.saveLiveTranscription"
+        )
       );
     }
   }
@@ -325,4 +331,3 @@ export class TranscriptionService {
     };
   }
 }
-

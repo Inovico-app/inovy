@@ -1,14 +1,7 @@
-import { err, ok, type Result } from "neverthrow";
-import { ActionErrors, type ActionError } from "../../lib/action-errors";
+import { err, ok } from "neverthrow";
+import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { logger } from "../../lib/logger";
-import {
-  getRecordingStatistics as getRecordingStatisticsQuery,
-  insertRecording,
-  RecordingsQueries,
-  selectRecordingById,
-  selectRecordingsByProjectId,
-  updateRecordingMetadata as updateRecordingMetadataQuery,
-} from "../data-access/recordings.queries";
+import { RecordingsQueries } from "../data-access/recordings.queries";
 import type { NewRecording, Recording } from "../db/schema";
 import { type RecordingDto } from "../dto";
 
@@ -22,40 +15,38 @@ export class RecordingService {
    */
   static async createRecording(
     data: NewRecording
-  ): Promise<Result<RecordingDto, ActionError>> {
+  ): Promise<ActionResult<RecordingDto>> {
     logger.info("Creating new recording", {
       component: "RecordingService.createRecording",
       projectId: data.projectId,
       title: data.title,
     });
 
-    const result = await insertRecording(data);
+    try {
+      const recording = await RecordingsQueries.insertRecording(data);
 
-    if (result.isErr()) {
+      logger.info("Successfully created recording", {
+        component: "RecordingService.createRecording",
+        recordingId: recording.id,
+        projectId: recording.projectId,
+      });
+
+      return ok(this.toDto(recording));
+    } catch (error) {
       logger.error("Failed to create recording in database", {
         component: "RecordingService.createRecording",
-        error: result.error,
+        error,
         projectId: data.projectId,
       });
 
       return err(
         ActionErrors.internal(
           "Failed to create recording",
-          new Error(result.error),
+          error as Error,
           "RecordingService.createRecording"
         )
       );
     }
-
-    const recording = result.value;
-
-    logger.info("Successfully created recording", {
-      component: "RecordingService.createRecording",
-      recordingId: recording.id,
-      projectId: recording.projectId,
-    });
-
-    return ok(this.toDto(recording));
   }
 
   /**
@@ -63,91 +54,88 @@ export class RecordingService {
    */
   static async getRecordingById(
     id: string
-  ): Promise<Result<RecordingDto | null, ActionError>> {
+  ): Promise<ActionResult<RecordingDto | null>> {
     logger.info("Fetching recording by ID", {
       component: "RecordingService.getRecordingById",
       recordingId: id,
     });
 
-    const result = await selectRecordingById(id);
+    try {
+      const recording = await RecordingsQueries.selectRecordingById(id);
 
-    if (result.isErr()) {
+      if (!recording) {
+        logger.warn("Recording not found", {
+          component: "RecordingService.getRecordingById",
+          recordingId: id,
+        });
+        return ok(null);
+      }
+
+      return ok(this.toDto(recording));
+    } catch (error) {
       logger.error("Failed to fetch recording from database", {
         component: "RecordingService.getRecordingById",
-        error: result.error,
+        error,
         recordingId: id,
       });
 
       return err(
         ActionErrors.internal(
           "Failed to fetch recording",
-          new Error(result.error),
+          error as Error,
           "RecordingService.getRecordingById"
         )
       );
     }
-
-    const recording = result.value;
-
-    if (!recording) {
-      logger.warn("Recording not found", {
-        component: "RecordingService.getRecordingById",
-        recordingId: id,
-      });
-      return ok(null);
-    }
-
-    return ok(this.toDto(recording));
   }
 
   /**
    * Get all recordings for a project
-   * Returns recordings ordered by creation date (newest first)
    */
   static async getRecordingsByProjectId(
     projectId: string,
     options?: {
       search?: string;
     }
-  ): Promise<Result<RecordingDto[], ActionError>> {
+  ): Promise<ActionResult<RecordingDto[]>> {
     logger.info("Fetching recordings for project", {
       component: "RecordingService.getRecordingsByProjectId",
       projectId,
       search: options?.search,
     });
 
-    const result = await selectRecordingsByProjectId(projectId, options);
+    try {
+      const recordings = await RecordingsQueries.selectRecordingsByProjectId(
+        projectId,
+        options
+      );
 
-    if (result.isErr()) {
+      logger.info("Successfully fetched recordings", {
+        component: "RecordingService.getRecordingsByProjectId",
+        projectId,
+        count: recordings.length,
+      });
+
+      return ok(recordings.map((recording) => this.toDto(recording)));
+    } catch (error) {
       logger.error("Failed to fetch recordings from database", {
         component: "RecordingService.getRecordingsByProjectId",
-        error: result.error,
+        error,
         projectId,
       });
 
       return err(
         ActionErrors.internal(
           "Failed to fetch recordings",
-          new Error(result.error),
+          error as Error,
           "RecordingService.getRecordingsByProjectId"
         )
       );
     }
-
-    const recordings = result.value;
-
-    logger.info("Successfully fetched recordings", {
-      component: "RecordingService.getRecordingsByProjectId",
-      projectId,
-      count: recordings.length,
-    });
-
-    return ok(recordings.map((recording) => this.toDto(recording)));
   }
 
   /**
    * Update recording metadata
-   * Verifies recording belongs to user's organization
    */
   static async updateRecordingMetadata(
     id: string,
@@ -157,130 +145,120 @@ export class RecordingService {
       description?: string | null;
       recordingDate: Date;
     }
-  ): Promise<Result<RecordingDto, ActionError>> {
+  ): Promise<ActionResult<RecordingDto>> {
     logger.info("Updating recording metadata", {
       component: "RecordingService.updateRecordingMetadata",
       recordingId: id,
     });
 
-    // First, fetch the recording to verify ownership
-    const recordingResult = await selectRecordingById(id);
+    try {
+      const recording = await RecordingsQueries.selectRecordingById(id);
 
-    if (recordingResult.isErr()) {
-      logger.error("Failed to fetch recording", {
-        component: "RecordingService.updateRecordingMetadata",
-        error: recordingResult.error,
-        recordingId: id,
-      });
-
-      return err(
-        ActionErrors.internal(
-          "Failed to fetch recording",
-          new Error(recordingResult.error),
-          "RecordingService.updateRecordingMetadata"
-        )
-      );
-    }
-
-    const recording = recordingResult.value;
-
-    if (!recording) {
-      logger.warn("Recording not found", {
-        component: "RecordingService.updateRecordingMetadata",
-        recordingId: id,
-      });
-
-      return err(
-        ActionErrors.notFound(
-          "Recording",
-          "RecordingService.updateRecordingMetadata"
-        )
-      );
-    }
-
-    // Verify recording belongs to the user's organization
-    if (recording.organizationId !== organizationId) {
-      logger.warn(
-        "User attempted to update recording from different organization",
-        {
+      if (!recording) {
+        logger.warn("Recording not found", {
           component: "RecordingService.updateRecordingMetadata",
           recordingId: id,
-          userOrgId: organizationId,
-          recordingOrgId: recording.organizationId,
-        }
-      );
+        });
 
-      return err(
-        ActionErrors.forbidden(
-          "You don't have permission to update this recording",
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "RecordingService.updateRecordingMetadata"
+          )
+        );
+      }
+
+      if (recording.organizationId !== organizationId) {
+        logger.warn(
+          "User attempted to update recording from different organization",
           {
+            component: "RecordingService.updateRecordingMetadata",
             recordingId: id,
-          },
-          "RecordingService.updateRecordingMetadata"
-        )
+            userOrgId: organizationId,
+            recordingOrgId: recording.organizationId,
+          }
+        );
+
+        return err(
+          ActionErrors.forbidden(
+            "You don't have permission to update this recording",
+            { recordingId: id },
+            "RecordingService.updateRecordingMetadata"
+          )
+        );
+      }
+
+      const updatedRecording = await RecordingsQueries.updateRecordingMetadata(
+        id,
+        data
       );
-    }
 
-    // Update the recording
-    const updateResult = await updateRecordingMetadataQuery(id, data);
+      if (!updatedRecording) {
+        return err(
+          ActionErrors.internal(
+            "Failed to update recording",
+            undefined,
+            "RecordingService.updateRecordingMetadata"
+          )
+        );
+      }
 
-    if (updateResult.isErr()) {
+      logger.info("Successfully updated recording metadata", {
+        component: "RecordingService.updateRecordingMetadata",
+        recordingId: id,
+      });
+
+      return ok(this.toDto(updatedRecording));
+    } catch (error) {
       logger.error("Failed to update recording in database", {
         component: "RecordingService.updateRecordingMetadata",
-        error: updateResult.error,
+        error,
         recordingId: id,
       });
 
       return err(
         ActionErrors.internal(
           "Failed to update recording",
-          new Error(updateResult.error),
+          error as Error,
           "RecordingService.updateRecordingMetadata"
         )
       );
     }
-
-    const updatedRecording = updateResult.value;
-
-    logger.info("Successfully updated recording metadata", {
-      component: "RecordingService.updateRecordingMetadata",
-      recordingId: id,
-    });
-
-    return ok(this.toDto(updatedRecording));
   }
 
   /**
    * Get recording statistics for a project
    */
   static async getProjectRecordingStatistics(projectId: string): Promise<
-    Result<
-      {
-        totalCount: number;
-        lastRecordingDate: Date | null;
-        recentCount: number;
-      },
-      string
-    >
+    ActionResult<{
+      totalCount: number;
+      lastRecordingDate: Date | null;
+      recentCount: number;
+    }>
   > {
     logger.info("Getting recording statistics", {
       component: "RecordingService.getProjectRecordingStatistics",
       projectId,
     });
 
-    const result = await getRecordingStatisticsQuery(projectId);
-
-    if (result.isErr()) {
+    try {
+      const stats = await RecordingsQueries.getRecordingStatistics(projectId);
+      return ok(stats);
+    } catch (error) {
       logger.error("Failed to get recording statistics", {
         component: "RecordingService.getProjectRecordingStatistics",
-        error: result.error,
+        error,
         projectId,
       });
 
-      return err(result.error);
+      return err(
+        ActionErrors.internal(
+          "Failed to get recording statistics",
+          error as Error,
+          "RecordingService.getProjectRecordingStatistics"
+        )
+      );
     }
-
-    return ok(result.value);
   }
 
   /**
@@ -289,7 +267,7 @@ export class RecordingService {
   static async archiveRecording(
     recordingId: string,
     orgCode: string
-  ): Promise<Result<boolean, string>> {
+  ): Promise<ActionResult<boolean>> {
     logger.info("Archiving recording", {
       component: "RecordingService.archiveRecording",
       recordingId,
@@ -315,7 +293,13 @@ export class RecordingService {
         error,
         recordingId,
       });
-      return err("Failed to archive recording");
+      return err(
+        ActionErrors.internal(
+          "Failed to archive recording",
+          error as Error,
+          "RecordingService.archiveRecording"
+        )
+      );
     }
   }
 
@@ -325,7 +309,7 @@ export class RecordingService {
   static async unarchiveRecording(
     recordingId: string,
     orgCode: string
-  ): Promise<Result<boolean, string>> {
+  ): Promise<ActionResult<boolean>> {
     logger.info("Unarchiving recording", {
       component: "RecordingService.unarchiveRecording",
       recordingId,
@@ -351,37 +335,32 @@ export class RecordingService {
         error,
         recordingId,
       });
-      return err("Failed to unarchive recording");
+      return err(
+        ActionErrors.internal(
+          "Failed to unarchive recording",
+          error as Error,
+          "RecordingService.unarchiveRecording"
+        )
+      );
     }
   }
 
   /**
-   * Delete a recording (hard delete with blob cleanup)
+   * Delete a recording (hard delete)
    */
   static async deleteRecording(
     recordingId: string,
     orgCode: string
-  ): Promise<Result<boolean, ActionError>> {
+  ): Promise<ActionResult<boolean>> {
     logger.info("Deleting recording", {
       component: "RecordingService.deleteRecording",
       recordingId,
     });
 
     try {
-      // First, get the recording to retrieve the blob URL
-      const recordingResult = await selectRecordingById(recordingId);
-
-      if (recordingResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to fetch recording",
-            new Error(recordingResult.error),
-            "RecordingService.deleteRecording"
-          )
-        );
-      }
-
-      const recording = recordingResult.value;
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
 
       if (!recording) {
         return err(
@@ -389,7 +368,6 @@ export class RecordingService {
         );
       }
 
-      // Verify ownership
       if (recording.organizationId !== orgCode) {
         return err(
           ActionErrors.forbidden(
@@ -400,7 +378,6 @@ export class RecordingService {
         );
       }
 
-      // Delete the recording from database (this will cascade to related records)
       const deleteResult = await RecordingsQueries.deleteRecording(
         recordingId,
         orgCode

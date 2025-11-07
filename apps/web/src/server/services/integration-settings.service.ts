@@ -1,8 +1,8 @@
-import { type Result, err, ok } from "neverthrow";
-import { eq, and, isNull } from "drizzle-orm";
-import { db } from "../db";
-import { integrationSettings, type IntegrationSettings } from "../db/schema";
+import { ActionErrors, type ActionResult } from "@/lib";
+import { err, ok } from "neverthrow";
 import { logger } from "../../lib/logger";
+import { IntegrationSettingsQueries } from "../data-access/integration-settings.queries";
+import { type IntegrationSettings } from "../db/schema";
 
 /**
  * Integration Settings Service
@@ -16,47 +16,28 @@ export class IntegrationSettingsService {
     userId: string,
     provider: "google" | "microsoft",
     projectId?: string
-  ): Promise<Result<IntegrationSettings | null, string>> {
+  ): Promise<ActionResult<IntegrationSettings | null>> {
     try {
-      // First try to get project-specific settings if projectId provided
-      if (projectId) {
-        const [projectSettings] = await db
-          .select()
-          .from(integrationSettings)
-          .where(
-            and(
-              eq(integrationSettings.userId, userId),
-              eq(integrationSettings.provider, provider),
-              eq(integrationSettings.projectId, projectId)
-            )
-          )
-          .limit(1);
-
-        if (projectSettings) {
-          return ok(projectSettings);
-        }
-      }
-
-      // Fall back to global settings
-      const [globalSettings] = await db
-        .select()
-        .from(integrationSettings)
-        .where(
-          and(
-            eq(integrationSettings.userId, userId),
-            eq(integrationSettings.provider, provider),
-            isNull(integrationSettings.projectId)
-          )
-        )
-        .limit(1);
-
-      return ok(globalSettings || null);
+      const settings = await IntegrationSettingsQueries.getByUserAndProvider(
+        userId,
+        provider,
+        projectId
+      );
+      return ok(settings);
     } catch (error) {
-      const errorMessage = `Failed to get integration settings: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`;
-      logger.error(errorMessage, { userId, provider, projectId }, error as Error);
-      return err(errorMessage);
+      const errorMessage = "Failed to get integration settings";
+      logger.error(
+        errorMessage,
+        { userId, provider, projectId },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          errorMessage,
+          undefined,
+          "IntegrationSettingsService.getSettings"
+        )
+      );
     }
   }
 
@@ -73,37 +54,35 @@ export class IntegrationSettingsService {
       defaultEventDuration?: number;
       taskPriorityFilter?: string[];
     }
-  ): Promise<Result<IntegrationSettings, string>> {
+  ): Promise<ActionResult<IntegrationSettings>> {
     try {
       // Check if settings exist
-      const existing = await this.getSettings(
+      const existing = await IntegrationSettingsQueries.getByUserAndProvider(
         userId,
         provider,
-        data.projectId || undefined
+        data.projectId
       );
 
-      if (existing.isOk() && existing.value) {
+      if (existing) {
         // Update existing settings
-        const [updated] = await db
-          .update(integrationSettings)
-          .set({
-            autoCalendarEnabled:
-              data.autoCalendarEnabled ?? existing.value.autoCalendarEnabled,
-            autoEmailEnabled:
-              data.autoEmailEnabled ?? existing.value.autoEmailEnabled,
-            defaultEventDuration:
-              data.defaultEventDuration ?? existing.value.defaultEventDuration,
-            taskPriorityFilter:
-              data.taskPriorityFilter !== undefined
-                ? data.taskPriorityFilter
-                : existing.value.taskPriorityFilter,
-            updatedAt: new Date(),
-          })
-          .where(eq(integrationSettings.id, existing.value.id))
-          .returning();
+        const updated = await IntegrationSettingsQueries.update(existing.id, {
+          autoCalendarEnabled:
+            data.autoCalendarEnabled ?? existing.autoCalendarEnabled,
+          autoEmailEnabled: data.autoEmailEnabled ?? existing.autoEmailEnabled,
+          defaultEventDuration:
+            data.defaultEventDuration ?? existing.defaultEventDuration,
+          taskPriorityFilter:
+            data.taskPriorityFilter ?? existing.taskPriorityFilter,
+        });
 
         if (!updated) {
-          return err("Failed to update settings");
+          return err(
+            ActionErrors.internal(
+              "Failed to update settings",
+              undefined,
+              "IntegrationSettingsService.updateSettings"
+            )
+          );
         }
 
         logger.info("Updated integration settings", { userId, provider });
@@ -111,35 +90,31 @@ export class IntegrationSettingsService {
       }
 
       // Create new settings
-      const [created] = await db
-        .insert(integrationSettings)
-        .values({
-          userId,
-          provider,
-          projectId: data.projectId || null,
-          autoCalendarEnabled: data.autoCalendarEnabled ?? false,
-          autoEmailEnabled: data.autoEmailEnabled ?? false,
-          defaultEventDuration: data.defaultEventDuration ?? 30,
-          taskPriorityFilter: data.taskPriorityFilter || null,
-        })
-        .returning();
-
-      if (!created) {
-        return err("Failed to create settings");
-      }
+      const created = await IntegrationSettingsQueries.create({
+        userId,
+        provider,
+        projectId: data.projectId ?? null,
+        autoCalendarEnabled: data.autoCalendarEnabled ?? false,
+        autoEmailEnabled: data.autoEmailEnabled ?? false,
+        defaultEventDuration: data.defaultEventDuration ?? 30,
+        taskPriorityFilter: data.taskPriorityFilter ?? null,
+      });
 
       logger.info("Created integration settings", { userId, provider });
       return ok(created);
     } catch (error) {
-      const errorMessage = `Failed to update integration settings: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`;
       logger.error(
-        errorMessage,
+        "Failed to update integration settings",
         { userId, provider, projectId: data.projectId },
         error as Error
       );
-      return err(errorMessage);
+      return err(
+        ActionErrors.internal(
+          "Failed to update integration settings",
+          error as Error,
+          "IntegrationSettingsService.updateSettings"
+        )
+      );
     }
   }
 
@@ -150,28 +125,28 @@ export class IntegrationSettingsService {
     userId: string,
     provider: "google" | "microsoft",
     projectId?: string
-  ): Promise<Result<boolean, string>> {
+  ): Promise<ActionResult<boolean>> {
     try {
-      await db
-        .delete(integrationSettings)
-        .where(
-          and(
-            eq(integrationSettings.userId, userId),
-            eq(integrationSettings.provider, provider),
-            projectId
-              ? eq(integrationSettings.projectId, projectId)
-              : isNull(integrationSettings.projectId)
-          )
-        );
-
-      logger.info("Deleted integration settings", { userId, provider, projectId });
+      await IntegrationSettingsQueries.delete(userId, provider, projectId);
+      logger.info("Deleted integration settings", {
+        userId,
+        provider,
+        projectId,
+      });
       return ok(true);
     } catch (error) {
-      const errorMessage = `Failed to delete integration settings: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`;
-      logger.error(errorMessage, { userId, provider, projectId }, error as Error);
-      return err(errorMessage);
+      logger.error(
+        "Failed to delete integration settings",
+        { userId, provider, projectId },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to delete integration settings",
+          error as Error,
+          "IntegrationSettingsService.deleteSettings"
+        )
+      );
     }
   }
 
@@ -184,12 +159,22 @@ export class IntegrationSettingsService {
     actionType: "calendar" | "email",
     taskPriority?: string,
     projectId?: string
-  ): Promise<Result<boolean, string>> {
+  ): Promise<ActionResult<boolean>> {
     try {
-      const settingsResult = await this.getSettings(userId, provider, projectId);
+      const settingsResult = await this.getSettings(
+        userId,
+        provider,
+        projectId
+      );
 
       if (settingsResult.isErr()) {
-        return err(settingsResult.error);
+        return err(
+          ActionErrors.internal(
+            "Failed to get integration settings",
+            settingsResult.error,
+            "IntegrationSettingsService.shouldTriggerAutoAction"
+          )
+        );
       }
 
       const settings = settingsResult.value;
@@ -215,22 +200,27 @@ export class IntegrationSettingsService {
         settings.taskPriorityFilter &&
         settings.taskPriorityFilter.length > 0
       ) {
-        const priorityAllowed = settings.taskPriorityFilter.includes(taskPriority);
+        const priorityAllowed =
+          settings.taskPriorityFilter.includes(taskPriority);
         return ok(priorityAllowed);
       }
 
       // If no filter set, allow all
       return ok(true);
     } catch (error) {
-      const errorMessage = `Failed to check auto-action trigger: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`;
+      const errorMessage = "Failed to check auto-action trigger";
       logger.error(
         errorMessage,
         { userId, provider, actionType, taskPriority, projectId },
         error as Error
       );
-      return err(errorMessage);
+      return err(
+        ActionErrors.internal(
+          errorMessage,
+          undefined,
+          "IntegrationSettingsService.shouldTriggerAutoAction"
+        )
+      );
     }
   }
 }

@@ -1,8 +1,9 @@
+import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
-import { err, ok, type Result } from "neverthrow";
+import { err, ok } from "neverthrow";
 import OpenAI from "openai";
 import {
   getCachedSummary,
@@ -23,7 +24,7 @@ export class SummaryService {
     recordingId: string,
     transcriptionText: string,
     utterances?: Array<{ speaker: number; text: string }>
-  ): Promise<Result<SummaryResult, Error>> {
+  ): Promise<ActionResult<SummaryResult>> {
     try {
       logger.info("Starting summary generation", {
         component: "SummaryService.generateSummary",
@@ -43,18 +44,12 @@ export class SummaryService {
       }
 
       // Create AI insight record
-      const insightResult = await AIInsightsQueries.createAIInsight({
+      const insight = await AIInsightsQueries.createAIInsight({
         recordingId,
         insightType: "summary",
         content: {},
         processingStatus: "processing",
       });
-
-      if (insightResult.isErr()) {
-        return err(insightResult.error);
-      }
-
-      const insight = insightResult.value;
 
       // Prepare speaker context if available
       let speakerContext = "";
@@ -125,23 +120,31 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
         );
 
         // Create failure notification
-        const recording = await RecordingsQueries.selectRecordingById(recordingId);
-        if (recording.isOk() && recording.value) {
+        const recording = await RecordingsQueries.selectRecordingById(
+          recordingId
+        );
+        if (recording) {
           await NotificationService.createNotification({
             recordingId,
-            projectId: recording.value.projectId,
-            userId: recording.value.createdById,
-            organizationId: recording.value.organizationId,
+            projectId: recording.projectId,
+            userId: recording.createdById,
+            organizationId: recording.organizationId,
             type: "summary_failed",
             title: "Samenvatting mislukt",
-            message: `De samenvatting van "${recording.value.title}" is mislukt.`,
+            message: `De samenvatting van "${recording.title}" is mislukt.`,
             metadata: {
               error: "No response from OpenAI",
             },
           });
         }
 
-        return err(new Error("No content in OpenAI response"));
+        return err(
+          ActionErrors.internal(
+            "No content in OpenAI response",
+            undefined,
+            "SummaryService.generateSummary"
+          )
+        );
       }
 
       // Parse JSON response
@@ -161,23 +164,31 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
         );
 
         // Create failure notification
-        const recording = await RecordingsQueries.selectRecordingById(recordingId);
-        if (recording.isOk() && recording.value) {
+        const recording = await RecordingsQueries.selectRecordingById(
+          recordingId
+        );
+        if (recording) {
           await NotificationService.createNotification({
             recordingId,
-            projectId: recording.value.projectId,
-            userId: recording.value.createdById,
-            organizationId: recording.value.organizationId,
+            projectId: recording.projectId,
+            userId: recording.createdById,
+            organizationId: recording.organizationId,
             type: "summary_failed",
             title: "Samenvatting mislukt",
-            message: `De samenvatting van "${recording.value.title}" is mislukt.`,
+            message: `De samenvatting van "${recording.title}" is mislukt.`,
             metadata: {
               error: "Failed to parse summary",
             },
           });
         }
 
-        return err(new Error("Failed to parse OpenAI response"));
+        return err(
+          ActionErrors.internal(
+            "Failed to parse OpenAI response",
+            parseError as Error,
+            "SummaryService.generateSummary"
+          )
+        );
       }
 
       // Calculate confidence based on usage and response quality
@@ -206,25 +217,24 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
       });
 
       // Create success notification
-      const recording = await RecordingsQueries.selectRecordingById(recordingId);
-      if (recording.isOk() && recording.value) {
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+      if (recording) {
         await NotificationService.createNotification({
           recordingId,
-          projectId: recording.value.projectId,
-          userId: recording.value.createdById,
-          organizationId: recording.value.organizationId,
+          projectId: recording.projectId,
+          userId: recording.createdById,
+          organizationId: recording.organizationId,
           type: "summary_completed",
           title: "Samenvatting voltooid",
-          message: `De samenvatting van "${recording.value.title}" is voltooid.`,
+          message: `De samenvatting van "${recording.title}" is voltooid.`,
           metadata: {
             topicsCount: summaryContent.hoofdonderwerpen?.length ?? 0,
             decisionsCount: summaryContent.beslissingen?.length ?? 0,
           },
         });
       }
-
-      // Note: Sequential processing is now handled by the workflow
-      // No need to trigger task extraction here
 
       return ok(result);
     } catch (error) {
@@ -234,7 +244,11 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
         error,
       });
       return err(
-        error instanceof Error ? error : new Error("Failed to generate summary")
+        ActionErrors.internal(
+          "Failed to generate summary",
+          error as Error,
+          "SummaryService.generateSummary"
+        )
       );
     }
   }
@@ -244,7 +258,7 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
    */
   static async invalidateSummaryCache(
     recordingId: string
-  ): Promise<Result<void, Error>> {
+  ): Promise<ActionResult<void>> {
     CacheInvalidation.invalidateSummary(recordingId);
     return ok(undefined);
   }
