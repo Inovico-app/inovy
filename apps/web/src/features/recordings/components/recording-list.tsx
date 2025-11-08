@@ -12,22 +12,9 @@ export async function RecordingList({
   projectId,
   searchQuery,
 }: RecordingListProps) {
-  const recordingsResult = await getCachedRecordingsByProjectId(projectId, {
+  const recordings = await getCachedRecordingsByProjectId(projectId, {
     search: searchQuery,
   });
-
-  if (recordingsResult.isErr()) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-destructive mb-4">Failed to load recordings</p>
-        <p className="text-sm text-muted-foreground">
-          {recordingsResult.error.message}
-        </p>
-      </div>
-    );
-  }
-
-  const recordings = recordingsResult.value;
 
   if (recordings.length === 0) {
     return (

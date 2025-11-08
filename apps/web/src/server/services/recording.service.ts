@@ -1,7 +1,7 @@
 import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { CacheInvalidation } from "../../lib/cache-utils";
-import { logger } from "../../lib/logger";
+import { logger, serializeError } from "../../lib/logger";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import type { NewRecording, Recording } from "../db/schema";
 import { type RecordingDto } from "../dto";
@@ -15,7 +15,8 @@ export class RecordingService {
    * Create a new recording
    */
   static async createRecording(
-    data: NewRecording
+    data: NewRecording,
+    invalidateCache: boolean = true
   ): Promise<ActionResult<RecordingDto>> {
     logger.info("Creating new recording", {
       component: "RecordingService.createRecording",
@@ -27,10 +28,12 @@ export class RecordingService {
       const recording = await RecordingsQueries.insertRecording(data);
 
       // Invalidate recordings cache for this project
-      CacheInvalidation.invalidateProjectRecordings(
-        recording.projectId,
-        recording.organizationId
-      );
+      if (invalidateCache) {
+        CacheInvalidation.invalidateProjectRecordings(
+          recording.projectId,
+          recording.organizationId
+        );
+      }
 
       logger.info("Successfully created recording", {
         component: "RecordingService.createRecording",
@@ -42,7 +45,7 @@ export class RecordingService {
     } catch (error) {
       logger.error("Failed to create recording in database", {
         component: "RecordingService.createRecording",
-        error,
+        error: serializeError(error),
         projectId: data.projectId,
       });
 
@@ -82,7 +85,7 @@ export class RecordingService {
     } catch (error) {
       logger.error("Failed to fetch recording from database", {
         component: "RecordingService.getRecordingById",
-        error,
+        error: serializeError(error),
         recordingId: id,
       });
 
@@ -127,7 +130,7 @@ export class RecordingService {
     } catch (error) {
       logger.error("Failed to fetch recordings from database", {
         component: "RecordingService.getRecordingsByProjectId",
-        error,
+        error: serializeError(error),
         projectId,
       });
 
@@ -226,7 +229,7 @@ export class RecordingService {
     } catch (error) {
       logger.error("Failed to update recording in database", {
         component: "RecordingService.updateRecordingMetadata",
-        error,
+        error: serializeError(error),
         recordingId: id,
       });
 
@@ -261,7 +264,7 @@ export class RecordingService {
     } catch (error) {
       logger.error("Failed to get recording statistics", {
         component: "RecordingService.getProjectRecordingStatistics",
-        error,
+        error: serializeError(error),
         projectId,
       });
 
@@ -324,7 +327,7 @@ export class RecordingService {
     } catch (error) {
       logger.error("Failed to archive recording", {
         component: "RecordingService.archiveRecording",
-        error,
+        error: serializeError(error),
         recordingId,
       });
       return err(
@@ -386,7 +389,7 @@ export class RecordingService {
     } catch (error) {
       logger.error("Failed to unarchive recording", {
         component: "RecordingService.unarchiveRecording",
-        error,
+        error: serializeError(error),
         recordingId,
       });
       return err(
@@ -463,7 +466,7 @@ export class RecordingService {
     } catch (error) {
       logger.error("Failed to delete recording", {
         component: "RecordingService.deleteRecording",
-        error,
+        error: serializeError(error),
         recordingId,
       });
       return err(

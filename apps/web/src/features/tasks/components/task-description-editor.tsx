@@ -31,6 +31,7 @@ export function TaskDescriptionEditor({
         placeholder,
       }),
     ],
+    immediatelyRender: false,
     content: value,
     onUpdate: ({ editor }) => {
       const text = editor.getText();

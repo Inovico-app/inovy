@@ -154,3 +154,18 @@ class Logger {
 
 export const logger = new Logger();
 
+/**
+ * Helper function to serialize errors for logging
+ * Useful when passing errors as part of the context object
+ */
+export function serializeError(error: unknown): unknown {
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    };
+  }
+  return error;
+}
+

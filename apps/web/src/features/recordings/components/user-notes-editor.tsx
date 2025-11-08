@@ -1,10 +1,10 @@
 "use client";
 
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
-import { Bold, Italic, List, ListOrdered, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Placeholder from "@tiptap/extension-placeholder";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { Bold, Italic, List, ListOrdered, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useUpdateUserNotesMutation } from "../hooks/use-update-user-notes-mutation";
 
@@ -69,6 +69,7 @@ export function UserNotesEditor({
         placeholder: "Add your notes here... You can use markdown formatting.",
       }),
     ],
+    immediatelyRender: false,
     content: initialNotes || "",
     editable: !readOnly,
     onUpdate: ({ editor }) => {
@@ -87,7 +88,11 @@ export function UserNotesEditor({
 
   // Update editor content when initialNotes changes
   useEffect(() => {
-    if (editor && initialNotes !== undefined && editor.getHTML() !== initialNotes) {
+    if (
+      editor &&
+      initialNotes !== undefined &&
+      editor.getHTML() !== initialNotes
+    ) {
       editor.commands.setContent(initialNotes || "");
     }
   }, [editor, initialNotes]);
@@ -168,7 +173,15 @@ export function UserNotesEditor({
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>Markdown formatting supported</span>
-        <span className={isOverLimit ? "text-destructive" : isNearLimit ? "text-yellow-600" : ""}>
+        <span
+          className={
+            isOverLimit
+              ? "text-destructive"
+              : isNearLimit
+              ? "text-yellow-600"
+              : ""
+          }
+        >
           {charCount} / {maxLength} characters
         </span>
       </div>
