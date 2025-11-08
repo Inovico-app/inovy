@@ -184,7 +184,8 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
               Auto-verwerking actief
             </Badge>
             <span className="text-sm">
-              Je opname wordt automatisch verwerkt na opslaan
+              AI-gestuurde verwerking van je opname wordt automatisch verwerkt
+              na opslaan
             </span>
           </AlertDescription>
         </Alert>

@@ -1,9 +1,5 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -15,16 +11,39 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
 import { useLiveTranscription } from "@/hooks/use-live-transcription";
-import { Mic, Square, Pause, Play, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Mic,
+  Pause,
+  Play,
+  Square,
+} from "lucide-react";
+import { useRef, useState } from "react";
 
 interface LiveRecorderProps {
   projectId: string;
-  onRecordingComplete: (audioBlob: Blob, transcription: string) => Promise<void>;
+  onRecordingComplete: (
+    audioBlob: Blob,
+    transcription: string
+  ) => Promise<void>;
 }
 
-export function LiveRecorder({ projectId: _projectId, onRecordingComplete }: LiveRecorderProps) {
+export function LiveRecorder({
+  projectId: _projectId,
+  onRecordingComplete,
+}: LiveRecorderProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [showStopConfirm, setShowStopConfirm] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
@@ -54,7 +73,7 @@ export function LiveRecorder({ projectId: _projectId, onRecordingComplete }: Liv
   const handleStart = async () => {
     try {
       setPermissionDenied(false);
-      
+
       // Start audio recording
       await startRecording();
 
@@ -105,7 +124,7 @@ export function LiveRecorder({ projectId: _projectId, onRecordingComplete }: Liv
 
       // Clean up media stream
       if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
         mediaStreamRef.current = null;
       }
 
@@ -129,11 +148,13 @@ export function LiveRecorder({ projectId: _projectId, onRecordingComplete }: Liv
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    return `${mins.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   // Show final segments only
-  const finalSegments = transcript.filter(seg => seg.isFinal);
+  const finalSegments = transcript.filter((seg) => seg.isFinal);
 
   return (
     <>
@@ -147,7 +168,10 @@ export function LiveRecorder({ projectId: _projectId, onRecordingComplete }: Liv
               </CardDescription>
             </div>
             {isRecording && (
-              <Badge variant={isPaused ? "outline" : "default"} className="ml-2">
+              <Badge
+                variant={isPaused ? "outline" : "default"}
+                className="ml-2"
+              >
                 {isPaused ? "Gepauzeerd" : "Opnemen"}
               </Badge>
             )}
@@ -159,7 +183,8 @@ export function LiveRecorder({ projectId: _projectId, onRecordingComplete }: Liv
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Toegang tot microfoon geweigerd. Sta microfoontoegang toe in je browserinstellingen om op te kunnen nemen.
+                Toegang tot microfoon geweigerd. Sta microfoontoegang toe in je
+                browserinstellingen om op te kunnen nemen.
               </AlertDescription>
             </Alert>
           )}
@@ -199,7 +224,7 @@ export function LiveRecorder({ projectId: _projectId, onRecordingComplete }: Liv
                     <Play className="w-6 h-6" />
                   </Button>
                 )}
-                
+
                 <Button
                   onClick={handleStopClick}
                   size="lg"
@@ -217,7 +242,11 @@ export function LiveRecorder({ projectId: _projectId, onRecordingComplete }: Liv
           {/* Duration Display */}
           {isRecording && (
             <div className="text-center space-y-1">
-              <p className="text-3xl font-mono font-bold tabular-nums" role="timer" aria-live="polite">
+              <p
+                className="text-3xl font-mono font-bold tabular-nums"
+                role="timer"
+                aria-live="polite"
+              >
                 {formatDuration(duration)}
               </p>
               <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
@@ -238,17 +267,30 @@ export function LiveRecorder({ projectId: _projectId, onRecordingComplete }: Liv
 
           {/* Audio Level Indicator */}
           {isRecording && !isPaused && (
-            <div className="space-y-2" role="group" aria-label="Audio niveau indicator">
+            <div
+              className="space-y-2"
+              role="group"
+              aria-label="Audio niveau indicator"
+            >
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-muted-foreground">Audio niveau</p>
-                <p className="text-xs text-muted-foreground">{Math.round(audioLevel * 100)}%</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Audio niveau
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {Math.round(audioLevel * 100)}%
+                </p>
               </div>
               <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full transition-all duration-100 rounded-full"
-                  style={{ 
+                  style={{
                     width: `${audioLevel * 100}%`,
-                    backgroundColor: audioLevel > 0.7 ? '#22c55e' : audioLevel > 0.3 ? '#eab308' : '#64748b'
+                    backgroundColor:
+                      audioLevel > 0.7
+                        ? "#22c55e"
+                        : audioLevel > 0.3
+                        ? "#eab308"
+                        : "#64748b",
                   }}
                   role="progressbar"
                   aria-valuenow={Math.round(audioLevel * 100)}
@@ -282,7 +324,12 @@ export function LiveRecorder({ projectId: _projectId, onRecordingComplete }: Liv
 
           {/* Live Transcription Display */}
           {isRecording && finalSegments.length > 0 && (
-            <div className="mt-2 p-4 bg-muted rounded-lg max-h-64 overflow-y-auto border" role="log" aria-live="polite" aria-label="Live transcriptie">
+            <div
+              className="mt-2 p-4 bg-muted rounded-lg max-h-64 overflow-y-auto border"
+              role="log"
+              aria-live="polite"
+              aria-label="Live transcriptie"
+            >
               <div className="flex items-center gap-2 mb-3">
                 <CheckCircle2 className="w-4 h-4 text-green-500" />
                 <p className="text-sm font-semibold">Live transcriptie:</p>
@@ -308,7 +355,9 @@ export function LiveRecorder({ projectId: _projectId, onRecordingComplete }: Liv
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 <p className="font-semibold">Fout opgetreden:</p>
-                <p className="text-sm mt-1">{recorderError ?? transcriptionError}</p>
+                <p className="text-sm mt-1">
+                  {recorderError ?? transcriptionError}
+                </p>
               </AlertDescription>
             </Alert>
           )}
@@ -326,7 +375,9 @@ export function LiveRecorder({ projectId: _projectId, onRecordingComplete }: Liv
           {!isRecording && !isSaving && (
             <div className="text-center text-sm text-muted-foreground">
               <p>Klik op de microfoon knop om te beginnen met opnemen</p>
-              <p className="text-xs mt-1">Live transcriptie wordt automatisch gestart</p>
+              <p className="text-xs mt-1">
+                Live transcriptie wordt automatisch gestart
+              </p>
             </div>
           )}
         </CardContent>
@@ -338,7 +389,8 @@ export function LiveRecorder({ projectId: _projectId, onRecordingComplete }: Liv
           <AlertDialogHeader>
             <AlertDialogTitle>Opname stoppen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Je opname is minder dan 3 seconden. Weet je zeker dat je wilt stoppen?
+              Je opname is minder dan 3 seconden. Weet je zeker dat je wilt
+              stoppen?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -1,5 +1,7 @@
 "use client";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -7,15 +9,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { put } from "@vercel/blob";
-import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
-import { InfoIcon } from "lucide-react";
 import { getAutoProcessPreferenceClient } from "@/lib/recording-preferences";
+import { put } from "@vercel/blob";
+import { InfoIcon } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { LiveRecorder } from "./live-recorder";
 import { UploadRecordingForm } from "./upload-recording-form";
 
@@ -148,8 +149,15 @@ export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
                 Auto-verwerking uit
               </Badge>
               <span className="text-sm">
-                Je kunt verwerking handmatig starten na opslaan
+                Automatische verwerking van je opname is uitgeschakeld. Je kunt
+                AI-gestuurde verwerking handmatig starten na opslaan in{" "}
               </span>
+              <Link
+                href="/settings/profile"
+                className="font-medium text-primary hover:underline"
+              >
+                instellingen
+              </Link>
             </AlertDescription>
           </Alert>
         )}
