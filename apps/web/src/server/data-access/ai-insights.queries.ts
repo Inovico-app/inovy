@@ -101,5 +101,24 @@ export class AIInsightsQueries {
   static async deleteInsight(insightId: string): Promise<void> {
     await db.delete(aiInsights).where(eq(aiInsights.id, insightId));
   }
+
+  static async updateUserNotes(
+    insightId: string,
+    userNotes: string,
+    userId: string
+  ): Promise<AIInsight | undefined> {
+    const [updated] = await db
+      .update(aiInsights)
+      .set({
+        userNotes,
+        isManuallyEdited: true,
+        lastEditedById: userId,
+        lastEditedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(aiInsights.id, insightId))
+      .returning();
+    return updated;
+  }
 }
 
