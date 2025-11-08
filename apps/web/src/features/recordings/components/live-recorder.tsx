@@ -228,7 +228,7 @@ export function LiveRecorder({ projectId: _projectId, onRecordingComplete }: Liv
                   </>
                 ) : (
                   <>
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse inline-block" />
                     <span>Opnemen...</span>
                   </>
                 )}

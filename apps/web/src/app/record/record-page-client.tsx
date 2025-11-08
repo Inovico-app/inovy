@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -20,11 +18,12 @@ import {
 } from "@/components/ui/select";
 import { LiveRecorder } from "@/features/recordings/components/live-recorder";
 import { getAutoProcessPreferenceClient } from "@/lib/recording-preferences";
-import { InfoIcon, FolderIcon } from "lucide-react";
-import { put } from "@vercel/blob";
-import { toast } from "sonner";
 import type { ProjectWithCreatorDto } from "@/server/dto/project.dto";
-import { useEffect } from "react";
+import { put } from "@vercel/blob";
+import { FolderIcon, InfoIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface RecordPageClientProps {
   projects: ProjectWithCreatorDto[];
@@ -142,7 +141,10 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+          <Select
+            value={selectedProjectId}
+            onValueChange={setSelectedProjectId}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select a project" />
             </SelectTrigger>
@@ -201,6 +203,7 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
               >
                 instellingen
               </a>
+              .
             </span>
           </AlertDescription>
         </Alert>

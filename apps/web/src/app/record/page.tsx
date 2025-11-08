@@ -1,26 +1,10 @@
 import { ProtectedPage } from "@/components/protected-page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { LiveRecorder } from "@/features/recordings/components/live-recorder";
 import { getAuthSession } from "@/lib/auth";
-import { InfoIcon, FolderIcon } from "lucide-react";
-import { Suspense } from "react";
-import { put } from "@vercel/blob";
-import { redirect } from "next/navigation";
 import { ProjectQueries } from "@/server/data-access/projects.queries";
+import { InfoIcon } from "lucide-react";
+import Link from "next/link";
+import { Suspense } from "react";
 import { RecordPageClient } from "./record-page-client";
 
 async function RecordPageContent() {
@@ -44,10 +28,7 @@ async function RecordPageContent() {
     );
   }
 
-  const orgCode = (organization as unknown as Record<string, unknown>)
-    .org_code as string | undefined;
-
-  if (!orgCode) {
+  if (!organization.orgCode) {
     return (
       <div className="text-center">
         <p className="text-red-500">Organization code not found</p>
@@ -57,7 +38,7 @@ async function RecordPageContent() {
 
   // Fetch active projects for this organization
   const projects = await ProjectQueries.findByOrganizationWithCreator({
-    organizationId: orgCode,
+    organizationId: organization.orgCode,
     status: "active",
   });
 
@@ -79,12 +60,12 @@ async function RecordPageContent() {
               You need to create a project first before you can record. Projects
               help organize your recordings.
             </p>
-            <a
+            <Link
               href="/projects/create"
               className="text-sm font-medium text-primary hover:underline mt-2 inline-block"
             >
               Create your first project →
-            </a>
+            </Link>
           </AlertDescription>
         </Alert>
       </div>
