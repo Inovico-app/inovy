@@ -2,7 +2,6 @@ import { TaskService } from "@/server/services";
 import {
   ArrowLeftIcon,
   CalendarIcon,
-  CheckCircle2Icon,
   ClockIcon,
   FileIcon,
 } from "lucide-react";
@@ -21,12 +20,11 @@ import {
 import { ArchiveRecordingDialog } from "../../../../../features/recordings/components/archive-recording-dialog";
 import { DeleteRecordingDialog } from "../../../../../features/recordings/components/delete-recording-dialog";
 import { EditRecordingModal } from "../../../../../features/recordings/components/edit-recording-modal";
-import { EditSummaryDialog } from "../../../../../features/recordings/components/edit-summary-dialog";
+import { EnhancedSummarySection } from "../../../../../features/recordings/components/enhanced-summary-section";
 import { RecordingDetailStatus } from "../../../../../features/recordings/components/recording-detail-status";
 import { RecordingPlayerWrapper } from "../../../../../features/recordings/components/recording-player-wrapper";
 import { ReprocessButton } from "../../../../../features/recordings/components/reprocess-button";
 import { ReprocessingStatusIndicator } from "../../../../../features/recordings/components/reprocessing-status-indicator";
-import { SummaryVersionHistoryDialog } from "../../../../../features/recordings/components/summary-version-history-dialog";
 import { TranscriptionSection } from "../../../../../features/recordings/components/transcription-section";
 import { TaskCard } from "../../../../../features/tasks/components/task-card-with-edit";
 import { getCachedSummary } from "../../../../../server/cache/summary.cache";
@@ -245,164 +243,11 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
         />
 
         {/* AI-Generated Summary */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CardTitle>AI-Generated Summary</CardTitle>
-                {summary?.isManuallyEdited && (
-                  <Badge variant="secondary">Edited</Badge>
-                )}
-              </div>
-              {summary && (
-                <div className="flex items-center gap-2">
-                  <SummaryVersionHistoryDialog recordingId={recordingId} />
-                  <EditSummaryDialog
-                    recordingId={recordingId}
-                    summary={summary.content}
-                  />
-                </div>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {summary ? (
-              <div className="space-y-6">
-                {/* Overview */}
-                {summary.content.overview && (
-                  <div>
-                    <h3 className="font-semibold text-sm mb-2">Overview</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {summary.content.overview}
-                    </p>
-                  </div>
-                )}
-
-                {/* Main Topics */}
-                {summary.content.topics &&
-                  summary.content.topics.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-sm mb-2">Key Topics</h3>
-                      <ul className="space-y-1">
-                        {summary.content.topics.map((topic, idx) => (
-                          <li
-                            key={idx}
-                            className="text-sm text-muted-foreground flex items-start gap-2"
-                          >
-                            <span className="text-primary mt-1">•</span>
-                            <span>{topic}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                {/* Decisions */}
-                {summary.content.decisions &&
-                  summary.content.decisions.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-sm mb-2">Decisions</h3>
-                      <ul className="space-y-1">
-                        {summary.content.decisions.map((decision, idx) => (
-                          <li
-                            key={idx}
-                            className="text-sm text-muted-foreground flex items-start gap-2"
-                          >
-                            <CheckCircle2Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                            <span>{decision}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                {/* Speaker Contributions */}
-                {summary.content.speakerContributions &&
-                  summary.content.speakerContributions.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-sm mb-2">
-                        Speaker Contributions
-                      </h3>
-                      <div className="space-y-3">
-                        {summary.content.speakerContributions.map(
-                          (speaker, idx) => (
-                            <div key={idx}>
-                              <p className="font-medium text-sm mb-1">
-                                {speaker.speaker}
-                              </p>
-                              <ul className="space-y-1 ml-4">
-                                {speaker.contributions.map(
-                                  (contribution, cIdx) => (
-                                    <li
-                                      key={cIdx}
-                                      className="text-sm text-muted-foreground"
-                                    >
-                                      • {contribution}
-                                    </li>
-                                  )
-                                )}
-                              </ul>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                {/* Important Quotes */}
-                {summary.content.importantQuotes &&
-                  summary.content.importantQuotes.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-sm mb-2">
-                        Important Quotes
-                      </h3>
-                      <div className="space-y-2">
-                        {summary.content.importantQuotes.map((quote, idx) => (
-                          <div
-                            key={idx}
-                            className="border-l-2 border-primary pl-3 py-1"
-                          >
-                            <p className="text-sm italic text-muted-foreground">
-                              &quot;{quote.quote}&quot;
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              — {quote.speaker}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                {/* Confidence Score */}
-                {summary.confidence && (
-                  <div className="pt-4 border-t">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>AI Confidence:</span>
-                      <Badge variant="outline">
-                        {(summary.confidence * 100).toFixed(0)}%
-                      </Badge>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : recording.transcriptionStatus === "completed" ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>No summary available yet</p>
-                <p className="text-sm mt-2">
-                  Summary generation may still be in progress
-                </p>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>Summary will be generated after transcription completes</p>
-                <p className="text-sm mt-2">
-                  Please wait for the transcription to finish
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <EnhancedSummarySection
+          recordingId={recordingId}
+          summary={summary}
+          transcriptionStatus={recording.transcriptionStatus}
+        />
 
         {/* Extracted Action Items */}
         <Card>
