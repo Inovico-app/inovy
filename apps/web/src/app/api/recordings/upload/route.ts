@@ -1,4 +1,4 @@
-import { logger } from "@/lib/logger";
+import { logger, serializeError } from "@/lib/logger";
 import { RecordingService } from "@/server/services";
 import {
   ALLOWED_MIME_TYPES,
@@ -102,26 +102,34 @@ export async function POST(request: NextRequest) {
     });
 
     // Create recording in database
-    const result = await RecordingService.createRecording({
-      projectId,
-      title,
-      description: description ?? null,
-      fileUrl: blob.url,
-      fileName: file.name,
-      fileSize: file.size,
-      fileMimeType: file.type,
-      duration: null, // Will be extracted later
-      recordingDate: new Date(recordingDateStr),
-      transcriptionStatus: "pending",
-      transcriptionText: null,
-      organizationId: organization.orgCode,
-      createdById: user.id,
-    });
+    const result = await RecordingService.createRecording(
+      {
+        projectId,
+        title,
+        description: description ?? null,
+        fileUrl: blob.url,
+        fileName: file.name,
+        fileSize: file.size,
+        fileMimeType: file.type,
+        duration: null, // Will be extracted later
+        recordingDate: new Date(recordingDateStr),
+        transcriptionStatus: "pending",
+        transcriptionText: null,
+        organizationId: organization.orgCode,
+        createdById: user.id,
+      },
+      false
+    );
 
     if (result.isErr()) {
       logger.error("Failed to create recording in database", {
         component: "POST /api/recordings/upload",
-        error: result.error,
+        error: {
+          code: result.error.code,
+          message: result.error.message,
+          cause: serializeError(result.error.cause),
+          context: result.error.context,
+        },
       });
       return NextResponse.json(
         { error: "Failed to create recording" },
@@ -168,7 +176,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error("Error in POST /api/recordings/upload", {
       component: "POST /api/recordings/upload",
-      error,
+      error: serializeError(error),
     });
 
     return NextResponse.json(

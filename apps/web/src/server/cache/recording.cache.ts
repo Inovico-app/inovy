@@ -29,6 +29,16 @@ export async function getCachedRecordingsByProjectId(
 ) {
   "use cache";
   cacheTag(CacheTags.recordingsByProject(projectId));
-  return await RecordingService.getRecordingsByProjectId(projectId, options);
+
+  const recordings = await RecordingService.getRecordingsByProjectId(
+    projectId,
+    options
+  );
+
+  if (recordings.isOk()) {
+    return recordings.value;
+  }
+
+  return [];
 }
 
