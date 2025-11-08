@@ -268,15 +268,23 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
           <CardContent>
             {summary ? (
               <div className="space-y-6">
+                {/* Overview */}
+                {summary.content.overview && (
+                  <div>
+                    <h3 className="font-semibold text-sm mb-2">Overview</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {summary.content.overview}
+                    </p>
+                  </div>
+                )}
+
                 {/* Main Topics */}
-                {summary.content.hoofdonderwerpen &&
-                  summary.content.hoofdonderwerpen.length > 0 && (
+                {summary.content.topics &&
+                  summary.content.topics.length > 0 && (
                     <div>
-                      <h3 className="font-semibold text-sm mb-2">
-                        Main Topics
-                      </h3>
+                      <h3 className="font-semibold text-sm mb-2">Key Topics</h3>
                       <ul className="space-y-1">
-                        {summary.content.hoofdonderwerpen.map((topic, idx) => (
+                        {summary.content.topics.map((topic, idx) => (
                           <li
                             key={idx}
                             className="text-sm text-muted-foreground flex items-start gap-2"
@@ -290,12 +298,12 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
                   )}
 
                 {/* Decisions */}
-                {summary.content.beslissingen &&
-                  summary.content.beslissingen.length > 0 && (
+                {summary.content.decisions &&
+                  summary.content.decisions.length > 0 && (
                     <div>
                       <h3 className="font-semibold text-sm mb-2">Decisions</h3>
                       <ul className="space-y-1">
-                        {summary.content.beslissingen.map((decision, idx) => (
+                        {summary.content.decisions.map((decision, idx) => (
                           <li
                             key={idx}
                             className="text-sm text-muted-foreground flex items-start gap-2"
@@ -309,28 +317,30 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
                   )}
 
                 {/* Speaker Contributions */}
-                {summary.content.sprekersBijdragen &&
-                  summary.content.sprekersBijdragen.length > 0 && (
+                {summary.content.speakerContributions &&
+                  summary.content.speakerContributions.length > 0 && (
                     <div>
                       <h3 className="font-semibold text-sm mb-2">
                         Speaker Contributions
                       </h3>
                       <div className="space-y-3">
-                        {summary.content.sprekersBijdragen.map(
+                        {summary.content.speakerContributions.map(
                           (speaker, idx) => (
                             <div key={idx}>
                               <p className="font-medium text-sm mb-1">
-                                {speaker.spreker}
+                                {speaker.speaker}
                               </p>
                               <ul className="space-y-1 ml-4">
-                                {speaker.bijdragen.map((contribution, cIdx) => (
-                                  <li
-                                    key={cIdx}
-                                    className="text-sm text-muted-foreground"
-                                  >
-                                    • {contribution}
-                                  </li>
-                                ))}
+                                {speaker.contributions.map(
+                                  (contribution, cIdx) => (
+                                    <li
+                                      key={cIdx}
+                                      className="text-sm text-muted-foreground"
+                                    >
+                                      • {contribution}
+                                    </li>
+                                  )
+                                )}
                               </ul>
                             </div>
                           )
@@ -340,14 +350,14 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
                   )}
 
                 {/* Important Quotes */}
-                {summary.content.belangrijkeQuotes &&
-                  summary.content.belangrijkeQuotes.length > 0 && (
+                {summary.content.importantQuotes &&
+                  summary.content.importantQuotes.length > 0 && (
                     <div>
                       <h3 className="font-semibold text-sm mb-2">
                         Important Quotes
                       </h3>
                       <div className="space-y-2">
-                        {summary.content.belangrijkeQuotes.map((quote, idx) => (
+                        {summary.content.importantQuotes.map((quote, idx) => (
                           <div
                             key={idx}
                             className="border-l-2 border-primary pl-3 py-1"
@@ -356,7 +366,7 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
                               &quot;{quote.quote}&quot;
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              — {quote.spreker}
+                              — {quote.speaker}
                             </p>
                           </div>
                         ))}

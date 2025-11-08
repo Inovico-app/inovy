@@ -5,14 +5,15 @@ import { toast } from "sonner";
 import { queryKeys } from "../../../lib/query-keys";
 
 interface SummaryContent {
-  hoofdonderwerpen: string[];
-  beslissingen: string[];
-  sprekersBijdragen: {
-    spreker: string;
-    bijdragen: string[];
+  overview: string;
+  topics: string[];
+  decisions: string[];
+  speakerContributions: {
+    speaker: string;
+    contributions: string[];
   }[];
-  belangrijkeQuotes: {
-    spreker: string;
+  importantQuotes: {
+    speaker: string;
     quote: string;
   }[];
 }

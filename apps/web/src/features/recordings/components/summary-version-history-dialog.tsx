@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,9 +10,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { History, Loader2 } from "lucide-react";
-import { useSummaryHistory } from "../hooks/use-summary-history";
 import { format } from "date-fns";
+import { History, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { useSummaryHistory } from "../hooks/use-summary-history";
 
 interface SummaryVersionHistoryDialogProps {
   recordingId: string;
@@ -98,39 +98,57 @@ export function SummaryVersionHistoryDialog({
 
                   {/* Display summary content */}
                   <div className="space-y-3 text-sm">
-                    {(entry.content.hoofdonderwerpen &&
-                      Array.isArray(entry.content.hoofdonderwerpen) &&
-                      entry.content.hoofdonderwerpen.length > 0) ? (
-                        <div>
-                          <p className="font-semibold text-xs uppercase text-muted-foreground mb-1">
-                            Main Topics ({entry.content.hoofdonderwerpen.length})
-                          </p>
-                          <ul className="space-y-1 pl-4">
-                            {entry.content.hoofdonderwerpen.map((topic, idx) => (
-                              <li key={idx} className="text-muted-foreground list-disc">
-                                {String(topic)}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
+                    {entry.content.overview &&
+                    typeof entry.content.overview === "string" ? (
+                      <div>
+                        <p className="font-semibold text-xs uppercase text-muted-foreground mb-1">
+                          Overview
+                        </p>
+                        <p className="text-muted-foreground">
+                          {entry.content.overview}
+                        </p>
+                      </div>
+                    ) : null}
 
-                    {(entry.content.beslissingen &&
-                      Array.isArray(entry.content.beslissingen) &&
-                      entry.content.beslissingen.length > 0) ? (
-                        <div>
-                          <p className="font-semibold text-xs uppercase text-muted-foreground mb-1">
-                            Decisions ({entry.content.beslissingen.length})
-                          </p>
-                          <ul className="space-y-1 pl-4">
-                            {entry.content.beslissingen.map((decision, idx) => (
-                              <li key={idx} className="text-muted-foreground list-disc">
-                                {String(decision)}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
+                    {entry.content.topics &&
+                    Array.isArray(entry.content.topics) &&
+                    entry.content.topics.length > 0 ? (
+                      <div>
+                        <p className="font-semibold text-xs uppercase text-muted-foreground mb-1">
+                          Key Topics ({entry.content.topics.length})
+                        </p>
+                        <ul className="space-y-1 pl-4">
+                          {entry.content.topics.map((topic, idx) => (
+                            <li
+                              key={idx}
+                              className="text-muted-foreground list-disc"
+                            >
+                              {String(topic)}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {entry.content.decisions &&
+                    Array.isArray(entry.content.decisions) &&
+                    entry.content.decisions.length > 0 ? (
+                      <div>
+                        <p className="font-semibold text-xs uppercase text-muted-foreground mb-1">
+                          Decisions ({entry.content.decisions.length})
+                        </p>
+                        <ul className="space-y-1 pl-4">
+                          {entry.content.decisions.map((decision, idx) => (
+                            <li
+                              key={idx}
+                              className="text-muted-foreground list-disc"
+                            >
+                              {String(decision)}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               ))}

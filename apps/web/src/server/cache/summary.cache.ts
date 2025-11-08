@@ -8,14 +8,15 @@ import { AIInsightService } from "../services/ai-insight.service";
  */
 
 export interface SummaryContent {
-  hoofdonderwerpen: string[];
-  beslissingen: string[];
-  sprekersBijdragen: {
-    spreker: string;
-    bijdragen: string[];
+  overview: string;
+  topics: string[];
+  decisions: string[];
+  speakerContributions: {
+    speaker: string;
+    contributions: string[];
   }[];
-  belangrijkeQuotes: {
-    spreker: string;
+  importantQuotes: {
+    speaker: string;
     quote: string;
   }[];
 }
@@ -23,6 +24,7 @@ export interface SummaryContent {
 export interface SummaryResult {
   content: SummaryContent;
   confidence: number;
+  userNotes?: string | null;
   isManuallyEdited?: boolean;
   lastEditedById?: string | null;
   lastEditedAt?: Date | null;
@@ -53,6 +55,7 @@ export async function getCachedSummary(
     return {
       content: insight.content as unknown as SummaryContent,
       confidence: insight.confidenceScore ?? 0.85,
+      userNotes: insight.userNotes,
       isManuallyEdited: insight.isManuallyEdited,
       lastEditedById: insight.lastEditedById,
       lastEditedAt: insight.lastEditedAt,
