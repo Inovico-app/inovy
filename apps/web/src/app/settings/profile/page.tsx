@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getAuthSession, getUserSession } from "@/lib/auth";
+import { AutoProcessToggle } from "@/features/recordings/components/auto-process-toggle";
 import { Building2Icon, CalendarIcon, MailIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -125,6 +126,9 @@ async function ProfileContent() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Recording Preferences */}
+      <AutoProcessToggle />
 
       {/* Actions */}
       <div className="flex gap-3">

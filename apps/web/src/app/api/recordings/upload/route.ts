@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     const title = formData.get("title") as string | null;
     const description = formData.get("description") as string | null;
     const recordingDateStr = formData.get("recordingDate") as string | null;
+    const recordingMode = (formData.get("recordingMode") as string) ?? "upload";
 
     // Validate inputs
     if (!file) {
@@ -113,6 +114,7 @@ export async function POST(request: NextRequest) {
         fileMimeType: file.type,
         duration: null, // Will be extracted later
         recordingDate: new Date(recordingDateStr),
+        recordingMode: recordingMode as "live" | "upload",
         transcriptionStatus: "pending",
         transcriptionText: null,
         organizationId: organization.orgCode,
@@ -143,6 +145,7 @@ export async function POST(request: NextRequest) {
       component: "POST /api/recordings/upload",
       recordingId: recording.id,
       projectId,
+      recordingMode,
     });
 
     // Revalidate the project page

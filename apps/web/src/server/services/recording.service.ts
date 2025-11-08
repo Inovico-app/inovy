@@ -494,6 +494,7 @@ export class RecordingService {
       fileMimeType: recording.fileMimeType,
       duration: recording.duration,
       recordingDate: recording.recordingDate,
+      recordingMode: recording.recordingMode,
       transcriptionStatus: recording.transcriptionStatus,
       transcriptionText: recording.transcriptionText,
       isTranscriptionManuallyEdited: recording.isTranscriptionManuallyEdited,
