@@ -34,6 +34,7 @@ export interface AIInsightDto {
   isManuallyEdited: boolean;
   lastEditedById: string | null;
   lastEditedAt: Date | null;
+  userNotes: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

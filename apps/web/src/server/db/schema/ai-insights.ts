@@ -1,12 +1,12 @@
 import {
+  boolean,
+  integer,
+  jsonb,
   pgTable,
+  real,
   text,
   timestamp,
   uuid,
-  jsonb,
-  real,
-  integer,
-  boolean,
 } from "drizzle-orm/pg-core";
 import { recordings } from "./recordings";
 
@@ -62,6 +62,7 @@ export const aiInsights = pgTable("ai_insights", {
   isManuallyEdited: boolean("is_manually_edited").notNull().default(false), // Track if insight has been manually edited
   lastEditedById: text("last_edited_by_id"), // Kinde user ID who last edited
   lastEditedAt: timestamp("last_edited_at", { withTimezone: true }), // Last manual edit timestamp
+  userNotes: text("user_notes"), // User-written markdown notes
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

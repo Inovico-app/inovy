@@ -7,14 +7,15 @@ import { Loader2, RefreshCw } from "lucide-react";
 import { useGenerateSummaryMutation } from "../hooks/use-generate-summary-mutation";
 
 interface SummaryContent {
-  hoofdonderwerpen: string[];
-  beslissingen: string[];
-  sprekersBijdragen: {
-    spreker: string;
-    bijdragen: string[];
+  overview: string;
+  topics: string[];
+  decisions: string[];
+  speakerContributions: {
+    speaker: string;
+    contributions: string[];
   }[];
-  belangrijkeQuotes: {
-    spreker: string;
+  importantQuotes: {
+    speaker: string;
     quote: string;
   }[];
 }
@@ -93,12 +94,20 @@ export function RecordingSummary({
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Main Topics */}
-        {content.hoofdonderwerpen && content.hoofdonderwerpen.length > 0 && (
+        {/* Overview */}
+        {content.overview && (
           <div>
-            <h3 className="text-sm font-semibold mb-2">Hoofdonderwerpen</h3>
+            <h3 className="text-sm font-semibold mb-2">Overview</h3>
+            <p className="text-sm">{content.overview}</p>
+          </div>
+        )}
+
+        {/* Main Topics */}
+        {content.topics && content.topics.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold mb-2">Key Topics</h3>
             <ul className="space-y-1">
-              {content.hoofdonderwerpen.map((topic, index) => (
+              {content.topics.map((topic, index) => (
                 <li key={index} className="text-sm flex items-start">
                   <span className="text-primary mr-2">•</span>
                   {topic}
@@ -109,11 +118,11 @@ export function RecordingSummary({
         )}
 
         {/* Decisions */}
-        {content.beslissingen && content.beslissingen.length > 0 && (
+        {content.decisions && content.decisions.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold mb-2">Beslissingen</h3>
+            <h3 className="text-sm font-semibold mb-2">Decisions</h3>
             <ul className="space-y-1">
-              {content.beslissingen.map((decision, index) => (
+              {content.decisions.map((decision, index) => (
                 <li key={index} className="text-sm flex items-start">
                   <span className="text-primary mr-2">•</span>
                   {decision}
@@ -124,42 +133,45 @@ export function RecordingSummary({
         )}
 
         {/* Speaker Contributions */}
-        {content.sprekersBijdragen && content.sprekersBijdragen.length > 0 && (
-          <div>
-            <h3 className="text-sm font-semibold mb-2">Sprekersbijdragen</h3>
-            <div className="space-y-3">
-              {content.sprekersBijdragen.map((speaker, index) => (
-                <div key={index} className="p-3 rounded-lg bg-muted/50">
-                  <Badge variant="secondary" className="mb-2">
-                    {speaker.spreker}
-                  </Badge>
-                  <ul className="space-y-1">
-                    {speaker.bijdragen.map((contribution, cIndex) => (
-                      <li key={cIndex} className="text-sm flex items-start">
-                        <span className="text-muted-foreground mr-2">-</span>
-                        {contribution}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+        {content.speakerContributions &&
+          content.speakerContributions.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold mb-2">
+                Speaker Contributions
+              </h3>
+              <div className="space-y-3">
+                {content.speakerContributions.map((speaker, index) => (
+                  <div key={index} className="p-3 rounded-lg bg-muted/50">
+                    <Badge variant="secondary" className="mb-2">
+                      {speaker.speaker}
+                    </Badge>
+                    <ul className="space-y-1">
+                      {speaker.contributions.map((contribution, cIndex) => (
+                        <li key={cIndex} className="text-sm flex items-start">
+                          <span className="text-muted-foreground mr-2">-</span>
+                          {contribution}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Important Quotes */}
-        {content.belangrijkeQuotes && content.belangrijkeQuotes.length > 0 && (
+        {content.importantQuotes && content.importantQuotes.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold mb-2">Belangrijke quotes</h3>
+            <h3 className="text-sm font-semibold mb-2">Important Quotes</h3>
             <div className="space-y-2">
-              {content.belangrijkeQuotes.map((quote, index) => (
+              {content.importantQuotes.map((quote, index) => (
                 <div
                   key={index}
                   className="p-3 rounded-lg bg-muted/50 border-l-4 border-primary"
                 >
                   <p className="text-sm italic mb-1">"{quote.quote}"</p>
                   <p className="text-xs text-muted-foreground">
-                    — {quote.spreker}
+                    — {quote.speaker}
                   </p>
                 </div>
               ))}

@@ -68,26 +68,28 @@ export class SummaryService {
 Je taak is om een gestructureerde samenvatting te maken van de vergadertranscriptie.
 
 Analyseer de transcriptie en maak een samenvatting met de volgende structuur:
-1. Hoofdonderwerpen besproken: Een lijst van de belangrijkste onderwerpen die zijn besproken
-2. Beslissingen: Een lijst van beslissingen die tijdens de vergadering zijn genomen
-3. Sprekersbijdragen: Voor elke geïdentificeerde spreker, een lijst van hun belangrijkste bijdragen
-4. Belangrijke quotes: Memorabele of belangrijke uitspraken van sprekers
+1. Overview: Een beknopte paragraaf (2-3 zinnen) die de essentie van de vergadering samenvat
+2. Topics: Een lijst van de belangrijkste onderwerpen die zijn besproken
+3. Decisions: Een lijst van beslissingen die tijdens de vergadering zijn genomen
+4. Speaker Contributions: Voor elke geïdentificeerde spreker, een lijst van hun belangrijkste bijdragen
+5. Important Quotes: Memorabele of belangrijke uitspraken van sprekers
 
 Houd de samenvatting beknopt maar informatief. Focus op actie items en beslissingen.${speakerContext}
 
-Antwoord ALLEEN met valid JSON in het volgende formaat:
+Antwoord ALLEEN met valid JSON in het volgende formaat (gebruik Engels voor de veldnamen):
 {
-  "hoofdonderwerpen": ["onderwerp 1", "onderwerp 2"],
-  "beslissingen": ["beslissing 1", "beslissing 2"],
-  "sprekersBijdragen": [
+  "overview": "Een beknopte paragraaf die de vergadering samenvat...",
+  "topics": ["onderwerp 1", "onderwerp 2"],
+  "decisions": ["beslissing 1", "beslissing 2"],
+  "speakerContributions": [
     {
-      "spreker": "Spreker 1",
-      "bijdragen": ["bijdrage 1", "bijdrage 2"]
+      "speaker": "Spreker 1",
+      "contributions": ["bijdrage 1", "bijdrage 2"]
     }
   ],
-  "belangrijkeQuotes": [
+  "importantQuotes": [
     {
-      "spreker": "Spreker 1",
+      "speaker": "Spreker 1",
       "quote": "exacte quote"
     }
   ]
@@ -212,8 +214,8 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
       logger.info("Summary generated successfully", {
         component: "SummaryService.generateSummary",
         recordingId,
-        topicsCount: summaryContent.hoofdonderwerpen?.length ?? 0,
-        decisionsCount: summaryContent.beslissingen?.length ?? 0,
+        topicsCount: summaryContent.topics?.length ?? 0,
+        decisionsCount: summaryContent.decisions?.length ?? 0,
       });
 
       // Create success notification
@@ -230,8 +232,8 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
           title: "Samenvatting voltooid",
           message: `De samenvatting van "${recording.title}" is voltooid.`,
           metadata: {
-            topicsCount: summaryContent.hoofdonderwerpen?.length ?? 0,
-            decisionsCount: summaryContent.beslissingen?.length ?? 0,
+            topicsCount: summaryContent.topics?.length ?? 0,
+            decisionsCount: summaryContent.decisions?.length ?? 0,
           },
         });
       }

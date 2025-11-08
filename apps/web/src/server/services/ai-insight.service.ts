@@ -381,6 +381,7 @@ export class AIInsightService {
       isManuallyEdited: insight.isManuallyEdited,
       lastEditedById: insight.lastEditedById,
       lastEditedAt: insight.lastEditedAt,
+      userNotes: insight.userNotes,
       createdAt: insight.createdAt,
       updatedAt: insight.updatedAt,
     };

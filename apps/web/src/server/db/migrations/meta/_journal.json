@@ -13,14 +13,14 @@
       "idx": 1,
       "version": "7",
       "when": 1762183606459,
-      "tag": "0001_deep_ink",
+      "tag": "0001_add_transcription_history",
       "breakpoints": true
     },
     {
       "idx": 2,
       "version": "7",
       "when": 1762185524755,
-      "tag": "0002_overconfident_shard",
+      "tag": "0002_add_summary_history",
       "breakpoints": true
     },
     {
@@ -69,8 +69,16 @@
       "idx": 14,
       "version": "7",
       "when": 1762281345959,
-      "tag": "0014_late_sandman",
+      "tag": "0014_add_oauth_integrations",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1762590024491,
+      "tag": "0015_add_usernotes_ai_insights",
       "breakpoints": true
     }
   ]
 }
+

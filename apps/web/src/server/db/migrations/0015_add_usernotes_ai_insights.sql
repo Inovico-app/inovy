@@ -1,0 +1,1 @@
+ALTER TABLE "ai_insights" ADD COLUMN "user_notes" text;

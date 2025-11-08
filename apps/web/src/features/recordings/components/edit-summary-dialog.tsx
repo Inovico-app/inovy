@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,16 +10,24 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Edit, Loader2 } from "lucide-react";
+import { useState } from "react";
 import { useUpdateSummaryMutation } from "../hooks/use-update-summary-mutation";
 
 interface SummaryContent {
-  hoofdonderwerpen?: string[];
-  beslissingen?: string[];
-  risicos?: string[];
-  volgende_stappen?: string[];
+  overview?: string;
+  topics?: string[];
+  decisions?: string[];
+  speakerContributions?: {
+    speaker: string;
+    contributions: string[];
+  }[];
+  importantQuotes?: {
+    speaker: string;
+    quote: string;
+  }[];
 }
 
 interface EditSummaryDialogProps {
@@ -35,17 +42,12 @@ export function EditSummaryDialog({
   onSuccess,
 }: EditSummaryDialogProps) {
   const [open, setOpen] = useState(false);
-  
+
   // Convert summary object to editable fields
-  const [mainTopics, setMainTopics] = useState(
-    summary.hoofdonderwerpen?.join("\n") ?? ""
-  );
+  const [overview, setOverview] = useState(summary.overview ?? "");
+  const [topics, setTopics] = useState(summary.topics?.join("\n") ?? "");
   const [decisions, setDecisions] = useState(
-    summary.beslissingen?.join("\n") ?? ""
-  );
-  const [risks, setRisks] = useState(summary.risicos?.join("\n") ?? "");
-  const [nextSteps, setNextSteps] = useState(
-    summary.volgende_stappen?.join("\n") ?? ""
+    summary.decisions?.join("\n") ?? ""
   );
   const [changeDescription, setChangeDescription] = useState("");
 
@@ -61,22 +63,17 @@ export function EditSummaryDialog({
 
     // Convert text fields back to arrays (split by newlines, filter empty)
     const content: SummaryContent = {
-      hoofdonderwerpen: mainTopics
+      overview: overview.trim(),
+      topics: topics
         .split("\n")
         .map((t) => t.trim())
         .filter(Boolean),
-      beslissingen: decisions
+      decisions: decisions
         .split("\n")
         .map((t) => t.trim())
         .filter(Boolean),
-      risicos: risks
-        .split("\n")
-        .map((t) => t.trim())
-        .filter(Boolean),
-      volgende_stappen: nextSteps
-        .split("\n")
-        .map((t) => t.trim())
-        .filter(Boolean),
+      speakerContributions: summary.speakerContributions ?? [],
+      importantQuotes: summary.importantQuotes ?? [],
     };
 
     mutation.mutate({
@@ -87,10 +84,9 @@ export function EditSummaryDialog({
   };
 
   const resetForm = () => {
-    setMainTopics(summary.hoofdonderwerpen?.join("\n") ?? "");
-    setDecisions(summary.beslissingen?.join("\n") ?? "");
-    setRisks(summary.risicos?.join("\n") ?? "");
-    setNextSteps(summary.volgende_stappen?.join("\n") ?? "");
+    setOverview(summary.overview ?? "");
+    setTopics(summary.topics?.join("\n") ?? "");
+    setDecisions(summary.decisions?.join("\n") ?? "");
     setChangeDescription("");
   };
 
@@ -115,25 +111,41 @@ export function EditSummaryDialog({
           <DialogHeader>
             <DialogTitle>Edit Summary</DialogTitle>
             <DialogDescription>
-              Edit the AI-generated summary. Each line will become a separate item.
-              Changes will be tracked in version history.
+              Edit the AI-generated summary. Each line will become a separate
+              item. Changes will be tracked in version history.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Main Topics */}
+            {/* Overview */}
             <div className="space-y-2">
-              <Label htmlFor="mainTopics">Main Topics</Label>
+              <Label htmlFor="overview">Overview</Label>
               <Textarea
-                id="mainTopics"
-                value={mainTopics}
-                onChange={(e) => setMainTopics(e.target.value)}
+                id="overview"
+                value={overview}
+                onChange={(e) => setOverview(e.target.value)}
+                placeholder="A brief paragraph summarizing the meeting..."
+                rows={3}
+                className="text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                {overview.length} characters
+              </p>
+            </div>
+
+            {/* Topics */}
+            <div className="space-y-2">
+              <Label htmlFor="topics">Key Topics</Label>
+              <Textarea
+                id="topics"
+                value={topics}
+                onChange={(e) => setTopics(e.target.value)}
                 placeholder="One topic per line..."
                 rows={4}
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                {mainTopics.split("\n").filter(Boolean).length} topics
+                {topics.split("\n").filter(Boolean).length} topics
               </p>
             </div>
 
@@ -150,38 +162,6 @@ export function EditSummaryDialog({
               />
               <p className="text-xs text-muted-foreground">
                 {decisions.split("\n").filter(Boolean).length} decisions
-              </p>
-            </div>
-
-            {/* Risks */}
-            <div className="space-y-2">
-              <Label htmlFor="risks">Risks</Label>
-              <Textarea
-                id="risks"
-                value={risks}
-                onChange={(e) => setRisks(e.target.value)}
-                placeholder="One risk per line..."
-                rows={3}
-                className="font-mono text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                {risks.split("\n").filter(Boolean).length} risks
-              </p>
-            </div>
-
-            {/* Next Steps */}
-            <div className="space-y-2">
-              <Label htmlFor="nextSteps">Next Steps</Label>
-              <Textarea
-                id="nextSteps"
-                value={nextSteps}
-                onChange={(e) => setNextSteps(e.target.value)}
-                placeholder="One step per line..."
-                rows={3}
-                className="font-mono text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                {nextSteps.split("\n").filter(Boolean).length} steps
               </p>
             </div>
 
