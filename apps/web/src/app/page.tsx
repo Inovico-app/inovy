@@ -7,31 +7,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ensureUserOrganization } from "@/features/auth/actions/ensure-organization";
 import { TaskCard } from "@/features/tasks/components/task-card";
-import { getAuthSession, getUserSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import { getCachedTaskStats } from "@/server/cache";
 import { DashboardService, TaskService } from "@/server/services";
 import {
+  Building2,
   FolderIcon,
   ListTodoIcon,
   MicIcon,
   PlusIcon,
-  Building2,
 } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
 async function DashboardContent() {
-  // Ensure user has organization assigned
-  await ensureUserOrganization();
+  const authResult = await getAuthSession();
 
-  const userResult = await getUserSession();
-
-  if (userResult.isErr()) {
+  if (authResult.isErr()) {
     logger.error("Failed to get user session in Dashboard", {
       component: "DashboardContent",
-      error: userResult.error,
+      error: authResult.error,
     });
 
     // Show error state in dashboard
@@ -51,9 +48,8 @@ async function DashboardContent() {
     );
   }
 
-  const user = userResult.value;
-
-  if (!user) {
+  const { user, organization } = authResult.value;
+  if (!user || !organization) {
     logger.warn("User session returned null in Dashboard", {
       component: "DashboardContent",
     });
@@ -71,9 +67,21 @@ async function DashboardContent() {
     );
   }
 
-  // Get task statistics
-  const taskStatsResult = await TaskService.getTaskStats();
-  const taskStats = taskStatsResult.isOk() ? taskStatsResult.value : null;
+  // Extract org_code from organization
+  const orgCode = organization.orgCode;
+
+  const dashboardOverview = await DashboardService.getDashboardOverview(
+    orgCode
+  );
+  if (dashboardOverview.isErr()) {
+    logger.error("Failed to get dashboard overview in Dashboard", {
+      component: "DashboardContent",
+      error: dashboardOverview.error,
+    });
+  }
+
+  // Get task statistics (cached)
+  const taskStats = await getCachedTaskStats(user.id, orgCode);
 
   // Get recent tasks (limit to 3 for dashboard)
   const recentTasksResult = await TaskService.getTasksWithContext();
@@ -83,29 +91,13 @@ async function DashboardContent() {
         .slice(0, 3)
     : [];
 
-  // Get dashboard overview with real data
-  const authResult = await getAuthSession();
-  let dashboardOverview = null;
-
-  if (authResult.isOk() && authResult.value.organization) {
-    const orgCode = (
-      authResult.value.organization as unknown as Record<string, unknown>
-    ).org_code as string | undefined;
-    if (orgCode) {
-      const dashboardResult = await DashboardService.getDashboardOverview(
-        orgCode
-      );
-      dashboardOverview = dashboardResult.isOk() ? dashboardResult.value : null;
-    }
-  }
-
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">
       <div className="space-y-8">
         {/* Welcome Section */}
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">
-            Welcome back, {user?.given_name || user?.email}
+            Welcome back, {user?.given_name ?? user?.email}
           </h1>
           <p className="text-muted-foreground">
             Manage your projects, recordings, and AI-generated tasks in one
@@ -140,7 +132,9 @@ async function DashboardContent() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {dashboardOverview?.stats.totalProjects ?? 0}
+                  {dashboardOverview.isOk()
+                    ? dashboardOverview.value.stats.totalProjects
+                    : 0}
                 </div>
                 <p className="text-xs text-muted-foreground">Active projects</p>
               </CardContent>
@@ -154,7 +148,9 @@ async function DashboardContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {dashboardOverview?.stats.totalRecordings ?? 0}
+                {dashboardOverview.isOk()
+                  ? dashboardOverview.value.stats.totalRecordings
+                  : 0}
               </div>
               <p className="text-xs text-muted-foreground">Total recordings</p>
             </CardContent>

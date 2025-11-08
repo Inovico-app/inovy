@@ -1,5 +1,5 @@
 import { Button } from "../../../components/ui/button";
-import { RecordingService } from "../../../server/services/recording.service";
+import { getCachedRecordingsByProjectId } from "../../../server/cache";
 import { RecordingCardWithStatus } from "./recording-card-with-status";
 import { UploadRecordingModal } from "./upload-recording-modal";
 
@@ -12,12 +12,9 @@ export async function RecordingList({
   projectId,
   searchQuery,
 }: RecordingListProps) {
-  const recordingsResult = await RecordingService.getRecordingsByProjectId(
-    projectId,
-    {
-      search: searchQuery,
-    }
-  );
+  const recordingsResult = await getCachedRecordingsByProjectId(projectId, {
+    search: searchQuery,
+  });
 
   if (recordingsResult.isErr()) {
     return (
