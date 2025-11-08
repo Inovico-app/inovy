@@ -3,7 +3,7 @@ import { err, ok } from "neverthrow";
 import { getAuthSession } from "../../lib/auth";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
-import { getCachedTasksByUser, getCachedTaskStats } from "../cache";
+import { getCachedTaskStats } from "../cache";
 import { TaskTagsQueries } from "../data-access/task-tags.queries";
 import {
   TasksQueries,
@@ -55,13 +55,18 @@ export class TaskService {
         );
       }
 
-      const tasks = await getCachedTasksByUser(
-        authUser.id,
-        organization.orgCode,
-        filters
-      );
+      const tasks = await this.getTasksByAssignee(filters);
+      if (tasks.isErr()) {
+        return err(
+          ActionErrors.internal(
+            "Failed to get tasks",
+            undefined,
+            "TaskService.getTasksByAssignee"
+          )
+        );
+      }
 
-      return ok(tasks.map((task: Task) => this.toDto(task)));
+      return ok(tasks.value.map((task: Task) => this.toDto(task)));
     } catch (error) {
       logger.error("Failed to get tasks", {}, error as Error);
       return err(
@@ -203,8 +208,9 @@ export class TaskService {
       }
 
       // Extract org_code from organization
-      const orgCode = (organization as unknown as Record<string, unknown>).org_code as string | undefined;
-      
+      const orgCode = (organization as unknown as Record<string, unknown>)
+        .org_code as string | undefined;
+
       if (!orgCode) {
         return err(
           ActionErrors.forbidden(

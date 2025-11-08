@@ -1,7 +1,7 @@
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
-import type { TaskFiltersDto, TaskStatsDto } from "../dto";
 import { TasksQueries } from "../data-access/tasks.queries";
+import type { TaskFiltersDto, TaskStatsDto } from "../dto";
 import { TaskService } from "../services";
 
 /**
