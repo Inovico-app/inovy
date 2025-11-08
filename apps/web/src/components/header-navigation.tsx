@@ -14,9 +14,10 @@ interface NavLink {
 
 const navLinks: NavLink[] = [
   { to: "/", label: "Dashboard" },
+  { to: "/record", label: "Record" },
+  { to: "/chat", label: "Chat" },
   { to: "/projects", label: "Projects" },
   { to: "/tasks", label: "Tasks" },
-  { to: "/chat", label: "Chat" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
