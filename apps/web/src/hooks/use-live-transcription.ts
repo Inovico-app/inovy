@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
 import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
+import { useEffect, useRef, useState } from "react";
 
 export interface TranscriptSegment {
   text: string;
@@ -46,7 +46,7 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
   const startTranscription = async (stream: MediaStream) => {
     try {
       setError(null);
-      
+
       // Note: API key should be fetched from backend for security
       // For now, we'll create the connection assuming the parent provides it
       if (!process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY) {
@@ -76,48 +76,63 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
       });
 
       // Handle transcription results
-      connection.on(LiveTranscriptionEvents.Transcript, (data: { channel?: { alternatives?: Array<{ transcript?: string; confidence?: number; words?: Array<{ speaker?: number }> }> }; is_final?: boolean }) => {
-        const channel = data.channel;
-        const alternative = channel?.alternatives?.[0];
-        
-        if (!alternative?.transcript) return;
+      connection.on(
+        LiveTranscriptionEvents.Transcript,
+        (data: {
+          channel?: {
+            alternatives?: Array<{
+              transcript?: string;
+              confidence?: number;
+              words?: Array<{ speaker?: number }>;
+            }>;
+          };
+          is_final?: boolean;
+        }) => {
+          const channel = data.channel;
+          const alternative = channel?.alternatives?.[0];
 
-        const segment: TranscriptSegment = {
-          text: alternative.transcript,
-          isFinal: data.is_final ?? false,
-          confidence: alternative.confidence ?? 0,
-          speaker: alternative.words?.[0]?.speaker,
-          timestamp: Date.now(),
-        };
+          if (!alternative?.transcript) return;
 
-        setTranscript((prev) => {
-          // If this is a final result, add it
-          if (segment.isFinal) {
-            setFullTranscript((fullText) => {
-              const newText = fullText
-                ? `${fullText} ${segment.text}`
-                : segment.text;
-              return newText;
-            });
+          const segment: TranscriptSegment = {
+            text: alternative.transcript,
+            isFinal: data.is_final ?? false,
+            confidence: alternative.confidence ?? 0,
+            speaker: alternative.words?.[0]?.speaker,
+            timestamp: Date.now(),
+          };
+
+          setTranscript((prev) => {
+            // If this is a final result, add it
+            if (segment.isFinal) {
+              setFullTranscript((fullText) => {
+                const newText = fullText
+                  ? `${fullText} ${segment.text}`
+                  : segment.text;
+                return newText;
+              });
+              return [...prev, segment];
+            }
+
+            // If interim, replace the last interim segment
+            const lastSegment = prev[prev.length - 1];
+            if (lastSegment && !lastSegment.isFinal) {
+              return [...prev.slice(0, -1), segment];
+            }
+
             return [...prev, segment];
-          }
-          
-          // If interim, replace the last interim segment
-          const lastSegment = prev[prev.length - 1];
-          if (lastSegment && !lastSegment.isFinal) {
-            return [...prev.slice(0, -1), segment];
-          }
-          
-          return [...prev, segment];
-        });
-      });
+          });
+        }
+      );
 
       // Handle errors
-      connection.on(LiveTranscriptionEvents.Error, (err: { message?: string }) => {
-        console.error("Deepgram error:", err);
-        setError(err.message || "Transcription error");
-        setIsTranscribing(false);
-      });
+      connection.on(
+        LiveTranscriptionEvents.Error,
+        (err: { message?: string }) => {
+          console.error("Deepgram error:", err);
+          setError(err.message || "Transcription error");
+          setIsTranscribing(false);
+        }
+      );
 
       // Handle connection close
       connection.on(LiveTranscriptionEvents.Close, () => {
@@ -140,13 +155,12 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
       mediaRecorder.start(250); // Send audio every 250ms
 
       // Store mediaRecorder for cleanup
-      (connection as unknown as Record<string, unknown>)._mediaRecorder = mediaRecorder;
+      (connection as unknown as Record<string, unknown>)._mediaRecorder =
+        mediaRecorder;
     } catch (err) {
       console.error("Error starting transcription:", err);
       setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to start transcription"
+        err instanceof Error ? err.message : "Failed to start transcription"
       );
       setIsTranscribing(false);
     }
@@ -155,9 +169,12 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
   const stopTranscription = () => {
     if (connectionRef.current) {
       const connection = connectionRef.current;
-      
+
       // Stop media recorder if exists
-      const connWithRecorder = connection as Record<string, { stop?: () => void }>;
+      const connWithRecorder = connection as Record<
+        string,
+        { stop?: () => void }
+      >;
       if (connWithRecorder._mediaRecorder?.stop) {
         connWithRecorder._mediaRecorder.stop();
       }
@@ -165,7 +182,7 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
       connection.finish();
       connectionRef.current = null;
     }
-    
+
     setIsConnected(false);
     setIsTranscribing(false);
   };

@@ -129,52 +129,6 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
         </p>
       </div>
 
-      {/* Project Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FolderIcon className="w-5 h-5" />
-            Select Project
-          </CardTitle>
-          <CardDescription>
-            Choose which project this recording belongs to
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Select
-            value={selectedProjectId}
-            onValueChange={setSelectedProjectId}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a project" />
-            </SelectTrigger>
-            <SelectContent>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.name}
-                  {project.description && (
-                    <span className="text-muted-foreground text-sm ml-2">
-                      - {project.description}
-                    </span>
-                  )}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {selectedProject && (
-            <div className="mt-4 p-3 bg-muted rounded-lg">
-              <p className="text-sm font-medium">{selectedProject.name}</p>
-              {selectedProject.description && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {selectedProject.description}
-                </p>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Auto-process indicator */}
       {autoProcessEnabled ? (
         <Alert>
@@ -210,12 +164,44 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
         </Alert>
       )}
 
+      {/* Project Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FolderIcon className="w-5 h-5" />
+            Select Project
+          </CardTitle>
+          <CardDescription>
+            Choose which project this recording belongs to
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select
+            value={selectedProjectId}
+            onValueChange={setSelectedProjectId}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a project" />
+            </SelectTrigger>
+            <SelectContent>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.name}
+                  {project.description && (
+                    <span className="text-muted-foreground text-sm ml-2">
+                      - {project.description}
+                    </span>
+                  )}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
       {/* Live Recorder */}
       {selectedProjectId ? (
-        <LiveRecorder
-          projectId={selectedProjectId}
-          onRecordingComplete={handleLiveRecordingComplete}
-        />
+        <LiveRecorder onRecordingComplete={handleLiveRecordingComplete} />
       ) : (
         <Alert>
           <InfoIcon className="h-4 w-4" />
