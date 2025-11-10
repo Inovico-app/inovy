@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, Edit2 } from "lucide-react";
-import { useState } from "react";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { TranscriptionHistoryDialog } from "../transcription-history-dialog";
 import { TranscriptionMessageView } from "./transcription-message-view";
 import type { TranscriptionTabsProps } from "./types";
+
+const getDefaultTab = (speakersDetected?: number) =>
+  speakersDetected && speakersDetected > 0 ? "detailed" : "simple";
 
 export function TranscriptionTabs({
   utterances,
@@ -20,7 +23,13 @@ export function TranscriptionTabs({
   confidence,
   onEditStart,
 }: TranscriptionTabsProps) {
-  const [activeTab, setActiveTab] = useState("simple");
+  // URL state management with nuqs
+  const [activeTab, setActiveTab] = useQueryState(
+    "view",
+    parseAsStringLiteral(["simple", "detailed"]).withDefault(
+      getDefaultTab(speakersDetected)
+    )
+  );
 
   const handleExport = () => {
     const blob = new Blob([transcriptionText], { type: "text/plain" });
@@ -88,7 +97,12 @@ export function TranscriptionTabs({
       </CardHeader>
       <CardContent>
         {hasUtterances ? (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs
+            value={activeTab || "simple"}
+            onValueChange={(value) =>
+              setActiveTab(value as "simple" | "detailed")
+            }
+          >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="simple">Simpel</TabsTrigger>
               <TabsTrigger value="detailed">Gedetailleerd</TabsTrigger>
