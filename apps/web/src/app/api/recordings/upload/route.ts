@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
           allowedContentTypes: ALLOWED_MIME_TYPES as unknown as string[],
           maximumSizeInBytes: MAX_FILE_SIZE,
           addRandomSuffix: true,
+          callbackUrl: `${request.url}`, // TODO: add callback url so that we can trigger a webhook workflow instead of onUploadCompleted
           tokenPayload: JSON.stringify(tokenPayload),
         };
       },
@@ -120,7 +121,6 @@ export async function POST(request: NextRequest) {
           throw new Error("Invalid token payload");
         }
 
-        // Create recording in database
         const result = await RecordingService.createRecording(
           {
             projectId: payload.projectId,
@@ -167,27 +167,19 @@ export async function POST(request: NextRequest) {
         revalidatePath(`/projects/${payload.projectId}`);
 
         // Trigger AI processing workflow in the background (fire and forget)
-        start(convertRecordingIntoAiInsights, [recording.id])
-          .then((runConversion) => {
-            logger.info(
-              "AI processing workflow triggered from upload recording",
-              {
-                component: "POST /api/recordings/upload - onUploadCompleted",
-                recordingId: recording.id,
-                run: { id: runConversion.runId, status: runConversion.status },
-              }
-            );
-          })
-          .catch((error) => {
-            logger.error(
-              "Failed to trigger AI processing workflow from upload recording",
-              {
-                component: "POST /api/recordings/upload - onUploadCompleted",
-                recordingId: recording.id,
-                error,
-              }
-            );
-          });
+        const workflowRun = await start(convertRecordingIntoAiInsights, [
+          recording.id,
+        ]);
+
+        logger.info("AI processing workflow triggered from upload recording", {
+          component: "POST /api/recordings/upload - onUploadCompleted",
+          recordingId: recording.id,
+          run: {
+            id: workflowRun.runId,
+            name: workflowRun.workflowName,
+            status: workflowRun.status,
+          },
+        });
       },
     });
 
