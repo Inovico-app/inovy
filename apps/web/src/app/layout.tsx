@@ -1,12 +1,15 @@
 import { PageLayout } from "@/components/page-layout";
-import Providers from "@/components/providers";
 import { KindeAuthProvider } from "@/providers/AuthProvider";
+import { DeepgramContextProvider } from "@/providers/DeepgramProvider";
+import { MicrophoneContextProvider } from "@/providers/MicrophoneProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 import { SpeedInsights as VercelSpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { Toaster } from "sonner";
 import "../index.css";
 
 const geistSans = Geist({
@@ -35,15 +38,22 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <KindeAuthProvider>
-          <VercelAnalytics />
-          <VercelSpeedInsights />
-          <QueryProvider>
-            <NuqsAdapter>
-              <Providers>
-                <PageLayout>{children}</PageLayout>
-              </Providers>
-            </NuqsAdapter>
-          </QueryProvider>
+          <DeepgramContextProvider>
+            <MicrophoneContextProvider>
+              <QueryProvider>
+                <NuqsAdapter>
+                  <ThemeProvider>
+                    <PageLayout>
+                      <VercelAnalytics />
+                      <VercelSpeedInsights />
+                      {children}
+                    </PageLayout>
+                    <Toaster richColors />
+                  </ThemeProvider>
+                </NuqsAdapter>
+              </QueryProvider>
+            </MicrophoneContextProvider>
+          </DeepgramContextProvider>
         </KindeAuthProvider>
       </body>
     </html>

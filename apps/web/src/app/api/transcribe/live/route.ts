@@ -1,5 +1,6 @@
+import { getDeepgramClient } from "@/lib/deepgram";
 import { logger } from "@/lib/logger";
-import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
+import { LiveTranscriptionEvents } from "@deepgram/sdk";
 import { type NextRequest } from "next/server";
 
 /**
@@ -12,7 +13,7 @@ import { type NextRequest } from "next/server";
  */
 export async function GET(request: NextRequest) {
   try {
-    const deepgram = createClient(process.env.DEEPGRAM_API_KEY || "");
+    const deepgram = getDeepgramClient();
 
     // Check if we can upgrade to WebSocket
     const upgradeHeader = request.headers.get("upgrade");

@@ -1,5 +1,7 @@
 "use client";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -8,9 +10,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getAutoProcessPreferenceClient } from "@/lib/recording-preferences";
 import { put } from "@vercel/blob";
+import { InfoIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LiveRecorder } from "./live-recorder";
 import { UploadRecordingForm } from "./upload-recording-form";
@@ -22,6 +27,17 @@ interface UploadModeSelectorProps {
 export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
   const router = useRouter();
   const [_isUploading, setIsUploading] = useState(false);
+  const [autoProcessEnabled, setAutoProcessEnabled] = useState(false);
+
+  // Check auto-process preference on mount
+  useEffect(() => {
+    try {
+      const preference = getAutoProcessPreferenceClient();
+      setAutoProcessEnabled(preference);
+    } catch (error) {
+      console.error("Failed to check auto-process preference:", error);
+    }
+  }, []);
 
   const handleLiveRecordingComplete = async (
     audioBlob: Blob,
@@ -52,6 +68,7 @@ export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
       );
       formData.append("description", "Live opgenomen gesprek");
       formData.append("recordingDate", new Date().toISOString());
+      formData.append("recordingMode", "live");
 
       // Upload recording via API route
       const response = await fetch("/api/recordings/upload", {
@@ -110,11 +127,42 @@ export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
         </Card>
       </TabsContent>
 
-      <TabsContent value="live">
-        <LiveRecorder
-          projectId={projectId}
-          onRecordingComplete={handleLiveRecordingComplete}
-        />
+      <TabsContent value="live" className="space-y-4">
+        {/* Auto-process indicator */}
+        {autoProcessEnabled ? (
+          <Alert>
+            <InfoIcon className="h-4 w-4" />
+            <AlertDescription className="flex items-center gap-2">
+              <Badge variant="default" className="text-xs">
+                Auto-verwerking actief
+              </Badge>
+              <span className="text-sm">
+                Je opname wordt automatisch verwerkt na opslaan
+              </span>
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Alert>
+            <InfoIcon className="h-4 w-4" />
+            <AlertDescription className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                Auto-verwerking uit
+              </Badge>
+              <span className="text-sm">
+                Automatische verwerking van je opname is uitgeschakeld. Je kunt
+                AI-gestuurde verwerking handmatig starten na opslaan in{" "}
+              </span>
+              <Link
+                href="/settings/profile"
+                className="font-medium text-primary hover:underline"
+              >
+                instellingen
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <LiveRecorder onRecordingComplete={handleLiveRecordingComplete} />
       </TabsContent>
     </Tabs>
   );

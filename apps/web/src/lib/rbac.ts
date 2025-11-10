@@ -45,6 +45,9 @@ export const POLICIES = {
 
   // Admin actions
   "admin:all": "admin:all",
+
+  // Deepgram management
+  "deepgram:token": "deepgram:token",
 } as const;
 
 export type PolicyKey = keyof typeof POLICIES;

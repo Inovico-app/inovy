@@ -42,9 +42,12 @@ Before responding to any request, follow these steps:
 - Write concise, readable TypeScript code
 - Use functional and declarative programming patterns
 - Follow DRY (Don't Repeat Yourself) principle
-- Implement early returns for better readability
+- Implement early returns for better readability, always use guard clauses checking necessary conditions before proceeding with the main logic, e.g. if (!condition) return;
 - Structure components logically: exports, subcomponents, helpers, types
 - Use LF line endings insteead of CRLF
+- Separate concerns into separate files
+- Create new hooks instead of defining them in the component file, even if it's a small or single use hook
+- If a component is too big, split it into smaller components with proper naming and folder structure
 
 ### Naming Conventions
 
@@ -70,7 +73,7 @@ Before responding to any request, follow these steps:
 - Implement proper error boundaries
 - Use Suspense for async operations
 - Optimize for performance and Web Vitals
-- Use cache components functionality for all fetched data.
+- Use cache components functionality for all fetched data, e.g. 'use cache' directive in Server Components for cached data fetching in combination with cacheTag, updateTag, revalidatePath, revalidateTag, etc.
 
 ### State Management
 
@@ -81,8 +84,9 @@ Before responding to any request, follow these steps:
 ### Server Actions
 
 - Use the Next-safe-action library for all server actions
-- Use server actions for all database operations
-- Use server actions for all API calls if it makes sense
+- Use server actions for all database mutations
+- Use server actions for all API calls if it makes sense, e.g. createProject, updateProject, deleteProject, etc.
+- Do not use server actions for data fetching, e.g. getProject, getProjects, etc. but rather use cache components functionality, e.g. 'use cache' directive in Server Components for cached data fetching in combination with cacheTag, updateTag, revalidatePath, revalidateTag, etc.
 
 ### UI and Styling
 

@@ -2,6 +2,7 @@ import type {
   RecordingStatus,
   RecordingArchiveStatus,
   WorkflowStatus,
+  RecordingMode,
 } from "../db/schema/recordings";
 
 export interface RecordingDto {
@@ -15,6 +16,7 @@ export interface RecordingDto {
   fileMimeType: string;
   duration: number | null;
   recordingDate: Date;
+  recordingMode: RecordingMode;
   transcriptionStatus: RecordingStatus;
   transcriptionText: string | null;
   isTranscriptionManuallyEdited: boolean;
