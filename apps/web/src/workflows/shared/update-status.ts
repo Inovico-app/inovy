@@ -1,3 +1,4 @@
+import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 
@@ -29,7 +30,10 @@ export async function updateWorkflowStatus(
       updates.workflowRetryCount = retryCount;
     }
 
-    await RecordingsQueries.updateRecording(recordingId, updates);
+    const result = await RecordingsQueries.updateRecording(
+      recordingId,
+      updates
+    );
 
     logger.info("Workflow status updated", {
       component: "WorkflowStatus",
@@ -37,6 +41,14 @@ export async function updateWorkflowStatus(
       status,
       retryCount,
     });
+
+    if (result) {
+      CacheInvalidation.invalidateRecording(
+        recordingId,
+        result.projectId,
+        result.organizationId
+      );
+    }
   } catch (updateError) {
     logger.error("Failed to update workflow status", {
       component: "WorkflowStatus",
