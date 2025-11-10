@@ -1,12 +1,32 @@
 "use server";
 
-import { logger } from "@/lib";
+import { getAuthSession, logger } from "@/lib";
 import { publicActionClient } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { getTemporaryDeepgramToken } from "@/lib/deepgram";
 
 export const getDeepgramClientTokenAction = publicActionClient.action(
   async () => {
+    const authResult = await getAuthSession();
+    if (
+      authResult.isErr() ||
+      !authResult.value.user ||
+      !authResult.value.organization
+    ) {
+      throw ActionErrors.unauthenticated(
+        "User or organization not found",
+        "getDeepgramClientTokenAction"
+      );
+    }
+
+    const { user, organization } = authResult.value;
+    logger.info("Generating temporary Deepgram client token", {
+      component: "getDeepgramClientTokenAction",
+      action: "getDeepgramClientTokenAction",
+      userId: user.id,
+      organizationId: organization.orgCode,
+    });
+
     const { result: tokenResult, error: tokenError } =
       await getTemporaryDeepgramToken();
 

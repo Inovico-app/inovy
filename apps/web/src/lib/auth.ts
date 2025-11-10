@@ -76,14 +76,11 @@ export async function getAuthSession(): Promise<Result<AuthSession, string>> {
       action: "getAuthSession",
     });
 
-    // Extract org_code from KindeOrganization (different property name)
-    const orgCode = organization ? (organization as unknown as Record<string, unknown>).org_code as string | undefined : undefined;
-
     return ok({
       isAuthenticated: true,
       user: {
         ...user,
-        organization_code: orgCode,
+        organization_code: organization?.orgCode ?? undefined,
       },
       organization,
     });
