@@ -1,5 +1,6 @@
 "use client";
 
+import { uploadFileToVercelBlobAction } from "@/actions/vercel-blob";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,10 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LiveRecorder } from "@/features/recordings/components/live-recorder";
+import { LiveRecorder } from "@/features/recordings/components/live-recorder/live-recorder";
 import { getAutoProcessPreferenceClient } from "@/lib/recording-preferences";
 import type { ProjectWithCreatorDto } from "@/server/dto/project.dto";
-import { put } from "@vercel/blob";
 import { FolderIcon, InfoIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -69,9 +69,7 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
       );
 
       // Upload to Vercel Blob
-      await put(`recordings/${audioFile.name}`, audioFile, {
-        access: "public",
-      });
+      await uploadFileToVercelBlobAction(audioFile);
 
       // Create form data
       const formData = new FormData();
