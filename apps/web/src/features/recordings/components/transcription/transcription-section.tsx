@@ -1,26 +1,16 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProcessingError } from "./processing-error";
+import { ProcessingError } from "../processing-error";
 import { TranscriptionEditor } from "./transcription-editor";
-
-interface TranscriptionSectionProps {
-  recordingId: string;
-  recordingTitle: string;
-  transcriptionStatus: "pending" | "processing" | "completed" | "failed";
-  transcriptionText: string | null;
-  isTranscriptionManuallyEdited?: boolean;
-  transcriptionLastEditedById?: string | null;
-  transcriptionLastEditedAt?: Date | null;
-  speakersDetected?: number;
-  confidence?: number;
-}
+import type { TranscriptionSectionProps } from "./types";
 
 export function TranscriptionSection({
   recordingId,
   recordingTitle,
   transcriptionStatus,
   transcriptionText,
+  utterances,
   isTranscriptionManuallyEdited,
   transcriptionLastEditedById,
   transcriptionLastEditedAt,
@@ -32,8 +22,9 @@ export function TranscriptionSection({
       <TranscriptionEditor
         recordingId={recordingId}
         transcriptionText={transcriptionText}
+        utterances={utterances || []}
         isManuallyEdited={isTranscriptionManuallyEdited}
-        _lastEditedById={transcriptionLastEditedById}
+        lastEditedById={transcriptionLastEditedById}
         lastEditedAt={transcriptionLastEditedAt}
         speakersDetected={speakersDetected}
         confidence={confidence}
