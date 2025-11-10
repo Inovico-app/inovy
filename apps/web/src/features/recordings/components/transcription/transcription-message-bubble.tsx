@@ -23,17 +23,31 @@ const SPEAKER_BG_COLORS = [
   "bg-indigo-50 dark:bg-indigo-950",
 ];
 
+const SPEAKER_AVATAR_COLORS = [
+  "bg-blue-200 dark:bg-blue-800",
+  "bg-green-200 dark:bg-green-800",
+  "bg-purple-200 dark:bg-purple-800",
+  "bg-amber-200 dark:bg-amber-800",
+  "bg-pink-200 dark:bg-pink-800",
+  "bg-indigo-200 dark:bg-indigo-800",
+];
+
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-function getSpeakerColor(speakerIndex: number): { text: string; bg: string } {
+function getSpeakerColor(speakerIndex: number): {
+  text: string;
+  bg: string;
+  avatar: string;
+} {
   const colorIndex = speakerIndex % SPEAKER_COLORS.length;
   return {
     text: SPEAKER_COLORS[colorIndex],
     bg: SPEAKER_BG_COLORS[colorIndex],
+    avatar: SPEAKER_AVATAR_COLORS[colorIndex],
   };
 }
 
@@ -89,12 +103,22 @@ export function TranscriptionMessageBubble({
 
   return (
     <TranscriptionMessage isLeftAligned={isLeftAligned}>
+      {viewMode === "detailed" && (
+        <div
+          className={`flex-shrink-0 ${speakerColor.avatar} rounded-full w-8 h-8 flex items-center justify-center font-semibold text-xs text-foreground`}
+          aria-label={`Spreker ${utterance.speaker + 1}`}
+          role="img"
+        >
+          {utterance.speaker + 1}
+        </div>
+      )}
       <TranscriptionMessageContent speakerColor={speakerColor}>
         {viewMode === "detailed" && (
           <div className="mb-1 flex items-center gap-2">
             <Badge
               variant="secondary"
               className={`text-xs ${speakerColor.text}`}
+              aria-label={`Spreker ${utterance.speaker + 1}`}
             >
               Spreker {utterance.speaker + 1}
             </Badge>
@@ -106,8 +130,16 @@ export function TranscriptionMessageBubble({
         </p>
 
         <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{formatTime(utterance.start)}</span>
-          <Badge variant="outline" className="text-xs">
+          <span aria-label={`Starttijd ${formatTime(utterance.start)}`}>
+            {formatTime(utterance.start)}
+          </span>
+          <Badge
+            variant="outline"
+            className="text-xs"
+            aria-label={`Betrouwbaarheid ${Math.round(
+              utterance.confidence * 100
+            )}%`}
+          >
             {Math.round(utterance.confidence * 100)}%
           </Badge>
         </div>
