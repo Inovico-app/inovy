@@ -27,7 +27,7 @@ interface Utterance {
 interface ExportTranscriptionButtonProps {
   utterances: Utterance[];
   recordingId: string;
-  speakerNames?: Record<number, string>;
+  speakerNames?: Record<string, string>;
 }
 
 export function ExportTranscriptionButton({
@@ -49,7 +49,7 @@ export function ExportTranscriptionButton({
     downloadFile(
       content,
       `transcription-${recordingId}.srt`,
-      "text/plain"
+      "application/x-subrip"
     );
   }, [utterances, recordingId, speakerNames]);
 

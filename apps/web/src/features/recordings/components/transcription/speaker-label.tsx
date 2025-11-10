@@ -5,6 +5,18 @@ import { Edit2 } from "lucide-react";
 import { useState } from "react";
 import { EditSpeakerNameDialog } from "./edit-speaker-name-dialog";
 
+// Whitelist of allowed color classes to prevent XSS
+const ALLOWED_TEXT_COLORS = [
+  "text-blue-600 dark:text-blue-400",
+  "text-green-600 dark:text-green-400",
+  "text-purple-600 dark:text-purple-400",
+  "text-amber-600 dark:text-amber-400",
+  "text-pink-600 dark:text-pink-400",
+  "text-red-600 dark:text-red-400",
+  "text-cyan-600 dark:text-cyan-400",
+  "text-orange-600 dark:text-orange-400",
+] as const;
+
 interface SpeakerLabelProps {
   speakerNumber: number;
   customName?: string;
@@ -19,14 +31,20 @@ export function SpeakerLabel({
   recordingId,
 }: SpeakerLabelProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const displayName = customName || `Spreker ${speakerNumber + 1}`;
+  const displayName = customName ?? `Spreker ${speakerNumber + 1}`;
+
+  // Validate textColor against whitelist
+  const safeTextColor =
+    textColor && ALLOWED_TEXT_COLORS.includes(textColor as any)
+      ? textColor
+      : "";
 
   return (
     <>
       <div className="flex items-center gap-2">
         <Badge
           variant="secondary"
-          className={`text-xs ${textColor}`}
+          className={`text-xs ${safeTextColor}`}
           title="Klik om naam te wijzigen"
         >
           {displayName}

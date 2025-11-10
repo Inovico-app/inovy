@@ -35,7 +35,16 @@ export function EditSpeakerNameDialog({
 
   const handleSave = async () => {
     if (!name.trim()) {
-      toast.error("Speaker name cannot be empty");
+      toast.error("Sprekernaam mag niet leeg zijn");
+      return;
+    }
+
+    // Validate allowed characters (alphanumeric, spaces, hyphens, periods)
+    const validNamePattern = /^[a-zA-Z0-9\s\-.]+$/;
+    if (!validNamePattern.test(name.trim())) {
+      toast.error(
+        "Naam mag alleen letters, cijfers, spaties, streepjes en punten bevatten"
+      );
       return;
     }
 
@@ -73,7 +82,7 @@ export function EditSpeakerNameDialog({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Spreaker naam wijzigen</DialogTitle>
+          <DialogTitle>Spreker naam wijzigen</DialogTitle>
           <DialogDescription>
             Wijzig de naam voor Spreker {speakerNumber + 1}
           </DialogDescription>
@@ -87,13 +96,14 @@ export function EditSpeakerNameDialog({
               id="speaker-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Voer spreaker naam in"
+              placeholder="Voer spreker naam in"
               className="col-span-4 sm:col-span-3"
               maxLength={50}
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            {name.length}/50 karakters
+            {name.length}/50 karakters (alleen letters, cijfers, spaties, - en
+            .)
           </p>
         </div>
         <DialogFooter>

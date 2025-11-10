@@ -116,7 +116,8 @@ export function TranscriptionMessageBubble({
     try {
       await navigator.clipboard.writeText(text);
       toast.success("Utterance gekopieerd naar klembord");
-    } catch {
+    } catch (error) {
+      console.error("Failed to copy utterance:", error);
       toast.error("Fout bij kopiëren naar klembord");
     }
   }, [utterance.speaker, utterance.start, utterance.text]);

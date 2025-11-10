@@ -1,9 +1,8 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
-import { db } from "@/server/db";
-import { aiInsights } from "@/server/db/schema";
-import { eq } from "drizzle-orm";
+import { RecordingsQueries } from "@/server/data-access/recordings.queries";
+import { AIInsightService } from "@/server/services/ai-insight.service";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -14,21 +13,33 @@ const updateSpeakerNamesSchema = z.object({
     .string()
     .min(1, "Speaker name is required")
     .max(50, "Speaker name must be 50 characters or less")
-    .regex(/^[a-zA-Z0-9\s\-\.]*$/, "Speaker name can only contain letters, numbers, spaces, hyphens, and periods"),
+    .regex(
+      /^[a-zA-Z0-9\s\-.]*$/,
+      "Speaker name can only contain letters, numbers, spaces, hyphens, and periods"
+    ),
 });
 
 export const updateSpeakerNames = authorizedActionClient
-  .metadata({ policy: "recordings:write" })
-  .schema(updateSpeakerNamesSchema)
-  .action(async ({ parsedInput, ctx }) => {
+  .metadata({ policy: "recordings:update" })
+  .inputSchema(updateSpeakerNamesSchema)
+  .action(async ({ parsedInput }) => {
     const { recordingId, speakerNumber, speakerName } = parsedInput;
 
     try {
-      // Get the current AI insight for this recording
-      const insight = await db.query.aiInsights.findFirst({
-        where: eq(aiInsights.recordingId, recordingId),
-      });
+      // Get the current speaker names
+      const insightResult = await AIInsightService.getInsightByTypeInternal(
+        recordingId,
+        "transcription"
+      );
 
+      if (insightResult.isErr()) {
+        return {
+          success: false,
+          error: "Failed to get transcription",
+        };
+      }
+
+      const insight = insightResult.value;
       if (!insight) {
         return {
           success: false,
@@ -36,20 +47,35 @@ export const updateSpeakerNames = authorizedActionClient
         };
       }
 
-      // Update speaker names
-      const currentSpeakerNames = (insight.speakerNames as Record<number, string>) || {};
-      currentSpeakerNames[speakerNumber] = speakerName;
+      // Update speaker names (create new object to avoid mutation)
+      const currentSpeakerNames = {
+        ...((insight.speakerNames as Record<string, string>) || {}),
+        [speakerNumber.toString()]: speakerName,
+      };
 
-      await db
-        .update(aiInsights)
-        .set({
-          speakerNames: currentSpeakerNames,
-          updatedAt: new Date(),
-        })
-        .where(eq(aiInsights.id, insight.id));
+      // Update via service
+      const updateResult = await AIInsightService.updateSpeakerNames(
+        recordingId,
+        currentSpeakerNames
+      );
 
-      // Revalidate the recording detail page
-      revalidatePath(`/projects/[projectId]/recordings/[recordingId]`);
+      if (updateResult.isErr()) {
+        return {
+          success: false,
+          error: "Failed to update speaker name",
+        };
+      }
+
+      // Get projectId from the recording to revalidate the correct path
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+
+      if (recording) {
+        revalidatePath(
+          `/projects/${recording.projectId}/recordings/${recordingId}`
+        );
+      }
 
       return {
         success: true,

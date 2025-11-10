@@ -18,7 +18,8 @@ export function CopyTranscriptionButton({
     try {
       await navigator.clipboard.writeText(transcriptionText);
       toast.success("Transcriptie gekopieerd naar klembord");
-    } catch {
+    } catch (error) {
+      console.error("Failed to copy transcription:", error);
       toast.error("Fout bij kopiëren naar klembord");
     }
   }, [transcriptionText]);

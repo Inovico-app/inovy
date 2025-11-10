@@ -32,25 +32,29 @@ function formatTimeSimple(seconds: number): string {
 
 export function exportAsText(
   utterances: Utterance[],
-  speakerNames?: Record<number, string>
+  speakerNames?: Record<string, string>
 ): string {
   return utterances
     .map((utterance) => {
       const speakerName =
-        speakerNames?.[utterance.speaker] || `Spreker ${utterance.speaker + 1}`;
-      return `${speakerName} [${formatTimeSimple(utterance.start)}]: ${utterance.text}`;
+        speakerNames?.[utterance.speaker.toString()] ??
+        `Spreker ${utterance.speaker + 1}`;
+      return `${speakerName} [${formatTimeSimple(utterance.start)}]: ${
+        utterance.text
+      }`;
     })
     .join("\n\n");
 }
 
 export function exportAsSRT(
   utterances: Utterance[],
-  speakerNames?: Record<number, string>
+  speakerNames?: Record<string, string>
 ): string {
   return utterances
     .map((utterance, index) => {
       const speakerName =
-        speakerNames?.[utterance.speaker] || `Spreker ${utterance.speaker + 1}`;
+        speakerNames?.[utterance.speaker.toString()] ??
+        `Spreker ${utterance.speaker + 1}`;
       return `${index + 1}
 ${formatTime(utterance.start)} --> ${formatTime(utterance.end)}
 <v ${speakerName}>${utterance.text}`;
@@ -60,12 +64,13 @@ ${formatTime(utterance.start)} --> ${formatTime(utterance.end)}
 
 export function exportAsJSON(
   utterances: Utterance[],
-  speakerNames?: Record<number, string>
+  speakerNames?: Record<string, string>
 ): string {
   const data = utterances.map((utterance) => ({
     speaker: utterance.speaker,
     speakerName:
-      speakerNames?.[utterance.speaker] || `Spreker ${utterance.speaker + 1}`,
+      speakerNames?.[utterance.speaker.toString()] ??
+      `Spreker ${utterance.speaker + 1}`,
     text: utterance.text,
     start: utterance.start,
     end: utterance.end,

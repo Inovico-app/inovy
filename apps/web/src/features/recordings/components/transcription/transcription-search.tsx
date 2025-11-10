@@ -21,9 +21,7 @@ export function TranscriptionSearch({
 
   const handleSearch = (value: string) => {
     setSearchQuery(value);
-    if (value.trim()) {
-      onSearchChange(value, 0);
-    }
+    onSearchChange(value.trim(), 0);
   };
 
   const handleNextMatch = () => {
