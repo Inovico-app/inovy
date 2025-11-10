@@ -6,10 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, Edit2 } from "lucide-react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
 import { TranscriptionHistoryDialog } from "../transcription-history-dialog";
 import { TranscriptionMessageView } from "./transcription-message-view";
 import type { TranscriptionTabsProps } from "./types";
+
+const getDefaultTab = (speakersDetected?: number) =>
+  speakersDetected && speakersDetected > 0 ? "detailed" : "simple";
 
 export function TranscriptionTabs({
   utterances,
@@ -21,26 +23,13 @@ export function TranscriptionTabs({
   confidence,
   onEditStart,
 }: TranscriptionTabsProps) {
-  // Determine default tab based on speakers detected
-  const getDefaultTab = () =>
-    speakersDetected && speakersDetected > 0 ? "detailed" : "simple";
-
   // URL state management with nuqs
   const [activeTab, setActiveTab] = useQueryState(
     "view",
     parseAsStringLiteral(["simple", "detailed"]).withDefault(
-      getDefaultTab()
+      getDefaultTab(speakersDetected)
     )
   );
-
-  // Track if initial default has been set
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  useEffect(() => {
-    if (!isInitialized && activeTab === getDefaultTab()) {
-      setIsInitialized(true);
-    }
-  }, [isInitialized, activeTab, getDefaultTab]);
 
   const handleExport = () => {
     const blob = new Blob([transcriptionText], { type: "text/plain" });
@@ -108,7 +97,12 @@ export function TranscriptionTabs({
       </CardHeader>
       <CardContent>
         {hasUtterances ? (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs
+            value={activeTab || "simple"}
+            onValueChange={(value) =>
+              setActiveTab(value as "simple" | "detailed")
+            }
+          >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="simple">Simpel</TabsTrigger>
               <TabsTrigger value="detailed">Gedetailleerd</TabsTrigger>
