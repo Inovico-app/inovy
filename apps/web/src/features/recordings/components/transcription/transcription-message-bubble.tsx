@@ -1,8 +1,12 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Copy } from "lucide-react";
 import type { HTMLAttributes } from "react";
+import { useCallback } from "react";
+import { toast } from "sonner";
 import type { TranscriptionMessageBubbleProps } from "./types";
 
 const SPEAKER_COLORS = [
@@ -101,6 +105,22 @@ export function TranscriptionMessageBubble({
   const speakerColor = getSpeakerColor(utterance.speaker);
   const isLeftAligned = utterance.speaker % 2 === 0 && viewMode === "detailed";
 
+  const handleJumpToTimestamp = useCallback(() => {
+    window.location.hash = `t=${utterance.start}`;
+  }, [utterance.start]);
+
+  const handleCopyUtterance = useCallback(async () => {
+    const text = `Spreker ${utterance.speaker + 1} [${formatTime(
+      utterance.start
+    )}]: ${utterance.text}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Utterance gekopieerd naar klembord");
+    } catch {
+      toast.error("Fout bij kopiëren naar klembord");
+    }
+  }, [utterance.speaker, utterance.start, utterance.text]);
+
   return (
     <TranscriptionMessage isLeftAligned={isLeftAligned}>
       {viewMode === "detailed" && (
@@ -130,9 +150,16 @@ export function TranscriptionMessageBubble({
         </p>
 
         <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-          <span aria-label={`Starttijd ${formatTime(utterance.start)}`}>
-            {formatTime(utterance.start)}
-          </span>
+          <button
+            onClick={handleJumpToTimestamp}
+            className="hover:underline cursor-pointer"
+            title="Ga naar dit moment in de opname"
+            aria-label={`Ga naar ${formatTime(utterance.start)}`}
+          >
+            <span aria-label={`Starttijd ${formatTime(utterance.start)}`}>
+              {formatTime(utterance.start)}
+            </span>
+          </button>
           <Badge
             variant="outline"
             className="text-xs"
@@ -142,6 +169,15 @@ export function TranscriptionMessageBubble({
           >
             {Math.round(utterance.confidence * 100)}%
           </Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCopyUtterance}
+            className="ml-auto h-6 px-1"
+            title="Kopieer utterance"
+          >
+            <Copy className="h-3 w-3" />
+          </Button>
         </div>
       </TranscriptionMessageContent>
     </TranscriptionMessage>

@@ -58,6 +58,7 @@ export const aiInsights = pgTable("ai_insights", {
     .default("pending"),
   speakersDetected: integer("speakers_detected"),
   utterances: jsonb("utterances").$type<Utterance[]>(),
+  speakerNames: jsonb("speaker_names").$type<Record<number, string>>(), // e.g., { "0": "John Doe", "1": "Jane Smith" }
   errorMessage: text("error_message"),
   isManuallyEdited: boolean("is_manually_edited").notNull().default(false), // Track if insight has been manually edited
   lastEditedById: text("last_edited_by_id"), // Kinde user ID who last edited
