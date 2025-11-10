@@ -1,15 +1,9 @@
-import { TaskService } from "@/server/services";
-import {
-  ArrowLeftIcon,
-  CalendarIcon,
-  ClockIcon,
-  FileIcon,
-} from "lucide-react";
+import { AIInsightService, TaskService } from "@/server/services";
+import { ArrowLeftIcon, CalendarIcon, ClockIcon, FileIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { Badge } from "../../../../../components/ui/badge";
 import { Button } from "../../../../../components/ui/button";
 import {
   Card,
@@ -25,7 +19,7 @@ import { RecordingDetailStatus } from "../../../../../features/recordings/compon
 import { RecordingPlayerWrapper } from "../../../../../features/recordings/components/recording-player-wrapper";
 import { ReprocessButton } from "../../../../../features/recordings/components/reprocess-button";
 import { ReprocessingStatusIndicator } from "../../../../../features/recordings/components/reprocessing-status-indicator";
-import { TranscriptionSection } from "../../../../../features/recordings/components/transcription-section";
+import { TranscriptionSection } from "../../../../../features/recordings/components/transcription";
 import { TaskCard } from "../../../../../features/tasks/components/task-card-with-edit";
 import { getCachedSummary } from "../../../../../server/cache/summary.cache";
 import { ProjectService } from "../../../../../server/services/project.service";
@@ -38,14 +32,20 @@ interface RecordingDetailPageProps {
 async function RecordingDetail({ params }: RecordingDetailPageProps) {
   const { projectId, recordingId } = await params;
 
-  // Fetch recording, project, summary, and tasks in parallel
-  const [recordingResult, projectResult, summary, tasksResult] =
-    await Promise.all([
-      RecordingService.getRecordingById(recordingId),
-      ProjectService.getProjectById(projectId),
-      getCachedSummary(recordingId),
-      TaskService.getTasksByRecordingId(recordingId),
-    ]);
+  // Fetch recording, project, summary, tasks, and transcription insight in parallel
+  const [
+    recordingResult,
+    projectResult,
+    summary,
+    tasksResult,
+    transcriptionInsightResult,
+  ] = await Promise.all([
+    RecordingService.getRecordingById(recordingId),
+    ProjectService.getProjectById(projectId),
+    getCachedSummary(recordingId),
+    TaskService.getTasksByRecordingId(recordingId),
+    AIInsightService.getInsightByTypeInternal(recordingId, "transcription"),
+  ]);
 
   if (recordingResult.isErr() || projectResult.isErr()) {
     notFound();
@@ -64,6 +64,11 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
   }
 
   const tasks = tasksResult.isOk() ? tasksResult.value : [];
+
+  // Extract transcription insight data
+  const transcriptionInsight = transcriptionInsightResult.isOk()
+    ? transcriptionInsightResult.value
+    : null;
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", {
@@ -235,11 +240,14 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
           recordingTitle={recording.title}
           transcriptionStatus={recording.transcriptionStatus}
           transcriptionText={recording.transcriptionText}
+          utterances={transcriptionInsight?.utterances ?? undefined}
           isTranscriptionManuallyEdited={
             recording.isTranscriptionManuallyEdited
           }
           transcriptionLastEditedById={recording.transcriptionLastEditedById}
           transcriptionLastEditedAt={recording.transcriptionLastEditedAt}
+          speakersDetected={transcriptionInsight?.speakersDetected ?? undefined}
+          confidence={transcriptionInsight?.confidenceScore ?? undefined}
         />
 
         {/* AI-Generated Summary */}

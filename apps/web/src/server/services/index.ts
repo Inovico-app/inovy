@@ -1,4 +1,5 @@
 // Export all service classes for easy importing
+export { AIInsightService } from "./ai-insight.service";
 export { DashboardService } from "./dashboard.service";
 export { KindeOrganizationService } from "./kinde-organization.service";
 export { KindeUserService } from "./kinde-user.service";
