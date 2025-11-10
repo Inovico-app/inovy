@@ -1,5 +1,6 @@
 "use client";
 
+import { uploadRecordingToBlob } from "@/lib/vercel-blob";
 import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE,
@@ -96,7 +97,7 @@ export function UploadRecordingForm({
       )
     ) {
       setError(
-        "Unsupported file type. Please upload mp3, mp4, wav, or m4a files."
+        "Unsupported file type. Please upload mp3, mp4, wav, m4a, or webm files."
       );
       return;
     }
@@ -161,67 +162,42 @@ export function UploadRecordingForm({
     // Create a new abort controller for this upload
     abortControllerRef.current = new AbortController();
 
-    let progressInterval: NodeJS.Timeout | null = null;
-
     try {
-      // Simulate progress (since we can't track actual upload progress easily)
-      progressInterval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 90) {
-            if (progressInterval) clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 300);
+      // Prepare metadata to send with the upload
+      const clientPayload = JSON.stringify({
+        projectId,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        recordingDate,
+        recordingMode: "upload",
+        fileName: file.name,
+        fileSize: file.size,
+        fileMimeType: file.type,
+      });
 
-      // Create FormData
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("projectId", projectId);
-      formData.append("title", title.trim());
-      formData.append("description", description.trim());
-      formData.append("recordingDate", recordingDate);
-
-      // Upload recording via API route with abort signal
-      const response = await fetch("/api/recordings/upload", {
-        method: "POST",
-        body: formData,
+      // Upload file directly to Vercel Blob with real progress tracking
+      const blob = await uploadRecordingToBlob(file, {
+        clientPayload,
+        onUploadProgress: (progress) => {
+          setUploadProgress(Math.round(progress.percentage));
+        },
         signal: abortControllerRef.current.signal,
       });
 
-      if (progressInterval) clearInterval(progressInterval);
-      setUploadProgress(100);
+      toast.success("Recording uploaded successfully!");
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          error: "Failed to upload recording",
-        }));
-        throw new Error(errorData.error ?? "Failed to upload recording");
-      }
+      // Refresh the router cache to get updated data
+      router.refresh();
 
-      const result = await response.json();
-
-      if (result.success && result.recordingId) {
-        toast.success("Recording uploaded successfully!");
-
-        // Refresh the router cache to get updated data
-        router.refresh();
-
-        if (onSuccess) {
-          onSuccess(result.recordingId);
-        } else {
-          // Navigate to project page
-          router.push(`/projects/${projectId}`);
-        }
+      if (onSuccess) {
+        // Note: We don't have the recordingId from the client upload
+        // The onUploadCompleted runs server-side, so we just refresh
+        onSuccess(blob.pathname); // Pass pathname as identifier
       } else {
-        setError(result.error ?? "Failed to upload recording");
-        toast.error(result.error ?? "Failed to upload recording");
+        // Navigate to project page
+        router.push(`/projects/${projectId}`);
       }
     } catch (err) {
-      // Clear progress interval if it's still running
-      if (progressInterval) clearInterval(progressInterval);
-
       // Handle abort error differently from other errors
       if (err instanceof Error && err.name === "AbortError") {
         setError("Upload cancelled");
@@ -273,7 +249,7 @@ export function UploadRecordingForm({
             type="file"
             id="file"
             className="hidden"
-            accept=".mp3,.mp4,.wav,.m4a,audio/mpeg,audio/mp4,audio/wav,video/mp4"
+            accept=".mp3,.mp4,.wav,.m4a,.webm,audio/mpeg,audio/mp4,audio/wav,audio/webm,video/mp4,video/webm"
             onChange={handleFileInputChange}
             disabled={isUploading}
           />

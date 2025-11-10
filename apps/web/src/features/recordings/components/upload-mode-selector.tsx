@@ -162,10 +162,7 @@ export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
           </Alert>
         )}
 
-        <LiveRecorder
-          projectId={projectId}
-          onRecordingComplete={handleLiveRecordingComplete}
-        />
+        <LiveRecorder onRecordingComplete={handleLiveRecordingComplete} />
       </TabsContent>
     </Tabs>
   );

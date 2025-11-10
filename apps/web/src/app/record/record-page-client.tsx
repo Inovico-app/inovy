@@ -1,6 +1,5 @@
 "use client";
 
-import { uploadFileToVercelBlobAction } from "@/actions/vercel-blob";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -18,7 +17,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LiveRecorder } from "@/features/recordings/components/live-recorder/live-recorder";
+import { convertBlobToMp3 } from "@/lib/audio-utils";
 import { getAutoProcessPreferenceClient } from "@/lib/recording-preferences";
+import { uploadRecordingToBlob } from "@/lib/vercel-blob";
 import type { ProjectWithCreatorDto } from "@/server/dto/project.dto";
 import { FolderIcon, InfoIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -47,8 +48,6 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
     }
   }, []);
 
-  const selectedProject = projects.find((p) => p.id === selectedProjectId);
-
   const handleLiveRecordingComplete = async (
     audioBlob: Blob,
     _transcription: string
@@ -61,52 +60,32 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
     try {
       setIsUploading(true);
 
-      // Convert blob to file
-      const audioFile = new File(
-        [audioBlob],
-        `live-recording-${Date.now()}.webm`,
-        { type: "audio/webm" }
+      // Convert blob to file with proper naming
+      const audioFile = await convertBlobToMp3(
+        audioBlob,
+        `live-recording-${Date.now()}`
       );
 
-      // Upload to Vercel Blob
-      await uploadFileToVercelBlobAction(audioFile);
-
-      // Create form data
-      const formData = new FormData();
-      formData.append("file", audioFile);
-      formData.append("projectId", selectedProjectId);
-      formData.append(
-        "title",
-        `Live opname ${new Date().toLocaleString("nl-NL")}`
-      );
-      formData.append("description", "Live opgenomen gesprek");
-      formData.append("recordingDate", new Date().toISOString());
-      formData.append("recordingMode", "live");
-
-      // Upload recording via API route
-      const response = await fetch("/api/recordings/upload", {
-        method: "POST",
-        body: formData,
+      // Prepare metadata to send with the upload
+      const clientPayload = JSON.stringify({
+        projectId: selectedProjectId,
+        title: `Live opname ${new Date().toLocaleString("nl-NL")}`,
+        description: "Live opgenomen gesprek",
+        recordingDate: new Date().toISOString(),
+        recordingMode: "live",
+        fileName: audioFile.name,
+        fileSize: audioFile.size,
+        fileMimeType: audioFile.type,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          error: "Fout bij opslaan van opname",
-        }));
-        throw new Error(errorData.error ?? "Fout bij opslaan van opname");
-      }
+      // Upload directly to Vercel Blob using the client upload pattern
+      await uploadRecordingToBlob(audioFile, {
+        clientPayload,
+      });
 
-      const result = await response.json();
-
-      if (result.success && result.recordingId) {
-        toast.success("Opname succesvol opgeslagen!");
-        router.push(
-          `/projects/${selectedProjectId}/recordings/${result.recordingId}`
-        );
-        router.refresh();
-      } else {
-        toast.error(result.error ?? "Fout bij opslaan van opname");
-      }
+      toast.success("Opname succesvol opgeslagen!");
+      router.push(`/projects/${selectedProjectId}`);
+      router.refresh();
     } catch (error) {
       console.error("Error saving live recording:", error);
       toast.error(

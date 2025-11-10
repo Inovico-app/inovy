@@ -57,3 +57,9 @@ export {
 // Logger export (re-export from existing logger)
 export { logger } from "./logger";
 
+// Audio utilities
+export { blobToFile, convertBlobToMp3 } from "./audio-utils";
+
+// Vercel Blob client utilities
+export { uploadRecordingToBlob, type UploadRecordingOptions } from "./vercel-blob";
+

@@ -1,11 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { UploadModeSelector } from "@/features/recordings/components/upload-mode-selector";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProjectService } from "@/server/services";
 import { ArrowLeftIcon } from "lucide-react";
 import type { Route } from "next";
@@ -47,9 +41,6 @@ async function UploadRecordingContent({ params }: UploadRecordingPageProps) {
           </p>
         </div>
 
-        {/* Upload Mode Selector */}
-        <UploadModeSelector projectId={projectId} />
-
         {/* Help Text */}
         <Card>
           <CardHeader>
@@ -64,8 +55,8 @@ async function UploadRecordingContent({ params }: UploadRecordingPageProps) {
               <li>Maximale bestandsgrootte: 100MB</li>
             </ul>
             <p className="text-xs text-muted-foreground mt-4">
-              Na het uploaden wordt je opname automatisch getranscribeerd met AI-analyse
-              om actiepunten en samenvattingen te genereren.
+              Na het uploaden wordt je opname automatisch getranscribeerd met
+              AI-analyse om actiepunten en samenvattingen te genereren.
             </p>
           </CardContent>
         </Card>

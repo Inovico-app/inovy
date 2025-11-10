@@ -62,7 +62,7 @@ export async function uploadRecordingFormAction(
       return {
         success: false,
         error:
-          "Unsupported file type. Please upload mp3, mp4, wav, or m4a files",
+          "Unsupported file type. Please upload mp3, mp4, wav, m4a, or webm files",
       };
     }
 

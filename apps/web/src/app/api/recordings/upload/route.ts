@@ -6,176 +6,192 @@ import {
 } from "@/server/validation/recordings/upload-recording";
 import { convertRecordingIntoAiInsights } from "@/workflows/convert-recording";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { put } from "@vercel/blob";
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { revalidatePath } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 import { start } from "workflow/api";
 
+interface UploadMetadata {
+  projectId: string;
+  title: string;
+  description?: string;
+  recordingDate: string;
+  recordingMode: "live" | "upload";
+  fileName: string;
+  fileSize: number;
+  fileMimeType: string;
+}
+
+interface TokenPayload extends UploadMetadata {
+  userId: string;
+  organizationId: string;
+}
+
 /**
  * POST /api/recordings/upload
- * Upload a recording file using FormData with streaming support
- * This handles the complete flow: file upload to Blob + database record
+ * Handles Vercel Blob client uploads with token-based security
+ *
+ * This endpoint serves two purposes:
+ * 1. Generate client tokens for browser->Blob uploads (onBeforeGenerateToken)
+ * 2. Handle post-upload logic when upload completes (onUploadCompleted)
  */
 export async function POST(request: NextRequest) {
   try {
-    // Get auth session
-    const { getUser, getOrganization } = getKindeServerSession();
-    const user = await getUser();
-    const organization = await getOrganization();
+    const body = (await request.json()) as HandleUploadBody;
 
-    if (!user || !organization) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        // Authenticate user
+        const { getUser, getOrganization } = getKindeServerSession();
+        const user = await getUser();
+        const organization = await getOrganization();
 
-    logger.info("Starting recording upload via API route", {
-      component: "POST /api/recordings/upload",
-      userId: user.id,
-      organizationId: organization.orgCode,
-    });
+        if (!user || !organization) {
+          throw new Error("Unauthorized");
+        }
 
-    // Parse form data with streaming support
-    const formData = await request.formData();
-
-    // Extract form data
-    const file = formData.get("file") as File | null;
-    const projectId = formData.get("projectId") as string | null;
-    const title = formData.get("title") as string | null;
-    const description = formData.get("description") as string | null;
-    const recordingDateStr = formData.get("recordingDate") as string | null;
-    const recordingMode = (formData.get("recordingMode") as string) ?? "upload";
-
-    // Validate inputs
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    }
-
-    if (!projectId || !title || !recordingDateStr) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
-    // Validate file type
-    if (
-      !ALLOWED_MIME_TYPES.includes(
-        file.type as (typeof ALLOWED_MIME_TYPES)[number]
-      )
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Unsupported file type. Please upload mp3, mp4, wav, or m4a files",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        {
-          error: `File size exceeds maximum of ${
-            MAX_FILE_SIZE / 1024 / 1024
-          }MB`,
-        },
-        { status: 400 }
-      );
-    }
-
-    logger.info("File validation passed", {
-      component: "POST /api/recordings/upload",
-      userId: user.id,
-      projectId,
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-    });
-
-    // Upload file to Vercel Blob with streaming support
-    const blob = await put(`recordings/${Date.now()}-${file.name}`, file, {
-      access: "public",
-    });
-
-    logger.info("File uploaded to Blob", {
-      component: "POST /api/recordings/upload",
-      url: blob.url,
-    });
-
-    // Create recording in database
-    const result = await RecordingService.createRecording(
-      {
-        projectId,
-        title,
-        description: description ?? null,
-        fileUrl: blob.url,
-        fileName: file.name,
-        fileSize: file.size,
-        fileMimeType: file.type,
-        duration: null, // Will be extracted later
-        recordingDate: new Date(recordingDateStr),
-        recordingMode: recordingMode as "live" | "upload",
-        transcriptionStatus: "pending",
-        transcriptionText: null,
-        organizationId: organization.orgCode,
-        createdById: user.id,
-      },
-      false
-    );
-
-    if (result.isErr()) {
-      logger.error("Failed to create recording in database", {
-        component: "POST /api/recordings/upload",
-        error: {
-          code: result.error.code,
-          message: result.error.message,
-          cause: serializeError(result.error.cause),
-          context: result.error.context,
-        },
-      });
-      return NextResponse.json(
-        { error: "Failed to create recording" },
-        { status: 500 }
-      );
-    }
-
-    const recording = result.value;
-
-    logger.info("Recording created successfully", {
-      component: "POST /api/recordings/upload",
-      recordingId: recording.id,
-      projectId,
-      recordingMode,
-    });
-
-    // Revalidate the project page
-    revalidatePath(`/projects/${projectId}`);
-
-    // Trigger AI processing workflow in the background (fire and forget)
-    // Don't await to prevent response body lock issues
-    start(convertRecordingIntoAiInsights, [recording.id])
-      .then((runConversion) => {
-        logger.info("AI processing workflow triggered from upload recording", {
-          component: "POST /api/recordings/upload",
-          recordingId: recording.id,
-          run: { id: runConversion.runId, status: runConversion.status },
+        logger.info("Generating client token for recording upload", {
+          component: "POST /api/recordings/upload - onBeforeGenerateToken",
+          userId: user.id,
+          organizationId: organization.orgCode,
+          pathname,
         });
-      })
-      .catch((error) => {
-        logger.error(
-          "Failed to trigger AI processing workflow from upload recording",
-          {
-            component: "POST /api/recordings/upload",
-            recordingId: recording.id,
-            error,
-          }
-        );
-      });
 
-    return NextResponse.json(
-      { success: true, recordingId: recording.id },
-      { status: 200 }
-    );
+        // Parse and validate metadata from client
+        let metadata: UploadMetadata | null = null;
+        try {
+          if (clientPayload) {
+            metadata = JSON.parse(clientPayload) as UploadMetadata;
+          }
+        } catch (error) {
+          logger.error("Failed to parse clientPayload", {
+            component: "POST /api/recordings/upload - onBeforeGenerateToken",
+            error: serializeError(error),
+            clientPayload,
+          });
+          throw new Error("Invalid metadata format");
+        }
+
+        if (
+          !metadata?.projectId ||
+          !metadata?.title ||
+          !metadata?.recordingDate ||
+          !metadata?.fileName ||
+          !metadata?.fileSize ||
+          !metadata?.fileMimeType
+        ) {
+          throw new Error(
+            "Missing required metadata: projectId, title, recordingDate, fileName, fileSize, or fileMimeType"
+          );
+        }
+
+        // Store metadata in tokenPayload for onUploadCompleted
+        const tokenPayload: TokenPayload = {
+          ...metadata,
+          userId: user.id,
+          organizationId: organization.orgCode,
+        };
+
+        return {
+          allowedContentTypes: ALLOWED_MIME_TYPES as unknown as string[],
+          maximumSizeInBytes: MAX_FILE_SIZE,
+          addRandomSuffix: true,
+          tokenPayload: JSON.stringify(tokenPayload),
+        };
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        logger.info("Upload completed, processing recording", {
+          component: "POST /api/recordings/upload - onUploadCompleted",
+          blobPathname: blob.pathname,
+        });
+
+        // Parse token payload
+        let payload: TokenPayload;
+        try {
+          payload = JSON.parse(tokenPayload ?? "{}") as TokenPayload;
+        } catch (error) {
+          logger.error("Failed to parse tokenPayload in onUploadCompleted", {
+            component: "POST /api/recordings/upload - onUploadCompleted",
+            error: serializeError(error),
+            tokenPayload,
+          });
+          throw new Error("Invalid token payload");
+        }
+
+        // Create recording in database
+        const result = await RecordingService.createRecording(
+          {
+            projectId: payload.projectId,
+            title: payload.title,
+            description: payload.description ?? null,
+            fileUrl: blob.url,
+            fileName: payload.fileName,
+            fileSize: payload.fileSize,
+            fileMimeType: payload.fileMimeType,
+            duration: null, // Will be extracted later
+            recordingDate: new Date(payload.recordingDate),
+            recordingMode: payload.recordingMode,
+            transcriptionStatus: "pending",
+            transcriptionText: null,
+            organizationId: payload.organizationId,
+            createdById: payload.userId,
+          },
+          false
+        );
+
+        if (result.isErr()) {
+          logger.error("Failed to create recording in database", {
+            component: "POST /api/recordings/upload - onUploadCompleted",
+            error: {
+              code: result.error.code,
+              message: result.error.message,
+              cause: serializeError(result.error.cause),
+              context: result.error.context,
+            },
+          });
+          throw new Error("Failed to create recording");
+        }
+
+        const recording = result.value;
+
+        logger.info("Recording created successfully", {
+          component: "POST /api/recordings/upload - onUploadCompleted",
+          recordingId: recording.id,
+          projectId: payload.projectId,
+          recordingMode: payload.recordingMode,
+        });
+
+        // Revalidate the project page
+        revalidatePath(`/projects/${payload.projectId}`);
+
+        // Trigger AI processing workflow in the background (fire and forget)
+        start(convertRecordingIntoAiInsights, [recording.id])
+          .then((runConversion) => {
+            logger.info(
+              "AI processing workflow triggered from upload recording",
+              {
+                component: "POST /api/recordings/upload - onUploadCompleted",
+                recordingId: recording.id,
+                run: { id: runConversion.runId, status: runConversion.status },
+              }
+            );
+          })
+          .catch((error) => {
+            logger.error(
+              "Failed to trigger AI processing workflow from upload recording",
+              {
+                component: "POST /api/recordings/upload - onUploadCompleted",
+                recordingId: recording.id,
+                error,
+              }
+            );
+          });
+      },
+    });
+
+    return NextResponse.json(jsonResponse);
   } catch (error) {
     logger.error("Error in POST /api/recordings/upload", {
       component: "POST /api/recordings/upload",
@@ -187,7 +203,7 @@ export async function POST(request: NextRequest) {
         error:
           error instanceof Error ? error.message : "Unknown error occurred",
       },
-      { status: 500 }
+      { status: 400 } // The webhook will retry 5 times waiting for a 200
     );
   }
 }
