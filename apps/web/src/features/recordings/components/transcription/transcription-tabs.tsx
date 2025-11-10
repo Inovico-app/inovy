@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, Edit2 } from "lucide-react";
-import { useState } from "react";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
+import { useEffect, useState } from "react";
 import { TranscriptionHistoryDialog } from "../transcription-history-dialog";
 import { TranscriptionMessageView } from "./transcription-message-view";
 import type { TranscriptionTabsProps } from "./types";
@@ -20,7 +21,26 @@ export function TranscriptionTabs({
   confidence,
   onEditStart,
 }: TranscriptionTabsProps) {
-  const [activeTab, setActiveTab] = useState("simple");
+  // Determine default tab based on speakers detected
+  const getDefaultTab = () =>
+    speakersDetected && speakersDetected > 0 ? "detailed" : "simple";
+
+  // URL state management with nuqs
+  const [activeTab, setActiveTab] = useQueryState(
+    "view",
+    parseAsStringLiteral(["simple", "detailed"]).withDefault(
+      getDefaultTab()
+    )
+  );
+
+  // Track if initial default has been set
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    if (!isInitialized && activeTab === getDefaultTab()) {
+      setIsInitialized(true);
+    }
+  }, [isInitialized, activeTab, getDefaultTab]);
 
   const handleExport = () => {
     const blob = new Blob([transcriptionText], { type: "text/plain" });
