@@ -4,6 +4,7 @@ export * from "./kinde.dto";
 export * from "./notification.dto";
 export * from "./organization.dto";
 export * from "./project.dto";
+export * from "./project-template.dto";
 export * from "./recording.dto";
 export * from "./task.dto";
 export * from "./user.dto";
