@@ -121,7 +121,7 @@ export class ProjectService {
    * Get all projects for the authenticated user's organization
    */
   static async getProjectsByOrganization(
-    filters: ProjectFiltersDto
+    filters?: ProjectFiltersDto
   ): Promise<ActionResult<ProjectWithCreatorDto[]>> {
     try {
       // Check authentication and get session

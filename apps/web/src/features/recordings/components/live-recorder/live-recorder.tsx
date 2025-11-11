@@ -72,7 +72,10 @@ export function LiveRecorder({ onRecordingComplete }: LiveRecorderProps) {
         await recording.handleStart(false);
       }
     } catch (error) {
-      logger.warn("Failed to start recording with transcription:", error);
+      logger.warn(
+        "Failed to start recording with transcription:",
+        error instanceof Error ? { error } : { error: String(error) }
+      );
     }
   };
 

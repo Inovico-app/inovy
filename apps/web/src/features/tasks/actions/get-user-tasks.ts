@@ -1,18 +1,19 @@
 "use server";
 
-import { TaskService } from "@/server/services";
-import type { TaskWithContextDto } from "@/server/dto";
 import { logger } from "@/lib/logger";
-import { filterTasksSchema, type FilterTasksInput } from "@/server/validation/tasks/filter-tasks";
+import type { TaskWithContextDto } from "@/server/dto";
+import { TaskService } from "@/server/services";
+import {
+  filterTasksSchema,
+  type FilterTasksInput,
+} from "@/server/validation/tasks/filter-tasks";
 
 /**
  * Server action to get tasks for the authenticated user
  * Returns tasks with context (project and recording information)
  * Supports filtering by priorities, statuses, projectIds, and search
  */
-export async function getUserTasks(
-  filters?: FilterTasksInput
-): Promise<{
+export async function getUserTasks(filters?: FilterTasksInput): Promise<{
   success: boolean;
   data?: TaskWithContextDto[];
   error?: string;
