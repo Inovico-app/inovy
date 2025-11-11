@@ -38,37 +38,43 @@ export function ProjectTemplateSectionClient({
   );
   const [isEditing, setIsEditing] = useState(false);
 
-  const { execute: executeCreate, isExecuting: isCreating } =
-    useCreateProjectTemplate();
-  const { execute: executeUpdate, isExecuting: isUpdating } =
-    useUpdateProjectTemplate();
-  const { execute: executeDelete, isExecuting: isDeleting } =
-    useDeleteProjectTemplate();
+  const {
+    executeAsync: executeCreate,
+    isExecuting: isCreating,
+  } = useCreateProjectTemplate();
+  const {
+    executeAsync: executeUpdate,
+    isExecuting: isUpdating,
+  } = useUpdateProjectTemplate();
+  const {
+    executeAsync: executeDelete,
+    isExecuting: isDeleting,
+  } = useDeleteProjectTemplate();
 
   const handleSave = useCallback(
     async (instructions: string) => {
       if (template) {
         // Update existing template
-        await executeUpdate({
+        const result = await executeUpdate({
           id: template.id,
           instructions,
         });
-
-        // Update local state
-        setTemplate({
-          ...template,
-          instructions,
-          updatedAt: new Date(),
-        });
+        if (!result?.data) {
+          return;
+        }
+        setTemplate(result.data);
         toast.success("Template updated successfully");
         setIsEditing(false);
       } else {
         // Create new template
-        await executeCreate({
+        const result = await executeCreate({
           projectId,
           instructions,
         });
-
+        if (!result?.data) {
+          return;
+        }
+        setTemplate(result.data);
         toast.success("Template created successfully");
         setIsEditing(false);
       }
@@ -79,8 +85,10 @@ export function ProjectTemplateSectionClient({
   const handleDelete = useCallback(async () => {
     if (!template) return;
 
-    await executeDelete({ id: template.id });
-
+    const result = await executeDelete({ id: template.id });
+    if (result?.serverError || result?.validationErrors) {
+      return;
+    }
     setTemplate(null);
     toast.success("Template deleted successfully");
     setIsEditing(false);
