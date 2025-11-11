@@ -35,7 +35,7 @@ function AdminMenuGrid() {
         </Link>
       </Card>
 
-      <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+      <Card className="hover:shadow-lg transition-shadow">
         <div className="block h-full p-6">
           <div className="flex items-center gap-2 mb-2">
             <BarChart3Icon className="h-5 w-5" />
@@ -78,8 +78,8 @@ export default function AdminPage() {
   return (
     <Suspense
       fallback={
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(2)].map((_, i) => (
             <Skeleton key={i} className="h-24 " />
           ))}
         </div>

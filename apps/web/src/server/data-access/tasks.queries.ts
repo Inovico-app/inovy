@@ -9,7 +9,7 @@ import {
   type Task,
   type TaskHistory,
 } from "@/server/db/schema";
-import { and, desc, eq, ilike, inArray, or } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import type { TaskStatsDto } from "../dto";
 
 export interface TaskWithContext extends Task {
@@ -247,10 +247,10 @@ export class TasksQueries {
 
   static async countByOrganization(organizationId: string): Promise<number> {
     const results = await db
-      .select()
+      .select({ count: count() })
       .from(tasks)
       .where(eq(tasks.organizationId, organizationId));
-    return results.length;
+    return results[0]?.count ?? 0;
   }
 }
 

@@ -1,7 +1,7 @@
 "use server";
 
+import { ActionErrors } from "@/lib";
 import { authorizedActionClient } from "@/lib/action-client";
-import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { ProjectQueries } from "@/server/data-access";
 import { getOrganizationMembers } from "@/server/data-access/organization.queries";
@@ -23,21 +23,18 @@ export interface SystemStats {
  */
 export const getSystemStats = authorizedActionClient
   .metadata({ policy: "admin:all" })
-  .schema(z.object({}))
-  .action(async (): Promise<SystemStats> => {
+  .inputSchema(z.object({}))
+  .action(async ({ ctx }): Promise<SystemStats> => {
     try {
-      const authResult = await getAuthSession();
+      const orgCode = ctx.user?.organization_code;
 
-      if (
-        authResult.isErr() ||
-        !authResult.value.isAuthenticated ||
-        !authResult.value.organization
-      ) {
-        throw new Error("Authentication or organization required");
+      if (!orgCode) {
+        throw ActionErrors.internal(
+          "Failed to get organization code from context, it is required",
+          undefined,
+          "get-system-stats"
+        );
       }
-
-      const { organization } = authResult.value;
-      const orgCode = organization.orgCode;
 
       // Fetch statistics in parallel
       const [projectCount, recordingCount, taskCount, members] =
@@ -57,7 +54,11 @@ export const getSystemStats = authorizedActionClient
       };
     } catch (error) {
       logger.error("Failed to get system stats", {}, error as Error);
-      throw new Error("Failed to fetch system statistics");
+      throw ActionErrors.internal(
+        "Failed to get system stats",
+        error as Error,
+        "get-system-stats"
+      );
     }
   });
 

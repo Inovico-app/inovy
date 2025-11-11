@@ -7,8 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getAuthSession } from "@/lib/auth";
 import { AutoProcessToggle } from "@/features/recordings/components/auto-process-toggle";
+import { getAuthSession } from "@/lib/auth";
 import { Building2Icon, CalendarIcon, MailIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -25,14 +25,6 @@ async function ProfileContent() {
   }
 
   const user = authResult.value.user;
-  if (!user) {
-    return (
-      <div className="text-center">
-        <p className="text-muted-foreground">No user data available</p>
-      </div>
-    );
-  }
-
   const organization = authResult.value.organization;
   const orgName =
     ((organization as unknown as Record<string, unknown>)?.display_name as

@@ -119,7 +119,12 @@ export function HeaderAuthButtons() {
                 </p>
               </div>
               <Badge className="capitalize">
-                {isSuperAdmin ? "Superadmin" : isAdmin ? "Admin" : firstRole}
+                +{" "}
+                {isSuperAdmin
+                  ? "Superadmin"
+                  : isAdmin
+                  ? "Admin"
+                  : firstRole ?? "User"}
               </Badge>
             </div>
           </DropdownMenuLabel>
