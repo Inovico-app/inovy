@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProjectTemplateSection } from "@/features/projects/components/project-template-section";
+import { ProjectTemplateSection } from "@/features/projects/components/project-templates/project-template-section";
 import { ProjectService } from "@/server/services/project.service";
-import { ArrowLeftIcon, SettingsIcon } from "lucide-react";
+import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -36,7 +36,6 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
           </Button>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <SettingsIcon className="h-5 w-5 text-muted-foreground" />
               <h1 className="text-3xl font-bold text-foreground">
                 {project.name} - Settings
               </h1>

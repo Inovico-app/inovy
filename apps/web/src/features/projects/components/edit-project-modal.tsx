@@ -20,14 +20,22 @@ interface EditProjectModalProps {
     description: string | null;
   };
   variant?: "default" | "outline" | "ghost";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function EditProjectModal({
   projectId,
   initialData,
   variant = "default",
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: EditProjectModalProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use controlled state if provided, otherwise use internal state
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = controlledOnOpenChange || setInternalOpen;
 
   const handleSuccess = () => {
     setOpen(false);

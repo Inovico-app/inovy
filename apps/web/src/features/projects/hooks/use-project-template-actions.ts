@@ -1,11 +1,11 @@
 "use client";
 
-import { toast } from "sonner";
 import { useAction } from "next-safe-action/hooks";
+import { toast } from "sonner";
 import {
   createProjectTemplateAction,
-  updateProjectTemplateAction,
   deleteProjectTemplateAction,
+  updateProjectTemplateAction,
 } from "../actions/index";
 
 /**
@@ -14,7 +14,7 @@ import {
 export function useCreateProjectTemplate() {
   return useAction(createProjectTemplateAction, {
     onError: ({ error }) => {
-      toast.error(error.serverError || "Failed to create template");
+      toast.error(error.serverError ?? "Failed to create template");
     },
   });
 }
@@ -25,7 +25,7 @@ export function useCreateProjectTemplate() {
 export function useUpdateProjectTemplate() {
   return useAction(updateProjectTemplateAction, {
     onError: ({ error }) => {
-      toast.error(error.serverError || "Failed to update template");
+      toast.error(error.serverError ?? "Failed to update template");
     },
   });
 }
@@ -36,7 +36,7 @@ export function useUpdateProjectTemplate() {
 export function useDeleteProjectTemplate() {
   return useAction(deleteProjectTemplateAction, {
     onError: ({ error }) => {
-      toast.error(error.serverError || "Failed to delete template");
+      toast.error(error.serverError ?? "Failed to delete template");
     },
   });
 }

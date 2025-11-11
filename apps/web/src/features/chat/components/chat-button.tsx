@@ -10,7 +10,7 @@ interface ChatButtonProps {
   projectName: string;
 }
 
-export function ChatButton({ projectId, projectName }: ChatButtonProps) {
+export function ChatButton({ projectId }: ChatButtonProps) {
   const href: Route = `/chat?context=project&projectId=${projectId}`;
 
   return (

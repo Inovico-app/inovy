@@ -1,16 +1,16 @@
 "use client";
 
-import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { ProjectTemplateForm } from "./project-template-form";
 import type { ProjectTemplateDto } from "@/server/dto";
 import { Loader2Icon } from "lucide-react";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import {
   useCreateProjectTemplate,
   useDeleteProjectTemplate,
   useUpdateProjectTemplate,
-} from "../hooks/use-project-template-actions";
+} from "../../hooks/use-project-template-actions";
+import { ProjectTemplateForm } from "./project-template-form";
 
 interface ProjectTemplateSectionClientProps {
   projectId: string;

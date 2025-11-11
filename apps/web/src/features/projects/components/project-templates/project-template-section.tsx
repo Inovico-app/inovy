@@ -1,4 +1,4 @@
-import { getCachedProjectTemplate } from "@/server/cache/project-template.cache";
+import { ProjectTemplateService } from "@/server/services/project-template.service";
 import { ProjectTemplateSectionClient } from "./project-template-section-client";
 
 interface ProjectTemplateSectionProps {
@@ -12,12 +12,15 @@ interface ProjectTemplateSectionProps {
 export async function ProjectTemplateSection({
   projectId,
 }: ProjectTemplateSectionProps) {
-  const template = await getCachedProjectTemplate(projectId);
+  const template = await ProjectTemplateService.getProjectTemplateByProjectId(
+    projectId
+  );
 
   return (
     <ProjectTemplateSectionClient
       projectId={projectId}
-      initialTemplate={template}
+      initialTemplate={template.isOk() ? template.value : null}
     />
   );
 }
+

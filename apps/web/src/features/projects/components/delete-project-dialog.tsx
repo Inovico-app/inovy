@@ -25,6 +25,8 @@ interface DeleteProjectDialogProps {
   recordingCount?: number;
   variant?: "default" | "outline" | "ghost" | "destructive";
   triggerContent?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function DeleteProjectDialog({
@@ -33,9 +35,16 @@ export function DeleteProjectDialog({
   recordingCount = 0,
   variant = "destructive",
   triggerContent,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: DeleteProjectDialogProps) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  // Use controlled state if provided, otherwise use internal state
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = controlledOnOpenChange || setInternalOpen;
+  
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
   const [confirmCheckbox, setConfirmCheckbox] = useState(false);

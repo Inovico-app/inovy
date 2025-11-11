@@ -2,6 +2,7 @@
 
 import { ActionErrors } from "@/lib/action-errors";
 import { getUserOrganizationCode } from "@/lib/action-helpers";
+import { CacheInvalidation } from "@/lib/cache-utils";
 import { revalidatePath } from "next/cache";
 import {
   authorizedActionClient,
@@ -41,7 +42,8 @@ export const createProjectTemplateAction = authorizedActionClient
 
     // Revalidate project page
     if (result.isOk()) {
-      revalidatePath(`/projects/${projectId}`);
+      CacheInvalidation.invalidateProject(projectId, orgCode);
+      revalidatePath(`/projects/${projectId}/settings`);
     }
 
     return resultToActionResponse(result);

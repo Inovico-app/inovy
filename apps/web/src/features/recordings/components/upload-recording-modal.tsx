@@ -1,6 +1,6 @@
 "use client";
 
-import { UploadIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../../components/ui/button";
 import {
@@ -16,13 +16,21 @@ import { UploadRecordingForm } from "./upload-recording-form";
 interface UploadRecordingModalProps {
   projectId: string;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function UploadRecordingModal({
   projectId,
   trigger,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: UploadRecordingModalProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use controlled state if provided, otherwise use internal state
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setIsOpen = controlledOnOpenChange || setInternalOpen;
 
   const handleSuccess = () => {
     setIsOpen(false);
@@ -37,9 +45,9 @@ export function UploadRecordingModal({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {trigger ?? (
-          <Button>
-            <UploadIcon className="h-4 w-4 mr-2" />
-            Upload Recording
+          <Button variant="outline">
+            <PlusIcon className="size-4 mr-2" />
+            New Recording
           </Button>
         )}
       </DialogTrigger>

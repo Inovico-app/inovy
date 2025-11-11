@@ -22,6 +22,8 @@ interface ArchiveProjectDialogProps {
   projectName: string;
   isArchived: boolean;
   variant?: "default" | "outline" | "ghost" | "destructive";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function ArchiveProjectDialog({
@@ -29,9 +31,16 @@ export function ArchiveProjectDialog({
   projectName,
   isArchived,
   variant = "outline",
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: ArchiveProjectDialogProps) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  // Use controlled state if provided, otherwise use internal state
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = controlledOnOpenChange || setInternalOpen;
+  
   const [isLoading, setIsLoading] = useState(false);
 
   const handleArchive = async () => {

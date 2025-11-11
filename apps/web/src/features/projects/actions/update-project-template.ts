@@ -1,7 +1,7 @@
 "use server";
 
 import { getUserOrganizationCode } from "@/lib/action-helpers";
-import { revalidatePath } from "next/cache";
+import { CacheInvalidation } from "@/lib/cache-utils";
 import {
   authorizedActionClient,
   resultToActionResponse,
@@ -41,7 +41,7 @@ export const updateProjectTemplateAction = authorizedActionClient
 
     // Revalidate project page if template exists
     if (result.isOk()) {
-      revalidatePath(`/projects/${result.value.projectId}`);
+      CacheInvalidation.invalidateProjectTemplate(id);
     }
 
     return resultToActionResponse(result);
