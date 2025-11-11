@@ -63,7 +63,7 @@ export function HeaderNavigation() {
     <nav className="flex gap-4 items-center">
       {navLinks
         .filter(({ requiresAdmin }) =>
-          requiresAdmin ? isAdmin ?? isSuperAdmin : true
+          requiresAdmin ? Boolean(isAdmin || isSuperAdmin) : true
         )
         .map(({ to, label }) => {
           const active = isActive(pathname, to);
