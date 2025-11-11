@@ -1,0 +1,2 @@
+ALTER TABLE "project_templates" ADD COLUMN "organization_id" text NOT NULL;--> statement-breakpoint
+CREATE INDEX "project_templates_organization_id_idx" ON "project_templates" USING btree ("organization_id");
