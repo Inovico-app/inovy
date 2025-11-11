@@ -1,18 +1,17 @@
 "use client";
 
-import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import {
-  createProjectTemplateAction,
-  updateProjectTemplateAction,
-  deleteProjectTemplateAction,
-} from "../actions/index";
-import { ProjectTemplateForm } from "./project-template-form";
+import { getCachedProjectTemplate } from "@/server/cache/project-template.cache";
 import type { ProjectTemplateDto } from "@/server/dto";
 import { Loader2Icon } from "lucide-react";
-import { useAction } from "next-safe-action/hooks";
-import { getCachedProjectTemplate } from "@/server/cache/project-template.cache";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
+import {
+  useCreateProjectTemplate,
+  useDeleteProjectTemplate,
+  useUpdateProjectTemplate,
+} from "../hooks/use-project-template-actions";
+import { ProjectTemplateForm } from "./project-template-form";
 
 interface ProjectTemplateSectionProps {
   projectId: string;
@@ -46,32 +45,12 @@ function ProjectTemplateSectionClient({
   );
   const [isEditing, setIsEditing] = useState(false);
 
-  const { execute: executeCreate, isExecuting: isCreating } = useAction(
-    createProjectTemplateAction,
-    {
-      onError: ({ error }) => {
-        toast.error(error.serverError || "Failed to create template");
-      },
-    }
-  );
-
-  const { execute: executeUpdate, isExecuting: isUpdating } = useAction(
-    updateProjectTemplateAction,
-    {
-      onError: ({ error }) => {
-        toast.error(error.serverError || "Failed to update template");
-      },
-    }
-  );
-
-  const { execute: executeDelete, isExecuting: isDeleting } = useAction(
-    deleteProjectTemplateAction,
-    {
-      onError: ({ error }) => {
-        toast.error(error.serverError || "Failed to delete template");
-      },
-    }
-  );
+  const { execute: executeCreate, isExecuting: isCreating } =
+    useCreateProjectTemplate();
+  const { execute: executeUpdate, isExecuting: isUpdating } =
+    useUpdateProjectTemplate();
+  const { execute: executeDelete, isExecuting: isDeleting } =
+    useDeleteProjectTemplate();
 
   const handleSave = useCallback(
     async (instructions: string) => {

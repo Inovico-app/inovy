@@ -1,17 +1,11 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProjectTemplateSection } from "@/features/projects/components/project-template-section";
+import { ProjectService } from "@/server/services/project.service";
 import { ArrowLeftIcon, SettingsIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ProjectService } from "@/server/services/project.service";
-import { ProjectTemplateSection } from "@/features/projects/components/project-template-section";
 
 interface ProjectSettingsPageProps {
   params: Promise<{ projectId: string }>;
@@ -34,12 +28,7 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="gap-2"
-          >
+          <Button variant="ghost" size="sm" asChild className="gap-2">
             <Link href={`/projects/${projectId}`}>
               <ArrowLeftIcon className="h-4 w-4" />
               Back to Project
@@ -64,7 +53,9 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Define project-specific guidelines that will be included in AI responses. These instructions will help shape how the AI assistant responds to queries about this project.
+                Define project-specific guidelines that will be included in AI
+                responses. These instructions will help shape how the AI
+                assistant responds to queries about this project.
               </p>
               <Suspense fallback={<TemplateLoadingSkeleton />}>
                 <ProjectTemplateSection projectId={projectId} />

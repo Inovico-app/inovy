@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2Icon } from "lucide-react";
+import { useState } from "react";
 
 interface ProjectTemplateFormProps {
   initialValue: string;
@@ -54,20 +54,11 @@ export function ProjectTemplateForm({
       </div>
 
       <div className="flex gap-2 justify-end">
-        <Button
-          variant="outline"
-          onClick={onCancel}
-          disabled={isDisabled}
-        >
+        <Button variant="outline" onClick={onCancel} disabled={isDisabled}>
           Cancel
         </Button>
-        <Button
-          onClick={handleSubmit}
-          disabled={isDisabled}
-        >
-          {isSaving && (
-            <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
-          )}
+        <Button onClick={handleSubmit} disabled={isDisabled}>
+          {isSaving && <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />}
           Save Template
         </Button>
       </div>
