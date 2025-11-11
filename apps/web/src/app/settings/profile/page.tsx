@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { AutoProcessToggle } from "@/features/recordings/components/auto-process-toggle";
 import { getAuthSession } from "@/lib/auth";
-import { Building2Icon, CalendarIcon, MailIcon, UserIcon } from "lucide-react";
+import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -34,13 +34,6 @@ async function ProfileContent() {
       | string
       | undefined) ??
     "Personal Organization";
-
-  // Format account creation date
-  const accountCreatedDate = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
 
   return (
     <div className="space-y-6">
@@ -99,19 +92,6 @@ async function ProfileContent() {
                 Organization
               </p>
               <p className="text-lg font-semibold">{orgName}</p>
-            </div>
-          </div>
-
-          {/* Account Created Date */}
-          <div className="flex items-start space-x-4">
-            <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-              <CalendarIcon className="h-5 w-5 text-orange-600 dark:text-orange-300" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-muted-foreground">
-                Account Created
-              </p>
-              <p className="text-lg font-semibold">{accountCreatedDate}</p>
             </div>
           </div>
         </CardContent>

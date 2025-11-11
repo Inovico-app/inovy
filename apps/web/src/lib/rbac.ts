@@ -250,7 +250,7 @@ export function isOrganizationAdmin(
   user: AuthUser | (AuthUser & { roles: Role[] })
 ): boolean {
   const roles = user.roles ?? getUserRoles(user);
-  return roles.includes(ROLES.ADMIN);
+  return roles.includes(ROLES.ADMIN) || roles.includes(ROLES.SUPER_ADMIN);
 }
 
 /**

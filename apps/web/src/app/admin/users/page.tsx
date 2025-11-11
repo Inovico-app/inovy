@@ -22,10 +22,16 @@ async function AdminUsersContainer() {
   // Check if user is authenticated and has admin role
   const sessionResult = await getAuthSession();
 
+  if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
+    redirect("/");
+  }
+
+  const userRoles =
+    sessionResult.value.user?.roles?.map((role) => role.toLowerCase()) ?? [];
+
   if (
-    sessionResult.isErr() ||
-    !sessionResult.value.isAuthenticated ||
-    !sessionResult.value.user?.roles?.includes(ROLES.ADMIN)
+    !userRoles.includes(ROLES.ADMIN) ||
+    !userRoles.includes(ROLES.SUPER_ADMIN)
   ) {
     redirect("/");
   }

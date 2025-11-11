@@ -5,6 +5,7 @@ import type {
 } from "@kinde-oss/kinde-auth-nextjs/types";
 import { type Result, err, ok } from "neverthrow";
 import { logger } from "./logger";
+import type { Role } from "./rbac";
 
 /**
  * Server-side authentication utilities with proper error handling
@@ -17,7 +18,7 @@ export interface AuthUser {
   family_name: string | null;
   picture: string | null;
   organization_code?: string;
-  roles?: string[] | null;
+  roles?: Role[] | null;
 }
 
 interface AuthSession {
@@ -31,8 +32,6 @@ export async function getAuthSession(): Promise<Result<AuthSession, string>> {
     const { isAuthenticated, getUser, getOrganization, getRoles } =
       getKindeServerSession();
 
-    const roles = await getRoles();
-
     if (!isAuthenticated) {
       logger.auth.sessionCheck(false, { action: "getAuthSession" });
       return ok({
@@ -42,9 +41,10 @@ export async function getAuthSession(): Promise<Result<AuthSession, string>> {
       });
     }
 
-    const [userResult, organizationResult] = await Promise.all([
+    const [userResult, organizationResult, roles] = await Promise.all([
       safeGetUser(getUser),
       safeGetOrganization(getOrganization),
+      getRoles(),
     ]);
 
     if (userResult.isErr()) {
@@ -82,7 +82,7 @@ export async function getAuthSession(): Promise<Result<AuthSession, string>> {
       user: {
         ...user,
         organization_code: organization?.orgCode ?? undefined,
-        roles: roles?.map((role) => role.name),
+        roles: roles?.map((role) => role.name as Role) ?? null,
       },
       organization,
     });

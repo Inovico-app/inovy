@@ -61,23 +61,27 @@ export function HeaderNavigation() {
 
   return (
     <nav className="flex gap-4 items-center">
-      {navLinks.map(({ to, label }) => {
-        const active = isActive(pathname, to);
-        return (
-          <div key={to} className="flex items-center gap-1.5">
-            <Link
-              href={to as Route}
-              className={`text-sm font-medium transition-colors ${
-                active
-                  ? "text-foreground underline underline-offset-4 font-semibold"
-                  : "text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
-              }`}
-            >
-              {label}
-            </Link>
-          </div>
-        );
-      })}
+      {navLinks
+        .filter(({ requiresAdmin }) =>
+          requiresAdmin ? isAdmin ?? isSuperAdmin : true
+        )
+        .map(({ to, label }) => {
+          const active = isActive(pathname, to);
+          return (
+            <div key={to} className="flex items-center gap-1.5">
+              <Link
+                href={to as Route}
+                className={`text-sm font-medium transition-colors ${
+                  active
+                    ? "text-foreground underline underline-offset-4 font-semibold"
+                    : "text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
+                }`}
+              >
+                {label}
+              </Link>
+            </div>
+          );
+        })}
     </nav>
   );
 }
