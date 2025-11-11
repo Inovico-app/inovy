@@ -2,6 +2,7 @@ import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { EmbeddingsQueries } from "@/server/data-access/embeddings.queries";
+import { ProjectTemplateQueries } from "@/server/data-access/project-templates.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { TasksQueries } from "@/server/data-access/tasks.queries";
 import { type NewChatEmbedding } from "@/server/db/schema";
@@ -496,7 +497,95 @@ export class EmbeddingService {
   }
 
   /**
-   * Index all recordings in a project
+   * Index a project template for RAG context
+   */
+  static async indexProjectTemplate(
+    projectId: string,
+    organizationId: string
+  ): Promise<ActionResult<void>> {
+    try {
+      logger.info("Indexing project template", { projectId });
+
+      const template = await ProjectTemplateQueries.findByProjectId(
+        projectId,
+        organizationId
+      );
+
+      if (!template) {
+        logger.info("No project template found, skipping", { projectId });
+        return ok(undefined);
+      }
+
+      // Check if already indexed
+      const hasExisting = await EmbeddingsQueries.hasEmbeddings(
+        template.id,
+        "project_template"
+      );
+      if (hasExisting) {
+        logger.info("Project template already indexed, skipping", {
+          projectId,
+        });
+        return ok(undefined);
+      }
+
+      // Chunk the template instructions
+      const chunks = this.chunkText(
+        template.instructions,
+        this.CHUNK_SIZE
+      );
+
+      // Generate embeddings for all chunks
+      const embeddingsResult = await this.generateEmbeddingsBatch(chunks);
+
+      if (embeddingsResult.isErr()) {
+        return err(embeddingsResult.error);
+      }
+
+      const embeddings = embeddingsResult.value;
+
+      // Create embedding entries
+      const embeddingEntries: NewChatEmbedding[] = embeddings.map(
+        (embedding, index) => ({
+          projectId,
+          organizationId,
+          contentType: "project_template" as const,
+          contentId: template.id,
+          contentText: chunks[index] ?? "",
+          embedding,
+          metadata: {
+            title: "Project Template",
+            chunkIndex: index,
+            totalChunks: chunks.length,
+          },
+        })
+      );
+
+      // Save in batches
+      for (let i = 0; i < embeddingEntries.length; i += this.BATCH_SIZE) {
+        const batch = embeddingEntries.slice(i, i + this.BATCH_SIZE);
+        await EmbeddingsQueries.createEmbeddingsBatch(batch);
+      }
+
+      logger.info("Successfully indexed project template", {
+        projectId,
+        chunksCreated: embeddingEntries.length,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Error indexing project template", { error, projectId });
+      return err(
+        ActionErrors.internal(
+          "Error indexing project template",
+          error as Error,
+          "EmbeddingService.indexProjectTemplate"
+        )
+      );
+    }
+  }
+
+  /**
+   * Index all recordings and project template in a project
    */
   static async indexProject(
     projectId: string,
@@ -504,6 +593,20 @@ export class EmbeddingService {
   ): Promise<ActionResult<{ indexed: number; failed: number }>> {
     try {
       logger.info("Starting project indexing", { projectId });
+
+      // First, index project template (if exists)
+      const templateResult = await this.indexProjectTemplate(
+        projectId,
+        organizationId
+      );
+
+      if (templateResult.isErr()) {
+        logger.warn("Failed to index project template", {
+          projectId,
+          error: templateResult.error.message,
+        });
+        // Continue indexing recordings even if template indexing fails
+      }
 
       const recordings = await RecordingsQueries.selectRecordingsByProjectId(
         projectId

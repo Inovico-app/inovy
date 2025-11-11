@@ -6,6 +6,7 @@ export const contentTypeEnum = [
   "transcription",
   "summary",
   "task",
+  "project_template",
 ] as const;
 export type ContentType = (typeof contentTypeEnum)[number];
 
