@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/card";
 import { useLiveRecording } from "@/features/recordings/hooks/use-live-recording";
 import { useLiveTranscription } from "@/features/recordings/hooks/use-live-transcription";
+import { logger } from "@/lib";
 import { useState } from "react";
 import {
   HelpText,
@@ -51,23 +52,33 @@ export function LiveRecorder({ onRecordingComplete }: LiveRecorderProps) {
 
   // Handle start recording
   const handleStart = async () => {
-    if (transcription.liveTranscriptionEnabled) {
-      // Start recording with transcription
-      await recording.handleStart(true, async () => {
-        // Connect to Deepgram
-        await transcription.connectToDeepgram({
-          model: "nova-3",
-          language: "nl",
-          smart_format: true,
-          diarize: true,
-          punctuate: true,
-          utterances: true,
-          interim_results: true,
+    try {
+      if (transcription.liveTranscriptionEnabled) {
+        // Start recording with transcription
+        await recording.handleStart(true, async () => {
+          // Connect to Deepgram
+          await transcription.connectToDeepgram({
+            model: "nova-3",
+            language: "nl",
+            smart_format: true,
+            diarize: true,
+            punctuate: true,
+            utterances: true,
+            interim_results: true,
+          });
         });
-      });
-    } else {
-      // Start recording without transcription
-      await recording.handleStart(false);
+      } else {
+        // Start recording without transcription
+        await recording.handleStart(false);
+      }
+    } catch (error) {
+      logger.warn(
+        "Failed to start recording with transcription:",
+        error instanceof Error ? { error } : { error: String(error) }
+      );
+      recording.setRecorderError(
+        "Failed to start recording with transcription"
+      );
     }
   };
 
@@ -103,6 +114,9 @@ export function LiveRecorder({ onRecordingComplete }: LiveRecorderProps) {
       transcription.clearTranscripts();
     } catch (error) {
       console.error("Error in handleFinalStop:", error);
+      recording.setRecorderError(
+        "Kon transcriptie niet starten. Probeer het opnieuw."
+      );
     }
   };
 

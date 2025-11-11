@@ -1,11 +1,11 @@
 import { ProtectedPage } from "@/components/protected-page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getAuthSession } from "@/lib/auth";
-import { ProjectQueries } from "@/server/data-access/projects.queries";
+import { ProjectService } from "@/server/services";
 import { InfoIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { RecordPageClient } from "./record-page-client";
+import { RecordPageClient } from "../../features/recordings/components/record-page-client";
 
 async function RecordPageContent() {
   const authResult = await getAuthSession();
@@ -37,10 +37,20 @@ async function RecordPageContent() {
   }
 
   // Fetch active projects for this organization
-  const projects = await ProjectQueries.findByOrganizationWithCreator({
+  const projectsResult = await ProjectService.getProjectsByOrganization({
     organizationId: organization.orgCode,
     status: "active",
   });
+
+  if (projectsResult.isErr()) {
+    return (
+      <div className="text-center">
+        <p className="text-red-500">Failed to load projects</p>
+      </div>
+    );
+  }
+
+  const projects = projectsResult.value;
 
   if (projects.length === 0) {
     return (
