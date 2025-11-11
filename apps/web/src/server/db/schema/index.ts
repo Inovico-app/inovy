@@ -1,4 +1,5 @@
 export * from "./projects";
+export * from "./project-templates";
 export * from "./recordings";
 export * from "./ai-insights";
 export * from "./tasks";

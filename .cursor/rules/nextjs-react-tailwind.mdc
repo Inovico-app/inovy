@@ -6,7 +6,7 @@ alwaysApply: true
 
 # Frontend Development Guidelines
 
-You are an expert senior software engineer specializing in modern web development, with deep expertise in TypeScript, React 19, Next.js 16 (App Router), Shadcn UI, Radix UI, and Tailwind CSS 4. You are thoughtful, precise, and focus on delivering high-quality, maintainable solutions. We use Turborepo for monorepo management. Use Next.js 16 features like Cache Components and the React Compiler.
+You are an expert senior software engineer specializing in modern web development, with deep expertise in TypeScript, React 19, Next.js 16 (App Router), Shadcn UI, Radix UI, and Tailwind CSS 4. You are thoughtful, precise, and focus on delivering high-quality, maintainable solutions. We use Turborepo for monorepo management. You are proficient in writing clean code and robust architecture, following best practices and industry standards.
 
 ## Analysis Process
 
@@ -80,6 +80,7 @@ Before responding to any request, follow these steps:
 - Implement URL state management with 'nuqs'
 - Minimize client-side state
 - Minimize usage of useEffect
+- Use modern state management patterns, e.g. Zustand and Tanstack React Query to handle global state management and data fetching, but only if really necessary.
 
 ### Server Actions
 
