@@ -1,7 +1,7 @@
 "use client";
 
 import { getDeepgramClientTokenAction } from "@/actions/deepgram";
-import { ActionErrors } from "@/lib";
+import { ActionErrors, logger } from "@/lib";
 import {
   createClient,
   type LiveClient,
@@ -50,29 +50,109 @@ const DeepgramContextProvider: FunctionComponent<
    * @returns A Promise that resolves when the connection is established.
    */
   const connectToDeepgram = async (options: LiveSchema, endpoint?: string) => {
-    const { data } = await getDeepgramClientTokenAction();
+    try {
+      const { data } = await getDeepgramClientTokenAction();
 
-    if (!data?.data.success) {
-      throw ActionErrors.internal(
-        "Failed to get Deepgram client token",
-        undefined,
-        "DeepgramContextProvider.connectToDeepgram"
-      );
-    }
+      if (!data?.data.success) {
+        throw ActionErrors.internal(
+          "Failed to get Deepgram client token",
+          undefined,
+          "DeepgramContextProvider.connectToDeepgram"
+        );
+      }
 
-    const deepgram = createClient({ accessToken: data.data.token ?? "" });
+      const token = data.data.token ?? "";
 
-    const conn = deepgram.listen.live(options, endpoint);
+      if (!token) {
+        throw new Error("Deepgram token is empty");
+      }
 
-    conn.addListener(LiveTranscriptionEvents.Open, () => {
-      setConnectionState(SOCKET_STATES.open);
-    });
+      const deepgram = createClient({ accessToken: token });
 
-    conn.addListener(LiveTranscriptionEvents.Close, () => {
+      const conn = deepgram.listen.live(options, endpoint);
+
+      // Wait for connection to open
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          logger.error(
+            "Connection timeout - WebSocket did not open in 10 seconds",
+            {
+              component: "DeepgramContextProvider.connectToDeepgram",
+              options,
+              endpoint,
+            }
+          );
+          reject(
+            new Error(
+              "Connection timeout: Failed to connect to Deepgram within 10 seconds"
+            )
+          );
+        }, 10000); // 10 second timeout
+
+        conn.addListener(LiveTranscriptionEvents.Open, () => {
+          logger.info("WebSocket connection opened successfully", {
+            component: "DeepgramContextProvider.connectToDeepgram",
+            options,
+            endpoint,
+          });
+          clearTimeout(timeout);
+          setConnectionState(SOCKET_STATES.open);
+          resolve();
+        });
+
+        conn.addListener(LiveTranscriptionEvents.Error, (error) => {
+          clearTimeout(timeout);
+
+          // Extract more details from the error
+          const errorDetails = {
+            name: error?.name,
+            message: error?.message,
+            readyState: error?.readyState,
+            url: error?.url,
+          };
+          logger.error("Deepgram connection error event:", {
+            error: errorDetails,
+            component: "DeepgramContextProvider.connectToDeepgram",
+            options,
+            endpoint,
+          });
+
+          reject(
+            new Error(
+              `Deepgram connection error: ${
+                error?.message ?? "Unknown error"
+              }. This often indicates an invalid API key or authentication issue.`
+            )
+          );
+        });
+
+        conn.addListener(LiveTranscriptionEvents.Close, (event) => {
+          logger.info("WebSocket connection closed:", {
+            event,
+            component: "DeepgramContextProvider.connectToDeepgram",
+            options,
+            endpoint,
+          });
+          setConnectionState(SOCKET_STATES.closed);
+        });
+      });
+
+      setConnection(conn);
+      logger.info("Successfully connected to Deepgram", {
+        component: "DeepgramContextProvider.connectToDeepgram",
+        options,
+        endpoint,
+      });
+    } catch (error) {
+      logger.error("Failed to connect to Deepgram:", {
+        error,
+        component: "DeepgramContextProvider.connectToDeepgram",
+        options,
+        endpoint,
+      });
       setConnectionState(SOCKET_STATES.closed);
-    });
-
-    setConnection(conn);
+      throw error;
+    }
   };
 
   const disconnectFromDeepgram = () => {

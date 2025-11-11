@@ -120,9 +120,9 @@ export class ProjectService {
   /**
    * Get all projects for the authenticated user's organization
    */
-  static async getProjectsByOrganization(): Promise<
-    ActionResult<ProjectWithCreatorDto[]>
-  > {
+  static async getProjectsByOrganization(
+    filters: ProjectFiltersDto
+  ): Promise<ActionResult<ProjectWithCreatorDto[]>> {
     try {
       // Check authentication and get session
       const authResult = await getAuthSession();
@@ -149,19 +149,19 @@ export class ProjectService {
       }
 
       // Get all active projects in the organization using data access layer
-      const filters: ProjectFiltersDto = {
+      const projectFilters: ProjectFiltersDto = filters ?? {
         organizationId: organization.orgCode,
         status: "active",
       };
 
       const projects = await ProjectQueries.findByOrganizationWithCreator(
-        filters
+        projectFilters
       );
 
       return ok(projects);
     } catch (error) {
       const errorMessage = "Failed to get projects";
-      logger.error(errorMessage, {}, error as Error);
+      logger.error(errorMessage, { filters }, error as Error);
       return err(
         ActionErrors.internal(
           "Failed to get projects",

@@ -44,7 +44,10 @@ export function useLiveRecording() {
 
   // Handler: Start recording
   const handleStart = useEffectEvent(
-    async (enableTranscription: boolean, onTranscriptionReady?: () => void) => {
+    async (
+      enableTranscription: boolean,
+      onTranscriptionReady?: () => void | Promise<void>
+    ) => {
       try {
         setPermissionDenied(false);
         setRecorderError(null);
@@ -60,7 +63,7 @@ export function useLiveRecording() {
         if (!enableTranscription) {
           startMicrophone();
         } else if (onTranscriptionReady) {
-          onTranscriptionReady();
+          await onTranscriptionReady();
         }
       } catch (error) {
         console.error("Error starting recording:", error);

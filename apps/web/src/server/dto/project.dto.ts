@@ -74,7 +74,8 @@ export function isUpdateProjectDto(data: unknown): data is UpdateProjectDto {
   const record = data as Record<string, unknown>;
   return (
     (record.name === undefined || typeof record.name === "string") &&
-    (record.description === undefined || typeof record.description === "string") &&
+    (record.description === undefined ||
+      typeof record.description === "string") &&
     (record.status === undefined || typeof record.status === "string")
   );
 }
