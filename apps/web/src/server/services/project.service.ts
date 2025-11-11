@@ -1,4 +1,5 @@
 import { ActionErrors, type ActionResult } from "@/lib";
+import { AuthService } from "@/lib/kinde-api";
 import { del } from "@vercel/blob";
 import { err, ok } from "neverthrow";
 import { getAuthSession, type AuthUser } from "../../lib/auth";
@@ -18,7 +19,6 @@ import type {
   ProjectWithRecordingCountDto,
 } from "../dto";
 import type { CreateProjectInput } from "../validation/create-project";
-import { KindeUserService } from "./kinde-user.service";
 
 /**
  * Business logic layer for Project operations
@@ -70,18 +70,29 @@ export class ProjectService {
       }
 
       // Fetch creator details from Kinde API
-      const creatorResult = await KindeUserService.getUserById(
-        project.createdById
-      );
+      let creator = null;
+      try {
+        const Users = await AuthService.getUsers();
+        const response = await Users.getUserData({
+          id: project.createdById,
+        });
 
-      if (creatorResult.isErr()) {
+        if (response) {
+          creator = {
+            id: response.id || project.createdById,
+            email: response.preferred_email || null,
+            given_name: response.first_name || null,
+            family_name: response.last_name || null,
+            picture: response.picture || null,
+          };
+        }
+      } catch (error) {
         logger.warn("Failed to fetch creator details from Kinde", {
           projectId,
           createdById: project.createdById,
+          error,
         });
       }
-
-      const creator = creatorResult.isOk() ? creatorResult.value : null;
 
       const projectWithDetails: ProjectWithCreatorDetailsDto = {
         ...project,

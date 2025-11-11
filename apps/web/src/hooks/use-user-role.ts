@@ -1,12 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 
-export interface UserRole {
-  isAdmin: boolean;
-  isLoading: boolean;
-}
-
 interface UserRoleResponse {
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   isAuthenticated: boolean;
   roles?: string[];
 }
@@ -33,8 +29,8 @@ async function fetchUserRole(): Promise<UserRoleResponse> {
  * Client-side hook to check if user has admin role
  * Uses react-query for caching and state management
  */
-export function useUserRole(): UserRole {
-  const { data, isLoading } = useQuery({
+export function useUserRole() {
+  return useQuery({
     queryKey: ["userRole"],
     queryFn: fetchUserRole,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -42,10 +38,5 @@ export function useUserRole(): UserRole {
     retry: 1,
     refetchOnWindowFocus: false,
   });
-
-  return {
-    isAdmin: data?.isAdmin ?? false,
-    isLoading,
-  };
 }
 

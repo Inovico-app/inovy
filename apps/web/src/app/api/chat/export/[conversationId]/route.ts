@@ -1,4 +1,4 @@
-import { getAuthSessionWithRoles } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth";
 import { ChatService } from "@/server/services/chat.service";
 import { NextResponse } from "next/server";
 
@@ -9,7 +9,7 @@ export async function GET(
   const params = await props.params;
   try {
     // Authenticate
-    const sessionResult = await getAuthSessionWithRoles();
+    const sessionResult = await getAuthSession();
     if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

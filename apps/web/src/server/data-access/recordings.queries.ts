@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike } from "drizzle-orm";
+import { and, count, desc, eq, ilike } from "drizzle-orm";
 import { db } from "../db";
 import { recordings, type NewRecording, type Recording } from "../db/schema";
 
@@ -131,6 +131,14 @@ export class RecordingsQueries {
       .from(recordings)
       .where(eq(recordings.projectId, projectId));
     return results.length;
+  }
+
+  static async countByOrganization(organizationId: string): Promise<number> {
+    const [row] = await db
+      .select({ value: count() })
+      .from(recordings)
+      .where(eq(recordings.organizationId, organizationId));
+    return Number(row?.value ?? 0);
   }
 
   static async getRecordingStatistics(projectId: string): Promise<{

@@ -1,4 +1,5 @@
-import { KindeUserService } from "@/server/services";
+import { AuthService } from "@/lib/kinde-api";
+import { logger } from "@/lib/logger";
 import { CalendarIcon, FileTextIcon, FolderIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -18,6 +19,39 @@ interface ProjectsListProps {
   searchQuery?: string;
   status?: AllowedStatus;
 }
+
+const getCreatorName = async (createdById: string) => {
+  try {
+    const Users = await AuthService.getUsers();
+    const response = await Users.getUserData({
+      id: createdById,
+    });
+
+    if (!response) {
+      return "Unknown Creator";
+    }
+
+    const given_name = response.first_name || null;
+    const family_name = response.last_name || null;
+
+    if (given_name && family_name) {
+      return `${given_name} ${family_name}`;
+    }
+    if (given_name) {
+      return given_name;
+    }
+    if (family_name) {
+      return family_name;
+    }
+    return "Unknown Creator";
+  } catch (error) {
+    logger.warn("Failed to fetch creator details", {
+      createdById,
+      error,
+    });
+    return "Unknown Creator";
+  }
+};
 
 async function ProjectsList({
   searchQuery,
@@ -49,6 +83,13 @@ async function ProjectsList({
     );
   }
 
+  const projectsWithCreators = await Promise.all(
+    projects.map(async (project) => ({
+      ...project,
+      createdBy: await getCreatorName(project.createdById),
+    }))
+  );
+
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", {
       year: "numeric",
@@ -57,33 +98,12 @@ async function ProjectsList({
     });
   };
 
-  const getCreatorName = async (createdById: string) => {
-    const creator = await KindeUserService.getUserById(createdById);
-    if (creator.isErr()) {
-      return "Unknown Creator";
-    }
-    if (!creator.value) {
-      return "Unknown Creator";
-    }
-    const { given_name, family_name } = creator.value;
-    if (given_name && family_name) {
-      return `${given_name} ${family_name}`;
-    }
-    if (given_name) {
-      return given_name;
-    }
-    if (family_name) {
-      return family_name;
-    }
-    return "Unknown Creator";
-  };
-
   return (
     <>
       {/* Projects Grid */}
-      {projects.length > 0 ? (
+      {projectsWithCreators.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
+          {projectsWithCreators.map((project) => (
             <Card
               key={project.id}
               className="hover:shadow-lg transition-shadow cursor-pointer"
@@ -123,7 +143,7 @@ async function ProjectsList({
                     </div>
                     <div className="flex items-center text-xs text-muted-foreground">
                       <FileTextIcon className="h-3 w-3 mr-1" />
-                      By {getCreatorName(project.createdById)}
+                      By {project.createdBy}
                     </div>
                   </div>
                 </CardContent>

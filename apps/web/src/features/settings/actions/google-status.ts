@@ -1,6 +1,6 @@
 "use server";
 
-import { getUserSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import type { AutoAction } from "@/server/db/schema";
 import { AutoActionsService } from "@/server/services/auto-actions.service";
@@ -31,16 +31,16 @@ export async function getGoogleIntegrationStatus(options?: {
   error?: string;
 }> {
   try {
-    const userResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (userResult.isErr() || !userResult.value) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       return {
         success: false,
         error: "User not authenticated",
       };
     }
 
-    const user = userResult.value;
+    const user = sessionResult.value.user;
 
     const [actions, stats] = await Promise.all([
       AutoActionsService.getRecentAutoActions(user.id, "google", options),
@@ -98,16 +98,16 @@ export async function retryFailedAction(actionId: string): Promise<{
   error?: string;
 }> {
   try {
-    const userResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (userResult.isErr() || !userResult.value) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       return {
         success: false,
         error: "User not authenticated",
       };
     }
 
-    const user = userResult.value;
+    const user = sessionResult.value.user;
 
     const action = await AutoActionsService.retryAutoAction(actionId, user.id);
 

@@ -2,7 +2,7 @@ import { ProtectedPage } from "@/components/protected-page";
 import { Card } from "@/components/ui/card";
 import { UnifiedChatInterface } from "@/features/chat/components/unified-chat-interface";
 import { getUserProjects } from "@/features/projects/actions/get-user-projects";
-import { getAuthSessionWithRoles } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth";
 import { canAccessOrganizationChat } from "@/lib/rbac";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -10,7 +10,7 @@ import { Suspense } from "react";
 
 async function ChatPageContent() {
   // Get session with roles
-  const sessionResult = await getAuthSessionWithRoles();
+  const sessionResult = await getAuthSession();
 
   if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
     redirect("/api/auth/login");

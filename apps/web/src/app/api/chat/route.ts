@@ -1,4 +1,4 @@
-import { getAuthSessionWithRoles } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { canAccessOrganizationChat } from "@/lib/rbac";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Get authenticated session with roles
-    const sessionResult = await getAuthSessionWithRoles();
+    const sessionResult = await getAuthSession();
 
     if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

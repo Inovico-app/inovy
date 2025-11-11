@@ -18,6 +18,7 @@ const navLinks: NavLink[] = [
   { to: "/chat", label: "Chat" },
   { to: "/projects", label: "Projects" },
   { to: "/tasks", label: "Tasks" },
+  { to: "/admin", label: "Management", requiresAdmin: true },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -30,14 +31,15 @@ function isActive(pathname: string, href: string): boolean {
 export function HeaderNavigation() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
-  const { isAdmin, isLoading } = useUserRole();
+  const { data: userRoleData } = useUserRole();
+  const { isAdmin, isSuperAdmin, roles } = userRoleData ?? {};
 
   // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted || isLoading) {
+  if (!mounted) {
     // Show all links during loading to prevent layout shift
     // Admin-only links will be hidden once role is determined
     return (
@@ -57,32 +59,29 @@ export function HeaderNavigation() {
     );
   }
 
-  // Filter nav links based on user role
-  const visibleLinks = navLinks.filter((link) => {
-    if (link.requiresAdmin) {
-      return isAdmin;
-    }
-    return true;
-  });
-
   return (
-    <nav className="flex gap-4">
-      {visibleLinks.map(({ to, label }) => {
-        const active = isActive(pathname, to);
-        return (
-          <Link
-            key={to}
-            href={to as Route}
-            className={`text-sm font-medium transition-colors ${
-              active
-                ? "text-foreground underline underline-offset-4 font-semibold"
-                : "text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
-            }`}
-          >
-            {label}
-          </Link>
-        );
-      })}
+    <nav className="flex gap-4 items-center">
+      {navLinks
+        .filter(({ requiresAdmin }) =>
+          requiresAdmin ? Boolean(isAdmin || isSuperAdmin) : true
+        )
+        .map(({ to, label }) => {
+          const active = isActive(pathname, to);
+          return (
+            <div key={to} className="flex items-center gap-1.5">
+              <Link
+                href={to as Route}
+                className={`text-sm font-medium transition-colors ${
+                  active
+                    ? "text-foreground underline underline-offset-4 font-semibold"
+                    : "text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
+                }`}
+              >
+                {label}
+              </Link>
+            </div>
+          );
+        })}
     </nav>
   );
 }
