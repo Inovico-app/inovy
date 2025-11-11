@@ -134,11 +134,11 @@ export class RecordingsQueries {
   }
 
   static async countByOrganization(organizationId: string): Promise<number> {
-    const results = await db
-      .select({ count: count() })
+    const [row] = await db
+      .select({ value: count() })
       .from(recordings)
       .where(eq(recordings.organizationId, organizationId));
-    return results[0]?.count ?? 0;
+    return Number(row?.value ?? 0);
   }
 
   static async getRecordingStatistics(projectId: string): Promise<{

@@ -31,7 +31,8 @@ export class OrganizationAssignmentService {
 
       // User already has an organization, fetch it to verify
       try {
-        const response = await AuthService.Organizations.getOrganization({
+        const Organizations = await AuthService.getOrganizations();
+        const response = await Organizations.getOrganization({
           code: user.organization_code,
         });
 
@@ -114,12 +115,12 @@ export class OrganizationAssignmentService {
 
       // Create organization in Kinde
       try {
-        const createOrgResponse =
-          await AuthService.Organizations.createOrganization({
-            requestBody: {
-              name: orgName,
-            },
-          });
+        const Organizations = await AuthService.getOrganizations();
+        const createOrgResponse = await Organizations.createOrganization({
+          requestBody: {
+            name: orgName,
+          },
+        });
 
         if (!createOrgResponse?.organization?.code) {
           logger.error(
@@ -146,7 +147,8 @@ export class OrganizationAssignmentService {
 
         // Assign user to the new organization
         try {
-          await AuthService.Organizations.addOrganizationUsers({
+          const Organizations = await AuthService.getOrganizations();
+          await Organizations.addOrganizationUsers({
             orgCode: newOrganization.code,
             requestBody: {
               users: [{ id: user.id }],

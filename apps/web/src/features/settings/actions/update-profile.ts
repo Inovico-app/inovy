@@ -43,7 +43,8 @@ export async function updateProfile(input: UpdateProfileInput): Promise<{
     });
 
     try {
-      await AuthService.Users.updateUser({
+      const Users = await AuthService.getUsers();
+      await Users.updateUser({
         id: user.id,
         requestBody: {
           given_name: validatedData.given_name,

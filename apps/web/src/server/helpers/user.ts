@@ -15,7 +15,8 @@ export async function ensureUserExistsInKinde(
 ): Promise<Result<KindeUserDto, ActionError>> {
   try {
     // Try to fetch user from Kinde
-    const response = await AuthService.Users.getUserData({ id: authUser.id });
+    const Users = await AuthService.getUsers();
+    const response = await Users.getUserData({ id: authUser.id });
 
     if (response) {
       const user: KindeUserDto = {
@@ -38,7 +39,8 @@ export async function ensureUserExistsInKinde(
       email: authUser.email,
     });
 
-    const createResponse = await AuthService.Users.createUser({
+    const Users = await AuthService.getUsers();
+    const createResponse = await Users.createUser({
       requestBody: {
         profile: {
           given_name: authUser.given_name || undefined,

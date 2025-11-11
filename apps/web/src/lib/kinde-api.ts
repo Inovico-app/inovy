@@ -6,10 +6,10 @@ import { logger } from "./logger";
  * Provides access to Kinde Management API for user and organization operations
  */
 export class AuthService {
-  private static initialized = false;
+  private static initPromise: Promise<void> | null = null;
 
-  private static ensureInitialized(): void {
-    if (!this.initialized) {
+  private static async ensureInitialized(): Promise<void> {
+    this.initPromise ??= (async () => {
       const domain = process.env.KINDE_DOMAIN;
       const clientId = process.env.KINDE_MANAGEMENT_CLIENT_ID;
       const clientSecret = process.env.KINDE_MANAGEMENT_CLIENT_SECRET;
@@ -20,24 +20,25 @@ export class AuthService {
         );
       }
 
-      init({
+      await init({
         kindeDomain: domain,
         clientId,
         clientSecret,
       });
 
       logger.info("Successfully initialized Kinde Management API");
-      this.initialized = true;
-    }
+    })();
+
+    return this.initPromise;
   }
 
-  static get Users() {
-    this.ensureInitialized();
+  static async getUsers() {
+    await this.ensureInitialized();
     return Users;
   }
 
-  static get Organizations() {
-    this.ensureInitialized();
+  static async getOrganizations() {
+    await this.ensureInitialized();
     return Organizations;
   }
 }

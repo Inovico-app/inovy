@@ -60,7 +60,8 @@ async function ProjectsList({
 
   const getCreatorName = async (createdById: string) => {
     try {
-      const response = await AuthService.Users.getUserData({
+      const Users = await AuthService.getUsers();
+      const response = await Users.getUserData({
         id: createdById,
       });
 

@@ -72,7 +72,8 @@ export class ProjectService {
       // Fetch creator details from Kinde API
       let creator = null;
       try {
-        const response = await AuthService.Users.getUserData({
+        const Users = await AuthService.getUsers();
+        const response = await Users.getUserData({
           id: project.createdById,
         });
 

@@ -24,7 +24,8 @@ export async function getCachedOrganizationUsers(
   cacheTag(CacheTags.orgMembers(orgCode));
 
   try {
-    const response = await AuthService.Organizations.getOrganizationUsers({
+    const Organizations = await AuthService.getOrganizations();
+    const response = await Organizations.getOrganizationUsers({
       orgCode,
     });
 

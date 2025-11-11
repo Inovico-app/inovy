@@ -11,7 +11,8 @@ export async function getOrganizationMembers(orgCode: string): Promise<
   }>
 > {
   try {
-    const response = await AuthService.Organizations.getOrganizationUsers({
+    const Organizations = await AuthService.getOrganizations();
+    const response = await Organizations.getOrganizationUsers({
       orgCode,
     });
 

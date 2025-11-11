@@ -24,7 +24,8 @@ export const getOrganizationUsers = authorizedActionClient
     const { organization } = authResult.value;
 
     try {
-      const response = await AuthService.Organizations.getOrganizationUsers({
+      const Organizations = await AuthService.getOrganizations();
+      const response = await Organizations.getOrganizationUsers({
         orgCode: organization.orgCode,
       });
 
