@@ -136,7 +136,7 @@ export class EmbeddingsQueries {
 
   static async hasEmbeddings(
     contentId: string,
-    contentType: "recording" | "transcription" | "summary" | "task"
+    contentType: "recording" | "transcription" | "summary" | "task" | "project_template"
   ): Promise<boolean> {
     const [result] = await db
       .select({ count: sql<number>`count(*)` })

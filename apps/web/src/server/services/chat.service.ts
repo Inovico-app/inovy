@@ -1,5 +1,6 @@
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { getCachedProjectTemplate } from "@/server/cache/project-template.cache";
 import { ChatQueries } from "@/server/data-access/chat.queries";
 import {
   type ChatConversation,
@@ -11,6 +12,11 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, type CoreMessage } from "ai";
 import { err, ok } from "neverthrow";
 import { ProjectService } from "./project.service";
+import {
+  buildCompletePrompt,
+  buildSystemPromptWithGuardRails,
+  validatePromptSafety,
+} from "./prompt-builder.service";
 import { VectorSearchService } from "./vector-search.service";
 
 export class ChatService {
@@ -233,11 +239,26 @@ General Guidelines:
           content: msg.content,
         }));
 
-      // Build system prompt
-      const systemPrompt = await this.buildSystemPrompt(projectId);
+      // Build system prompt with guard rails
+      const baseSystemPrompt = await this.buildSystemPrompt(projectId);
+      const systemPromptWithGuardRails =
+        buildSystemPromptWithGuardRails(baseSystemPrompt);
 
-      // Create the full prompt with context
-      const contextPrompt = context
+      // Get project template for RAG context
+      const projectTemplate = await getCachedProjectTemplate(projectId);
+
+      // Validate prompt safety (check for injection attempts)
+      const safetyCheck = validatePromptSafety(userMessage, projectTemplate);
+      if (!safetyCheck.safe) {
+        logger.warn("Potential prompt injection detected", {
+          conversationId,
+          issues: safetyCheck.issues,
+        });
+        // Log but continue - the guard rails in system prompt will handle this
+      }
+
+      // Build complete prompt with XML tagging and priority hierarchy
+      const ragContext = context
         ? `Here is relevant information from the project recordings:
 
 ${context}
@@ -245,15 +266,22 @@ ${context}
 Please answer the user's question based on this information.`
         : "No relevant information was found in the project recordings. Let the user know you don't have specific information to answer their question.";
 
+      const completePrompt = buildCompletePrompt({
+        systemInstructions: baseSystemPrompt,
+        projectTemplate,
+        ragContent: ragContext,
+        userQuery: userMessage,
+      });
+
       // Stream response from GPT-4-turbo
       const result = await streamText({
         model: this.openai("gpt-4-turbo"),
-        system: systemPrompt,
+        system: systemPromptWithGuardRails,
         messages: [
           ...conversationHistory,
           {
             role: "user",
-            content: `${contextPrompt}\n\nUser question: ${userMessage}`,
+            content: completePrompt,
           },
         ],
         temperature: 0.7,
@@ -594,7 +622,7 @@ Please answer the user's question based on this information. When referencing in
     filter?: "all" | "active" | "archived" | "deleted";
     page?: number;
     limit?: number;
-  }  ): Promise<
+  }): Promise<
     ActionResult<{ conversations: ChatConversation[]; total: number }>
   > {
     try {
@@ -697,7 +725,10 @@ Please answer the user's question based on this information. When referencing in
       );
       if (!conversation) {
         return err(
-          ActionErrors.notFound("Conversation", "ChatService.restoreConversation")
+          ActionErrors.notFound(
+            "Conversation",
+            "ChatService.restoreConversation"
+          )
         );
       }
       if (conversation.userId !== userId) {
@@ -878,9 +909,7 @@ Please answer the user's question based on this information. When referencing in
         conversationId
       );
 
-      const { formatConversationAsText } = await import(
-        "@/lib/export-utils"
-      );
+      const { formatConversationAsText } = await import("@/lib/export-utils");
       const text = formatConversationAsText(conversation, messages);
 
       return ok(text);
@@ -906,7 +935,7 @@ Please answer the user's question based on this information. When referencing in
     conversationId: string,
     userId: string
   ): Promise<ActionResult<Blob>> {
-    try{
+    try {
       const conversation = await ChatQueries.getConversationById(
         conversationId
       );
