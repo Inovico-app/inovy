@@ -20,6 +20,15 @@ interface UploadRecordingModalProps {
   onOpenChange?: (open: boolean) => void;
 }
 
+/**
+ * Renders a modal dialog that lets the user upload an audio or video recording for a project.
+ *
+ * @param projectId - The project identifier to associate the uploaded recording with.
+ * @param trigger - Optional custom trigger element to open the modal. If omitted, a default outlined "New Recording" button with a plus icon is used.
+ * @param open - Optional controlled open state; when provided, the modal's visibility is driven by this value.
+ * @param onOpenChange - Optional controlled state updater called with the new open state when the modal requests to open or close.
+ * @returns The modal element containing the upload form and its trigger.
+ */
 export function UploadRecordingModal({
   projectId,
   trigger,
@@ -67,4 +76,3 @@ export function UploadRecordingModal({
     </Dialog>
   );
 }
-

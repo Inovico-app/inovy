@@ -21,6 +21,17 @@ interface ProjectDetailPageProps {
   searchParams: Promise<{ search?: string }>;
 }
 
+/**
+ * Render the project detail page for a given project ID.
+ *
+ * Fetches the project and its recording statistics, and renders the project's
+ * header, information, statistics, recordings list, and action controls. If the
+ * project cannot be found, triggers the framework's not-found behavior.
+ *
+ * @param params - Promise resolving to route params containing `projectId`
+ * @param searchParams - Promise resolving to query params containing optional `search`
+ * @returns A React element containing project details, statistics, recordings list, and actions
+ */
 async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
   const { projectId } = await params;
   const { search } = await searchParams;
@@ -238,4 +249,3 @@ export default async function ProjectDetailPage({
     </Suspense>
   );
 }
-

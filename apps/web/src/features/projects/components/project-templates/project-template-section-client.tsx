@@ -17,6 +17,18 @@ interface ProjectTemplateSectionClientProps {
   initialTemplate: ProjectTemplateDto | null;
 }
 
+/**
+ * Render and manage a project's template UI, including create, edit, and delete flows.
+ *
+ * Displays the current template instructions (when present), allows switching into an edit form
+ * to create or update the template, and supports deleting the template. While create/update/delete
+ * operations are in progress the UI disables actions and shows appropriate loading state; successful
+ * operations trigger user-facing success toasts and update local component state.
+ *
+ * @param projectId - The ID of the project the template belongs to.
+ * @param initialTemplate - The initial template data or `null` when no template exists.
+ * @returns A React element that provides the project template section UI and its interactions.
+ */
 export function ProjectTemplateSectionClient({
   projectId,
   initialTemplate,
@@ -134,4 +146,3 @@ export function ProjectTemplateSectionClient({
     </div>
   );
 }
-

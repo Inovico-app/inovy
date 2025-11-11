@@ -11,6 +11,14 @@ interface ProjectSettingsPageProps {
   params: Promise<{ projectId: string }>;
 }
 
+/**
+ * Render the project settings UI for a given project.
+ *
+ * Fetches the project by ID and aborts rendering with a 404 via `notFound()` if the project is missing or inaccessible.
+ *
+ * @param params - An object (or a promise resolving to an object) with route parameters containing `projectId`.
+ * @returns The JSX element for the project's settings page.
+ */
 async function ProjectSettings({ params }: ProjectSettingsPageProps) {
   const { projectId } = await params;
 
@@ -67,6 +75,11 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
   );
 }
 
+/**
+ * Renders a compact skeleton placeholder used while the project templates section is loading.
+ *
+ * @returns A JSX element containing two pulsing placeholder blocks that indicate loading state.
+ */
 function TemplateLoadingSkeleton() {
   return (
     <div className="space-y-4">
@@ -76,6 +89,12 @@ function TemplateLoadingSkeleton() {
   );
 }
 
+/**
+ * Renders the project settings page wrapped in a Suspense boundary with a skeleton fallback.
+ *
+ * @param params - Route parameters object containing `projectId`
+ * @returns A React element that displays the project settings UI; shows a pulsating skeleton while the settings content loads
+ */
 export default async function ProjectSettingsPage({
   params,
 }: ProjectSettingsPageProps) {
@@ -94,4 +113,3 @@ export default async function ProjectSettingsPage({
     </Suspense>
   );
 }
-

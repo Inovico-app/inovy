@@ -16,6 +16,17 @@ interface RecordingActionsDropdownProps {
   projectId: string;
 }
 
+/**
+ * Renders a dropdown with actions to create a new recording or open the upload modal.
+ *
+ * The dropdown trigger is a "New Recording" button. Its menu contains a "Live" item
+ * that navigates to /record and an "Upload" item that opens an UploadRecordingModal
+ * controlled by local state. The modal receives the provided projectId and can
+ * close itself via the onOpenChange callback.
+ *
+ * @param projectId - Project identifier passed to the UploadRecordingModal
+ * @returns A JSX element containing the dropdown menu and the conditional upload modal
+ */
 export function RecordingActionsDropdown({
   projectId,
 }: RecordingActionsDropdownProps) {
@@ -58,4 +69,3 @@ export function RecordingActionsDropdown({
     </>
   );
 }
-

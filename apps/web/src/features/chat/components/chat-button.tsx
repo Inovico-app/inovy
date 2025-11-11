@@ -10,6 +10,12 @@ interface ChatButtonProps {
   projectName: string;
 }
 
+/**
+ * Renders a button that navigates to the chat interface with the specified project context.
+ *
+ * @param projectId - The ID of the project to include as context in the chat interface.
+ * @returns A button component that navigates to the chat interface.
+ */
 export function ChatButton({ projectId }: ChatButtonProps) {
   const href: Route = `/chat?context=project&projectId=${projectId}`;
 
@@ -22,4 +28,3 @@ export function ChatButton({ projectId }: ChatButtonProps) {
     </Button>
   );
 }
-

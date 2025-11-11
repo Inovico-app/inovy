@@ -26,6 +26,17 @@ interface ArchiveProjectDialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
+/**
+ * Render a dialog that lets the user archive or restore a project, including the trigger button and confirmation UI.
+ *
+ * @param projectId - The unique identifier of the project to archive or restore.
+ * @param projectName - The display name of the project shown in the dialog and toast messages.
+ * @param isArchived - If `true`, the dialog shows restore actions; otherwise it shows archive actions.
+ * @param variant - Button visual variant for the trigger (defaults to `"outline"`).
+ * @param open - Optional controlled open state for the dialog.
+ * @param onOpenChange - Optional controlled setter called when the dialog open state changes.
+ * @returns The dialog React element containing the trigger button and confirmation content for archiving/restoring a project.
+ */
 export function ArchiveProjectDialog({
   projectId,
   projectName,
@@ -151,4 +162,3 @@ export function ArchiveProjectDialog({
     </Dialog>
   );
 }
-
