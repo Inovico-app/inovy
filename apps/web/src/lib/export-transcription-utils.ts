@@ -6,6 +6,13 @@ interface Utterance {
   confidence: number;
 }
 
+function getSpeakerName(
+  speaker: number,
+  speakerNames?: Record<string, string>
+) {
+  return speakerNames?.[speaker.toString()] ?? `Spreker ${speaker + 1}`;
+}
+
 function formatTime(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
@@ -36,9 +43,7 @@ export function exportAsText(
 ): string {
   return utterances
     .map((utterance) => {
-      const speakerName =
-        speakerNames?.[utterance.speaker.toString()] ??
-        `Spreker ${utterance.speaker + 1}`;
+      const speakerName = getSpeakerName(utterance.speaker, speakerNames);
       return `${speakerName} [${formatTimeSimple(utterance.start)}]: ${
         utterance.text
       }`;
@@ -52,9 +57,7 @@ export function exportAsSRT(
 ): string {
   return utterances
     .map((utterance, index) => {
-      const speakerName =
-        speakerNames?.[utterance.speaker.toString()] ??
-        `Spreker ${utterance.speaker + 1}`;
+      const speakerName = getSpeakerName(utterance.speaker, speakerNames);
       return `${index + 1}
 ${formatTime(utterance.start)} --> ${formatTime(utterance.end)}
 <v ${speakerName}>${utterance.text}`;
@@ -68,9 +71,7 @@ export function exportAsJSON(
 ): string {
   const data = utterances.map((utterance) => ({
     speaker: utterance.speaker,
-    speakerName:
-      speakerNames?.[utterance.speaker.toString()] ??
-      `Spreker ${utterance.speaker + 1}`,
+    speakerName: getSpeakerName(utterance.speaker, speakerNames),
     text: utterance.text,
     start: utterance.start,
     end: utterance.end,

@@ -1,5 +1,6 @@
 "use server";
 
+import { logger } from "@/lib";
 import { authorizedActionClient } from "@/lib/action-client";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { AIInsightService } from "@/server/services/ai-insight.service";
@@ -7,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 const updateSpeakerNamesSchema = z.object({
-  recordingId: z.string().uuid("Invalid recording ID"),
+  recordingId: z.uuid("Invalid recording ID"),
   speakerNumber: z.number().int().min(0, "Invalid speaker number"),
   speakerName: z
     .string()
@@ -85,7 +86,11 @@ export const updateSpeakerNames = authorizedActionClient
         },
       };
     } catch (error) {
-      console.error("Error updating speaker names:", error);
+      logger.error(
+        "Error updating speaker names",
+        { recordingId, speakerNumber, speakerName },
+        error as Error
+      );
       return {
         success: false,
         error: "Failed to update speaker name",

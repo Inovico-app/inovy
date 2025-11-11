@@ -13,16 +13,9 @@ import {
   exportAsSRT,
   exportAsText,
 } from "@/lib/export-transcription-utils";
+import type { Utterance } from "@/server/dto";
 import { Download } from "lucide-react";
 import { useCallback } from "react";
-
-interface Utterance {
-  speaker: number;
-  text: string;
-  start: number;
-  end: number;
-  confidence: number;
-}
 
 interface ExportTranscriptionButtonProps {
   utterances: Utterance[];
@@ -37,11 +30,7 @@ export function ExportTranscriptionButton({
 }: ExportTranscriptionButtonProps) {
   const handleExportText = useCallback(() => {
     const content = exportAsText(utterances, speakerNames);
-    downloadFile(
-      content,
-      `transcription-${recordingId}.txt`,
-      "text/plain"
-    );
+    downloadFile(content, `transcription-${recordingId}.txt`, "text/plain");
   }, [utterances, recordingId, speakerNames]);
 
   const handleExportSRT = useCallback(() => {

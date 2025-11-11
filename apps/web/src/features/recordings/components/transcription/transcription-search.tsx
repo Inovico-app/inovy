@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useDebounce } from "@/hooks/use-debounce";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { useState } from "react";
 
@@ -19,9 +20,11 @@ export function TranscriptionSearch({
   const [searchQuery, setSearchQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
   const handleSearch = (value: string) => {
     setSearchQuery(value);
-    onSearchChange(value.trim(), 0);
+    onSearchChange(debouncedSearchQuery.trim(), 0);
   };
 
   const handleNextMatch = () => {
@@ -93,12 +96,7 @@ export function TranscriptionSearch({
       >
         <ChevronDown className="h-4 w-4" />
       </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleClear}
-        title="Sluiten"
-      >
+      <Button variant="ghost" size="sm" onClick={handleClear} title="Sluiten">
         <X className="h-4 w-4" />
       </Button>
     </div>
