@@ -1,6 +1,6 @@
 "use client";
 
-import { UploadIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../../components/ui/button";
 import {
@@ -16,30 +16,53 @@ import { UploadRecordingForm } from "./upload-recording-form";
 interface UploadRecordingModalProps {
   projectId: string;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
+/**
+ * Renders a modal dialog that lets the user upload an audio or video recording for a project.
+ *
+ * @param projectId - The project identifier to associate the uploaded recording with.
+ * @param trigger - Optional custom trigger element to open the modal. If omitted, a default outlined "New Recording" button with a plus icon is used.
+ * @param open - Optional controlled open state; when provided, the modal's visibility is driven by this value.
+ * @param onOpenChange - Optional controlled state updater called with the new open state when the modal requests to open or close.
+ * @returns The modal element containing the upload form and its trigger.
+ */
 export function UploadRecordingModal({
   projectId,
   trigger,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: UploadRecordingModalProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use controlled state if provided, otherwise use internal state
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const handleOpenChange = (open: boolean) => {
+    if (controlledOnOpenChange) {
+      controlledOnOpenChange(open);
+    } else {
+      setInternalOpen(open);
+    }
+  };
 
   const handleSuccess = () => {
-    setIsOpen(false);
+    handleOpenChange(false);
     // The form will handle navigation/refresh
   };
 
   const handleCancel = () => {
-    setIsOpen(false);
+    handleOpenChange(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger ?? (
-          <Button>
-            <UploadIcon className="h-4 w-4 mr-2" />
-            Upload Recording
+          <Button variant="outline">
+            <PlusIcon className="size-4 mr-2" />
+            New Recording
           </Button>
         )}
       </DialogTrigger>
@@ -59,4 +82,3 @@ export function UploadRecordingModal({
     </Dialog>
   );
 }
-

@@ -22,16 +22,36 @@ interface ArchiveProjectDialogProps {
   projectName: string;
   isArchived: boolean;
   variant?: "default" | "outline" | "ghost" | "destructive";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
+/**
+ * Render a dialog that lets the user archive or restore a project, including the trigger button and confirmation UI.
+ *
+ * @param projectId - The unique identifier of the project to archive or restore.
+ * @param projectName - The display name of the project shown in the dialog and toast messages.
+ * @param isArchived - If `true`, the dialog shows restore actions; otherwise it shows archive actions.
+ * @param variant - Button visual variant for the trigger (defaults to `"outline"`).
+ * @param open - Optional controlled open state for the dialog.
+ * @param onOpenChange - Optional controlled setter called when the dialog open state changes.
+ * @returns The dialog React element containing the trigger button and confirmation content for archiving/restoring a project.
+ */
 export function ArchiveProjectDialog({
   projectId,
   projectName,
   isArchived,
   variant = "outline",
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: ArchiveProjectDialogProps) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  // Use controlled state if provided, otherwise use internal state
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = controlledOnOpenChange || setInternalOpen;
+  
   const [isLoading, setIsLoading] = useState(false);
 
   const handleArchive = async () => {
@@ -142,4 +162,3 @@ export function ArchiveProjectDialog({
     </Dialog>
   );
 }
-

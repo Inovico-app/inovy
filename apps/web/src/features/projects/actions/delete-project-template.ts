@@ -1,7 +1,7 @@
 "use server";
 
 import { getUserOrganizationCode } from "@/lib/action-helpers";
-import { revalidatePath } from "next/cache";
+import { CacheInvalidation } from "@/lib/cache-utils";
 import {
   authorizedActionClient,
   resultToActionResponse,
@@ -44,7 +44,7 @@ export const deleteProjectTemplateAction = authorizedActionClient
 
     // Revalidate project page if template existed
     if (result.isOk() && template) {
-      revalidatePath(`/projects/${template.projectId}`);
+      CacheInvalidation.invalidateProject(template.projectId, orgCode);
     }
 
     return resultToActionResponse(result);

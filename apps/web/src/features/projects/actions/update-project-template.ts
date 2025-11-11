@@ -1,14 +1,14 @@
 "use server";
 
-import { getUserOrganizationCode } from "@/lib/action-helpers";
-import { revalidatePath } from "next/cache";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
-import { ProjectTemplateService } from "../../../server/services/project-template.service";
-import { updateProjectTemplateSchema } from "../../../server/validation/project-templates/update-project-template";
+} from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
+import { getUserOrganizationCode } from "@/lib/action-helpers";
+import { CacheInvalidation } from "@/lib/cache-utils";
+import { ProjectTemplateService } from "@/server/services/project-template.service";
+import { updateProjectTemplateSchema } from "@/server/validation/project-templates/update-project-template";
 
 /**
  * Update an existing project template
@@ -41,7 +41,7 @@ export const updateProjectTemplateAction = authorizedActionClient
 
     // Revalidate project page if template exists
     if (result.isOk()) {
-      revalidatePath(`/projects/${result.value.projectId}`);
+      CacheInvalidation.invalidateProjectTemplate(result.value.projectId);
     }
 
     return resultToActionResponse(result);

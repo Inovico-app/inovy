@@ -1,3 +1,10 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ProjectActions } from "@/features/projects/components/project-actions";
+import { RecordingList } from "@/features/recordings/components/recording-list";
+import { ProjectService } from "@/server/services/project.service";
+import { RecordingService } from "@/server/services/recording.service";
 import {
   ActivityIcon,
   CalendarIcon,
@@ -8,28 +15,23 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { Button } from "../../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../../components/ui/card";
-import { Skeleton } from "../../../components/ui/skeleton";
-import { ChatButton } from "../../../features/chat/components/chat-button";
-import { ArchiveProjectDialog } from "../../../features/projects/components/archive-project-dialog";
-import { DeleteProjectDialog } from "../../../features/projects/components/delete-project-dialog";
-import { EditProjectModal } from "../../../features/projects/components/edit-project-modal";
-import { RecordingList } from "../../../features/recordings/components/recording-list";
-import { UploadRecordingModal } from "../../../features/recordings/components/upload-recording-modal";
-import { ProjectService } from "../../../server/services/project.service";
-import { RecordingService } from "../../../server/services/recording.service";
 
 interface ProjectDetailPageProps {
   params: Promise<{ projectId: string }>;
   searchParams: Promise<{ search?: string }>;
 }
 
+/**
+ * Render the project detail page for a given project ID.
+ *
+ * Fetches the project and its recording statistics, and renders the project's
+ * header, information, statistics, recordings list, and action controls. If the
+ * project cannot be found, triggers the framework's not-found behavior.
+ *
+ * @param params - Promise resolving to route params containing `projectId`
+ * @param searchParams - Promise resolving to query params containing optional `search`
+ * @returns A React element containing project details, statistics, recordings list, and actions
+ */
 async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
   const { projectId } = await params;
   const { search } = await searchParams;
@@ -99,30 +101,12 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
               </p>
             )}
           </div>
-          <div className="flex gap-2">
-            <ChatButton projectId={project.id} projectName={project.name} />
-            <EditProjectModal
-              projectId={project.id}
-              initialData={{
-                name: project.name,
-                description: project.description,
-              }}
-              variant="outline"
-            />
-            <ArchiveProjectDialog
-              projectId={project.id}
-              projectName={project.name}
-              isArchived={project.status === "archived"}
-              variant="outline"
-            />
-            <DeleteProjectDialog
-              projectId={project.id}
-              projectName={project.name}
-              recordingCount={statistics.totalCount}
-              variant="outline"
-            />
-            <UploadRecordingModal projectId={project.id} />
-          </div>
+          <ProjectActions
+            projectId={project.id}
+            projectName={project.name}
+            isArchived={project.status === "archived"}
+            recordingCount={statistics.totalCount}
+          />
         </div>
 
         {/* Project Info */}
@@ -214,9 +198,8 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
 
         {/* Recordings Section */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader>
             <CardTitle>Recordings</CardTitle>
-            <UploadRecordingModal projectId={project.id} />
           </CardHeader>
           <CardContent>
             <Suspense
@@ -266,4 +249,3 @@ export default async function ProjectDetailPage({
     </Suspense>
   );
 }
-
