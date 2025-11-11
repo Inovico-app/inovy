@@ -71,8 +71,13 @@ ${ragContent}
  * Build user query with proper XML tagging
  */
 export function buildUserQuerySection(userQuery: string): string {
+  const escaped = userQuery
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
   return `<user_query>
-${userQuery}
+${escaped}
 </user_query>`;
 }
 
@@ -132,9 +137,7 @@ export function validatePromptSafety(
 
   for (const pattern of injectionPatterns) {
     if (pattern.test(userQuery)) {
-      issues.push(
-        `Potential injection pattern detected: "${pattern.source}"`
-      );
+      issues.push(`Potential injection pattern detected: "${pattern.source}"`);
     }
   }
 

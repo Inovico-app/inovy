@@ -622,7 +622,7 @@ Please answer the user's question based on this information. When referencing in
     filter?: "all" | "active" | "archived" | "deleted";
     page?: number;
     limit?: number;
-  }  ): Promise<
+  }): Promise<
     ActionResult<{ conversations: ChatConversation[]; total: number }>
   > {
     try {
@@ -725,7 +725,10 @@ Please answer the user's question based on this information. When referencing in
       );
       if (!conversation) {
         return err(
-          ActionErrors.notFound("Conversation", "ChatService.restoreConversation")
+          ActionErrors.notFound(
+            "Conversation",
+            "ChatService.restoreConversation"
+          )
         );
       }
       if (conversation.userId !== userId) {
@@ -906,9 +909,7 @@ Please answer the user's question based on this information. When referencing in
         conversationId
       );
 
-      const { formatConversationAsText } = await import(
-        "@/lib/export-utils"
-      );
+      const { formatConversationAsText } = await import("@/lib/export-utils");
       const text = formatConversationAsText(conversation, messages);
 
       return ok(text);
@@ -934,7 +935,7 @@ Please answer the user's question based on this information. When referencing in
     conversationId: string,
     userId: string
   ): Promise<ActionResult<Blob>> {
-    try{
+    try {
       const conversation = await ChatQueries.getConversationById(
         conversationId
       );

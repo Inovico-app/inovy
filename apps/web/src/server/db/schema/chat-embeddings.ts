@@ -1,4 +1,12 @@
-import { pgTable, text, timestamp, uuid, jsonb, vector, index } from "drizzle-orm/pg-core";
+import {
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  vector,
+} from "drizzle-orm/pg-core";
 import { projects } from "./projects";
 
 export const contentTypeEnum = [
