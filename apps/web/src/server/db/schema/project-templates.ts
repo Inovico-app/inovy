@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, index } from "drizzle-orm/pg-core";
+import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
 
 export const projectTemplates = pgTable(
@@ -8,6 +8,8 @@ export const projectTemplates = pgTable(
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id").notNull(),
+
     instructions: text("instructions").notNull(),
     createdById: text("created_by_id").notNull(), // Kinde user ID
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -18,8 +20,9 @@ export const projectTemplates = pgTable(
       .defaultNow(),
   },
   (table) => ({
-    projectIdIdx: index("project_templates_project_id_idx").on(
-      table.projectId
+    projectIdIdx: index("project_templates_project_id_idx").on(table.projectId),
+    organizationIdIdx: index("project_templates_organization_id_idx").on(
+      table.organizationId
     ),
   })
 );
