@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface TranscriptionSearchProps {
   onSearchChange: (query: string, currentMatch: number) => void;
@@ -47,6 +47,12 @@ export function TranscriptionSearch({
     setIsOpen(false);
     onSearchChange("", 0);
   };
+
+  useEffect(() => {
+    if (debouncedSearchQuery.trim() || debouncedSearchQuery === "") {
+      onSearchChange(debouncedSearchQuery.trim(), 0);
+    }
+  }, [debouncedSearchQuery, onSearchChange]);
 
   if (!isOpen) {
     return (
