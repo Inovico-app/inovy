@@ -58,7 +58,13 @@ async function AdminContainer() {
     redirect("/");
   }
 
-  if (!sessionResult.value.user?.roles?.includes(ROLES.ADMIN)) {
+  const userRoles =
+    sessionResult.value.user?.roles?.map((role) => role.toLowerCase()) ?? [];
+
+  if (
+    !userRoles.includes(ROLES.ADMIN) &&
+    !userRoles.includes(ROLES.SUPER_ADMIN)
+  ) {
     redirect("/");
   }
 
