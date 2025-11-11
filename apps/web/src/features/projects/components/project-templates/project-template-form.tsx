@@ -12,6 +12,19 @@ interface ProjectTemplateFormProps {
   isLoading?: boolean;
 }
 
+/**
+ * Renders a form for creating or editing a project instruction template.
+ *
+ * The form includes a labeled multiline textarea prefilled with `initialValue`, a live character count,
+ * and Cancel/Save actions. The Save button calls `onSave` with the current instructions; inputs are disabled
+ * while `isLoading` or an internal save is in progress.
+ *
+ * @param initialValue - Initial instructions to populate the textarea
+ * @param onSave - Called with the current instructions when the user saves the template
+ * @param onCancel - Called when the user cancels editing the template
+ * @param isLoading - When true, disables inputs and actions to reflect an external loading state
+ * @returns A React element containing the instruction textarea, character count, and Cancel/Save buttons
+ */
 export function ProjectTemplateForm({
   initialValue,
   onSave,
@@ -65,4 +78,3 @@ export function ProjectTemplateForm({
     </div>
   );
 }
-

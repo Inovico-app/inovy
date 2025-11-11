@@ -31,6 +31,18 @@ interface ProjectActionsProps {
   recordingCount: number;
 }
 
+/**
+ * Renders a compact action bar for a project with action buttons, a "More" menu, and modal/dialog portals.
+ *
+ * The bar includes: Ask AI chat, recording actions, and a More Actions dropdown (Edit, Archive/Unarchive, Settings, Delete).
+ * Edit, Archive/Unarchive, and Delete open their corresponding modal/dialog portals which are rendered conditionally.
+ *
+ * @param projectId - The project's unique identifier used for actions and navigation
+ * @param projectName - The project's display name shown in dialogs and passed to modals
+ * @param isArchived - Whether the project is currently archived; controls archive menu label and dialog behavior
+ * @param recordingCount - Number of recordings in the project; passed to the delete confirmation dialog
+ * @returns The React element containing the project action controls and any conditionally rendered modals/dialogs
+ */
 export function ProjectActions({
   projectId,
   projectName,
@@ -130,4 +142,3 @@ export function ProjectActions({
     </>
   );
 }
-

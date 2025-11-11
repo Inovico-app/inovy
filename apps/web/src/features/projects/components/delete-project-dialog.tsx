@@ -29,6 +29,21 @@ interface DeleteProjectDialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
+/**
+ * Render a confirmation dialog that requires explicit confirmation to permanently delete a project.
+ *
+ * The dialog validates user input (must type `DELETE` or the exact project name and check the confirmation checkbox),
+ * shows inline and toast feedback for errors and success, calls the delete action, and navigates back to the projects list on success.
+ *
+ * @param projectId - ID of the project to delete
+ * @param projectName - Exact project name used as an alternative confirmation token
+ * @param recordingCount - Number of recordings in the project (defaults to 0); used for messaging and warnings
+ * @param variant - Visual button variant for the trigger when `triggerContent` is not provided; defaults to `"destructive"`
+ * @param triggerContent - Optional custom trigger element to open the dialog; if omitted a small "Delete Project" button is rendered
+ * @param open - Controlled open state for the dialog; when provided the component becomes controlled
+ * @param onOpenChange - Optional controlled state change handler invoked with the new open state
+ * @returns The JSX element for the delete project confirmation dialog
+ */
 export function DeleteProjectDialog({
   projectId,
   projectName,
@@ -238,4 +253,3 @@ export function DeleteProjectDialog({
     </Dialog>
   );
 }
-

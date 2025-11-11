@@ -6,8 +6,10 @@ interface ProjectTemplateSectionProps {
 }
 
 /**
- * Server component for project template section
- * Fetches the cached template server-side and passes it to the client component
+ * Render the project template section by fetching the project's template on the server and supplying it to the client component.
+ *
+ * @param projectId - The project identifier used to fetch the template
+ * @returns The React element for the project template section with `initialTemplate` set to the fetched template value when available, or `null` otherwise
  */
 export async function ProjectTemplateSection({
   projectId,
@@ -23,4 +25,3 @@ export async function ProjectTemplateSection({
     />
   );
 }
-
