@@ -3,6 +3,7 @@ import {
   CalendarIcon,
   ClockIcon,
   FolderIcon,
+  SettingsIcon,
   UserIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -101,6 +102,12 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
           </div>
           <div className="flex gap-2">
             <ChatButton projectId={project.id} projectName={project.name} />
+            <Button asChild variant="outline">
+              <Link href={`/projects/${project.id}/settings`}>
+                <SettingsIcon className="h-4 w-4 mr-2" />
+                Settings
+              </Link>
+            </Button>
             <EditProjectModal
               projectId={project.id}
               initialData={{
