@@ -16,7 +16,9 @@ export class ProjectTemplateQueries {
   /**
    * Create a new project template in the database
    */
-  static async create(data: CreateProjectTemplateDto): Promise<ProjectTemplateDto> {
+  static async create(
+    data: CreateProjectTemplateDto
+  ): Promise<ProjectTemplateDto> {
     return await db.transaction(async (tx) => {
       const [template] = await tx
         .insert(projectTemplates)
@@ -144,21 +146,19 @@ export class ProjectTemplateQueries {
   /**
    * Delete a project template
    */
-  static async delete(
-    id: string,
-    organizationId: string
-  ): Promise<boolean> {
+  static async delete(id: string, organizationId: string): Promise<boolean> {
     return await db.transaction(async (tx) => {
-      const result = await tx
+      const deletedRows = await tx
         .delete(projectTemplates)
         .where(
           and(
             eq(projectTemplates.id, id),
             eq(projectTemplates.organizationId, organizationId)
           )
-        );
+        )
+        .returning();
 
-      return result.rowCount !== null && result.rowCount > 0;
+      return deletedRows.length > 0;
     });
   }
 }

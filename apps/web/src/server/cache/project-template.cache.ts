@@ -1,5 +1,5 @@
-import { cache } from "react";
 import { getAuthSession } from "@/lib/auth";
+import { cache } from "react";
 import type { ProjectTemplateDto } from "../dto";
 import { ProjectTemplateService } from "../services/project-template.service";
 
