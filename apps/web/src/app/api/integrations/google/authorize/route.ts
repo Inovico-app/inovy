@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getUserSession } from "../../../../../lib/auth";
+import { getAuthSession } from "../../../../../lib/auth";
 import { getAuthorizationUrl } from "../../../../../lib/google-oauth";
 import { logger } from "../../../../../lib/logger";
 
@@ -10,13 +10,13 @@ import { logger } from "../../../../../lib/logger";
 export async function GET() {
   try {
     // Verify user is authenticated
-    const sessionResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (sessionResult.isErr()) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       logger.error(
         "Failed to get user session for Google OAuth",
         {},
-        new Error(sessionResult.error)
+        new Error(sessionResult.isErr() ? sessionResult.error : "No user found")
       );
       return NextResponse.json(
         { error: "Authentication required" },
@@ -24,7 +24,7 @@ export async function GET() {
       );
     }
 
-    const user = sessionResult.value;
+    const user = sessionResult.value.user;
 
     if (!user) {
       return NextResponse.json(

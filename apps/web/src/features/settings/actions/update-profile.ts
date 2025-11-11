@@ -1,17 +1,18 @@
 "use server";
 
-import { z } from "zod";
-import { getUserSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth";
+import { AuthService } from "@/lib/kinde-api";
 import { logger } from "@/lib/logger";
-import { KindeUserService } from "@/server/services";
-import { updateProfileSchema, type UpdateProfileInput } from "@/server/validation/settings/update-profile";
+import {
+  updateProfileSchema,
+  type UpdateProfileInput,
+} from "@/server/validation/settings/update-profile";
+import { z } from "zod";
 
 /**
  * Server action to update user profile information
  */
-export async function updateProfile(
-  input: UpdateProfileInput
-): Promise<{
+export async function updateProfile(input: UpdateProfileInput): Promise<{
   success: boolean;
   error?: string;
 }> {
@@ -20,11 +21,11 @@ export async function updateProfile(
     const validatedData = updateProfileSchema.parse(input);
 
     // Get current user session
-    const userResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (userResult.isErr()) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       logger.error("Failed to get user session in updateProfile", {
-        error: userResult.error,
+        error: sessionResult.isErr() ? sessionResult.error : "No user found",
       });
       return {
         success: false,
@@ -32,13 +33,7 @@ export async function updateProfile(
       };
     }
 
-    const user = userResult.value;
-    if (!user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
-    }
+    const user = sessionResult.value.user;
 
     // Update user via Kinde API
     logger.info("Updating user profile", {
@@ -47,15 +42,26 @@ export async function updateProfile(
       family_name: validatedData.family_name,
     });
 
-    const updateResult = await KindeUserService.updateUser(user.id, {
-      given_name: validatedData.given_name,
-      family_name: validatedData.family_name,
-    });
+    try {
+      await AuthService.Users.updateUser({
+        id: user.id,
+        requestBody: {
+          given_name: validatedData.given_name,
+          family_name: validatedData.family_name,
+        },
+      });
 
-    if (updateResult.isErr()) {
+      logger.info("Successfully updated user profile", {
+        userId: user.id,
+      });
+
+      return {
+        success: true,
+      };
+    } catch (error) {
       logger.error("Failed to update user profile", {
         userId: user.id,
-        error: updateResult.error,
+        error,
       });
 
       return {
@@ -63,14 +69,6 @@ export async function updateProfile(
         error: "Failed to update profile. Please try again.",
       };
     }
-
-    logger.info("Successfully updated user profile", {
-      userId: user.id,
-    });
-
-    return {
-      success: true,
-    };
   } catch (error) {
     if (error instanceof z.ZodError) {
       const firstIssue = error.issues[0];
@@ -93,3 +91,4 @@ export async function updateProfile(
     };
   }
 }
+

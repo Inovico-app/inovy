@@ -47,12 +47,7 @@ export {
 } from "./rbac";
 
 // Auth exports (re-export from existing auth module)
-export {
-  getAuthSession,
-  getAuthSessionWithRoles,
-  getUserSession,
-  type AuthUser,
-} from "./auth";
+export { getAuthSession, type AuthUser } from "./auth";
 
 // Logger export (re-export from existing logger)
 export { logger } from "./logger";
@@ -61,5 +56,8 @@ export { logger } from "./logger";
 export { blobToFile, convertBlobToMp3 } from "./audio-utils";
 
 // Vercel Blob client utilities
-export { uploadRecordingToBlob, type UploadRecordingOptions } from "./vercel-blob";
+export {
+  uploadRecordingToBlob,
+  type UploadRecordingOptions,
+} from "./vercel-blob";
 

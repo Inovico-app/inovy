@@ -1,8 +1,12 @@
 "use cache";
 
+import { err, ok } from "neverthrow";
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
-import { KindeUserService } from "../services/kinde-user.service";
+import { AuthService } from "@/lib/kinde-api";
+import { logger } from "@/lib/logger";
+import { ActionErrors, type ActionResult } from "@/lib/action-errors";
+import type { KindeOrganizationUserDto } from "../dto/kinde.dto";
 
 /**
  * Cached organization queries
@@ -11,11 +15,47 @@ import { KindeUserService } from "../services/kinde-user.service";
 
 /**
  * Get organization users (cached)
- * Calls KindeUserService which fetches from Kinde Management API
+ * Fetches from Kinde Management API via AuthService
  */
-export async function getCachedOrganizationUsers(orgCode: string) {
+export async function getCachedOrganizationUsers(
+  orgCode: string
+): Promise<ActionResult<KindeOrganizationUserDto[]>> {
   "use cache";
   cacheTag(CacheTags.orgMembers(orgCode));
-  return await KindeUserService.getUsersByOrganization(orgCode);
+
+  try {
+    const response = await AuthService.Organizations.getOrganizationUsers({
+      orgCode,
+    });
+
+    if (!response?.organization_users) {
+      return ok([]);
+    }
+
+    const users: KindeOrganizationUserDto[] = response.organization_users.map(
+      (user) => ({
+        id: user.id || "",
+        email: user.email || null,
+        given_name: user.first_name || null,
+        family_name: user.last_name || null,
+        roles: user.roles || [],
+      })
+    );
+
+    return ok(users);
+  } catch (error) {
+    logger.error(
+      "Failed to get users for organization",
+      { orgCode },
+      error as Error
+    );
+    return err(
+      ActionErrors.internal(
+        "Failed to get users for organization",
+        error as Error,
+        "getCachedOrganizationUsers"
+      )
+    );
+  }
 }
 

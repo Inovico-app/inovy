@@ -1,6 +1,6 @@
 "use server";
 
-import { getUserSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { revalidatePath } from "next/cache";
@@ -20,11 +20,11 @@ export async function getGoogleConnectionStatus(): Promise<{
 }> {
   try {
     // Get current user session
-    const userResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (userResult.isErr()) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       logger.error("Failed to get user session in getGoogleConnectionStatus", {
-        error: userResult.error,
+        error: sessionResult.isErr() ? sessionResult.error : "No user found",
       });
       return {
         success: false,
@@ -32,13 +32,7 @@ export async function getGoogleConnectionStatus(): Promise<{
       };
     }
 
-    const user = userResult.value;
-    if (!user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
-    }
+    const user = sessionResult.value.user;
 
     // Get connection status
     const statusResult = await GoogleOAuthService.getConnectionStatus(user.id);
@@ -81,11 +75,11 @@ export async function disconnectGoogleAccount(): Promise<{
 }> {
   try {
     // Get current user session
-    const userResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (userResult.isErr()) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       logger.error("Failed to get user session in disconnectGoogleAccount", {
-        error: userResult.error,
+        error: sessionResult.isErr() ? sessionResult.error : "No user found",
       });
       return {
         success: false,
@@ -93,13 +87,7 @@ export async function disconnectGoogleAccount(): Promise<{
       };
     }
 
-    const user = userResult.value;
-    if (!user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
-    }
+    const user = sessionResult.value.user;
 
     logger.info("Disconnecting Google account", { userId: user.id });
 

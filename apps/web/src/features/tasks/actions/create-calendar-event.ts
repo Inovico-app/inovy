@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { getUserSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { GoogleCalendarService } from "@/server/services/google-calendar.service";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
@@ -34,11 +34,11 @@ export async function createCalendarEvent(
     const validatedData = createCalendarEventSchema.parse(input);
 
     // Get current user session
-    const userResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (userResult.isErr()) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       logger.error("Failed to get user session in createCalendarEvent", {
-        error: userResult.error,
+        error: sessionResult.isErr() ? sessionResult.error : "No user found",
       });
       return {
         success: false,
@@ -46,13 +46,7 @@ export async function createCalendarEvent(
       };
     }
 
-    const user = userResult.value;
-    if (!user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
-    }
+    const user = sessionResult.value.user;
 
     // Check if user has Google connection
     const hasConnection = await GoogleOAuthService.hasConnection(user.id);
@@ -166,22 +160,16 @@ export async function createCalendarEventsForTasks(input: {
 }> {
   try {
     // Get current user session
-    const userResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (userResult.isErr()) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       return {
         success: false,
         error: "Failed to authenticate",
       };
     }
 
-    const user = userResult.value;
-    if (!user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
-    }
+    const user = sessionResult.value.user;
 
     // Check Google connection
     const hasConnection = await GoogleOAuthService.hasConnection(user.id);

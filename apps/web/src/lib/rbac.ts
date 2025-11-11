@@ -57,6 +57,7 @@ export const POLICY_KEYS = Object.keys(POLICIES) as PolicyKey[];
  * Available roles in the system
  */
 export const ROLES = {
+  SUPER_ADMIN: "superadmin",
   ADMIN: "admin",
   MANAGER: "manager",
   USER: "user",
@@ -70,6 +71,31 @@ export type Role = (typeof ROLES)[keyof typeof ROLES];
  * Defines which policies each role has access to
  */
 const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
+  [ROLES.SUPER_ADMIN]: [
+    "projects:create",
+    "projects:read",
+    "projects:update",
+    "projects:delete",
+    "recordings:create",
+    "recordings:read",
+    "recordings:update",
+    "recordings:delete",
+    "tasks:create",
+    "tasks:read",
+    "tasks:update",
+    "tasks:delete",
+    "organizations:create",
+    "organizations:read",
+    "organizations:update",
+    "organizations:delete",
+    "users:read",
+    "users:update",
+    "users:delete",
+    "chat:project",
+    "chat:organization",
+    "admin:all",
+    "deepgram:token",
+  ],
   [ROLES.ADMIN]: [
     "projects:create",
     "projects:read",
@@ -149,7 +175,14 @@ export interface SessionWithRoles {
  * Returns roles from user object or defaults to USER
  */
 function getUserRoles(user: AuthUser): Role[] {
-  return user.roles ?? [ROLES.USER];
+  if (!user.roles) {
+    return [ROLES.USER];
+  }
+  // Convert string array to Role enum values
+  return user.roles.map((role) => {
+    const roleValue = Object.values(ROLES).find((r) => r === role);
+    return roleValue ?? ROLES.USER;
+  });
 }
 
 /**

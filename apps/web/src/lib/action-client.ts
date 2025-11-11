@@ -133,9 +133,9 @@ async function authenticationMiddleware({
     throw createErrorForNextSafeAction(actionError);
   }
 
-  const { isAuthenticated, user } = authResult.value;
+  const { isAuthenticated, user: authUser } = authResult.value;
 
-  if (!isAuthenticated || !user) {
+  if (!isAuthenticated || !authUser) {
     const actionError = ActionErrors.unauthenticated(
       "User is not authenticated",
       "auth-middleware"
@@ -144,8 +144,12 @@ async function authenticationMiddleware({
   }
 
   // Create session compatible with RBAC
+  // The roles are already in the correct format from getAuthSession
   const session: SessionWithRoles = {
-    user,
+    user: {
+      ...authUser,
+      roles: authUser.roles ?? undefined,
+    } as SessionWithRoles["user"],
     // Add access token if available from your auth system
   };
 
@@ -173,7 +177,7 @@ async function authenticationMiddleware({
   }
 
   logger.info("User authenticated and authorized", {
-    userId: user.id,
+    userId: authUser.id,
     policy,
     component: "auth-middleware",
   });
@@ -182,7 +186,7 @@ async function authenticationMiddleware({
     ctx: {
       ...ctx,
       session,
-      user,
+      user: authUser,
     },
   });
 }

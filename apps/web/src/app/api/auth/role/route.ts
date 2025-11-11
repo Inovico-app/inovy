@@ -1,6 +1,6 @@
+import { getAuthSession } from "@/lib";
+import { ROLES } from "@/lib/rbac";
 import { NextResponse } from "next/server";
-import { getAuthSessionWithRoles } from "@/lib/auth";
-import { isOrganizationAdmin } from "@/lib/rbac";
 
 /**
  * GET /api/auth/role
@@ -8,7 +8,7 @@ import { isOrganizationAdmin } from "@/lib/rbac";
  */
 export async function GET() {
   try {
-    const sessionResult = await getAuthSessionWithRoles();
+    const sessionResult = await getAuthSession();
 
     if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
       return NextResponse.json(
@@ -17,9 +17,9 @@ export async function GET() {
       );
     }
 
-    const session = sessionResult.value;
+    const { user } = sessionResult.value;
 
-    if (!session.user) {
+    if (!user) {
       return NextResponse.json(
         { isAdmin: false, isAuthenticated: false },
         { status: 200 }
@@ -27,9 +27,10 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      isAdmin: isOrganizationAdmin(session.user),
+      isAdmin: user.roles?.includes(ROLES.ADMIN),
+      isSuperAdmin: user.roles?.includes(ROLES.SUPER_ADMIN),
       isAuthenticated: true,
-      roles: session.user.roles,
+      roles: user.roles,
     });
   } catch (error) {
     console.error("Error checking user role", error);

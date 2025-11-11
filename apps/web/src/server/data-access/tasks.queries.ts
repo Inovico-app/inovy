@@ -244,5 +244,13 @@ export class TasksQueries {
 
     return stats;
   }
+
+  static async countByOrganization(organizationId: string): Promise<number> {
+    const results = await db
+      .select()
+      .from(tasks)
+      .where(eq(tasks.organizationId, organizationId));
+    return results.length;
+  }
 }
 

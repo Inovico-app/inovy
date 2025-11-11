@@ -1,4 +1,5 @@
-import { KindeUserService } from "@/server/services";
+import { AuthService } from "@/lib/kinde-api";
+import { logger } from "@/lib/logger";
 import { CalendarIcon, FileTextIcon, FolderIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -58,24 +59,35 @@ async function ProjectsList({
   };
 
   const getCreatorName = async (createdById: string) => {
-    const creator = await KindeUserService.getUserById(createdById);
-    if (creator.isErr()) {
+    try {
+      const response = await AuthService.Users.getUserData({
+        id: createdById,
+      });
+
+      if (!response) {
+        return "Unknown Creator";
+      }
+
+      const given_name = response.first_name || null;
+      const family_name = response.last_name || null;
+
+      if (given_name && family_name) {
+        return `${given_name} ${family_name}`;
+      }
+      if (given_name) {
+        return given_name;
+      }
+      if (family_name) {
+        return family_name;
+      }
+      return "Unknown Creator";
+    } catch (error) {
+      logger.warn("Failed to fetch creator details", {
+        createdById,
+        error,
+      });
       return "Unknown Creator";
     }
-    if (!creator.value) {
-      return "Unknown Creator";
-    }
-    const { given_name, family_name } = creator.value;
-    if (given_name && family_name) {
-      return `${given_name} ${family_name}`;
-    }
-    if (given_name) {
-      return given_name;
-    }
-    if (family_name) {
-      return family_name;
-    }
-    return "Unknown Creator";
   };
 
   return (

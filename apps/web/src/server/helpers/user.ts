@@ -1,9 +1,9 @@
-import { type Result, err, ok } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 import { ActionErrors, type ActionError } from "../../lib/action-errors";
 import { type AuthUser } from "../../lib/auth";
+import { AuthService } from "../../lib/kinde-api";
 import { logger } from "../../lib/logger";
 import type { KindeUserDto } from "../dto";
-import { KindeUserService } from "../services/kinde-user.service";
 
 /**
  * Ensure user exists in Kinde (create if needed on first signup)
@@ -15,25 +15,20 @@ export async function ensureUserExistsInKinde(
 ): Promise<Result<KindeUserDto, ActionError>> {
   try {
     // Try to fetch user from Kinde
-    const userResult = await KindeUserService.getUserById(authUser.id);
+    const response = await AuthService.Users.getUserData({ id: authUser.id });
 
-    if (userResult.isErr()) {
-      logger.error("Failed to get user from Kinde", {
-        kindeUserId: authUser.id,
-        error: userResult.error,
-      });
-      return err(
-        ActionErrors.internal(
-          "Failed to fetch user from Kinde",
-          undefined,
-          "ensureUserExistsInKinde"
-        )
-      );
-    }
-
-    // If user exists in Kinde, return it
-    if (userResult.value) {
-      return ok(userResult.value);
+    if (response) {
+      const user: KindeUserDto = {
+        id: response.id || authUser.id,
+        email: response.preferred_email || null,
+        given_name: response.first_name || null,
+        family_name: response.last_name || null,
+        picture: response.picture || null,
+        is_suspended: response.is_suspended,
+        created_on: response.created_on || undefined,
+        last_signed_in: response.last_signed_in || undefined,
+      };
+      return ok(user);
     }
 
     // If user doesn't exist in Kinde, create them (for new signups)
@@ -43,26 +38,27 @@ export async function ensureUserExistsInKinde(
       email: authUser.email,
     });
 
-    const createResult = await KindeUserService.createUser({
-      profile: {
-        given_name: authUser.given_name || undefined,
-        family_name: authUser.family_name || undefined,
-      },
-      identities: [
-        {
-          type: "email",
-          details: {
-            email: authUser.email || "",
-          },
+    const createResponse = await AuthService.Users.createUser({
+      requestBody: {
+        profile: {
+          given_name: authUser.given_name || undefined,
+          family_name: authUser.family_name || undefined,
         },
-      ],
-      organization_codes: [orgCode],
+        identities: [
+          {
+            type: "email",
+            details: {
+              email: authUser.email || "",
+            },
+          },
+        ],
+        organization_code: orgCode,
+      },
     });
 
-    if (createResult.isErr()) {
-      logger.error("Failed to create user in Kinde", {
+    if (!createResponse?.id) {
+      logger.error("Failed to create user in Kinde - no ID returned", {
         kindeUserId: authUser.id,
-        error: createResult.error,
       });
       return err(
         ActionErrors.internal(
@@ -73,7 +69,20 @@ export async function ensureUserExistsInKinde(
       );
     }
 
-    return ok(createResult.value);
+    const createdUser: KindeUserDto = {
+      id: createResponse.id,
+      email: authUser.email || null,
+      given_name: authUser.given_name || null,
+      family_name: authUser.family_name || null,
+      picture: null,
+    };
+
+    logger.info("Successfully created user in Kinde", {
+      userId: createdUser.id,
+      email: createdUser.email,
+    });
+
+    return ok(createdUser);
   } catch (error) {
     logger.error(
       "Unexpected error in ensureUserExistsInKinde",
@@ -83,7 +92,7 @@ export async function ensureUserExistsInKinde(
     return err(
       ActionErrors.internal(
         "Failed to ensure user exists",
-        undefined,
+        error as Error,
         "ensureUserExistsInKinde"
       )
     );

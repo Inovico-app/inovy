@@ -1,6 +1,6 @@
 "use server";
 
-import { getUserSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { TemplateService } from "@/server/services/template.service";
 import type {
@@ -19,16 +19,16 @@ export async function getEmailTemplates(): Promise<{
   error?: string;
 }> {
   try {
-    const userResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (userResult.isErr() || !userResult.value) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       return {
         success: false,
         error: "User not authenticated",
       };
     }
 
-    const user = userResult.value;
+    const user = sessionResult.value.user;
 
     const result = await TemplateService.getTemplates(user.id, "google", "email");
 
@@ -61,16 +61,16 @@ export async function getCalendarTemplates(): Promise<{
   error?: string;
 }> {
   try {
-    const userResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (userResult.isErr() || !userResult.value) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       return {
         success: false,
         error: "User not authenticated",
       };
     }
 
-    const user = userResult.value;
+    const user = sessionResult.value.user;
 
     const result = await TemplateService.getTemplates(
       user.id,
@@ -112,16 +112,16 @@ export async function saveEmailTemplate(input: {
   error?: string;
 }> {
   try {
-    const userResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (userResult.isErr() || !userResult.value) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       return {
         success: false,
         error: "User not authenticated",
       };
     }
 
-    const user = userResult.value;
+    const user = sessionResult.value.user;
 
     const result = await TemplateService.saveTemplate(user.id, "google", "email", input);
 
@@ -161,16 +161,16 @@ export async function saveCalendarTemplate(input: {
   error?: string;
 }> {
   try {
-    const userResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (userResult.isErr() || !userResult.value) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       return {
         success: false,
         error: "User not authenticated",
       };
     }
 
-    const user = userResult.value;
+    const user = sessionResult.value.user;
 
     const result = await TemplateService.saveTemplate(
       user.id,
@@ -209,16 +209,16 @@ export async function deleteTemplate(templateId: string): Promise<{
   error?: string;
 }> {
   try {
-    const userResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (userResult.isErr() || !userResult.value) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       return {
         success: false,
         error: "User not authenticated",
       };
     }
 
-    const user = userResult.value;
+    const user = sessionResult.value.user;
 
     const result = await TemplateService.deleteTemplate(templateId, user.id);
 

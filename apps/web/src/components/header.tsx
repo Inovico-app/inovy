@@ -1,9 +1,9 @@
+import { NotificationBell } from "@/features/notifications/components/notification-bell";
 import Link from "next/link";
 import { Suspense } from "react";
 import { HeaderAuthButtons } from "./header-auth-buttons";
 import { HeaderNavigation } from "./header-navigation";
 import { ModeToggle } from "./mode-toggle";
-import { NotificationBell } from "@/features/notifications/components/notification-bell";
 
 export function Header() {
   return (

@@ -1,6 +1,6 @@
 "use server";
 
-import { getUserSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { IntegrationSettingsService } from "@/server/services/integration-settings.service";
 import {
@@ -19,16 +19,16 @@ export async function getGoogleSettings(projectId?: string): Promise<{
   error?: string;
 }> {
   try {
-    const userResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (userResult.isErr() || !userResult.value) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       return {
         success: false,
         error: "User not authenticated",
       };
     }
 
-    const user = userResult.value;
+    const user = sessionResult.value.user;
 
     const result = await IntegrationSettingsService.getSettings(
       user.id,
@@ -88,16 +88,16 @@ export async function updateGoogleSettings(
   try {
     const validatedData = updateGoogleSettingsSchema.parse(input);
 
-    const userResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (userResult.isErr() || !userResult.value) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       return {
         success: false,
         error: "User not authenticated",
       };
     }
 
-    const user = userResult.value;
+    const user = sessionResult.value.user;
 
     logger.info("Updating Google integration settings", {
       userId: user.id,
@@ -154,16 +154,16 @@ export async function resetGoogleSettings(projectId?: string): Promise<{
   error?: string;
 }> {
   try {
-    const userResult = await getUserSession();
+    const sessionResult = await getAuthSession();
 
-    if (userResult.isErr() || !userResult.value) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       return {
         success: false,
         error: "User not authenticated",
       };
     }
 
-    const user = userResult.value;
+    const user = sessionResult.value.user;
 
     const result = await IntegrationSettingsService.deleteSettings(
       user.id,

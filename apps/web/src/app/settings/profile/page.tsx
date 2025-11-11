@@ -7,17 +7,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getAuthSession, getUserSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth";
 import { AutoProcessToggle } from "@/features/recordings/components/auto-process-toggle";
 import { Building2Icon, CalendarIcon, MailIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
 async function ProfileContent() {
-  const userResult = await getUserSession();
   const authResult = await getAuthSession();
 
-  if (userResult.isErr() || authResult.isErr()) {
+  if (authResult.isErr() || !authResult.value.user) {
     return (
       <div className="text-center">
         <p className="text-red-500">Failed to load profile information</p>
@@ -25,7 +24,7 @@ async function ProfileContent() {
     );
   }
 
-  const user = userResult.value;
+  const user = authResult.value.user;
   if (!user) {
     return (
       <div className="text-center">
@@ -34,8 +33,7 @@ async function ProfileContent() {
     );
   }
 
-  const auth = authResult.value;
-  const organization = auth.organization;
+  const organization = authResult.value.organization;
   const orgName =
     ((organization as unknown as Record<string, unknown>)?.display_name as
       | string

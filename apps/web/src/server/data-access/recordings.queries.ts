@@ -133,6 +133,14 @@ export class RecordingsQueries {
     return results.length;
   }
 
+  static async countByOrganization(organizationId: string): Promise<number> {
+    const results = await db
+      .select()
+      .from(recordings)
+      .where(eq(recordings.organizationId, organizationId));
+    return results.length;
+  }
+
   static async getRecordingStatistics(projectId: string): Promise<{
     totalCount: number;
     lastRecordingDate: Date | null;

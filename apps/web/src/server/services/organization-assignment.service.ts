@@ -1,10 +1,9 @@
 import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import type { AuthUser } from "../../lib/auth";
+import { AuthService } from "../../lib/kinde-api";
 import { logger } from "../../lib/logger";
 import type { KindeOrganizationDto } from "../dto";
-import { KindeOrganizationService } from "./kinde-organization.service";
-import { KindeUserService } from "./kinde-user.service";
 
 /**
  * Service for handling user organization assignment
@@ -31,41 +30,48 @@ export class OrganizationAssignmentService {
       }
 
       // User already has an organization, fetch it to verify
-      const orgResult = await KindeOrganizationService.getOrganizationById(
-        user.organization_code
-      );
+      try {
+        const response = await AuthService.Organizations.getOrganization({
+          code: user.organization_code,
+        });
 
-      if (orgResult.isErr()) {
+        if (!response) {
+          logger.warn("Organization not found, creating default", {
+            userId: user.id,
+            organizationCode: user.organization_code,
+          });
+
+          return await this.createDefaultOrganizationForUser(user);
+        }
+
+        const organization: KindeOrganizationDto = {
+          code: response.code ?? user.organization_code,
+          name: response.name ?? "",
+          is_default: response.is_default,
+          created_on: response.created_on,
+        };
+
+        logger.info("User organization verified", {
+          userId: user.id,
+          organizationCode: user.organization_code,
+        });
+
+        return ok(organization);
+      } catch (error) {
         logger.error("Failed to fetch user organization", {
           userId: user.id,
           organizationCode: user.organization_code,
-          error: orgResult.error,
+          error,
         });
 
         return err(
           ActionErrors.internal(
             "Failed to fetch organization information",
-            undefined,
+            error as Error,
             "ensureUserOrganization"
           )
         );
       }
-
-      if (!orgResult.value) {
-        logger.warn("Organization not found, creating default", {
-          userId: user.id,
-          organizationCode: user.organization_code,
-        });
-
-        return await this.createDefaultOrganizationForUser(user);
-      }
-
-      logger.info("User organization verified", {
-        userId: user.id,
-        organizationCode: user.organization_code,
-      });
-
-      return ok(orgResult.value);
     } catch (error) {
       logger.error(
         "Error in ensureUserOrganization",
@@ -107,57 +113,84 @@ export class OrganizationAssignmentService {
       });
 
       // Create organization in Kinde
-      const createOrgResult = await KindeOrganizationService.createOrganization(
-        {
-          name: orgName,
-        }
-      );
+      try {
+        const createOrgResponse =
+          await AuthService.Organizations.createOrganization({
+            requestBody: {
+              name: orgName,
+            },
+          });
 
-      if (createOrgResult.isErr()) {
+        if (!createOrgResponse?.organization?.code) {
+          logger.error(
+            "Failed to create default organization - no code returned",
+            {
+              userId: user.id,
+            }
+          );
+
+          return err(
+            ActionErrors.internal(
+              "Failed to create organization",
+              undefined,
+              "createDefaultOrganizationForUser"
+            )
+          );
+        }
+
+        const newOrganization: KindeOrganizationDto = {
+          code: createOrgResponse.organization.code,
+          name: orgName,
+          is_default: false,
+        };
+
+        // Assign user to the new organization
+        try {
+          await AuthService.Organizations.addOrganizationUsers({
+            orgCode: newOrganization.code,
+            requestBody: {
+              users: [{ id: user.id }],
+            },
+          });
+
+          logger.info(
+            "Successfully created and assigned organization to user",
+            {
+              userId: user.id,
+              organizationCode: newOrganization.code,
+            }
+          );
+
+          return ok(newOrganization);
+        } catch (error) {
+          logger.error("Failed to assign user to organization", {
+            userId: user.id,
+            organizationCode: newOrganization.code,
+            error,
+          });
+
+          return err(
+            ActionErrors.internal(
+              "Failed to assign user to organization",
+              error as Error,
+              "createDefaultOrganizationForUser"
+            )
+          );
+        }
+      } catch (error) {
         logger.error("Failed to create default organization", {
           userId: user.id,
-          error: createOrgResult.error,
+          error,
         });
 
         return err(
           ActionErrors.internal(
             "Failed to create organization",
-            undefined,
+            error as Error,
             "createDefaultOrganizationForUser"
           )
         );
       }
-
-      const newOrganization = createOrgResult.value;
-
-      // Assign user to the new organization
-      const assignResult = await KindeUserService.addUserToOrganization(
-        user.id,
-        newOrganization.code
-      );
-
-      if (assignResult.isErr()) {
-        logger.error("Failed to assign user to organization", {
-          userId: user.id,
-          organizationCode: newOrganization.code,
-          error: assignResult.error,
-        });
-
-        return err(
-          ActionErrors.internal(
-            "Failed to assign user to organization",
-            undefined,
-            "createDefaultOrganizationForUser"
-          )
-        );
-      }
-
-      logger.info("Successfully created and assigned organization to user", {
-        userId: user.id,
-        organizationCode: newOrganization.code,
-      });
-
-      return ok(newOrganization);
     } catch (error) {
       logger.error(
         "Error creating default organization",
