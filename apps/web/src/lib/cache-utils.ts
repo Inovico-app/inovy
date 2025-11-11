@@ -14,6 +14,9 @@ export const CacheTags = {
   projectsByOrg: (orgCode: string) => `projects:org:${orgCode}`,
   projectCount: (orgCode: string) => `project-count:org:${orgCode}`,
 
+  // Project template tags
+  projectTemplate: (projectId: string) => `project-template:${projectId}`,
+
   // Task tags
   tasksByUser: (userId: string, orgCode: string) =>
     `tasks:user:${userId}:org:${orgCode}`,
@@ -101,8 +104,16 @@ export const CacheInvalidation = {
     invalidateCache(
       CacheTags.project(projectId),
       CacheTags.projectsByOrg(orgCode),
-      CacheTags.projectCount(orgCode)
+      CacheTags.projectCount(orgCode),
+      CacheTags.projectTemplate(projectId)
     );
+  },
+
+  /**
+   * Invalidate project template cache
+   */
+  invalidateProjectTemplate(projectId: string): void {
+    invalidateCache(CacheTags.projectTemplate(projectId));
   },
 
   /**
