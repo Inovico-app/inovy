@@ -76,6 +76,9 @@ export function LiveRecorder({ onRecordingComplete }: LiveRecorderProps) {
         "Failed to start recording with transcription:",
         error instanceof Error ? { error } : { error: String(error) }
       );
+      recording.setRecorderError(
+        "Failed to start recording with transcription"
+      );
     }
   };
 
@@ -111,6 +114,9 @@ export function LiveRecorder({ onRecordingComplete }: LiveRecorderProps) {
       transcription.clearTranscripts();
     } catch (error) {
       console.error("Error in handleFinalStop:", error);
+      recording.setRecorderError(
+        "Kon transcriptie niet starten. Probeer het opnieuw."
+      );
     }
   };
 

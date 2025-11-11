@@ -140,6 +140,7 @@ export function useLiveRecording() {
     isSaving,
     recorderError,
     permissionDenied,
+    setRecorderError,
 
     // Microphone
     microphone,
