@@ -120,5 +120,36 @@ export class AIInsightsQueries {
       .returning();
     return updated;
   }
+
+  static async updateSpeakerNames(
+    insightId: string,
+    speakerNames: Record<string, string>
+  ): Promise<AIInsight | undefined> {
+    const [updated] = await db
+      .update(aiInsights)
+      .set({
+        speakerNames,
+        updatedAt: new Date(),
+      })
+      .where(eq(aiInsights.id, insightId))
+      .returning();
+    return updated;
+  }
+
+  static async getTranscriptionInsightByRecordingId(
+    recordingId: string
+  ): Promise<AIInsight | null> {
+    const [insight] = await db
+      .select()
+      .from(aiInsights)
+      .where(
+        and(
+          eq(aiInsights.recordingId, recordingId),
+          eq(aiInsights.insightType, "transcription")
+        )
+      )
+      .limit(1);
+    return insight ?? null;
+  }
 }
 

@@ -1,0 +1,1 @@
+ALTER TABLE "ai_insights" ADD COLUMN "speaker_names" jsonb;

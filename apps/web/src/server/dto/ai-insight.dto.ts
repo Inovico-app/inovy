@@ -30,6 +30,7 @@ export interface AIInsightDto {
   processingStatus: InsightProcessingStatus;
   speakersDetected: number | null;
   utterances: Utterance[] | null;
+  speakerNames: Record<string, string> | null;
   errorMessage: string | null;
   isManuallyEdited: boolean;
   lastEditedById: string | null;

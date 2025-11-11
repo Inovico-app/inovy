@@ -322,6 +322,81 @@ export class AIInsightService {
   }
 
   /**
+   * Update speaker names for a transcription insight with authorization check
+   * Used to customize speaker labels in transcriptions
+   */
+  static async updateSpeakerNames(
+    recordingId: string,
+    speakerNames: Record<string, string>
+  ): Promise<ActionResult<AIInsightDto>> {
+    try {
+      const authResult = await getAuthSession();
+      if (authResult.isErr()) {
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "AIInsightService.updateSpeakerNames"
+          )
+        );
+      }
+
+      const { user: authUser, organization } = authResult.value;
+
+      if (!authUser || !organization) {
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "AIInsightService.updateSpeakerNames"
+          )
+        );
+      }
+
+      // Get the transcription insight for this recording
+      const insight =
+        await AIInsightsQueries.getTranscriptionInsightByRecordingId(
+          recordingId
+        );
+
+      if (!insight) {
+        return err(
+          ActionErrors.notFound(
+            "Transcription not found",
+            "AIInsightService.updateSpeakerNames"
+          )
+        );
+      }
+
+      // Update the speaker names
+      const updated = await AIInsightsQueries.updateSpeakerNames(
+        insight.id,
+        speakerNames
+      );
+
+      if (!updated) {
+        return err(
+          ActionErrors.notFound(
+            "AI Insight",
+            "AIInsightService.updateSpeakerNames"
+          )
+        );
+      }
+
+      return ok(this.toDto(updated));
+    } catch (error) {
+      logger.error("Failed to update speaker names", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to update speaker names",
+          error as Error,
+          "AIInsightService.updateSpeakerNames"
+        )
+      );
+    }
+  }
+
+  /**
    * Delete an insight with authorization check
    */
   static async deleteInsight(insightId: string): Promise<ActionResult<void>> {
@@ -377,6 +452,7 @@ export class AIInsightService {
       processingStatus: insight.processingStatus,
       speakersDetected: insight.speakersDetected,
       utterances: insight.utterances,
+      speakerNames: insight.speakerNames as Record<string, string> | null,
       errorMessage: insight.errorMessage,
       isManuallyEdited: insight.isManuallyEdited,
       lastEditedById: insight.lastEditedById,
@@ -387,3 +463,4 @@ export class AIInsightService {
     };
   }
 }
+

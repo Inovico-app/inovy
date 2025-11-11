@@ -1,0 +1,100 @@
+"use server";
+
+import { logger } from "@/lib";
+import { authorizedActionClient } from "@/lib/action-client";
+import { RecordingsQueries } from "@/server/data-access/recordings.queries";
+import { AIInsightService } from "@/server/services/ai-insight.service";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+
+const updateSpeakerNamesSchema = z.object({
+  recordingId: z.uuid("Invalid recording ID"),
+  speakerNumber: z.number().int().min(0, "Invalid speaker number"),
+  speakerName: z
+    .string()
+    .min(1, "Speaker name is required")
+    .max(50, "Speaker name must be 50 characters or less")
+    .regex(
+      /^[a-zA-Z0-9\s\-.]*$/,
+      "Speaker name can only contain letters, numbers, spaces, hyphens, and periods"
+    ),
+});
+
+export const updateSpeakerNames = authorizedActionClient
+  .metadata({ policy: "recordings:update" })
+  .inputSchema(updateSpeakerNamesSchema)
+  .action(async ({ parsedInput }) => {
+    const { recordingId, speakerNumber, speakerName } = parsedInput;
+
+    try {
+      // Get the current speaker names
+      const insightResult = await AIInsightService.getInsightByTypeInternal(
+        recordingId,
+        "transcription"
+      );
+
+      if (insightResult.isErr()) {
+        return {
+          success: false,
+          error: "Failed to get transcription",
+        };
+      }
+
+      const insight = insightResult.value;
+      if (!insight) {
+        return {
+          success: false,
+          error: "Transcription not found",
+        };
+      }
+
+      // Update speaker names (create new object to avoid mutation)
+      const currentSpeakerNames = {
+        ...((insight.speakerNames as Record<string, string>) || {}),
+        [speakerNumber.toString()]: speakerName,
+      };
+
+      // Update via service
+      const updateResult = await AIInsightService.updateSpeakerNames(
+        recordingId,
+        currentSpeakerNames
+      );
+
+      if (updateResult.isErr()) {
+        return {
+          success: false,
+          error: "Failed to update speaker name",
+        };
+      }
+
+      // Get projectId from the recording to revalidate the correct path
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+
+      if (recording) {
+        revalidatePath(
+          `/projects/${recording.projectId}/recordings/${recordingId}`
+        );
+      }
+
+      return {
+        success: true,
+        data: {
+          speakerNumber,
+          speakerName,
+        },
+      };
+    } catch (error) {
+      logger.error(
+        "Error updating speaker names",
+        { recordingId, speakerNumber, speakerName },
+        error as Error
+      );
+      return {
+        success: false,
+        error: "Failed to update speaker name",
+      };
+    }
+  });
+
