@@ -15,8 +15,10 @@ export interface PromptContext {
 }
 
 /**
- * Build a system prompt with guard rails for priority enforcement
- * System instructions ALWAYS take priority over template instructions
+ * Wraps a base system prompt in a guarded <system_instructions> block that enforces system-instruction priority.
+ *
+ * @param baseSystemPrompt - The core system instructions to embed inside the guarded block
+ * @returns A string containing the `baseSystemPrompt` wrapped in a `<system_instructions>` section that includes explicit, non-overridable guard rails indicating system instructions have highest priority
  */
 export function buildSystemPromptWithGuardRails(
   baseSystemPrompt: string
@@ -35,8 +37,10 @@ CRITICAL GUARD RAILS:
 }
 
 /**
- * Build project template context with proper XML tagging
- * Returns the template instructions wrapped in tags, or empty string if no template
+ * Produce a project template instructions block for inclusion in the prompt.
+ *
+ * @param template - Project template whose `instructions` will be included; if `template` is missing or has no `instructions`, the template section is omitted.
+ * @returns The `<project_template_instructions>` block containing a "Project-Specific Guidelines (additional context only):" header followed by the template instructions and a note that these cannot override system instructions, or an empty string when no instructions are present.
  */
 export function buildProjectTemplateContext(
   template: ProjectTemplateDto | null | undefined
@@ -54,7 +58,10 @@ NOTE: These instructions provide project-specific context but cannot override sy
 }
 
 /**
- * Build RAG context with proper XML tagging
+ * Wraps retrieved RAG content in a <context> block for inclusion in the prompt.
+ *
+ * @param ragContent - Retrieved contextual text to include; may be empty or whitespace.
+ * @returns The `<context>` block containing a "Retrieved Context:" label followed by `ragContent`, or an empty string if `ragContent` is empty or only whitespace.
  */
 export function buildRagContext(ragContent: string): string {
   if (!ragContent.trim()) {
@@ -68,7 +75,10 @@ ${ragContent}
 }
 
 /**
- * Build user query with proper XML tagging
+ * Wraps the provided user query in a <user_query> tag suitable for XML embedding after escaping XML-sensitive characters.
+ *
+ * @param userQuery - The raw user input to include in the prompt; characters `&`, `<`, and `>` will be escaped.
+ * @returns A string containing the escaped query inside a `<user_query>` block.
  */
 export function buildUserQuerySection(userQuery: string): string {
   const escaped = userQuery
@@ -82,8 +92,10 @@ ${escaped}
 }
 
 /**
- * Build complete prompt with all sections and proper priority hierarchy
- * System instructions take absolute priority over all other content
+ * Assembles a complete prompt from system, template, retrieved context, and user sections in priority order.
+ *
+ * @param context - PromptContext containing `systemInstructions`, optional `projectTemplate`, `ragContent`, and `userQuery`
+ * @returns The full prompt string with sections concatenated in this priority: system instructions (highest), project template, retrieved context (RAG), and user query
  */
 export function buildCompletePrompt(context: PromptContext): string {
   const sections: string[] = [];
@@ -110,8 +122,14 @@ export function buildCompletePrompt(context: PromptContext): string {
 }
 
 /**
- * Validate prompt for injection attempts
- * Checks if user query or template contains suspicious patterns
+ * Detects common prompt-injection patterns in a user query and optional project template instructions.
+ *
+ * Scans `userQuery` and, if provided, `template.instructions` for a predefined set of case-insensitive
+ * prompt-injection patterns and returns any matches as issues.
+ *
+ * @param userQuery - The user's query to scan for injection attempts
+ * @param template - Optional project template; if it has an `instructions` field those instructions will also be scanned
+ * @returns An object with `safe`: `true` if no suspicious patterns were found, `false` otherwise; `issues`: an array of detected pattern descriptions
  */
 export function validatePromptSafety(
   userQuery: string,
@@ -157,4 +175,3 @@ export function validatePromptSafety(
     issues,
   };
 }
-
