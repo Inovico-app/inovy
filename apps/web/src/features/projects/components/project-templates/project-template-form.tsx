@@ -47,7 +47,11 @@ export function ProjectTemplateForm({
     }
   };
 
-  const isDisabled = isLoading || isSaving || !instructions.trim();
+  const isDisabled =
+    isLoading ||
+    isSaving ||
+    !instructions.trim() ||
+    instructions.length > 50000;
 
   return (
     <div className="space-y-4">
@@ -60,9 +64,10 @@ export function ProjectTemplateForm({
           disabled={isLoading || isSaving}
           rows={10}
           className="min-h-[240px] resize-vertical"
+          maxLength={50000}
         />
         <div className="text-xs text-muted-foreground">
-          {instructions.length} / 50,000 characters
+          {instructions.length} / 50000 characters
         </div>
       </div>
 
@@ -78,3 +83,4 @@ export function ProjectTemplateForm({
     </div>
   );
 }
+

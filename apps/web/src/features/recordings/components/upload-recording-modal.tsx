@@ -39,19 +39,25 @@ export function UploadRecordingModal({
 
   // Use controlled state if provided, otherwise use internal state
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
-  const setIsOpen = controlledOnOpenChange || setInternalOpen;
+  const handleOpenChange = (open: boolean) => {
+    if (controlledOnOpenChange) {
+      controlledOnOpenChange(open);
+    } else {
+      setInternalOpen(open);
+    }
+  };
 
   const handleSuccess = () => {
-    setIsOpen(false);
+    handleOpenChange(false);
     // The form will handle navigation/refresh
   };
 
   const handleCancel = () => {
-    setIsOpen(false);
+    handleOpenChange(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger ?? (
           <Button variant="outline">
