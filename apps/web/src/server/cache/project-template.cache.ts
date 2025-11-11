@@ -1,4 +1,6 @@
 import { getAuthSession } from "@/lib/auth";
+import { CacheTags } from "@/lib/cache-utils";
+import { cacheTag } from "next/cache";
 import { cache } from "react";
 import type { ProjectTemplateDto } from "../dto";
 import { ProjectTemplateService } from "../services/project-template.service";
@@ -19,6 +21,7 @@ export const getCachedProjectTemplate = cache(
   async (projectId: string): Promise<ProjectTemplateDto | null> => {
     "use cache";
 
+    cacheTag(CacheTags.projectTemplate(projectId));
     // Fetch template for the project using service
     const result = await ProjectTemplateService.getProjectTemplateByProjectId(
       projectId

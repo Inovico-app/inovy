@@ -1,15 +1,15 @@
 "use server";
 
+import { getUserOrganizationCode } from "@/lib/action-helpers";
+import { revalidatePath } from "next/cache";
 import {
   authorizedActionClient,
   resultToActionResponse,
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
-import { getAuthSession } from "../../../lib/auth";
-import { ProjectTemplateService } from "../../../server/services/project-template.service";
 import { ProjectTemplateQueries } from "../../../server/data-access/project-templates.queries";
+import { ProjectTemplateService } from "../../../server/services/project-template.service";
 import { deleteProjectTemplateSchema } from "../../../server/validation/project-templates/delete-project-template";
-import { revalidatePath } from "next/cache";
 
 /**
  * Delete a project template
@@ -21,26 +21,17 @@ export const deleteProjectTemplateAction = authorizedActionClient
   .inputSchema(deleteProjectTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { id } = parsedInput;
-    const { user, session } = ctx;
+    const { user } = ctx;
 
-    if (!user || !session) {
+    if (!user) {
       throw ActionErrors.unauthenticated(
-        "User or session not found",
+        "User not found in context",
         "delete-project-template"
       );
     }
 
-    // Get organization code from session
-    const authResult = await getAuthSession();
-    if (authResult.isErr() || !authResult.value.organization) {
-      throw ActionErrors.internal(
-        "Failed to get organization context",
-        undefined,
-        "delete-project-template"
-      );
-    }
-
-    const orgCode = authResult.value.organization.orgCode;
+    // Get user's organization code
+    const orgCode = getUserOrganizationCode(user);
 
     // Get template to find project ID before deletion
     const template = await ProjectTemplateQueries.findById(id, orgCode);
