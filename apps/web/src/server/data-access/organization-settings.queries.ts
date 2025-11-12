@@ -55,12 +55,12 @@ export class OrganizationSettingsQueries {
       .update(organizationSettings)
       .set({
         instructions: data.instructions,
-        updatedAt: new Date(),
+        updatedAt: data.updatedAt ?? new Date(),
       })
       .where(eq(organizationSettings.organizationId, organizationId))
       .returning();
 
-    return result[0] || null;
+    return result[0] ?? null;
   }
 
   /**
