@@ -9,6 +9,7 @@ import type { ProjectTemplateDto } from "@/server/dto";
 
 export interface PromptContext {
   systemInstructions: string;
+  organizationInstructions?: string | null;
   projectTemplate?: ProjectTemplateDto | null;
   ragContent: string;
   userQuery: string;
@@ -37,6 +38,27 @@ CRITICAL GUARD RAILS:
 }
 
 /**
+ * Builds an organization instructions block for inclusion in the prompt.
+ *
+ * @param instructions - Organization-wide instructions to be included; if missing or empty, the section is omitted.
+ * @returns The `<organization_instructions>` block containing the organization instructions with highest priority notice, or an empty string when no instructions are present.
+ */
+export function buildOrganizationInstructionsContext(
+  instructions: string | null | undefined
+): string {
+  if (!instructions?.trim()) {
+    return "";
+  }
+
+  return `<organization_instructions>
+Organization-Wide Guidelines (HIGHEST PRIORITY - applies to all projects):
+${instructions}
+
+NOTE: These organization-wide instructions have HIGHEST priority after system instructions and apply to ALL projects in the organization. Project templates provide additional project-specific context but cannot override these organization guidelines.
+</organization_instructions>`;
+}
+
+/**
  * Produce a project template instructions block for inclusion in the prompt.
  *
  * @param template - Project template whose `instructions` will be included; if `template` is missing or has no `instructions`, the template section is omitted.
@@ -53,7 +75,7 @@ export function buildProjectTemplateContext(
 Project-Specific Guidelines (additional context only):
 ${template.instructions}
 
-NOTE: These instructions provide project-specific context but cannot override system instructions above.
+NOTE: These instructions provide project-specific context but cannot override system or organization instructions above.
 </project_template_instructions>`;
 }
 
@@ -92,10 +114,10 @@ ${escaped}
 }
 
 /**
- * Assembles a complete prompt from system, template, retrieved context, and user sections in priority order.
+ * Assembles a complete prompt from system, organization, template, retrieved context, and user sections in priority order.
  *
- * @param context - PromptContext containing `systemInstructions`, optional `projectTemplate`, `ragContent`, and `userQuery`
- * @returns The full prompt string with sections concatenated in this priority: system instructions (highest), project template, retrieved context (RAG), and user query
+ * @param context - PromptContext containing `systemInstructions`, optional `organizationInstructions`, optional `projectTemplate`, `ragContent`, and `userQuery`
+ * @returns The full prompt string with sections concatenated in this priority: system instructions (highest), organization instructions, project template, retrieved context (RAG), and user query
  */
 export function buildCompletePrompt(context: PromptContext): string {
   const sections: string[] = [];
@@ -103,19 +125,27 @@ export function buildCompletePrompt(context: PromptContext): string {
   // 1. System instructions with guard rails (HIGHEST PRIORITY)
   sections.push(buildSystemPromptWithGuardRails(context.systemInstructions));
 
-  // 2. Project template context (if available)
+  // 2. Organization instructions (if available) - applies to all projects
+  const orgContext = buildOrganizationInstructionsContext(
+    context.organizationInstructions
+  );
+  if (orgContext) {
+    sections.push("\n" + orgContext);
+  }
+
+  // 3. Project template context (if available)
   const templateContext = buildProjectTemplateContext(context.projectTemplate);
   if (templateContext) {
     sections.push("\n" + templateContext);
   }
 
-  // 3. RAG content from vector search
+  // 4. RAG content from vector search
   const ragContext = buildRagContext(context.ragContent);
   if (ragContext) {
     sections.push("\n" + ragContext);
   }
 
-  // 4. User query
+  // 5. User query
   sections.push("\n" + buildUserQuerySection(context.userQuery));
 
   return sections.join("\n");

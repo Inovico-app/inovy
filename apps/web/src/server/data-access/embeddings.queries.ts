@@ -115,7 +115,12 @@ export class EmbeddingsQueries {
 
   static async deleteByContentId(
     contentId: string,
-    contentType: "recording" | "transcription" | "summary" | "task"
+    contentType:
+      | "recording"
+      | "transcription"
+      | "summary"
+      | "task"
+      | "organization_instructions"
   ): Promise<void> {
     await db
       .delete(chatEmbeddings)
@@ -136,7 +141,13 @@ export class EmbeddingsQueries {
 
   static async hasEmbeddings(
     contentId: string,
-    contentType: "recording" | "transcription" | "summary" | "task" | "project_template"
+    contentType:
+      | "recording"
+      | "transcription"
+      | "summary"
+      | "task"
+      | "project_template"
+      | "organization_instructions"
   ): Promise<boolean> {
     const [result] = await db
       .select({ count: sql<number>`count(*)` })
@@ -148,6 +159,19 @@ export class EmbeddingsQueries {
         )
       );
     return Number(result.count) > 0;
+  }
+
+  static async deleteByOrganizationId(
+    organizationId: string
+  ): Promise<void> {
+    await db
+      .delete(chatEmbeddings)
+      .where(
+        and(
+          eq(chatEmbeddings.organizationId, organizationId),
+          eq(chatEmbeddings.contentType, "organization_instructions")
+        )
+      );
   }
 }
 

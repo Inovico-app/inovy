@@ -8,8 +8,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getAuthSession } from "@/lib/auth";
+import { isOrganizationAdmin } from "@/lib/rbac";
 import Link from "next/link";
 import { OrganizationService } from "@/server/services";
+import { OrganizationInstructionsSection } from "@/features/settings/components/organization-instructions-section";
+import { getOrganizationSettings } from "@/features/settings/actions/organization-settings";
 import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
 import { Suspense } from "react";
 
@@ -38,6 +41,9 @@ async function OrganizationContent() {
   const orgCode = (organization as unknown as Record<string, unknown>).org_code as string | undefined || (organization as unknown as Record<string, unknown>).code as string | undefined;
   const orgName = (organization as unknown as Record<string, unknown>).display_name as string | undefined ?? (organization as unknown as Record<string, unknown>).name as string | undefined ?? "Organization";
 
+  // Check if user is admin
+  const canEdit = auth.user ? isOrganizationAdmin(auth.user) : false;
+
   // Fetch organization members
   let members: Array<{ id: string; email: string | null; given_name: string | null; family_name: string | null; roles?: string[] }> = [];
 
@@ -47,6 +53,10 @@ async function OrganizationContent() {
       members = membersResult.value;
     }
   }
+
+  // Fetch organization settings
+  const settingsResult = await getOrganizationSettings();
+  const instructions = settingsResult.success && settingsResult.data?.instructions ? settingsResult.data.instructions : "";
 
   return (
     <div className="container mx-auto max-w-2xl py-8 px-4">
@@ -84,6 +94,15 @@ async function OrganizationContent() {
           </div>
         </CardContent>
       </Card>
+
+      {/* AI Instructions */}
+      {orgCode && (
+        <OrganizationInstructionsSection
+          initialInstructions={instructions}
+          organizationId={orgCode}
+          canEdit={canEdit}
+        />
+      )}
 
       {/* Members List */}
       <Card>

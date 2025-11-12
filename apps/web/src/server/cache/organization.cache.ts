@@ -7,7 +7,7 @@ import { AuthService } from "@/lib/kinde-api";
 import { logger } from "@/lib/logger";
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import type { KindeOrganizationUserDto } from "../dto/kinde.dto";
-import type { OrganizationInstructionsDto } from "../dto/organization-settings.dto";
+import type { OrganizationSettingsDto } from "../dto/organization-settings.dto";
 import { OrganizationSettingsQueries } from "../data-access/organization-settings.queries";
 
 /**
@@ -68,15 +68,13 @@ export async function getCachedOrganizationUsers(
  */
 export async function getCachedOrganizationInstructions(
   orgCode: string
-): Promise<ActionResult<OrganizationInstructionsDto | null>> {
+): Promise<ActionResult<OrganizationSettingsDto | null>> {
   "use cache";
   cacheTag(CacheTags.organizationInstructions(orgCode));
 
   try {
     const instructions =
-      await OrganizationSettingsQueries.getInstructionsByOrganizationId(
-        orgCode
-      );
+      await OrganizationSettingsQueries.findByOrganizationId(orgCode);
 
     return ok(instructions);
   } catch (error) {

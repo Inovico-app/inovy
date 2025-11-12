@@ -1,8 +1,9 @@
 /**
- * Data Transfer Objects for Organization Settings operations
+ * Organization Settings DTO
+ * Data transfer object for organization-wide settings and instructions
  */
 
-export interface OrganizationInstructionsDto {
+export interface OrganizationSettingsDto {
   id: string;
   organizationId: string;
   instructions: string | null;
@@ -11,14 +12,13 @@ export interface OrganizationInstructionsDto {
   updatedAt: Date;
 }
 
-export interface CreateOrganizationInstructionsDto {
-  instructions: string;
+export interface CreateOrganizationSettingsDto {
   organizationId: string;
+  instructions: string;
   createdById: string;
 }
 
-export interface UpdateOrganizationInstructionsDto {
+export interface UpdateOrganizationSettingsDto {
   instructions: string;
-  updatedAt?: Date;
 }
 
