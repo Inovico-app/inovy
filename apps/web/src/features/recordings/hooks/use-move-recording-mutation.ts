@@ -18,9 +18,15 @@ export function useMoveRecordingMutation(
 
   const { execute, isExecuting } = useAction(moveRecordingAction, {
     onSuccess: ({ data }) => {
-      if (data?.success) {
+      if (data?.success && data.recording) {
+        const targetProjectId = data.recording.projectId;
+        const recordingId = data.recording.id;
+        
         toast.success("Recording moved successfully");
-        router.refresh();
+        
+        // Redirect to the recording detail page in the new project
+        router.push(`/projects/${targetProjectId}/recordings/${recordingId}`);
+        
         options?.onSuccess?.();
       }
     },
