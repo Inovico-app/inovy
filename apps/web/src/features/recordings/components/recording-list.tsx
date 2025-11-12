@@ -1,6 +1,6 @@
 import { Button } from "../../../components/ui/button";
 import { getCachedRecordingsByProjectId } from "../../../server/cache";
-import { RecordingCardWithStatus } from "./recording-card-with-status";
+import { RecordingListClient } from "./recording-list-client";
 import { UploadRecordingModal } from "./upload-recording-modal";
 
 interface RecordingListProps {
@@ -34,12 +34,6 @@ export async function RecordingList({
     );
   }
 
-  return (
-    <div className="space-y-4">
-      {recordings.map((recording) => (
-        <RecordingCardWithStatus key={recording.id} recording={recording} />
-      ))}
-    </div>
-  );
+  return <RecordingListClient recordings={recordings} projectId={projectId} />;
 }
 

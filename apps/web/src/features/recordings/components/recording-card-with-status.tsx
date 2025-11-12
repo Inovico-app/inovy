@@ -11,16 +11,23 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card";
+import { Checkbox } from "../../../components/ui/checkbox";
 import type { RecordingDto } from "../../../server/dto";
 import { useRecordingStatus } from "../hooks/use-recording-status-query";
 import { StatusBadge } from "./status-badge";
 
 interface RecordingCardWithStatusProps {
   recording: RecordingDto;
+  selectable?: boolean;
+  isSelected?: boolean;
+  onSelectionChange?: (recordingId: string, selected: boolean) => void;
 }
 
 export function RecordingCardWithStatus({
   recording,
+  selectable = false,
+  isSelected = false,
+  onSelectionChange,
 }: RecordingCardWithStatusProps) {
   const previousStatusRef = useRef(recording.transcriptionStatus);
 
@@ -82,16 +89,28 @@ export function RecordingCardWithStatus({
     return <FileAudioIcon className="h-5 w-5 text-muted-foreground" />;
   };
 
-  return (
-    <Link
-      href={
-        `/projects/${recording.projectId}/recordings/${recording.id}` as Route
-      }
-      className="block"
+  const handleCheckboxChange = (checked: boolean) => {
+    onSelectionChange?.(recording.id, checked);
+  };
+
+  const cardContent = (
+    <Card
+      className={`hover:border-primary/50 transition-colors ${
+        selectable ? "" : "cursor-pointer"
+      } ${isSelected ? "border-primary" : ""}`}
     >
-      <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-4">
+      <CardHeader className="pb-3">
+        <div className="flex items-start gap-4">
+          {selectable && (
+            <div className="pt-1">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={handleCheckboxChange}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+          <div className="flex items-start justify-between gap-4 flex-1 min-w-0">
             <div className="flex-1 min-w-0">
               <CardTitle className="text-lg truncate">
                 {recording.title}
@@ -104,27 +123,43 @@ export function RecordingCardWithStatus({
             </div>
             <StatusBadge status={status} />
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <ClockIcon className="h-4 w-4" />
-              <span>{formatDate(recording.recordingDate)}</span>
-            </div>
-            {recording.duration && (
-              <div className="flex items-center gap-1.5">
-                {getFileIcon(recording.fileMimeType)}
-                <span>{formatDuration(recording.duration)}</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs">
-                {formatFileSize(recording.fileSize)}
-              </span>
-            </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <ClockIcon className="h-4 w-4" />
+            <span>{formatDate(recording.recordingDate)}</span>
           </div>
-        </CardContent>
-      </Card>
+          {recording.duration && (
+            <div className="flex items-center gap-1.5">
+              {getFileIcon(recording.fileMimeType)}
+              <span>{formatDuration(recording.duration)}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs">
+              {formatFileSize(recording.fileSize)}
+            </span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Wrap with Link only if not in selectable mode
+  if (selectable) {
+    return <div>{cardContent}</div>;
+  }
+
+  return (
+    <Link
+      href={
+        `/projects/${recording.projectId}/recordings/${recording.id}` as Route
+      }
+      className="block"
+    >
+      {cardContent}
     </Link>
   );
 }
