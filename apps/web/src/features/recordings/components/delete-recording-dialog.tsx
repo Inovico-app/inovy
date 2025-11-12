@@ -23,6 +23,8 @@ interface DeleteRecordingDialogProps {
   recordingTitle: string;
   projectId: string;
   variant?: "default" | "outline" | "ghost" | "destructive";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function DeleteRecordingDialog({
@@ -30,9 +32,15 @@ export function DeleteRecordingDialog({
   recordingTitle,
   projectId,
   variant = "destructive",
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: DeleteRecordingDialogProps) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use controlled or uncontrolled state
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
   const [error, setError] = useState<string | null>(null);

@@ -11,21 +11,29 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../../../components/ui/dialog";
-import { EditRecordingForm } from "./edit-recording-form";
 import type { RecordingDto } from "../../../server/dto";
+import { EditRecordingForm } from "./edit-recording-form";
 
 interface EditRecordingModalProps {
   recording: RecordingDto;
   variant?: "default" | "outline" | "ghost";
   triggerContent?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function EditRecordingModal({
   recording,
   variant = "outline",
   triggerContent,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: EditRecordingModalProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use controlled or uncontrolled state
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
 
   const handleSuccess = () => {
     setOpen(false);
@@ -45,7 +53,8 @@ export function EditRecordingModal({
         <DialogHeader>
           <DialogTitle>Edit Recording</DialogTitle>
           <DialogDescription>
-            Update your recording information. Changes will be reflected immediately.
+            Update your recording information. Changes will be reflected
+            immediately.
           </DialogDescription>
         </DialogHeader>
         <EditRecordingForm
@@ -61,3 +70,4 @@ export function EditRecordingModal({
     </Dialog>
   );
 }
+

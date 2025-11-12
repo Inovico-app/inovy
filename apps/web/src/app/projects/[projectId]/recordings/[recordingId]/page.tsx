@@ -11,10 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../../../components/ui/card";
-import { ArchiveRecordingDialog } from "../../../../../features/recordings/components/archive-recording-dialog";
-import { DeleteRecordingDialog } from "../../../../../features/recordings/components/delete-recording-dialog";
-import { EditRecordingModal } from "../../../../../features/recordings/components/edit-recording-modal";
 import { EnhancedSummarySection } from "../../../../../features/recordings/components/enhanced-summary-section";
+import { RecordingDetailActionsDropdown } from "../../../../../features/recordings/components/recording-detail-actions-dropdown";
 import { RecordingDetailStatus } from "../../../../../features/recordings/components/recording-detail-status";
 import { RecordingPlayerWrapper } from "../../../../../features/recordings/components/recording-player-wrapper";
 import { ReprocessButton } from "../../../../../features/recordings/components/reprocess-button";
@@ -155,15 +153,8 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
               workflowStatus={recording.workflowStatus}
               isArchived={recording.status === "archived"}
             />
-            <EditRecordingModal recording={recording} />
-            <ArchiveRecordingDialog
-              recordingId={recording.id}
-              recordingTitle={recording.title}
-              isArchived={recording.status === "archived"}
-            />
-            <DeleteRecordingDialog
-              recordingId={recording.id}
-              recordingTitle={recording.title}
+            <RecordingDetailActionsDropdown
+              recording={recording}
               projectId={projectId}
             />
           </div>

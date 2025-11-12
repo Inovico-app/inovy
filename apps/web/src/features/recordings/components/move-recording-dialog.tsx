@@ -52,11 +52,8 @@ export function MoveRecordingDialog({
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
 
   // Use controlled or uncontrolled state
-  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
-  const setOpen =
-    controlledOnOpenChange !== undefined
-      ? controlledOnOpenChange
-      : setInternalOpen;
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
 
   // Fetch projects when dialog opens
   useEffect(() => {
