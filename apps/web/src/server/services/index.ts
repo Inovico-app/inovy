@@ -3,6 +3,7 @@ export { AIInsightService } from "./ai-insight.service";
 export { ChatAuditService } from "./chat-audit.service";
 export { ChatService } from "./chat.service";
 export { DashboardService } from "./dashboard.service";
+export { DriveWatchesService } from "./drive-watches.service";
 export { EmbeddingService } from "./embedding.service";
 export { GoogleDriveService } from "./google-drive.service";
 export { NotificationService } from "./notification.service";
