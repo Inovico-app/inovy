@@ -1,0 +1,1 @@
+DROP INDEX "organization_settings_organization_id_idx";
