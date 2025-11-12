@@ -19,11 +19,9 @@ import {
 } from "@/components/ui/select";
 import type { RecordingDto } from "@/server/dto";
 import { ArrowRightIcon, FolderIcon } from "lucide-react";
-import { useAction } from "next-safe-action/hooks";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { moveRecordingAction } from "../actions/move-recording";
+import { useMoveRecordingMutation } from "../hooks/use-move-recording-mutation";
 import { useProjectsForMove } from "../hooks/use-projects-for-move";
 
 interface MoveRecordingDialogProps {
@@ -43,7 +41,6 @@ export function MoveRecordingDialog({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
 }: MoveRecordingDialogProps) {
-  const router = useRouter();
   const [internalOpen, setInternalOpen] = useState(false);
   const [targetProjectId, setTargetProjectId] = useState<string>("");
 
@@ -66,20 +63,11 @@ export function MoveRecordingDialog({
     toast.error("Failed to load projects");
   }
 
-  const { execute, isExecuting } = useAction(moveRecordingAction, {
-    onSuccess: ({ data }) => {
-      if (data?.success) {
-        toast.success("Recording moved successfully");
-        setOpen(false);
-        setTargetProjectId("");
-        router.refresh();
-      }
-    },
-    onError: (error) => {
-      console.error("Move recording error:", error);
-      toast.error(
-        error.error.serverError || "Failed to move recording. Please try again."
-      );
+  // Move recording mutation
+  const { moveRecording, isMoving } = useMoveRecordingMutation({
+    onSuccess: () => {
+      setOpen(false);
+      setTargetProjectId("");
     },
   });
 
@@ -89,7 +77,7 @@ export function MoveRecordingDialog({
       return;
     }
 
-    execute({
+    moveRecording({
       recordingId: recording.id,
       targetProjectId,
     });
@@ -122,7 +110,7 @@ export function MoveRecordingDialog({
             <Select
               value={targetProjectId}
               onValueChange={setTargetProjectId}
-              disabled={isLoadingProjects || isExecuting}
+              disabled={isLoadingProjects || isMoving}
             >
               <SelectTrigger className="w-full">
                 <SelectValue
@@ -169,15 +157,15 @@ export function MoveRecordingDialog({
           <Button
             variant="outline"
             onClick={() => setOpen(false)}
-            disabled={isExecuting}
+            disabled={isMoving}
           >
             Cancel
           </Button>
           <Button
             onClick={handleMove}
-            disabled={!targetProjectId || isExecuting || isLoadingProjects}
+            disabled={!targetProjectId || isMoving || isLoadingProjects}
           >
-            {isExecuting ? "Moving..." : "Move Recording"}
+            {isMoving ? "Moving..." : "Move Recording"}
           </Button>
         </DialogFooter>
       </DialogContent>
