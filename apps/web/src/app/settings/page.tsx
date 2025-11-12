@@ -11,6 +11,10 @@ import { UserIcon, Building2Icon } from "lucide-react";
 import { GoogleConnection } from "@/features/settings/components/google-connection";
 import { GoogleSettings } from "@/features/settings/components/google-settings";
 import { GoogleStatusDashboard } from "@/features/settings/components/google-status-dashboard";
+import { DriveWatchSettings } from "@/features/settings/components/drive-watch-settings";
+
+// Mark this page as dynamic since it requires authentication
+export const dynamic = "force-dynamic";
 
 const settingsSections = [
   {
@@ -71,6 +75,7 @@ export default function SettingsPage() {
           <GoogleConnection />
           <GoogleSettings />
           <GoogleStatusDashboard />
+          <DriveWatchSettings />
         </div>
 
         {/* Back Button */}
