@@ -42,7 +42,7 @@ async function OrganizationContent() {
   const orgName = (organization as unknown as Record<string, unknown>).display_name as string | undefined ?? (organization as unknown as Record<string, unknown>).name as string | undefined ?? "Organization";
 
   // Check if user is admin
-  const canEdit = isOrganizationAdmin(auth.user);
+  const canEdit = auth.user ? isOrganizationAdmin(auth.user) : false;
 
   // Fetch organization members
   let members: Array<{ id: string; email: string | null; given_name: string | null; family_name: string | null; roles?: string[] }> = [];

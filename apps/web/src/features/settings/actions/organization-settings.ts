@@ -137,7 +137,7 @@ export async function updateOrganizationSettings(
         logger.error(
           "Failed to reindex organization instructions after update",
           { orgCode: organization.orgCode },
-          indexResult.error as Error
+          indexResult.error as unknown as Error
         );
       } else {
         logger.info("Successfully reindexed organization instructions", {

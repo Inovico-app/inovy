@@ -1,4 +1,5 @@
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
+import type { AuthUser } from "@/lib/auth";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { err, ok } from "neverthrow";
@@ -87,6 +88,63 @@ export class OrganizationSettingsService {
           "Failed to update organization settings",
           error as Error,
           "OrganizationSettingsService.updateOrganizationSettings"
+        )
+      );
+    }
+  }
+
+  /**
+   * Create organization instructions
+   * Alias for updateOrganizationSettings to match ORG-INST-002 API
+   */
+  static async createInstructions(
+    instructions: string,
+    orgCode: string,
+    user: AuthUser
+  ): Promise<ActionResult<OrganizationSettingsDto>> {
+    return this.updateOrganizationSettings(orgCode, instructions, user.id);
+  }
+
+  /**
+   * Update organization instructions
+   * Alias for updateOrganizationSettings to match ORG-INST-002 API
+   */
+  static async updateInstructions(
+    instructions: string,
+    orgCode: string
+  ): Promise<ActionResult<OrganizationSettingsDto>> {
+    // Note: We need a userId but the caller doesn't provide one.
+    // For updates, we'll use the existing createdById from the DB
+    try {
+      const existing = await OrganizationSettingsQueries.findByOrganizationId(
+        orgCode
+      );
+
+      if (!existing) {
+        return err(
+          ActionErrors.notFound(
+            "Organization settings",
+            "OrganizationSettingsService.updateInstructions"
+          )
+        );
+      }
+
+      return this.updateOrganizationSettings(
+        orgCode,
+        instructions,
+        existing.createdById
+      );
+    } catch (error) {
+      logger.error(
+        "Failed to update instructions",
+        { orgCode },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to update instructions",
+          error as Error,
+          "OrganizationSettingsService.updateInstructions"
         )
       );
     }

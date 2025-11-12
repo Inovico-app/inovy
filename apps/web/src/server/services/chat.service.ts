@@ -1,9 +1,6 @@
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import {
-  getCachedOrganizationSettings,
-  getCachedProjectTemplate,
-} from "@/server/cache";
+import { getCachedOrganizationSettings } from "@/server/cache";
 import { ChatQueries } from "@/server/data-access/chat.queries";
 import {
   type ChatConversation,
@@ -14,6 +11,7 @@ import {
 import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, type CoreMessage } from "ai";
 import { err, ok } from "neverthrow";
+import { getCachedProjectTemplate } from "../cache/project-template.cache";
 import { ProjectService } from "./project.service";
 import {
   buildCompletePrompt,
