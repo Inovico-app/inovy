@@ -11,8 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { useArrayToggle } from "@/hooks/use-array-toggle";
 import { ChevronDown, Search, X } from "lucide-react";
-import { useArrayToggle } from "@/features/tasks/hooks/use-array-toggle";
 
 interface RecordingsFiltersProps {
   searchQuery: string;
@@ -33,7 +33,8 @@ export function RecordingsFilters({
 }: RecordingsFiltersProps) {
   const toggleProject = useArrayToggle(selectedProjectIds, onProjectIdsChange);
 
-  const hasActiveFilters = selectedProjectIds.length > 0 || searchQuery.length > 0;
+  const hasActiveFilters =
+    selectedProjectIds.length > 0 || searchQuery.length > 0;
 
   const buttonText =
     selectedProjectIds.length === 0
@@ -63,9 +64,7 @@ export function RecordingsFilters({
       <CardContent className="space-y-4">
         {/* Search */}
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            Search
-          </h3>
+          <h3 className="text-sm font-medium text-muted-foreground">Search</h3>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -83,6 +82,7 @@ export function RecordingsFilters({
                 onClick={() => onSearchChange("")}
               >
                 <X className="h-4 w-4" />
+                <span className="sr-only">Clear search</span>
               </Button>
             )}
           </div>
