@@ -43,13 +43,13 @@ export function useBulkMoveRecordingsMutation(
     targetProjectId: string
   ) => {
     setIsMoving(true);
-    
+
     const total = recordings.length;
     const results: BulkMoveResult[] = [];
-    
+
     let succeeded = 0;
     let failed = 0;
-
+    let completed = 0;
     // Initial progress
     const initialProgress = { total, current: 0, succeeded: 0, failed: 0 };
     setProgress(initialProgress);
@@ -65,20 +65,25 @@ export function useBulkMoveRecordingsMutation(
 
         if (result?.serverError || result?.validationErrors) {
           let error = result.serverError || "Failed to move recording";
-          
+
           if (!error && result.validationErrors) {
             const firstError = Object.values(result.validationErrors)[0];
             if (Array.isArray(firstError) && firstError.length > 0) {
               error = firstError[0];
-            } else if (firstError && typeof firstError === 'object' && '_errors' in firstError) {
+            } else if (
+              firstError &&
+              typeof firstError === "object" &&
+              "_errors" in firstError
+            ) {
               error = firstError._errors?.[0] || "Failed to move recording";
             }
           }
-          
+
           failed++;
+          completed++;
           const currentProgress = {
             total,
-            current: index + 1,
+            current: completed,
             succeeded,
             failed,
           };
@@ -94,9 +99,10 @@ export function useBulkMoveRecordingsMutation(
         }
 
         succeeded++;
+        completed++;
         const currentProgress = {
           total,
-          current: index + 1,
+          current: completed,
           succeeded,
           failed,
         };
@@ -110,9 +116,10 @@ export function useBulkMoveRecordingsMutation(
         };
       } catch (error) {
         failed++;
+        completed++;
         const currentProgress = {
           total,
-          current: index + 1,
+          current: completed,
           succeeded,
           failed,
         };
@@ -129,7 +136,7 @@ export function useBulkMoveRecordingsMutation(
     });
 
     const settledResults = await Promise.allSettled(movePromises);
-    
+
     // Extract results from settled promises
     settledResults.forEach((result) => {
       if (result.status === "fulfilled") {
@@ -148,9 +155,13 @@ export function useBulkMoveRecordingsMutation(
 
     // Show summary toast
     if (succeeded === total) {
-      toast.success(`Successfully moved ${succeeded} recording${succeeded > 1 ? "s" : ""}`);
+      toast.success(
+        `Successfully moved ${succeeded} recording${succeeded > 1 ? "s" : ""}`
+      );
     } else if (succeeded > 0) {
-      toast.warning(`Moved ${succeeded} of ${total} recordings successfully. ${failed} failed.`);
+      toast.warning(
+        `Moved ${succeeded} of ${total} recordings successfully. ${failed} failed.`
+      );
     } else {
       toast.error(`Failed to move ${failed} recording${failed > 1 ? "s" : ""}`);
     }

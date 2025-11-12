@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import type { RecordingDto } from "@/server/dto";
 import { AlertCircleIcon, CheckCircleIcon, FolderIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useBulkMoveRecordingsMutation } from "../hooks/use-bulk-move-recordings-mutation";
 import { useProjectsForMove } from "../hooks/use-projects-for-move";
@@ -60,19 +60,20 @@ export function BulkMoveRecordingsDialog({
     currentProjectId,
   });
 
-  // Show error toast if projects fail to load
-  if (projectsError) {
-    toast.error("Failed to load projects");
-  }
+  useEffect(() => {
+    // Show error toast if projects fail to load
+    if (projectsError) {
+      toast.error("Failed to load projects");
+    }
+  }, [projectsError]);
 
   // Bulk move recordings mutation
-  const { moveRecordings, isMoving, progress } =
-    useBulkMoveRecordingsMutation({
-      onSuccess: (moveResults) => {
-        setResults(moveResults);
-        setShowResults(true);
-      },
-    });
+  const { moveRecordings, isMoving, progress } = useBulkMoveRecordingsMutation({
+    onSuccess: (moveResults) => {
+      setResults(moveResults);
+      setShowResults(true);
+    },
+  });
 
   const handleMove = async () => {
     if (!targetProjectId) {
@@ -98,7 +99,7 @@ export function BulkMoveRecordingsDialog({
     setShowResults(false);
     setResults([]);
     onOpenChange(false);
-    
+
     if (showResults) {
       onComplete?.();
     }
@@ -113,11 +114,14 @@ export function BulkMoveRecordingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px]" onPointerDownOutside={(e) => {
-        if (isMoving) {
-          e.preventDefault();
-        }
-      }}>
+      <DialogContent
+        className="sm:max-w-[600px]"
+        onPointerDownOutside={(e) => {
+          if (isMoving) {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>
             {showResults ? "Move Results" : "Move Multiple Recordings"}
@@ -125,7 +129,9 @@ export function BulkMoveRecordingsDialog({
           <DialogDescription>
             {showResults
               ? `Move operation completed`
-              : `Move ${recordings.length} recording${recordings.length > 1 ? "s" : ""} to another project. All related data including embeddings will be updated.`}
+              : `Move ${recordings.length} recording${
+                  recordings.length > 1 ? "s" : ""
+                } to another project. All related data including embeddings will be updated.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -134,8 +140,8 @@ export function BulkMoveRecordingsDialog({
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">
-                  {recordings.length} recording{recordings.length > 1 ? "s" : ""}{" "}
-                  selected
+                  {recordings.length} recording
+                  {recordings.length > 1 ? "s" : ""} selected
                 </label>
                 <div className="rounded-lg border p-3 bg-muted/50 max-h-32 overflow-y-auto">
                   <ul className="text-sm space-y-1">
@@ -236,7 +242,9 @@ export function BulkMoveRecordingsDialog({
               >
                 {isMoving
                   ? `Moving... (${progress.current}/${progress.total})`
-                  : `Move ${recordings.length} Recording${recordings.length > 1 ? "s" : ""}`}
+                  : `Move ${recordings.length} Recording${
+                      recordings.length > 1 ? "s" : ""
+                    }`}
               </Button>
             </DialogFooter>
           </>

@@ -94,11 +94,15 @@ export function RecordingCardWithStatus({
   };
 
   const cardContent = (
-    <Card className={`hover:border-primary/50 transition-colors ${selectable ? "" : "cursor-pointer"} ${isSelected ? "border-primary" : ""}`}>
+    <Card
+      className={`hover:border-primary/50 transition-colors ${
+        selectable ? "" : "cursor-pointer"
+      } ${isSelected ? "border-primary" : ""}`}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start gap-4">
           {selectable && (
-            <div className="pt-1" onClick={(e) => e.preventDefault()}>
+            <div className="pt-1">
               <Checkbox
                 checked={isSelected}
                 onCheckedChange={handleCheckboxChange}
