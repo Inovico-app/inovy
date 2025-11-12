@@ -115,13 +115,6 @@
       "breakpoints": true
     },
     {
-      "idx": 21,
-      "version": "7",
-      "when": 1762946043100,
-      "tag": "0021_talented_squadron_sinister",
-      "breakpoints": true
-    },
-    {
       "idx": 22,
       "version": "7",
       "when": 1762947691307,
@@ -130,3 +123,4 @@
     }
   ]
 }
+
