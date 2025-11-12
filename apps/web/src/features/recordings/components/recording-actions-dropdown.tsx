@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MicIcon, PlusIcon, UploadIcon } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { Activity, useState } from "react";
 import { UploadRecordingModal } from "./upload-recording-modal";
 
 interface RecordingActionsDropdownProps {
@@ -59,13 +59,17 @@ export function RecordingActionsDropdown({
       </DropdownMenu>
 
       {/* Upload Modal - shown when triggered from dropdown */}
-      {showUploadModal && (
+      <Activity
+        name="upload-recording-modal"
+        mode={showUploadModal ? "visible" : "hidden"}
+      >
         <UploadRecordingModal
           projectId={projectId}
           open={showUploadModal}
           onOpenChange={setShowUploadModal}
         />
-      )}
+      </Activity>
     </>
   );
 }
+

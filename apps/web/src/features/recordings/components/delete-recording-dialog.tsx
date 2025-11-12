@@ -23,6 +23,8 @@ interface DeleteRecordingDialogProps {
   recordingTitle: string;
   projectId: string;
   variant?: "default" | "outline" | "ghost" | "destructive";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function DeleteRecordingDialog({
@@ -30,9 +32,15 @@ export function DeleteRecordingDialog({
   recordingTitle,
   projectId,
   variant = "destructive",
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: DeleteRecordingDialogProps) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use controlled or uncontrolled state
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -105,17 +113,19 @@ export function DeleteRecordingDialog({
           <DialogTitle className="text-destructive">
             Delete Recording Permanently?
           </DialogTitle>
-          <DialogDescription className="space-y-2">
-            <p className="font-medium">
-              This action <strong>CANNOT</strong> be undone. This will
-              permanently delete:
-            </p>
-            <ul className="list-disc list-inside pl-2 space-y-1">
-              <li>The recording file from storage</li>
-              <li>All transcriptions</li>
-              <li>All AI-generated summaries</li>
-              <li>All extracted action items and tasks</li>
-            </ul>
+          <DialogDescription asChild className="space-y-2">
+            <div>
+              <p className="font-medium">
+                This action <strong>CANNOT</strong> be undone. This will
+                permanently delete:
+              </p>
+              <ul className="list-disc list-inside pl-2 space-y-1">
+                <li>The recording file from storage</li>
+                <li>All transcriptions</li>
+                <li>All AI-generated summaries</li>
+                <li>All extracted action items and tasks</li>
+              </ul>
+            </div>
           </DialogDescription>
         </DialogHeader>
 

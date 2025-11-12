@@ -22,6 +22,8 @@ interface ArchiveRecordingDialogProps {
   recordingTitle: string;
   isArchived: boolean;
   variant?: "default" | "outline" | "ghost" | "destructive";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function ArchiveRecordingDialog({
@@ -29,9 +31,15 @@ export function ArchiveRecordingDialog({
   recordingTitle,
   isArchived,
   variant = "outline",
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: ArchiveRecordingDialogProps) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use controlled or uncontrolled state
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
   const [isLoading, setIsLoading] = useState(false);
 
   const handleArchive = async () => {

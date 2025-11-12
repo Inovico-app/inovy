@@ -17,14 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getUserProjects } from "@/features/projects/actions/get-user-projects";
 import type { RecordingDto } from "@/server/dto";
 import { ArrowRightIcon, FolderIcon } from "lucide-react";
-import { useAction } from "next-safe-action/hooks";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { moveRecordingAction } from "../actions/move-recording";
+import { useMoveRecordingMutation } from "../hooks/use-move-recording-mutation";
+import { useProjectsForMove } from "../hooks/use-projects-for-move";
 
 interface MoveRecordingDialogProps {
   recording: RecordingDto;
@@ -43,60 +41,33 @@ export function MoveRecordingDialog({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
 }: MoveRecordingDialogProps) {
-  const router = useRouter();
   const [internalOpen, setInternalOpen] = useState(false);
   const [targetProjectId, setTargetProjectId] = useState<string>("");
-  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>(
-    []
-  );
-  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
 
   // Use controlled or uncontrolled state
-  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
-  const setOpen =
-    controlledOnOpenChange !== undefined
-      ? controlledOnOpenChange
-      : setInternalOpen;
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
 
   // Fetch projects when dialog opens
-  useEffect(() => {
-    if (open) {
-      setIsLoadingProjects(true);
-      getUserProjects()
-        .then((result) => {
-          if (result.success && result.data) {
-            // Filter out current project
-            const availableProjects = result.data.filter(
-              (p) => p.id !== currentProjectId
-            );
-            setProjects(availableProjects);
-          } else {
-            toast.error("Failed to load projects");
-          }
-        })
-        .catch(() => {
-          toast.error("Failed to load projects");
-        })
-        .finally(() => {
-          setIsLoadingProjects(false);
-        });
-    }
-  }, [open, currentProjectId]);
+  const {
+    data: projects = [],
+    isLoading: isLoadingProjects,
+    error: projectsError,
+  } = useProjectsForMove({
+    enabled: open,
+    currentProjectId,
+  });
 
-  const { execute, isExecuting } = useAction(moveRecordingAction, {
-    onSuccess: ({ data }) => {
-      if (data?.success) {
-        toast.success("Recording moved successfully");
-        setOpen(false);
-        setTargetProjectId("");
-        router.refresh();
-      }
-    },
-    onError: (error) => {
-      console.error("Move recording error:", error);
-      toast.error(
-        error.error.serverError || "Failed to move recording. Please try again."
-      );
+  // Show error toast if projects fail to load
+  if (projectsError) {
+    toast.error("Failed to load projects");
+  }
+
+  // Move recording mutation
+  const { moveRecording, isMoving } = useMoveRecordingMutation({
+    onSuccess: () => {
+      setOpen(false);
+      setTargetProjectId("");
     },
   });
 
@@ -106,13 +77,13 @@ export function MoveRecordingDialog({
       return;
     }
 
-    execute({
+    moveRecording({
       recordingId: recording.id,
       targetProjectId,
     });
   };
 
-  const selectedProject = projects.find((p) => p.id === targetProjectId);
+  const selectedProject = projects?.find((p) => p.id === targetProjectId);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -139,7 +110,7 @@ export function MoveRecordingDialog({
             <Select
               value={targetProjectId}
               onValueChange={setTargetProjectId}
-              disabled={isLoadingProjects || isExecuting}
+              disabled={isLoadingProjects || isMoving}
             >
               <SelectTrigger className="w-full">
                 <SelectValue
@@ -151,12 +122,12 @@ export function MoveRecordingDialog({
                 />
               </SelectTrigger>
               <SelectContent>
-                {projects.length === 0 && !isLoadingProjects ? (
+                {projects?.length === 0 && !isLoadingProjects ? (
                   <div className="px-2 py-6 text-center text-sm text-muted-foreground">
                     No other projects available
                   </div>
                 ) : (
-                  projects.map((project) => (
+                  projects?.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       <div className="flex items-center gap-2">
                         <FolderIcon className="h-4 w-4" />
@@ -186,15 +157,15 @@ export function MoveRecordingDialog({
           <Button
             variant="outline"
             onClick={() => setOpen(false)}
-            disabled={isExecuting}
+            disabled={isMoving}
           >
             Cancel
           </Button>
           <Button
             onClick={handleMove}
-            disabled={!targetProjectId || isExecuting || isLoadingProjects}
+            disabled={!targetProjectId || isMoving || isLoadingProjects}
           >
-            {isExecuting ? "Moving..." : "Move Recording"}
+            {isMoving ? "Moving..." : "Move Recording"}
           </Button>
         </DialogFooter>
       </DialogContent>
