@@ -1,5 +1,5 @@
-import { put } from "@vercel/blob";
 import type { PutBlobResult } from "@vercel/blob";
+import { uploadRecordingToBlob } from "./vercel-blob";
 
 /**
  * Google Drive File Processing Utilities
@@ -16,23 +16,18 @@ export function isAudioOrVideoFile(mimeType: string): boolean {
 /**
  * Upload file buffer to Vercel Blob storage
  * Returns blob information (url, pathname, etc.)
+ * Uses uploadRecordingToBlob function
  */
 export async function uploadToBlob(
   fileBuffer: Buffer,
   fileName: string,
   mimeType: string
 ): Promise<PutBlobResult> {
-  // Create a Blob from the buffer
-  const blob = new Blob([fileBuffer], { type: mimeType });
-
-  // Create a File from the Blob (needed for Vercel Blob API)
+  // Convert Buffer to File for uploadRecordingToBlob
+  const uint8Array = new Uint8Array(fileBuffer);
+  const blob = new Blob([uint8Array], { type: mimeType });
   const file = new File([blob], fileName, { type: mimeType });
 
-  // Upload to Vercel Blob
-  const result = await put(`recordings/${Date.now()}-${fileName}`, file, {
-    access: "public",
-  });
-
-  return result;
+  return uploadRecordingToBlob(file);
 }
 
