@@ -301,7 +301,13 @@ export class RecordingsQueries {
         projectName: projects.name,
       })
       .from(recordings)
-      .innerJoin(projects, eq(recordings.projectId, projects.id))
+      .innerJoin(
+        projects,
+        and(
+          eq(recordings.projectId, projects.id),
+          eq(projects.organizationId, organizationId)
+        )
+      )
       .where(and(...conditions))
       .orderBy(desc(recordings.recordingDate));
 

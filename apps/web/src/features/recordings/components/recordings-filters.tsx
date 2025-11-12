@@ -39,9 +39,9 @@ export function RecordingsFilters({
     selectedProjectIds.length === 0
       ? "All Projects"
       : selectedProjectIds.length === 1
-      ? projects.find((p) => p.id === selectedProjectIds[0])?.name
+      ? projects.find((p) => p.id === selectedProjectIds[0])?.name ??
+        "1 project"
       : `${selectedProjectIds.length} projects`;
-
   return (
     <Card>
       <CardHeader>
