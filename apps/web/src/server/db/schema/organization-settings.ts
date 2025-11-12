@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, unique, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 /**
  * Organization Settings Table
@@ -22,15 +22,9 @@ export const organizationSettings = pgTable(
   (table) => ({
     // Ensure one settings record per organization
     uniqueOrgId: unique().on(table.organizationId),
-    // Index for efficient lookups by organizationId
-    orgIdIdx: index("organization_settings_organization_id_idx").on(
-      table.organizationId
-    ),
   })
 );
 
-export type OrganizationSettings =
-  typeof organizationSettings.$inferSelect;
-export type NewOrganizationSettings =
-  typeof organizationSettings.$inferInsert;
+export type OrganizationSettings = typeof organizationSettings.$inferSelect;
+export type NewOrganizationSettings = typeof organizationSettings.$inferInsert;
 

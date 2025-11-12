@@ -106,7 +106,13 @@
       "when": 1762934878073,
       "tag": "0019_create_organization_settings_table",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1762936620530,
+      "tag": "0020_drop_redundant_org_index",
+      "breakpoints": true
     }
   ]
 }
-
