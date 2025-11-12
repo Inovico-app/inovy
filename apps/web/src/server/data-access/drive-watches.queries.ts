@@ -62,9 +62,7 @@ export class DriveWatchesQueries {
   /**
    * Get watches expiring before threshold (in milliseconds)
    */
-  static async getExpiringWatches(
-    thresholdMs: number
-  ): Promise<DriveWatch[]> {
+  static async getExpiringWatches(thresholdMs: number): Promise<DriveWatch[]> {
     return await db
       .select()
       .from(driveWatches)
@@ -105,17 +103,12 @@ export class DriveWatchesQueries {
   /**
    * List all active watches for a user
    */
-  static async getActiveWatchesByUser(
-    userId: string
-  ): Promise<DriveWatch[]> {
+  static async getActiveWatchesByUser(userId: string): Promise<DriveWatch[]> {
     return await db
       .select()
       .from(driveWatches)
       .where(
-        and(
-          eq(driveWatches.userId, userId),
-          eq(driveWatches.isActive, true)
-        )
+        and(eq(driveWatches.userId, userId), eq(driveWatches.isActive, true))
       );
   }
 }
