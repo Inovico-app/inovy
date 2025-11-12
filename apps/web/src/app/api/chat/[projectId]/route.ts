@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { ChatService } from "@/server/services/chat.service";
 import { ProjectService } from "@/server/services/project.service";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
@@ -31,8 +32,16 @@ export async function POST(
     }
 
     const project = projectResult.value;
-    if (project.organizationId !== organization.orgCode) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    
+    try {
+      assertOrganizationAccess(
+        project.organizationId,
+        organization.orgCode,
+        "api/chat/[projectId]"
+      );
+    } catch (error) {
+      // Return 404 to prevent information leakage
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     // Parse request body
@@ -75,7 +84,8 @@ export async function POST(
     const streamResult = await ChatService.streamResponse(
       activeConversationId,
       message,
-      projectId
+      projectId,
+      organization.orgCode
     );
 
     if (streamResult.isErr()) {
@@ -129,8 +139,16 @@ export async function GET(
     }
 
     const project = projectResult.value;
-    if (project.organizationId !== organization.orgCode) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    
+    try {
+      assertOrganizationAccess(
+        project.organizationId,
+        organization.orgCode,
+        "api/chat/[projectId]"
+      );
+    } catch (error) {
+      // Return 404 to prevent information leakage
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     // Get conversation ID from query params

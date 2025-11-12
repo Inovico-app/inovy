@@ -1,5 +1,6 @@
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { EmbeddingService } from "@/server/services/embedding.service";
 import { ProjectService } from "@/server/services/project.service";
 import { logger } from "@/lib/logger";
@@ -44,8 +45,16 @@ export async function POST(request: NextRequest) {
     }
 
     const project = projectResult.value;
-    if (project.organizationId !== organization.orgCode) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    
+    try {
+      assertOrganizationAccess(
+        project.organizationId,
+        organization.orgCode,
+        "api/embeddings/index"
+      );
+    } catch (error) {
+      // Return 404 to prevent information leakage
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     // Trigger indexing

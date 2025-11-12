@@ -6,6 +6,7 @@ import type { AutoAction, NewAutoAction } from "../db/schema";
 export class AutoActionsService {
   static async getRecentAutoActions(
     userId: string,
+    organizationId: string,
     provider: "google" | "microsoft",
     options?: {
       limit?: number;
@@ -19,6 +20,7 @@ export class AutoActionsService {
     try {
       const actions = await AutoActionsQueries.getRecentAutoActions(
         userId,
+        organizationId,
         provider,
         options
       );
@@ -38,6 +40,7 @@ export class AutoActionsService {
 
   static async getAutoActionStats(
     userId: string,
+    organizationId: string,
     provider: "google" | "microsoft"
   ): Promise<
     ActionResult<{
@@ -52,6 +55,7 @@ export class AutoActionsService {
     try {
       const stats = await AutoActionsQueries.getAutoActionStats(
         userId,
+        organizationId,
         provider
       );
       return ok<{
@@ -82,10 +86,15 @@ export class AutoActionsService {
 
   static async retryAutoAction(
     actionId: string,
-    userId: string
+    userId: string,
+    organizationId: string
   ): Promise<ActionResult<AutoAction>> {
     try {
-      const action = await AutoActionsQueries.retryAutoAction(actionId, userId);
+      const action = await AutoActionsQueries.retryAutoAction(
+        actionId,
+        userId,
+        organizationId
+      );
       if (!action) {
         return err(
           ActionErrors.notFound(

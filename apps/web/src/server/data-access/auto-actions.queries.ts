@@ -13,6 +13,7 @@ export class AutoActionsQueries {
    */
   static async getRecentAutoActions(
     userId: string,
+    organizationId: string,
     provider: "google" | "microsoft",
     options?: {
       limit?: number;
@@ -29,11 +30,12 @@ export class AutoActionsQueries {
         taskTitle: tasks.title,
       })
       .from(autoActions)
-      .leftJoin(recordings, eq(autoActions.recordingId, recordings.id))
+      .innerJoin(recordings, eq(autoActions.recordingId, recordings.id))
       .leftJoin(tasks, eq(autoActions.taskId, tasks.id))
       .where(
         and(
           eq(autoActions.userId, userId),
+          eq(recordings.organizationId, organizationId),
           eq(autoActions.provider, provider),
           options?.type ? eq(autoActions.type, options.type) : undefined
         )
@@ -53,6 +55,7 @@ export class AutoActionsQueries {
    */
   static async getAutoActionStats(
     userId: string,
+    organizationId: string,
     provider: "google" | "microsoft"
   ): Promise<{
     total: number;
@@ -62,12 +65,21 @@ export class AutoActionsQueries {
     calendarEvents: number;
     emailDrafts: number;
   }> {
-    const actions = await db
-      .select()
+    const results = await db
+      .select({
+        action: autoActions,
+      })
       .from(autoActions)
+      .innerJoin(recordings, eq(autoActions.recordingId, recordings.id))
       .where(
-        and(eq(autoActions.userId, userId), eq(autoActions.provider, provider))
+        and(
+          eq(autoActions.userId, userId),
+          eq(recordings.organizationId, organizationId),
+          eq(autoActions.provider, provider)
+        )
       );
+
+    const actions = results.map((r) => r.action);
     return {
       total: actions.length,
       completed: actions.filter((a) => a.status === "completed").length,
@@ -85,16 +97,33 @@ export class AutoActionsQueries {
    */
   static async retryAutoAction(
     actionId: string,
-    userId: string
+    userId: string,
+    organizationId: string
   ): Promise<AutoAction | null> {
-    const [action] = await db
-      .select()
+    const results = await db
+      .select({
+        action: autoActions,
+      })
       .from(autoActions)
-      .where(and(eq(autoActions.id, actionId), eq(autoActions.userId, userId)))
+      .innerJoin(recordings, eq(autoActions.recordingId, recordings.id))
+      .where(
+        and(
+          eq(autoActions.id, actionId),
+          eq(autoActions.userId, userId),
+          eq(recordings.organizationId, organizationId)
+        )
+      )
       .limit(1);
-    if (!action || action.status !== "failed") {
+
+    if (results.length === 0) {
       return null;
     }
+
+    const action = results[0].action;
+    if (action.status !== "failed") {
+      return null;
+    }
+
     const [updated] = await db
       .update(autoActions)
       .set({

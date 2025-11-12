@@ -1,6 +1,8 @@
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
+import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { err, ok } from "neverthrow";
 
 export class UserNotesService {
@@ -10,7 +12,8 @@ export class UserNotesService {
   static async updateUserNotes(
     recordingId: string,
     userNotes: string,
-    userId: string
+    userId: string,
+    organizationId: string
   ): Promise<ActionResult<void>> {
     try {
       logger.info("Updating user notes", {
@@ -19,6 +22,32 @@ export class UserNotesService {
         userId,
         notesLength: userNotes.length,
       });
+
+      // Verify recording belongs to organization
+      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      if (!recording) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "UserNotesService.updateUserNotes"
+          )
+        );
+      }
+
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "UserNotesService.updateUserNotes"
+        );
+      } catch (error) {
+        return err(
+          ActionErrors.notFound(
+            "Recording not found",
+            "UserNotesService.updateUserNotes"
+          )
+        );
+      }
 
       // Get the summary insight for this recording
       const insights = await AIInsightsQueries.getInsightsByRecordingId(

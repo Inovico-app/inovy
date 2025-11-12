@@ -211,7 +211,11 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
                 </div>
               }
             >
-              <RecordingList projectId={project.id} searchQuery={search} />
+              <RecordingList
+                projectId={project.id}
+                organizationId={project.organizationId}
+                searchQuery={search}
+              />
             </Suspense>
           </CardContent>
         </Card>

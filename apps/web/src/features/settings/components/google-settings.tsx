@@ -53,9 +53,9 @@ export function GoogleSettings({ projectId }: GoogleSettingsProps) {
   async function loadSettings() {
     setLoading(true);
 
-    const result = await getGoogleSettings(projectId);
+    const result = await getGoogleSettings(projectId ? { projectId } : undefined);
 
-    if (result.success && result.data) {
+    if (result.data) {
       setSettings(result.data);
       setAutoCalendarEnabled(result.data.autoCalendarEnabled);
       setAutoEmailEnabled(result.data.autoEmailEnabled);
@@ -79,7 +79,7 @@ export function GoogleSettings({ projectId }: GoogleSettingsProps) {
         });
       }
     } else {
-      toast.error(result.error || "Failed to load settings");
+      toast.error(result.serverError || "Failed to load settings");
     }
 
     setLoading(false);
@@ -103,13 +103,11 @@ export function GoogleSettings({ projectId }: GoogleSettingsProps) {
       taskPriorityFilter: priorities.length > 0 ? priorities : undefined,
     });
 
-    if (result.success) {
+    if (result.data) {
       toast.success("Settings saved successfully!");
-      if (result.data) {
-        setSettings(result.data);
-      }
+      setSettings(result.data);
     } else {
-      toast.error(result.error || "Failed to save settings");
+      toast.error(result.serverError || "Failed to save settings");
     }
 
     setSaving(false);
@@ -122,13 +120,13 @@ export function GoogleSettings({ projectId }: GoogleSettingsProps) {
 
     setSaving(true);
 
-    const result = await resetGoogleSettings(projectId);
+    const result = await resetGoogleSettings(projectId ? { projectId } : undefined);
 
-    if (result.success) {
+    if (result.data) {
       toast.success("Settings reset to defaults");
       await loadSettings();
     } else {
-      toast.error(result.error || "Failed to reset settings");
+      toast.error(result.serverError || "Failed to reset settings");
     }
 
     setSaving(false);

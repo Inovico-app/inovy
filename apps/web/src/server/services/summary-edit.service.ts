@@ -1,7 +1,9 @@
 import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { AIInsightsQueries } from "../data-access/ai-insights.queries";
+import { RecordingsQueries } from "../data-access/recordings.queries";
 import { SummaryHistoryQueries } from "../data-access/summary-history.queries";
 
 export interface UpdateSummaryInput {
@@ -19,9 +21,38 @@ export class SummaryEditService {
    */
   static async updateSummary(
     input: UpdateSummaryInput,
-    userId: string
+    userId: string,
+    organizationId: string
   ): Promise<ActionResult<{ success: boolean; versionNumber: number }>> {
     try {
+      // Verify recording belongs to organization
+      const recording = await RecordingsQueries.selectRecordingById(
+        input.recordingId
+      );
+      if (!recording) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "SummaryEditService.updateSummary"
+          )
+        );
+      }
+
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "SummaryEditService.updateSummary"
+        );
+      } catch (error) {
+        return err(
+          ActionErrors.notFound(
+            "Recording not found",
+            "SummaryEditService.updateSummary"
+          )
+        );
+      }
+
       // Get existing summary insight
       const summaryInsight = await AIInsightsQueries.getInsightByType(
         input.recordingId,
@@ -96,7 +127,8 @@ export class SummaryEditService {
    * Get summary version history for a recording
    */
   static async getSummaryHistory(
-    recordingId: string
+    recordingId: string,
+    organizationId: string
   ): Promise<
     ActionResult<
       Array<{
@@ -110,6 +142,32 @@ export class SummaryEditService {
     >
   > {
     try {
+      // Verify recording belongs to organization
+      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      if (!recording) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "SummaryEditService.getSummaryHistory"
+          )
+        );
+      }
+
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "SummaryEditService.getSummaryHistory"
+        );
+      } catch (error) {
+        return err(
+          ActionErrors.notFound(
+            "Recording not found",
+            "SummaryEditService.getSummaryHistory"
+          )
+        );
+      }
+
       const history =
         await SummaryHistoryQueries.selectSummaryHistoryByRecordingId(
           recordingId

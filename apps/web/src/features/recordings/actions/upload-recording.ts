@@ -15,6 +15,8 @@ import { start } from "workflow/api";
 /**
  * Upload a recording file using FormData
  * This handles the complete flow: file upload to Blob + database record
+ * Note: This is a regular server action, not using authorizedActionClient because
+ * it handles FormData which doesn't work well with the action client schema validation
  */
 export async function uploadRecordingFormAction(
   formData: FormData
@@ -31,9 +33,9 @@ export async function uploadRecordingFormAction(
     }
 
     const user = authResult.value.user;
-    const organization = authResult.value.organization;
+    const organizationId = authResult.value.organization?.orgCode;
 
-    if (!organization) {
+    if (!organizationId) {
       return { success: false, error: "No organization found" };
     }
 
@@ -105,7 +107,7 @@ export async function uploadRecordingFormAction(
       recordingDate: new Date(recordingDateStr),
       transcriptionStatus: "pending",
       transcriptionText: null,
-      organizationId: organization.orgCode,
+      organizationId,
       createdById: user.id,
     });
 

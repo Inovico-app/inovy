@@ -1,8 +1,8 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
 import { TaskService } from "@/server/services";
-import { getAuthSession } from "@/lib/auth";
 import { z } from "zod";
 
 /**
@@ -11,20 +11,23 @@ import { z } from "zod";
 export const getOrganizationTags = authorizedActionClient
   .metadata({ policy: "tasks:read" })
   .schema(z.void())
-  .action(async () => {
-    const authResult = await getAuthSession();
-    
-    if (authResult.isErr() || !authResult.value.organization) {
-      throw new Error("Authentication required");
+  .action(async ({ ctx }) => {
+    const { organizationId } = ctx;
+
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required");
     }
-    
-    const { organization } = authResult.value;
-    const result = await TaskService.getTagsByOrganization(organization.orgCode);
-    
+
+    const result = await TaskService.getTagsByOrganization(organizationId);
+
     if (result.isErr()) {
-      throw new Error("Failed to fetch tags");
+      throw ActionErrors.internal(
+        "Failed to fetch tags",
+        result.error,
+        "get-organization-tags"
+      );
     }
-    
+
     return result.value;
   });
 

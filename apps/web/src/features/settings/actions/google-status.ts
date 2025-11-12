@@ -1,50 +1,41 @@
 "use server";
 
-import { getAuthSession } from "@/lib/auth";
+import { authorizedActionClient } from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import type { AutoAction } from "@/server/db/schema";
 import { AutoActionsService } from "@/server/services/auto-actions.service";
+import { z } from "zod";
+
+const getGoogleIntegrationStatusSchema = z.object({
+  limit: z.number().optional(),
+  type: z.enum(["calendar_event", "email_draft"]).optional(),
+});
+
 /**
  * Get recent Google integration actions
  */
-export async function getGoogleIntegrationStatus(options?: {
-  limit?: number;
-  type?: "calendar_event" | "email_draft";
-}): Promise<{
-  success: boolean;
-  data?: {
-    actions: Array<
-      AutoAction & {
-        recordingTitle?: string;
-        taskTitle?: string;
-      }
-    >;
-    stats: {
-      total: number;
-      completed: number;
-      failed: number;
-      pending: number;
-      calendarEvents: number;
-      emailDrafts: number;
-    };
-  };
-  error?: string;
-}> {
-  try {
-    const sessionResult = await getAuthSession();
+export const getGoogleIntegrationStatus = authorizedActionClient
+  .metadata({ policy: "settings:read" })
+  .schema(getGoogleIntegrationStatusSchema.optional())
+  .action(async ({ parsedInput, ctx }) => {
+    const { user, organizationId } = ctx;
 
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
     }
 
-    const user = sessionResult.value.user;
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required");
+    }
 
     const [actions, stats] = await Promise.all([
-      AutoActionsService.getRecentAutoActions(user.id, "google", options),
-      AutoActionsService.getAutoActionStats(user.id, "google"),
+      AutoActionsService.getRecentAutoActions(
+        user.id,
+        organizationId,
+        "google",
+        parsedInput
+      ),
+      AutoActionsService.getAutoActionStats(user.id, organizationId, "google"),
     ]);
 
     if (actions.isErr()) {
@@ -62,76 +53,56 @@ export async function getGoogleIntegrationStatus(options?: {
     }
 
     return {
-      success: true,
-      data: {
-        actions: actions.isOk() ? actions.value : [],
-        stats: stats.isOk()
-          ? stats.value
-          : {
-              total: 0,
-              completed: 0,
-              failed: 0,
-              pending: 0,
-              calendarEvents: 0,
-              emailDrafts: 0,
-            },
-      },
+      actions: actions.isOk() ? actions.value : [],
+      stats: stats.isOk()
+        ? stats.value
+        : {
+            total: 0,
+            completed: 0,
+            failed: 0,
+            pending: 0,
+            calendarEvents: 0,
+            emailDrafts: 0,
+          },
     };
-  } catch (error) {
-    logger.error(
-      "Unexpected error in getGoogleIntegrationStatus",
-      {},
-      error as Error
-    );
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+  });
+
+const retryFailedActionSchema = z.object({
+  actionId: z.string(),
+});
 
 /**
  * Retry a failed action
  */
-export async function retryFailedAction(actionId: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const sessionResult = await getAuthSession();
+export const retryFailedAction = authorizedActionClient
+  .metadata({ policy: "settings:update" })
+  .schema(retryFailedActionSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user, organizationId } = ctx;
 
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
     }
 
-    const user = sessionResult.value.user;
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required");
+    }
 
-    const action = await AutoActionsService.retryAutoAction(actionId, user.id);
+    const action = await AutoActionsService.retryAutoAction(
+      parsedInput.actionId,
+      user.id,
+      organizationId
+    );
 
     if (!action) {
-      return {
-        success: false,
-        error: "Action not found or cannot be retried",
-      };
+      throw ActionErrors.notFound("Action", "retry-failed-action");
     }
 
     logger.info("Retrying failed auto action", {
       userId: user.id,
-      actionId,
+      actionId: parsedInput.actionId,
     });
 
-    return {
-      success: true,
-    };
-  } catch (error) {
-    logger.error("Unexpected error in retryFailedAction", {}, error as Error);
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    return { success: true };
+  });
 

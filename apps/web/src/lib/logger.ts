@@ -150,6 +150,54 @@ class Logger {
       );
     },
   };
+
+  // Helper method for security and organization isolation logging
+  security = {
+    organizationViolation: (context: {
+      resourceOrgId: string;
+      userOrgId: string;
+      context: string;
+      reason: string;
+      userId?: string;
+      resourceId?: string;
+    }) => {
+      this.error("Organization isolation violation detected", {
+        component: "security",
+        action: "organizationViolation",
+        resourceOrgId: context.resourceOrgId,
+        userOrgId: context.userOrgId,
+        violationContext: context.context,
+        reason: context.reason,
+        userId: context.userId,
+        resourceId: context.resourceId,
+        severity: "high",
+      });
+    },
+
+    unauthorizedAccess: (context: {
+      userId: string;
+      resource: string;
+      action: string;
+      reason: string;
+    }) => {
+      this.warn("Unauthorized access attempt", {
+        component: "security",
+        action: "unauthorizedAccess",
+        userId: context.userId,
+        resource: context.resource,
+        attemptedAction: context.action,
+        reason: context.reason,
+      });
+    },
+
+    suspiciousActivity: (message: string, context?: LogContext) => {
+      this.warn(`Suspicious activity: ${message}`, {
+        ...context,
+        component: "security",
+        action: "suspiciousActivity",
+      });
+    },
+  };
 }
 
 export const logger = new Logger();

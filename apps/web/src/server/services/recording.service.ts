@@ -2,6 +2,7 @@ import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger, serializeError } from "../../lib/logger";
+import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { EmbeddingsQueries } from "../data-access/embeddings.queries";
 import { ProjectQueries } from "../data-access/projects.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
@@ -106,6 +107,7 @@ export class RecordingService {
    */
   static async getRecordingsByProjectId(
     projectId: string,
+    organizationId: string,
     options?: {
       search?: string;
     }
@@ -117,6 +119,17 @@ export class RecordingService {
     });
 
     try {
+      // Verify project belongs to organization
+      const project = await ProjectQueries.findById(projectId, organizationId);
+      if (!project) {
+        return err(
+          ActionErrors.notFound(
+            "Project",
+            "RecordingService.getRecordingsByProjectId"
+          )
+        );
+      }
+
       const recordings = await RecordingsQueries.selectRecordingsByProjectId(
         projectId,
         options
@@ -180,21 +193,17 @@ export class RecordingService {
         );
       }
 
-      if (recording.organizationId !== organizationId) {
-        logger.warn(
-          "User attempted to update recording from different organization",
-          {
-            component: "RecordingService.updateRecordingMetadata",
-            recordingId: id,
-            userOrgId: organizationId,
-            recordingOrgId: recording.organizationId,
-          }
+      // Use centralized organization isolation check
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "RecordingService.updateRecordingMetadata"
         );
-
+      } catch (error) {
         return err(
-          ActionErrors.forbidden(
-            "You don't have permission to update this recording",
-            { recordingId: id },
+          ActionErrors.notFound(
+            "Recording not found",
             "RecordingService.updateRecordingMetadata"
           )
         );
@@ -427,11 +436,17 @@ export class RecordingService {
         );
       }
 
-      if (recording.organizationId !== orgCode) {
+      // Use centralized organization isolation check
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          orgCode,
+          "RecordingService.deleteRecording"
+        );
+      } catch (error) {
         return err(
-          ActionErrors.forbidden(
-            "You don't have permission to delete this recording",
-            { recordingId },
+          ActionErrors.notFound(
+            "Recording not found",
             "RecordingService.deleteRecording"
           )
         );
@@ -514,21 +529,17 @@ export class RecordingService {
         );
       }
 
-      if (recording.organizationId !== organizationId) {
-        logger.warn(
-          "User attempted to move recording from different organization",
-          {
-            component: "RecordingService.moveRecording",
-            recordingId,
-            userOrgId: organizationId,
-            recordingOrgId: recording.organizationId,
-          }
+      // Use centralized organization isolation check
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "RecordingService.moveRecording"
         );
-
+      } catch (error) {
         return err(
-          ActionErrors.forbidden(
-            "You don't have permission to move this recording",
-            { recordingId },
+          ActionErrors.notFound(
+            "Recording not found",
             "RecordingService.moveRecording"
           )
         );

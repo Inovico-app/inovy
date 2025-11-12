@@ -1,11 +1,11 @@
 "use server";
 
-import { AuthService } from "@/lib/kinde-api";
 import { authorizedActionClient } from "@/lib/action-client";
-import { getAuthSession } from "@/lib/auth";
+import { ActionErrors } from "@/lib/action-errors";
+import { AuthService } from "@/lib/kinde-api";
 import { logger } from "@/lib/logger";
-import { z } from "zod";
 import type { KindeOrganizationUserDto } from "@/server/dto/kinde.dto";
+import { z } from "zod";
 
 /**
  * Server action to get users from the authenticated user's organization
@@ -14,19 +14,17 @@ import type { KindeOrganizationUserDto } from "@/server/dto/kinde.dto";
 export const getOrganizationUsers = authorizedActionClient
   .metadata({ policy: "users:read" })
   .schema(z.object({})) // No input needed
-  .action(async (): Promise<KindeOrganizationUserDto[]> => {
-    // Get the user's organization
-    const authResult = await getAuthSession();
-    if (authResult.isErr() || !authResult.value.organization) {
-      throw new Error("Authentication or organization required");
-    }
+  .action(async ({ ctx }): Promise<KindeOrganizationUserDto[]> => {
+    const { organizationId } = ctx;
 
-    const { organization } = authResult.value;
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required");
+    }
 
     try {
       const Organizations = await AuthService.getOrganizations();
       const response = await Organizations.getOrganizationUsers({
-        orgCode: organization.orgCode,
+        orgCode: organizationId,
       });
 
       if (!response?.organization_users) {
@@ -43,7 +41,7 @@ export const getOrganizationUsers = authorizedActionClient
     } catch (error) {
       logger.error(
         "Failed to get organization users",
-        { orgCode: organization.orgCode },
+        { orgCode: organizationId },
         error as Error
       );
       throw new Error("Failed to fetch organization users");

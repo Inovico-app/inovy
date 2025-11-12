@@ -15,13 +15,14 @@ export const updateTranscription = authorizedActionClient
   .metadata({ policy: "recordings:update" })
   .schema(updateTranscriptionSchema)
   .action(async ({ parsedInput, ctx }) => {
-    if (!ctx.user) {
-      throw new Error("User not authenticated");
+    if (!ctx.user || !ctx.organizationId) {
+      throw new Error("User and organization context required");
     }
 
     const result = await TranscriptionEditService.updateTranscription(
       parsedInput,
-      ctx.user.id
+      ctx.user.id,
+      ctx.organizationId
     );
 
     if (result.isErr()) {

@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
+import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { createGoogleOAuthClient } from "../../lib/google-oauth";
 import { logger } from "../../lib/logger";
 import { AutoActionsQueries } from "../data-access";
@@ -17,6 +18,7 @@ export class GoogleGmailService {
    */
   static async createDraftFromSummary(
     userId: string,
+    organizationId: string,
     recording: Recording,
     summary: string,
     options?: {
@@ -25,6 +27,22 @@ export class GoogleGmailService {
     }
   ): Promise<ActionResult<{ draftId: string; draftUrl: string }>> {
     try {
+      // Verify recording belongs to organization
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "GoogleGmailService.createDraftFromSummary"
+        );
+      } catch (error) {
+        return err(
+          ActionErrors.notFound(
+            "Recording not found",
+            "GoogleGmailService.createDraftFromSummary"
+          )
+        );
+      }
+
       // Get valid access token
       const tokenResult = await GoogleOAuthService.getValidAccessToken(userId);
 

@@ -2,7 +2,6 @@
 
 import { authorizedActionClient } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
-import { getAuthSession } from "../../../lib/auth";
 import { RecordingService } from "../../../server/services";
 import { deleteRecordingSchema } from "../../../server/validation/recordings/delete-recording";
 import { revalidatePath } from "next/cache";
@@ -19,26 +18,15 @@ export const deleteRecordingAction = authorizedActionClient
   .inputSchema(deleteRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId, confirmationText } = parsedInput;
-    const { user, session } = ctx;
+    const { organizationId } = ctx;
 
-    if (!user || !session) {
-      throw ActionErrors.unauthenticated(
-        "User or session not found",
-        "delete-recording"
-      );
-    }
-
-    // Get organization code and recording details
-    const authResult = await getAuthSession();
-    if (authResult.isErr() || !authResult.value.organization) {
-      throw ActionErrors.internal(
-        "Failed to get organization context",
+    if (!organizationId) {
+      throw ActionErrors.forbidden(
+        "Organization context required",
         undefined,
         "delete-recording"
       );
     }
-
-    const orgCode = authResult.value.organization.orgCode;
 
     // Get recording to get file URL and validate confirmation
     const recordingResult = await RecordingService.getRecordingById(recordingId);
@@ -60,7 +48,7 @@ export const deleteRecordingAction = authorizedActionClient
     }
 
     // Delete from database first (this will cascade to related records)
-    const result = await RecordingService.deleteRecording(recordingId, orgCode);
+    const result = await RecordingService.deleteRecording(recordingId, organizationId);
 
     if (result.isErr()) {
       throw result.error;

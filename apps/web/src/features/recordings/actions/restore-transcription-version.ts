@@ -16,14 +16,15 @@ export const restoreTranscriptionVersion = authorizedActionClient
   .metadata({ policy: "recordings:update" })
   .schema(restoreTranscriptionVersionSchema)
   .action(async ({ parsedInput, ctx }) => {
-    if (!ctx.user) {
-      throw new Error("User not authenticated");
+    if (!ctx.user || !ctx.organizationId) {
+      throw new Error("User and organization context required");
     }
 
     const result = await TranscriptionEditService.restoreTranscriptionVersion(
       parsedInput.recordingId,
       parsedInput.versionNumber,
-      ctx.user.id
+      ctx.user.id,
+      ctx.organizationId
     );
 
     if (result.isErr()) {

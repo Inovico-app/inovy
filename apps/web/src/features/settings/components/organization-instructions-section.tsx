@@ -41,18 +41,18 @@ export function OrganizationInstructionsSection({
         instructions: newInstructions,
       });
 
-      if (result.success) {
+      if (result.data) {
         setInstructions(newInstructions);
         setIsEditing(false);
         toast.success("Organization instructions updated successfully");
 
         // Refresh the data
         const refreshResult = await getOrganizationSettings();
-        if (refreshResult.success && refreshResult.data?.instructions) {
+        if (refreshResult.data?.instructions) {
           setInstructions(refreshResult.data.instructions);
         }
       } else {
-        toast.error(result.error || "Failed to update instructions");
+        toast.error(result.serverError || "Failed to update instructions");
       }
     } catch (error) {
       console.error("Error updating organization instructions:", error);

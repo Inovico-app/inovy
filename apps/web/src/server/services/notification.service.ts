@@ -180,6 +180,30 @@ export class NotificationService {
         );
       }
 
+      // Get notification first to verify organization ownership
+      const existingNotification = await NotificationsQueries.getNotificationById(
+        notificationId
+      );
+
+      if (!existingNotification) {
+        return err(
+          ActionErrors.notFound(
+            "Notification",
+            "NotificationService.markAsRead"
+          )
+        );
+      }
+
+      // Verify notification belongs to user's organization
+      if (existingNotification.organizationId !== organization.orgCode) {
+        return err(
+          ActionErrors.notFound(
+            "Notification not found",
+            "NotificationService.markAsRead"
+          )
+        );
+      }
+
       const notification = await NotificationsQueries.markAsRead(
         notificationId,
         authUser.id

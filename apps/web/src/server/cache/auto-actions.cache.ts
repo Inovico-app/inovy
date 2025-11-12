@@ -15,11 +15,16 @@ import { AutoActionsService } from "../services/auto-actions.service";
  */
 export async function getCachedAutoActionStats(
   userId: string,
+  organizationId: string,
   provider: "google" | "microsoft"
 ) {
   "use cache";
   cacheTag(CacheTags.autoActionStats(userId));
-  return await AutoActionsService.getAutoActionStats(userId, provider);
+  return await AutoActionsService.getAutoActionStats(
+    userId,
+    organizationId,
+    provider
+  );
 }
 
 /**
@@ -28,6 +33,7 @@ export async function getCachedAutoActionStats(
  */
 export async function getCachedRecentAutoActions(
   userId: string,
+  organizationId: string,
   provider: "google" | "microsoft",
   options?: { limit?: number; type?: "calendar_event" | "email_draft" }
 ) {
@@ -35,6 +41,7 @@ export async function getCachedRecentAutoActions(
   cacheTag(CacheTags.autoActions(userId));
   return await AutoActionsService.getRecentAutoActions(
     userId,
+    organizationId,
     provider,
     options
   );

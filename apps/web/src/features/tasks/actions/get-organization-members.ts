@@ -1,8 +1,10 @@
 "use server";
 
+import { authorizedActionClient } from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { getAuthSession } from "@/lib/auth";
 import { OrganizationService } from "@/server/services";
+import { z } from "zod";
 
 export interface OrganizationMember {
   id: string;
@@ -12,33 +14,22 @@ export interface OrganizationMember {
   displayName: string;
 }
 
-export async function getOrgMembers(): Promise<{
-  success: boolean;
-  data?: OrganizationMember[];
-  error?: string;
-}> {
-  try {
-    // Get authenticated user session
-    const authResult = await getAuthSession();
-    if (authResult.isErr()) {
-      return {
-        success: false,
-        error: "Authentication required",
-      };
-    }
+/**
+ * Server action to get organization members
+ */
+export const getOrgMembers = authorizedActionClient
+  .metadata({ policy: "tasks:read" })
+  .schema(z.void())
+  .action(async ({ ctx }) => {
+    const { organizationId } = ctx;
 
-    const { organization } = authResult.value;
-
-    if (!organization) {
-      return {
-        success: false,
-        error: "Organization not found",
-      };
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required");
     }
 
     // Fetch organization members via service layer
     const membersResult = await OrganizationService.getOrganizationMembers(
-      organization.orgCode
+      organizationId
     );
 
     if (membersResult.isErr()) {
@@ -47,14 +38,15 @@ export async function getOrgMembers(): Promise<{
         error: membersResult.error,
       });
 
-      return {
-        success: false,
-        error: "Failed to fetch organization members",
-      };
+      throw ActionErrors.internal(
+        "Failed to fetch organization members",
+        membersResult.error,
+        "get-org-members"
+      );
     }
 
     // Transform to include display name
-    const members = membersResult.value.map((member) => ({
+    const members: OrganizationMember[] = membersResult.value.map((member) => ({
       id: member.id,
       email: member.email,
       given_name: member.given_name,
@@ -65,20 +57,6 @@ export async function getOrgMembers(): Promise<{
           : member.email ?? member.id,
     }));
 
-    return {
-      success: true,
-      data: members,
-    };
-  } catch (error) {
-    logger.error("Unexpected error fetching organization members", {
-      component: "getOrgMembers",
-      error,
-    });
-
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    return members;
+  });
 

@@ -1,5 +1,6 @@
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { RecordingService } from "@/server/services";
 import { AIInsightService } from "@/server/services/ai-insight.service";
 import { SummaryService } from "@/server/services/summary.service";
@@ -37,14 +38,17 @@ export async function POST(
     const recording = recordingResult.value;
 
     // Verify user has access
-    const user = authResult.value.user;
     const organization = authResult.value.organization;
 
-    if (
-      recording.organizationId !== organization?.orgCode &&
-      recording.createdById !== user.id
-    ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    try {
+      assertOrganizationAccess(
+        recording.organizationId,
+        organization?.orgCode,
+        "api/summarize/[recordingId]/POST"
+      );
+    } catch (error) {
+      // Return 404 to prevent information leakage
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     // Check if transcription is available
@@ -142,14 +146,17 @@ export async function GET(
     const recording = recordingResult.value;
 
     // Verify user has access
-    const user = authResult.value.user;
     const organization = authResult.value.organization;
 
-    if (
-      recording.organizationId !== organization?.orgCode &&
-      recording.createdById !== user.id
-    ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    try {
+      assertOrganizationAccess(
+        recording.organizationId,
+        organization?.orgCode,
+        "api/summarize/[recordingId]/GET"
+      );
+    } catch (error) {
+      // Return 404 to prevent information leakage
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     // Get existing summary

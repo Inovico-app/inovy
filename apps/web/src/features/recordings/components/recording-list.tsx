@@ -5,16 +5,22 @@ import { UploadRecordingModal } from "./upload-recording-modal";
 
 interface RecordingListProps {
   projectId: string;
+  organizationId: string;
   searchQuery?: string;
 }
 
 export async function RecordingList({
   projectId,
+  organizationId,
   searchQuery,
 }: RecordingListProps) {
-  const recordings = await getCachedRecordingsByProjectId(projectId, {
-    search: searchQuery,
-  });
+  const recordings = await getCachedRecordingsByProjectId(
+    projectId,
+    organizationId,
+    {
+      search: searchQuery,
+    }
+  );
 
   if (recordings.length === 0) {
     return (

@@ -1,9 +1,9 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { UserNotesService } from "@/server/services/user-notes.service";
-import { getAuthSession } from "@/lib/auth";
 import { z } from "zod";
 
 const updateUserNotesSchema = z.object({
@@ -19,28 +19,31 @@ export type UpdateUserNotesInput = z.infer<typeof updateUserNotesSchema>;
 export const updateUserNotes = authorizedActionClient
   .metadata({ policy: "recordings:update" })
   .schema(updateUserNotesSchema)
-  .action(async ({ parsedInput }) => {
-    const authResult = await getAuthSession();
-    
-    if (authResult.isErr() || !authResult.value.user) {
-      throw new Error("Authentication required");
+  .action(async ({ parsedInput, ctx }) => {
+    const { user, organizationId } = ctx;
+
+    if (!user || !organizationId) {
+      throw ActionErrors.unauthenticated("User and organization context required");
     }
-    
-    const { user } = authResult.value;
-    
+
     const result = await UserNotesService.updateUserNotes(
       parsedInput.recordingId,
       parsedInput.userNotes,
-      user.id
+      user.id,
+      organizationId
     );
-    
+
     if (result.isErr()) {
-      throw new Error(result.error.message);
+      throw ActionErrors.internal(
+        result.error.message,
+        result.error,
+        "update-user-notes"
+      );
     }
-    
+
     // Invalidate summary cache
     CacheInvalidation.invalidateSummary(parsedInput.recordingId);
-    
+
     return { success: true };
   });
 

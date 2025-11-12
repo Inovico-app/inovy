@@ -2,7 +2,6 @@
 
 import { authorizedActionClient } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
-import { getAuthSession } from "../../../lib/auth";
 import { ProjectService } from "../../../server/services";
 import { archiveProjectSchema } from "../../../server/validation/projects/archive-project";
 
@@ -16,29 +15,18 @@ export const archiveProjectAction = authorizedActionClient
   .inputSchema(archiveProjectSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { projectId } = parsedInput;
-    const { user, session } = ctx;
+    const { organizationId } = ctx;
 
-    if (!user || !session) {
-      throw ActionErrors.unauthenticated(
-        "User or session not found",
-        "archive-project"
-      );
-    }
-
-    // Get organization code from session
-    const authResult = await getAuthSession();
-    if (authResult.isErr() || !authResult.value.organization) {
-      throw ActionErrors.internal(
-        "Failed to get organization context",
+    if (!organizationId) {
+      throw ActionErrors.forbidden(
+        "Organization context required",
         undefined,
         "archive-project"
       );
     }
 
-    const orgCode = authResult.value.organization.orgCode;
-
     // Archive project
-    const result = await ProjectService.archiveProject(projectId, orgCode);
+    const result = await ProjectService.archiveProject(projectId, organizationId);
 
     if (result.isErr()) {
       throw ActionErrors.internal(

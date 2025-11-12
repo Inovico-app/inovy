@@ -10,9 +10,16 @@ import { z } from "zod";
 export const getSummaryHistory = authorizedActionClient
   .metadata({ policy: "recordings:read" })
   .schema(z.object({ recordingId: z.string().uuid() }))
-  .action(async ({ parsedInput }) => {
+  .action(async ({ parsedInput, ctx }) => {
+    const { organizationId } = ctx;
+
+    if (!organizationId) {
+      throw new Error("Organization context required");
+    }
+
     const result = await SummaryEditService.getSummaryHistory(
-      parsedInput.recordingId
+      parsedInput.recordingId,
+      organizationId
     );
     
     if (result.isErr()) {

@@ -48,11 +48,11 @@ export function CreateGmailDraftButton({
       additionalContent: additionalContent || undefined,
     });
 
-    if (result.success && result.data) {
+    if (result.data) {
       toast.success("Gmail draft created successfully!");
       setDraftUrl(result.data.draftUrl);
     } else {
-      toast.error(result.error || "Failed to create Gmail draft");
+      toast.error(result.serverError || "Failed to create Gmail draft");
     }
 
     setLoading(false);

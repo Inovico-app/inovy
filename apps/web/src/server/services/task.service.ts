@@ -1,4 +1,5 @@
 import { ActionErrors, type ActionResult } from "@/lib";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { err, ok } from "neverthrow";
 import { getAuthSession } from "../../lib/auth";
 import { CacheInvalidation } from "../../lib/cache-utils";
@@ -285,10 +286,17 @@ export class TaskService {
         );
       }
 
-      if (task.organizationId !== organization.orgCode) {
+      // Use centralized organization isolation check
+      try {
+        assertOrganizationAccess(
+          task.organizationId,
+          organization.orgCode,
+          "TaskService.updateTaskStatus"
+        );
+      } catch (error) {
         return err(
           ActionErrors.notFound(
-            "Task not found in your organization",
+            "Task not found",
             "TaskService.updateTaskStatus"
           )
         );
@@ -358,10 +366,17 @@ export class TaskService {
         );
       }
 
-      if (task.organizationId !== organization.orgCode) {
+      // Use centralized organization isolation check
+      try {
+        assertOrganizationAccess(
+          task.organizationId,
+          organization.orgCode,
+          "TaskService.updateTaskMetadata"
+        );
+      } catch (error) {
         return err(
           ActionErrors.notFound(
-            "Task not found in your organization",
+            "Task not found",
             "TaskService.updateTaskMetadata"
           )
         );
@@ -457,10 +472,17 @@ export class TaskService {
         return err(ActionErrors.notFound("Task", "TaskService.getTaskHistory"));
       }
 
-      if (task.organizationId !== organization.orgCode) {
+      // Use centralized organization isolation check
+      try {
+        assertOrganizationAccess(
+          task.organizationId,
+          organization.orgCode,
+          "TaskService.getTaskHistory"
+        );
+      } catch (error) {
         return err(
           ActionErrors.notFound(
-            "Task not found in your organization",
+            "Task not found",
             "TaskService.getTaskHistory"
           )
         );

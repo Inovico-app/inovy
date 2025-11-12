@@ -1,5 +1,6 @@
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { canAccessOrganizationChat } from "@/lib/rbac";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
 import { ChatService } from "@/server/services/chat.service";
@@ -230,8 +231,16 @@ export async function POST(request: NextRequest) {
       }
 
       const project = projectResult.value;
-      if (project.organizationId !== orgCode) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      
+      try {
+        assertOrganizationAccess(
+          project.organizationId,
+          orgCode,
+          "api/chat/POST"
+        );
+      } catch (error) {
+        // Return 404 to prevent information leakage
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
 
       // Create or get conversation
@@ -261,7 +270,8 @@ export async function POST(request: NextRequest) {
       const streamResult = await ChatService.streamResponse(
         activeConversationId,
         lastUserMessage,
-        projectId
+        projectId,
+        organization.orgCode
       );
 
       if (streamResult.isErr()) {

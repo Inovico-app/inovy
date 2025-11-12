@@ -1,8 +1,9 @@
 import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
-import { getAuthSession } from "../../lib/auth";
 import { logger } from "../../lib/logger";
+import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { AIInsightsQueries } from "../data-access/ai-insights.queries";
+import { RecordingsQueries } from "../data-access/recordings.queries";
 import type { AIInsight, NewAIInsight } from "../db/schema";
 import type {
   AIInsightDto,
@@ -43,27 +44,33 @@ export class AIInsightService {
    * Get all insights for a recording with authorization check
    */
   static async getInsightsByRecordingId(
-    recordingId: string
+    recordingId: string,
+    organizationId: string
   ): Promise<ActionResult<AIInsightDto[]>> {
     try {
-      const authResult = await getAuthSession();
-      if (authResult.isErr()) {
+      // Verify recording belongs to organization
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+      if (!recording) {
         return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
+          ActionErrors.notFound(
+            "Recording",
             "AIInsightService.getInsightsByRecordingId"
           )
         );
       }
 
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser || !organization) {
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "AIInsightService.getInsightsByRecordingId"
+        );
+      } catch (error) {
         return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
+          ActionErrors.notFound(
+            "Recording not found",
             "AIInsightService.getInsightsByRecordingId"
           )
         );
@@ -116,27 +123,33 @@ export class AIInsightService {
    */
   static async getInsightByType(
     recordingId: string,
-    insightType: InsightType
+    insightType: InsightType,
+    organizationId: string
   ): Promise<ActionResult<AIInsightDto | null>> {
     try {
-      const authResult = await getAuthSession();
-      if (authResult.isErr()) {
+      // Verify recording belongs to organization
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+      if (!recording) {
         return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
+          ActionErrors.notFound(
+            "Recording",
             "AIInsightService.getInsightByType"
           )
         );
       }
 
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser || !organization) {
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "AIInsightService.getInsightByType"
+        );
+      } catch (error) {
         return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
+          ActionErrors.notFound(
+            "Recording not found",
             "AIInsightService.getInsightByType"
           )
         );
@@ -263,27 +276,47 @@ export class AIInsightService {
    * Update insight content with manual edit tracking and authorization
    */
   static async updateInsightWithEdit(
-    input: Omit<UpdateAIInsightWithEditDto, "userId">
+    input: Omit<UpdateAIInsightWithEditDto, "userId">,
+    userId: string,
+    organizationId: string
   ): Promise<ActionResult<AIInsightDto>> {
     try {
-      const authResult = await getAuthSession();
-      if (authResult.isErr()) {
+      // Get insight first to verify it exists and get its recording
+      const existingInsight = await AIInsightsQueries.getInsightById(
+        input.insightId
+      );
+      if (!existingInsight) {
         return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
+          ActionErrors.notFound(
+            "AI Insight",
             "AIInsightService.updateInsightWithEdit"
           )
         );
       }
 
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser || !organization) {
+      // Verify recording belongs to organization
+      const recording = await RecordingsQueries.selectRecordingById(
+        existingInsight.recordingId
+      );
+      if (!recording) {
         return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
+          ActionErrors.notFound(
+            "Recording",
+            "AIInsightService.updateInsightWithEdit"
+          )
+        );
+      }
+
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "AIInsightService.updateInsightWithEdit"
+        );
+      } catch (error) {
+        return err(
+          ActionErrors.notFound(
+            "AI Insight not found",
             "AIInsightService.updateInsightWithEdit"
           )
         );
@@ -292,7 +325,7 @@ export class AIInsightService {
       const insight = await AIInsightsQueries.updateInsightWithEdit(
         input.insightId,
         input.content,
-        authUser.id
+        userId
       );
 
       if (!insight) {
@@ -327,27 +360,33 @@ export class AIInsightService {
    */
   static async updateSpeakerNames(
     recordingId: string,
-    speakerNames: Record<string, string>
+    speakerNames: Record<string, string>,
+    organizationId: string
   ): Promise<ActionResult<AIInsightDto>> {
     try {
-      const authResult = await getAuthSession();
-      if (authResult.isErr()) {
+      // Verify recording belongs to organization
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+      if (!recording) {
         return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
+          ActionErrors.notFound(
+            "Recording",
             "AIInsightService.updateSpeakerNames"
           )
         );
       }
 
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser || !organization) {
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "AIInsightService.updateSpeakerNames"
+        );
+      } catch (error) {
         return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
+          ActionErrors.notFound(
+            "Recording not found",
             "AIInsightService.updateSpeakerNames"
           )
         );
@@ -399,26 +438,39 @@ export class AIInsightService {
   /**
    * Delete an insight with authorization check
    */
-  static async deleteInsight(insightId: string): Promise<ActionResult<void>> {
+  static async deleteInsight(
+    insightId: string,
+    organizationId: string
+  ): Promise<ActionResult<void>> {
     try {
-      const authResult = await getAuthSession();
-      if (authResult.isErr()) {
+      // Get insight first to verify it exists and get its recording
+      const insight = await AIInsightsQueries.getInsightById(insightId);
+      if (!insight) {
         return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "AIInsightService.deleteInsight"
-          )
+          ActionErrors.notFound("AI Insight", "AIInsightService.deleteInsight")
         );
       }
 
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser || !organization) {
+      // Verify recording belongs to organization
+      const recording = await RecordingsQueries.selectRecordingById(
+        insight.recordingId
+      );
+      if (!recording) {
         return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
+          ActionErrors.notFound("Recording", "AIInsightService.deleteInsight")
+        );
+      }
+
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "AIInsightService.deleteInsight"
+        );
+      } catch (error) {
+        return err(
+          ActionErrors.notFound(
+            "AI Insight not found",
             "AIInsightService.deleteInsight"
           )
         );

@@ -7,7 +7,6 @@ import {
   resultToActionResponse,
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
-import { getAuthSession } from "../../../lib/auth";
 import { ProjectService } from "../../../server/services";
 import { createProjectSchema } from "../../../server/validation/create-project";
 
@@ -21,32 +20,28 @@ export const createProjectAction = authorizedActionClient
   .inputSchema(createProjectSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { name, description } = parsedInput;
-    const { user, session } = ctx;
+    const { user, organizationId } = ctx;
 
-    if (!user || !session) {
+    if (!user) {
       throw ActionErrors.unauthenticated(
-        "User or session not found",
+        "User not found",
         "create-project-smart"
       );
     }
 
-    // Get organization code from session
-    const authResult = await getAuthSession();
-    if (authResult.isErr() || !authResult.value.organization) {
-      throw ActionErrors.internal(
-        "Failed to get organization context",
+    if (!organizationId) {
+      throw ActionErrors.forbidden(
+        "Organization context required",
         undefined,
         "create-project"
       );
     }
 
-    const orgCode = authResult.value.organization.orgCode;
-
     // All operations return Results - no exceptions thrown
     const result = await ProjectService.createProject(
       { name, description },
       user,
-      orgCode
+      organizationId
     );
 
     // Convert Result to action response (throws if error)

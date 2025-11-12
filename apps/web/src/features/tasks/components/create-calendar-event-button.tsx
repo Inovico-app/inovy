@@ -45,11 +45,11 @@ export function CreateCalendarEventButton({
       duration,
     });
 
-    if (result.success && result.data) {
+    if (result.data) {
       toast.success("Calendar event created successfully!");
       setEventUrl(result.data.eventUrl);
     } else {
-      toast.error(result.error || "Failed to create calendar event");
+      toast.error(result.serverError || "Failed to create calendar event");
     }
 
     setLoading(false);

@@ -1,7 +1,8 @@
 "use server";
 
 import { authorizedActionClient, resultToActionResponse } from "@/lib";
-import { getAuthSession } from "@/lib/auth";
+import { ActionErrors } from "@/lib/action-errors";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { RecordingService, ReprocessingService } from "@/server/services";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -16,20 +17,17 @@ const reprocessRecordingSchema = z.object({
 export const reprocessRecordingAction = authorizedActionClient
   .metadata({ policy: "recordings:update" })
   .schema(reprocessRecordingSchema)
-  .action(async ({ parsedInput }) => {
+  .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
+    const { user, organizationId } = ctx;
 
-    // Get auth session for user and organization context
-    const authResult = await getAuthSession();
-    if (
-      authResult.isErr() ||
-      !authResult.value.user ||
-      !authResult.value.organization
-    ) {
-      throw new Error("Authentication required");
+    if (!user) {
+      throw ActionErrors.unauthenticated("User not found");
     }
 
-    const { user, organization } = authResult.value;
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required");
+    }
 
     // Get recording to verify ownership and get project ID
     const recordingResult = await RecordingService.getRecordingById(
@@ -38,24 +36,33 @@ export const reprocessRecordingAction = authorizedActionClient
     const recording = resultToActionResponse(recordingResult);
 
     if (!recording) {
-      throw new Error("Recording not found");
+      throw ActionErrors.notFound("Recording");
     }
 
     // Verify recording belongs to user's organization
-    if (recording.organizationId !== organization.orgCode) {
-      throw new Error("You don't have permission to reprocess this recording");
+    try {
+      assertOrganizationAccess(
+        recording.organizationId,
+        organizationId,
+        "reprocessRecordingAction"
+      );
+    } catch (error) {
+      throw ActionErrors.notFound("Recording");
     }
 
     // Trigger reprocessing
     const reprocessResult = await ReprocessingService.triggerReprocessing(
       recordingId,
-      user.id
+      user.id,
+      organizationId
     );
 
     const reprocessData = resultToActionResponse(reprocessResult);
 
     // Revalidate the recording detail page
-    revalidatePath(`/projects/${recording.projectId}/recordings/${recordingId}`);
+    revalidatePath(
+      `/projects/${recording.projectId}/recordings/${recordingId}`
+    );
     revalidatePath(`/projects/${recording.projectId}`);
 
     return {
@@ -75,16 +82,13 @@ const getReprocessingStatusSchema = z.object({
 export const getReprocessingStatusAction = authorizedActionClient
   .metadata({ policy: "recordings:read" })
   .schema(getReprocessingStatusSchema)
-  .action(async ({ parsedInput }) => {
+  .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
+    const { organizationId } = ctx;
 
-    // Get auth session for organization context
-    const authResult = await getAuthSession();
-    if (authResult.isErr() || !authResult.value.organization) {
-      throw new Error("Organization context required");
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required");
     }
-
-    const { organization } = authResult.value;
 
     // Get recording to verify ownership
     const recordingResult = await RecordingService.getRecordingById(
@@ -93,19 +97,24 @@ export const getReprocessingStatusAction = authorizedActionClient
     const recording = resultToActionResponse(recordingResult);
 
     if (!recording) {
-      throw new Error("Recording not found");
+      throw ActionErrors.notFound("Recording");
     }
 
     // Verify recording belongs to user's organization
-    if (recording.organizationId !== organization.orgCode) {
-      throw new Error(
-        "You don't have permission to view this recording's status"
+    try {
+      assertOrganizationAccess(
+        recording.organizationId,
+        organizationId,
+        "getReprocessingStatusAction"
       );
+    } catch (error) {
+      throw ActionErrors.notFound("Recording");
     }
 
     // Get reprocessing status
     const statusResult = await ReprocessingService.getReprocessingStatus(
-      recordingId
+      recordingId,
+      organizationId
     );
 
     const status = resultToActionResponse(statusResult);

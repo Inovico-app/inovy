@@ -1,7 +1,8 @@
 "use server";
 
 import { authorizedActionClient, resultToActionResponse } from "@/lib";
-import { getAuthSession } from "@/lib/auth";
+import { ActionErrors } from "@/lib/action-errors";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { RecordingService } from "@/server/services";
 import { z } from "zod";
 
@@ -12,16 +13,13 @@ const getRecordingStatusSchema = z.object({
 export const getRecordingStatusAction = authorizedActionClient
   .metadata({ policy: "recordings:read" })
   .schema(getRecordingStatusSchema)
-  .action(async ({ parsedInput }) => {
+  .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
+    const { organizationId } = ctx;
 
-    // Get auth session for organization context
-    const authResult = await getAuthSession();
-    if (authResult.isErr() || !authResult.value.organization) {
-      throw new Error("Organization context required");
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required");
     }
-
-    const { organization } = authResult.value;
 
     // Get recording
     const recordingResult = await RecordingService.getRecordingById(
@@ -30,12 +28,18 @@ export const getRecordingStatusAction = authorizedActionClient
     const recording = resultToActionResponse(recordingResult);
 
     if (!recording) {
-      throw new Error("Recording not found");
+      throw ActionErrors.notFound("Recording");
     }
 
     // Verify recording belongs to user's organization
-    if (recording.organizationId !== organization.orgCode) {
-      throw new Error("You don't have permission to access this recording");
+    try {
+      assertOrganizationAccess(
+        recording.organizationId,
+        organizationId,
+        "getRecordingStatusAction"
+      );
+    } catch (error) {
+      throw ActionErrors.notFound("Recording");
     }
 
     // Return only status-related fields
