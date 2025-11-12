@@ -18,4 +18,5 @@ export * from "./auto-actions";
 export * from "./integration-settings";
 export * from "./integration-templates";
 export * from "./organization-settings";
+export * from "./drive-watches";
 
