@@ -99,6 +99,14 @@
       "when": 1762856366541,
       "tag": "0018_add_organization_index_proj_templates",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1762934878073,
+      "tag": "0019_create_organization_settings_table",
+      "breakpoints": true
     }
   ]
 }
+
