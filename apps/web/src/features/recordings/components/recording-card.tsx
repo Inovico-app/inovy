@@ -29,6 +29,7 @@ import { MoveRecordingDialog } from "./move-recording-dialog";
 interface RecordingCardProps {
   recording: RecordingDto;
   projectId: string;
+  projectName?: string;
 }
 
 const STATUS_CONFIG = {
@@ -52,7 +53,11 @@ const STATUS_CONFIG = {
   },
 } as const;
 
-export function RecordingCard({ recording, projectId }: RecordingCardProps) {
+export function RecordingCard({
+  recording,
+  projectId,
+  projectName,
+}: RecordingCardProps) {
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", {
       year: "numeric",
@@ -83,6 +88,13 @@ export function RecordingCard({ recording, projectId }: RecordingCardProps) {
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              {projectName && (
+                <Badge variant="outline" className="text-xs">
+                  {projectName}
+                </Badge>
+              )}
+            </div>
             <Link
               href={
                 `/projects/${projectId}/recordings/${recording.id}` as Route

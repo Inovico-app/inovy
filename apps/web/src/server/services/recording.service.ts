@@ -160,6 +160,61 @@ export class RecordingService {
   }
 
   /**
+   * Get all recordings for an organization
+   */
+  static async getRecordingsByOrganization(
+    organizationId: string,
+    options?: {
+      statusFilter?: "active" | "archived";
+      search?: string;
+      projectIds?: string[];
+    }
+  ): Promise<ActionResult<Array<RecordingDto & { projectName: string }>>> {
+    logger.info("Fetching recordings for organization", {
+      component: "RecordingService.getRecordingsByOrganization",
+      organizationId,
+      statusFilter: options?.statusFilter,
+      search: options?.search,
+      projectIds: options?.projectIds,
+    });
+
+    try {
+      const recordings =
+        await RecordingsQueries.selectRecordingsByOrganization(
+          organizationId,
+          options
+        );
+
+      logger.info("Successfully fetched recordings", {
+        component: "RecordingService.getRecordingsByOrganization",
+        organizationId,
+        count: recordings.length,
+      });
+
+      return ok(
+        recordings.map((recording) => ({
+          ...this.toDto(recording),
+          projectName: recording.projectName,
+        }))
+      );
+    } catch (error) {
+      logger.error("Failed to fetch recordings from database", {
+        component: "RecordingService.getRecordingsByOrganization",
+        error: serializeError(error),
+        organizationId,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to fetch recordings",
+          error as Error,
+          "RecordingService.getRecordingsByOrganization"
+        )
+      );
+    }
+  }
+
+  /**
    * Update recording metadata
    */
   static async updateRecordingMetadata(

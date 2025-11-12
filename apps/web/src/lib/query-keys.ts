@@ -15,6 +15,16 @@ export const queryKeys = {
       [...queryKeys.recordings.details(), recordingId] as const,
     status: (recordingId: string) =>
       [...queryKeys.recordings.all, "status", recordingId] as const,
+    byOrganization: (
+      organizationId: string,
+      filters?: Record<string, unknown>
+    ) =>
+      [
+        ...queryKeys.recordings.all,
+        "organization",
+        organizationId,
+        filters,
+      ] as const,
   },
   tasks: {
     all: ["tasks"] as const,
@@ -46,7 +56,8 @@ export const queryKeys = {
     lists: () => [...queryKeys.notifications.all, "list"] as const,
     list: (filters?: Record<string, unknown>) =>
       [...queryKeys.notifications.lists(), filters] as const,
-    unreadCount: () => [...queryKeys.notifications.all, "unread-count"] as const,
+    unreadCount: () =>
+      [...queryKeys.notifications.all, "unread-count"] as const,
   },
   organization: {
     all: ["organization"] as const,

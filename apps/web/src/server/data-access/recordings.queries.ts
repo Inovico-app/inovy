@@ -1,6 +1,11 @@
-import { and, count, desc, eq, ilike } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray } from "drizzle-orm";
 import { db } from "../db";
-import { recordings, type NewRecording, type Recording } from "../db/schema";
+import {
+  projects,
+  recordings,
+  type NewRecording,
+  type Recording,
+} from "../db/schema";
 
 export class RecordingsQueries {
   static async insertRecording(data: NewRecording): Promise<Recording> {
@@ -237,6 +242,70 @@ export class RecordingsQueries {
         .returning();
       return recording;
     });
+  }
+
+  /**
+   * Get all recordings for an organization with project information
+   */
+  static async selectRecordingsByOrganization(
+    organizationId: string,
+    options?: {
+      statusFilter?: "active" | "archived";
+      search?: string;
+      projectIds?: string[];
+    }
+  ): Promise<Array<Recording & { projectName: string }>> {
+    const conditions = [eq(recordings.organizationId, organizationId)];
+
+    if (options?.statusFilter) {
+      conditions.push(eq(recordings.status, options.statusFilter));
+    }
+
+    if (options?.search) {
+      conditions.push(ilike(recordings.title, `%${options.search}%`));
+    }
+
+    if (options?.projectIds && options.projectIds.length > 0) {
+      conditions.push(inArray(recordings.projectId, options.projectIds));
+    }
+
+    const result = await db
+      .select({
+        id: recordings.id,
+        projectId: recordings.projectId,
+        title: recordings.title,
+        description: recordings.description,
+        fileUrl: recordings.fileUrl,
+        fileName: recordings.fileName,
+        fileSize: recordings.fileSize,
+        fileMimeType: recordings.fileMimeType,
+        duration: recordings.duration,
+        recordingDate: recordings.recordingDate,
+        transcriptionStatus: recordings.transcriptionStatus,
+        transcriptionText: recordings.transcriptionText,
+        isTranscriptionManuallyEdited: recordings.isTranscriptionManuallyEdited,
+        transcriptionLastEditedById: recordings.transcriptionLastEditedById,
+        transcriptionLastEditedAt: recordings.transcriptionLastEditedAt,
+        recordingMode: recordings.recordingMode,
+        language: recordings.language,
+        status: recordings.status,
+        workflowStatus: recordings.workflowStatus,
+        workflowError: recordings.workflowError,
+        workflowRetryCount: recordings.workflowRetryCount,
+        lastReprocessedAt: recordings.lastReprocessedAt,
+        reprocessingTriggeredById: recordings.reprocessingTriggeredById,
+        organizationId: recordings.organizationId,
+        createdById: recordings.createdById,
+        createdAt: recordings.createdAt,
+        updatedAt: recordings.updatedAt,
+        projectName: projects.name,
+      })
+      .from(recordings)
+      .innerJoin(projects, eq(recordings.projectId, projects.id))
+      .where(and(...conditions))
+      .orderBy(desc(recordings.recordingDate));
+
+    return result;
   }
 }
 
