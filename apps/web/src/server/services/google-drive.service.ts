@@ -217,9 +217,9 @@ export class GoogleDriveService {
           id: file.id!,
           name: file.name!,
           mimeType: file.mimeType!,
-          createdTime: file.createdTime,
-          modifiedTime: file.modifiedTime,
-          size: file.size,
+          createdTime: file.createdTime ?? undefined,
+          modifiedTime: file.modifiedTime ?? undefined,
+          size: file.size ?? undefined,
         })) ?? [];
 
       logger.info("Fetched Drive folder files", {
@@ -336,9 +336,9 @@ export class GoogleDriveService {
         id: response.data.id,
         name: response.data.name,
         mimeType: response.data.mimeType,
-        size: response.data.size,
-        createdTime: response.data.createdTime,
-        modifiedTime: response.data.modifiedTime,
+        size: response.data.size ?? undefined,
+        createdTime: response.data.createdTime ?? undefined,
+        modifiedTime: response.data.modifiedTime ?? undefined,
       });
     } catch (error) {
       logger.error(
