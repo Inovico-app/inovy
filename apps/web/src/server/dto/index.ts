@@ -1,5 +1,6 @@
 // Export all DTOs for easy importing
 export * from "./ai-insight.dto";
+export * from "./drive-watch.dto";
 export * from "./kinde.dto";
 export * from "./notification.dto";
 export * from "./organization.dto";
