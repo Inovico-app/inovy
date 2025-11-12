@@ -7,6 +7,7 @@ export { EmbeddingService } from "./embedding.service";
 export { NotificationService } from "./notification.service";
 export { OrganizationAssignmentService } from "./organization-assignment.service";
 export { OrganizationService } from "./organization.service";
+export { OrganizationSettingsService } from "./organization-settings.service";
 export { ProjectService } from "./project.service";
 export { RecordingService } from "./recording.service";
 export { ReprocessingService } from "./reprocessing.service";

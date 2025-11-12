@@ -7,6 +7,8 @@ import { AuthService } from "@/lib/kinde-api";
 import { logger } from "@/lib/logger";
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import type { KindeOrganizationUserDto } from "../dto/kinde.dto";
+import type { OrganizationInstructionsDto } from "../dto/organization-settings.dto";
+import { OrganizationSettingsQueries } from "../data-access/organization-settings.queries";
 
 /**
  * Cached organization queries
@@ -55,6 +57,39 @@ export async function getCachedOrganizationUsers(
         "Failed to get users for organization",
         error as Error,
         "getCachedOrganizationUsers"
+      )
+    );
+  }
+}
+
+/**
+ * Get organization instructions (cached)
+ * Fetches from the database with Next.js cache
+ */
+export async function getCachedOrganizationInstructions(
+  orgCode: string
+): Promise<ActionResult<OrganizationInstructionsDto | null>> {
+  "use cache";
+  cacheTag(CacheTags.organizationInstructions(orgCode));
+
+  try {
+    const instructions =
+      await OrganizationSettingsQueries.getInstructionsByOrganizationId(
+        orgCode
+      );
+
+    return ok(instructions);
+  } catch (error) {
+    logger.error(
+      "Failed to get organization instructions",
+      { orgCode },
+      error as Error
+    );
+    return err(
+      ActionErrors.internal(
+        "Failed to get organization instructions",
+        error as Error,
+        "getCachedOrganizationInstructions"
       )
     );
   }

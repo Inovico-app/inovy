@@ -46,6 +46,10 @@ export const POLICIES = {
   // Admin actions
   "admin:all": "admin:all",
 
+  // Organization instructions
+  "org:instructions:read": "org:instructions:read",
+  "org:instructions:write": "org:instructions:write",
+
   // Deepgram management
   "deepgram:token": "deepgram:token",
 } as const;
@@ -94,6 +98,8 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "chat:project",
     "chat:organization",
     "admin:all",
+    "org:instructions:read",
+    "org:instructions:write",
     "deepgram:token",
   ],
   [ROLES.ADMIN]: [
@@ -119,6 +125,8 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "chat:project",
     "chat:organization",
     "admin:all",
+    "org:instructions:read",
+    "org:instructions:write",
   ],
   [ROLES.MANAGER]: [
     "projects:create",
@@ -137,6 +145,7 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "organizations:update",
     "users:read",
     "chat:project",
+    "org:instructions:read",
   ],
   [ROLES.USER]: [
     "projects:create",
@@ -150,6 +159,7 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "tasks:update",
     "users:read",
     "chat:project",
+    "org:instructions:read",
   ],
   [ROLES.VIEWER]: [
     "projects:read",
@@ -157,6 +167,7 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "tasks:read",
     "users:read",
     "chat:project",
+    "org:instructions:read",
   ],
 };
 

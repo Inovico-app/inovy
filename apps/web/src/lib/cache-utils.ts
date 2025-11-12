@@ -36,6 +36,8 @@ export const CacheTags = {
   // Organization tags
   organization: (orgCode: string) => `org:${orgCode}`,
   orgMembers: (orgCode: string) => `org-members:${orgCode}`,
+  organizationInstructions: (orgCode: string) =>
+    `org-instructions:${orgCode}`,
 
   // Notification tags
   notifications: (userId: string, orgCode: string) =>
@@ -128,6 +130,13 @@ export const CacheInvalidation = {
    */
   invalidateOrganization(orgCode: string): void {
     invalidateCache(CacheTags.organization(orgCode));
+  },
+
+  /**
+   * Invalidate organization instructions cache
+   */
+  invalidateOrganizationInstructions(orgCode: string): void {
+    invalidateCache(CacheTags.organizationInstructions(orgCode));
   },
 
   /**
