@@ -224,17 +224,19 @@ export class RecordingsQueries {
     targetProjectId: string,
     organizationId: string
   ): Promise<Recording | undefined> {
-    const [recording] = await db
-      .update(recordings)
-      .set({ projectId: targetProjectId, updatedAt: new Date() })
-      .where(
-        and(
-          eq(recordings.id, recordingId),
-          eq(recordings.organizationId, organizationId)
+    return await db.transaction(async (tx) => {
+      const [recording] = await tx
+        .update(recordings)
+        .set({ projectId: targetProjectId, updatedAt: new Date() })
+        .where(
+          and(
+            eq(recordings.id, recordingId),
+            eq(recordings.organizationId, organizationId)
+          )
         )
-      )
-      .returning();
-    return recording;
+        .returning();
+      return recording;
+    });
   }
 }
 

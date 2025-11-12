@@ -161,9 +161,7 @@ export class EmbeddingsQueries {
     return Number(result.count) > 0;
   }
 
-  static async deleteByOrganizationId(
-    organizationId: string
-  ): Promise<void> {
+  static async deleteByOrganizationId(organizationId: string): Promise<void> {
     await db
       .delete(chatEmbeddings)
       .where(
@@ -178,15 +176,19 @@ export class EmbeddingsQueries {
     recordingId: string,
     newProjectId: string
   ): Promise<void> {
-    await db
-      .update(chatEmbeddings)
-      .set({ projectId: newProjectId })
-      .where(
-        and(
-          eq(chatEmbeddings.contentId, recordingId),
-          eq(chatEmbeddings.contentType, "recording")
+    await db.transaction(async (tx) => {
+      const [result] = await tx
+        .update(chatEmbeddings)
+        .set({ projectId: newProjectId })
+        .where(
+          and(
+            eq(chatEmbeddings.contentId, recordingId),
+            eq(chatEmbeddings.contentType, "recording")
+          )
         )
-      );
+        .returning();
+      return result;
+    });
   }
 }
 

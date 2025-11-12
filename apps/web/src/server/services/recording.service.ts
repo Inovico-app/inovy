@@ -1,4 +1,3 @@
-import { and, eq } from "drizzle-orm";
 import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { CacheInvalidation } from "../../lib/cache-utils";
@@ -6,8 +5,7 @@ import { logger, serializeError } from "../../lib/logger";
 import { EmbeddingsQueries } from "../data-access/embeddings.queries";
 import { ProjectQueries } from "../data-access/projects.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
-import { db } from "../db";
-import { recordings, type NewRecording, type Recording } from "../db/schema";
+import { type NewRecording, type Recording } from "../db/schema";
 import { type RecordingDto } from "../dto";
 
 /**
@@ -512,10 +510,7 @@ export class RecordingService {
         });
 
         return err(
-          ActionErrors.notFound(
-            "Recording",
-            "RecordingService.moveRecording"
-          )
+          ActionErrors.notFound("Recording", "RecordingService.moveRecording")
         );
       }
 
@@ -546,11 +541,14 @@ export class RecordingService {
       );
 
       if (!targetProject) {
-        logger.warn("Target project not found or doesn't belong to organization", {
-          component: "RecordingService.moveRecording",
-          targetProjectId,
-          organizationId,
-        });
+        logger.warn(
+          "Target project not found or doesn't belong to organization",
+          {
+            component: "RecordingService.moveRecording",
+            targetProjectId,
+            organizationId,
+          }
+        );
 
         return err(
           ActionErrors.notFound(
@@ -564,31 +562,27 @@ export class RecordingService {
       const sourceProjectId = recording.projectId;
 
       // Use database transaction to update both recordings and embeddings atomically
-      const updatedRecording = await db.transaction(async (tx) => {
-        // Update recording project
-        const [movedRecording] = await tx
-          .update(recordings)
-          .set({ projectId: targetProjectId, updatedAt: new Date() })
-          .where(
-            and(
-              eq(recordings.id, recordingId),
-              eq(recordings.organizationId, organizationId)
-            )
+      const movedRecording = await RecordingsQueries.moveRecordingToProject(
+        recordingId,
+        targetProjectId,
+        organizationId
+      );
+
+      if (!movedRecording) {
+        return err(
+          ActionErrors.internal(
+            "Failed to move recording",
+            undefined,
+            "RecordingService.moveRecording"
           )
-          .returning();
-
-        if (!movedRecording) {
-          throw new Error("Failed to move recording");
-        }
-
-        // Update embeddings project
-        await EmbeddingsQueries.updateEmbeddingsProject(
-          recordingId,
-          targetProjectId
         );
+      }
 
-        return movedRecording;
-      });
+      // Update embeddings project
+      await EmbeddingsQueries.updateEmbeddingsProject(
+        recordingId,
+        targetProjectId
+      );
 
       // Invalidate cache for both source and target projects
       CacheInvalidation.invalidateProjectRecordings(
@@ -613,7 +607,7 @@ export class RecordingService {
         userId,
       });
 
-      return ok(this.toDto(updatedRecording));
+      return ok(this.toDto(movedRecording));
     } catch (error) {
       logger.error("Failed to move recording", {
         component: "RecordingService.moveRecording",

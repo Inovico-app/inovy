@@ -1,9 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { authorizedActionClient, resultToActionResponse } from "@/lib/action-client";
+import { ActionErrors } from "@/lib";
+import {
+  authorizedActionClient,
+  resultToActionResponse,
+} from "@/lib/action-client";
 import { RecordingService } from "@/server/services/recording.service";
 import { moveRecordingSchema } from "@/server/validation/recordings/move-recording";
+import { revalidatePath } from "next/cache";
 
 /**
  * Server action to move a recording to another project
@@ -16,15 +20,18 @@ export const moveRecordingAction = authorizedActionClient
     const { recordingId, targetProjectId } = parsedInput;
     const { user } = ctx;
 
-    if (!user.orgCode) {
-      throw new Error("Organization code not found");
+    if (!user || !user.organization_code) {
+      throw ActionErrors.unauthenticated(
+        "User or organization code not found in context",
+        "move-recording"
+      );
     }
 
     // Call the service to move the recording
     const result = await RecordingService.moveRecording(
       recordingId,
       targetProjectId,
-      user.orgCode,
+      user.organization_code,
       user.id
     );
 

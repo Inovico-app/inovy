@@ -128,9 +128,11 @@ export function RecordingCard({ recording, projectId }: RecordingCardProps) {
                   }
                 />
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Archive</DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive">
-                  Delete
+                <DropdownMenuItem disabled>
+                  Archive (Coming Soon)
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled className="text-destructive">
+                  Delete (Coming Soon)
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
