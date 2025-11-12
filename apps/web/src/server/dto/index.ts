@@ -3,6 +3,7 @@ export * from "./ai-insight.dto";
 export * from "./kinde.dto";
 export * from "./notification.dto";
 export * from "./organization.dto";
+export * from "./organization-settings.dto";
 export * from "./project.dto";
 export * from "./project-template.dto";
 export * from "./recording.dto";

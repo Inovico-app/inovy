@@ -20,7 +20,10 @@ export {
   getCachedNotifications,
   getCachedUnreadCount,
 } from "./notification.cache";
-export { getCachedOrganizationUsers } from "./organization.cache";
+export {
+  getCachedOrganizationUsers,
+  getCachedOrganizationInstructions,
+} from "./organization.cache";
 export { getCachedProjectByIdWithCreator } from "./project.cache";
 export {
   getCachedRecordingById,
