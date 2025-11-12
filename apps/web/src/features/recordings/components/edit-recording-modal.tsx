@@ -17,11 +17,13 @@ import type { RecordingDto } from "../../../server/dto";
 interface EditRecordingModalProps {
   recording: RecordingDto;
   variant?: "default" | "outline" | "ghost";
+  triggerContent?: React.ReactNode;
 }
 
 export function EditRecordingModal({
   recording,
   variant = "outline",
+  triggerContent,
 }: EditRecordingModalProps) {
   const [open, setOpen] = useState(false);
 
@@ -32,10 +34,12 @@ export function EditRecordingModal({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant={variant} size="sm">
-          <PencilIcon className="h-4 w-4 mr-2" />
-          Edit
-        </Button>
+        {triggerContent || (
+          <Button variant={variant} size="sm">
+            <PencilIcon className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
