@@ -4,6 +4,7 @@ export { ChatAuditService } from "./chat-audit.service";
 export { ChatService } from "./chat.service";
 export { DashboardService } from "./dashboard.service";
 export { EmbeddingService } from "./embedding.service";
+export { GoogleDriveService } from "./google-drive.service";
 export { NotificationService } from "./notification.service";
 export { OrganizationAssignmentService } from "./organization-assignment.service";
 export { OrganizationService } from "./organization.service";
