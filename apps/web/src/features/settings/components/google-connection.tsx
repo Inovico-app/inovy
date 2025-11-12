@@ -1,14 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,11 +12,20 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-  getGoogleConnectionStatus,
   disconnectGoogleAccount,
+  getGoogleConnectionStatus,
 } from "../actions/google-connection";
 
 export function GoogleConnection() {
@@ -50,7 +50,7 @@ export function GoogleConnection() {
 
     const result = await getGoogleConnectionStatus();
 
-    if (result.success && result.data) {
+    if (result && result.data) {
       setStatus({
         connected: result.data.connected,
         email: result.data.email,
@@ -59,7 +59,7 @@ export function GoogleConnection() {
       });
     } else {
       setStatus((prev) => ({ ...prev, loading: false }));
-      toast.error(result.error || "Failed to load connection status");
+      toast.error(result.serverError || "Failed to load connection status");
     }
   }
 
@@ -68,14 +68,14 @@ export function GoogleConnection() {
 
     const result = await disconnectGoogleAccount();
 
-    if (result.success) {
+    if (result.data) {
       toast.success("Google account disconnected successfully");
       setStatus({
         connected: false,
         loading: false,
       });
     } else {
-      toast.error(result.error || "Failed to disconnect account");
+      toast.error(result.serverError || "Failed to disconnect account");
     }
 
     setDisconnecting(false);
@@ -166,7 +166,9 @@ export function GoogleConnection() {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Disconnect Google Account?</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    Disconnect Google Account?
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
                     This will revoke Inovy's access to your Google account.
                     Automatic calendar events and email drafts will be disabled.

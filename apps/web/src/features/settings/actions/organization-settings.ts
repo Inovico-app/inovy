@@ -1,165 +1,112 @@
 "use server";
 
-import { getAuthSession } from "@/lib/auth";
+import { authorizedActionClient } from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { isOrganizationAdmin } from "@/lib/rbac";
-import type { OrganizationSettingsDto } from "@/server/dto";
 import { EmbeddingService } from "@/server/services/embedding.service";
 import { OrganizationSettingsService } from "@/server/services/organization-settings.service";
-import {
-  updateOrganizationSettingsSchema,
-  type UpdateOrganizationSettingsInput,
-} from "@/server/validation/organization-settings.validation";
+import { updateOrganizationSettingsSchema } from "@/server/validation/organization-settings.validation";
+import { z } from "zod";
 
 /**
  * Get organization settings - accessible to all organization members
  */
-export async function getOrganizationSettings(): Promise<{
-  success: boolean;
-  data?: OrganizationSettingsDto | null;
-  error?: string;
-}> {
-  try {
-    const sessionResult = await getAuthSession();
+export const getOrganizationSettings = authorizedActionClient
+  .metadata({ policy: "settings:read" })
+  .schema(z.void())
+  .action(async ({ ctx }) => {
+    const { organizationId } = ctx;
 
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
-    }
-
-    const { organization } = sessionResult.value;
-
-    if (!organization) {
-      return {
-        success: false,
-        error: "Organization not found",
-      };
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required");
     }
 
     const result = await OrganizationSettingsService.getOrganizationSettings(
-      organization.orgCode
+      organizationId
     );
 
     if (result.isErr()) {
-      return {
-        success: false,
-        error: result.error.message,
-      };
+      throw ActionErrors.internal(
+        result.error.message,
+        result.error,
+        "get-organization-settings"
+      );
     }
 
-    return {
-      success: true,
-      data: result.value,
-    };
-  } catch (error) {
-    logger.error(
-      "Unexpected error in getOrganizationSettings",
-      {},
-      error as Error
-    );
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    return result.value;
+  });
 
 /**
  * Update organization settings - admin only
  */
-export async function updateOrganizationSettings(
-  input: UpdateOrganizationSettingsInput
-): Promise<{
-  success: boolean;
-  data?: OrganizationSettingsDto;
-  error?: string;
-}> {
-  try {
-    const validatedData = updateOrganizationSettingsSchema.parse(input);
+export const updateOrganizationSettings = authorizedActionClient
+  .metadata({ policy: "settings:update" })
+  .schema(updateOrganizationSettingsSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { organizationId, user } = ctx;
 
-    const sessionResult = await getAuthSession();
-
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required");
     }
 
-    const { user, organization } = sessionResult.value;
-
-    if (!organization) {
-      return {
-        success: false,
-        error: "Organization not found",
-      };
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
     }
 
     // Check if user is admin
     if (!isOrganizationAdmin(user)) {
-      return {
-        success: false,
-        error: "You must be an administrator to update organization settings",
-      };
+      throw ActionErrors.forbidden(
+        "You must be an administrator to update organization settings"
+      );
     }
 
-    // Verify organizationId matches
-    if (validatedData.organizationId !== organization.orgCode) {
-      return {
-        success: false,
-        error: "Organization ID mismatch",
-      };
+    // Verify organizationId matches using centralized helper
+    try {
+      assertOrganizationAccess(
+        parsedInput.organizationId,
+        organizationId,
+        "updateOrganizationSettings"
+      );
+    } catch (error) {
+      throw ActionErrors.forbidden("Organization ID mismatch");
     }
 
     const result = await OrganizationSettingsService.updateOrganizationSettings(
-      organization.orgCode,
-      validatedData.instructions,
+      organizationId,
+      parsedInput.instructions,
       user.id
     );
 
     if (result.isErr()) {
-      return {
-        success: false,
-        error: result.error.message,
-      };
+      throw ActionErrors.internal(
+        result.error.message,
+        result.error,
+        "update-organization-settings"
+      );
     }
 
     // Trigger embedding reindex in background
     // Using void to fire and forget - errors will be logged by the service
     EmbeddingService.reindexOrganizationInstructions(
-      organization.orgCode,
-      validatedData.instructions,
+      organizationId,
+      parsedInput.instructions,
       result.value.id
     ).then((indexResult) => {
       if (indexResult.isErr()) {
         logger.error(
           "Failed to reindex organization instructions after update",
-          { orgCode: organization.orgCode },
+          { orgCode: organizationId },
           indexResult.error as unknown as Error
         );
       } else {
         logger.info("Successfully reindexed organization instructions", {
-          orgCode: organization.orgCode,
+          orgCode: organizationId,
         });
       }
     });
 
-    return {
-      success: true,
-      data: result.value,
-    };
-  } catch (error) {
-    logger.error(
-      "Unexpected error in updateOrganizationSettings",
-      {},
-      error as Error
-    );
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    return result.value;
+  });
 

@@ -71,92 +71,120 @@ export const searchConversationsAction = authorizedActionClient
 export const softDeleteConversationAction = authorizedActionClient
   .metadata({ policy: "chat:project" })
   .schema(conversationIdSchema)
-  .action(async ({ parsedInput: { conversationId }, ctx: { user } }) => {
-    if (!user) {
-      throw new Error("User not authenticated");
+  .action(
+    async ({ parsedInput: { conversationId }, ctx: { user, organizationId } }) => {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      if (!organizationId) {
+        throw new Error("Organization context required");
+      }
+
+      const result = await ChatService.softDeleteConversation(
+        conversationId,
+        user.id,
+        organizationId
+      );
+
+      if (result.isErr()) {
+        throw result.error;
+      }
+
+      revalidatePath("/chat");
+      return { success: true };
     }
-
-    const result = await ChatService.softDeleteConversation(
-      conversationId,
-      user.id
-    );
-
-    if (result.isErr()) {
-      throw result.error;
-    }
-
-    revalidatePath("/chat");
-    return { success: true };
-  });
+  );
 
 export const restoreConversationAction = authorizedActionClient
   .metadata({ policy: "chat:project" })
   .schema(conversationIdSchema)
-  .action(async ({ parsedInput: { conversationId }, ctx: { user } }) => {
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
+  .action(
+    async ({ parsedInput: { conversationId }, ctx: { user, organizationId } }) => {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
 
-    const result = await ChatService.restoreConversation(
-      conversationId,
-      user.id
-    );
+      if (!organizationId) {
+        throw new Error("Organization context required");
+      }
 
-    if (result.isErr()) {
-      throw result.error;
-    }
-
-    if (!result.value) {
-      throw new Error(
-        "Cannot restore conversation deleted more than 30 days ago"
+      const result = await ChatService.restoreConversation(
+        conversationId,
+        user.id,
+        organizationId
       );
-    }
 
-    revalidatePath("/chat");
-    return { success: true, restored: result.value };
-  });
+      if (result.isErr()) {
+        throw result.error;
+      }
+
+      if (!result.value) {
+        throw new Error(
+          "Cannot restore conversation deleted more than 30 days ago"
+        );
+      }
+
+      revalidatePath("/chat");
+      return { success: true, restored: result.value };
+    }
+  );
 
 export const archiveConversationAction = authorizedActionClient
   .metadata({ policy: "chat:project" })
   .schema(conversationIdSchema)
-  .action(async ({ parsedInput: { conversationId }, ctx: { user } }) => {
-    if (!user) {
-      throw new Error("User not authenticated");
+  .action(
+    async ({ parsedInput: { conversationId }, ctx: { user, organizationId } }) => {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      if (!organizationId) {
+        throw new Error("Organization context required");
+      }
+
+      const result = await ChatService.archiveConversation(
+        conversationId,
+        user.id,
+        organizationId
+      );
+
+      if (result.isErr()) {
+        throw result.error;
+      }
+
+      revalidatePath("/chat");
+      return { success: true };
     }
-
-    const result = await ChatService.archiveConversation(
-      conversationId,
-      user.id
-    );
-
-    if (result.isErr()) {
-      throw result.error;
-    }
-
-    revalidatePath("/chat");
-    return { success: true };
-  });
+  );
 
 export const unarchiveConversationAction = authorizedActionClient
   .metadata({ policy: "chat:project" })
   .schema(conversationIdSchema)
-  .action(async ({ parsedInput: { conversationId }, ctx: { user } }) => {
-    if (!user) {
-      throw new Error("User not authenticated");
+  .action(
+    async ({ parsedInput: { conversationId }, ctx: { user, organizationId } }) => {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      if (!organizationId) {
+        throw new Error("Organization context required");
+      }
+
+      const result = await ChatService.unarchiveConversation(
+        conversationId,
+        user.id,
+        organizationId
+      );
+
+      if (result.isErr()) {
+        throw result.error;
+      }
+
+      revalidatePath("/chat");
+      return { success: true };
     }
-
-    const result = await ChatService.unarchiveConversation(
-      conversationId,
-      user.id
-    );
-
-    if (result.isErr()) {
-      throw result.error;
-    }
-
-    revalidatePath("/chat");
-    return { success: true };
-  });
+  );
 
 export const getConversationStatsAction = authorizedActionClient
   .metadata({ policy: "chat:project" })

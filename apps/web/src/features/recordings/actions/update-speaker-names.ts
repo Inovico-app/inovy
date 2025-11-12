@@ -23,8 +23,16 @@ const updateSpeakerNamesSchema = z.object({
 export const updateSpeakerNames = authorizedActionClient
   .metadata({ policy: "recordings:update" })
   .inputSchema(updateSpeakerNamesSchema)
-  .action(async ({ parsedInput }) => {
+  .action(async ({ parsedInput, ctx }) => {
     const { recordingId, speakerNumber, speakerName } = parsedInput;
+    const { organizationId } = ctx;
+
+    if (!organizationId) {
+      return {
+        success: false,
+        error: "Organization context required",
+      };
+    }
 
     try {
       // Get the current speaker names
@@ -57,7 +65,8 @@ export const updateSpeakerNames = authorizedActionClient
       // Update via service
       const updateResult = await AIInsightService.updateSpeakerNames(
         recordingId,
-        currentSpeakerNames
+        currentSpeakerNames,
+        organizationId
       );
 
       if (updateResult.isErr()) {

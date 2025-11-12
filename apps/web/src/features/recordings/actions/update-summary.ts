@@ -1,7 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
-import { getAuthSession } from "@/lib/auth";
+import { ActionErrors } from "@/lib/action-errors";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { SummaryEditService } from "@/server/services/summary-edit.service";
 import { z } from "zod";
@@ -20,19 +20,29 @@ export type UpdateSummaryInput = z.infer<typeof updateSummarySchema>;
 export const updateSummary = authorizedActionClient
   .metadata({ policy: "recordings:update" })
   .schema(updateSummarySchema)
-  .action(async ({ parsedInput }) => {
-    const authResult = await getAuthSession();
+  .action(async ({ parsedInput, ctx }) => {
+    const { user, organizationId } = ctx;
 
-    if (authResult.isErr() || !authResult.value.user) {
-      throw new Error("Authentication required");
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
     }
 
-    const { user } = authResult.value;
+    if (!organizationId) {
+      throw ActionErrors.unauthenticated("Organization context required");
+    }
 
-    const result = await SummaryEditService.updateSummary(parsedInput, user.id);
+    const result = await SummaryEditService.updateSummary(
+      parsedInput,
+      user.id,
+      organizationId
+    );
 
     if (result.isErr()) {
-      throw new Error(result.error.message);
+      throw ActionErrors.internal(
+        result.error.message,
+        result.error,
+        "update-summary"
+      );
     }
 
     // Invalidate summary cache

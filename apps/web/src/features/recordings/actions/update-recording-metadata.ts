@@ -1,7 +1,7 @@
 "use server";
 
 import { authorizedActionClient, resultToActionResponse } from "@/lib";
-import { getAuthSession } from "@/lib/auth";
+import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { RecordingService } from "@/server/services";
 import { updateRecordingMetadataSchema } from "@/server/validation/recordings/update-recording-metadata";
@@ -14,10 +14,14 @@ export const updateRecordingMetadataAction = authorizedActionClient
   .metadata({ policy: "recordings:update" })
   .schema(updateRecordingMetadataSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { user } = ctx;
+    const { user, organizationId } = ctx;
 
     if (!user) {
-      throw new Error("User not found");
+      throw ActionErrors.unauthenticated("User not found");
+    }
+
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required");
     }
 
     const { id, title, description, recordingDate } = parsedInput;
@@ -28,22 +32,10 @@ export const updateRecordingMetadataAction = authorizedActionClient
       recordingId: id,
     });
 
-    // Get user's organization
-    const authResult = await getAuthSession();
-    if (
-      authResult.isErr() ||
-      !authResult.value.isAuthenticated ||
-      !authResult.value.organization
-    ) {
-      throw new Error("Organization not found");
-    }
-
-    const organization = authResult.value.organization;
-
     // Update recording via service
     const result = await RecordingService.updateRecordingMetadata(
       id,
-      organization.orgCode,
+      organizationId,
       {
         title,
         description: description ?? null,

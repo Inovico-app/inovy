@@ -1,5 +1,6 @@
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { getCachedOrganizationSettings } from "@/server/cache";
 import { ChatQueries } from "@/server/data-access/chat.queries";
 import {
@@ -185,7 +186,8 @@ General Guidelines:
   static async generateResponse(
     conversationId: string,
     userMessage: string,
-    projectId: string
+    projectId: string,
+    organizationId: string
   ) {
     try {
       logger.info("Generating chat response", { conversationId, projectId });
@@ -195,6 +197,17 @@ General Guidelines:
         conversationId
       );
       if (!conversation) {
+        throw new Error("Conversation not found");
+      }
+
+      // Verify organization access
+      try {
+        assertOrganizationAccess(
+          conversation.organizationId,
+          organizationId,
+          "ChatService.generateResponse"
+        );
+      } catch (error) {
         throw new Error("Conversation not found");
       }
 
@@ -333,7 +346,8 @@ Please answer the user's question based on this information.`
   static async streamResponse(
     conversationId: string,
     userMessage: string,
-    projectId: string
+    projectId: string,
+    organizationId: string
   ) {
     try {
       logger.info("Streaming chat response", { conversationId, projectId });
@@ -343,6 +357,17 @@ Please answer the user's question based on this information.`
         conversationId
       );
       if (!conversation) {
+        throw new Error("Conversation not found");
+      }
+
+      // Verify organization access
+      try {
+        assertOrganizationAccess(
+          conversation.organizationId,
+          organizationId,
+          "ChatService.streamResponse"
+        );
+      } catch (error) {
         throw new Error("Conversation not found");
       }
 
@@ -495,6 +520,17 @@ Please answer the user's question based on this information.`
         conversationId
       );
       if (!conversation) {
+        throw new Error("Conversation not found");
+      }
+
+      // Verify organization access
+      try {
+        assertOrganizationAccess(
+          conversation.organizationId,
+          organizationId,
+          "ChatService.streamOrganizationResponse"
+        );
+      } catch (error) {
         throw new Error("Conversation not found");
       }
 
@@ -708,7 +744,8 @@ Please answer the user's question based on this information. When referencing in
    */
   static async softDeleteConversation(
     conversationId: string,
-    userId: string
+    userId: string,
+    organizationId: string
   ): Promise<ActionResult<void>> {
     try {
       const conversation = await ChatQueries.getConversationById(
@@ -727,6 +764,22 @@ Please answer the user's question based on this information. When referencing in
           ActionErrors.forbidden(
             "Unauthorized to delete this conversation",
             { conversationId },
+            "ChatService.softDeleteConversation"
+          )
+        );
+      }
+
+      // Verify organization access
+      try {
+        assertOrganizationAccess(
+          conversation.organizationId,
+          organizationId,
+          "ChatService.softDeleteConversation"
+        );
+      } catch (error) {
+        return err(
+          ActionErrors.notFound(
+            "Conversation",
             "ChatService.softDeleteConversation"
           )
         );
@@ -754,7 +807,8 @@ Please answer the user's question based on this information. When referencing in
    */
   static async restoreConversation(
     conversationId: string,
-    userId: string
+    userId: string,
+    organizationId: string
   ): Promise<ActionResult<boolean>> {
     try {
       const conversation = await ChatQueries.getConversationById(
@@ -773,6 +827,22 @@ Please answer the user's question based on this information. When referencing in
           ActionErrors.forbidden(
             "Unauthorized to restore this conversation",
             { conversationId },
+            "ChatService.restoreConversation"
+          )
+        );
+      }
+
+      // Verify organization access
+      try {
+        assertOrganizationAccess(
+          conversation.organizationId,
+          organizationId,
+          "ChatService.restoreConversation"
+        );
+      } catch (error) {
+        return err(
+          ActionErrors.notFound(
+            "Conversation",
             "ChatService.restoreConversation"
           )
         );
@@ -797,7 +867,8 @@ Please answer the user's question based on this information. When referencing in
    */
   static async archiveConversation(
     conversationId: string,
-    userId: string
+    userId: string,
+    organizationId: string
   ): Promise<ActionResult<void>> {
     try {
       const conversation = await ChatQueries.getConversationById(
@@ -816,6 +887,22 @@ Please answer the user's question based on this information. When referencing in
           ActionErrors.forbidden(
             "Unauthorized to archive this conversation",
             { conversationId },
+            "ChatService.archiveConversation"
+          )
+        );
+      }
+
+      // Verify organization access
+      try {
+        assertOrganizationAccess(
+          conversation.organizationId,
+          organizationId,
+          "ChatService.archiveConversation"
+        );
+      } catch (error) {
+        return err(
+          ActionErrors.notFound(
+            "Conversation",
             "ChatService.archiveConversation"
           )
         );
@@ -840,7 +927,8 @@ Please answer the user's question based on this information. When referencing in
    */
   static async unarchiveConversation(
     conversationId: string,
-    userId: string
+    userId: string,
+    organizationId: string
   ): Promise<ActionResult<void>> {
     try {
       const conversation = await ChatQueries.getConversationById(
@@ -859,6 +947,22 @@ Please answer the user's question based on this information. When referencing in
           ActionErrors.forbidden(
             "Unauthorized to unarchive this conversation",
             { conversationId },
+            "ChatService.unarchiveConversation"
+          )
+        );
+      }
+
+      // Verify organization access
+      try {
+        assertOrganizationAccess(
+          conversation.organizationId,
+          organizationId,
+          "ChatService.unarchiveConversation"
+        );
+      } catch (error) {
+        return err(
+          ActionErrors.notFound(
+            "Conversation",
             "ChatService.unarchiveConversation"
           )
         );

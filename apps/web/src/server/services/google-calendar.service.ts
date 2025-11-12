@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
+import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { createGoogleOAuthClient } from "../../lib/google-oauth";
 import { logger } from "../../lib/logger";
 import { AutoActionsQueries } from "../data-access";
@@ -17,6 +18,7 @@ export class GoogleCalendarService {
    */
   static async createEventFromTask(
     userId: string,
+    organizationId: string,
     task: Task,
     options?: {
       duration?: number; // in minutes, default 30
@@ -24,6 +26,22 @@ export class GoogleCalendarService {
     }
   ): Promise<ActionResult<{ eventId: string; eventUrl: string }>> {
     try {
+      // Verify task belongs to organization
+      try {
+        assertOrganizationAccess(
+          task.organizationId,
+          organizationId,
+          "GoogleCalendarService.createEventFromTask"
+        );
+      } catch (error) {
+        return err(
+          ActionErrors.notFound(
+            "Task not found",
+            "GoogleCalendarService.createEventFromTask"
+          )
+        );
+      }
+
       // Get valid access token
       const tokenResult = await GoogleOAuthService.getValidAccessToken(userId);
 
@@ -159,6 +177,7 @@ export class GoogleCalendarService {
    */
   static async createEventsFromTasks(
     userId: string,
+    organizationId: string,
     tasks: Task[],
     options?: {
       duration?: number;
@@ -174,6 +193,24 @@ export class GoogleCalendarService {
     }>
   > {
     try {
+      // Verify all tasks belong to organization
+      for (const task of tasks) {
+        try {
+          assertOrganizationAccess(
+            task.organizationId,
+            organizationId,
+            "GoogleCalendarService.createEventsFromTasks"
+          );
+        } catch (error) {
+          return err(
+            ActionErrors.notFound(
+              "One or more tasks not found",
+              "GoogleCalendarService.createEventsFromTasks"
+            )
+          );
+        }
+      }
+
       const results = {
         successful: [] as Array<{
           taskId: string;
@@ -184,7 +221,7 @@ export class GoogleCalendarService {
       };
 
       for (const task of tasks) {
-        const result = await this.createEventFromTask(userId, task, options);
+        const result = await this.createEventFromTask(userId, organizationId, task, options);
 
         if (result.isOk()) {
           results.successful.push({

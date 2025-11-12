@@ -1,7 +1,9 @@
 "use server";
 
 import { z } from "zod";
-import { getAuthSession } from "@/lib/auth";
+import { authorizedActionClient } from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { logger } from "@/lib/logger";
 import { GoogleGmailService } from "@/server/services/google-gmail.service";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
@@ -15,70 +17,52 @@ const createGmailDraftSchema = z.object({
   additionalContent: z.string().optional(),
 });
 
-type CreateGmailDraftInput = z.infer<typeof createGmailDraftSchema>;
-
 /**
  * Server action to create a Gmail draft from a recording summary
  */
-export async function createGmailDraft(
-  input: CreateGmailDraftInput
-): Promise<{
-  success: boolean;
-  data?: {
-    draftId: string;
-    draftUrl: string;
-  };
-  error?: string;
-}> {
-  try {
-    // Validate input
-    const validatedData = createGmailDraftSchema.parse(input);
+export const createGmailDraft = authorizedActionClient
+  .metadata({ policy: "recordings:update" })
+  .schema(createGmailDraftSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { organizationId, user } = ctx;
 
-    // Get current user session
-    const sessionResult = await getAuthSession();
-
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      logger.error("Failed to get user session in createGmailDraft", {
-        error: sessionResult.isErr() ? sessionResult.error : "No user found",
-      });
-      return {
-        success: false,
-        error: "Failed to authenticate",
-      };
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required");
     }
 
-    const user = sessionResult.value.user;
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
+    }
 
     // Check if user has Google connection
     const hasConnection = await GoogleOAuthService.hasConnection(user.id);
 
     if (hasConnection.isErr() || !hasConnection.value) {
-      return {
-        success: false,
-        error: "Google account not connected. Please connect in settings first.",
-      };
+      throw ActionErrors.badRequest(
+        "Google account not connected. Please connect in settings first."
+      );
     }
 
     // Get the recording
     const [recording] = await db
       .select()
       .from(recordings)
-      .where(eq(recordings.id, validatedData.recordingId))
+      .where(eq(recordings.id, parsedInput.recordingId))
       .limit(1);
 
     if (!recording) {
-      return {
-        success: false,
-        error: "Recording not found",
-      };
+      throw ActionErrors.notFound("Recording", "create-gmail-draft");
     }
 
-    // Verify recording belongs to user's organization
-    if (recording.organizationId !== user.organization_code) {
-      return {
-        success: false,
-        error: "Unauthorized access to recording",
-      };
+    // Verify recording belongs to user's organization using centralized helper
+    try {
+      assertOrganizationAccess(
+        recording.organizationId,
+        organizationId,
+        "createGmailDraft"
+      );
+    } catch (error) {
+      throw ActionErrors.notFound("Recording", "create-gmail-draft");
     }
 
     // Get the summary from ai_insights
@@ -94,10 +78,7 @@ export async function createGmailDraft(
       .limit(1);
 
     if (!summaryInsight || !summaryInsight.content) {
-      return {
-        success: false,
-        error: "Recording does not have a summary yet",
-      };
+      throw ActionErrors.badRequest("Recording does not have a summary yet");
     }
 
     const summaryText = typeof summaryInsight.content === 'string' 
@@ -112,11 +93,12 @@ export async function createGmailDraft(
     // Create Gmail draft
     const result = await GoogleGmailService.createDraftFromSummary(
       user.id,
+      organizationId,
       recording,
       summaryText,
       {
-        subject: validatedData.subject,
-        additionalContent: validatedData.additionalContent,
+        subject: parsedInput.subject,
+        additionalContent: parsedInput.additionalContent,
       }
     );
 
@@ -127,10 +109,11 @@ export async function createGmailDraft(
         error: result.error.message,
       });
 
-      return {
-        success: false,
-        error: result.error.message,
-      };
+      throw ActionErrors.internal(
+        result.error.message,
+        result.error,
+        "create-gmail-draft"
+      );
     }
 
     logger.info("Successfully created Gmail draft", {
@@ -139,30 +122,6 @@ export async function createGmailDraft(
       draftId: result.value.draftId,
     });
 
-    return {
-      success: true,
-      data: result.value,
-    };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const firstIssue = error.issues[0];
-      logger.warn("Validation error in createGmailDraft", {
-        field: firstIssue.path.join("."),
-        message: firstIssue.message,
-      });
-
-      return {
-        success: false,
-        error: firstIssue.message,
-      };
-    }
-
-    logger.error("Unexpected error in createGmailDraft", {}, error as Error);
-
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    return result.value;
+  });
 

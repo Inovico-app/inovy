@@ -14,19 +14,28 @@ import { TranscriptionEditService } from "../services/transcription-edit.service
  * Get transcription history for a recording (cached)
  * Calls TranscriptionEditService which includes business logic
  */
-export async function getCachedTranscriptionHistory(recordingId: string) {
+export async function getCachedTranscriptionHistory(
+  recordingId: string,
+  organizationId: string
+) {
   "use cache";
   cacheTag(CacheTags.transcriptionHistory(recordingId));
-  return await TranscriptionEditService.getTranscriptionHistory(recordingId);
+  return await TranscriptionEditService.getTranscriptionHistory(
+    recordingId,
+    organizationId
+  );
 }
 
 /**
  * Get summary history for a recording (cached)
  * Calls SummaryEditService which includes business logic
  */
-export async function getCachedSummaryHistory(recordingId: string) {
+export async function getCachedSummaryHistory(
+  recordingId: string,
+  organizationId: string
+) {
   "use cache";
   cacheTag(CacheTags.summaryHistory(recordingId));
-  return await SummaryEditService.getSummaryHistory(recordingId);
+  return await SummaryEditService.getSummaryHistory(recordingId, organizationId);
 }
 

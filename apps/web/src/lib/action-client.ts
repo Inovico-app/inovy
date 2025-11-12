@@ -33,6 +33,7 @@ export interface ActionContext {
   logger: typeof logger;
   session?: SessionWithRoles;
   user?: AuthUser;
+  organizationId?: string; // Organization code from Kinde
 }
 
 /**
@@ -133,11 +134,32 @@ async function authenticationMiddleware({
     throw createErrorForNextSafeAction(actionError);
   }
 
-  const { isAuthenticated, user: authUser } = authResult.value;
+  const { isAuthenticated, user: authUser, organization } = authResult.value;
 
   if (!isAuthenticated || !authUser) {
     const actionError = ActionErrors.unauthenticated(
       "User is not authenticated",
+      "auth-middleware"
+    );
+    throw createErrorForNextSafeAction(actionError);
+  }
+
+  // Extract organization ID - this is critical for organization isolation
+  const organizationId = organization?.orgCode ?? authUser.organization_code;
+
+  if (!organizationId) {
+    ctx.logger.error("User does not belong to an organization", {
+      userId: authUser.id,
+      policy,
+      component: "auth-middleware",
+    });
+
+    const actionError = ActionErrors.forbidden(
+      "User must belong to an organization",
+      {
+        userId: authUser.id,
+        policy,
+      },
       "auth-middleware"
     );
     throw createErrorForNextSafeAction(actionError);
@@ -150,6 +172,7 @@ async function authenticationMiddleware({
       ...authUser,
       roles: authUser.roles ?? undefined,
     } as SessionWithRoles["user"],
+    organizationId, // Add organization ID to session
     // Add access token if available from your auth system
   };
 
@@ -159,6 +182,7 @@ async function authenticationMiddleware({
   if (!isAuthorized) {
     ctx.logger.error("User not authorized for action", {
       userId: session.user.id,
+      organizationId,
       policy,
       requiredRoles,
       component: "auth-middleware",
@@ -168,6 +192,7 @@ async function authenticationMiddleware({
       "User is not authorized to perform this action",
       {
         userId: session.user.id,
+        organizationId,
         "required-roles": requiredRoles,
         policy,
       },
@@ -178,6 +203,7 @@ async function authenticationMiddleware({
 
   logger.info("User authenticated and authorized", {
     userId: authUser.id,
+    organizationId,
     policy,
     component: "auth-middleware",
   });
@@ -187,6 +213,7 @@ async function authenticationMiddleware({
       ...ctx,
       session,
       user: authUser,
+      organizationId, // Make organization ID available to all actions
     },
   });
 }

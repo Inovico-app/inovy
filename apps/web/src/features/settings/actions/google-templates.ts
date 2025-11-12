@@ -1,6 +1,7 @@
 "use server";
 
-import { getAuthSession } from "@/lib/auth";
+import { authorizedActionClient } from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { TemplateService } from "@/server/services/template.service";
 import type {
@@ -9,68 +10,46 @@ import type {
   CalendarTemplateContent,
 } from "@/server/db/schema";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 /**
  * Get email templates
  */
-export async function getEmailTemplates(): Promise<{
-  success: boolean;
-  data?: IntegrationTemplate[];
-  error?: string;
-}> {
-  try {
-    const sessionResult = await getAuthSession();
+export const getEmailTemplates = authorizedActionClient
+  .metadata({ policy: "settings:read" })
+  .schema(z.void())
+  .action(async ({ ctx }) => {
+    const { user } = ctx;
 
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
     }
-
-    const user = sessionResult.value.user;
 
     const result = await TemplateService.getTemplates(user.id, "google", "email");
 
     if (result.isErr()) {
-      return {
-        success: false,
-        error: result.error.message,
-      };
+      throw ActionErrors.internal(
+        result.error.message,
+        result.error,
+        "get-email-templates"
+      );
     }
 
-    return {
-      success: true,
-      data: result.value,
-    };
-  } catch (error) {
-    logger.error("Unexpected error in getEmailTemplates", {}, error as Error);
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    return result.value;
+  });
 
 /**
  * Get calendar templates
  */
-export async function getCalendarTemplates(): Promise<{
-  success: boolean;
-  data?: IntegrationTemplate[];
-  error?: string;
-}> {
-  try {
-    const sessionResult = await getAuthSession();
+export const getCalendarTemplates = authorizedActionClient
+  .metadata({ policy: "settings:read" })
+  .schema(z.void())
+  .action(async ({ ctx }) => {
+    const { user } = ctx;
 
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
     }
-
-    const user = sessionResult.value.user;
 
     const result = await TemplateService.getTemplates(
       user.id,
@@ -79,167 +58,119 @@ export async function getCalendarTemplates(): Promise<{
     );
 
     if (result.isErr()) {
-      return {
-        success: false,
-        error: result.error.message,
-      };
+      throw ActionErrors.internal(
+        result.error.message,
+        result.error,
+        "get-calendar-templates"
+      );
     }
 
-    return {
-      success: true,
-      data: result.value,
-    };
-  } catch (error) {
-    logger.error("Unexpected error in getCalendarTemplates", {}, error as Error);
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    return result.value;
+  });
+
+const saveEmailTemplateSchema = z.object({
+  id: z.string().optional(),
+  name: z.string(),
+  content: z.custom<EmailTemplateContent>(),
+  isDefault: z.boolean().optional(),
+});
 
 /**
  * Save email template
  */
-export async function saveEmailTemplate(input: {
-  id?: string;
-  name: string;
-  content: EmailTemplateContent;
-  isDefault?: boolean;
-}): Promise<{
-  success: boolean;
-  data?: IntegrationTemplate;
-  error?: string;
-}> {
-  try {
-    const sessionResult = await getAuthSession();
+export const saveEmailTemplate = authorizedActionClient
+  .metadata({ policy: "settings:update" })
+  .schema(saveEmailTemplateSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
 
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
     }
 
-    const user = sessionResult.value.user;
-
-    const result = await TemplateService.saveTemplate(user.id, "google", "email", input);
+    const result = await TemplateService.saveTemplate(user.id, "google", "email", parsedInput);
 
     if (result.isErr()) {
-      return {
-        success: false,
-        error: result.error.message,
-      };
+      throw ActionErrors.internal(
+        result.error.message,
+        result.error,
+        "save-email-template"
+      );
     }
 
     revalidatePath("/settings");
 
-    return {
-      success: true,
-      data: result.value,
-    };
-  } catch (error) {
-    logger.error("Unexpected error in saveEmailTemplate", {}, error as Error);
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    return result.value;
+  });
+
+const saveCalendarTemplateSchema = z.object({
+  id: z.string().optional(),
+  name: z.string(),
+  content: z.custom<CalendarTemplateContent>(),
+  isDefault: z.boolean().optional(),
+});
 
 /**
  * Save calendar template
  */
-export async function saveCalendarTemplate(input: {
-  id?: string;
-  name: string;
-  content: CalendarTemplateContent;
-  isDefault?: boolean;
-}): Promise<{
-  success: boolean;
-  data?: IntegrationTemplate;
-  error?: string;
-}> {
-  try {
-    const sessionResult = await getAuthSession();
+export const saveCalendarTemplate = authorizedActionClient
+  .metadata({ policy: "settings:update" })
+  .schema(saveCalendarTemplateSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
 
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
     }
-
-    const user = sessionResult.value.user;
 
     const result = await TemplateService.saveTemplate(
       user.id,
       "google",
       "calendar",
-      input
+      parsedInput
     );
 
     if (result.isErr()) {
-      return {
-        success: false,
-        error: result.error.message,
-      };
+      throw ActionErrors.internal(
+        result.error.message,
+        result.error,
+        "save-calendar-template"
+      );
     }
 
     revalidatePath("/settings");
 
-    return {
-      success: true,
-      data: result.value,
-    };
-  } catch (error) {
-    logger.error("Unexpected error in saveCalendarTemplate", {}, error as Error);
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    return result.value;
+  });
+
+const deleteTemplateSchema = z.object({
+  templateId: z.string(),
+});
 
 /**
  * Delete template
  */
-export async function deleteTemplate(templateId: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const sessionResult = await getAuthSession();
+export const deleteTemplate = authorizedActionClient
+  .metadata({ policy: "settings:update" })
+  .schema(deleteTemplateSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
 
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
     }
 
-    const user = sessionResult.value.user;
-
-    const result = await TemplateService.deleteTemplate(templateId, user.id);
+    const result = await TemplateService.deleteTemplate(parsedInput.templateId, user.id);
 
     if (result.isErr()) {
-      return {
-        success: false,
-        error: result.error.message,
-      };
+      throw ActionErrors.internal(
+        result.error.message,
+        result.error,
+        "delete-template"
+      );
     }
 
     revalidatePath("/settings");
 
-    return {
-      success: true,
-    };
-  } catch (error) {
-    logger.error("Unexpected error in deleteTemplate", {}, error as Error);
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
-
+    return { success: true };
+  });

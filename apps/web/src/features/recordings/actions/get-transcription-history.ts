@@ -14,17 +14,20 @@ const getTranscriptionHistorySchema = z.object({
 export const getTranscriptionHistory = authorizedActionClient
   .metadata({ policy: "recordings:read" })
   .schema(getTranscriptionHistorySchema)
-  .action(
-    async ({ parsedInput }: { parsedInput: { recordingId: string } }) => {
-      const result = await TranscriptionEditService.getTranscriptionHistory(
-        parsedInput.recordingId
-      );
-
-      if (result.isErr()) {
-        throw new Error(result.error.message);
-      }
-
-      return result.value;
+  .action(async ({ parsedInput, ctx }) => {
+    if (!ctx.organizationId) {
+      throw new Error("Organization context required");
     }
-  );
+
+    const result = await TranscriptionEditService.getTranscriptionHistory(
+      parsedInput.recordingId,
+      ctx.organizationId
+    );
+
+    if (result.isErr()) {
+      throw new Error(result.error.message);
+    }
+
+    return result.value;
+  });
 

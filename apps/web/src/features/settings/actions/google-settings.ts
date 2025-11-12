@@ -1,6 +1,7 @@
 "use server";
 
-import { getAuthSession } from "@/lib/auth";
+import { authorizedActionClient } from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { IntegrationSettingsService } from "@/server/services/integration-settings.service";
 import {
@@ -9,189 +10,144 @@ import {
 } from "@/server/validation/integrations/google-settings";
 import { revalidatePath } from "next/cache";
 import type { IntegrationSettings } from "@/server/db/schema";
+import { z } from "zod";
+
+const getGoogleSettingsSchema = z.object({
+  projectId: z.string().optional(),
+});
 
 /**
  * Get Google integration settings
  */
-export async function getGoogleSettings(projectId?: string): Promise<{
-  success: boolean;
-  data?: IntegrationSettings;
-  error?: string;
-}> {
-  try {
-    const sessionResult = await getAuthSession();
+export const getGoogleSettings = authorizedActionClient
+  .metadata({ policy: "settings:read" })
+  .schema(getGoogleSettingsSchema.optional())
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
 
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
     }
-
-    const user = sessionResult.value.user;
 
     const result = await IntegrationSettingsService.getSettings(
       user.id,
       "google",
-      projectId
+      parsedInput?.projectId
     );
 
     if (result.isErr()) {
-      return {
-        success: false,
-        error: result.error.message,
-      };
+      throw ActionErrors.internal(
+        result.error.message,
+        result.error,
+        "get-google-settings"
+      );
     }
 
     // Return defaults if no settings exist
     if (!result.value) {
       return {
-        success: true,
-        data: {
-          id: "",
-          userId: user.id,
-          provider: "google",
-          projectId: projectId || null,
-          autoCalendarEnabled: false,
-          autoEmailEnabled: false,
-          defaultEventDuration: 30,
-          taskPriorityFilter: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      };
+        id: "",
+        userId: user.id,
+        provider: "google",
+        projectId: parsedInput?.projectId || null,
+        autoCalendarEnabled: false,
+        autoEmailEnabled: false,
+        defaultEventDuration: 30,
+        taskPriorityFilter: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as IntegrationSettings;
     }
 
-    return {
-      success: true,
-      data: result.value,
-    };
-  } catch (error) {
-    logger.error("Unexpected error in getGoogleSettings", {}, error as Error);
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    return result.value;
+  });
 
 /**
  * Update Google integration settings
  */
-export async function updateGoogleSettings(
-  input: UpdateGoogleSettingsInput
-): Promise<{
-  success: boolean;
-  data?: IntegrationSettings;
-  error?: string;
-}> {
-  try {
-    const validatedData = updateGoogleSettingsSchema.parse(input);
+export const updateGoogleSettings = authorizedActionClient
+  .metadata({ policy: "settings:update" })
+  .schema(updateGoogleSettingsSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
 
-    const sessionResult = await getAuthSession();
-
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
     }
-
-    const user = sessionResult.value.user;
 
     logger.info("Updating Google integration settings", {
       userId: user.id,
-      projectId: validatedData.projectId,
+      projectId: parsedInput.projectId,
     });
 
     const result = await IntegrationSettingsService.updateSettings(
       user.id,
       "google",
       {
-        projectId: validatedData.projectId,
-        autoCalendarEnabled: validatedData.autoCalendarEnabled,
-        autoEmailEnabled: validatedData.autoEmailEnabled,
-        defaultEventDuration: validatedData.defaultEventDuration,
-        taskPriorityFilter: validatedData.taskPriorityFilter,
+        projectId: parsedInput.projectId,
+        autoCalendarEnabled: parsedInput.autoCalendarEnabled,
+        autoEmailEnabled: parsedInput.autoEmailEnabled,
+        defaultEventDuration: parsedInput.defaultEventDuration,
+        taskPriorityFilter: parsedInput.taskPriorityFilter,
       }
     );
 
     if (result.isErr()) {
-      return {
-        success: false,
-        error: result.error.message,
-      };
+      throw ActionErrors.internal(
+        result.error.message,
+        result.error,
+        "update-google-settings"
+      );
     }
 
     // Revalidate settings page
     revalidatePath("/settings");
-    if (validatedData.projectId) {
-      revalidatePath(`/projects/${validatedData.projectId}`);
+    if (parsedInput.projectId) {
+      revalidatePath(`/projects/${parsedInput.projectId}`);
     }
 
     logger.info("Successfully updated Google integration settings", {
       userId: user.id,
     });
 
-    return {
-      success: true,
-      data: result.value,
-    };
-  } catch (error) {
-    logger.error("Unexpected error in updateGoogleSettings", {}, error as Error);
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    return result.value;
+  });
+
+const resetGoogleSettingsSchema = z.object({
+  projectId: z.string().optional(),
+});
 
 /**
  * Reset Google integration settings to defaults
  */
-export async function resetGoogleSettings(projectId?: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const sessionResult = await getAuthSession();
+export const resetGoogleSettings = authorizedActionClient
+  .metadata({ policy: "settings:update" })
+  .schema(resetGoogleSettingsSchema.optional())
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
 
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
     }
-
-    const user = sessionResult.value.user;
 
     const result = await IntegrationSettingsService.deleteSettings(
       user.id,
       "google",
-      projectId
+      parsedInput?.projectId
     );
 
     if (result.isErr()) {
-      return {
-        success: false,
-        error: result.error.message,
-      };
+      throw ActionErrors.internal(
+        result.error.message,
+        result.error,
+        "reset-google-settings"
+      );
     }
 
     revalidatePath("/settings");
-    if (projectId) {
-      revalidatePath(`/projects/${projectId}`);
+    if (parsedInput?.projectId) {
+      revalidatePath(`/projects/${parsedInput.projectId}`);
     }
 
-    return {
-      success: true,
-    };
-  } catch (error) {
-    logger.error("Unexpected error in resetGoogleSettings", {}, error as Error);
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
-
+    return { success: true };
+  });

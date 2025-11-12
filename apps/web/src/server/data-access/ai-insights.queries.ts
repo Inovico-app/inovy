@@ -15,6 +15,17 @@ export class AIInsightsQueries {
     return insight;
   }
 
+  static async getInsightById(
+    insightId: string
+  ): Promise<AIInsight | null> {
+    const [insight] = await db
+      .select()
+      .from(aiInsights)
+      .where(eq(aiInsights.id, insightId))
+      .limit(1);
+    return insight ?? null;
+  }
+
   static async getInsightsByRecordingId(
     recordingId: string
   ): Promise<AIInsight[]> {

@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { authorizedActionClient } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
-import { getAuthSession } from "../../../lib/auth";
 import { logger } from "../../../lib/logger";
 import { ProjectService } from "../../../server/services";
 import { deleteProjectSchema } from "../../../server/validation/projects/delete-project";
@@ -19,26 +18,22 @@ export const deleteProjectAction = authorizedActionClient
   .inputSchema(deleteProjectSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { projectId, confirmationText, confirmCheckbox } = parsedInput;
-    const { user, session } = ctx;
+    const { user, organizationId } = ctx;
 
-    if (!user || !session) {
+    if (!user) {
       throw ActionErrors.unauthenticated(
-        "User or session not found",
+        "User not found",
         "delete-project"
       );
     }
 
-    // Get organization code
-    const authResult = await getAuthSession();
-    if (authResult.isErr() || !authResult.value.organization) {
-      throw ActionErrors.internal(
-        "Failed to get organization context",
+    if (!organizationId) {
+      throw ActionErrors.forbidden(
+        "Organization context required",
         undefined,
         "delete-project"
       );
     }
-
-    const orgCode = authResult.value.organization.orgCode;
 
     // Get project to validate confirmation
     const projectResult = await ProjectService.getProjectById(projectId);
@@ -70,7 +65,7 @@ export const deleteProjectAction = authorizedActionClient
     // Delete the project (this will handle blob cleanup internally)
     const result = await ProjectService.deleteProject(
       projectId,
-      orgCode,
+      organizationId,
       user.id
     );
 

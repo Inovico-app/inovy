@@ -1,38 +1,24 @@
 "use server";
 
-import { getAuthSession } from "@/lib/auth";
+import { authorizedActionClient } from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 /**
  * Get Google connection status for current user
  */
-export async function getGoogleConnectionStatus(): Promise<{
-  success: boolean;
-  data?: {
-    connected: boolean;
-    email?: string;
-    scopes?: string[];
-    expiresAt?: Date;
-  };
-  error?: string;
-}> {
-  try {
-    // Get current user session
-    const sessionResult = await getAuthSession();
+export const getGoogleConnectionStatus = authorizedActionClient
+  .metadata({ policy: "settings:read" })
+  .schema(z.void())
+  .action(async ({ ctx }) => {
+    const { user } = ctx;
 
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      logger.error("Failed to get user session in getGoogleConnectionStatus", {
-        error: sessionResult.isErr() ? sessionResult.error : "No user found",
-      });
-      return {
-        success: false,
-        error: "Failed to authenticate",
-      };
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
     }
-
-    const user = sessionResult.value.user;
 
     // Get connection status
     const statusResult = await GoogleOAuthService.getConnectionStatus(user.id);
@@ -42,52 +28,28 @@ export async function getGoogleConnectionStatus(): Promise<{
         userId: user.id,
         error: statusResult.error,
       });
-      return {
-        success: false,
-        error: "Failed to get connection status",
-      };
+      throw ActionErrors.internal(
+        "Failed to get connection status",
+        statusResult.error,
+        "get-google-connection-status"
+      );
     }
 
-    return {
-      success: true,
-      data: statusResult.value,
-    };
-  } catch (error) {
-    logger.error(
-      "Unexpected error in getGoogleConnectionStatus",
-      {},
-      error as Error
-    );
-
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    return statusResult.value;
+  });
 
 /**
  * Disconnect Google account
  */
-export async function disconnectGoogleAccount(): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    // Get current user session
-    const sessionResult = await getAuthSession();
+export const disconnectGoogleAccount = authorizedActionClient
+  .metadata({ policy: "settings:update" })
+  .schema(z.void())
+  .action(async ({ ctx }) => {
+    const { user } = ctx;
 
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      logger.error("Failed to get user session in disconnectGoogleAccount", {
-        error: sessionResult.isErr() ? sessionResult.error : "No user found",
-      });
-      return {
-        success: false,
-        error: "Failed to authenticate",
-      };
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
     }
-
-    const user = sessionResult.value.user;
 
     logger.info("Disconnecting Google account", { userId: user.id });
 
@@ -100,10 +62,11 @@ export async function disconnectGoogleAccount(): Promise<{
         error: disconnectResult.error,
       });
 
-      return {
-        success: false,
-        error: "Failed to disconnect account. Please try again.",
-      };
+      throw ActionErrors.internal(
+        "Failed to disconnect account. Please try again.",
+        disconnectResult.error,
+        "disconnect-google-account"
+      );
     }
 
     logger.info("Successfully disconnected Google account", {
@@ -113,20 +76,5 @@ export async function disconnectGoogleAccount(): Promise<{
     // Revalidate settings page
     revalidatePath("/settings");
 
-    return {
-      success: true,
-    };
-  } catch (error) {
-    logger.error(
-      "Unexpected error in disconnectGoogleAccount",
-      {},
-      error as Error
-    );
-
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
-
+    return { success: true };
+  });

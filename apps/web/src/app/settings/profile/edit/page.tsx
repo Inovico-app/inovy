@@ -44,7 +44,7 @@ function EditProfileContent() {
         family_name: familyName,
       });
 
-      if (result.success) {
+      if (result.data) {
         toast.success("Profile updated successfully!");
         // Save to localStorage for immediate UI update
         localStorage.setItem(
@@ -56,8 +56,8 @@ function EditProfileContent() {
           router.push("/settings/profile");
         }, 500);
       } else {
-        setErrors({ submit: result.error || "Failed to update profile" });
-        toast.error(result.error || "Failed to update profile");
+        setErrors({ submit: result.serverError || "Failed to update profile" });
+        toast.error(result.serverError || "Failed to update profile");
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "An error occurred";

@@ -56,11 +56,11 @@ export function GoogleStatusDashboard() {
 
     const result = await getGoogleIntegrationStatus({ limit: 20 });
 
-    if (result.success && result.data) {
+    if (result.data) {
       setActions(result.data.actions);
       setStats(result.data.stats);
     } else {
-      toast.error(result.error || "Failed to load integration status");
+      toast.error(result.serverError || "Failed to load integration status");
     }
 
     setLoading(false);
@@ -69,13 +69,13 @@ export function GoogleStatusDashboard() {
   async function handleRetry(actionId: string) {
     setRetrying(actionId);
 
-    const result = await retryFailedAction(actionId);
+    const result = await retryFailedAction({ actionId });
 
-    if (result.success) {
+    if (result.data) {
       toast.success("Action queued for retry");
       await loadStatus();
     } else {
-      toast.error(result.error || "Failed to retry action");
+      toast.error(result.serverError || "Failed to retry action");
     }
 
     setRetrying(null);

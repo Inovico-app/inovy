@@ -1,6 +1,7 @@
 import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { logger } from "../../lib/logger";
+import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { TranscriptionHistoryQueries } from "../data-access/transcription-history.queries";
 import type { UpdateTranscriptionInput } from "../validation/recordings/update-transcription";
@@ -15,7 +16,8 @@ export class TranscriptionEditService {
    */
   static async updateTranscription(
     input: UpdateTranscriptionInput,
-    userId: string
+    userId: string,
+    organizationId: string
   ): Promise<ActionResult<{ success: boolean; versionNumber: number }>> {
     logger.info("Updating transcription", {
       component: "TranscriptionEditService.updateTranscription",
@@ -38,6 +40,22 @@ export class TranscriptionEditService {
         return err(
           ActionErrors.notFound(
             "Recording",
+            "TranscriptionEditService.updateTranscription"
+          )
+        );
+      }
+
+      // Verify recording belongs to organization
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "TranscriptionEditService.updateTranscription"
+        );
+      } catch {
+        return err(
+          ActionErrors.notFound(
+            "Recording not found",
             "TranscriptionEditService.updateTranscription"
           )
         );
@@ -107,7 +125,10 @@ export class TranscriptionEditService {
   /**
    * Get transcription version history for a recording
    */
-  static async getTranscriptionHistory(recordingId: string): Promise<
+  static async getTranscriptionHistory(
+    recordingId: string,
+    organizationId: string
+  ): Promise<
     ActionResult<
       Array<{
         id: string;
@@ -125,6 +146,34 @@ export class TranscriptionEditService {
     });
 
     try {
+      // Verify recording belongs to organization
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+      if (!recording) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "TranscriptionEditService.getTranscriptionHistory"
+          )
+        );
+      }
+
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "TranscriptionEditService.getTranscriptionHistory"
+        );
+      } catch {
+        return err(
+          ActionErrors.notFound(
+            "Recording not found",
+            "TranscriptionEditService.getTranscriptionHistory"
+          )
+        );
+      }
+
       const history =
         await TranscriptionHistoryQueries.selectTranscriptionHistoryByRecordingId(
           recordingId
@@ -169,7 +218,8 @@ export class TranscriptionEditService {
   static async restoreTranscriptionVersion(
     recordingId: string,
     versionNumber: number,
-    userId: string
+    userId: string,
+    organizationId: string
   ): Promise<ActionResult<{ success: boolean; newVersionNumber: number }>> {
     logger.info("Restoring transcription version", {
       component: "TranscriptionEditService.restoreTranscriptionVersion",
@@ -179,6 +229,34 @@ export class TranscriptionEditService {
     });
 
     try {
+      // Verify recording belongs to organization
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+      if (!recording) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "TranscriptionEditService.restoreTranscriptionVersion"
+          )
+        );
+      }
+
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "TranscriptionEditService.restoreTranscriptionVersion"
+        );
+      } catch {
+        return err(
+          ActionErrors.notFound(
+            "Recording not found",
+            "TranscriptionEditService.restoreTranscriptionVersion"
+          )
+        );
+      }
+
       // Get the version to restore
       const version =
         await TranscriptionHistoryQueries.selectTranscriptionVersion(
@@ -208,7 +286,8 @@ export class TranscriptionEditService {
           content: version.content,
           changeDescription: `Restored from version ${versionNumber}`,
         },
-        userId
+        userId,
+        organizationId
       );
 
       if (result.isErr()) {

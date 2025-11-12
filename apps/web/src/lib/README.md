@@ -344,3 +344,261 @@ const processOrder = async (order: Order) => {
 
 This approach provides a much cleaner, more maintainable, and more testable codebase while eliminating the complexity of custom error classes!
 
+## Organization Isolation and Security
+
+The application implements comprehensive organization-level data isolation to ensure users can only access data from their own organization. This is critical for multi-tenant security.
+
+### Core Concepts
+
+**Organization Isolation** ensures:
+- Users can only access resources that belong to their organization
+- Cross-organization data access is prevented at multiple layers
+- Failed isolation checks return 404 (not 403) to prevent information leakage
+- All security violations are logged for audit purposes
+
+### Architecture Layers
+
+1. **Middleware Layer** (`action-client.ts`)
+   - Automatically attaches organization context to all authenticated actions
+   - Validates organization membership before any action executes
+   - Provides `ctx.organizationId` to all server actions
+
+2. **Service Layer** (Business Logic)
+   - Uses `assertOrganizationAccess()` to verify resource ownership
+   - Validates organization before any database operations
+   - Returns appropriate errors without leaking information
+
+3. **Data Access Layer** (DAL)
+   - Queries filter by `organizationId` where applicable
+   - Organization checks happen in services, not DAL
+
+### Organization Isolation Utilities
+
+Located in `organization-isolation.ts`:
+
+```typescript
+import { assertOrganizationAccess, validateOrganizationContext } from "@/lib/organization-isolation";
+
+// 1. Assert resource belongs to user's organization
+// Throws ActionError if mismatch
+assertOrganizationAccess(
+  task.organizationId,
+  userOrgId,
+  "TaskService.updateTask"
+);
+
+// 2. Validate organization context from session
+const result = await validateOrganizationContext("context-name");
+if (result.isErr()) return result;
+const { userId, organizationId } = result.value;
+
+// 3. Verify resource organization
+const resourceResult = verifyResourceOrganization(
+  task,
+  userOrgId,
+  "Task",
+  "context-name"
+);
+if (resourceResult.isErr()) return resourceResult;
+
+// 4. Batch verify multiple resources
+const batchResult = batchVerifyOrganization(
+  tasks,
+  userOrgId,
+  "Task",
+  "context-name"
+);
+```
+
+### Server Action Pattern
+
+```typescript
+export const updateTaskAction = authorizedActionClient
+  .metadata({ policy: "tasks:update" })
+  .schema(updateTaskSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { taskId, updates } = parsedInput;
+    const { user, organizationId } = ctx; // Automatically provided by middleware
+    
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required");
+    }
+
+    // Service layer will verify organization access
+    const result = await TaskService.updateTask(taskId, updates);
+    
+    return resultToActionResponse(result);
+  });
+```
+
+### Service Layer Pattern
+
+```typescript
+export class TaskService {
+  static async updateTask(
+    taskId: string,
+    updates: UpdateTaskData
+  ): Promise<ActionResult<TaskDto>> {
+    try {
+      const authResult = await getAuthSession();
+      if (authResult.isErr()) {
+        return err(ActionErrors.internal("Auth failed"));
+      }
+
+      const { organization } = authResult.value;
+      if (!organization) {
+        return err(ActionErrors.forbidden("No organization"));
+      }
+
+      // Get resource
+      const task = await TasksQueries.getTaskById(taskId);
+      if (!task) {
+        return err(ActionErrors.notFound("Task"));
+      }
+
+      // Verify organization isolation
+      try {
+        assertOrganizationAccess(
+          task.organizationId,
+          organization.orgCode,
+          "TaskService.updateTask"
+        );
+      } catch (error) {
+        return err(ActionErrors.notFound("Task")); // Return 404, not 403
+      }
+
+      // Proceed with update
+      const updated = await TasksQueries.updateTask(taskId, updates);
+      return ok(this.toDto(updated));
+    } catch (error) {
+      return err(ActionErrors.internal("Update failed", error));
+    }
+  }
+}
+```
+
+### Database Schema Requirements
+
+All organization-scoped tables must include:
+
+```typescript
+export const tasks = pgTable("tasks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: text("organization_id").notNull(), // Kinde organization code
+  // ... other fields
+});
+```
+
+**Tables with direct `organizationId`:**
+- `tasks`
+- `notifications`
+- `projects`
+- `recordings`
+- `chat_conversations`
+- `organization_settings`
+
+**Tables accessed via relationships:**
+- `chat_messages` (via `conversation.organizationId`)
+- `ai_insights` (via `recording.organizationId`)
+- `auto_actions` (via `recording.organizationId`)
+
+### Security Logging
+
+All organization isolation violations are automatically logged:
+
+```typescript
+logger.security.organizationViolation({
+  resourceOrgId: "org_abc123",
+  userOrgId: "org_xyz789",
+  context: "TaskService.updateTask",
+  reason: "Organization mismatch",
+  userId: "user_123",
+  resourceId: "task_456"
+});
+```
+
+### UI Components
+
+Use these components to display organization context and errors:
+
+```typescript
+import { OrganizationContextDisplay } from "@/components/organization-context-display";
+import { OrganizationErrorFeedback } from "@/components/organization-error-feedback";
+
+// Display organization info (admin/debug)
+<OrganizationContextDisplay 
+  organizationId={orgId}
+  organizationName={orgName}
+  compact 
+/>
+
+// Display user-friendly error messages
+<OrganizationErrorFeedback 
+  error={{
+    code: "NOT_FOUND",
+    message: "Resource not found",
+    isOrganizationViolation: true
+  }} 
+/>
+```
+
+### Best Practices
+
+1. **Always verify organization** before accessing resources
+2. **Return 404 instead of 403** to prevent information leakage
+3. **Use middleware context** (`ctx.organizationId`) in actions
+4. **Use `assertOrganizationAccess()`** in services
+5. **Filter queries by organizationId** in DAL where applicable
+6. **Log all violations** for security monitoring
+7. **Test cross-organization access** to ensure isolation
+8. **Never expose organizationId** in public URLs or messages
+
+### Testing Organization Isolation
+
+```typescript
+describe("Organization Isolation", () => {
+  it("should prevent cross-organization access", async () => {
+    const user1 = { id: "user1", organizationId: "org1" };
+    const user2 = { id: "user2", organizationId: "org2" };
+    
+    // Create task in org1
+    const task = await createTask({ orgId: "org1" });
+    
+    // User from org2 should not access it
+    const result = await TaskService.getTaskById(task.id);
+    expect(result.isErr()).toBe(true);
+    expect(result.error.code).toBe("NOT_FOUND");
+  });
+});
+```
+
+### RBAC Integration
+
+Organization isolation works alongside RBAC:
+
+```typescript
+import { canAccessResource } from "@/lib/rbac";
+
+// Combined RBAC + Organization check
+const access = canAccessResource(session, task, "tasks:update");
+
+if (!access.canAccess) {
+  return err(
+    ActionErrors.forbidden(access.reason || "Access denied")
+  );
+}
+```
+
+### Migration Checklist
+
+When adding organization isolation to existing code:
+
+- [ ] Add `organizationId` column to database table
+- [ ] Update queries to filter by organizationId
+- [ ] Add organization checks in service methods
+- [ ] Use `assertOrganizationAccess()` helper
+- [ ] Update server actions to use `ctx.organizationId`
+- [ ] Test cross-organization access scenarios
+- [ ] Review and update error messages
+- [ ] Add security logging
+

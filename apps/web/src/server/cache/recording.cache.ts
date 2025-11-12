@@ -25,6 +25,7 @@ export async function getCachedRecordingById(recordingId: string) {
  */
 export async function getCachedRecordingsByProjectId(
   projectId: string,
+  organizationId: string,
   options?: { search?: string }
 ) {
   "use cache";
@@ -32,6 +33,7 @@ export async function getCachedRecordingsByProjectId(
 
   const recordings = await RecordingService.getRecordingsByProjectId(
     projectId,
+    organizationId,
     options
   );
 

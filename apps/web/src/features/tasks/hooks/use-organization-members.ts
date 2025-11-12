@@ -15,8 +15,8 @@ export function useOrganizationMembers(): UseOrganizationMembersReturn {
     queryKey: queryKeys.organization.members("current"),
     queryFn: async () => {
       const result = await getOrgMembers();
-      if (!result.success || !result.data) {
-        throw new Error(result.error ?? "Failed to fetch organization members");
+      if (!result.data) {
+        throw new Error(result.serverError ?? "Failed to fetch organization members");
       }
       return result.data;
     },

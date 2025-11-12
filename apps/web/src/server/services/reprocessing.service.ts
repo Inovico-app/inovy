@@ -1,5 +1,6 @@
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { convertRecordingIntoAiInsights } from "@/workflows/convert-recording";
 import { err, ok } from "neverthrow";
 import { start } from "workflow/api";
@@ -18,7 +19,8 @@ export class ReprocessingService {
    * Check if a recording can be reprocessed
    */
   static async canReprocess(
-    recordingId: string
+    recordingId: string,
+    organizationId: string
   ): Promise<ActionResult<{ canReprocess: boolean; reason?: string }>> {
     try {
       // Get recording
@@ -27,6 +29,20 @@ export class ReprocessingService {
       );
 
       if (!recording) {
+        return ok({
+          canReprocess: false,
+          reason: "Recording not found",
+        });
+      }
+
+      // Verify recording belongs to organization
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "ReprocessingService.canReprocess"
+        );
+      } catch (error) {
         return ok({
           canReprocess: false,
           reason: "Recording not found",
@@ -89,7 +105,10 @@ export class ReprocessingService {
   /**
    * Backup current insights before reprocessing
    */
-  static async backupCurrentInsights(recordingId: string): Promise<
+  static async backupCurrentInsights(
+    recordingId: string,
+    organizationId: string
+  ): Promise<
     ActionResult<{
       transcription?: {
         text: string;
@@ -115,6 +134,36 @@ export class ReprocessingService {
     }>
   > {
     try {
+      // Get recording for transcription text
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+
+      if (!recording) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "ReprocessingService.backupCurrentInsights"
+          )
+        );
+      }
+
+      // Verify recording belongs to organization
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "ReprocessingService.backupCurrentInsights"
+        );
+      } catch (error) {
+        return err(
+          ActionErrors.notFound(
+            "Recording not found",
+            "ReprocessingService.backupCurrentInsights"
+          )
+        );
+      }
+
       const backup: {
         transcription?: {
           text: string;
@@ -138,11 +187,6 @@ export class ReprocessingService {
           meetingTimestamp: number | null;
         }>;
       } = {};
-
-      // Get recording for transcription text
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
 
       if (recording) {
         // Backup transcription if exists
@@ -223,7 +267,8 @@ export class ReprocessingService {
    */
   static async triggerReprocessing(
     recordingId: string,
-    triggeredById: string
+    triggeredById: string,
+    organizationId: string
   ): Promise<ActionResult<{ reprocessingId: string }>> {
     try {
       logger.info("Starting reprocessing trigger", {
@@ -232,8 +277,34 @@ export class ReprocessingService {
         triggeredById,
       });
 
+      // Verify recording belongs to organization first
+      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      if (!recording) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "ReprocessingService.triggerReprocessing"
+          )
+        );
+      }
+
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "ReprocessingService.triggerReprocessing"
+        );
+      } catch (error) {
+        return err(
+          ActionErrors.notFound(
+            "Recording not found",
+            "ReprocessingService.triggerReprocessing"
+          )
+        );
+      }
+
       // Check if can reprocess
-      const canReprocessResult = await this.canReprocess(recordingId);
+      const canReprocessResult = await this.canReprocess(recordingId, organizationId);
 
       if (canReprocessResult.isErr()) {
         return err(canReprocessResult.error);
@@ -249,7 +320,7 @@ export class ReprocessingService {
       }
 
       // Backup current insights
-      const backupResult = await this.backupCurrentInsights(recordingId);
+      const backupResult = await this.backupCurrentInsights(recordingId, organizationId);
 
       if (backupResult.isErr()) {
         return err(backupResult.error);
@@ -358,7 +429,10 @@ export class ReprocessingService {
   /**
    * Get reprocessing status for a recording
    */
-  static async getReprocessingStatus(recordingId: string): Promise<
+  static async getReprocessingStatus(
+    recordingId: string,
+    organizationId: string
+  ): Promise<
     ActionResult<{
       isReprocessing: boolean;
       status?: string;
@@ -367,6 +441,32 @@ export class ReprocessingService {
     }>
   > {
     try {
+      // Verify recording belongs to organization
+      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      if (!recording) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "ReprocessingService.getReprocessingStatus"
+          )
+        );
+      }
+
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "ReprocessingService.getReprocessingStatus"
+        );
+      } catch (error) {
+        return err(
+          ActionErrors.notFound(
+            "Recording not found",
+            "ReprocessingService.getReprocessingStatus"
+          )
+        );
+      }
+
       const latestHistory =
         await ReprocessingQueries.getLatestReprocessingHistory(recordingId);
 

@@ -1,5 +1,6 @@
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { RecordingService } from "@/server/services";
 import { TranscriptionService } from "@/server/services/transcription.service";
 import { type NextRequest, NextResponse } from "next/server";
@@ -51,14 +52,17 @@ export async function POST(
     }
 
     // Verify user has access to this recording
-    const user = authResult.value.user;
     const organization = authResult.value.organization;
 
-    if (
-      recording.organizationId !== organization?.orgCode &&
-      recording.createdById !== user.id
-    ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    try {
+      assertOrganizationAccess(
+        recording.organizationId,
+        organization?.orgCode,
+        "api/transcribe/[recordingId]"
+      );
+    } catch (error) {
+      // Return 404 to prevent information leakage
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     logger.info("Starting transcription", {

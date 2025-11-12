@@ -1,7 +1,9 @@
 "use server";
 
 import { z } from "zod";
-import { getAuthSession } from "@/lib/auth";
+import { authorizedActionClient } from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { logger } from "@/lib/logger";
 import { GoogleCalendarService } from "@/server/services/google-calendar.service";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
@@ -14,70 +16,52 @@ const createCalendarEventSchema = z.object({
   duration: z.number().min(15).max(480).optional(), // 15 min to 8 hours
 });
 
-type CreateCalendarEventInput = z.infer<typeof createCalendarEventSchema>;
-
 /**
  * Server action to create a Google Calendar event from a task
  */
-export async function createCalendarEvent(
-  input: CreateCalendarEventInput
-): Promise<{
-  success: boolean;
-  data?: {
-    eventId: string;
-    eventUrl: string;
-  };
-  error?: string;
-}> {
-  try {
-    // Validate input
-    const validatedData = createCalendarEventSchema.parse(input);
+export const createCalendarEvent = authorizedActionClient
+  .metadata({ policy: "tasks:update" })
+  .schema(createCalendarEventSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { organizationId, user } = ctx;
 
-    // Get current user session
-    const sessionResult = await getAuthSession();
-
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      logger.error("Failed to get user session in createCalendarEvent", {
-        error: sessionResult.isErr() ? sessionResult.error : "No user found",
-      });
-      return {
-        success: false,
-        error: "Failed to authenticate",
-      };
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required");
     }
 
-    const user = sessionResult.value.user;
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
+    }
 
     // Check if user has Google connection
     const hasConnection = await GoogleOAuthService.hasConnection(user.id);
 
     if (hasConnection.isErr() || !hasConnection.value) {
-      return {
-        success: false,
-        error: "Google account not connected. Please connect in settings first.",
-      };
+      throw ActionErrors.badRequest(
+        "Google account not connected. Please connect in settings first."
+      );
     }
 
     // Get the task
     const [task] = await db
       .select()
       .from(tasks)
-      .where(eq(tasks.id, validatedData.taskId))
+      .where(eq(tasks.id, parsedInput.taskId))
       .limit(1);
 
     if (!task) {
-      return {
-        success: false,
-        error: "Task not found",
-      };
+      throw ActionErrors.notFound("Task", "create-calendar-event");
     }
 
-    // Verify task belongs to user's organization
-    if (task.organizationId !== user.organization_code) {
-      return {
-        success: false,
-        error: "Unauthorized access to task",
-      };
+    // Verify task belongs to user's organization using centralized helper
+    try {
+      assertOrganizationAccess(
+        task.organizationId,
+        organizationId,
+        "createCalendarEvent"
+      );
+    } catch (error) {
+      throw ActionErrors.notFound("Task", "create-calendar-event");
     }
 
     logger.info("Creating Google Calendar event from task", {
@@ -88,9 +72,10 @@ export async function createCalendarEvent(
     // Create calendar event
     const result = await GoogleCalendarService.createEventFromTask(
       user.id,
+      organizationId,
       task,
       {
-        duration: validatedData.duration,
+        duration: parsedInput.duration,
       }
     );
 
@@ -101,10 +86,11 @@ export async function createCalendarEvent(
         error: result.error.message,
       });
 
-      return {
-        success: false,
-        error: result.error.message,
-      };
+      throw ActionErrors.internal(
+        result.error.message,
+        result.error,
+        "create-calendar-event"
+      );
     }
 
     logger.info("Successfully created calendar event", {
@@ -113,120 +99,68 @@ export async function createCalendarEvent(
       eventId: result.value.eventId,
     });
 
-    return {
-      success: true,
-      data: result.value,
-    };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const firstIssue = error.issues[0];
-      logger.warn("Validation error in createCalendarEvent", {
-        field: firstIssue.path.join("."),
-        message: firstIssue.message,
-      });
+    return result.value;
+  });
 
-      return {
-        success: false,
-        error: firstIssue.message,
-      };
-    }
-
-    logger.error(
-      "Unexpected error in createCalendarEvent",
-      {},
-      error as Error
-    );
-
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+const createCalendarEventsForTasksSchema = z.object({
+  taskIds: z.array(z.string().uuid()),
+  duration: z.number().min(15).max(480).optional(),
+});
 
 /**
  * Server action to create calendar events for multiple tasks
  */
-export async function createCalendarEventsForTasks(input: {
-  taskIds: string[];
-  duration?: number;
-}): Promise<{
-  success: boolean;
-  data?: {
-    successful: Array<{ taskId: string; eventId: string; eventUrl: string }>;
-    failed: Array<{ taskId: string; error: string }>;
-  };
-  error?: string;
-}> {
-  try {
-    // Get current user session
-    const sessionResult = await getAuthSession();
+export const createCalendarEventsForTasks = authorizedActionClient
+  .metadata({ policy: "tasks:update" })
+  .schema(createCalendarEventsForTasksSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { organizationId, user } = ctx;
 
-    if (sessionResult.isErr() || !sessionResult.value.user) {
-      return {
-        success: false,
-        error: "Failed to authenticate",
-      };
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required");
     }
 
-    const user = sessionResult.value.user;
+    if (!user) {
+      throw ActionErrors.unauthenticated("User context required");
+    }
 
     // Check Google connection
     const hasConnection = await GoogleOAuthService.hasConnection(user.id);
 
     if (hasConnection.isErr() || !hasConnection.value) {
-      return {
-        success: false,
-        error: "Google account not connected",
-      };
+      throw ActionErrors.badRequest("Google account not connected");
     }
 
-    // Get tasks
+    // Get tasks filtered by organization
     const userTasks = await db
       .select()
       .from(tasks)
-      .where(eq(tasks.organizationId, user.organization_code || ""));
+      .where(eq(tasks.organizationId, organizationId));
 
     const tasksToCreate = userTasks.filter((task) =>
-      input.taskIds.includes(task.id)
+      parsedInput.taskIds.includes(task.id)
     );
 
     if (tasksToCreate.length === 0) {
-      return {
-        success: false,
-        error: "No valid tasks found",
-      };
+      throw ActionErrors.notFound("Tasks", "create-calendar-events-for-tasks");
     }
 
     // Create events
     const result = await GoogleCalendarService.createEventsFromTasks(
       user.id,
+      organizationId,
       tasksToCreate,
-      { duration: input.duration }
+      { duration: parsedInput.duration }
     );
 
     if (result.isErr()) {
-      return {
-        success: false,
-        error: result.error.message,
-      };
+      throw ActionErrors.internal(
+        result.error.message,
+        result.error,
+        "create-calendar-events-for-tasks"
+      );
     }
 
-    return {
-      success: true,
-      data: result.value,
-    };
-  } catch (error) {
-    logger.error(
-      "Unexpected error in createCalendarEventsForTasks",
-      {},
-      error as Error
-    );
-
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    return result.value;
+  });
 

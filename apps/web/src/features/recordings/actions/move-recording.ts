@@ -18,11 +18,19 @@ export const moveRecordingAction = authorizedActionClient
   .schema(moveRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId, targetProjectId } = parsedInput;
-    const { user } = ctx;
+    const { user, organizationId } = ctx;
 
-    if (!user || !user.organization_code) {
+    if (!user) {
       throw ActionErrors.unauthenticated(
-        "User or organization code not found in context",
+        "User not found in context",
+        "move-recording"
+      );
+    }
+
+    if (!organizationId) {
+      throw ActionErrors.forbidden(
+        "Organization context required",
+        undefined,
         "move-recording"
       );
     }
@@ -31,7 +39,7 @@ export const moveRecordingAction = authorizedActionClient
     const result = await RecordingService.moveRecording(
       recordingId,
       targetProjectId,
-      user.organization_code,
+      organizationId,
       user.id
     );
 
