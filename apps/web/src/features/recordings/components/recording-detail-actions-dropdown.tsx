@@ -18,7 +18,7 @@ import {
   MoreVerticalIcon,
   Trash2Icon,
 } from "lucide-react";
-import { useState } from "react";
+import { Activity, useState } from "react";
 import { ArchiveRecordingDialog } from "./archive-recording-dialog";
 import { DeleteRecordingDialog } from "./delete-recording-dialog";
 import { EditRecordingModal } from "./edit-recording-modal";
@@ -107,24 +107,33 @@ export function RecordingDetailActionsDropdown({
       </DropdownMenu>
 
       {/* Modals/Dialogs */}
-      {showEditModal && (
+      <Activity
+        name="edit-recording-modal"
+        mode={showEditModal ? "visible" : "hidden"}
+      >
         <EditRecordingModal
           recording={recording}
           open={showEditModal}
           onOpenChange={setShowEditModal}
         />
-      )}
+      </Activity>
 
-      {showMoveDialog && (
+      <Activity
+        name="move-recording-dialog"
+        mode={showMoveDialog ? "visible" : "hidden"}
+      >
         <MoveRecordingDialog
           recording={recording}
           currentProjectId={projectId}
           open={showMoveDialog}
           onOpenChange={setShowMoveDialog}
         />
-      )}
+      </Activity>
 
-      {showArchiveDialog && (
+      <Activity
+        name="archive-recording-dialog"
+        mode={showArchiveDialog ? "visible" : "hidden"}
+      >
         <ArchiveRecordingDialog
           recordingId={recording.id}
           recordingTitle={recording.title}
@@ -132,9 +141,12 @@ export function RecordingDetailActionsDropdown({
           open={showArchiveDialog}
           onOpenChange={setShowArchiveDialog}
         />
-      )}
+      </Activity>
 
-      {showDeleteDialog && (
+      <Activity
+        name="delete-recording-dialog"
+        mode={showDeleteDialog ? "visible" : "hidden"}
+      >
         <DeleteRecordingDialog
           recordingId={recording.id}
           recordingTitle={recording.title}
@@ -142,7 +154,7 @@ export function RecordingDetailActionsDropdown({
           open={showDeleteDialog}
           onOpenChange={setShowDeleteDialog}
         />
-      )}
+      </Activity>
     </>
   );
 }
