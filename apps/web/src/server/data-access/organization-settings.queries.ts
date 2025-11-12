@@ -1,99 +1,105 @@
 import { eq } from "drizzle-orm";
 import { db } from "../db";
-import { organizationSettings } from "../db/schema";
-import type {
-  CreateOrganizationInstructionsDto,
-  OrganizationInstructionsDto,
-  UpdateOrganizationInstructionsDto,
-} from "../dto/organization-settings.dto";
+import {
+  organizationSettings,
+  type OrganizationSettings,
+  type NewOrganizationSettings,
+} from "../db/schema";
 
 /**
- * Queries for organization settings/instructions
+ * Database queries for OrganizationSettings operations
+ * Pure data access layer - no business logic
  */
+
 export class OrganizationSettingsQueries {
   /**
-   * Get organization instructions by organization ID
+   * Find organization settings by organization ID
    */
-  static async getInstructionsByOrganizationId(
+  static async findByOrganizationId(
     organizationId: string
-  ): Promise<OrganizationInstructionsDto | null> {
+  ): Promise<OrganizationSettings | null> {
     const result = await db
       .select()
       .from(organizationSettings)
       .where(eq(organizationSettings.organizationId, organizationId))
       .limit(1);
 
-    return result[0] || null;
-  }
-
-  /**
-   * Create organization instructions
-   */
-  static async createInstructions(
-    data: CreateOrganizationInstructionsDto
-  ): Promise<OrganizationInstructionsDto> {
-    const result = await db
-      .insert(organizationSettings)
-      .values({
-        organizationId: data.organizationId,
-        instructions: data.instructions,
-        createdById: data.createdById,
-      })
-      .returning();
+    if (result.length === 0) return null;
 
     return result[0];
   }
 
   /**
-   * Update organization instructions
+   * Create or update organization settings (upsert)
    */
-  static async updateInstructions(
-    organizationId: string,
-    data: UpdateOrganizationInstructionsDto
-  ): Promise<OrganizationInstructionsDto | null> {
-    const result = await db
-      .update(organizationSettings)
-      .set({
-        instructions: data.instructions,
-        updatedAt: data.updatedAt ?? new Date(),
-      })
-      .where(eq(organizationSettings.organizationId, organizationId))
-      .returning();
+  static async createOrUpdate(
+    data: NewOrganizationSettings
+  ): Promise<OrganizationSettings> {
+    return await db.transaction(async (tx) => {
+      // Check if settings exist
+      const existing = await tx
+        .select()
+        .from(organizationSettings)
+        .where(eq(organizationSettings.organizationId, data.organizationId))
+        .limit(1);
 
-    return result[0] ?? null;
+      if (existing.length > 0) {
+        // Update existing
+        const [updated] = await tx
+          .update(organizationSettings)
+          .set({
+            instructions: data.instructions,
+            updatedAt: new Date(),
+          })
+          .where(eq(organizationSettings.organizationId, data.organizationId))
+          .returning();
+
+        return updated;
+      } else {
+        // Insert new
+        const [created] = await tx
+          .insert(organizationSettings)
+          .values(data)
+          .returning();
+
+        return created;
+      }
+    });
   }
 
   /**
-   * Check if instructions exist for an organization
+   * Update organization settings
    */
-  static async instructionsExist(organizationId: string): Promise<boolean> {
-    const result = await db
-      .select({ id: organizationSettings.id })
-      .from(organizationSettings)
-      .where(eq(organizationSettings.organizationId, organizationId))
-      .limit(1);
+  static async update(
+    organizationId: string,
+    instructions: string
+  ): Promise<OrganizationSettings | null> {
+    return await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(organizationSettings)
+        .set({
+          instructions,
+          updatedAt: new Date(),
+        })
+        .where(eq(organizationSettings.organizationId, organizationId))
+        .returning();
 
-    return result.length > 0;
+      return updated || null;
+    });
   }
 
   /**
-   * Create default empty instructions for a new organization
-   * Called during organization creation
+   * Delete organization settings
    */
-  static async createDefaultInstructions(
-    organizationId: string,
-    createdById: string
-  ): Promise<OrganizationInstructionsDto> {
-    const result = await db
-      .insert(organizationSettings)
-      .values({
-        organizationId,
-        instructions: "",
-        createdById,
-      })
-      .returning();
+  static async delete(organizationId: string): Promise<boolean> {
+    return await db.transaction(async (tx) => {
+      const deletedRows = await tx
+        .delete(organizationSettings)
+        .where(eq(organizationSettings.organizationId, organizationId))
+        .returning();
 
-    return result[0];
+      return deletedRows.length > 0;
+    });
   }
 }
 

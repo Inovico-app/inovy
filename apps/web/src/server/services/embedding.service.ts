@@ -585,6 +585,120 @@ export class EmbeddingService {
   }
 
   /**
+   * Index organization instructions for RAG context
+   */
+  static async indexOrganizationInstructions(
+    organizationId: string,
+    instructions: string,
+    settingsId: string
+  ): Promise<ActionResult<void>> {
+    try {
+      logger.info("Indexing organization instructions", { organizationId });
+
+      // Check if already indexed
+      const hasExisting = await EmbeddingsQueries.hasEmbeddings(
+        settingsId,
+        "organization_instructions"
+      );
+      if (hasExisting) {
+        logger.info("Organization instructions already indexed, skipping", {
+          organizationId,
+        });
+        return ok(undefined);
+      }
+
+      // Chunk the instructions (max 500 tokens per chunk as per acceptance criteria)
+      const chunks = this.chunkText(instructions, 500);
+
+      // Generate embeddings for all chunks
+      const embeddingsResult = await this.generateEmbeddingsBatch(chunks);
+
+      if (embeddingsResult.isErr()) {
+        return err(embeddingsResult.error);
+      }
+
+      const embeddings = embeddingsResult.value;
+
+      // Create embedding entries with projectId: null for org-level
+      const embeddingEntries: NewChatEmbedding[] = embeddings.map(
+        (embedding, index) => ({
+          projectId: null,
+          organizationId,
+          contentType: "organization_instructions" as const,
+          contentId: settingsId,
+          contentText: chunks[index] ?? "",
+          embedding,
+          metadata: {
+            title: "Organization Instructions",
+            chunkIndex: index,
+            totalChunks: chunks.length,
+          },
+        })
+      );
+
+      // Save in batches
+      for (let i = 0; i < embeddingEntries.length; i += this.BATCH_SIZE) {
+        const batch = embeddingEntries.slice(i, i + this.BATCH_SIZE);
+        await EmbeddingsQueries.createEmbeddingsBatch(batch);
+      }
+
+      logger.info("Successfully indexed organization instructions", {
+        organizationId,
+        chunksCreated: embeddingEntries.length,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Error indexing organization instructions", {
+        error,
+        organizationId,
+      });
+      return err(
+        ActionErrors.internal(
+          "Error indexing organization instructions",
+          error as Error,
+          "EmbeddingService.indexOrganizationInstructions"
+        )
+      );
+    }
+  }
+
+  /**
+   * Reindex organization instructions (deletes old, creates new)
+   */
+  static async reindexOrganizationInstructions(
+    organizationId: string,
+    instructions: string,
+    settingsId: string
+  ): Promise<ActionResult<void>> {
+    try {
+      logger.info("Reindexing organization instructions", { organizationId });
+
+      // Delete existing embeddings
+      await EmbeddingsQueries.deleteByOrganizationId(organizationId);
+
+      // Index new instructions
+      return await this.indexOrganizationInstructions(
+        organizationId,
+        instructions,
+        settingsId
+      );
+    } catch (error) {
+      logger.error("Error reindexing organization instructions", {
+        error,
+        organizationId,
+      });
+      return err(
+        ActionErrors.internal(
+          "Error reindexing organization instructions",
+          error as Error,
+          "EmbeddingService.reindexOrganizationInstructions"
+        )
+      );
+    }
+  }
+
+  /**
    * Index all recordings and project template in a project
    */
   static async indexProject(

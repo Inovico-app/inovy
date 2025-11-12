@@ -24,6 +24,7 @@ export {
   getCachedOrganizationUsers,
   getCachedOrganizationInstructions,
 } from "./organization.cache";
+export { getCachedOrganizationSettings } from "./organization-settings.cache";
 export { getCachedProjectByIdWithCreator } from "./project.cache";
 export {
   getCachedRecordingById,

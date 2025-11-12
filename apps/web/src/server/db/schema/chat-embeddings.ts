@@ -15,6 +15,7 @@ export const contentTypeEnum = [
   "summary",
   "task",
   "project_template",
+  "organization_instructions",
 ] as const;
 export type ContentType = (typeof contentTypeEnum)[number];
 
@@ -22,9 +23,9 @@ export const chatEmbeddings = pgTable(
   "chat_embeddings",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    projectId: uuid("project_id")
-      .notNull()
-      .references(() => projects.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "cascade",
+    }),
     organizationId: text("organization_id").notNull(), // Kinde organization code
     contentType: text("content_type", { enum: contentTypeEnum }).notNull(),
     contentId: uuid("content_id").notNull(), // References original content (recording, task, etc.)

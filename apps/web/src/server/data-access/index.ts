@@ -9,6 +9,7 @@ export { IntegrationTemplatesQueries } from "./integration-templates.queries";
 export { NotificationsQueries } from "./notifications.queries";
 export { OrganizationSettingsQueries } from "./organization-settings.queries";
 export * from "./oauth-connections.queries";
+export { OrganizationSettingsQueries } from "./organization-settings.queries";
 export { ProjectQueries } from "./projects.queries";
 export * from "./recordings.queries";
 export { ReprocessingQueries } from "./reprocessing.queries";

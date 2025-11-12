@@ -1,6 +1,9 @@
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { getCachedProjectTemplate } from "@/server/cache/project-template.cache";
+import {
+  getCachedOrganizationSettings,
+  getCachedProjectTemplate,
+} from "@/server/cache";
 import { ChatQueries } from "@/server/data-access/chat.queries";
 import {
   type ChatConversation,
@@ -155,6 +158,7 @@ General Guidelines:
 
 Your role:
 - Answer questions based on the provided context from all organization recordings, transcriptions, summaries, and tasks
+- Follow organization-wide instructions provided in the prompt - these have HIGHEST priority and apply to ALL queries
 - When referencing information from sources, include inline citation numbers like [1], [2], etc. that correspond to the source documents provided
 - Cite sources by mentioning the project name, recording title, and date when referencing specific information
 - Be concise and accurate in your responses
@@ -390,14 +394,36 @@ Please answer the user's question based on this information.`
       // Build system prompt
       const systemPrompt = await this.buildSystemPrompt(projectId);
 
+      // Get project template for RAG context
+      const projectTemplate = await getCachedProjectTemplate(projectId);
+
+      // Get organization settings for instructions
+      const projectResult = await ProjectService.getProjectById(projectId);
+      let orgInstructions: string | null = null;
+      if (projectResult.isOk()) {
+        const orgSettings = await getCachedOrganizationSettings(
+          projectResult.value.organizationId
+        );
+        orgInstructions = orgSettings?.instructions ?? null;
+      }
+
       // Create the full prompt with context
-      const contextPrompt = context
+      const ragContext = context
         ? `Here is relevant information from the project recordings:
 
 ${context}
 
 Please answer the user's question based on this information.`
         : "No relevant information was found in the project recordings. Let the user know you don't have specific information to answer their question.";
+
+      // Build complete prompt with priority hierarchy
+      const completePrompt = buildCompletePrompt({
+        systemInstructions: systemPrompt,
+        organizationInstructions: orgInstructions,
+        projectTemplate,
+        ragContent: ragContext,
+        userQuery: userMessage,
+      });
 
       // Stream response from GPT-4-turbo
       const result = streamText({
@@ -407,7 +433,7 @@ Please answer the user's question based on this information.`
           ...conversationHistory,
           {
             role: "user",
-            content: `${contextPrompt}\n\nUser question: ${userMessage}`,
+            content: completePrompt,
           },
         ],
         temperature: 0.7,
@@ -526,14 +552,27 @@ Please answer the user's question based on this information.`
       // Build system prompt for organization
       const systemPrompt = this.buildOrganizationSystemPrompt();
 
+      // Get organization settings for instructions
+      const orgSettings = await getCachedOrganizationSettings(organizationId);
+      const orgInstructions = orgSettings?.instructions ?? null;
+
       // Create the full prompt with context
-      const contextPrompt = context
+      const ragContext = context
         ? `Here is relevant information from across all organization recordings and projects:
 
 ${context}
 
 Please answer the user's question based on this information. When referencing information, mention which project it comes from.`
         : "No relevant information was found in the organization's recordings. Let the user know you don't have specific information to answer their question.";
+
+      // Build complete prompt with priority hierarchy
+      const completePrompt = buildCompletePrompt({
+        systemInstructions: systemPrompt,
+        organizationInstructions: orgInstructions,
+        projectTemplate: null, // No project template for org-level chat
+        ragContent: ragContext,
+        userQuery: userMessage,
+      });
 
       // Stream response from GPT-4-turbo
       const result = streamText({
@@ -543,7 +582,7 @@ Please answer the user's question based on this information. When referencing in
           ...conversationHistory,
           {
             role: "user",
-            content: `${contextPrompt}\n\nUser question: ${userMessage}`,
+            content: completePrompt,
           },
         ],
         temperature: 0.7,

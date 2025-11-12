@@ -1,190 +1,92 @@
-import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
-import type { AuthUser } from "@/lib/auth";
+import { err, ok } from "neverthrow";
 import { OrganizationSettingsQueries } from "../data-access/organization-settings.queries";
-import type {
-  CreateOrganizationInstructionsDto,
-  OrganizationInstructionsDto,
-  UpdateOrganizationInstructionsDto,
-} from "../dto/organization-settings.dto";
+import type { OrganizationSettingsDto } from "../dto";
 
 /**
- * Organization Settings Service
- * Handles business logic for organization instructions and settings
+ * Business logic layer for OrganizationSettings operations
+ * Orchestrates data access and handles business rules
  */
 export class OrganizationSettingsService {
   /**
-   * Create organization instructions
+   * Get organization settings by organization code
    */
-  static async createInstructions(
-    instructions: string,
-    organizationId: string,
-    user: AuthUser
-  ): Promise<ActionResult<OrganizationInstructionsDto>> {
-    logger.info("Creating organization instructions", {
-      component: "OrganizationSettingsService.createInstructions",
-      organizationId,
-      userId: user.id,
-    });
-
+  static async getOrganizationSettings(
+    orgCode: string
+  ): Promise<ActionResult<OrganizationSettingsDto | null>> {
     try {
-      // Check if instructions already exist
-      const exists =
-        await OrganizationSettingsQueries.instructionsExist(organizationId);
-
-      if (exists) {
-        return err(
-          ActionErrors.validation(
-            "Organization instructions already exist. Use update instead.",
-            { organizationId }
-          )
-        );
-      }
-
-      const data: CreateOrganizationInstructionsDto = {
-        instructions,
-        organizationId,
-        createdById: user.id,
-      };
-
-      const result =
-        await OrganizationSettingsQueries.createInstructions(data);
-
-      // Invalidate cache
-      CacheInvalidation.invalidateOrganizationInstructions(organizationId);
-
-      logger.info("Successfully created organization instructions", {
-        component: "OrganizationSettingsService.createInstructions",
-        organizationId,
-        instructionId: result.id,
-      });
-
-      return ok(result);
-    } catch (error) {
-      logger.error(
-        "Failed to create organization instructions",
-        {
-          component: "OrganizationSettingsService.createInstructions",
-          organizationId,
-          error,
-        }
+      const settings = await OrganizationSettingsQueries.findByOrganizationId(
+        orgCode
       );
 
+      if (!settings) {
+        return ok(null);
+      }
+
+      return ok({
+        id: settings.id,
+        organizationId: settings.organizationId,
+        instructions: settings.instructions,
+        createdById: settings.createdById,
+        createdAt: settings.createdAt,
+        updatedAt: settings.updatedAt,
+      });
+    } catch (error) {
+      logger.error(
+        "Failed to get organization settings",
+        { orgCode },
+        error as Error
+      );
       return err(
         ActionErrors.internal(
-          "Failed to create organization instructions",
+          "Failed to get organization settings",
           error as Error,
-          "OrganizationSettingsService.createInstructions"
+          "OrganizationSettingsService.getOrganizationSettings"
         )
       );
     }
   }
 
   /**
-   * Update organization instructions
+   * Update organization settings (creates if doesn't exist)
    */
-  static async updateInstructions(
+  static async updateOrganizationSettings(
+    orgCode: string,
     instructions: string,
-    organizationId: string
-  ): Promise<ActionResult<OrganizationInstructionsDto>> {
-    logger.info("Updating organization instructions", {
-      component: "OrganizationSettingsService.updateInstructions",
-      organizationId,
-    });
-
+    userId: string
+  ): Promise<ActionResult<OrganizationSettingsDto>> {
     try {
-      const data: UpdateOrganizationInstructionsDto = {
+      // Use createOrUpdate to handle both cases
+      const settings = await OrganizationSettingsQueries.createOrUpdate({
+        organizationId: orgCode,
         instructions,
-      };
-
-      const result = await OrganizationSettingsQueries.updateInstructions(
-        organizationId,
-        data
-      );
-
-      if (!result) {
-        return err(
-          ActionErrors.notFound(
-            "Organization instructions",
-            "OrganizationSettingsService.updateInstructions"
-          )
-        );
-      }
+        createdById: userId,
+      });
 
       // Invalidate cache
-      CacheInvalidation.invalidateOrganizationInstructions(organizationId);
+      CacheInvalidation.invalidateOrganizationSettings(orgCode);
 
-      logger.info("Successfully updated organization instructions", {
-        component: "OrganizationSettingsService.updateInstructions",
-        organizationId,
-        instructionId: result.id,
+      return ok({
+        id: settings.id,
+        organizationId: settings.organizationId,
+        instructions: settings.instructions,
+        createdById: settings.createdById,
+        createdAt: settings.createdAt,
+        updatedAt: settings.updatedAt,
       });
-
-      return ok(result);
     } catch (error) {
       logger.error(
-        "Failed to update organization instructions",
-        {
-          component: "OrganizationSettingsService.updateInstructions",
-          organizationId,
-          error,
-        }
+        "Failed to update organization settings",
+        { orgCode, userId },
+        error as Error
       );
-
       return err(
         ActionErrors.internal(
-          "Failed to update organization instructions",
+          "Failed to update organization settings",
           error as Error,
-          "OrganizationSettingsService.updateInstructions"
-        )
-      );
-    }
-  }
-
-  /**
-   * Create default empty instructions for a new organization
-   * Called during organization creation
-   */
-  static async createDefaultInstructions(
-    organizationId: string,
-    createdById: string
-  ): Promise<ActionResult<OrganizationInstructionsDto>> {
-    logger.info("Creating default organization instructions", {
-      component: "OrganizationSettingsService.createDefaultInstructions",
-      organizationId,
-    });
-
-    try {
-      const result =
-        await OrganizationSettingsQueries.createDefaultInstructions(
-          organizationId,
-          createdById
-        );
-
-      logger.info("Successfully created default organization instructions", {
-        component: "OrganizationSettingsService.createDefaultInstructions",
-        organizationId,
-        instructionId: result.id,
-      });
-
-      return ok(result);
-    } catch (error) {
-      logger.error(
-        "Failed to create default organization instructions",
-        {
-          component: "OrganizationSettingsService.createDefaultInstructions",
-          organizationId,
-          error,
-        }
-      );
-
-      return err(
-        ActionErrors.internal(
-          "Failed to create default organization instructions",
-          error as Error,
-          "OrganizationSettingsService.createDefaultInstructions"
+          "OrganizationSettingsService.updateOrganizationSettings"
         )
       );
     }
