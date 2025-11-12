@@ -19,6 +19,7 @@ import {
   MicIcon,
   PlusIcon,
 } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -141,20 +142,22 @@ async function DashboardContent() {
             </Card>
           </Link>
 
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Recordings</CardTitle>
-              <MicIcon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {dashboardOverview.isOk()
-                  ? dashboardOverview.value.stats.totalRecordings
-                  : 0}
-              </div>
-              <p className="text-xs text-muted-foreground">Total recordings</p>
-            </CardContent>
-          </Card>
+          <Link href={"/recordings" as Route}>
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Recordings</CardTitle>
+                <MicIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {dashboardOverview.isOk()
+                    ? dashboardOverview.value.stats.totalRecordings
+                    : 0}
+                </div>
+                <p className="text-xs text-muted-foreground">Total recordings</p>
+              </CardContent>
+            </Card>
+          </Link>
 
           <Link href="/tasks">
             <Card className="hover:shadow-md transition-shadow cursor-pointer">

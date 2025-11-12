@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TaskPriority, TaskStatus } from "@/server/db/schema/tasks";
 import { X } from "lucide-react";
-import { useArrayToggle } from "../hooks/use-array-toggle";
+import { useArrayToggle } from "../../../hooks/use-array-toggle";
 import { FilterCheckboxGroup } from "./filter-checkbox-group";
 import { ProjectFilterDropdown } from "./project-filter-dropdown";
 

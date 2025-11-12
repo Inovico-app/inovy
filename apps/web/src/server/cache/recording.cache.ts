@@ -44,3 +44,30 @@ export async function getCachedRecordingsByProjectId(
   return [];
 }
 
+/**
+ * Get recordings by organization (cached)
+ * Calls RecordingService which includes business logic and auth checks
+ */
+export async function getCachedRecordingsByOrganization(
+  organizationId: string,
+  options?: {
+    statusFilter?: "active" | "archived";
+    search?: string;
+    projectIds?: string[];
+  }
+) {
+  "use cache";
+  cacheTag(CacheTags.recordingsByOrg(organizationId));
+
+  const recordings = await RecordingService.getRecordingsByOrganization(
+    organizationId,
+    options
+  );
+
+  if (recordings.isOk()) {
+    return recordings.value;
+  }
+
+  return [];
+}
+
