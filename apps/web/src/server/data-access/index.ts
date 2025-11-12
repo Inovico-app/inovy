@@ -3,6 +3,7 @@ export { AIInsightsQueries } from "./ai-insights.queries";
 export * from "./auto-actions.queries";
 export { ChatAuditQueries, type AuditLogFilters } from "./chat-audit.queries";
 export { ChatQueries } from "./chat.queries";
+export { DriveWatchesQueries } from "./drive-watches.queries";
 export { EmbeddingsQueries } from "./embeddings.queries";
 export { IntegrationSettingsQueries } from "./integration-settings.queries";
 export { IntegrationTemplatesQueries } from "./integration-templates.queries";
