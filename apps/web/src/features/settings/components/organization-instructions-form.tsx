@@ -72,7 +72,7 @@ export function OrganizationInstructionsForm({
           }
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
-          disabled={!canEdit || isLoading || isSaving}
+          disabled={isLoading || isSaving}
           readOnly={!canEdit}
           rows={12}
           className="min-h-[300px] resize-vertical"
