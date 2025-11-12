@@ -218,5 +218,23 @@ export class RecordingsQueries {
       return result.rowCount !== null && result.rowCount > 0;
     });
   }
+
+  static async moveRecordingToProject(
+    recordingId: string,
+    targetProjectId: string,
+    organizationId: string
+  ): Promise<Recording | undefined> {
+    const [recording] = await db
+      .update(recordings)
+      .set({ projectId: targetProjectId, updatedAt: new Date() })
+      .where(
+        and(
+          eq(recordings.id, recordingId),
+          eq(recordings.organizationId, organizationId)
+        )
+      )
+      .returning();
+    return recording;
+  }
 }
 

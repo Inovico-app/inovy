@@ -1,9 +1,13 @@
+import { and, eq } from "drizzle-orm";
 import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger, serializeError } from "../../lib/logger";
+import { EmbeddingsQueries } from "../data-access/embeddings.queries";
+import { ProjectQueries } from "../data-access/projects.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
-import type { NewRecording, Recording } from "../db/schema";
+import { db } from "../db";
+import { recordings, type NewRecording, type Recording } from "../db/schema";
 import { type RecordingDto } from "../dto";
 
 /**
@@ -474,6 +478,155 @@ export class RecordingService {
           "Failed to delete recording",
           error as Error,
           "RecordingService.deleteRecording"
+        )
+      );
+    }
+  }
+
+  /**
+   * Move a recording to another project
+   */
+  static async moveRecording(
+    recordingId: string,
+    targetProjectId: string,
+    organizationId: string,
+    userId: string
+  ): Promise<ActionResult<RecordingDto>> {
+    logger.info("Moving recording to another project", {
+      component: "RecordingService.moveRecording",
+      recordingId,
+      targetProjectId,
+      userId,
+    });
+
+    try {
+      // Get the recording and verify it belongs to the organization
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+
+      if (!recording) {
+        logger.warn("Recording not found", {
+          component: "RecordingService.moveRecording",
+          recordingId,
+        });
+
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "RecordingService.moveRecording"
+          )
+        );
+      }
+
+      if (recording.organizationId !== organizationId) {
+        logger.warn(
+          "User attempted to move recording from different organization",
+          {
+            component: "RecordingService.moveRecording",
+            recordingId,
+            userOrgId: organizationId,
+            recordingOrgId: recording.organizationId,
+          }
+        );
+
+        return err(
+          ActionErrors.forbidden(
+            "You don't have permission to move this recording",
+            { recordingId },
+            "RecordingService.moveRecording"
+          )
+        );
+      }
+
+      // Verify target project belongs to same organization
+      const targetProject = await ProjectQueries.findById(
+        targetProjectId,
+        organizationId
+      );
+
+      if (!targetProject) {
+        logger.warn("Target project not found or doesn't belong to organization", {
+          component: "RecordingService.moveRecording",
+          targetProjectId,
+          organizationId,
+        });
+
+        return err(
+          ActionErrors.notFound(
+            "Target project",
+            "RecordingService.moveRecording"
+          )
+        );
+      }
+
+      // Store source project ID for cache invalidation
+      const sourceProjectId = recording.projectId;
+
+      // Use database transaction to update both recordings and embeddings atomically
+      const updatedRecording = await db.transaction(async (tx) => {
+        // Update recording project
+        const [movedRecording] = await tx
+          .update(recordings)
+          .set({ projectId: targetProjectId, updatedAt: new Date() })
+          .where(
+            and(
+              eq(recordings.id, recordingId),
+              eq(recordings.organizationId, organizationId)
+            )
+          )
+          .returning();
+
+        if (!movedRecording) {
+          throw new Error("Failed to move recording");
+        }
+
+        // Update embeddings project
+        await EmbeddingsQueries.updateEmbeddingsProject(
+          recordingId,
+          targetProjectId
+        );
+
+        return movedRecording;
+      });
+
+      // Invalidate cache for both source and target projects
+      CacheInvalidation.invalidateProjectRecordings(
+        sourceProjectId,
+        organizationId
+      );
+      CacheInvalidation.invalidateProjectRecordings(
+        targetProjectId,
+        organizationId
+      );
+      CacheInvalidation.invalidateRecording(
+        recordingId,
+        targetProjectId,
+        organizationId
+      );
+
+      logger.info("Successfully moved recording", {
+        component: "RecordingService.moveRecording",
+        recordingId,
+        sourceProjectId,
+        targetProjectId,
+        userId,
+      });
+
+      return ok(this.toDto(updatedRecording));
+    } catch (error) {
+      logger.error("Failed to move recording", {
+        component: "RecordingService.moveRecording",
+        error: serializeError(error),
+        recordingId,
+        targetProjectId,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to move recording",
+          error as Error,
+          "RecordingService.moveRecording"
         )
       );
     }

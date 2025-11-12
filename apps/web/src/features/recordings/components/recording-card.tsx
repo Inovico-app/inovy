@@ -1,8 +1,14 @@
 import type { RecordingDto } from "@/server/dto";
-import { CalendarIcon, ClockIcon, FileAudioIcon } from "lucide-react";
+import {
+  CalendarIcon,
+  ClockIcon,
+  FileAudioIcon,
+  MoreVerticalIcon,
+} from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { Badge } from "../../../components/ui/badge";
+import { Button } from "../../../components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,7 +16,15 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../../../components/ui/dropdown-menu";
 import { EditRecordingModal } from "./edit-recording-modal";
+import { MoveRecordingDialog } from "./move-recording-dialog";
 
 interface RecordingCardProps {
   recording: RecordingDto;
@@ -87,7 +101,39 @@ export function RecordingCard({ recording, projectId }: RecordingCardProps) {
             <Badge className={statusConfig.className}>
               {statusConfig.label}
             </Badge>
-            <EditRecordingModal recording={recording} />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <MoreVerticalIcon className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <EditRecordingModal
+                  recording={recording}
+                  variant="ghost"
+                  triggerContent={
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      Edit
+                    </DropdownMenuItem>
+                  }
+                />
+                <MoveRecordingDialog
+                  recording={recording}
+                  currentProjectId={projectId}
+                  variant="ghost"
+                  triggerContent={
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      Move to Project
+                    </DropdownMenuItem>
+                  }
+                />
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Archive</DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive">
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardHeader>

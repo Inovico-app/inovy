@@ -173,5 +173,20 @@ export class EmbeddingsQueries {
         )
       );
   }
+
+  static async updateEmbeddingsProject(
+    recordingId: string,
+    newProjectId: string
+  ): Promise<void> {
+    await db
+      .update(chatEmbeddings)
+      .set({ projectId: newProjectId })
+      .where(
+        and(
+          eq(chatEmbeddings.contentId, recordingId),
+          eq(chatEmbeddings.contentType, "recording")
+        )
+      );
+  }
 }
 
