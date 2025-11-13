@@ -142,3 +142,11 @@ const searchParams = await props.searchParams;
 - ALWAYS check if there are any code smells in the code after you are done with the code.
 - ALWAYS check if there are any code smells in the code after you are done with the code.
 
+## AI Code Review Guidelines
+
+- After commiting the code if lint, typecheck , build and run tests are successful, run an AI code review to check if the code is ready to be pushed using CodeRabbit.ai command: `coderabbit review --plain --type=committed`. This runs a full code review of the committed code. You are then expected to fix the issues reported by the AI code review and commit the changes again.
+
+```bash
+coderabbit review --plain --type=committed
+```
+
