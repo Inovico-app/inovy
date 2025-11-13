@@ -1,14 +1,14 @@
-import { put as putBlob } from "@vercel/blob";
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { EmbeddingService } from "./embedding.service";
-import { KnowledgeBaseDocumentsQueries } from "../data-access";
-import type {
-  KnowledgeDocumentDto,
-  CreateKnowledgeDocumentDto,
-} from "../dto/knowledge-base.dto";
-import type { KnowledgeBaseScope } from "../db/schema/knowledge-base-entries";
+import { put as putBlob } from "@vercel/blob";
 import { err, ok } from "neverthrow";
+import { KnowledgeBaseDocumentsQueries } from "../data-access";
+import type { KnowledgeBaseScope } from "../db/schema/knowledge-base-entries";
+import type {
+  CreateKnowledgeDocumentDto,
+  KnowledgeDocumentDto,
+} from "../dto/knowledge-base.dto";
+import { EmbeddingService } from "./embedding.service";
 
 /**
  * Document Processing Service
@@ -59,7 +59,9 @@ export class DocumentProcessingService {
       }
 
       // Upload to Vercel Blob
-      const blobPath = `knowledge-base/${scope}/${scopeId ?? "global"}/${file.name}`;
+      const blobPath = `knowledge-base/${scope}/${scopeId ?? "global"}/${
+        file.name
+      }`;
       const blobResult = await putBlob(blobPath, file, {
         access: "public",
       });
@@ -77,8 +79,9 @@ export class DocumentProcessingService {
         createdById: userId,
       };
 
-      const document =
-        await KnowledgeBaseDocumentsQueries.createDocument(createDto);
+      const document = await KnowledgeBaseDocumentsQueries.createDocument(
+        createDto
+      );
 
       logger.info("Document uploaded to knowledge base", {
         documentId: document.id,
@@ -90,7 +93,11 @@ export class DocumentProcessingService {
 
       // Start processing asynchronously (don't await)
       this.processDocument(document.id).catch((error) => {
-        logger.error("Failed to process document", { documentId: document.id }, error);
+        logger.error(
+          "Failed to process document",
+          { documentId: document.id },
+          error
+        );
       });
 
       return ok(document);
@@ -145,7 +152,7 @@ export class DocumentProcessingService {
           "failed",
           extractResult.error.message
         );
-        return extractResult;
+        return err(extractResult.error);
       }
 
       const extractedText = extractResult.value;
@@ -178,7 +185,11 @@ export class DocumentProcessingService {
 
       return ok(undefined);
     } catch (error) {
-      logger.error("Failed to process document", { documentId }, error as Error);
+      logger.error(
+        "Failed to process document",
+        { documentId },
+        error as Error
+      );
       await KnowledgeBaseDocumentsQueries.updateProcessingStatus(
         documentId,
         "failed",
@@ -455,7 +466,7 @@ export class DocumentProcessingService {
     try {
       const contentResult = await this.getDocumentContent(documentId);
       if (contentResult.isErr()) {
-        return contentResult;
+        return err(contentResult.error);
       }
 
       const text = contentResult.value;
