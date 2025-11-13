@@ -28,6 +28,7 @@ export interface SummaryResult {
   isManuallyEdited?: boolean;
   lastEditedById?: string | null;
   lastEditedAt?: Date | null;
+  knowledgeUsed?: string[] | null;
 }
 
 /**
@@ -52,13 +53,23 @@ export async function getCachedSummary(
   const insight = insightResult.value;
 
   if (insight.processingStatus === "completed" && insight.content) {
+    const content = insight.content as unknown as SummaryContent & {
+      knowledgeUsed?: string[];
+    };
     return {
-      content: insight.content as unknown as SummaryContent,
+      content: {
+        overview: content.overview,
+        topics: content.topics,
+        decisions: content.decisions,
+        speakerContributions: content.speakerContributions,
+        importantQuotes: content.importantQuotes,
+      },
       confidence: insight.confidenceScore ?? 0.85,
       userNotes: insight.userNotes,
       isManuallyEdited: insight.isManuallyEdited,
       lastEditedById: insight.lastEditedById,
       lastEditedAt: insight.lastEditedAt,
+      knowledgeUsed: content.knowledgeUsed ?? null,
     };
   }
 

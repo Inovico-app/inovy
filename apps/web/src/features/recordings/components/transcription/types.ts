@@ -65,5 +65,6 @@ export interface TranscriptionSectionProps {
   transcriptionLastEditedAt?: Date | null;
   speakersDetected?: number;
   confidence?: number;
+  knowledgeUsed?: string[];
 }
 

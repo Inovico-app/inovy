@@ -18,6 +18,7 @@ import type { SummaryResult } from "@/server/cache/summary.cache";
 import { UserNotesEditor } from "./user-notes-editor";
 import { SummaryVersionHistoryDialog } from "./summary-version-history-dialog";
 import { EditSummaryDialog } from "./edit-summary-dialog";
+import { KnowledgeUsageIndicator } from "@/features/knowledge-base/components/knowledge-usage-indicator";
 
 interface EnhancedSummarySectionProps {
   recordingId: string;
@@ -251,6 +252,16 @@ export function EnhancedSummarySection({
             />
           </CollapsibleContent>
         </Collapsible>
+
+        {/* Knowledge Usage Indicator */}
+        {summary.knowledgeUsed && summary.knowledgeUsed.length > 0 && (
+          <div className="pt-4 border-t">
+            <KnowledgeUsageIndicator
+              knowledgeEntryIds={summary.knowledgeUsed}
+              variant="compact"
+            />
+          </div>
+        )}
 
         {/* Confidence Score */}
         {summary.confidence && (
