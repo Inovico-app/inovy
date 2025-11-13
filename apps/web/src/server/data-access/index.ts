@@ -15,4 +15,6 @@ export { RecordingsQueries } from "./recordings.queries";
 export { ReprocessingQueries } from "./reprocessing.queries";
 export { TaskTagsQueries } from "./task-tags.queries";
 export { TasksQueries } from "./tasks.queries";
+export { KnowledgeBaseEntriesQueries } from "./knowledge-base-entries.queries";
+export { KnowledgeBaseDocumentsQueries } from "./knowledge-base-documents.queries";
 

@@ -1,4 +1,11 @@
-import { bigint, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  bigint,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { knowledgeBaseScopeEnum } from "./knowledge-base-entries";
 
 /**

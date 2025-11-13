@@ -50,7 +50,9 @@ jobs:
         working-directory: ./apps/web
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: pnpm db:migrate
+        run: |
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env.local
+          pnpm db:migrate
 
       - name: Migration completed
         run: echo "Database migration completed successfully"
