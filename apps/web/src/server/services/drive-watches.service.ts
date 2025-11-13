@@ -165,12 +165,15 @@ export class DriveWatchesService {
           organizationId,
         });
 
-        logger.info("Successfully started Drive watch after deactivating expired watch", {
-          component: "DriveWatchesService.startWatch",
-          watchId: watch.id,
-          folderId,
-          projectId,
-        });
+        logger.info(
+          "Successfully started Drive watch after deactivating expired watch",
+          {
+            component: "DriveWatchesService.startWatch",
+            watchId: watch.id,
+            folderId,
+            projectId,
+          }
+        );
 
         return ok({
           id: watch.id,
