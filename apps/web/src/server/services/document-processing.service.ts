@@ -1,8 +1,10 @@
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
+import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import { ROLES } from "@/lib/rbac";
 import { put as putBlob } from "@vercel/blob";
 import { err, ok } from "neverthrow";
-import { KnowledgeBaseDocumentsQueries } from "../data-access";
+import { KnowledgeBaseDocumentsQueries, ProjectQueries } from "../data-access";
 import type { KnowledgeBaseScope } from "../db/schema/knowledge-base-entries";
 import type {
   CreateKnowledgeDocumentDto,
@@ -15,6 +17,248 @@ import { EmbeddingService } from "./embedding.service";
  * Handles document upload, text extraction, and embedding creation for knowledge base documents
  */
 export class DocumentProcessingService {
+  /**
+   * Validate that a document belongs to the user's organization based on scope
+   * This ensures organization isolation for knowledge base documents
+   */
+  private static async validateDocumentAccess(
+    document: KnowledgeDocumentDto,
+    context: string
+  ): Promise<ActionResult<void>> {
+    try {
+      const authResult = await getAuthSession();
+      if (authResult.isErr() || !authResult.value.user) {
+        return err(
+          ActionErrors.unauthenticated("Authentication required", context)
+        );
+      }
+
+      const userOrgId = authResult.value.organization?.orgCode;
+      if (!userOrgId) {
+        return err(
+          ActionErrors.forbidden(
+            "User does not belong to an organization",
+            undefined,
+            context
+          )
+        );
+      }
+
+      // Validate based on document scope
+      if (document.scope === "project") {
+        // Project scope: Verify project exists and belongs to user's organization
+        if (!document.scopeId) {
+          return err(
+            ActionErrors.badRequest("Project scope requires scopeId", context)
+          );
+        }
+
+        const project = await ProjectQueries.findById(
+          document.scopeId,
+          userOrgId
+        );
+        if (!project) {
+          return err(ActionErrors.notFound("Document", context));
+        }
+      } else if (document.scope === "organization") {
+        // Organization scope: Verify scopeId matches user's organization
+        if (!document.scopeId) {
+          return err(
+            ActionErrors.badRequest(
+              "Organization scope requires scopeId",
+              context
+            )
+          );
+        }
+
+        if (document.scopeId !== userOrgId) {
+          return err(ActionErrors.notFound("Document", context));
+        }
+      } else if (document.scope === "global") {
+        // Global scope: Only super admins can access
+        // For now, we'll allow read access but this could be restricted further
+        // Note: Write operations should be restricted to super admins
+      }
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error(
+        "Failed to validate document access",
+        {
+          documentId: document.id,
+          scope: document.scope,
+          scopeId: document.scopeId,
+        },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to validate document access",
+          error as Error,
+          context
+        )
+      );
+    }
+  }
+
+  /**
+   * Validate scope-specific permissions for document operations
+   * Project scope: requires project access
+   * Organization scope: requires admin/manager role for write
+   * Global scope: requires super admin role for write
+   */
+  private static async validateScopePermissions(
+    scope: KnowledgeBaseScope,
+    scopeId: string | null,
+    userId: string,
+    operation: "read" | "write"
+  ): Promise<ActionResult<void>> {
+    try {
+      const authResult = await getAuthSession();
+      if (authResult.isErr() || !authResult.value.user) {
+        return err(
+          ActionErrors.unauthenticated(
+            "Authentication required",
+            "DocumentProcessingService.validateScopePermissions"
+          )
+        );
+      }
+
+      const user = authResult.value.user;
+      const userOrgId = authResult.value.organization?.orgCode;
+
+      if (!userOrgId) {
+        return err(
+          ActionErrors.forbidden(
+            "User does not belong to an organization",
+            undefined,
+            "DocumentProcessingService.validateScopePermissions"
+          )
+        );
+      }
+
+      if (scope === "project") {
+        // Project scope: Check project exists and user has access
+        if (!scopeId) {
+          return err(
+            ActionErrors.badRequest(
+              "Project scope requires scopeId",
+              "DocumentProcessingService.validateScopePermissions"
+            )
+          );
+        }
+
+        // Verify project exists and belongs to user's organization
+        const project = await ProjectQueries.findById(scopeId, userOrgId);
+        if (!project) {
+          return err(
+            ActionErrors.notFound(
+              "Project",
+              "DocumentProcessingService.validateScopePermissions"
+            )
+          );
+        }
+
+        // For write operations, check user has project update permission
+        // (Read is allowed for any user with project access)
+        if (operation === "write") {
+          // Project members can write - this is validated by project access check above
+        }
+      } else if (scope === "organization") {
+        // Organization scope: Requires admin or manager role for write
+        if (!scopeId) {
+          return err(
+            ActionErrors.badRequest(
+              "Organization scope requires scopeId",
+              "DocumentProcessingService.validateScopePermissions"
+            )
+          );
+        }
+
+        // Verify organization matches user's organization
+        if (scopeId !== userOrgId) {
+          return err(
+            ActionErrors.forbidden(
+              "Cannot access other organization's knowledge base",
+              {
+                scope,
+                scopeId,
+                userId,
+              },
+              "DocumentProcessingService.validateScopePermissions"
+            )
+          );
+        }
+
+        // For write operations, require admin or manager role
+        if (operation === "write") {
+          const userRoles = user.roles ?? [];
+          const hasPermission =
+            userRoles.includes(ROLES.ADMIN) ||
+            userRoles.includes(ROLES.MANAGER) ||
+            userRoles.includes(ROLES.SUPER_ADMIN);
+
+          if (!hasPermission) {
+            return err(
+              ActionErrors.forbidden(
+                "Organization knowledge base requires admin or manager role",
+                {
+                  scope,
+                  scopeId,
+                  userId,
+                },
+                "DocumentProcessingService.validateScopePermissions"
+              )
+            );
+          }
+        }
+      } else if (scope === "global") {
+        // Global scope: Requires super admin role
+        if (scopeId !== null) {
+          return err(
+            ActionErrors.badRequest(
+              "Global scope must have null scopeId",
+              "DocumentProcessingService.validateScopePermissions"
+            )
+          );
+        }
+
+        // For write operations, require super admin role
+        if (operation === "write") {
+          const userRoles = user.roles ?? [];
+          if (!userRoles.includes(ROLES.SUPER_ADMIN)) {
+            return err(
+              ActionErrors.forbidden(
+                "Global knowledge base requires super admin role",
+                {
+                  scope,
+                  scopeId,
+                  userId,
+                },
+                "DocumentProcessingService.validateScopePermissions"
+              )
+            );
+          }
+        }
+      }
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error(
+        "Failed to validate scope permissions",
+        { scope, scopeId, userId, operation },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to validate scope permissions",
+          error as Error,
+          "DocumentProcessingService.validateScopePermissions"
+        )
+      );
+    }
+  }
+
   /**
    * Upload document to Vercel Blob and create database record
    */
@@ -29,6 +273,27 @@ export class DocumentProcessingService {
     userId: string
   ): Promise<ActionResult<KnowledgeDocumentDto>> {
     try {
+      // Validate scope-specific permissions before upload
+      const permissionResult = await this.validateScopePermissions(
+        scope,
+        scopeId,
+        userId,
+        "write"
+      );
+      if (permissionResult.isErr()) {
+        return err(
+          ActionErrors.forbidden(
+            "You are not authorized to upload a document to this scope",
+            {
+              scope,
+              scopeId,
+              userId,
+            },
+            "DocumentProcessingService.uploadDocument"
+          )
+        );
+      }
+
       // Validate file type
       const allowedTypes = [
         "application/pdf",
@@ -297,7 +562,7 @@ export class DocumentProcessingService {
   private static async createDocumentEmbeddings(
     documentId: string,
     text: string,
-    organizationId?: string
+    _organizationId?: string
   ): Promise<ActionResult<void>> {
     try {
       // Use EmbeddingService to create embeddings
@@ -358,6 +623,15 @@ export class DocumentProcessingService {
         );
       }
 
+      // Validate organization access
+      const accessResult = await this.validateDocumentAccess(
+        document,
+        "DocumentProcessingService.getDocumentContent"
+      );
+      if (accessResult.isErr()) {
+        return err(accessResult.error);
+      }
+
       if (!document.extractedText) {
         return err(
           ActionErrors.badRequest(
@@ -400,6 +674,36 @@ export class DocumentProcessingService {
         return err(
           ActionErrors.notFound(
             "Document",
+            "DocumentProcessingService.deleteDocument"
+          )
+        );
+      }
+
+      // Validate organization access and write permissions
+      const accessResult = await this.validateDocumentAccess(
+        document,
+        "DocumentProcessingService.deleteDocument"
+      );
+      if (accessResult.isErr()) {
+        return err(accessResult.error);
+      }
+
+      // Validate write permissions for deletion
+      const permissionResult = await this.validateScopePermissions(
+        document.scope,
+        document.scopeId,
+        userId,
+        "write"
+      );
+      if (permissionResult.isErr()) {
+        return err(
+          ActionErrors.forbidden(
+            "You are not authorized to delete a document from this scope",
+            {
+              scope: document.scope,
+              scopeId: document.scopeId,
+              userId,
+            },
             "DocumentProcessingService.deleteDocument"
           )
         );
@@ -474,7 +778,7 @@ export class DocumentProcessingService {
       // Simple regex to find potential abbreviations
       // Pattern: Uppercase letters (2-5 chars) that appear multiple times
       const abbreviationPattern = /\b[A-Z]{2,5}\b/g;
-      const matches = text.match(abbreviationPattern) || [];
+      const matches = text.match(abbreviationPattern) ?? [];
 
       // Count occurrences and filter common words
       const commonWords = new Set([
@@ -513,7 +817,7 @@ export class DocumentProcessingService {
       const termCounts = new Map<string, number>();
       for (const match of matches) {
         if (!commonWords.has(match)) {
-          termCounts.set(match, (termCounts.get(match) || 0) + 1);
+          termCounts.set(match, (termCounts.get(match) ?? 0) + 1);
         }
       }
 
