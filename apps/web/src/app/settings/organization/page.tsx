@@ -12,6 +12,7 @@ import { OrganizationInstructionsSection } from "@/features/settings/components/
 import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/components/organization-knowledge-base-section";
 import { getCachedKnowledgeEntries, getCachedKnowledgeDocuments } from "@/server/cache/knowledge-base.cache";
 import { getAuthSession } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 import { isOrganizationAdmin } from "@/lib/rbac";
 import { OrganizationService } from "@/server/services";
 import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
@@ -85,8 +86,22 @@ async function OrganizationContent() {
       : "";
 
   // Fetch knowledge base entries and documents
-  const knowledgeEntries = await getCachedKnowledgeEntries("organization", orgCode || null);
-  const knowledgeDocuments = await getCachedKnowledgeDocuments("organization", orgCode || null);
+  let knowledgeEntries: Awaited<ReturnType<typeof getCachedKnowledgeEntries>> = [];
+  let knowledgeDocuments: Awaited<ReturnType<typeof getCachedKnowledgeDocuments>> = [];
+
+  if (orgCode) {
+    try {
+      knowledgeEntries = await getCachedKnowledgeEntries("organization", orgCode);
+      knowledgeDocuments = await getCachedKnowledgeDocuments("organization", orgCode);
+    } catch (error) {
+      logger.error("Failed to fetch knowledge base data", {
+        component: "OrganizationPage",
+        organizationId: orgCode,
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
+      // Continue rendering with empty arrays
+    }
+  }
 
   return (
     <div className="container mx-auto max-w-2xl py-8 px-4">
