@@ -1,7 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProjectTemplateSection } from "@/features/projects/components/project-templates/project-template-section";
+import { ProjectKnowledgeBaseSection } from "@/features/knowledge-base/components/project-knowledge-base-section";
+import { getCachedKnowledgeEntries, getCachedKnowledgeDocuments, getCachedHierarchicalKnowledge } from "@/server/cache/knowledge-base.cache";
 import { ProjectService } from "@/server/services/project.service";
+import { getAuthSession } from "@/lib/auth";
+import { isProjectManager } from "@/lib/rbac";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -30,6 +34,21 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
   }
 
   const project = projectResult.value;
+
+  // Check if user can edit (project manager or admin)
+  const authResult = await getAuthSession();
+  const canEdit =
+    authResult.isOk() && authResult.value.user
+      ? isProjectManager(authResult.value.user)
+      : false;
+
+  // Fetch knowledge base data
+  const projectEntries = await getCachedKnowledgeEntries("project", projectId);
+  const projectDocuments = await getCachedKnowledgeDocuments("project", projectId);
+  const hierarchicalEntries = await getCachedHierarchicalKnowledge(
+    projectId,
+    project.organizationId
+  );
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -69,6 +88,16 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
               </Suspense>
             </CardContent>
           </Card>
+
+          {/* Knowledge Base Section */}
+          <ProjectKnowledgeBaseSection
+            initialProjectEntries={projectEntries}
+            initialProjectDocuments={projectDocuments}
+            initialHierarchicalEntries={hierarchicalEntries}
+            projectId={projectId}
+            organizationId={project.organizationId}
+            canEdit={canEdit}
+          />
         </div>
       </div>
     </div>
