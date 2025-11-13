@@ -6,6 +6,7 @@ import {
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
 import { KnowledgeBaseEntriesQueries } from "../../../server/data-access";
+import { ok } from "neverthrow";
 import { z } from "zod";
 
 const getEntriesByIdsInputSchema = z.object({
@@ -32,7 +33,7 @@ export const getKnowledgeEntriesByIdsAction = authorizedActionClient
         (entry): entry is NonNullable<typeof entry> => entry !== null
       );
 
-      return resultToActionResponse({ ok: true, data: validEntries });
+      return resultToActionResponse(ok(validEntries));
     } catch (error) {
       throw ActionErrors.internal(
         "Failed to fetch knowledge entries",

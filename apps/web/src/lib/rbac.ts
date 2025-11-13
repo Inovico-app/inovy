@@ -285,6 +285,17 @@ export function isOrganizationAdmin(
 }
 
 /**
+ * Check if a user is a project manager
+ * This is a convenience method that checks if the user has the MANAGER role
+ */
+export function isProjectManager(
+  user: AuthUser | (AuthUser & { roles: Role[] })
+): boolean {
+  const roles = user.roles ?? getUserRoles(user);
+  return roles.includes(ROLES.MANAGER) || roles.includes(ROLES.ADMIN) || roles.includes(ROLES.SUPER_ADMIN);
+}
+
+/**
  * Check if a user can access organization-level chat
  */
 export function canAccessOrganizationChat(

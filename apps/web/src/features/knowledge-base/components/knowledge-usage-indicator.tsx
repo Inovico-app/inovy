@@ -55,8 +55,10 @@ export function KnowledgeUsageIndicator({
           return;
         }
 
-        if (result?.data) {
+        if (result?.data && Array.isArray(result.data)) {
           setEntries(result.data);
+        } else {
+          setEntries([]);
         }
       } catch (err) {
         console.error("Error fetching knowledge entries:", err);
