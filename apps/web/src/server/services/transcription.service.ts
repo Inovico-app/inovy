@@ -436,7 +436,11 @@ Je taak:
 1. Identificeer termen in de transcriptie die mogelijk verkeerd zijn getranscribeerd
 2. Vergelijk met de kennisbank om te zien of er termen zijn die mogelijk verkeerd zijn gehoord
 3. Geef alleen correcties terug als je zeker bent dat een term verkeerd is getranscribeerd
+4. Gebruik de kennisbank om de correcte term te vinden en gebruik deze in de corrected veld.
+5. Zorg ervoor dat de transcriptie in correct Nederlands is geschreven en maak complete zinnen.
+6. Als je geen term kan vinden in de kennisbank, doe dan niks zodat de gebruiker zelf de correctie kan maken.
 
+Belangrijk: Gebruik de juiste uitbreidingen voor afkortingen en houd terminologie consistent met de kennisbank.
 Antwoord ALLEEN met valid JSON in het volgende formaat:
 {
   "corrections": [
@@ -452,14 +456,13 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
       const userPrompt = `Analyseer deze transcriptie en identificeer mogelijke fouten op basis van de kennisbank:\n\n${transcriptionText}`;
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-4-turbo",
+        model: "gpt-5-nano",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
         response_format: { type: "json_object" },
         temperature: 0.3,
-        max_tokens: 1000,
       });
 
       const responseContent = completion.choices[0]?.message?.content;
