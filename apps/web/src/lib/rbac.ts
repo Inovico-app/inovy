@@ -56,6 +56,9 @@ export const POLICIES = {
   // Settings management
   "settings:read": "settings:read",
   "settings:update": "settings:update",
+
+  // Integrations management
+  "integrations:manage": "integrations:manage",
 } as const;
 
 export type PolicyKey = keyof typeof POLICIES;
@@ -107,6 +110,7 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "deepgram:token",
     "settings:read",
     "settings:update",
+    "integrations:manage",
   ],
   [ROLES.ADMIN]: [
     "projects:create",
@@ -135,6 +139,7 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "org:instructions:write",
     "settings:read",
     "settings:update",
+    "integrations:manage",
   ],
   [ROLES.MANAGER]: [
     "projects:create",
@@ -156,6 +161,7 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "org:instructions:read",
     "settings:read",
     "settings:update",
+    "integrations:manage",
   ],
   [ROLES.USER]: [
     "projects:create",

@@ -60,6 +60,18 @@ export class DriveWatchesQueries {
   }
 
   /**
+   * Get watch by ID
+   */
+  static async getWatchById(id: string): Promise<DriveWatch | null> {
+    const [watch] = await db
+      .select()
+      .from(driveWatches)
+      .where(eq(driveWatches.id, id))
+      .limit(1);
+    return watch ?? null;
+  }
+
+  /**
    * Get watches expiring before threshold (in milliseconds)
    */
   static async getExpiringWatches(thresholdMs: number): Promise<DriveWatch[]> {
