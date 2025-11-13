@@ -1,16 +1,18 @@
 import { err, ok } from "neverthrow";
 import { start } from "workflow/api";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
-import { logger } from "../../lib/logger";
 import { isAudioOrVideoFile, uploadToBlob } from "../../lib/google-drive-utils";
+import { logger } from "../../lib/logger";
 import { convertRecordingIntoAiInsights } from "../../workflows/convert-recording";
 import { DriveWatchesQueries } from "../data-access/drive-watches.queries";
 import { ProjectQueries } from "../data-access/projects.queries";
-import { type DriveWatchDto, type DriveWatchListItemDto } from "../dto/drive-watch.dto";
+import type { DriveWatch, NewRecording } from "../db/schema";
+import {
+  type DriveWatchDto,
+  type DriveWatchListItemDto,
+} from "../dto/drive-watch.dto";
 import { GoogleDriveService } from "./google-drive.service";
 import { RecordingService } from "./recording.service";
-import type { DriveWatch } from "../db/schema";
-import type { NewRecording } from "../db/schema";
 
 /**
  * Drive Watches Service
@@ -42,89 +44,9 @@ export class DriveWatchesService {
       const project = await ProjectQueries.findById(projectId, organizationId);
       if (!project) {
         return err(
-          ActionErrors.notFound(
-            "Project",
-            "DriveWatchesService.startWatch"
-          )
+          ActionErrors.notFound("Project", "DriveWatchesService.startWatch")
         );
       }
-
-      // Check for existing active watch
-      const existingWatch = await DriveWatchesQueries.getWatchByUserAndFolder(
-        userId,
-        folderId
-      );
-
-      if (existingWatch) {
-        // If watch exists and is not expired, return it
-        if (existingWatch.expiration > Date.now() && existingWatch.isActive) {
-          logger.info("Active watch already exists", {
-            component: "DriveWatchesService.startWatch",
-            watchId: existingWatch.id,
-            folderId,
-          });
-
-          // Get folder name from Drive API
-          const folderNameResult = await GoogleDriveService.getFileMetadata(
-            userId,
-            folderId
-          );
-          const folderName = folderNameResult.isOk()
-            ? folderNameResult.value.name
-            : null;
-
-          return ok({
-            id: existingWatch.id,
-            folderId: existingWatch.folderId,
-            projectId: existingWatch.projectId,
-            organizationId: existingWatch.organizationId,
-            expiresAt: new Date(existingWatch.expiration),
-            isActive: existingWatch.isActive,
-            folderName,
-          });
-        }
-
-        // Deactivate expired watch
-        if (existingWatch.isActive) {
-          await DriveWatchesQueries.deactivateWatch(existingWatch.channelId);
-          logger.info("Deactivated expired watch", {
-            component: "DriveWatchesService.startWatch",
-            watchId: existingWatch.id,
-          });
-        }
-      }
-
-      // Create new watch via Google Drive API
-      const watchResult = await GoogleDriveService.startWatch(
-        userId,
-        folderId,
-        webhookUrl
-      );
-
-      if (watchResult.isErr()) {
-        return err(watchResult.error);
-      }
-
-      const { channelId, resourceId, expiration } = watchResult.value;
-
-      // Save to database
-      const watch = await DriveWatchesQueries.createWatch({
-        userId,
-        folderId,
-        channelId,
-        resourceId,
-        expiration,
-        isActive: true,
-        projectId,
-        organizationId,
-      });
-
-      logger.info("Successfully started Drive watch", {
-        component: "DriveWatchesService.startWatch",
-        watchId: watch.id,
-        folderId,
-        projectId,
-      });
 
       // Get folder name from Drive API
       const folderNameResult = await GoogleDriveService.getFileMetadata(
@@ -135,13 +57,98 @@ export class DriveWatchesService {
         ? folderNameResult.value.name
         : null;
 
+      // Check for existing active watch
+      const existingWatch = await DriveWatchesQueries.getWatchByUserAndFolder(
+        userId,
+        folderId
+      );
+
+      if (!existingWatch) {
+        // Create new watch via Google Drive API
+        const watchResult = await GoogleDriveService.startWatch(
+          userId,
+          folderId,
+          webhookUrl
+        );
+
+        if (watchResult.isErr()) {
+          return err(watchResult.error);
+        }
+
+        const { channelId, resourceId, expiration } = watchResult.value;
+
+        // Save to database
+        const watch = await DriveWatchesQueries.createWatch({
+          userId,
+          folderId,
+          channelId,
+          resourceId,
+          expiration,
+          isActive: true,
+          projectId,
+          organizationId,
+        });
+
+        logger.info("Successfully started Drive watch", {
+          component: "DriveWatchesService.startWatch",
+          watchId: watch.id,
+          folderId,
+          projectId,
+        });
+
+        return ok({
+          id: watch.id,
+          folderId: watch.folderId,
+          projectId: watch.projectId,
+          organizationId: watch.organizationId,
+          expiresAt: new Date(watch.expiration),
+          isActive: watch.isActive,
+          folderName,
+        });
+      }
+
+      // If watch exists and is not expired, return it
+      if (
+        existingWatch &&
+        existingWatch.expiration > Date.now() &&
+        existingWatch.isActive
+      ) {
+        if (existingWatch.projectId !== projectId) {
+          return err(
+            ActionErrors.conflict(
+              "Drive watch already exists for this folder under a different project",
+              "DriveWatchesService.startWatch"
+            )
+          );
+        }
+
+        logger.info("Active watch already exists", {
+          component: "DriveWatchesService.startWatch",
+          watchId: existingWatch.id,
+          folderId,
+        });
+      }
+
+      // Deactivate expired watch
+      if (
+        existingWatch &&
+        existingWatch.expiration < Date.now() &&
+        existingWatch.isActive
+      ) {
+        await DriveWatchesQueries.deactivateWatch(existingWatch.channelId);
+        logger.info("Deactivated expired watch", {
+          component: "DriveWatchesService.startWatch",
+          watchId: existingWatch.id,
+        });
+      }
+
       return ok({
-        id: watch.id,
-        folderId: watch.folderId,
-        projectId: watch.projectId,
-        organizationId: watch.organizationId,
-        expiresAt: new Date(watch.expiration),
-        isActive: watch.isActive,
+        id: existingWatch.id,
+        folderId: existingWatch.folderId,
+        projectId: existingWatch.projectId,
+        organizationId: existingWatch.organizationId,
+        expiresAt: new Date(existingWatch.expiration),
+        isActive: existingWatch.isActive,
         folderName,
       });
     } catch (error) {
@@ -183,10 +190,7 @@ export class DriveWatchesService {
 
       if (!watch) {
         return err(
-          ActionErrors.notFound(
-            "Drive watch",
-            "DriveWatchesService.stopWatch"
-          )
+          ActionErrors.notFound("Drive watch", "DriveWatchesService.stopWatch")
         );
       }
 
@@ -294,11 +298,7 @@ export class DriveWatchesService {
 
       return ok(watchesWithDetails);
     } catch (error) {
-      logger.error(
-        "Failed to list Drive watches",
-        { userId },
-        error as Error
-      );
+      logger.error("Failed to list Drive watches", { userId }, error as Error);
       return err(
         ActionErrors.internal(
           "Failed to list Drive watches",
