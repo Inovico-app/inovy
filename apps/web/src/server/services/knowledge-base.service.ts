@@ -1,22 +1,21 @@
 import { ActionErrors, type ActionResult } from "@/lib";
-import { getAuthSession, type AuthUser } from "@/lib/auth";
-import { isOrganizationAdmin, ROLES } from "@/lib/rbac";
+import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import { ProjectQueries } from "../data-access";
-import {
-  KnowledgeBaseEntriesQueries,
-  KnowledgeBaseDocumentsQueries,
-} from "../data-access";
-import type {
-  CreateKnowledgeEntryDto,
-  CreateKnowledgeDocumentDto,
-  KnowledgeEntryDto,
-  KnowledgeDocumentDto,
-  UpdateKnowledgeEntryDto,
-  UpdateKnowledgeDocumentDto,
-} from "../dto/knowledge-base.dto";
-import type { KnowledgeBaseScope } from "../db/schema/knowledge-base-entries";
+import { ROLES } from "@/lib/rbac";
 import { err, ok } from "neverthrow";
+import {
+  KnowledgeBaseDocumentsQueries,
+  KnowledgeBaseEntriesQueries,
+  ProjectQueries,
+} from "../data-access";
+import type { KnowledgeBaseScope } from "../db/schema/knowledge-base-entries";
+import type {
+  CreateKnowledgeDocumentDto,
+  CreateKnowledgeEntryDto,
+  KnowledgeDocumentDto,
+  KnowledgeEntryDto,
+  UpdateKnowledgeEntryDto,
+} from "../dto/knowledge-base.dto";
 
 /**
  * Business logic layer for Knowledge Base operations
@@ -36,11 +35,10 @@ export class KnowledgeBaseService {
         return ok([]);
       }
 
-      const entries =
-        await KnowledgeBaseEntriesQueries.getHierarchicalEntries(
-          projectId,
-          organizationId
-        );
+      const entries = await KnowledgeBaseEntriesQueries.getHierarchicalEntries(
+        projectId,
+        organizationId
+      );
 
       // Remove priority field for return type
       const result: KnowledgeEntryDto[] = entries.map(
@@ -160,15 +158,24 @@ export class KnowledgeBaseService {
         "write"
       );
       if (permissionResult.isErr()) {
-        return permissionResult;
+        return err(
+          ActionErrors.forbidden(
+            "You are not authorized to create a knowledge base entry in this scope",
+            {
+              scope,
+              scopeId,
+              userId,
+            },
+            "KnowledgeBaseService.createEntry"
+          )
+        );
       }
 
       // Validate term uniqueness within scope
-      const existingEntries = await KnowledgeBaseEntriesQueries.getEntriesByScope(
-        scope,
-        scopeId,
-        { includeInactive: true }
-      );
+      const existingEntries =
+        await KnowledgeBaseEntriesQueries.getEntriesByScope(scope, scopeId, {
+          includeInactive: true,
+        });
       const duplicate = existingEntries.find(
         (e) => e.term.toLowerCase() === entryData.term.toLowerCase()
       );
@@ -246,7 +253,16 @@ export class KnowledgeBaseService {
         "write"
       );
       if (permissionResult.isErr()) {
-        return permissionResult;
+        return err(
+          ActionErrors.forbidden(
+            "You are not authorized to update a knowledge base entry in this scope",
+            {
+              scope: existing.scope,
+              scopeId: existing.scopeId,
+              userId,
+            }
+          )
+        );
       }
 
       // If term is being updated, check uniqueness
@@ -259,8 +275,9 @@ export class KnowledgeBaseService {
           );
         const duplicate = existingEntries.find(
           (e) =>
-            e.id !== id &&
-            e.term.toLowerCase() === data.term.toLowerCase()
+            (e.id !== id &&
+              e.term.toLowerCase() === data?.term?.toLowerCase()) ??
+            ""
         );
         if (duplicate) {
           return err(
@@ -297,7 +314,11 @@ export class KnowledgeBaseService {
 
       return ok(updated);
     } catch (error) {
-      logger.error("Failed to update knowledge base entry", { id }, error as Error);
+      logger.error(
+        "Failed to update knowledge base entry",
+        { id },
+        error as Error
+      );
       return err(
         ActionErrors.internal(
           "Failed to update knowledge base entry",
@@ -357,7 +378,11 @@ export class KnowledgeBaseService {
 
       return ok(undefined);
     } catch (error) {
-      logger.error("Failed to delete knowledge base entry", { id }, error as Error);
+      logger.error(
+        "Failed to delete knowledge base entry",
+        { id },
+        error as Error
+      );
       return err(
         ActionErrors.internal(
           "Failed to delete knowledge base entry",
@@ -408,8 +433,8 @@ export class KnowledgeBaseService {
         toScope === "global"
           ? null
           : toScope === "organization"
-            ? existing.scopeId
-            : null; // For project promotion, scopeId would need to be provided separately
+          ? existing.scopeId
+          : null; // For project promotion, scopeId would need to be provided separately
 
       if (toScope === "project") {
         return err(
@@ -427,7 +452,16 @@ export class KnowledgeBaseService {
         "write"
       );
       if (permissionResult.isErr()) {
-        return permissionResult;
+        return err(
+          ActionErrors.forbidden(
+            "You are not authorized to promote a knowledge base entry in this scope",
+            {
+              scope: toScope,
+              scopeId: targetScopeId,
+              userId,
+            }
+          )
+        );
       }
 
       // Check if entry already exists in target scope
@@ -500,7 +534,13 @@ export class KnowledgeBaseService {
         organizationId
       );
       if (knowledgeResult.isErr()) {
-        return knowledgeResult;
+        return err(
+          ActionErrors.internal(
+            "Failed to get applicable knowledge",
+            knowledgeResult.error,
+            "KnowledgeBaseService.buildKnowledgeContext"
+          )
+        );
       }
 
       const entries = knowledgeResult.value;
@@ -594,7 +634,16 @@ export class KnowledgeBaseService {
         "write"
       );
       if (permissionResult.isErr()) {
-        return permissionResult;
+        return err(
+          ActionErrors.forbidden(
+            "You are not authorized to create a knowledge base document in this scope",
+            {
+              scope,
+              scopeId,
+              userId,
+            }
+          )
+        );
       }
 
       const createDto: CreateKnowledgeDocumentDto = {
@@ -609,8 +658,9 @@ export class KnowledgeBaseService {
         createdById: userId,
       };
 
-      const document =
-        await KnowledgeBaseDocumentsQueries.createDocument(createDto);
+      const document = await KnowledgeBaseDocumentsQueries.createDocument(
+        createDto
+      );
 
       logger.info("Knowledge base document created", {
         documentId: document.id,
@@ -773,6 +823,11 @@ export class KnowledgeBaseService {
           return err(
             ActionErrors.forbidden(
               "Cannot access other organization's knowledge base",
+              {
+                scope,
+                scopeId,
+                userId,
+              },
               "KnowledgeBaseService.validateScopePermissions"
             )
           );
@@ -790,6 +845,11 @@ export class KnowledgeBaseService {
             return err(
               ActionErrors.forbidden(
                 "Organization knowledge base requires admin or manager role",
+                {
+                  scope,
+                  scopeId,
+                  userId,
+                },
                 "KnowledgeBaseService.validateScopePermissions"
               )
             );
@@ -813,6 +873,11 @@ export class KnowledgeBaseService {
             return err(
               ActionErrors.forbidden(
                 "Global knowledge base requires super admin role",
+                {
+                  scope,
+                  scopeId,
+                  userId,
+                },
                 "KnowledgeBaseService.validateScopePermissions"
               )
             );
