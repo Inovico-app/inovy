@@ -5,6 +5,8 @@ import { logger } from "@/lib/logger";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { NotificationService } from "./notification.service";
+import { KnowledgeBaseService } from "./knowledge-base.service";
+import OpenAI from "openai";
 
 interface TranscriptionResult {
   text: string;
@@ -63,18 +65,62 @@ export class TranscriptionService {
         processingStatus: "processing",
       });
 
-      // Call Deepgram API
+      // Get recording to fetch project/organization context
+      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      if (!recording) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "TranscriptionService.transcribeUploadedFile"
+          )
+        );
+      }
+
+      // Fetch applicable knowledge base entries for this project
+      const knowledgeResult = await KnowledgeBaseService.getApplicableKnowledge(
+        recording.projectId,
+        recording.organizationId
+      );
+      const knowledgeEntries = knowledgeResult.isOk() ? knowledgeResult.value : [];
+
+      // Format knowledge entries as Deepgram keywords
+      // Deepgram keywords format: array of strings (terms)
+      const keywords = knowledgeEntries.map((entry) => entry.term);
+
+      logger.info("Using knowledge base for transcription", {
+        component: "TranscriptionService.transcribeUploadedFile",
+        recordingId,
+        keywordsCount: keywords.length,
+        knowledgeEntriesUsed: knowledgeEntries.map((e) => e.id),
+      });
+
+      // Call Deepgram API with keywords
       const deepgram = this.getDeepgramClient();
+      const deepgramOptions: {
+        model: string;
+        language: string;
+        smart_format: boolean;
+        diarize: boolean;
+        punctuate: boolean;
+        utterances: boolean;
+        keywords?: string[];
+      } = {
+        model: "nova-3",
+        language: "nl",
+        smart_format: true,
+        diarize: true,
+        punctuate: true,
+        utterances: true,
+      };
+
+      // Add keywords if available
+      if (keywords.length > 0) {
+        deepgramOptions.keywords = keywords;
+      }
+
       const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
         { url: fileUrl },
-        {
-          model: "nova-3",
-          language: "nl",
-          smart_format: true,
-          diarize: true,
-          punctuate: true,
-          utterances: true,
-        }
+        deepgramOptions
       );
 
       if (error) {
@@ -196,6 +242,7 @@ export class TranscriptionService {
           confidence,
           speakers,
           utterances,
+          knowledgeUsed: knowledgeEntries.map((e) => e.id), // Track which knowledge entries were used
         },
         confidence
       );
@@ -206,6 +253,19 @@ export class TranscriptionService {
         transcriptionText,
         "completed"
       );
+
+      // Run post-transcription correction with knowledge base (non-blocking)
+      this.correctTranscriptionWithKnowledge(
+        transcriptionText,
+        recordingId,
+        recording.projectId,
+        recording.organizationId
+      ).catch((error) => {
+        logger.warn("Failed to correct transcription with knowledge base", {
+          recordingId,
+          error,
+        });
+      });
 
       logger.info("Transcription completed successfully", {
         component: "TranscriptionService.transcribeUploadedFile",
