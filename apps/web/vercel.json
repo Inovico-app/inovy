@@ -1,0 +1,9 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/renew-drive-watches",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}
+
