@@ -3,11 +3,11 @@
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
-import { CacheInvalidation } from "../../../lib/cache-utils";
-import { DocumentProcessingService } from "../../../server/services";
-import { uploadKnowledgeDocumentSchema } from "../../../server/validation/knowledge-base.schema";
+} from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
+import { CacheInvalidation } from "@/lib/cache-utils";
+import { DocumentProcessingService } from "@/server/services";
+import { uploadKnowledgeDocumentSchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 

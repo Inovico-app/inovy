@@ -3,11 +3,11 @@
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
-import { CacheInvalidation } from "../../../lib/cache-utils";
-import { DocumentProcessingService, KnowledgeBaseService } from "../../../server/services";
-import { deleteKnowledgeDocumentSchema } from "../../../server/validation/knowledge-base.schema";
+} from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
+import { CacheInvalidation } from "@/lib/cache-utils";
+import { DocumentProcessingService } from "@/server/services";
+import { deleteKnowledgeDocumentSchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -58,10 +58,12 @@ export const deleteKnowledgeDocumentAction = authorizedActionClient
     } else {
       // Document not found - cache invalidation handled by service error
     }
-
     // Revalidate relevant pages
-    revalidatePath(`/settings/organization`);
-    revalidatePath(`/projects/[projectId]/settings`);
+    if (document?.scope === "project" && document.scopeId) {
+      revalidatePath(`/projects/${document.scopeId}/settings`);
+    } else if (document?.scope === "organization") {
+      revalidatePath(`/settings/organization`);
+    }
 
     return resultToActionResponse(result);
   });

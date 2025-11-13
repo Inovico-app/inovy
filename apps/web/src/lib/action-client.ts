@@ -221,7 +221,7 @@ async function authenticationMiddleware({
 /**
  * Convert ActionError to Error for next-safe-action compatibility
  */
-function createErrorForNextSafeAction(
+export function createErrorForNextSafeAction(
   actionError: ActionError
 ): Error & { actionError: ActionError } {
   const error = new Error(actionError.message) as Error & {

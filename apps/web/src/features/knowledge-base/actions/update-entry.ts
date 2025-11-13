@@ -2,12 +2,13 @@
 
 import {
   authorizedActionClient,
+  createErrorForNextSafeAction,
   resultToActionResponse,
-} from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
-import { CacheInvalidation } from "../../../lib/cache-utils";
-import { KnowledgeBaseService } from "../../../server/services";
-import { updateKnowledgeEntrySchema } from "../../../server/validation/knowledge-base.schema";
+} from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
+import { CacheInvalidation } from "@/lib/cache-utils";
+import { KnowledgeBaseService } from "@/server/services";
+import { updateKnowledgeEntrySchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -42,7 +43,7 @@ export const updateKnowledgeEntryAction = authorizedActionClient
     );
 
     if (result.isErr()) {
-      throw ActionErrors.fromResult(result.error);
+      throw createErrorForNextSafeAction(result.error);
     }
 
     const entry = result.value;

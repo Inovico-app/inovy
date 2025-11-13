@@ -2,12 +2,13 @@
 
 import {
   authorizedActionClient,
+  createErrorForNextSafeAction,
   resultToActionResponse,
-} from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
-import { CacheInvalidation } from "../../../lib/cache-utils";
-import { KnowledgeBaseService } from "../../../server/services";
-import { createKnowledgeEntrySchema } from "../../../server/validation/knowledge-base.schema";
+} from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
+import { CacheInvalidation } from "@/lib/cache-utils";
+import { KnowledgeBaseService } from "@/server/services";
+import { createKnowledgeEntrySchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -19,8 +20,7 @@ export const createKnowledgeEntryAction = authorizedActionClient
   })
   .inputSchema(createKnowledgeEntrySchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { scope, scopeId, term, definition, context, examples } =
-      parsedInput;
+    const { scope, scopeId, term, definition, context, examples } = parsedInput;
     const { user, organizationId } = ctx;
 
     if (!user) {
@@ -39,7 +39,7 @@ export const createKnowledgeEntryAction = authorizedActionClient
     );
 
     if (result.isErr()) {
-      throw ActionErrors.fromResult(result.error);
+      throw createErrorForNextSafeAction(result.error);
     }
 
     // Invalidate cache

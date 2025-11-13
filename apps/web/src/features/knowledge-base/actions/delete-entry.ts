@@ -3,11 +3,12 @@
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
-import { CacheInvalidation } from "../../../lib/cache-utils";
-import { KnowledgeBaseService } from "../../../server/services";
-import { deleteKnowledgeEntrySchema } from "../../../server/validation/knowledge-base.schema";
+} from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
+import { CacheInvalidation } from "@/lib/cache-utils";
+import { KnowledgeBaseEntriesQueries } from "@/server/data-access";
+import { KnowledgeBaseService } from "@/server/services";
+import { deleteKnowledgeEntrySchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -29,13 +30,6 @@ export const deleteKnowledgeEntryAction = authorizedActionClient
       );
     }
 
-    // Get entry first to know its scope for cache invalidation
-    // We need to query by ID - for now, we'll get it from the service after deletion
-    // The service returns the entry scope in the error if not found, so we can handle it
-    // Actually, we need to fetch it before deletion. Let's use a direct query approach.
-    const { KnowledgeBaseEntriesQueries } = await import(
-      "../../../server/data-access"
-    );
     const entry = await KnowledgeBaseEntriesQueries.getEntryById(id);
 
     // Delete entry
@@ -61,11 +55,14 @@ export const deleteKnowledgeEntryAction = authorizedActionClient
     } else {
       // Entry not found - cache invalidation handled by service error
     }
+    // Revalidate relevant pages
+    if (entry?.scope === "project" && entry?.scopeId) {
+      revalidatePath(`/projects/${entry.scopeId}/settings`);
+    } else if (entry?.scope === "organization") {
+      revalidatePath(`/settings/organization`);
+    }
 
     // Revalidate relevant pages
-    revalidatePath(`/settings/organization`);
-    revalidatePath(`/projects/[projectId]/settings`);
-
     return resultToActionResponse(result);
   });
 
