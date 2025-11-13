@@ -13,6 +13,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, type CoreMessage } from "ai";
 import { err, ok } from "neverthrow";
 import { getCachedProjectTemplate } from "../cache/project-template.cache";
+import { KnowledgeBaseService } from "./knowledge-base.service";
 import { ProjectService } from "./project.service";
 import {
   buildCompletePrompt,
@@ -20,7 +21,6 @@ import {
   validatePromptSafety,
 } from "./prompt-builder.service";
 import { VectorSearchService } from "./vector-search.service";
-import { KnowledgeBaseService } from "./knowledge-base.service";
 
 export class ChatService {
   private static openai = createOpenAI({
@@ -129,7 +129,9 @@ export class ChatService {
       projectId,
       project.organizationId
     );
-    const knowledgeContext = knowledgeResult.isOk() ? knowledgeResult.value : "";
+    const knowledgeContext = knowledgeResult.isOk()
+      ? knowledgeResult.value
+      : "";
 
     // Build knowledge glossary section
     let knowledgeSection = "";
@@ -140,7 +142,9 @@ export class ChatService {
     return `You are an AI assistant helping users find information in their project recordings and meetings.
 
 Project: ${project.name}
-${project.description ? `Description: ${project.description}` : ""}${knowledgeSection}
+${
+  project.description ? `Description: ${project.description}` : ""
+}${knowledgeSection}
 
 Your role:
 - Answer questions based on the provided context from project recordings, transcriptions, summaries, and tasks
@@ -174,7 +178,9 @@ General Guidelines:
       null, // No project ID for org-level
       organizationId
     );
-    const knowledgeContext = knowledgeResult.isOk() ? knowledgeResult.value : "";
+    const knowledgeContext = knowledgeResult.isOk()
+      ? knowledgeResult.value
+      : "";
 
     // Build knowledge glossary section
     let knowledgeSection = "";
@@ -319,7 +325,7 @@ Please answer the user's question based on this information.`
 
       // Stream response from GPT-4-turbo
       const result = await streamText({
-        model: this.openai("gpt-4-turbo"),
+        model: this.openai("gpt-5-nano"),
         system: systemPromptWithGuardRails,
         messages: [
           ...conversationHistory,
@@ -613,7 +619,9 @@ Please answer the user's question based on this information.`
         }));
 
       // Build system prompt for organization
-      const systemPrompt = await this.buildOrganizationSystemPrompt(organizationId);
+      const systemPrompt = await this.buildOrganizationSystemPrompt(
+        organizationId
+      );
 
       // Get organization settings for instructions
       const orgSettings = await getCachedOrganizationSettings(organizationId);
