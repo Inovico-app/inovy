@@ -390,4 +390,145 @@ export class TranscriptionService {
       interim_results: true,
     };
   }
+
+  /**
+   * Post-transcription correction using knowledge base
+   * Identifies misheard terms and corrects them using knowledge base entries
+   * Stores corrections separately in AI insights metadata
+   */
+  static async correctTranscriptionWithKnowledge(
+    transcriptionText: string,
+    recordingId: string,
+    projectId: string,
+    organizationId: string
+  ): Promise<ActionResult<void>> {
+    try {
+      // Fetch applicable knowledge base entries
+      const knowledgeResult = await KnowledgeBaseService.getApplicableKnowledge(
+        projectId,
+        organizationId
+      );
+      if (knowledgeResult.isErr() || knowledgeResult.value.length === 0) {
+        // No knowledge base entries, skip correction
+        return ok(undefined);
+      }
+
+      const knowledgeEntries = knowledgeResult.value;
+
+      // Use OpenAI to identify potential misheard terms
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY ?? "",
+      });
+
+      // Build knowledge context for correction prompt
+      const knowledgeContext = knowledgeEntries
+        .map((entry) => `${entry.term}: ${entry.definition}`)
+        .join("\n");
+
+      const systemPrompt = `Je bent een AI-assistent die transcripties corrigeert op basis van een kennisbank.
+
+Kennisbank:
+${knowledgeContext}
+
+Je taak:
+1. Identificeer termen in de transcriptie die mogelijk verkeerd zijn getranscribeerd
+2. Vergelijk met de kennisbank om te zien of er termen zijn die mogelijk verkeerd zijn gehoord
+3. Geef alleen correcties terug als je zeker bent dat een term verkeerd is getranscribeerd
+
+Antwoord ALLEEN met valid JSON in het volgende formaat:
+{
+  "corrections": [
+    {
+      "original": "verkeerd getranscribeerde tekst",
+      "corrected": "correcte tekst volgens kennisbank",
+      "knowledgeEntryId": "id van kennisbank entry",
+      "confidence": 0.0 tot 1.0
+    }
+  ]
+}`;
+
+      const userPrompt = `Analyseer deze transcriptie en identificeer mogelijke fouten op basis van de kennisbank:\n\n${transcriptionText}`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4-turbo-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3,
+        max_tokens: 1000,
+      });
+
+      const responseContent = completion.choices[0]?.message?.content;
+      if (!responseContent) {
+        return ok(undefined);
+      }
+
+      const correctionData = JSON.parse(responseContent) as {
+        corrections?: Array<{
+          original: string;
+          corrected: string;
+          knowledgeEntryId: string;
+          confidence: number;
+        }>;
+      };
+
+      const corrections = correctionData.corrections || [];
+
+      if (corrections.length === 0) {
+        return ok(undefined);
+      }
+
+      // Get existing transcription insight
+      const insights = await AIInsightsQueries.getInsightsByRecordingId(
+        recordingId
+      );
+      const transcriptionInsight = insights.find(
+        (i) => i.insightType === "transcription"
+      );
+
+      if (!transcriptionInsight) {
+        logger.warn("Transcription insight not found for corrections", {
+          recordingId,
+        });
+        return ok(undefined);
+      }
+
+      // Update insight with corrections
+      const currentContent = transcriptionInsight.content as Record<
+        string,
+        unknown
+      >;
+      await AIInsightsQueries.updateInsightContent(
+        transcriptionInsight.id,
+        {
+          ...currentContent,
+          corrections: corrections.map((c) => ({
+            original: c.original,
+            corrected: c.corrected,
+            knowledgeEntryId: c.knowledgeEntryId,
+            confidence: c.confidence,
+          })),
+        },
+        transcriptionInsight.confidenceScore ?? 0
+      );
+
+      logger.info("Transcription corrections applied", {
+        component: "TranscriptionService.correctTranscriptionWithKnowledge",
+        recordingId,
+        correctionsCount: corrections.length,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error(
+        "Failed to correct transcription with knowledge base",
+        { recordingId },
+        error as Error
+      );
+      // Don't fail the whole process if correction fails
+      return ok(undefined);
+    }
+  }
 }
