@@ -1,12 +1,12 @@
-import { createClient } from "@deepgram/sdk";
-import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
-import { NotificationService } from "./notification.service";
-import { KnowledgeBaseService } from "./knowledge-base.service";
+import { createClient } from "@deepgram/sdk";
+import { err, ok } from "neverthrow";
 import OpenAI from "openai";
+import { KnowledgeBaseService } from "./knowledge-base.service";
+import { NotificationService } from "./notification.service";
 
 interface TranscriptionResult {
   text: string;
@@ -66,8 +66,10 @@ export class TranscriptionService {
       });
 
       // Get recording to fetch project/organization context
-      const recording = await RecordingsQueries.selectRecordingById(recordingId);
-      if (!recording) {
+      const existingRecording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+      if (!existingRecording) {
         return err(
           ActionErrors.notFound(
             "Recording",
@@ -78,10 +80,12 @@ export class TranscriptionService {
 
       // Fetch applicable knowledge base entries for this project
       const knowledgeResult = await KnowledgeBaseService.getApplicableKnowledge(
-        recording.projectId,
-        recording.organizationId
+        existingRecording.projectId,
+        existingRecording.organizationId
       );
-      const knowledgeEntries = knowledgeResult.isOk() ? knowledgeResult.value : [];
+      const knowledgeEntries = knowledgeResult.isOk()
+        ? knowledgeResult.value
+        : [];
 
       // Format knowledge entries as Deepgram keywords
       // Deepgram keywords format: array of strings (terms)
@@ -129,19 +133,23 @@ export class TranscriptionService {
           error,
         });
 
-        await AIInsightsQueries.updateInsightStatus(
-          insight.id,
-          "failed",
-          error.message
-        );
-
-        await RecordingsQueries.updateRecordingTranscriptionStatus(
-          recordingId,
-          "failed"
-        );
+        await Promise.all([
+          AIInsightsQueries.updateInsightStatus(
+            insight.id,
+            "failed",
+            error.message
+          ),
+          RecordingsQueries.updateRecordingTranscriptionStatus(
+            recordingId,
+            "failed"
+          ),
+        ]);
 
         // Create failure notification
-        const recording = await RecordingsQueries.selectRecordingById(recordingId);
+        const recording = await RecordingsQueries.selectRecordingById(
+          recordingId
+        );
+
         if (recording) {
           await NotificationService.createNotification({
             recordingId,
@@ -258,8 +266,8 @@ export class TranscriptionService {
       this.correctTranscriptionWithKnowledge(
         transcriptionText,
         recordingId,
-        recording.projectId,
-        recording.organizationId
+        existingRecording.projectId,
+        existingRecording.organizationId
       ).catch((error) => {
         logger.warn("Failed to correct transcription with knowledge base", {
           recordingId,
@@ -275,7 +283,9 @@ export class TranscriptionService {
       });
 
       // Create success notification
-      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
       if (recording) {
         await NotificationService.createNotification({
           recordingId,
@@ -532,3 +542,4 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
     }
   }
 }
+
