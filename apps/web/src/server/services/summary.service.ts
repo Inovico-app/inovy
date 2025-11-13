@@ -11,6 +11,7 @@ import {
   type SummaryResult,
 } from "../cache";
 import { NotificationService } from "./notification.service";
+import { KnowledgeBaseService } from "./knowledge-base.service";
 
 export class SummaryService {
   private static openai = new OpenAI({
@@ -51,6 +52,32 @@ export class SummaryService {
         processingStatus: "processing",
       });
 
+      // Get recording to fetch project/organization context for knowledge base
+      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      if (!recording) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "SummaryService.generateSummary"
+          )
+        );
+      }
+
+      // Fetch applicable knowledge base entries
+      const knowledgeEntriesResult =
+        await KnowledgeBaseService.getApplicableKnowledge(
+          recording.projectId,
+          recording.organizationId
+        );
+      const knowledgeEntries = knowledgeEntriesResult.isOk()
+        ? knowledgeEntriesResult.value
+        : [];
+
+      // Build knowledge context for prompt
+      const knowledgeContext = knowledgeEntries
+        .map((entry) => `${entry.term}: ${entry.definition}`)
+        .join("\n");
+
       // Prepare speaker context if available
       let speakerContext = "";
       if (utterances && utterances.length > 0) {
@@ -60,6 +87,12 @@ export class SummaryService {
         speakerContext = `\n\nDe transcriptie bevat ${
           uniqueSpeakers.length
         } verschillende spreker${uniqueSpeakers.length > 1 ? "s" : ""}.`;
+      }
+
+      // Build knowledge context section for prompt
+      let knowledgeSection = "";
+      if (knowledgeContext) {
+        knowledgeSection = `\n\nKennisbank (gebruik deze termen correct in de samenvatting):\n${knowledgeContext}\n\nBelangrijk: Gebruik de juiste uitbreidingen voor afkortingen en houd terminologie consistent met de kennisbank.`;
       }
 
       // Create prompt for Dutch meeting summary
@@ -201,10 +234,14 @@ Antwoord ALLEEN met valid JSON in het volgende formaat (gebruik Engels voor de v
         confidence,
       };
 
-      // Update AI insight with summary
+      // Update AI insight with summary and knowledge references
+      const summaryContentWithKnowledge = {
+        ...summaryContent,
+        knowledgeUsed: knowledgeEntries.map((e) => e.id), // Track which knowledge entries were used
+      };
       await AIInsightsQueries.updateInsightContent(
         insight.id,
-        summaryContent as unknown as Record<string, unknown>,
+        summaryContentWithKnowledge as unknown as Record<string, unknown>,
         confidence
       );
 
