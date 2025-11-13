@@ -74,6 +74,27 @@ export const CacheTags = {
 
   // Drive Watch tags
   driveWatches: (userId: string) => `drive-watches:user:${userId}`,
+
+  // Knowledge Base tags
+  knowledgeEntries: (scope: "project" | "org" | "global", scopeId?: string) =>
+    scope === "global"
+      ? `knowledge-entries:global`
+      : scope === "org"
+        ? `knowledge-entries:org:${scopeId}`
+        : `knowledge-entries:project:${scopeId}`,
+  knowledgeDocuments: (
+    scope: "project" | "org" | "global",
+    scopeId?: string
+  ) =>
+    scope === "global"
+      ? `knowledge-documents:global`
+      : scope === "org"
+        ? `knowledge-documents:org:${scopeId}`
+        : `knowledge-documents:project:${scopeId}`,
+  knowledgeHierarchy: (projectId?: string, orgId?: string) =>
+    projectId && orgId
+      ? `knowledge-hierarchy:project:${projectId}:org:${orgId}`
+      : undefined,
 } as const;
 
 /**
@@ -270,6 +291,68 @@ export const CacheInvalidation = {
     if (conversationId) {
       tags.push(CacheTags.conversationMessages(conversationId));
     }
+    invalidateCache(...tags);
+  },
+
+  /**
+   * Invalidate knowledge base cache for a specific scope
+   */
+  invalidateKnowledge(
+    scope: "project" | "organization" | "global",
+    scopeId: string | null
+  ): void {
+    const tags: string[] = [];
+    if (scope === "global") {
+      tags.push(
+        CacheTags.knowledgeEntries("global"),
+        CacheTags.knowledgeDocuments("global")
+      );
+    } else if (scope === "organization") {
+      tags.push(
+        CacheTags.knowledgeEntries("org", scopeId ?? undefined),
+        CacheTags.knowledgeDocuments("org", scopeId ?? undefined)
+      );
+    } else {
+      tags.push(
+        CacheTags.knowledgeEntries("project", scopeId ?? undefined),
+        CacheTags.knowledgeDocuments("project", scopeId ?? undefined)
+      );
+    }
+    invalidateCache(...tags);
+  },
+
+  /**
+   * Invalidate hierarchical knowledge cache
+   * Invalidates project, organization, and global caches, plus all hierarchies
+   */
+  invalidateKnowledgeHierarchy(
+    projectId: string | null,
+    orgId: string | null
+  ): void {
+    const tags: string[] = [];
+
+    if (projectId) {
+      tags.push(CacheTags.knowledgeEntries("project", projectId));
+      tags.push(CacheTags.knowledgeDocuments("project", projectId));
+    }
+
+    if (orgId) {
+      tags.push(CacheTags.knowledgeEntries("org", orgId ?? undefined));
+      tags.push(CacheTags.knowledgeDocuments("org", orgId ?? undefined));
+    }
+
+    // Invalidate global
+    tags.push(CacheTags.knowledgeEntries("global"));
+    tags.push(CacheTags.knowledgeDocuments("global"));
+
+    // Invalidate hierarchy tag if both IDs provided
+    if (projectId && orgId) {
+      const hierarchyTag = CacheTags.knowledgeHierarchy(projectId, orgId);
+      if (hierarchyTag) {
+        tags.push(hierarchyTag);
+      }
+    }
+
     invalidateCache(...tags);
   },
 } as const;
