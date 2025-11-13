@@ -67,6 +67,13 @@ export class SummaryService {
         existingRecording.projectId,
         existingRecording.organizationId
       );
+      if (knowledgeResult.isErr()) {
+        logger.warn("Failed to fetch applicable knowledge entries", {
+          component: "SummaryService.generateSummary",
+          recordingId,
+          error: knowledgeResult.error,
+        });
+      }
       const knowledgeEntries = knowledgeResult.isOk()
         ? knowledgeResult.value
         : [];
