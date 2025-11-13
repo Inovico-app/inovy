@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,11 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { deleteKnowledgeDocumentAction } from "../actions/delete-document";
 import type { KnowledgeDocumentDto } from "@/server/dto/knowledge-base.dto";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { deleteKnowledgeDocumentAction } from "../actions/delete-document";
 
 interface DeleteKnowledgeDocumentDialogProps {
   document: KnowledgeDocumentDto;
@@ -35,9 +35,18 @@ export function DeleteKnowledgeDocumentDialog({
   const [confirmationText, setConfirmationText] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!open) {
+      setConfirmationText("");
+      setError(null);
+    }
+  }, [open]);
+
   const handleDelete = async () => {
     if (confirmationText !== "DELETE" && confirmationText !== document.title) {
-      setError('Please type "DELETE" or the exact document title to confirm deletion');
+      setError(
+        'Please type "DELETE" or the exact document title to confirm deletion'
+      );
       return;
     }
 
@@ -86,7 +95,8 @@ export function DeleteKnowledgeDocumentDialog({
         <DialogHeader>
           <DialogTitle>Delete Knowledge Document</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete "{document.title}"? This action cannot be undone.
+            Are you sure you want to delete "{document.title}"? This action
+            cannot be undone.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -122,7 +132,11 @@ export function DeleteKnowledgeDocumentDialog({
           <Button
             variant="destructive"
             onClick={handleDelete}
-            disabled={isLoading || (confirmationText !== "DELETE" && confirmationText !== document.title)}
+            disabled={
+              isLoading ||
+              (confirmationText !== "DELETE" &&
+                confirmationText !== document.title)
+            }
           >
             {isLoading ? "Deleting..." : "Delete Document"}
           </Button>
