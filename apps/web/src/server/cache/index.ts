@@ -25,7 +25,11 @@ export {
   getCachedOrganizationInstructions,
 } from "./organization.cache";
 export { getCachedOrganizationSettings } from "./organization-settings.cache";
-export { getCachedProjectByIdWithCreator } from "./project.cache";
+export {
+  getCachedProjectByIdWithCreator,
+  getCachedUserProjects,
+} from "./project.cache";
+export { getCachedDriveWatches } from "./drive-watch.cache";
 export {
   getCachedRecordingById,
   getCachedRecordingsByProjectId,

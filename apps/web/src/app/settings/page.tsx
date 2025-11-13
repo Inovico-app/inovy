@@ -1,16 +1,18 @@
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import type { Route } from "next";
-import { UserIcon, Building2Icon } from "lucide-react";
+import { DriveWatchSettings } from "@/features/settings/components/drive-watch-settings";
 import { GoogleConnection } from "@/features/settings/components/google-connection";
 import { GoogleSettings } from "@/features/settings/components/google-settings";
 import { GoogleStatusDashboard } from "@/features/settings/components/google-status-dashboard";
+import { Building2Icon, UserIcon } from "lucide-react";
+import type { Route } from "next";
+import Link from "next/link";
+import { Suspense } from "react";
 
 const settingsSections = [
   {
@@ -29,7 +31,7 @@ const settingsSections = [
   },
 ];
 
-export default function SettingsPage() {
+function SettingsContent() {
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4">
       <div className="space-y-8">
@@ -71,6 +73,7 @@ export default function SettingsPage() {
           <GoogleConnection />
           <GoogleSettings />
           <GoogleStatusDashboard />
+          <DriveWatchSettings />
         </div>
 
         {/* Back Button */}
@@ -83,3 +86,21 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+export default function SettingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto max-w-4xl py-8 px-4">
+          <div className="space-y-8">
+            <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
+            <div className="h-64 bg-muted rounded animate-pulse" />
+          </div>
+        </div>
+      }
+    >
+      <SettingsContent />
+    </Suspense>
+  );
+}
+

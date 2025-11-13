@@ -71,6 +71,9 @@ export const CacheTags = {
     `conversations:user:${userId}:org:${orgCode}`,
   conversationMessages: (conversationId: string) =>
     `conversation:${conversationId}:messages`,
+
+  // Drive Watch tags
+  driveWatches: (userId: string) => `drive-watches:user:${userId}`,
 } as const;
 
 /**
