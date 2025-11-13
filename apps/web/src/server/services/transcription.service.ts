@@ -145,20 +145,15 @@ export class TranscriptionService {
           ),
         ]);
 
-        // Create failure notification
-        const recording = await RecordingsQueries.selectRecordingById(
-          recordingId
-        );
-
-        if (recording) {
+        if (existingRecording) {
           await NotificationService.createNotification({
             recordingId,
-            projectId: recording.projectId,
-            userId: recording.createdById,
-            organizationId: recording.organizationId,
+            projectId: existingRecording.projectId,
+            userId: existingRecording.createdById,
+            organizationId: existingRecording.organizationId,
             type: "transcription_failed",
             title: "Transcriptie mislukt",
-            message: `De transcriptie van "${recording.title}" is mislukt.`,
+            message: `De transcriptie van "${existingRecording.title}" is mislukt.`,
             metadata: {
               error: error.message,
             },
@@ -283,18 +278,15 @@ export class TranscriptionService {
       });
 
       // Create success notification
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
-      if (recording) {
+      if (existingRecording) {
         await NotificationService.createNotification({
           recordingId,
-          projectId: recording.projectId,
-          userId: recording.createdById,
-          organizationId: recording.organizationId,
+          projectId: existingRecording.projectId,
+          userId: existingRecording.createdById,
+          organizationId: existingRecording.organizationId,
           type: "transcription_completed",
           title: "Transcriptie voltooid",
-          message: `De transcriptie van "${recording.title}" is voltooid.`,
+          message: `De transcriptie van "${existingRecording.title}" is voltooid.`,
           metadata: {
             speakersDetected: speakers.length,
             utterancesCount: utterances.length,
@@ -475,7 +467,7 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
         return ok(undefined);
       }
 
-      const correctionData = JSON.parse(responseContent) as {
+      let correctionData: {
         corrections?: Array<{
           original: string;
           corrected: string;
@@ -483,8 +475,22 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
           confidence: number;
         }>;
       };
+      try {
+        correctionData = JSON.parse(responseContent);
+      } catch (parseError) {
+        logger.error("Failed to parse LLM response JSON", {
+          component: "TranscriptionService.correctTranscriptionWithKnowledge",
+          recordingId,
+          parseError:
+            parseError instanceof Error
+              ? parseError.message
+              : String(parseError),
+          rawResponseContent: responseContent,
+        });
+        return ok(undefined);
+      }
 
-      const corrections = correctionData.corrections || [];
+      const corrections = correctionData.corrections ?? [];
 
       if (corrections.length === 0) {
         return ok(undefined);
