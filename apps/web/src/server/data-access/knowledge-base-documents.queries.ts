@@ -3,8 +3,8 @@ import { db } from "../db";
 import {
   knowledgeBaseDocuments,
   type DocumentProcessingStatus,
+  type KnowledgeBaseScope,
 } from "../db/schema";
-import { type KnowledgeBaseScope } from "../db/schema/knowledge-base-entries";
 import type {
   CreateKnowledgeDocumentDto,
   KnowledgeDocumentDto,
@@ -169,7 +169,10 @@ export class KnowledgeBaseDocumentsQueries {
       fileUrl: doc.fileUrl,
       fileName: doc.fileName,
       fileSize: doc.fileSize,
+<<<<<<< HEAD
       fileType: doc.fileType,
+=======
+>>>>>>> 00af8eb (KB-002: Create knowledge base data access layer)
       extractedText: doc.extractedText,
       processingStatus: doc.processingStatus,
       processingError: doc.processingError,

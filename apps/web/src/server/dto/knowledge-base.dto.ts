@@ -2,8 +2,10 @@
  * Data Transfer Objects for Knowledge Base operations
  */
 
-import type { DocumentProcessingStatus } from "../db/schema";
-import type { KnowledgeBaseScope } from "../db/schema/knowledge-base-entries";
+import type {
+  DocumentProcessingStatus,
+  KnowledgeBaseScope,
+} from "../db/schema";
 
 export interface CreateKnowledgeEntryDto {
   scope: KnowledgeBaseScope;
