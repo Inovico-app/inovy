@@ -329,6 +329,7 @@ export class DocumentProcessingService {
       }`;
       const blobResult = await putBlob(blobPath, file, {
         access: "public",
+        addRandomSuffix: true,
       });
 
       // Create document record

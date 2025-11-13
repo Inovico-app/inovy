@@ -15,7 +15,7 @@ import { z } from "zod";
 /**
  * Update knowledge base entry action
  */
-const updateEntryInputSchema = updateKnowledgeEntrySchema.extend({
+const updateEntryInputSchema = updateKnowledgeEntrySchema.safeExtend({
   id: z.string().uuid("Invalid entry ID"),
 });
 

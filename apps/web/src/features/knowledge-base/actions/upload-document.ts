@@ -14,7 +14,7 @@ import { z } from "zod";
 /**
  * Upload knowledge base document action
  */
-const uploadDocumentInputSchema = uploadKnowledgeDocumentSchema.extend({
+const uploadDocumentInputSchema = uploadKnowledgeDocumentSchema.safeExtend({
   file: z.instanceof(File),
 });
 
@@ -46,8 +46,6 @@ export const uploadKnowledgeDocumentAction = authorizedActionClient
     if (result.isErr()) {
       throw result.error;
     }
-
-    const document = result.value;
 
     // Invalidate cache
     CacheInvalidation.invalidateKnowledge(scope, scopeId);
