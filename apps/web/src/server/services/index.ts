@@ -16,4 +16,5 @@ export { ReprocessingService } from "./reprocessing.service";
 export { TaskService } from "./task.service";
 export { TranscriptionEditService } from "./transcription-edit.service";
 export { VectorSearchService } from "./vector-search.service";
+export { KnowledgeBaseService } from "./knowledge-base.service";
 
