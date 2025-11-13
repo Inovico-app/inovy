@@ -1,16 +1,13 @@
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
-import {
-  KnowledgeBaseEntriesQueries,
-  KnowledgeBaseDocumentsQueries,
-} from "../data-access";
-import { KnowledgeBaseService } from "../services/knowledge-base.service";
-import type {
-  KnowledgeEntryDto,
-  KnowledgeDocumentDto,
-  HierarchicalKnowledgeEntryDto,
-} from "../dto/knowledge-base.dto";
+import { KnowledgeBaseEntriesQueries } from "../data-access";
 import type { KnowledgeBaseScope } from "../db/schema/knowledge-base-entries";
+import type {
+  HierarchicalKnowledgeEntryDto,
+  KnowledgeDocumentDto,
+  KnowledgeEntryDto,
+} from "../dto/knowledge-base.dto";
+import { KnowledgeBaseService } from "../services/knowledge-base.service";
 
 /**
  * Cached knowledge base queries
@@ -29,8 +26,8 @@ export async function getCachedKnowledgeEntries(
     scope === "global"
       ? CacheTags.knowledgeEntries("global")
       : scope === "organization"
-        ? CacheTags.knowledgeEntries("org", scopeId ?? undefined)
-        : CacheTags.knowledgeEntries("project", scopeId ?? undefined);
+      ? CacheTags.knowledgeEntries("org", scopeId ?? undefined)
+      : CacheTags.knowledgeEntries("project", scopeId ?? undefined);
   cacheTag(tag);
   const result = await KnowledgeBaseService.getEntriesByScope(scope, scopeId);
   return result.isErr() ? [] : result.value;
@@ -48,8 +45,8 @@ export async function getCachedKnowledgeDocuments(
     scope === "global"
       ? CacheTags.knowledgeDocuments("global")
       : scope === "organization"
-        ? CacheTags.knowledgeDocuments("org", scopeId ?? undefined)
-        : CacheTags.knowledgeDocuments("project", scopeId ?? undefined);
+      ? CacheTags.knowledgeDocuments("org", scopeId ?? undefined)
+      : CacheTags.knowledgeDocuments("project", scopeId ?? undefined);
   cacheTag(tag);
   const result = await KnowledgeBaseService.getDocumentsByScope(scope, scopeId);
   return result.isErr() ? [] : result.value;
@@ -67,20 +64,29 @@ export async function getCachedHierarchicalKnowledge(
   if (!projectId || !organizationId) {
     return [];
   }
+  const hierarchyTag = CacheTags.knowledgeHierarchy(projectId, organizationId);
 
-  // Tag with hierarchical cache tag
-  cacheTag(
-    CacheTags.knowledgeHierarchy(projectId, organizationId),
-    CacheTags.knowledgeEntries("project", projectId),
-    CacheTags.knowledgeEntries("org", organizationId),
-    CacheTags.knowledgeEntries("global")
-  );
-
-  const entries =
-    await KnowledgeBaseEntriesQueries.getHierarchicalEntries(
-      projectId,
-      organizationId
+  if (!hierarchyTag) {
+    // Tag without hierarchical cache tag
+    cacheTag(
+      CacheTags.knowledgeEntries("project", projectId!),
+      CacheTags.knowledgeEntries("org", organizationId!),
+      CacheTags.knowledgeEntries("global")
     );
+  } else {
+    // Tag with hierarchical cache tag
+    cacheTag(
+      hierarchyTag,
+      CacheTags.knowledgeEntries("project", projectId!),
+      CacheTags.knowledgeEntries("org", organizationId!),
+      CacheTags.knowledgeEntries("global")
+    );
+  }
+
+  const entries = await KnowledgeBaseEntriesQueries.getHierarchicalEntries(
+    projectId,
+    organizationId
+  );
 
   return entries;
 }
