@@ -20,6 +20,7 @@ import {
   validatePromptSafety,
 } from "./prompt-builder.service";
 import { VectorSearchService } from "./vector-search.service";
+import { KnowledgeBaseService } from "./knowledge-base.service";
 
 export class ChatService {
   private static openai = createOpenAI({
@@ -123,10 +124,23 @@ export class ChatService {
 
     const project = projectResult.value;
 
+    // Fetch knowledge base context for this project
+    const knowledgeResult = await KnowledgeBaseService.buildKnowledgeContext(
+      projectId,
+      project.organizationId
+    );
+    const knowledgeContext = knowledgeResult.isOk() ? knowledgeResult.value : "";
+
+    // Build knowledge glossary section
+    let knowledgeSection = "";
+    if (knowledgeContext) {
+      knowledgeSection = `\n\nKnowledge Base (use these terms correctly in your responses):\n${knowledgeContext}\n\nImportant: Use proper expansions for abbreviations and maintain consistent terminology based on the knowledge base.`;
+    }
+
     return `You are an AI assistant helping users find information in their project recordings and meetings.
 
 Project: ${project.name}
-${project.description ? `Description: ${project.description}` : ""}
+${project.description ? `Description: ${project.description}` : ""}${knowledgeSection}
 
 Your role:
 - Answer questions based on the provided context from project recordings, transcriptions, summaries, and tasks
@@ -152,8 +166,23 @@ General Guidelines:
   /**
    * Build system prompt for organization-level context
    */
-  private static buildOrganizationSystemPrompt(): string {
-    return `You are an AI assistant helping users find information across all their organization's recordings and meetings.
+  private static async buildOrganizationSystemPrompt(
+    organizationId: string
+  ): Promise<string> {
+    // Fetch knowledge base context for organization (org + global)
+    const knowledgeResult = await KnowledgeBaseService.buildKnowledgeContext(
+      null, // No project ID for org-level
+      organizationId
+    );
+    const knowledgeContext = knowledgeResult.isOk() ? knowledgeResult.value : "";
+
+    // Build knowledge glossary section
+    let knowledgeSection = "";
+    if (knowledgeContext) {
+      knowledgeSection = `\n\nKnowledge Base (use these terms correctly in your responses):\n${knowledgeContext}\n\nImportant: Use proper expansions for abbreviations and maintain consistent terminology based on the knowledge base.`;
+    }
+
+    return `You are an AI assistant helping users find information across all their organization's recordings and meetings.${knowledgeSection}
 
 Your role:
 - Answer questions based on the provided context from all organization recordings, transcriptions, summaries, and tasks
@@ -584,7 +613,7 @@ Please answer the user's question based on this information.`
         }));
 
       // Build system prompt for organization
-      const systemPrompt = this.buildOrganizationSystemPrompt();
+      const systemPrompt = await this.buildOrganizationSystemPrompt(organizationId);
 
       // Get organization settings for instructions
       const orgSettings = await getCachedOrganizationSettings(organizationId);

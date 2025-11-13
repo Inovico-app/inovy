@@ -3,10 +3,12 @@ import { logger } from "@/lib/logger";
 import { EmbeddingsQueries } from "@/server/data-access/embeddings.queries";
 import { err, ok } from "neverthrow";
 import { EmbeddingService } from "./embedding.service";
+import { KnowledgeBaseService } from "./knowledge-base.service";
+import { KnowledgeBaseDocumentsQueries } from "@/server/data-access";
 
 export interface SearchResult {
   id: string;
-  contentType: "recording" | "transcription" | "summary" | "task";
+  contentType: "recording" | "transcription" | "summary" | "task" | "knowledge_document";
   contentId: string;
   contentText: string;
   similarity: number;
@@ -19,6 +21,8 @@ export interface SearchResult {
     status?: string;
     timestamp?: number;
     chunkIndex?: number;
+    documentId?: string; // For knowledge documents
+    documentTitle?: string; // For knowledge documents
     [key: string]: unknown;
   };
 }
@@ -49,7 +53,7 @@ export class VectorSearchService {
 
       const queryEmbedding = queryEmbeddingResult.value;
 
-      // Search for similar embeddings
+      // Search for similar embeddings (includes knowledge documents if indexed)
       const results = await EmbeddingsQueries.searchSimilar(
         queryEmbedding,
         projectId,
@@ -59,7 +63,7 @@ export class VectorSearchService {
         }
       );
 
-      // Transform results
+      // Transform results (knowledge documents will be included if embeddings exist)
       const searchResults: SearchResult[] = results.map((result) => ({
         id: result.id,
         contentType: result.contentType as SearchResult["contentType"],
@@ -158,6 +162,19 @@ export class VectorSearchService {
       contextParts.push("---");
     }
 
+    // Add knowledge documents separately (if any)
+    const knowledgeDocs = results.filter(
+      (r) => r.contentType === "knowledge_document"
+    );
+    if (knowledgeDocs.length > 0) {
+      contextParts.push("\n## Knowledge Base Documents:");
+      knowledgeDocs.forEach((doc) => {
+        const docTitle = doc.metadata.documentTitle as string || doc.metadata.title as string || "Knowledge Document";
+        contextParts.push(`\n### ${docTitle}`);
+        contextParts.push(doc.contentText);
+      });
+    }
+
     return contextParts.join("\n");
   }
 
@@ -166,7 +183,7 @@ export class VectorSearchService {
    */
   static formatSourceCitations(results: SearchResult[]): Array<{
     contentId: string;
-    contentType: "recording" | "transcription" | "summary" | "task";
+    contentType: "recording" | "transcription" | "summary" | "task" | "knowledge_document";
     title: string;
     excerpt: string;
     similarityScore: number;
@@ -175,26 +192,47 @@ export class VectorSearchService {
     recordingDate?: string;
     projectName?: string;
     projectId?: string;
+    documentId?: string; // For knowledge documents
+    documentTitle?: string; // For knowledge documents
   }> {
-    return results.map((result) => ({
-      contentId: result.contentId,
-      contentType: result.contentType,
-      title:
-        result.metadata.title || result.metadata.recordingTitle || "Untitled",
-      excerpt:
-        result.contentText.length > 200
-          ? result.contentText.substring(0, 200) + "..."
-          : result.contentText,
-      similarityScore: result.similarity,
-      // For transcriptions, the contentId IS the recordingId
-      recordingId:
-        result.metadata.recordingId ??
-        (result.contentType === "transcription" ? result.contentId : undefined),
-      timestamp: result.metadata.timestamp,
-      recordingDate: result.metadata.recordingDate as string | undefined,
-      projectName: result.metadata.projectName as string | undefined,
-      projectId: result.metadata.projectId as string | undefined,
-    }));
+    return results.map((result) => {
+      // Handle knowledge documents differently
+      if (result.contentType === "knowledge_document") {
+        return {
+          contentId: result.contentId,
+          contentType: result.contentType,
+          title: result.metadata.documentTitle as string || result.metadata.title as string || "Knowledge Document",
+          excerpt:
+            result.contentText.length > 200
+              ? result.contentText.substring(0, 200) + "..."
+              : result.contentText,
+          similarityScore: result.similarity,
+          documentId: result.metadata.documentId as string,
+          documentTitle: result.metadata.documentTitle as string,
+        };
+      }
+
+      // Handle regular recording sources
+      return {
+        contentId: result.contentId,
+        contentType: result.contentType,
+        title:
+          result.metadata.title || result.metadata.recordingTitle || "Untitled",
+        excerpt:
+          result.contentText.length > 200
+            ? result.contentText.substring(0, 200) + "..."
+            : result.contentText,
+        similarityScore: result.similarity,
+        // For transcriptions, the contentId IS the recordingId
+        recordingId:
+          result.metadata.recordingId ??
+          (result.contentType === "transcription" ? result.contentId : undefined),
+        timestamp: result.metadata.timestamp,
+        recordingDate: result.metadata.recordingDate as string | undefined,
+        projectName: result.metadata.projectName as string | undefined,
+        projectId: result.metadata.projectId as string | undefined,
+      };
+    });
   }
 
   /**
