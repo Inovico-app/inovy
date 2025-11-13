@@ -431,10 +431,10 @@ export class TranscriptionService {
       });
 
       // Build knowledge context for correction prompt
+      // Persists knowledge entry id so that the LLM can reference the correct entry.
       const knowledgeContext = knowledgeEntries
-        .map((entry) => `${entry.term}: ${entry.definition}`)
+        .map((entry) => `${entry.id} | ${entry.term}: ${entry.definition}`)
         .join("\n");
-
       const systemPrompt = `Je bent een AI-assistent die transcripties corrigeert op basis van een kennisbank.
 
 Kennisbank:
