@@ -33,7 +33,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+
     const validationResult = startDriveWatchSchema.safeParse(body);
 
     if (!validationResult.success) {
