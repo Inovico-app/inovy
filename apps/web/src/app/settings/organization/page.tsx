@@ -7,13 +7,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/components/organization-knowledge-base-section";
 import { getOrganizationSettings } from "@/features/settings/actions/organization-settings";
 import { OrganizationInstructionsSection } from "@/features/settings/components/organization-instructions-section";
-import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/components/organization-knowledge-base-section";
-import { getCachedKnowledgeEntries, getCachedKnowledgeDocuments } from "@/server/cache/knowledge-base.cache";
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { isOrganizationAdmin } from "@/lib/rbac";
+import {
+  getCachedKnowledgeDocuments,
+  getCachedKnowledgeEntries,
+} from "@/server/cache/knowledge-base.cache";
 import { OrganizationService } from "@/server/services";
 import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
@@ -86,13 +89,22 @@ async function OrganizationContent() {
       : "";
 
   // Fetch knowledge base entries and documents
-  let knowledgeEntries: Awaited<ReturnType<typeof getCachedKnowledgeEntries>> = [];
-  let knowledgeDocuments: Awaited<ReturnType<typeof getCachedKnowledgeDocuments>> = [];
+  let knowledgeEntries: Awaited<ReturnType<typeof getCachedKnowledgeEntries>> =
+    [];
+  let knowledgeDocuments: Awaited<
+    ReturnType<typeof getCachedKnowledgeDocuments>
+  > = [];
 
   if (orgCode) {
     try {
-      knowledgeEntries = await getCachedKnowledgeEntries("organization", orgCode);
-      knowledgeDocuments = await getCachedKnowledgeDocuments("organization", orgCode);
+      knowledgeEntries = await getCachedKnowledgeEntries(
+        "organization",
+        orgCode
+      );
+      knowledgeDocuments = await getCachedKnowledgeDocuments(
+        "organization",
+        orgCode
+      );
     } catch (error) {
       logger.error("Failed to fetch knowledge base data", {
         component: "OrganizationPage",
