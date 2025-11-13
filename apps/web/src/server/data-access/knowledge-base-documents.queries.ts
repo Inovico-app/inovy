@@ -169,10 +169,7 @@ export class KnowledgeBaseDocumentsQueries {
       fileUrl: doc.fileUrl,
       fileName: doc.fileName,
       fileSize: doc.fileSize,
-<<<<<<< HEAD
       fileType: doc.fileType,
-=======
->>>>>>> 00af8eb (KB-002: Create knowledge base data access layer)
       extractedText: doc.extractedText,
       processingStatus: doc.processingStatus,
       processingError: doc.processingError,
