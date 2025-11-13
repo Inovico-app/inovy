@@ -36,8 +36,7 @@ export const CacheTags = {
   // Organization tags
   organization: (orgCode: string) => `org:${orgCode}`,
   orgMembers: (orgCode: string) => `org-members:${orgCode}`,
-  organizationInstructions: (orgCode: string) =>
-    `org-instructions:${orgCode}`,
+  organizationInstructions: (orgCode: string) => `org-instructions:${orgCode}`,
   organizationSettings: (orgCode: string) => `org-settings:${orgCode}`,
 
   // Notification tags
@@ -76,21 +75,38 @@ export const CacheTags = {
   driveWatches: (userId: string) => `drive-watches:user:${userId}`,
 
   // Knowledge Base tags
-  knowledgeEntries: (scope: "project" | "org" | "global", scopeId?: string) =>
-    scope === "global"
-      ? `knowledge-entries:global`
-      : scope === "org"
-        ? `knowledge-entries:org:${scopeId}`
-        : `knowledge-entries:project:${scopeId}`,
+  knowledgeEntries: (
+    scope: "project" | "org" | "global",
+    scopeId?: string
+  ): string => {
+    if (scope === "global") {
+      return `knowledge-entries:global`;
+    }
+    if (!scopeId) {
+      throw new Error(
+        `scopeId is required for ${scope} scope in knowledgeEntries`
+      );
+    }
+    return scope === "org"
+      ? `knowledge-entries:org:${scopeId}`
+      : `knowledge-entries:project:${scopeId}`;
+  },
   knowledgeDocuments: (
     scope: "project" | "org" | "global",
     scopeId?: string
-  ) =>
-    scope === "global"
-      ? `knowledge-documents:global`
-      : scope === "org"
-        ? `knowledge-documents:org:${scopeId}`
-        : `knowledge-documents:project:${scopeId}`,
+  ): string => {
+    if (scope === "global") {
+      return `knowledge-documents:global`;
+    }
+    if (!scopeId) {
+      throw new Error(
+        `scopeId is required for ${scope} scope in knowledgeDocuments`
+      );
+    }
+    return scope === "org"
+      ? `knowledge-documents:org:${scopeId}`
+      : `knowledge-documents:project:${scopeId}`;
+  },
   knowledgeHierarchy: (projectId?: string, orgId?: string) =>
     projectId && orgId
       ? `knowledge-hierarchy:project:${projectId}:org:${orgId}`
@@ -296,26 +312,40 @@ export const CacheInvalidation = {
 
   /**
    * Invalidate knowledge base cache for a specific scope
+   * For non-global scopes, scopeId is required and must be a non-null string
    */
   invalidateKnowledge(
     scope: "project" | "organization" | "global",
-    scopeId: string | null
+    scopeId?: string | null
   ): void {
-    const tags: string[] = [];
+    // Early return for global scope - no scopeId needed
     if (scope === "global") {
-      tags.push(
+      invalidateCache(
         CacheTags.knowledgeEntries("global"),
         CacheTags.knowledgeDocuments("global")
       );
-    } else if (scope === "organization") {
+      return;
+    }
+
+    // For non-global scopes, scopeId is required
+    if (!scopeId) {
+      throw new Error(
+        `scopeId is required for ${scope} scope in invalidateKnowledge`
+      );
+    }
+
+    // At this point, scopeId is guaranteed to be a non-null string
+    const tags: string[] = [];
+    if (scope === "organization") {
       tags.push(
-        CacheTags.knowledgeEntries("org", scopeId ?? undefined),
-        CacheTags.knowledgeDocuments("org", scopeId ?? undefined)
+        CacheTags.knowledgeEntries("org", scopeId),
+        CacheTags.knowledgeDocuments("org", scopeId)
       );
     } else {
+      // scope === "project"
       tags.push(
-        CacheTags.knowledgeEntries("project", scopeId ?? undefined),
-        CacheTags.knowledgeDocuments("project", scopeId ?? undefined)
+        CacheTags.knowledgeEntries("project", scopeId),
+        CacheTags.knowledgeDocuments("project", scopeId)
       );
     }
     invalidateCache(...tags);
@@ -337,8 +367,8 @@ export const CacheInvalidation = {
     }
 
     if (orgId) {
-      tags.push(CacheTags.knowledgeEntries("org", orgId ?? undefined));
-      tags.push(CacheTags.knowledgeDocuments("org", orgId ?? undefined));
+      tags.push(CacheTags.knowledgeEntries("org", orgId));
+      tags.push(CacheTags.knowledgeDocuments("org", orgId));
     }
 
     // Invalidate global
