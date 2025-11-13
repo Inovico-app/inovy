@@ -1,0 +1,314 @@
+import { put } from "@vercel/blob";
+import { err, ok } from "neverthrow";
+import { start } from "workflow/api";
+import { ActionErrors, type ActionResult } from "../../lib/action-errors";
+import { logger, serializeError } from "../../lib/logger";
+import { BotSessionsQueries } from "../data-access/bot-sessions.queries";
+import { RecordingService } from "./recording.service";
+import { convertRecordingIntoAiInsights } from "../../workflows/convert-recording";
+import type {
+  BotRecordingReadyEvent,
+  BotStatusChangeEvent,
+} from "../validation/bot/recall-webhook.schema";
+
+/**
+ * Bot Webhook Service
+ * Handles processing of Recall.ai webhook events
+ */
+export class BotWebhookService {
+  /**
+   * Process bot status change event
+   */
+  static async processStatusChange(
+    event: BotStatusChangeEvent
+  ): Promise<ActionResult<void>> {
+    try {
+      const { bot, custom_metadata } = event;
+      const organizationId = custom_metadata?.organizationId;
+
+      if (!organizationId) {
+        logger.warn("Status change event missing organizationId", {
+          component: "BotWebhookService.processStatusChange",
+          botId: bot.id,
+        });
+        return ok(undefined);
+      }
+
+      // Update bot session status
+      const session = await BotSessionsQueries.updateByRecallBotId(
+        bot.id,
+        organizationId,
+        {
+          recallStatus: bot.status,
+        }
+      );
+
+      if (!session) {
+        logger.warn("Bot session not found for status update", {
+          component: "BotWebhookService.processStatusChange",
+          botId: bot.id,
+          organizationId,
+        });
+        return ok(undefined);
+      }
+
+      logger.info("Updated bot session status", {
+        component: "BotWebhookService.processStatusChange",
+        sessionId: session.id,
+        botId: bot.id,
+        status: bot.status,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Failed to process status change event", {
+        component: "BotWebhookService.processStatusChange",
+        error: serializeError(error),
+        botId: event.bot.id,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to process status change",
+          error as Error,
+          "BotWebhookService.processStatusChange"
+        )
+      );
+    }
+  }
+
+  /**
+   * Process bot recording ready event
+   * Downloads recording, uploads to Vercel Blob, creates Recording entry, and triggers workflow
+   */
+  static async processRecordingReady(
+    event: BotRecordingReadyEvent
+  ): Promise<ActionResult<void>> {
+    try {
+      const { bot, recording, meeting, custom_metadata } = event;
+      const projectId = custom_metadata?.projectId;
+      const organizationId = custom_metadata?.organizationId;
+      const userId = custom_metadata?.userId;
+
+      if (!projectId || !organizationId || !userId) {
+        logger.error("Recording ready event missing required metadata", {
+          component: "BotWebhookService.processRecordingReady",
+          botId: bot.id,
+          custom_metadata,
+        });
+
+        return err(
+          ActionErrors.internal(
+            "Missing required metadata in webhook event",
+            undefined,
+            "BotWebhookService.processRecordingReady"
+          )
+        );
+      }
+
+      // Find bot session
+      const session = await BotSessionsQueries.findByRecallBotId(
+        bot.id,
+        organizationId
+      );
+
+      if (!session) {
+        logger.error("Bot session not found for recording", {
+          component: "BotWebhookService.processRecordingReady",
+          botId: bot.id,
+          organizationId,
+        });
+
+        return err(
+          ActionErrors.internal(
+            "Bot session not found",
+            undefined,
+            "BotWebhookService.processRecordingReady"
+          )
+        );
+      }
+
+      // Check if recording already exists (idempotency)
+      if (session.recordingId) {
+        logger.info("Recording already processed for bot session", {
+          component: "BotWebhookService.processRecordingReady",
+          sessionId: session.id,
+          recordingId: session.recordingId,
+        });
+        return ok(undefined);
+      }
+
+      logger.info("Processing recording ready event", {
+        component: "BotWebhookService.processRecordingReady",
+        botId: bot.id,
+        recordingId: recording.id,
+        projectId,
+      });
+
+      // Download recording from Recall.ai
+      const downloadResult = await this.downloadRecording(recording.url);
+
+      if (downloadResult.isErr()) {
+        return err(downloadResult.error);
+      }
+
+      const { fileBuffer, mimeType } = downloadResult.value;
+
+      // Determine file name
+      const fileName = `recall-${recording.id}.${this.getFileExtension(mimeType)}`;
+      const timestamp = Date.now();
+      const blobPath = `recordings/${timestamp}-${fileName}`;
+
+      // Upload to Vercel Blob
+      const blob = await put(blobPath, fileBuffer, {
+        access: "public",
+        contentType: mimeType,
+      });
+
+      logger.info("Recording uploaded to Vercel Blob", {
+        component: "BotWebhookService.processRecordingReady",
+        blobUrl: blob.url,
+        fileName,
+      });
+
+      // Create Recording entry
+      const recordingDate = meeting?.start_time
+        ? new Date(meeting.start_time)
+        : new Date();
+
+      const createResult = await RecordingService.createRecording(
+        {
+          projectId,
+          title: meeting?.title || session.meetingTitle || "Bot Recording",
+          description: null,
+          fileUrl: blob.url,
+          fileName,
+          fileSize: fileBuffer.length,
+          fileMimeType: mimeType,
+          duration: recording.duration || null,
+          recordingDate,
+          recordingMode: "bot",
+          transcriptionStatus: "pending",
+          transcriptionText: null,
+          organizationId,
+          createdById: userId,
+        },
+        true // Don't invalidate cache yet
+      );
+
+      if (createResult.isErr()) {
+        logger.error("Failed to create recording", {
+          component: "BotWebhookService.processRecordingReady",
+          error: createResult.error,
+        });
+        return err(createResult.error);
+      }
+
+      const createdRecording = createResult.value;
+
+      // Update bot session with recording ID
+      await BotSessionsQueries.updateByRecallBotId(
+        bot.id,
+        organizationId,
+        {
+          recordingId: createdRecording.id,
+          recallStatus: bot.status,
+        }
+      );
+
+      logger.info("Recording created and bot session updated", {
+        component: "BotWebhookService.processRecordingReady",
+        recordingId: createdRecording.id,
+        sessionId: session.id,
+      });
+
+      // Trigger AI processing workflow
+      const workflowRun = await start(convertRecordingIntoAiInsights, [
+        createdRecording.id,
+      ]).catch((error) => {
+        logger.error("Failed to trigger AI processing workflow", {
+          component: "BotWebhookService.processRecordingReady",
+          recordingId: createdRecording.id,
+          error: serializeError(error),
+        });
+      });
+
+      if (workflowRun) {
+        logger.info("AI processing workflow triggered", {
+          component: "BotWebhookService.processRecordingReady",
+          recordingId: createdRecording.id,
+          workflowRunId: workflowRun.runId,
+        });
+      }
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Failed to process recording ready event", {
+        component: "BotWebhookService.processRecordingReady",
+        error: serializeError(error),
+        botId: event.bot.id,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to process recording",
+          error as Error,
+          "BotWebhookService.processRecordingReady"
+        )
+      );
+    }
+  }
+
+  /**
+   * Download recording file from Recall.ai URL
+   */
+  private static async downloadRecording(
+    url: string
+  ): Promise<ActionResult<{ fileBuffer: Buffer; mimeType: string }>> {
+    try {
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        return err(
+          ActionErrors.internal(
+            `Failed to download recording: ${response.statusText}`,
+            undefined,
+            "BotWebhookService.downloadRecording"
+          )
+        );
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const fileBuffer = Buffer.from(arrayBuffer);
+      const mimeType =
+        response.headers.get("content-type") || "video/mp4";
+
+      return ok({ fileBuffer, mimeType });
+    } catch (error) {
+      return err(
+        ActionErrors.internal(
+          "Failed to download recording file",
+          error as Error,
+          "BotWebhookService.downloadRecording"
+        )
+      );
+    }
+  }
+
+  /**
+   * Get file extension from MIME type
+   */
+  private static getFileExtension(mimeType: string): string {
+    const mimeToExt: Record<string, string> = {
+      "video/mp4": "mp4",
+      "video/webm": "webm",
+      "audio/mp3": "mp3",
+      "audio/mpeg": "mp3",
+      "audio/wav": "wav",
+      "audio/m4a": "m4a",
+    };
+
+    return mimeToExt[mimeType] || "mp4";
+  }
+}
+
