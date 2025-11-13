@@ -1,0 +1,71 @@
+"use server";
+
+import {
+  authorizedActionClient,
+  resultToActionResponse,
+} from "../../../lib/action-client";
+import { ActionErrors } from "../../../lib/action-errors";
+import { CacheInvalidation } from "../../../lib/cache-utils";
+import { DocumentProcessingService } from "../../../server/services";
+import { uploadKnowledgeDocumentSchema } from "../../../server/validation/knowledge-base.schema";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+
+/**
+ * Upload knowledge base document action
+ */
+const uploadDocumentInputSchema = uploadKnowledgeDocumentSchema.extend({
+  file: z.instanceof(File),
+});
+
+export const uploadKnowledgeDocumentAction = authorizedActionClient
+  .metadata({
+    policy: "projects:update", // Project knowledge requires project access
+  })
+  .inputSchema(uploadDocumentInputSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { scope, scopeId, title, description, file } = parsedInput;
+    const { user, organizationId } = ctx;
+
+    if (!user) {
+      throw ActionErrors.unauthenticated(
+        "User not found",
+        "upload-knowledge-document"
+      );
+    }
+
+    // Upload document
+    const result = await DocumentProcessingService.uploadDocument(
+      file,
+      scope,
+      scopeId,
+      { title, description },
+      user.id
+    );
+
+    if (result.isErr()) {
+      throw result.error;
+    }
+
+    const document = result.value;
+
+    // Invalidate cache
+    CacheInvalidation.invalidateKnowledge(scope, scopeId);
+    if (scope === "project" && scopeId && organizationId) {
+      CacheInvalidation.invalidateKnowledgeHierarchy(scopeId, organizationId);
+    } else if (scope === "organization" && scopeId) {
+      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
+    } else if (scope === "global") {
+      CacheInvalidation.invalidateKnowledgeHierarchy(null, null);
+    }
+
+    // Revalidate relevant pages
+    if (scope === "project" && scopeId) {
+      revalidatePath(`/projects/${scopeId}/settings`);
+    } else if (scope === "organization" && organizationId) {
+      revalidatePath(`/settings/organization`);
+    }
+
+    return resultToActionResponse(result);
+  });
+
