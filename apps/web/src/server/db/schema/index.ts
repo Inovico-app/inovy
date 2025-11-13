@@ -19,4 +19,6 @@ export * from "./integration-settings";
 export * from "./integration-templates";
 export * from "./organization-settings";
 export * from "./drive-watches";
+export * from "./knowledge-base-entries";
+export * from "./knowledge-base-documents";
 
