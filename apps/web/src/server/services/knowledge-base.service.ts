@@ -35,6 +35,49 @@ export class KnowledgeBaseService {
         return ok([]);
       }
 
+      // Validate organization access
+      const authResult = await getAuthSession();
+      if (authResult.isErr() || !authResult.value.user) {
+        return err(
+          ActionErrors.unauthenticated(
+            "Authentication required",
+            "KnowledgeBaseService.getApplicableKnowledge"
+          )
+        );
+      }
+
+      const userOrgId = authResult.value.organization?.orgCode;
+      if (!userOrgId) {
+        return err(
+          ActionErrors.forbidden(
+            "User does not belong to an organization",
+            undefined,
+            "KnowledgeBaseService.getApplicableKnowledge"
+          )
+        );
+      }
+
+      // Verify organization matches
+      if (organizationId !== userOrgId) {
+        return err(
+          ActionErrors.notFound(
+            "Project",
+            "KnowledgeBaseService.getApplicableKnowledge"
+          )
+        );
+      }
+
+      // Verify project exists and belongs to user's organization
+      const project = await ProjectQueries.findById(projectId, userOrgId);
+      if (!project) {
+        return err(
+          ActionErrors.notFound(
+            "Project",
+            "KnowledgeBaseService.getApplicableKnowledge"
+          )
+        );
+      }
+
       const entries = await KnowledgeBaseEntriesQueries.getHierarchicalEntries(
         projectId,
         organizationId
@@ -42,7 +85,7 @@ export class KnowledgeBaseService {
 
       // Remove priority field for return type
       const result: KnowledgeEntryDto[] = entries.map(
-        ({ priority, ...entry }) => entry
+        ({ priority: _priority, ...entry }) => entry
       );
 
       return ok(result);
@@ -71,6 +114,27 @@ export class KnowledgeBaseService {
     options?: { includeInactive?: boolean }
   ): Promise<ActionResult<KnowledgeEntryDto[]>> {
     try {
+      // Validate scope-specific permissions
+      const authResult = await getAuthSession();
+      if (authResult.isErr() || !authResult.value.user) {
+        return err(
+          ActionErrors.unauthenticated(
+            "Authentication required",
+            "KnowledgeBaseService.getEntriesByScope"
+          )
+        );
+      }
+
+      const permissionResult = await this.validateScopePermissions(
+        scope,
+        scopeId,
+        authResult.value.user.id,
+        "read"
+      );
+      if (permissionResult.isErr()) {
+        return err(permissionResult.error);
+      }
+
       const entries = await KnowledgeBaseEntriesQueries.getEntriesByScope(
         scope,
         scopeId,
@@ -110,6 +174,27 @@ export class KnowledgeBaseService {
             "KnowledgeBaseService.searchKnowledge"
           )
         );
+      }
+
+      // Validate scope-specific permissions
+      const authResult = await getAuthSession();
+      if (authResult.isErr() || !authResult.value.user) {
+        return err(
+          ActionErrors.unauthenticated(
+            "Authentication required",
+            "KnowledgeBaseService.searchKnowledge"
+          )
+        );
+      }
+
+      const permissionResult = await this.validateScopePermissions(
+        scope,
+        scopeId,
+        authResult.value.user.id,
+        "read"
+      );
+      if (permissionResult.isErr()) {
+        return err(permissionResult.error);
       }
 
       const entries = await KnowledgeBaseEntriesQueries.searchEntries(
@@ -413,6 +498,17 @@ export class KnowledgeBaseService {
         );
       }
 
+      // Validate user has access to the source entry
+      const sourcePermissionResult = await this.validateScopePermissions(
+        existing.scope,
+        existing.scopeId,
+        userId,
+        "read"
+      );
+      if (sourcePermissionResult.isErr()) {
+        return err(sourcePermissionResult.error);
+      }
+
       // Validate promotion is to a higher scope
       const scopeOrder: Record<KnowledgeBaseScope, number> = {
         project: 1,
@@ -587,6 +683,27 @@ export class KnowledgeBaseService {
     scopeId: string | null
   ): Promise<ActionResult<KnowledgeDocumentDto[]>> {
     try {
+      // Validate scope-specific permissions
+      const authResult = await getAuthSession();
+      if (authResult.isErr() || !authResult.value.user) {
+        return err(
+          ActionErrors.unauthenticated(
+            "Authentication required",
+            "KnowledgeBaseService.getDocumentsByScope"
+          )
+        );
+      }
+
+      const permissionResult = await this.validateScopePermissions(
+        scope,
+        scopeId,
+        authResult.value.user.id,
+        "read"
+      );
+      if (permissionResult.isErr()) {
+        return err(permissionResult.error);
+      }
+
       const documents = await KnowledgeBaseDocumentsQueries.getDocumentsByScope(
         scope,
         scopeId
