@@ -140,6 +140,47 @@ export class DriveWatchesService {
           component: "DriveWatchesService.startWatch",
           watchId: existingWatch.id,
         });
+
+        // Create new watch since the old one was expired
+        const watchResult = await GoogleDriveService.startWatch(
+          userId,
+          folderId,
+          webhookUrl
+        );
+
+        if (watchResult.isErr()) {
+          return err(watchResult.error);
+        }
+
+        const { channelId, resourceId, expiration } = watchResult.value;
+
+        const watch = await DriveWatchesQueries.createWatch({
+          userId,
+          folderId,
+          channelId,
+          resourceId,
+          expiration,
+          isActive: true,
+          projectId,
+          organizationId,
+        });
+
+        logger.info("Successfully started Drive watch after deactivating expired watch", {
+          component: "DriveWatchesService.startWatch",
+          watchId: watch.id,
+          folderId,
+          projectId,
+        });
+
+        return ok({
+          id: watch.id,
+          folderId: watch.folderId,
+          projectId: watch.projectId,
+          organizationId: watch.organizationId,
+          expiresAt: new Date(watch.expiration),
+          isActive: watch.isActive,
+          folderName,
+        });
       }
 
       return ok({
