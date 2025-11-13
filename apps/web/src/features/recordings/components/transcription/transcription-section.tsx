@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProcessingError } from "../processing-error";
 import { TranscriptionEditor } from "./transcription-editor";
+import { KnowledgeUsageIndicator } from "@/features/knowledge-base/components/knowledge-usage-indicator";
 import type { TranscriptionSectionProps } from "./types";
 
 export function TranscriptionSection({
@@ -16,19 +17,32 @@ export function TranscriptionSection({
   transcriptionLastEditedAt,
   speakersDetected,
   confidence,
+  knowledgeUsed,
 }: TranscriptionSectionProps) {
   if (transcriptionStatus === "completed" && transcriptionText) {
     return (
-      <TranscriptionEditor
-        recordingId={recordingId}
-        transcriptionText={transcriptionText}
-        utterances={utterances || []}
-        isManuallyEdited={isTranscriptionManuallyEdited}
-        lastEditedById={transcriptionLastEditedById}
-        lastEditedAt={transcriptionLastEditedAt}
-        speakersDetected={speakersDetected}
-        confidence={confidence}
-      />
+      <div className="space-y-4">
+        <TranscriptionEditor
+          recordingId={recordingId}
+          transcriptionText={transcriptionText}
+          utterances={utterances || []}
+          isManuallyEdited={isTranscriptionManuallyEdited}
+          lastEditedById={transcriptionLastEditedById}
+          lastEditedAt={transcriptionLastEditedAt}
+          speakersDetected={speakersDetected}
+          confidence={confidence}
+        />
+        {knowledgeUsed && knowledgeUsed.length > 0 && (
+          <Card>
+            <CardContent className="pt-6">
+              <KnowledgeUsageIndicator
+                knowledgeEntryIds={knowledgeUsed}
+                variant="compact"
+              />
+            </CardContent>
+          </Card>
+        )}
+      </div>
     );
   }
 

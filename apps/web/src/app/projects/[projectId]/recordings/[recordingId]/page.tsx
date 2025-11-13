@@ -239,6 +239,14 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
           transcriptionLastEditedAt={recording.transcriptionLastEditedAt}
           speakersDetected={transcriptionInsight?.speakersDetected ?? undefined}
           confidence={transcriptionInsight?.confidenceScore ?? undefined}
+          knowledgeUsed={
+            transcriptionInsight?.content &&
+            typeof transcriptionInsight.content === "object" &&
+            "knowledgeUsed" in transcriptionInsight.content &&
+            Array.isArray(transcriptionInsight.content.knowledgeUsed)
+              ? (transcriptionInsight.content.knowledgeUsed as string[])
+              : undefined
+          }
         />
 
         {/* AI-Generated Summary */}
