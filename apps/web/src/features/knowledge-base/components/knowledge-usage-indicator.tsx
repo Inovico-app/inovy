@@ -7,10 +7,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import type { KnowledgeEntryDto } from "@/server/dto/knowledge-base.dto";
 import { BookOpenIcon, InfoIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getKnowledgeEntriesByIdsAction } from "../actions/get-entries-by-ids";
-import type { KnowledgeEntryDto } from "@/server/dto/knowledge-base.dto";
 
 interface KnowledgeUsageIndicatorProps {
   knowledgeEntryIds: string[] | undefined | null;
@@ -82,7 +82,8 @@ export function KnowledgeUsageIndicator({
           <TooltipTrigger asChild>
             <Badge variant="outline" className="gap-1">
               <BookOpenIcon className="h-3 w-3" />
-              {knowledgeEntryIds.length} term{knowledgeEntryIds.length !== 1 ? "s" : ""}
+              {knowledgeEntryIds.length} term
+              {knowledgeEntryIds.length !== 1 ? "s" : ""}
             </Badge>
           </TooltipTrigger>
           <TooltipContent>
@@ -153,7 +154,8 @@ export function KnowledgeUsageIndicator({
         </div>
       ) : (
         <Badge variant="outline">
-          {knowledgeEntryIds.length} term{knowledgeEntryIds.length !== 1 ? "s" : ""} used
+          {knowledgeEntryIds.length} term
+          {knowledgeEntryIds.length !== 1 ? "s" : ""} used
         </Badge>
       )}
     </div>
