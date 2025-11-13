@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/card";
 import { getOrganizationSettings } from "@/features/settings/actions/organization-settings";
 import { OrganizationInstructionsSection } from "@/features/settings/components/organization-instructions-section";
+import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/components/organization-knowledge-base-section";
+import { getCachedKnowledgeEntries, getCachedKnowledgeDocuments } from "@/server/cache/knowledge-base.cache";
 import { getAuthSession } from "@/lib/auth";
 import { isOrganizationAdmin } from "@/lib/rbac";
 import { OrganizationService } from "@/server/services";
@@ -82,6 +84,10 @@ async function OrganizationContent() {
       ? settingsResult.data.instructions
       : "";
 
+  // Fetch knowledge base entries and documents
+  const knowledgeEntries = await getCachedKnowledgeEntries("organization", orgCode || null);
+  const knowledgeDocuments = await getCachedKnowledgeDocuments("organization", orgCode || null);
+
   return (
     <div className="container mx-auto max-w-2xl py-8 px-4">
       {/* Header */}
@@ -131,6 +137,16 @@ async function OrganizationContent() {
       {orgCode && (
         <OrganizationInstructionsSection
           initialInstructions={instructions}
+          organizationId={orgCode}
+          canEdit={canEdit}
+        />
+      )}
+
+      {/* Knowledge Base */}
+      {orgCode && (
+        <OrganizationKnowledgeBaseSection
+          initialEntries={knowledgeEntries}
+          initialDocuments={knowledgeDocuments}
           organizationId={orgCode}
           canEdit={canEdit}
         />
