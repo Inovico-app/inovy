@@ -44,4 +44,9 @@ export {
   getCachedTaskTags,
 } from "./task-tags.cache";
 export { getCachedTasksByUser, getCachedTaskStats } from "./task.cache";
+export {
+  getCachedKnowledgeEntries,
+  getCachedKnowledgeDocuments,
+  getCachedHierarchicalKnowledge,
+} from "./knowledge-base.cache";
 

@@ -36,8 +36,7 @@ export const CacheTags = {
   // Organization tags
   organization: (orgCode: string) => `org:${orgCode}`,
   orgMembers: (orgCode: string) => `org-members:${orgCode}`,
-  organizationInstructions: (orgCode: string) =>
-    `org-instructions:${orgCode}`,
+  organizationInstructions: (orgCode: string) => `org-instructions:${orgCode}`,
   organizationSettings: (orgCode: string) => `org-settings:${orgCode}`,
 
   // Notification tags
@@ -74,6 +73,44 @@ export const CacheTags = {
 
   // Drive Watch tags
   driveWatches: (userId: string) => `drive-watches:user:${userId}`,
+
+  // Knowledge Base tags
+  knowledgeEntries: (
+    scope: "project" | "org" | "global",
+    scopeId?: string
+  ): string => {
+    if (scope === "global") {
+      return `knowledge-entries:global`;
+    }
+    if (!scopeId) {
+      throw new Error(
+        `scopeId is required for ${scope} scope in knowledgeEntries`
+      );
+    }
+    return scope === "org"
+      ? `knowledge-entries:org:${scopeId}`
+      : `knowledge-entries:project:${scopeId}`;
+  },
+  knowledgeDocuments: (
+    scope: "project" | "org" | "global",
+    scopeId?: string
+  ): string => {
+    if (scope === "global") {
+      return `knowledge-documents:global`;
+    }
+    if (!scopeId) {
+      throw new Error(
+        `scopeId is required for ${scope} scope in knowledgeDocuments`
+      );
+    }
+    return scope === "org"
+      ? `knowledge-documents:org:${scopeId}`
+      : `knowledge-documents:project:${scopeId}`;
+  },
+  knowledgeHierarchy: (projectId?: string, orgId?: string) =>
+    projectId && orgId
+      ? `knowledge-hierarchy:project:${projectId}:org:${orgId}`
+      : undefined,
 } as const;
 
 /**
@@ -270,6 +307,82 @@ export const CacheInvalidation = {
     if (conversationId) {
       tags.push(CacheTags.conversationMessages(conversationId));
     }
+    invalidateCache(...tags);
+  },
+
+  /**
+   * Invalidate knowledge base cache for a specific scope
+   * For non-global scopes, scopeId is required and must be a non-null string
+   */
+  invalidateKnowledge(
+    scope: "project" | "organization" | "global",
+    scopeId?: string | null
+  ): void {
+    // Early return for global scope - no scopeId needed
+    if (scope === "global") {
+      invalidateCache(
+        CacheTags.knowledgeEntries("global"),
+        CacheTags.knowledgeDocuments("global")
+      );
+      return;
+    }
+
+    // For non-global scopes, scopeId is required
+    if (!scopeId) {
+      throw new Error(
+        `scopeId is required for ${scope} scope in invalidateKnowledge`
+      );
+    }
+
+    // At this point, scopeId is guaranteed to be a non-null string
+    const tags: string[] = [];
+    if (scope === "organization") {
+      tags.push(
+        CacheTags.knowledgeEntries("org", scopeId),
+        CacheTags.knowledgeDocuments("org", scopeId)
+      );
+    } else {
+      // scope === "project"
+      tags.push(
+        CacheTags.knowledgeEntries("project", scopeId),
+        CacheTags.knowledgeDocuments("project", scopeId)
+      );
+    }
+    invalidateCache(...tags);
+  },
+
+  /**
+   * Invalidate hierarchical knowledge cache
+   * Invalidates project, organization, and global caches, plus all hierarchies
+   */
+  invalidateKnowledgeHierarchy(
+    projectId: string | null,
+    orgId: string | null
+  ): void {
+    const tags: string[] = [];
+
+    if (projectId) {
+      tags.push(CacheTags.knowledgeEntries("project", projectId));
+      tags.push(CacheTags.knowledgeDocuments("project", projectId));
+    }
+
+    if (orgId) {
+      tags.push(CacheTags.knowledgeEntries("org", orgId));
+      tags.push(CacheTags.knowledgeDocuments("org", orgId));
+    }
+
+    // Invalidate global
+    tags.push(CacheTags.knowledgeEntries("global"));
+    tags.push(CacheTags.knowledgeDocuments("global"));
+
+    // Invalidate hierarchy tag if both IDs provided
+    if (projectId && orgId) {
+      const hierarchyTag = CacheTags.knowledgeHierarchy(projectId, orgId);
+      if (hierarchyTag) {
+        tags.push(hierarchyTag);
+      }
+    }
+
     invalidateCache(...tags);
   },
 } as const;
