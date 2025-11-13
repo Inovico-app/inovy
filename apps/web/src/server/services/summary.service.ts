@@ -10,12 +10,12 @@ import {
   type SummaryContent,
   type SummaryResult,
 } from "../cache";
-import { NotificationService } from "./notification.service";
 import { KnowledgeBaseService } from "./knowledge-base.service";
+import { NotificationService } from "./notification.service";
 
 export class SummaryService {
   private static openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || "",
+    apiKey: process.env.OPENAI_API_KEY ?? "",
   });
 
   /**
@@ -44,6 +44,16 @@ export class SummaryService {
         return ok(cachedResult);
       }
 
+      // Get recording to fetch project/organization context for knowledge base
+      const existingRecording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+      if (!existingRecording) {
+        return err(
+          ActionErrors.notFound("Recording", "SummaryService.generateSummary")
+        );
+      }
+
       // Create AI insight record
       const insight = await AIInsightsQueries.createAIInsight({
         recordingId,
@@ -52,26 +62,21 @@ export class SummaryService {
         processingStatus: "processing",
       });
 
-      // Get recording to fetch project/organization context for knowledge base
-      const recording = await RecordingsQueries.selectRecordingById(recordingId);
-      if (!recording) {
-        return err(
-          ActionErrors.notFound(
-            "Recording",
-            "SummaryService.generateSummary"
-          )
-        );
-      }
-
-      // Fetch applicable knowledge base entries
-      const knowledgeEntriesResult =
-        await KnowledgeBaseService.getApplicableKnowledge(
-          recording.projectId,
-          recording.organizationId
-        );
-      const knowledgeEntries = knowledgeEntriesResult.isOk()
-        ? knowledgeEntriesResult.value
+      // Fetch applicable knowledge base entries for this project
+      const knowledgeResult = await KnowledgeBaseService.getApplicableKnowledge(
+        existingRecording.projectId,
+        existingRecording.organizationId
+      );
+      const knowledgeEntries = knowledgeResult.isOk()
+        ? knowledgeResult.value
         : [];
+
+      logger.info("Using knowledge base for summary", {
+        component: "SummaryService.generateSummary",
+        recordingId,
+        knowledgeEntriesCount: knowledgeEntries.length,
+        knowledgeEntriesUsed: knowledgeEntries.map((e) => e.id),
+      });
 
       // Build knowledge context for prompt
       const knowledgeContext = knowledgeEntries
@@ -101,17 +106,17 @@ export class SummaryService {
 Je taak is om een gestructureerde samenvatting te maken van de vergadertranscriptie.
 
 Analyseer de transcriptie en maak een samenvatting met de volgende structuur:
-1. Overview: Een beknopte paragraaf (2-3 zinnen) die de essentie van de vergadering samenvat
+1. Overview: Een beknopt overzicht (1-2 paragrafen) die de essentie van de vergadering samenvat
 2. Topics: Een lijst van de belangrijkste onderwerpen die zijn besproken
 3. Decisions: Een lijst van beslissingen die tijdens de vergadering zijn genomen
 4. Speaker Contributions: Voor elke geïdentificeerde spreker, een lijst van hun belangrijkste bijdragen
 5. Important Quotes: Memorabele of belangrijke uitspraken van sprekers
 
-Houd de samenvatting beknopt maar informatief. Focus op actie items en beslissingen.${speakerContext}
+Houd de samenvatting beknopt maar informatief. Focus op actie items en beslissingen.${speakerContext}${knowledgeSection}
 
 Antwoord ALLEEN met valid JSON in het volgende formaat (gebruik Engels voor de veldnamen):
 {
-  "overview": "Een beknopte paragraaf die de vergadering samenvat...",
+  "overview": "Een beknopt overzicht die de vergadering samenvat...",
   "topics": ["onderwerp 1", "onderwerp 2"],
   "decisions": ["beslissing 1", "beslissing 2"],
   "speakerContributions": [
@@ -155,18 +160,15 @@ Antwoord ALLEEN met valid JSON in het volgende formaat (gebruik Engels voor de v
         );
 
         // Create failure notification
-        const recording = await RecordingsQueries.selectRecordingById(
-          recordingId
-        );
-        if (recording) {
+        if (existingRecording) {
           await NotificationService.createNotification({
             recordingId,
-            projectId: recording.projectId,
-            userId: recording.createdById,
-            organizationId: recording.organizationId,
+            projectId: existingRecording.projectId,
+            userId: existingRecording.createdById,
+            organizationId: existingRecording.organizationId,
             type: "summary_failed",
             title: "Samenvatting mislukt",
-            message: `De samenvatting van "${recording.title}" is mislukt.`,
+            message: `De samenvatting van "${existingRecording.title}" is mislukt.`,
             metadata: {
               error: "No response from OpenAI",
             },
@@ -199,18 +201,15 @@ Antwoord ALLEEN met valid JSON in het volgende formaat (gebruik Engels voor de v
         );
 
         // Create failure notification
-        const recording = await RecordingsQueries.selectRecordingById(
-          recordingId
-        );
-        if (recording) {
+        if (existingRecording) {
           await NotificationService.createNotification({
             recordingId,
-            projectId: recording.projectId,
-            userId: recording.createdById,
-            organizationId: recording.organizationId,
+            projectId: existingRecording.projectId,
+            userId: existingRecording.createdById,
+            organizationId: existingRecording.organizationId,
             type: "summary_failed",
             title: "Samenvatting mislukt",
-            message: `De samenvatting van "${recording.title}" is mislukt.`,
+            message: `De samenvatting van "${existingRecording.title}" is mislukt.`,
             metadata: {
               error: "Failed to parse summary",
             },
@@ -256,18 +255,15 @@ Antwoord ALLEEN met valid JSON in het volgende formaat (gebruik Engels voor de v
       });
 
       // Create success notification
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
-      if (recording) {
+      if (existingRecording) {
         await NotificationService.createNotification({
           recordingId,
-          projectId: recording.projectId,
-          userId: recording.createdById,
-          organizationId: recording.organizationId,
+          projectId: existingRecording.projectId,
+          userId: existingRecording.createdById,
+          organizationId: existingRecording.organizationId,
           type: "summary_completed",
           title: "Samenvatting voltooid",
-          message: `De samenvatting van "${recording.title}" is voltooid.`,
+          message: `De samenvatting van "${existingRecording.title}" is voltooid.`,
           metadata: {
             topicsCount: summaryContent.topics?.length ?? 0,
             decisionsCount: summaryContent.decisions?.length ?? 0,
