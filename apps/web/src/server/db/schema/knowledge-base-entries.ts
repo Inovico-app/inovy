@@ -1,4 +1,12 @@
-import { boolean, index, jsonb, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 /**
  * Knowledge Base Entries Table
@@ -32,19 +40,12 @@ export const knowledgeBaseEntries = pgTable(
       .defaultNow(),
   },
   (table) => ({
-    scopeScopeIdTermIdx: index("knowledge_base_entries_scope_scope_id_term_idx").on(
-      table.scope,
-      table.scopeId,
-      table.term
-    ),
+    scopeScopeIdTermIdx: index(
+      "knowledge_base_entries_scope_scope_id_term_idx"
+    ).on(table.scope, table.scopeId, table.term),
     scopeScopeIdIsActiveIdx: index(
       "knowledge_base_entries_scope_scope_id_is_active_idx"
     ).on(table.scope, table.scopeId, table.isActive),
-    scopeScopeIdTermUnique: unique("knowledge_base_entries_scope_scope_id_term_unique").on(
-      table.scope,
-      table.scopeId,
-      table.term
-    ),
   })
 );
 

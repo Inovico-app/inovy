@@ -9,9 +9,7 @@ CREATE TABLE "knowledge_base_entries" (
 	"is_active" boolean DEFAULT true NOT NULL,
 	"created_by_id" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "knowledge_base_entries_scope_check" CHECK ("scope" IN ('project', 'organization', 'global')),
-	CONSTRAINT "knowledge_base_entries_scope_scope_id_term_unique" UNIQUE("scope", "scope_id", "term")
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "knowledge_base_documents" (
@@ -29,13 +27,12 @@ CREATE TABLE "knowledge_base_documents" (
 	"processing_error" text,
 	"created_by_id" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "knowledge_base_documents_scope_check" CHECK ("scope" IN ('project', 'organization', 'global')),
-	CONSTRAINT "knowledge_base_documents_processing_status_check" CHECK ("processing_status" IN ('pending', 'processing', 'completed', 'failed'))
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE INDEX "knowledge_base_entries_scope_scope_id_term_idx" ON "knowledge_base_entries" USING btree ("scope", "scope_id", "term");--> statement-breakpoint
-CREATE INDEX "knowledge_base_entries_scope_scope_id_is_active_idx" ON "knowledge_base_entries" USING btree ("scope", "scope_id", "is_active");--> statement-breakpoint
-CREATE INDEX "knowledge_base_documents_scope_scope_id_idx" ON "knowledge_base_documents" USING btree ("scope", "scope_id");--> statement-breakpoint
-CREATE INDEX "knowledge_base_documents_processing_status_idx" ON "knowledge_base_documents" USING btree ("processing_status");
-
+CREATE INDEX "knowledge_base_entries_scope_scope_id_term_idx" ON "knowledge_base_entries" USING btree ("scope","scope_id","term");--> statement-breakpoint
+CREATE INDEX "knowledge_base_entries_scope_scope_id_is_active_idx" ON "knowledge_base_entries" USING btree ("scope","scope_id","is_active");--> statement-breakpoint
+CREATE INDEX "knowledge_base_documents_scope_scope_id_idx" ON "knowledge_base_documents" USING btree ("scope","scope_id");--> statement-breakpoint
+CREATE INDEX "knowledge_base_documents_processing_status_idx" ON "knowledge_base_documents" USING btree ("processing_status");--> statement-breakpoint
+CREATE UNIQUE INDEX "knowledge_base_entries_global_term_unique" ON "knowledge_base_entries" USING btree ("scope", "term") WHERE "scope_id" IS NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "knowledge_base_entries_scoped_term_unique" ON "knowledge_base_entries" USING btree ("scope", "scope_id", "term") WHERE "scope_id" IS NOT NULL;--> statement-breakpoint
