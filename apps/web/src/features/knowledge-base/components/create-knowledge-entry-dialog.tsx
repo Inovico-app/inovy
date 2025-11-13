@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +9,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createKnowledgeEntryAction } from "../actions/create-entry";
 import type { KnowledgeBaseScope } from "@/server/db/schema/knowledge-base-entries";
 import type { KnowledgeEntryDto } from "@/server/dto/knowledge-base.dto";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
+import { createKnowledgeEntryAction } from "../actions/create-entry";
 
 interface CreateKnowledgeEntryDialogProps {
   open: boolean;
@@ -74,9 +74,9 @@ export function CreateKnowledgeEntryDialog({
         const firstError = Array.isArray(firstFieldErrors)
           ? firstFieldErrors[0]
           : typeof firstFieldErrors === "object" &&
-              firstFieldErrors !== null &&
-              "_errors" in firstFieldErrors &&
-              Array.isArray(firstFieldErrors._errors)
+            firstFieldErrors !== null &&
+            "_errors" in firstFieldErrors &&
+            Array.isArray(firstFieldErrors._errors)
           ? firstFieldErrors._errors[0]
           : undefined;
         toast.error(
