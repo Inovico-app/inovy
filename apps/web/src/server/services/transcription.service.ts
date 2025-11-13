@@ -452,7 +452,7 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
       const userPrompt = `Analyseer deze transcriptie en identificeer mogelijke fouten op basis van de kennisbank:\n\n${transcriptionText}`;
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4-turbo",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
