@@ -84,8 +84,15 @@ export function EditKnowledgeEntryDialog({
         const firstFieldErrors = Object.values(result.validationErrors)[0];
         const firstError = Array.isArray(firstFieldErrors)
           ? firstFieldErrors[0]
-          : firstFieldErrors?._errors?.[0];
-        toast.error(firstError ?? "Validation failed");
+          : typeof firstFieldErrors === "object" &&
+              firstFieldErrors !== null &&
+              "_errors" in firstFieldErrors &&
+              Array.isArray(firstFieldErrors._errors)
+          ? firstFieldErrors._errors[0]
+          : undefined;
+        toast.error(
+          typeof firstError === "string" ? firstError : "Validation failed"
+        );
         return;
       }
 

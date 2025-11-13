@@ -6,7 +6,12 @@ export type MessageRole = (typeof messageRoleEnum)[number];
 
 interface SourceReference {
   contentId: string;
-  contentType: "recording" | "transcription" | "summary" | "task";
+  contentType:
+    | "recording"
+    | "transcription"
+    | "summary"
+    | "task"
+    | "knowledge_document";
   title: string;
   excerpt: string;
   similarityScore: number;
@@ -15,6 +20,7 @@ interface SourceReference {
   recordingDate?: string;
   projectName?: string;
   projectId?: string;
+  documentTitle?: string;
 }
 
 export const chatMessages = pgTable(

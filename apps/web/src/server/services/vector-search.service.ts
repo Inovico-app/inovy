@@ -246,7 +246,12 @@ export class VectorSearchService {
       context: string;
       sources: Array<{
         contentId: string;
-        contentType: "recording" | "transcription" | "summary" | "task";
+        contentType:
+          | "recording"
+          | "transcription"
+          | "summary"
+          | "task"
+          | "knowledge_document";
         title: string;
         excerpt: string;
         similarityScore: number;
@@ -255,6 +260,7 @@ export class VectorSearchService {
         recordingDate?: string;
         projectName?: string;
         projectId?: string;
+        documentTitle?: string;
       }>;
     }>
   > {
@@ -373,7 +379,12 @@ export class VectorSearchService {
       context: string;
       sources: Array<{
         contentId: string;
-        contentType: "recording" | "transcription" | "summary" | "task";
+        contentType:
+          | "recording"
+          | "transcription"
+          | "summary"
+          | "task"
+          | "knowledge_document";
         title: string;
         excerpt: string;
         similarityScore: number;
@@ -382,6 +393,7 @@ export class VectorSearchService {
         recordingDate?: string;
         projectName?: string;
         projectId?: string;
+        documentTitle?: string;
       }>;
     }>
   > {

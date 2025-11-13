@@ -6,6 +6,7 @@ import {
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
 import { getCachedKnowledgeDocuments } from "../../../server/cache/knowledge-base.cache";
+import { ok } from "neverthrow";
 import { z } from "zod";
 import { knowledgeBaseScopeEnum } from "../../../server/db/schema/knowledge-base-entries";
 
@@ -26,8 +27,11 @@ export const getKnowledgeDocumentsAction = authorizedActionClient
     const { scope, scopeId } = parsedInput;
 
     try {
-      const documents = await getCachedKnowledgeDocuments(scope, scopeId);
-      return resultToActionResponse({ ok: true, data: documents });
+      const documents = await getCachedKnowledgeDocuments(
+        scope as "project" | "organization" | "global",
+        scopeId
+      );
+      return resultToActionResponse(ok(documents));
     } catch (error) {
       throw ActionErrors.internal(
         "Failed to fetch knowledge documents",

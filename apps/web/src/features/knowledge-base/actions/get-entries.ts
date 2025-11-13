@@ -6,6 +6,7 @@ import {
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
 import { getCachedKnowledgeEntries } from "../../../server/cache/knowledge-base.cache";
+import { ok } from "neverthrow";
 import { z } from "zod";
 import { knowledgeBaseScopeEnum } from "../../../server/db/schema/knowledge-base-entries";
 
@@ -26,8 +27,11 @@ export const getKnowledgeEntriesAction = authorizedActionClient
     const { scope, scopeId } = parsedInput;
 
     try {
-      const entries = await getCachedKnowledgeEntries(scope, scopeId);
-      return resultToActionResponse({ ok: true, data: entries });
+      const entries = await getCachedKnowledgeEntries(
+        scope as "project" | "organization" | "global",
+        scopeId
+      );
+      return resultToActionResponse(ok(entries));
     } catch (error) {
       throw ActionErrors.internal(
         "Failed to fetch knowledge entries",
