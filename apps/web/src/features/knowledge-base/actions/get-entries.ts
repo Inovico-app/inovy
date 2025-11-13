@@ -11,7 +11,7 @@ import { z } from "zod";
 import { knowledgeBaseScopeEnum } from "../../../server/db/schema/knowledge-base-entries";
 
 const getEntriesInputSchema = z.object({
-  scope: knowledgeBaseScopeEnum,
+  scope: z.enum(knowledgeBaseScopeEnum),
   scopeId: z.string().nullable(),
 });
 
