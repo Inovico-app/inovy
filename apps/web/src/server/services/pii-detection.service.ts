@@ -11,12 +11,11 @@ export interface PIIDetection {
 export type PIIType =
   | "email"
   | "phone"
-  | "ssn"
+  | "bsn"
   | "credit_card"
   | "medical_record"
   | "date_of_birth"
   | "address"
-  | "person_name"
   | "ip_address";
 
 interface PIIPattern {
@@ -33,13 +32,12 @@ interface PIIPattern {
  *
  * Supports detection of:
  * - Email addresses
- * - Phone numbers (international formats)
- * - Social Security Numbers (SSN)
+ * - Phone numbers (Dutch formats)
+ * - BSN (Burger Service Nummer) with elfproef validation
  * - Credit card numbers
  * - Medical record numbers
- * - Dates of birth
- * - Addresses (basic patterns)
- * - Person names (basic patterns)
+ * - Dates of birth (Dutch formats)
+ * - Addresses (Dutch street patterns)
  * - IP addresses
  */
 export class PIIDetectionService {
@@ -47,21 +45,19 @@ export class PIIDetectionService {
     // Email addresses
     {
       type: "email",
-      pattern:
-        /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+      pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
       confidence: 0.95,
     },
-    // Phone numbers (various formats)
+    // Phone numbers (Dutch formats: +31 or 0 prefix)
     {
       type: "phone",
-      pattern:
-        /\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
+      pattern: /\b(?:\+31|0)[\s-]?(?:[1-9]\d{1}[\s-]?\d{6,7}|[1-9]\d{8})\b/g,
       confidence: 0.85,
     },
-    // Social Security Numbers (US format: XXX-XX-XXXX)
+    // BSN (Burger Service Nummer) - 8 or 9 digits, validated with elfproef
     {
-      type: "ssn",
-      pattern: /\b\d{3}-\d{2}-\d{4}\b/g,
+      type: "bsn",
+      pattern: /\b(?:\d{1}[\s.-]?\d{3}[\s.-]?\d{3}[\s.-]?\d{1,2}|\d{8,9})\b/g,
       confidence: 0.9,
     },
     // Credit card numbers (13-19 digits, may have spaces/dashes)
@@ -70,41 +66,70 @@ export class PIIDetectionService {
       pattern: /\b(?:\d{4}[-\s]?){3}\d{1,4}\b/g,
       confidence: 0.8,
     },
-    // Medical record numbers (various formats)
+    // Medical record numbers (Dutch formats)
     {
       type: "medical_record",
-      pattern: /\b(?:MRN|MR|Medical Record)[:\s-]?\d{6,}\b/gi,
+      pattern:
+        /\b(?:DBC|DBC-nummer|Patiëntnummer|Medisch dossier|Dossiernummer)[:\s-]?\d{6,}\b/gi,
       confidence: 0.75,
     },
-    // Dates of birth (various formats)
+    // Dates of birth (Dutch formats: DD-MM-YYYY or DD/MM/YYYY)
     {
       type: "date_of_birth",
       pattern:
-        /\b(?:DOB|Date of Birth|Born)[:\s-]?(?:\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}|\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/gi,
+        /\b(?:Geboortedatum|Geboren|DOB|Date of Birth)[:\s-]?(?:\d{1,2}[-/]\d{1,2}[-/]\d{4}|\d{4}[-/]\d{1,2}[-/]\d{1,2})\b/gi,
       confidence: 0.7,
     },
     // IP addresses
     {
       type: "ip_address",
-      pattern:
-        /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
+      pattern: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
       confidence: 0.9,
     },
-    // Addresses (basic patterns - street numbers and common street terms)
+    // Addresses (Dutch street patterns)
     {
       type: "address",
       pattern:
-        /\b\d+\s+(?:[A-Za-z]+(?:\s+[A-Za-z]+)*\s+)?(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct|Place|Pl|Way|Circle|Cir)\b/gi,
+        /\b\d+[\s-]?(?:[A-Za-z]+[\s-]?)*(?:straat|St|weg|Wg|laan|Ln|plein|Pl|dreef|Dr|kade|Kd|hof|Hf|park|Pk|boulevard|Blvd|singel|Sgl|gracht|Grt)\b/gi,
       confidence: 0.6,
     },
-    // Person names (capitalized words that might be names - lower confidence)
-    // This is a basic pattern and may have false positives
-    {
-      type: "person_name",
-      pattern: /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/g,
-      confidence: 0.5,
-    },
   ];
+
+  /**
+   * Validate BSN using elfproef (eleven test)
+   * BSN must be 8 or 9 digits and pass the checksum validation
+   * For 8-digit BSNs, a leading zero is assumed
+   *
+   * @param bsn - BSN string (may contain spaces/dashes)
+   * @returns true if valid BSN
+   */
+  private static validateBSN(bsn: string): boolean {
+    // Remove spaces, dashes, and dots
+    const digits = bsn.replace(/[\s.-]/g, "");
+
+    // Must be 8 or 9 digits
+    if (!/^\d{8,9}$/.test(digits)) {
+      return false;
+    }
+
+    // Convert to array of numbers
+    const numbers = digits.split("").map(Number);
+
+    // For 8-digit BSN, prepend 0 to make it 9 digits
+    const normalizedNumbers = numbers.length === 8 ? [0, ...numbers] : numbers;
+
+    // Elfproef algorithm: multiply each digit by its weight
+    // Positions: 9, 8, 7, 6, 5, 4, 3, 2, -1 (last digit gets -1)
+    const weights = [9, 8, 7, 6, 5, 4, 3, 2, -1];
+    let sum = 0;
+
+    for (let i = 0; i < 9; i++) {
+      sum += normalizedNumbers[i] * weights[i];
+    }
+
+    // Sum must be divisible by 11
+    return sum % 11 === 0;
+  }
 
   /**
    * Detect PII in a text string
@@ -113,10 +138,7 @@ export class PIIDetectionService {
    * @param minConfidence - Minimum confidence threshold (0-1)
    * @returns Array of detected PII items
    */
-  static detectPII(
-    text: string,
-    minConfidence: number = 0.5
-  ): PIIDetection[] {
+  static detectPII(text: string, minConfidence: number = 0.5): PIIDetection[] {
     const detections: PIIDetection[] = [];
     const seenRanges = new Set<string>();
 
@@ -151,6 +173,13 @@ export class PIIDetectionService {
 
         if (overlaps) {
           continue;
+        }
+
+        // Validate BSN using elfproef
+        if (patternConfig.type === "bsn") {
+          if (!this.validateBSN(match[0])) {
+            continue; // Skip invalid BSN
+          }
         }
 
         seenRanges.add(rangeKey);
@@ -196,15 +225,11 @@ export class PIIDetectionService {
     let currentIndex = 0;
 
     for (const utterance of utterances) {
-      const utteranceDetections = this.detectPII(
-        utterance.text,
-        minConfidence
-      );
+      const utteranceDetections = this.detectPII(utterance.text, minConfidence);
 
       for (const detection of utteranceDetections) {
         // Calculate approximate time based on character position
-        const relativePosition =
-          detection.startIndex / utterance.text.length;
+        const relativePosition = detection.startIndex / utterance.text.length;
         const duration = utterance.end - utterance.start;
         const startTime = utterance.start + duration * relativePosition;
         const endTime =

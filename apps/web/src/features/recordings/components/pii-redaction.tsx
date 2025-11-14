@@ -16,22 +16,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import {
-  applyAutomaticRedactionsAction,
-  createRedactionAction,
-  deleteRedactionAction,
-  detectPIIAction,
-  getRedactionsAction,
-} from "@/features/recordings/actions/redact-pii";
+import { usePIIDetection } from "@/features/recordings/hooks/use-pii-detection";
+import { useRedactions } from "@/features/recordings/hooks/use-redactions";
 import type { PIIDetection } from "@/server/services/pii-detection.service";
-import type { Redaction } from "@/server/db/schema/redactions";
-import { AlertTriangle, Eye, EyeOff, Shield, Sparkles, X } from "lucide-react";
-import { useAction } from "next-safe-action/hooks";
-import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
+import { AlertTriangle, EyeOff, Shield, Sparkles, X } from "lucide-react";
+import { useState } from "react";
+import { PII_TYPE_COLORS, PII_TYPE_LABELS } from "./pii-redaction-helpers";
+import { PIITextHighlight } from "./pii-text-highlight";
 
 interface PIIRedactionProps {
   recordingId: string;
@@ -39,242 +32,55 @@ interface PIIRedactionProps {
   onRedactionsChange?: () => void;
 }
 
-const PII_TYPE_LABELS: Record<string, string> = {
-  email: "Email",
-  phone: "Phone",
-  ssn: "SSN",
-  credit_card: "Credit Card",
-  medical_record: "Medical Record",
-  date_of_birth: "Date of Birth",
-  address: "Address",
-  person_name: "Name",
-  ip_address: "IP Address",
-};
-
-const PII_TYPE_COLORS: Record<string, string> = {
-  email: "bg-blue-500/20 text-blue-700 dark:text-blue-400",
-  phone: "bg-green-500/20 text-green-700 dark:text-green-400",
-  ssn: "bg-red-500/20 text-red-700 dark:text-red-400",
-  credit_card: "bg-purple-500/20 text-purple-700 dark:text-purple-400",
-  medical_record: "bg-orange-500/20 text-orange-700 dark:text-orange-400",
-  date_of_birth: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400",
-  address: "bg-indigo-500/20 text-indigo-700 dark:text-indigo-400",
-  person_name: "bg-pink-500/20 text-pink-700 dark:text-pink-400",
-  ip_address: "bg-gray-500/20 text-gray-700 dark:text-gray-400",
-};
-
 export function PIIRedaction({
   recordingId,
   transcriptionText,
   onRedactionsChange,
 }: PIIRedactionProps) {
-  const [detections, setDetections] = useState<PIIDetection[]>([]);
-  const [redactions, setRedactions] = useState<Redaction[]>([]);
-  const [isDetecting, setIsDetecting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDetection, setSelectedDetection] =
     useState<PIIDetection | null>(null);
 
-  const { execute: detectPII, isExecuting: isDetectingPII } = useAction(
-    detectPIIAction,
-    {
-      onSuccess: ({ data }) => {
-        if (data) {
-          setDetections(data);
-          toast.success(`Found ${data.length} potential PII items`);
-        }
-      },
-      onError: () => {
-        toast.error("Failed to detect PII");
-      },
-    }
-  );
-
-  const { execute: getRedactions, isExecuting: isLoadingRedactions } =
-    useAction(getRedactionsAction, {
-      onSuccess: ({ data }) => {
-        if (data) {
-          setRedactions(data);
-        }
-      },
-      onError: () => {
-        toast.error("Failed to load redactions");
-      },
-    });
-
-  const { execute: createRedaction, isExecuting: isCreatingRedaction } =
-    useAction(createRedactionAction, {
-      onSuccess: () => {
-        toast.success("Redaction created");
-        getRedactions({ recordingId });
-        onRedactionsChange?.();
-        setIsDialogOpen(false);
-        setSelectedDetection(null);
-      },
-      onError: () => {
-        toast.error("Failed to create redaction");
-      },
-    });
-
-  const { execute: deleteRedaction, isExecuting: isDeletingRedaction } =
-    useAction(deleteRedactionAction, {
-      onSuccess: () => {
-        toast.success("Redaction removed");
-        getRedactions({ recordingId });
-        onRedactionsChange?.();
-      },
-      onError: () => {
-        toast.error("Failed to delete redaction");
-      },
-    });
+  const {
+    redactions,
+    isLoadingRedactions,
+    isCreatingRedaction,
+    isDeletingRedaction,
+    handleCreateRedaction,
+    handleRemoveRedaction,
+    isRedacted,
+    refreshRedactions,
+  } = useRedactions(recordingId, onRedactionsChange);
 
   const {
-    execute: applyAutomaticRedactions,
-    isExecuting: isApplyingAutomatic,
-  } = useAction(applyAutomaticRedactionsAction, {
-    onSuccess: ({ data }) => {
-      toast.success(`Applied ${data?.length ?? 0} automatic redactions`);
-      getRedactions({ recordingId });
-      onRedactionsChange?.();
-    },
-    onError: () => {
-      toast.error("Failed to apply automatic redactions");
-    },
+    detections,
+    isDetectingPII,
+    isApplyingAutomatic,
+    handleDetectPII,
+    handleApplyAutomaticRedactions,
+  } = usePIIDetection(recordingId, transcriptionText, {
+    onAutomaticRedactionsApplied: refreshRedactions,
   });
 
-  useEffect(() => {
-    if (recordingId) {
-      getRedactions({ recordingId });
-    }
-  }, [recordingId, getRedactions]);
-
-  const handleDetectPII = useCallback(() => {
-    if (!transcriptionText) {
-      toast.error("No transcription available");
-      return;
-    }
-    setIsDetecting(true);
-    detectPII({ recordingId, minConfidence: 0.5 });
-  }, [recordingId, transcriptionText, detectPII]);
-
-  const handleManualRedaction = useCallback(
-    (detection: PIIDetection) => {
-      setSelectedDetection(detection);
-      setIsDialogOpen(true);
-    },
-    []
-  );
-
-  const handleCreateRedaction = useCallback(() => {
-    if (!selectedDetection || !transcriptionText) {
-      return;
-    }
-
-    createRedaction({
-      recordingId,
-      redactionType: "pii",
-      originalText: selectedDetection.text,
-      startIndex: selectedDetection.startIndex,
-      endIndex: selectedDetection.endIndex,
-      detectedBy: "manual",
-    });
-  }, [recordingId, selectedDetection, transcriptionText, createRedaction]);
-
-  const handleApplyAutomaticRedactions = useCallback(() => {
-    if (!transcriptionText) {
-      toast.error("No transcription available");
-      return;
-    }
-    applyAutomaticRedactions({ recordingId, minConfidence: 0.5 });
-  }, [recordingId, transcriptionText, applyAutomaticRedactions]);
-
-  const handleRemoveRedaction = useCallback(
-    (redactionId: string) => {
-      deleteRedaction({ redactionId });
-    },
-    [deleteRedaction]
-  );
-
-  const isRedacted = (detection: PIIDetection) => {
-    return redactions.some(
-      (r) =>
-        r.startIndex === detection.startIndex &&
-        r.endIndex === detection.endIndex
-    );
+  const handleManualRedaction = (detection: PIIDetection) => {
+    setSelectedDetection(detection);
+    setIsDialogOpen(true);
   };
 
-  const renderTextWithHighlights = () => {
-    if (!transcriptionText) {
-      return null;
+  const handleConfirmRedaction = () => {
+    if (!selectedDetection) {
+      return;
     }
 
-    const parts: Array<{ text: string; isPII: boolean; detection?: PIIDetection }> = [];
-    let lastIndex = 0;
-
-    // Sort detections by start index
-    const sortedDetections = [...detections].sort(
-      (a, b) => a.startIndex - b.startIndex
+    handleCreateRedaction(
+      selectedDetection.text,
+      selectedDetection.startIndex,
+      selectedDetection.endIndex
     );
-
-    for (const detection of sortedDetections) {
-      // Add text before detection
-      if (detection.startIndex > lastIndex) {
-        parts.push({
-          text: transcriptionText.slice(lastIndex, detection.startIndex),
-          isPII: false,
-        });
-      }
-
-      // Add detection
-      parts.push({
-        text: detection.text,
-        isPII: true,
-        detection,
-      });
-
-      lastIndex = detection.endIndex;
-    }
-
-    // Add remaining text
-    if (lastIndex < transcriptionText.length) {
-      parts.push({
-        text: transcriptionText.slice(lastIndex),
-        isPII: false,
-      });
-    }
-
-    return (
-      <div className="space-y-2">
-        {parts.map((part, index) => {
-          if (!part.isPII || !part.detection) {
-            return <span key={index}>{part.text}</span>;
-          }
-
-          const redacted = isRedacted(part.detection);
-          const colorClass =
-            PII_TYPE_COLORS[part.detection.type] ||
-            "bg-gray-500/20 text-gray-700 dark:text-gray-400";
-
-          return (
-            <span
-              key={index}
-              className={`inline-block px-1 rounded ${
-                redacted
-                  ? "bg-red-500/30 text-red-700 dark:text-red-400 line-through"
-                  : colorClass
-              } cursor-pointer hover:opacity-80 transition-opacity`}
-              onClick={() => !redacted && handleManualRedaction(part.detection!)}
-              title={`${PII_TYPE_LABELS[part.detection.type] || part.detection.type} (${Math.round(part.detection.confidence * 100)}% confidence)`}
-            >
-              {redacted ? "[REDACTED]" : part.text}
-            </span>
-          );
-        })}
-      </div>
-    );
+    setIsDialogOpen(false);
+    setSelectedDetection(null);
   };
 
-  const isLoading = isDetectingPII || isLoadingRedactions;
   const hasDetections = detections.length > 0;
   const hasRedactions = redactions.length > 0;
 
@@ -284,35 +90,35 @@ export function PIIRedaction({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            <CardTitle>PII Redaction</CardTitle>
+            <CardTitle>PII Redactie</CardTitle>
           </div>
           <div className="flex items-center gap-2">
             {hasDetections && (
-              <Badge variant="outline">
-                {detections.length} detected
-              </Badge>
+              <Badge variant="outline">{detections.length} gedetecteerd</Badge>
             )}
             {hasRedactions && (
               <Badge variant="secondary">
-                {redactions.length} redacted
+                {redactions.length} geredacteerd
               </Badge>
             )}
           </div>
         </div>
         <CardDescription>
-          Detect and redact personally identifiable information from transcripts
+          Detecteer en redacteer persoonsgegevens uit transcripties
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-2">
           <Button
             onClick={handleDetectPII}
-            disabled={!transcriptionText || isLoading}
+            disabled={
+              !transcriptionText || isDetectingPII || isLoadingRedactions
+            }
             variant="outline"
             size="sm"
           >
             <Sparkles className="h-4 w-4 mr-2" />
-            Detect PII
+            Detecteer PII
           </Button>
           {hasDetections && (
             <Button
@@ -322,26 +128,29 @@ export function PIIRedaction({
               size="sm"
             >
               <EyeOff className="h-4 w-4 mr-2" />
-              Apply All Redactions
+              Pas Alle Redacties Toe
             </Button>
           )}
         </div>
 
-        {isLoading && (
+        {(isDetectingPII || isLoadingRedactions) && (
           <div className="space-y-2">
             <Progress value={undefined} className="w-full" />
             <p className="text-sm text-muted-foreground">
-              {isDetectingPII ? "Detecting PII..." : "Loading redactions..."}
+              {isDetectingPII ? "PII detecteren..." : "Redacties laden..."}
             </p>
           </div>
         )}
 
         {hasDetections && (
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold">Detected PII:</h4>
+            <h4 className="text-sm font-semibold">Gedetecteerde PII:</h4>
             <div className="space-y-1 max-h-40 overflow-y-auto">
               {detections.map((detection, index) => {
-                const redacted = isRedacted(detection);
+                const redacted = isRedacted(
+                  detection.startIndex,
+                  detection.endIndex
+                );
                 return (
                   <div
                     key={index}
@@ -352,9 +161,7 @@ export function PIIRedaction({
                     <div className="flex items-center gap-2">
                       <Badge
                         variant="outline"
-                        className={
-                          PII_TYPE_COLORS[detection.type] || ""
-                        }
+                        className={PII_TYPE_COLORS[detection.type] || ""}
                       >
                         {PII_TYPE_LABELS[detection.type] || detection.type}
                       </Badge>
@@ -372,7 +179,7 @@ export function PIIRedaction({
                     <div className="flex items-center gap-1">
                       {redacted ? (
                         <Badge variant="secondary" className="text-xs">
-                          Redacted
+                          Geredacteerd
                         </Badge>
                       ) : (
                         <Button
@@ -394,7 +201,7 @@ export function PIIRedaction({
 
         {hasRedactions && (
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold">Redaction History:</h4>
+            <h4 className="text-sm font-semibold">Redactie Geschiedenis:</h4>
             <div className="space-y-1 max-h-40 overflow-y-auto">
               {redactions.map((redaction) => (
                 <div
@@ -414,8 +221,8 @@ export function PIIRedaction({
                     </span>
                     <Badge variant="secondary" className="text-xs">
                       {redaction.detectedBy === "automatic"
-                        ? "Auto"
-                        : "Manual"}
+                        ? "Automatisch"
+                        : "Handmatig"}
                     </Badge>
                   </div>
                   <Button
@@ -434,27 +241,36 @@ export function PIIRedaction({
 
         {hasDetections && transcriptionText && (
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold">Preview:</h4>
+            <h4 className="text-sm font-semibold">Voorvertoning:</h4>
             <div className="p-4 rounded-lg bg-muted/50 text-sm max-h-60 overflow-y-auto">
-              {renderTextWithHighlights()}
+              <PIITextHighlight
+                transcriptionText={transcriptionText}
+                detections={detections}
+                isRedacted={isRedacted}
+                onRedact={handleManualRedaction}
+              />
             </div>
           </div>
         )}
 
-        {!hasDetections && !isLoading && transcriptionText && (
-          <div className="flex items-center gap-2 p-4 rounded-lg bg-muted/50">
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              No PII detected. Click "Detect PII" to scan the transcript.
-            </p>
-          </div>
-        )}
+        {!hasDetections &&
+          !isDetectingPII &&
+          !isLoadingRedactions &&
+          transcriptionText && (
+            <div className="flex items-center gap-2 p-4 rounded-lg bg-muted/50">
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Geen PII gedetecteerd. Klik op "Detecteer PII" om de
+                transcriptie te scannen.
+              </p>
+            </div>
+          )}
 
         {!transcriptionText && (
           <div className="flex items-center gap-2 p-4 rounded-lg bg-muted/50">
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              No transcription available for redaction.
+              Geen transcriptie beschikbaar voor redactie.
             </p>
           </div>
         )}
@@ -463,9 +279,9 @@ export function PIIRedaction({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Redaction</DialogTitle>
+            <DialogTitle>Redactie Bevestigen</DialogTitle>
             <DialogDescription>
-              Are you sure you want to redact this PII?
+              Weet je zeker dat je deze PII wilt redacteren?
             </DialogDescription>
           </DialogHeader>
           {selectedDetection && (
@@ -474,20 +290,18 @@ export function PIIRedaction({
                 <span className="text-sm font-medium">Type: </span>
                 <Badge
                   variant="outline"
-                  className={
-                    PII_TYPE_COLORS[selectedDetection.type] || ""
-                  }
+                  className={PII_TYPE_COLORS[selectedDetection.type] || ""}
                 >
                   {PII_TYPE_LABELS[selectedDetection.type] ||
                     selectedDetection.type}
                 </Badge>
               </div>
               <div>
-                <span className="text-sm font-medium">Text: </span>
+                <span className="text-sm font-medium">Tekst: </span>
                 <span className="text-sm">{selectedDetection.text}</span>
               </div>
               <div>
-                <span className="text-sm font-medium">Confidence: </span>
+                <span className="text-sm font-medium">Vertrouwen: </span>
                 <span className="text-sm">
                   {Math.round(selectedDetection.confidence * 100)}%
                 </span>
@@ -495,17 +309,14 @@ export function PIIRedaction({
             </div>
           )}
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDialogOpen(false)}
-            >
-              Cancel
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Annuleren
             </Button>
             <Button
-              onClick={handleCreateRedaction}
+              onClick={handleConfirmRedaction}
               disabled={isCreatingRedaction}
             >
-              {isCreatingRedaction ? "Redacting..." : "Confirm Redaction"}
+              {isCreatingRedaction ? "Redacteren..." : "Redactie Bevestigen"}
             </Button>
           </DialogFooter>
         </DialogContent>
