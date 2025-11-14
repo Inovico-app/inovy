@@ -493,9 +493,13 @@ export class ProjectService {
       }
       // Get all recordings for this project to delete their files from blob storage
       const recordings: Recording[] =
-        await RecordingsQueries.selectRecordingsByProjectId(projectId, {
-          includeArchived: true,
-        });
+        await RecordingsQueries.selectRecordingsByProjectId(
+          projectId,
+          orgCode,
+          {
+            includeArchived: true,
+          }
+        );
       logger.info("Deleting recordings from blob storage", {
         component: "ProjectService.deleteProject",
         projectId,
