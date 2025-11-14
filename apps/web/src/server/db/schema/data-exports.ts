@@ -1,4 +1,5 @@
 import {
+  customType,
   integer,
   pgTable,
   text,
@@ -14,6 +15,19 @@ export const exportStatusEnum = [
 ] as const;
 export type ExportStatus = (typeof exportStatusEnum)[number];
 
+// Custom bytea type for PostgreSQL binary data
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+  toDriver(value: Buffer): Buffer {
+    return value;
+  },
+  fromDriver(value: Buffer): Buffer {
+    return value;
+  },
+});
+
 export const dataExports = pgTable("data_exports", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull(), // Kinde user ID
@@ -21,7 +35,7 @@ export const dataExports = pgTable("data_exports", {
   status: text("status", { enum: exportStatusEnum })
     .notNull()
     .default("pending"),
-  downloadUrl: text("download_url"), // Vercel Blob URL
+  fileData: bytea("file_data"), // ZIP file binary data
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   fileSize: integer("file_size"), // Size in bytes
   recordingsCount: integer("recordings_count").notNull().default(0),

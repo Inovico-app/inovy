@@ -4,7 +4,7 @@ import {
   type AIInsight,
   type NewAIInsight,
 } from "@/server/db/schema";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 export class AIInsightsQueries {
   static async createAIInsight(data: NewAIInsight): Promise<AIInsight> {
@@ -15,9 +15,7 @@ export class AIInsightsQueries {
     return insight;
   }
 
-  static async getInsightById(
-    insightId: string
-  ): Promise<AIInsight | null> {
+  static async getInsightById(insightId: string): Promise<AIInsight | null> {
     const [insight] = await db
       .select()
       .from(aiInsights)
@@ -33,6 +31,19 @@ export class AIInsightsQueries {
       .select()
       .from(aiInsights)
       .where(eq(aiInsights.recordingId, recordingId))
+      .orderBy(desc(aiInsights.createdAt));
+  }
+
+  static async getInsightsByRecordingIds(
+    recordingIds: string[]
+  ): Promise<AIInsight[]> {
+    if (recordingIds.length === 0) {
+      return [];
+    }
+    return await db
+      .select()
+      .from(aiInsights)
+      .where(inArray(aiInsights.recordingId, recordingIds))
       .orderBy(desc(aiInsights.createdAt));
   }
 

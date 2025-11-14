@@ -1,6 +1,13 @@
 import { getAuthSession } from "@/lib/auth";
+import { logger } from "@/lib/logger";
+import { DataExportsQueries } from "@/server/data-access/data-exports.queries";
 import { GdprExportService } from "@/server/services/gdpr-export.service";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+
+const exportIdSchema = z.object({
+  exportId: z.string().uuid(),
+});
 
 export async function GET(
   request: Request,
@@ -8,6 +15,17 @@ export async function GET(
 ) {
   const params = await props.params;
   try {
+    // Validate exportId format
+    const validationResult = exportIdSchema.safeParse(params);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: "Invalid export ID format" },
+        { status: 400 }
+      );
+    }
+
+    const { exportId } = validationResult.data;
+
     // Authenticate
     const sessionResult = await getAuthSession();
     if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
@@ -24,8 +42,6 @@ export async function GET(
       );
     }
 
-    const { exportId } = params;
-
     // Get export and verify ownership
     const exportResult = await GdprExportService.getExportById(
       exportId,
@@ -36,7 +52,10 @@ export async function GET(
     if (exportResult.isErr()) {
       const error = exportResult.error;
       if (error.code === "NOT_FOUND") {
-        return NextResponse.json({ error: "Export not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Export not found" },
+          { status: 404 }
+        );
       }
       if (error.code === "FORBIDDEN") {
         return NextResponse.json(
@@ -45,10 +64,7 @@ export async function GET(
         );
       }
       if (error.code === "BAD_REQUEST") {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: error.message }, { status: 400 });
       }
       return NextResponse.json(
         { error: "Failed to get export" },
@@ -66,18 +82,32 @@ export async function GET(
       );
     }
 
-    // Verify download URL exists
-    if (!export_.downloadUrl) {
+    // Retrieve file data from database
+    const fileData = await DataExportsQueries.getExportFileData(exportId);
+
+    if (!fileData) {
       return NextResponse.json(
-        { error: "Download URL not available" },
+        { error: "Export file not found" },
         { status: 404 }
       );
     }
 
-    // Redirect to Vercel Blob URL
-    return NextResponse.redirect(export_.downloadUrl);
+    // Stream file data as response
+    // Convert Buffer to Uint8Array for NextResponse compatibility
+    const fileDataArray = new Uint8Array(fileData);
+    return new NextResponse(fileDataArray, {
+      headers: {
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="export-${exportId}.zip"`,
+        "Content-Length":
+          export_.fileSize?.toString() ?? fileData.length.toString(),
+      },
+    });
   } catch (error) {
-    console.error("Export download error:", error);
+    logger.error("Export download error", {
+      component: "GET /api/gdpr-export/[exportId]",
+      error,
+    });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

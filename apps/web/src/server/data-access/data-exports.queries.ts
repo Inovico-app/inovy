@@ -42,7 +42,7 @@ export class DataExportsQueries {
     id: string,
     status: ExportStatus,
     updates?: {
-      downloadUrl?: string;
+      fileData?: Buffer;
       fileSize?: number;
       recordingsCount?: number;
       tasksCount?: number;
@@ -60,6 +60,15 @@ export class DataExportsQueries {
       .where(eq(dataExports.id, id))
       .returning();
     return updated;
+  }
+
+  static async getExportFileData(id: string): Promise<Buffer | null> {
+    const [export_] = await db
+      .select({ fileData: dataExports.fileData })
+      .from(dataExports)
+      .where(eq(dataExports.id, id))
+      .limit(1);
+    return export_?.fileData ?? null;
   }
 }
 

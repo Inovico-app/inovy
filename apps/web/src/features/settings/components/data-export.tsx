@@ -123,19 +123,38 @@ export function DataExport() {
     }
   }
 
-  function handleDownload(export_: DataExport) {
-    if (!export_.downloadUrl) {
-      toast.error("Download URL not available");
-      return;
-    }
-
-    if (export_.expiresAt < new Date()) {
+  async function handleDownload(export_: DataExport) {
+    const expiresAt = new Date(export_.expiresAt);
+    if (expiresAt < new Date()) {
       toast.error("This export has expired. Please request a new export.");
       return;
     }
 
-    // Open download URL in new tab
-    window.open(export_.downloadUrl, "_blank");
+    try {
+      // Download file from API route
+      const response = await fetch(`/api/gdpr-export/${export_.id}`);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: "Download failed" }));
+        toast.error(error.error || "Failed to download export");
+        return;
+      }
+
+      // Get blob from response
+      const blob = await response.blob();
+      
+      // Create download link and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `export-${export_.id}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      toast.error("Failed to download export");
+      console.error("Download error:", error);
+    }
   }
 
   function formatFileSize(bytes: number | null | undefined): string {
@@ -188,7 +207,10 @@ export function DataExport() {
     }
   }
 
-  const isExpired = (expiresAt: Date) => expiresAt < new Date();
+  const isExpired = (expiresAt: Date | string) => {
+    const expires = new Date(expiresAt);
+    return expires < new Date();
+  };
 
   return (
     <Card>
@@ -336,7 +358,6 @@ export function DataExport() {
                   </div>
                   <div className="ml-4">
                     {export_.status === "completed" &&
-                    export_.downloadUrl &&
                     !isExpired(export_.expiresAt) ? (
                       <Button
                         variant="outline"

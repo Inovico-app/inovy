@@ -3,13 +3,10 @@
 import { authorizedActionClient } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { GdprExportService } from "@/server/services/gdpr-export.service";
+import { exportUserDataSchema } from "@/server/validation/settings/export-user-data";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import {
-  exportUserDataSchema,
-  type ExportUserDataInput,
-} from "@/server/validation/settings/export-user-data";
-import { GdprExportService } from "@/server/services/gdpr-export.service";
 
 /**
  * Server action to request a GDPR data export
@@ -39,12 +36,17 @@ export const requestDataExport = authorizedActionClient
     });
 
     try {
-      const filters = parsedInput.dateRange || parsedInput.projectId
-        ? {
-            dateRange: parsedInput.dateRange,
-            projectId: parsedInput.projectId,
-          }
-        : undefined;
+      const filters =
+        parsedInput.dateRange || parsedInput.projectId
+          ? {
+              ...(parsedInput.dateRange && {
+                dateRange: parsedInput.dateRange,
+              }),
+              ...(parsedInput.projectId && {
+                projectId: parsedInput.projectId,
+              }),
+            }
+          : undefined;
 
       const result = await GdprExportService.createExportRequest(
         user.id,
@@ -86,7 +88,7 @@ export const requestDataExport = authorizedActionClient
  */
 export const getExportHistory = authorizedActionClient
   .metadata({ policy: "settings:read" })
-  .schema(z.object({}))
+  .inputSchema(z.object({}))
   .action(async ({ ctx }) => {
     const { user, organizationId } = ctx;
 

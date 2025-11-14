@@ -7,7 +7,7 @@ import {
   type NewChatConversation,
   type NewChatMessage,
 } from "@/server/db/schema";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 export class ChatQueries {
   static async createConversation(
@@ -84,6 +84,18 @@ export class ChatQueries {
       .select()
       .from(chatMessages)
       .where(eq(chatMessages.conversationId, conversationId))
+      .orderBy(chatMessages.createdAt);
+  }
+  static async getMessagesByConversationIds(
+    conversationIds: string[]
+  ): Promise<ChatMessage[]> {
+    if (conversationIds.length === 0) {
+      return [];
+    }
+    return await db
+      .select()
+      .from(chatMessages)
+      .where(inArray(chatMessages.conversationId, conversationIds))
       .orderBy(chatMessages.createdAt);
   }
   static async deleteConversation(conversationId: string): Promise<void> {

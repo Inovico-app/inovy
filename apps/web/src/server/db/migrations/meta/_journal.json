@@ -176,6 +176,14 @@
       "when": 1763139383326,
       "tag": "0030_add_data_exports_table",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1763141150492,
+      "tag": "0031_add_file_data_to_data_exports",
+      "breakpoints": true
     }
   ]
 }
+

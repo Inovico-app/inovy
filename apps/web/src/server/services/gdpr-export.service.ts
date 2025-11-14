@@ -5,15 +5,14 @@ import {
 } from "@/lib/action-errors";
 import { AuthService } from "@/lib/kinde-api";
 import { logger } from "@/lib/logger";
-import { addDays } from "date-fns";
 import * as archiver from "archiver";
+import { addDays } from "date-fns";
 import { err, ok } from "neverthrow";
-import { put } from "@vercel/blob";
+import { AIInsightsQueries } from "../data-access/ai-insights.queries";
+import { ChatQueries } from "../data-access/chat.queries";
 import { DataExportsQueries } from "../data-access/data-exports.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { TasksQueries } from "../data-access/tasks.queries";
-import { AIInsightsQueries } from "../data-access/ai-insights.queries";
-import { ChatQueries } from "../data-access/chat.queries";
 import type { DataExport } from "../db/schema";
 
 export interface ExportFilters {
@@ -71,7 +70,7 @@ export interface UserExportData {
       id: string;
       role: string;
       content: string;
-      sources: unknown;
+      sources: unknown | null;
       createdAt: string;
     }>;
   }>;
@@ -184,18 +183,9 @@ export class GdprExportService {
       // Create ZIP archive
       const zipBuffer = await this.createZipArchive(data);
 
-      // Upload to Vercel Blob with expiration
-      const expiresAt = addDays(new Date(), 7);
-      const blobPath = `gdpr-exports/${exportId}.zip`;
-      const blob = await put(blobPath, zipBuffer, {
-        access: "public",
-        contentType: "application/zip",
-        addRandomSuffix: false,
-      });
-
-      // Update export with download URL and counts
+      // Store file data in database
       await DataExportsQueries.updateExportStatus(exportId, "completed", {
-        downloadUrl: blob.url,
+        fileData: zipBuffer,
         fileSize: zipBuffer.length,
         recordingsCount: data.recordings.length,
         tasksCount: data.tasks.length,
@@ -226,8 +216,7 @@ export class GdprExportService {
       });
 
       await DataExportsQueries.updateExportStatus(exportId, "failed", {
-        errorMessage:
-          error instanceof Error ? error.message : "Unknown error",
+        errorMessage: error instanceof Error ? error.message : "Unknown error",
       });
 
       return err(
@@ -299,11 +288,12 @@ export class GdprExportService {
       // Filter by date range if provided
       let filteredRecordings = recordings;
       if (filters?.dateRange) {
+        const dateRange = filters.dateRange;
         filteredRecordings = recordings.filter((recording) => {
           const recordingDate = recording.recordingDate;
           return (
-            recordingDate >= filters.dateRange!.startDate &&
-            recordingDate <= filters.dateRange!.endDate
+            recordingDate >= dateRange.startDate &&
+            recordingDate <= dateRange.endDate
           );
         });
       }
@@ -332,11 +322,11 @@ export class GdprExportService {
       // Filter by date range if provided
       let filteredTasks = allTasks;
       if (filters?.dateRange) {
+        const dateRange = filters.dateRange;
         filteredTasks = allTasks.filter((task) => {
           const taskDate = task.createdAt;
           return (
-            taskDate >= filters.dateRange!.startDate &&
-            taskDate <= filters.dateRange!.endDate
+            taskDate >= dateRange.startDate && taskDate <= dateRange.endDate
           );
         });
       }
@@ -345,21 +335,35 @@ export class GdprExportService {
       const recordingIds = userRecordings.map((r) => r.id);
       const summaries: UserExportData["summaries"] = [];
 
-      for (const recordingId of recordingIds) {
-        const insights = await AIInsightsQueries.getInsightsByRecordingId(
-          recordingId
+      if (recordingIds.length > 0) {
+        const allInsights = await AIInsightsQueries.getInsightsByRecordingIds(
+          recordingIds
         );
-        const summaryInsight = insights.find(
-          (i) => i.insightType === "summary"
-        );
-        if (summaryInsight) {
-          summaries.push({
-            id: summaryInsight.id,
-            recordingId: summaryInsight.recordingId,
-            content: summaryInsight.content,
-            createdAt: summaryInsight.createdAt.toISOString(),
-            updatedAt: summaryInsight.updatedAt.toISOString(),
-          });
+
+        // Group insights by recording ID
+        const insightsByRecording = new Map<string, typeof allInsights>();
+        for (const insight of allInsights) {
+          if (!insightsByRecording.has(insight.recordingId)) {
+            insightsByRecording.set(insight.recordingId, []);
+          }
+          insightsByRecording.get(insight.recordingId)!.push(insight);
+        }
+
+        // Extract summary insights
+        for (const recordingId of recordingIds) {
+          const insights = insightsByRecording.get(recordingId) || [];
+          const summaryInsight = insights.find(
+            (i) => i.insightType === "summary"
+          );
+          if (summaryInsight) {
+            summaries.push({
+              id: summaryInsight.id,
+              recordingId: summaryInsight.recordingId,
+              content: summaryInsight.content,
+              createdAt: summaryInsight.createdAt.toISOString(),
+              updatedAt: summaryInsight.updatedAt.toISOString(),
+            });
+          }
         }
       }
 
@@ -372,11 +376,11 @@ export class GdprExportService {
       // Filter by date range if provided
       let filteredConversations = conversations;
       if (filters?.dateRange) {
+        const dateRange = filters.dateRange;
         filteredConversations = conversations.filter((conv) => {
           const convDate = conv.createdAt;
           return (
-            convDate >= filters.dateRange!.startDate &&
-            convDate <= filters.dateRange!.endDate
+            convDate >= dateRange.startDate && convDate <= dateRange.endDate
           );
         });
       }
@@ -390,27 +394,40 @@ export class GdprExportService {
 
       const chatHistory: UserExportData["chatHistory"] = [];
 
-      for (const conversation of filteredConversations) {
-        const messages = await ChatQueries.getMessagesByConversationId(
-          conversation.id
+      if (filteredConversations.length > 0) {
+        const conversationIds = filteredConversations.map((c) => c.id);
+        const allMessages = await ChatQueries.getMessagesByConversationIds(
+          conversationIds
         );
 
-        chatHistory.push({
-          conversation: {
-            id: conversation.id,
-            title: conversation.title || null,
-            context: conversation.context,
-            createdAt: conversation.createdAt.toISOString(),
-            updatedAt: conversation.updatedAt.toISOString(),
-          },
-          messages: messages.map((msg) => ({
-            id: msg.id,
-            role: msg.role,
-            content: msg.content,
-            sources: msg.sources || null,
-            createdAt: msg.createdAt.toISOString(),
-          })),
-        });
+        // Group messages by conversation
+        const messagesByConversation = new Map<string, typeof allMessages>();
+        for (const msg of allMessages) {
+          if (!messagesByConversation.has(msg.conversationId)) {
+            messagesByConversation.set(msg.conversationId, []);
+          }
+          messagesByConversation.get(msg.conversationId)!.push(msg);
+        }
+
+        for (const conversation of filteredConversations) {
+          const messages = messagesByConversation.get(conversation.id) || [];
+          chatHistory.push({
+            conversation: {
+              id: conversation.id,
+              title: conversation.title || null,
+              context: conversation.context,
+              createdAt: conversation.createdAt.toISOString(),
+              updatedAt: conversation.updatedAt.toISOString(),
+            },
+            messages: messages.map((msg) => ({
+              id: msg.id,
+              role: msg.role,
+              content: msg.content,
+              sources: msg.sources || null,
+              createdAt: msg.createdAt.toISOString(),
+            })),
+          });
+        }
       }
 
       const exportData: UserExportData = {
@@ -474,9 +491,7 @@ export class GdprExportService {
   /**
    * Create ZIP archive from export data
    */
-  private static async createZipArchive(
-    data: UserExportData
-  ): Promise<Buffer> {
+  private static async createZipArchive(data: UserExportData): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const archive = archiver.default("zip", {
         zlib: { level: 9 }, // Maximum compression
@@ -519,10 +534,7 @@ export class GdprExportService {
 
       if (!export_) {
         return err(
-          ActionErrors.notFound(
-            "Export",
-            "GdprExportService.getExportById"
-          )
+          ActionErrors.notFound("Export", "GdprExportService.getExportById")
         );
       }
 
@@ -543,14 +555,10 @@ export class GdprExportService {
       // Check expiration
       if (export_.expiresAt < new Date()) {
         return err(
-          createActionError(
-            "BAD_REQUEST",
-            "Export has expired",
-            {
-              metadata: { exportId, expiresAt: export_.expiresAt },
-              context: "GdprExportService.getExportById",
-            }
-          )
+          createActionError("BAD_REQUEST", "Export has expired", {
+            metadata: { exportId, expiresAt: export_.expiresAt },
+            context: "GdprExportService.getExportById",
+          })
         );
       }
 
