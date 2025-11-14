@@ -396,9 +396,21 @@ export class GdprExportService {
 
       if (filteredConversations.length > 0) {
         const conversationIds = filteredConversations.map((c) => c.id);
-        const allMessages = await ChatQueries.getMessagesByConversationIds(
-          conversationIds
-        );
+
+        // Process conversationIds in chunks to avoid overwhelming the DB
+        const BATCH_SIZE = 10;
+        const allMessages: Awaited<
+          ReturnType<typeof ChatQueries.getMessagesByConversationIds>
+        > = [];
+
+        // Process batches sequentially to avoid overwhelming the database
+        for (let i = 0; i < conversationIds.length; i += BATCH_SIZE) {
+          const batch = conversationIds.slice(i, i + BATCH_SIZE);
+          const batchMessages = await ChatQueries.getMessagesByConversationIds(
+            batch
+          );
+          allMessages.push(...batchMessages);
+        }
 
         // Group messages by conversation
         const messagesByConversation = new Map<string, typeof allMessages>();
