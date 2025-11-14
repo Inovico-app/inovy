@@ -52,7 +52,7 @@ export class RecallApiService {
       const response = await fetch(`${this.API_BASE_URL}/bot/`, {
         method: "POST",
         headers: {
-          "Authorization": `Token ${apiKey}`,
+          Authorization: `Token ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -139,6 +139,7 @@ export class RecallApiService {
         headers: {
           Authorization: `Token ${apiKey}`,
         },
+        signal: AbortSignal.timeout(30000), // 30 second timeout
       });
 
       if (!response.ok) {
