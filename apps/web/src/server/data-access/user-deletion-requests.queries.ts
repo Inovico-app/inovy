@@ -1,4 +1,4 @@
-import { and, eq, isNull, or } from "drizzle-orm";
+import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
   type NewUserDeletionRequest,
@@ -93,7 +93,9 @@ export class UserDeletionRequestsQueries {
       .where(
         and(
           eq(userDeletionRequests.status, "completed"),
-          isNull(userDeletionRequests.cancelledAt)
+          isNull(userDeletionRequests.cancelledAt),
+          sql`${userDeletionRequests.scheduledDeletionAt} IS NOT NULL`,
+          lte(userDeletionRequests.scheduledDeletionAt, new Date())
         )
       );
   }

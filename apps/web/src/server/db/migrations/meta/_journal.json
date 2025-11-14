@@ -197,6 +197,13 @@
       "when": 1763142883140,
       "tag": "0033_add_user_deletion_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1763143132305,
+      "tag": "0034_add_pii_redaction_workflows",
+      "breakpoints": true
     }
   ]
 }

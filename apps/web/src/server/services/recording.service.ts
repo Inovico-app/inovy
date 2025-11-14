@@ -740,6 +740,7 @@ export class RecordingService {
       recordingMode: recording.recordingMode,
       transcriptionStatus: recording.transcriptionStatus,
       transcriptionText: recording.transcriptionText,
+      redactedTranscriptionText: recording.redactedTranscriptionText ?? null,
       isTranscriptionManuallyEdited: recording.isTranscriptionManuallyEdited,
       transcriptionLastEditedById: recording.transcriptionLastEditedById,
       transcriptionLastEditedAt: recording.transcriptionLastEditedAt,

@@ -19,6 +19,7 @@ export interface RecordingDto {
   recordingMode: RecordingMode;
   transcriptionStatus: RecordingStatus;
   transcriptionText: string | null;
+  redactedTranscriptionText: string | null;
   isTranscriptionManuallyEdited: boolean;
   transcriptionLastEditedById: string | null;
   transcriptionLastEditedAt: Date | null;

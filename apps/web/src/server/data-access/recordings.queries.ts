@@ -153,6 +153,7 @@ export class RecordingsQueries {
         | "recordingDate"
         | "transcriptionStatus"
         | "transcriptionText"
+        | "redactedTranscriptionText"
       >
     >
   ): Promise<Recording | undefined> {
@@ -393,6 +394,7 @@ export class RecordingsQueries {
         recordingDate: recordings.recordingDate,
         transcriptionStatus: recordings.transcriptionStatus,
         transcriptionText: recordings.transcriptionText,
+        redactedTranscriptionText: recordings.redactedTranscriptionText,
         isTranscriptionManuallyEdited: recordings.isTranscriptionManuallyEdited,
         transcriptionLastEditedById: recordings.transcriptionLastEditedById,
         transcriptionLastEditedAt: recordings.transcriptionLastEditedAt,

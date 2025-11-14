@@ -21,4 +21,5 @@ export { TasksQueries } from "./tasks.queries";
 export { KnowledgeBaseEntriesQueries } from "./knowledge-base-entries.queries";
 export { KnowledgeBaseDocumentsQueries } from "./knowledge-base-documents.queries";
 export { UserDeletionRequestsQueries } from "./user-deletion-requests.queries";
+export { RedactionsQueries } from "./redactions.queries";
 
