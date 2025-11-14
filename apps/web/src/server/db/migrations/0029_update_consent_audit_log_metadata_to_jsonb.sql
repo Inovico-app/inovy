@@ -1,0 +1,1 @@
+ALTER TABLE "consent_audit_log" ALTER COLUMN "metadata" SET DATA TYPE jsonb USING metadata::jsonb;
