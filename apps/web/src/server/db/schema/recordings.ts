@@ -55,6 +55,7 @@ export const recordings = pgTable(
       .notNull()
       .default("pending"),
     transcriptionText: text("transcription_text"),
+    redactedTranscriptionText: text("redacted_transcription_text"), // Redacted version of transcript
     isTranscriptionManuallyEdited: boolean("is_transcription_manually_edited")
       .notNull()
       .default(false),

@@ -59,6 +59,7 @@ export interface TranscriptionSectionProps {
   recordingTitle: string;
   transcriptionStatus: "pending" | "processing" | "completed" | "failed";
   transcriptionText: string | null;
+  redactedTranscriptionText?: string | null;
   utterances?: Utterance[];
   isTranscriptionManuallyEdited?: boolean;
   transcriptionLastEditedById?: string | null;

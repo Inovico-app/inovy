@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProcessingError } from "../processing-error";
 import { TranscriptionEditor } from "./transcription-editor";
 import { KnowledgeUsageIndicator } from "@/features/knowledge-base/components/knowledge-usage-indicator";
+import { PIIRedaction } from "../pii-redaction";
 import type { TranscriptionSectionProps } from "./types";
 
 export function TranscriptionSection({
@@ -31,6 +32,10 @@ export function TranscriptionSection({
           lastEditedAt={transcriptionLastEditedAt}
           speakersDetected={speakersDetected}
           confidence={confidence}
+        />
+        <PIIRedaction
+          recordingId={recordingId}
+          transcriptionText={transcriptionText}
         />
         {knowledgeUsed && knowledgeUsed.length > 0 && (
           <Card>

@@ -254,6 +254,7 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
           recordingTitle={recording.title}
           transcriptionStatus={recording.transcriptionStatus}
           transcriptionText={recording.transcriptionText}
+          redactedTranscriptionText={recording.redactedTranscriptionText}
           utterances={transcriptionInsight?.utterances ?? undefined}
           isTranscriptionManuallyEdited={
             recording.isTranscriptionManuallyEdited

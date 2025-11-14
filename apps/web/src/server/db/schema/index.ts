@@ -27,4 +27,5 @@ export * from "./consent-audit-log";
 export * from "./data-exports";
 export * from "./audit-logs";
 export * from "./user-deletion-requests";
+export * from "./redactions";
 

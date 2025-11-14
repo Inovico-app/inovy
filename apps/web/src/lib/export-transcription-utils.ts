@@ -80,6 +80,15 @@ export function exportAsJSON(
   return JSON.stringify(data, null, 2);
 }
 
+/**
+ * Export redacted text (plain text format)
+ */
+export function exportRedactedText(
+  redactedText: string
+): string {
+  return redactedText;
+}
+
 export function downloadFile(
   content: string,
   filename: string,
