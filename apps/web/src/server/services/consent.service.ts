@@ -4,6 +4,7 @@ import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { logger } from "../../lib/logger";
 import { ConsentQueries } from "../data-access/consent.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
+import { ConsentAuditService } from "./consent-audit.service";
 import type {
   ConsentParticipant,
   NewConsentParticipant,
@@ -98,6 +99,21 @@ export class ConsentService {
         );
       }
 
+      // Log audit event
+      await ConsentAuditService.logConsentAction(
+        recordingId,
+        participantEmail,
+        "granted",
+        userId,
+        null, // Email will be fetched if needed
+        ipAddress,
+        userAgent,
+        {
+          consentMethod,
+          participantName,
+        }
+      );
+
       logger.info("Consent granted", {
         component: "ConsentService.grantConsent",
         recordingId,
@@ -158,6 +174,20 @@ export class ConsentService {
           )
         );
       }
+
+      // Log audit event
+      await ConsentAuditService.logConsentAction(
+        recordingId,
+        participantEmail,
+        "revoked",
+        userId,
+        null, // Email will be fetched if needed
+        undefined,
+        undefined,
+        {
+          revokedAt: new Date().toISOString(),
+        }
+      );
 
       logger.info("Consent revoked", {
         component: "ConsentService.revokeConsent",
