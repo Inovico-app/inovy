@@ -79,12 +79,12 @@ export class AuditLogService {
 
       // Create the log entry (without hash first)
       const logEntry: Omit<NewAuditLog, "hash"> = {
-        eventType: params.eventType as any,
-        resourceType: params.resourceType as any,
+        eventType: params.eventType as NewAuditLog["eventType"],
+        resourceType: params.resourceType as NewAuditLog["resourceType"],
         resourceId: params.resourceId ?? null,
         userId: params.userId,
         organizationId: params.organizationId,
-        action: params.action as any,
+        action: params.action as NewAuditLog["action"],
         ipAddress: params.ipAddress ?? null,
         userAgent: params.userAgent ?? null,
         metadata: params.metadata ?? null,
@@ -93,8 +93,15 @@ export class AuditLogService {
 
       // Compute hash for this entry
       const hash = computeHash({
-        ...logEntry,
+        previousHash: logEntry.previousHash ?? null,
+        eventType: logEntry.eventType,
+        resourceType: logEntry.resourceType,
+        resourceId: logEntry.resourceId ?? null,
+        userId: logEntry.userId,
+        organizationId: logEntry.organizationId,
+        action: logEntry.action,
         createdAt: new Date(), // Use current timestamp for hash computation
+        metadata: logEntry.metadata ?? null,
       });
 
       // Insert with hash
@@ -131,16 +138,43 @@ export class AuditLogService {
 
   /**
    * Get audit logs with filters
+   * Enforces organization isolation - only returns logs for the specified organization
    */
   static async getAuditLogs(
     organizationId: string,
     filters?: AuditLogFilters
   ): Promise<ActionResult<{ logs: AuditLog[]; total: number }>> {
     try {
+      // Ensure filters don't override organizationId (defense in depth)
+      const safeFilters = {
+        ...filters,
+        organizationId, // Always use the provided organizationId
+      };
+
       const [logs, total] = await Promise.all([
-        AuditLogsQueries.findByFilters(organizationId, filters),
-        AuditLogsQueries.countByFilters(organizationId, filters),
+        AuditLogsQueries.findByFilters(organizationId, safeFilters),
+        AuditLogsQueries.countByFilters(organizationId, safeFilters),
       ]);
+
+      // Verify all returned logs belong to the organization (defense in depth)
+      const invalidLogs = logs.filter(
+        (log) => log.organizationId !== organizationId
+      );
+      if (invalidLogs.length > 0) {
+        logger.security.organizationViolation({
+          resourceOrgId: invalidLogs[0].organizationId,
+          userOrgId: organizationId,
+          context: "AuditLogService.getAuditLogs",
+          reason: `Found ${invalidLogs.length} audit logs with mismatched organization`,
+        });
+        return err(
+          ActionErrors.forbidden(
+            "Some audit logs do not belong to your organization",
+            undefined,
+            "AuditLogService.getAuditLogs"
+          )
+        );
+      }
 
       logger.info("Retrieved audit logs", {
         component: "AuditLogService",
@@ -169,6 +203,7 @@ export class AuditLogService {
 
   /**
    * Get audit logs for a specific resource
+   * Enforces organization isolation - only returns logs for the specified organization
    */
   static async getAuditLogsByResource(
     resourceType: string,
@@ -183,6 +218,26 @@ export class AuditLogService {
         organizationId,
         limit
       );
+
+      // Verify all returned logs belong to the organization (defense in depth)
+      const invalidLogs = logs.filter(
+        (log) => log.organizationId !== organizationId
+      );
+      if (invalidLogs.length > 0) {
+        logger.security.organizationViolation({
+          resourceOrgId: invalidLogs[0].organizationId,
+          userOrgId: organizationId,
+          context: "AuditLogService.getAuditLogsByResource",
+          reason: `Found ${invalidLogs.length} audit logs with mismatched organization`,
+        });
+        return err(
+          ActionErrors.forbidden(
+            "Some audit logs do not belong to your organization",
+            undefined,
+            "AuditLogService.getAuditLogsByResource"
+          )
+        );
+      }
 
       return ok(logs);
     } catch (error) {
@@ -203,6 +258,7 @@ export class AuditLogService {
 
   /**
    * Get audit logs for a specific user
+   * Enforces organization isolation - only returns logs for the specified organization
    */
   static async getAuditLogsByUser(
     userId: string,
@@ -215,6 +271,26 @@ export class AuditLogService {
         organizationId,
         limit
       );
+
+      // Verify all returned logs belong to the organization (defense in depth)
+      const invalidLogs = logs.filter(
+        (log) => log.organizationId !== organizationId
+      );
+      if (invalidLogs.length > 0) {
+        logger.security.organizationViolation({
+          resourceOrgId: invalidLogs[0].organizationId,
+          userOrgId: organizationId,
+          context: "AuditLogService.getAuditLogsByUser",
+          reason: `Found ${invalidLogs.length} audit logs with mismatched organization`,
+        });
+        return err(
+          ActionErrors.forbidden(
+            "Some audit logs do not belong to your organization",
+            undefined,
+            "AuditLogService.getAuditLogsByUser"
+          )
+        );
+      }
 
       return ok(logs);
     } catch (error) {
@@ -236,19 +312,40 @@ export class AuditLogService {
   /**
    * Verify hash chain integrity for an organization
    * Returns logs with broken hash chain (indicating tampering)
+   * Enforces organization isolation - only verifies logs for the specified organization
    */
   static async verifyHashChain(
     organizationId: string
   ): Promise<ActionResult<Array<{ log: AuditLog; isValid: boolean }>>> {
     try {
       const results = await AuditLogsQueries.verifyHashChain(organizationId);
-      const invalidLogs = results.filter((r) => !r.isValid);
 
-      if (invalidLogs.length > 0) {
+      // Verify all logs belong to the organization (defense in depth)
+      const invalidOrgLogs = results.filter(
+        (r) => r.log.organizationId !== organizationId
+      );
+      if (invalidOrgLogs.length > 0) {
+        logger.security.organizationViolation({
+          resourceOrgId: invalidOrgLogs[0].log.organizationId,
+          userOrgId: organizationId,
+          context: "AuditLogService.verifyHashChain",
+          reason: `Found ${invalidOrgLogs.length} audit logs with mismatched organization`,
+        });
+        return err(
+          ActionErrors.forbidden(
+            "Some audit logs do not belong to your organization",
+            undefined,
+            "AuditLogService.verifyHashChain"
+          )
+        );
+      }
+
+      const invalidHashLogs = results.filter((r) => !r.isValid);
+      if (invalidHashLogs.length > 0) {
         logger.warn("Hash chain integrity check found invalid logs", {
           component: "AuditLogService",
           organizationId,
-          invalidCount: invalidLogs.length,
+          invalidCount: invalidHashLogs.length,
         });
       }
 
@@ -282,12 +379,12 @@ export class AuditLogService {
     const cfConnectingIp = headers.get("cf-connecting-ip");
 
     const ipAddress =
-      forwardedFor?.split(",")[0]?.trim() ||
-      realIp ||
-      cfConnectingIp ||
+      forwardedFor?.split(",")[0]?.trim() ??
+      realIp ??
+      cfConnectingIp ??
       null;
 
-    const userAgent = headers.get("user-agent") || null;
+    const userAgent = headers.get("user-agent") ?? null;
 
     return { ipAddress, userAgent };
   }
