@@ -34,19 +34,24 @@ export class RecordingsQueries {
 
   static async selectRecordingsByProjectId(
     projectId: string,
+    organizationId: string,
     options?: {
       search?: string;
       includeArchived?: boolean;
       statusFilter?: "active" | "archived";
     }
   ): Promise<Recording[]> {
-    const conditions = [eq(recordings.projectId, projectId)];
+    const conditions = [
+      eq(recordings.projectId, projectId),
+      eq(recordings.organizationId, organizationId),
+    ];
     if (options?.statusFilter)
       conditions.push(eq(recordings.status, options.statusFilter));
     else if (!options?.includeArchived)
       conditions.push(eq(recordings.status, "active"));
     if (options?.search)
       conditions.push(ilike(recordings.title, `%${options.search}%`));
+
     return await db
       .select()
       .from(recordings)

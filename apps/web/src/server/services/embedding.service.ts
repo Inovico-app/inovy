@@ -723,7 +723,8 @@ export class EmbeddingService {
       }
 
       const recordings = await RecordingsQueries.selectRecordingsByProjectId(
-        projectId
+        projectId,
+        organizationId
       );
 
       let indexed = 0;

@@ -158,6 +158,7 @@ export class RecordingService {
 
       const recordings = await RecordingsQueries.selectRecordingsByProjectId(
         projectId,
+        organizationId,
         options
       );
 
