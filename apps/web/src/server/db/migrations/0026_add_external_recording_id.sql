@@ -1,0 +1,2 @@
+ALTER TABLE "recordings" ADD COLUMN "external_recording_id" text;--> statement-breakpoint
+ALTER TABLE "recordings" ADD CONSTRAINT "recordings_organization_id_external_recording_id_unique" UNIQUE("organization_id","external_recording_id");

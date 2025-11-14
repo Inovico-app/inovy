@@ -1,4 +1,5 @@
 <!-- a292dbf6-5568-4cf1-bcad-178ae876b8e4 93ef0dcd-1434-4062-9ace-4f4853fff50c -->
+
 # Simplified Google Meet Bot Integration with Recall.ai
 
 ## Overview
@@ -48,7 +49,7 @@ Implement a minimal integration with Recall.ai that allows starting bot sessions
 
 ### BOT-003: Recall.ai Webhook Integration
 
-- Create webhook endpoint `/api/bot/webhook/recall` to receive Recall.ai events
+- Create webhook endpoint `/api/webhooks/recall` to receive Recall.ai events
 - Verify HMAC-SHA256 signatures using `RECALL_WEBHOOK_SECRET`
 - Handle `bot.recording_ready` event:
 - Extract `projectId` from custom metadata
@@ -66,7 +67,7 @@ Implement a minimal integration with Recall.ai that allows starting bot sessions
 
 **Files:**
 
-- `apps/web/src/app/api/bot/webhook/recall/route.ts` - Webhook handler
+- `apps/web/src/app/api/webhooks/recall/route.ts` - Webhook handler
 - `apps/web/src/server/services/bot-webhook.service.ts` - Webhook processing logic
 - `apps/web/src/server/validation/bot/recall-webhook.schema.ts` - Webhook payload validation
 

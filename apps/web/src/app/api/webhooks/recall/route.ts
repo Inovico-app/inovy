@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createHmac } from "crypto";
 import { logger, serializeError } from "@/lib/logger";
 import { BotWebhookService } from "@/server/services/bot-webhook.service";
 import {
   recallWebhookEventSchema,
   type RecallWebhookEvent,
 } from "@/server/validation/bot/recall-webhook.schema";
+import { createHmac, timingSafeEqual } from "crypto";
+import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * POST /api/bot/webhook/recall
+ * POST /api/webhooks/recall
  * Receives Recall.ai webhook events for bot status changes and recording completion
  * This endpoint is public (no auth required) as Recall.ai calls it directly
  * Signature verification ensures authenticity
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     if (!webhookSecret) {
       logger.error("RECALL_WEBHOOK_SECRET not configured", {
-        component: "POST /api/bot/webhook/recall",
+        component: "POST /api/webhooks/recall",
       });
       return NextResponse.json(
         { error: "Webhook secret not configured" },
@@ -33,13 +33,40 @@ export async function POST(request: NextRequest) {
 
     // Verify signature
     if (signature) {
-      const expectedSignature = createHmac("sha256", webhookSecret)
+      // Generate expected signature as Buffer (without hex encoding)
+      const expectedSignatureBuffer = createHmac("sha256", webhookSecret)
         .update(body)
-        .digest("hex");
+        .digest();
 
-      if (signature !== expectedSignature) {
+      // Convert incoming signature header to Buffer (parse as hex)
+      let receivedSignatureBuffer: Buffer;
+      try {
+        receivedSignatureBuffer = Buffer.from(signature, "hex");
+      } catch (error) {
+        logger.warn("Invalid webhook signature format", {
+          component: "POST /api/webhooks/recall",
+        });
+        return NextResponse.json(
+          { error: "Invalid signature" },
+          { status: 401 }
+        );
+      }
+
+      // Check buffer lengths match before comparison
+      if (expectedSignatureBuffer.length !== receivedSignatureBuffer.length) {
         logger.warn("Invalid webhook signature", {
-          component: "POST /api/bot/webhook/recall",
+          component: "POST /api/webhooks/recall",
+        });
+        return NextResponse.json(
+          { error: "Invalid signature" },
+          { status: 401 }
+        );
+      }
+
+      // Use timing-safe comparison
+      if (!timingSafeEqual(expectedSignatureBuffer, receivedSignatureBuffer)) {
+        logger.warn("Invalid webhook signature", {
+          component: "POST /api/webhooks/recall",
         });
         return NextResponse.json(
           { error: "Invalid signature" },
@@ -48,7 +75,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       logger.warn("Missing webhook signature", {
-        component: "POST /api/bot/webhook/recall",
+        component: "POST /api/webhooks/recall",
       });
       // In development, allow requests without signature
       // In production, this should be enforced
@@ -67,17 +94,14 @@ export async function POST(request: NextRequest) {
       payload = recallWebhookEventSchema.parse(parsed);
     } catch (error) {
       logger.error("Invalid webhook payload", {
-        component: "POST /api/bot/webhook/recall",
+        component: "POST /api/webhooks/recall",
         error: serializeError(error),
       });
-      return NextResponse.json(
-        { error: "Invalid payload" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
     logger.info("Received Recall.ai webhook event", {
-      component: "POST /api/bot/webhook/recall",
+      component: "POST /api/webhooks/recall",
       event: payload.event,
       botId: payload.bot.id,
     });
@@ -90,15 +114,15 @@ export async function POST(request: NextRequest) {
       result = await BotWebhookService.processRecordingReady(payload);
     } else {
       logger.warn("Unknown webhook event type", {
-        component: "POST /api/bot/webhook/recall",
-        event: (payload as any).event,
+        component: "POST /api/webhooks/recall",
+        event: (payload as RecallWebhookEvent).event,
       });
       return NextResponse.json({ success: true }); // Acknowledge unknown events
     }
 
     if (result.isErr()) {
       logger.error("Failed to process webhook event", {
-        component: "POST /api/bot/webhook/recall",
+        component: "POST /api/webhooks/recall",
         error: result.error,
         event: payload.event,
       });
@@ -110,7 +134,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     logger.error("Error in Recall.ai webhook handler", {
-      component: "POST /api/bot/webhook/recall",
+      component: "POST /api/webhooks/recall",
       error: serializeError(error),
     });
     // Return 200 to prevent Recall.ai from retrying

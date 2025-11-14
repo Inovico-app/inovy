@@ -1,10 +1,14 @@
 import { put } from "@vercel/blob";
+import { and, eq } from "drizzle-orm";
 import { err, ok } from "neverthrow";
 import { start } from "workflow/api";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { logger, serializeError } from "../../lib/logger";
 import { convertRecordingIntoAiInsights } from "../../workflows/convert-recording";
 import { BotSessionsQueries } from "../data-access/bot-sessions.queries";
+import { RecordingsQueries } from "../data-access/recordings.queries";
+import { db } from "../db";
+import { botSessions } from "../db/schema";
 import type {
   BotRecordingReadyEvent,
   BotStatusChangeEvent,
@@ -139,16 +143,6 @@ export class BotWebhookService {
         );
       }
 
-      // Check if recording already exists (idempotency)
-      if (session.recordingId) {
-        logger.info("Recording already processed for bot session", {
-          component: "BotWebhookService.processRecordingReady",
-          sessionId: session.id,
-          recordingId: session.recordingId,
-        });
-        return ok(undefined);
-      }
-
       logger.info("Processing recording ready event", {
         component: "BotWebhookService.processRecordingReady",
         botId: bot.id,
@@ -156,92 +150,129 @@ export class BotWebhookService {
         projectId,
       });
 
-      // Download recording from Recall.ai
-      const downloadResult = await this.downloadRecording(recording.url);
+      // Check if recording already exists by externalRecordingId (idempotency)
+      const existingRecording =
+        await RecordingsQueries.selectRecordingByExternalId(
+          recording.id,
+          organizationId
+        );
 
-      if (downloadResult.isErr()) {
-        return err(downloadResult.error);
-      }
+      let finalRecordingId: string;
 
-      const { fileBuffer, mimeType } = downloadResult.value;
-
-      // Determine file name
-      const fileName = `recall-${recording.id}.${this.getFileExtension(
-        mimeType
-      )}`;
-      const timestamp = Date.now();
-      const blobPath = `recordings/${timestamp}-${fileName}`;
-
-      // Upload to Vercel Blob
-      const blob = await put(blobPath, fileBuffer, {
-        access: "public",
-        contentType: mimeType,
-      });
-
-      logger.info("Recording uploaded to Vercel Blob", {
-        component: "BotWebhookService.processRecordingReady",
-        blobUrl: blob.url,
-        fileName,
-      });
-
-      // Create Recording entry
-      const recordingDate = meeting?.start_time
-        ? new Date(meeting.start_time)
-        : new Date();
-
-      const createResult = await RecordingService.createRecording(
-        {
-          projectId: projectId as string,
-          title: meeting?.title ?? session.meetingTitle ?? "Bot Recording",
-          description: null,
-          fileUrl: blob.url,
-          fileName,
-          fileSize: fileBuffer.length,
-          fileMimeType: mimeType,
-          duration: recording.duration ?? null,
-          recordingDate,
-          recordingMode: "bot",
-          transcriptionStatus: "pending",
-          transcriptionText: null,
-          organizationId: organizationId as string,
-          createdById: userId as string,
-        },
-        true // Don't invalidate cache yet
-      );
-
-      if (createResult.isErr()) {
-        logger.error("Failed to create recording", {
+      if (existingRecording) {
+        // Recording already exists, use it
+        logger.info("Recording already exists with external ID", {
           component: "BotWebhookService.processRecordingReady",
-          error: createResult.error,
+          recordingId: existingRecording.id,
+          externalRecordingId: recording.id,
+          sessionId: session.id,
         });
-        return err(createResult.error);
+        finalRecordingId = existingRecording.id;
+      } else {
+        // Download recording from Recall.ai
+        const downloadResult = await this.downloadRecording(recording.url);
+
+        if (downloadResult.isErr()) {
+          return err(downloadResult.error);
+        }
+
+        const { fileBuffer, mimeType } = downloadResult.value;
+
+        // Determine file name
+        const fileName = `recall-${recording.id}.${this.getFileExtension(
+          mimeType
+        )}`;
+        const timestamp = Date.now();
+        const blobPath = `recordings/${timestamp}-${fileName}`;
+
+        // Upload to Vercel Blob
+        const blob = await put(blobPath, fileBuffer, {
+          access: "public",
+          contentType: mimeType,
+        });
+
+        logger.info("Recording uploaded to Vercel Blob", {
+          component: "BotWebhookService.processRecordingReady",
+          blobUrl: blob.url,
+          fileName,
+        });
+
+        // Create Recording entry with externalRecordingId
+        const recordingDate = meeting?.start_time
+          ? new Date(meeting.start_time)
+          : new Date();
+
+        const createResult = await RecordingService.createRecording(
+          {
+            projectId: projectId as string,
+            title: meeting?.title ?? session.meetingTitle ?? "Bot Recording",
+            description: null,
+            fileUrl: blob.url,
+            fileName,
+            fileSize: fileBuffer.length,
+            fileMimeType: mimeType,
+            duration: recording.duration ?? null,
+            recordingDate,
+            recordingMode: "bot",
+            transcriptionStatus: "pending",
+            transcriptionText: null,
+            organizationId: organizationId as string,
+            createdById: userId as string,
+            externalRecordingId: recording.id, // Use Recall.ai's stable recording.id
+          },
+          true // Don't invalidate cache yet
+        );
+
+        if (createResult.isErr()) {
+          logger.error("Failed to create recording", {
+            component: "BotWebhookService.processRecordingReady",
+            error: createResult.error,
+          });
+          return err(createResult.error);
+        }
+
+        finalRecordingId = createResult.value.id;
       }
 
-      const createdRecording = createResult.value;
+      // Update bot session with recording ID in a transaction to ensure atomicity
+      await db.transaction(async (tx) => {
+        // Re-check session exists and update recordingId
+        const [updatedSession] = await tx
+          .update(botSessions)
+          .set({
+            recordingId: finalRecordingId,
+            recallStatus: bot.status,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(botSessions.recallBotId, bot.id),
+              eq(botSessions.organizationId, organizationId)
+            )
+          )
+          .returning();
 
-      // Update bot session with recording ID
-      await BotSessionsQueries.updateByRecallBotId(
-        bot.id,
-        organizationId as string,
-        {
-          recordingId: createdRecording.id,
-          recallStatus: bot.status,
+        if (!updatedSession) {
+          throw new Error("Failed to update bot session");
         }
-      );
 
-      logger.info("Recording created and bot session updated", {
+        return updatedSession;
+      });
+
+      logger.info("Recording processed and bot session updated", {
         component: "BotWebhookService.processRecordingReady",
-        recordingId: createdRecording.id,
+        recordingId: finalRecordingId,
         sessionId: session.id,
+        externalRecordingId: recording.id,
       });
 
       // Trigger AI processing workflow
       const workflowRun = await start(convertRecordingIntoAiInsights, [
-        createdRecording.id,
+        finalRecordingId,
       ]).catch((error) => {
         logger.error("Failed to trigger AI processing workflow", {
           component: "BotWebhookService.processRecordingReady",
-          recordingId: createdRecording.id,
+          recordingId: finalRecordingId,
           error: serializeError(error),
         });
       });
@@ -249,7 +280,7 @@ export class BotWebhookService {
       if (workflowRun) {
         logger.info("AI processing workflow triggered", {
           component: "BotWebhookService.processRecordingReady",
-          recordingId: createdRecording.id,
+          recordingId: finalRecordingId,
           workflowRunId: workflowRun.runId,
         });
       }

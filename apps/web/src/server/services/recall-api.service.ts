@@ -42,7 +42,7 @@ export class RecallApiService {
   ): Promise<ActionResult<{ botId: string; status: string }>> {
     try {
       const apiKey = this.getApiKey();
-      const webhookUrl = `${this.getWebhookBaseUrl()}/api/bot/webhook/recall`;
+      const webhookUrl = `${this.getWebhookBaseUrl()}/api/webhooks/recall`;
 
       logger.info("Creating Recall.ai bot session", {
         component: "RecallApiService.createBotSession",
