@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/card";
 import { useLiveRecording } from "@/features/recordings/hooks/use-live-recording";
 import { useLiveTranscription } from "@/features/recordings/hooks/use-live-transcription";
+import { ConsentBanner } from "@/features/recordings/components/consent-banner";
+import { ConsentStatus } from "@/features/recordings/components/consent-status";
 import { logger } from "@/lib";
 import { useState } from "react";
 import {
@@ -34,12 +36,17 @@ import {
 interface LiveRecorderProps {
   onRecordingComplete: (
     audioBlob: Blob,
-    transcription: string
+    transcription: string,
+    consentGranted: boolean,
+    consentGrantedAt: Date
   ) => Promise<void>;
 }
 
 export function LiveRecorder({ onRecordingComplete }: LiveRecorderProps) {
   const [showStopConfirm, setShowStopConfirm] = useState(false);
+  const [showConsentBanner, setShowConsentBanner] = useState(false);
+  const [consentGranted, setConsentGranted] = useState(false);
+  const [consentGrantedAt, setConsentGrantedAt] = useState<Date | null>(null);
 
   // Custom hooks
   const recording = useLiveRecording();
@@ -52,6 +59,12 @@ export function LiveRecorder({ onRecordingComplete }: LiveRecorderProps) {
 
   // Handle start recording
   const handleStart = async () => {
+    // Show consent banner if consent not yet granted
+    if (!consentGranted) {
+      setShowConsentBanner(true);
+      return;
+    }
+
     try {
       if (transcription.liveTranscriptionEnabled) {
         // Start recording with transcription
@@ -82,6 +95,21 @@ export function LiveRecorder({ onRecordingComplete }: LiveRecorderProps) {
     }
   };
 
+  // Handle consent granted
+  const handleConsentGranted = () => {
+    const now = new Date();
+    setConsentGranted(true);
+    setConsentGrantedAt(now);
+    setShowConsentBanner(false);
+    // Start recording after consent is granted
+    void handleStart();
+  };
+
+  // Handle consent denied
+  const handleConsentDenied = () => {
+    setShowConsentBanner(false);
+  };
+
   // Handle stop click (with confirmation for short recordings)
   const handleStopClick = () => {
     if (recording.duration < 3) {
@@ -107,8 +135,13 @@ export function LiveRecorder({ onRecordingComplete }: LiveRecorderProps) {
         .map((t) => t.text)
         .join(" ");
 
-      // Call completion handler
-      await onRecordingComplete(audioBlob, fullTranscript);
+      // Call completion handler with consent information
+      await onRecordingComplete(
+        audioBlob,
+        fullTranscript,
+        consentGranted,
+        consentGrantedAt ?? new Date()
+      );
 
       // Clear transcripts
       transcription.clearTranscripts();
@@ -165,6 +198,16 @@ export function LiveRecorder({ onRecordingComplete }: LiveRecorderProps) {
               isSaving={recording.isSaving}
             />
 
+            {/* Consent Status */}
+            {consentGranted && (
+              <div className="flex items-center gap-2">
+                <ConsentStatus status="granted" />
+                <span className="text-sm text-muted-foreground">
+                  Consent granted for recording
+                </span>
+              </div>
+            )}
+
             {/* Recording Controls */}
             <RecordingControls
               isRecording={recording.isRecording}
@@ -207,6 +250,13 @@ export function LiveRecorder({ onRecordingComplete }: LiveRecorderProps) {
           />
         )}
       </div>
+
+      {/* Consent Banner */}
+      <ConsentBanner
+        isOpen={showConsentBanner}
+        onConsentGranted={handleConsentGranted}
+        onConsentDenied={handleConsentDenied}
+      />
 
       {/* Stop Confirmation Dialog */}
       <AlertDialog open={showStopConfirm} onOpenChange={setShowStopConfirm}>

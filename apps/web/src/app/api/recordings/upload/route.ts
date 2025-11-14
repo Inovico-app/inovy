@@ -20,6 +20,8 @@ interface UploadMetadata {
   fileName: string;
   fileSize: number;
   fileMimeType: string;
+  consentGiven?: boolean;
+  consentGivenAt?: string;
 }
 
 interface TokenPayload extends UploadMetadata {
@@ -121,6 +123,10 @@ export async function POST(request: NextRequest) {
           throw new Error("Invalid token payload");
         }
 
+        // Get user info for consent tracking
+        const { getUser } = getKindeServerSession();
+        const user = await getUser();
+
         const result = await RecordingService.createRecording(
           {
             projectId: payload.projectId,
@@ -137,6 +143,11 @@ export async function POST(request: NextRequest) {
             transcriptionText: null,
             organizationId: payload.organizationId,
             createdById: payload.userId,
+            consentGiven: payload.consentGiven ?? false,
+            consentGivenBy: payload.consentGiven ? payload.userId : null,
+            consentGivenAt: payload.consentGiven && payload.consentGivenAt
+              ? new Date(payload.consentGivenAt)
+              : null,
           },
           false
         );

@@ -12,6 +12,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getAutoProcessPreferenceClient } from "@/lib/recording-preferences";
 import { put } from "@vercel/blob";
+import { uploadRecordingFormAction } from "@/features/recordings/actions/upload-recording";
 import { InfoIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -41,7 +42,9 @@ export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
 
   const handleLiveRecordingComplete = async (
     audioBlob: Blob,
-    _transcription: string
+    _transcription: string,
+    consentGranted: boolean,
+    consentGrantedAt: Date
   ) => {
     try {
       setIsUploading(true);
@@ -53,12 +56,12 @@ export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
         { type: "audio/webm" }
       );
 
-      // Upload to Vercel Blob - blob var used for API call
-      await put(`recordings/${audioFile.name}`, audioFile, {
+      // Upload to Vercel Blob
+      const blob = await put(`recordings/${audioFile.name}`, audioFile, {
         access: "public",
       });
 
-      // Create form data
+      // Create form data with consent information
       const formData = new FormData();
       formData.append("file", audioFile);
       formData.append("projectId", projectId);
@@ -69,21 +72,11 @@ export function UploadModeSelector({ projectId }: UploadModeSelectorProps) {
       formData.append("description", "Live opgenomen gesprek");
       formData.append("recordingDate", new Date().toISOString());
       formData.append("recordingMode", "live");
+      formData.append("consentGiven", consentGranted.toString());
+      formData.append("consentGivenAt", consentGrantedAt.toISOString());
 
-      // Upload recording via API route
-      const response = await fetch("/api/recordings/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          error: "Fout bij opslaan van opname",
-        }));
-        throw new Error(errorData.error ?? "Fout bij opslaan van opname");
-      }
-
-      const result = await response.json();
+      // Use server action which handles FormData properly
+      const result = await uploadRecordingFormAction(formData);
 
       if (result.success && result.recordingId) {
         // Save transcription (already done by live recording)

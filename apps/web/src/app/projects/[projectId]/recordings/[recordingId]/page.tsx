@@ -1,9 +1,12 @@
-import { AIInsightService, TaskService } from "@/server/services";
+import { AIInsightService, ConsentService, TaskService } from "@/server/services";
 import { ArrowLeftIcon, CalendarIcon, ClockIcon, FileIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { ok } from "neverthrow";
+import type { ActionResult } from "@/lib/action-errors";
+import type { ConsentParticipant } from "@/server/db/schema/consent";
 import { Button } from "../../../../../components/ui/button";
 import {
   Card,
@@ -11,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../../../components/ui/card";
+import { ConsentManager } from "../../../../../features/recordings/components/consent-manager";
 import { EnhancedSummarySection } from "../../../../../features/recordings/components/enhanced-summary-section";
 import { RecordingDetailActionsDropdown } from "../../../../../features/recordings/components/recording-detail-actions-dropdown";
 import { RecordingDetailStatus } from "../../../../../features/recordings/components/recording-detail-status";
@@ -20,6 +24,7 @@ import { ReprocessingStatusIndicator } from "../../../../../features/recordings/
 import { TranscriptionSection } from "../../../../../features/recordings/components/transcription";
 import { TaskCard } from "../../../../../features/tasks/components/task-card-with-edit";
 import { getCachedSummary } from "../../../../../server/cache/summary.cache";
+import { getAuthSession } from "../../../../../lib/auth";
 import { ProjectService } from "../../../../../server/services/project.service";
 import { RecordingService } from "../../../../../server/services/recording.service";
 
@@ -30,19 +35,30 @@ interface RecordingDetailPageProps {
 async function RecordingDetail({ params }: RecordingDetailPageProps) {
   const { projectId, recordingId } = await params;
 
-  // Fetch recording, project, summary, tasks, and transcription insight in parallel
+  // Get auth session for organization ID
+  const authResult = await getAuthSession();
+  const organizationId =
+    authResult.isOk() && authResult.value.organization
+      ? authResult.value.organization.orgCode
+      : null;
+
+  // Fetch recording, project, summary, tasks, transcription insight, and consent in parallel
   const [
     recordingResult,
     projectResult,
     summary,
     tasksResult,
     transcriptionInsightResult,
+    consentParticipantsResult,
   ] = await Promise.all([
     RecordingService.getRecordingById(recordingId),
     ProjectService.getProjectById(projectId),
     getCachedSummary(recordingId),
     TaskService.getTasksByRecordingId(recordingId),
     AIInsightService.getInsightByTypeInternal(recordingId, "transcription"),
+    organizationId
+      ? ConsentService.getConsentParticipants(recordingId, organizationId)
+      : Promise.resolve(ok([]) as ActionResult<ConsentParticipant[]>),
   ]);
 
   if (recordingResult.isErr() || projectResult.isErr()) {
@@ -67,6 +83,11 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
   const transcriptionInsight = transcriptionInsightResult.isOk()
     ? transcriptionInsightResult.value
     : null;
+
+  // Extract consent participants
+  const consentParticipants = consentParticipantsResult.isOk()
+    ? consentParticipantsResult.value
+    : [];
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", {
@@ -254,6 +275,13 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
           recordingId={recordingId}
           summary={summary}
           transcriptionStatus={recording.transcriptionStatus}
+        />
+
+        {/* Consent Management */}
+        <ConsentManager
+          recordingId={recording.id}
+          initialParticipants={consentParticipants}
+          organizerEmail={recording.createdById}
         />
 
         {/* Extracted Action Items */}
