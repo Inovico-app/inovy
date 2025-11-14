@@ -79,7 +79,7 @@ export function AuditLogViewer({
     if (endDate) params.set("endDate", endDate);
 
     startTransition(() => {
-      router.push(`/admin/audit-logs?${params.toString()}`);
+      router.push(`/admin/audit-logs?${params.toString()}` as "/admin/audit-logs");
     });
   };
 
@@ -94,7 +94,7 @@ export function AuditLogViewer({
     setStartDate(undefined);
     setEndDate(undefined);
     startTransition(() => {
-      router.push("/admin/audit-logs");
+      router.push("/admin/audit-logs" as "/admin/audit-logs");
     });
   };
 
@@ -115,8 +115,8 @@ export function AuditLogViewer({
         endDate: endDate ? new Date(endDate).toISOString() : undefined,
       });
 
-      if (!result.success || !result.data) {
-        throw new Error(result.error ?? "Failed to export audit logs");
+      if (result?.serverError || !result?.data) {
+        throw new Error(result?.serverError ?? "Failed to export audit logs");
       }
 
       const { content, filename } = result.data;

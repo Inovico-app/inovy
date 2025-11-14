@@ -62,18 +62,20 @@ export const exportAuditLogs = authorizedActionClient
       const { logs } = result.value;
 
       // Log the export event
-      await AuditLogService.createAuditLog({
-        eventType: "audit_log_exported",
-        resourceType: "export",
-        userId: authResult.value.user.id,
-        organizationId: organization.orgCode,
-        action: "export",
-        metadata: {
-          format: parsedInput.format,
-          count: logs.length,
-          filters: parsedInput,
-        },
-      });
+      if (authResult.value.user) {
+        await AuditLogService.createAuditLog({
+          eventType: "audit_log_exported",
+          resourceType: "export",
+          userId: authResult.value.user.id,
+          organizationId: organization.orgCode,
+          action: "export",
+          metadata: {
+            format: parsedInput.format,
+            count: logs.length,
+            filters: parsedInput,
+          },
+        });
+      }
 
       if (parsedInput.format === "csv") {
         // Convert to CSV

@@ -220,7 +220,7 @@ class Logger {
     ) => {
       this.info(`Audit event: ${eventType}`, {
         component: "audit",
-        action: "event",
+        auditAction: "event",
         eventType,
         resourceType: context.resourceType,
         resourceId: context.resourceId,

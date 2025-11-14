@@ -91,18 +91,18 @@ export class AuditLogsQueries {
       conditions.push(lte(auditLogs.createdAt, filters.endDate));
     }
 
-    let query = db
+    const query = db
       .select()
       .from(auditLogs)
       .where(and(...conditions))
       .orderBy(desc(auditLogs.createdAt));
 
     if (filters?.limit) {
-      query = query.limit(filters.limit);
+      return query.limit(filters.limit);
     }
 
     if (filters?.offset) {
-      query = query.offset(filters.offset);
+      return query.offset(filters.offset);
     }
 
     return query;
