@@ -1,16 +1,16 @@
 import { createHash } from "crypto";
 import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
-import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { logger } from "../../lib/logger";
+import {
+  assertOrganizationAccess,
+  validateOrganizationContext,
+} from "../../lib/organization-isolation";
 import {
   AuditLogsQueries,
   type AuditLogFilters,
 } from "../data-access/audit-logs.queries";
-import {
-  type AuditLog,
-  type NewAuditLog,
-} from "../db/schema";
+import { type AuditLog, type NewAuditLog } from "../db/schema";
 
 /**
  * Comprehensive Audit Log Service
@@ -122,11 +122,7 @@ export class AuditLogService {
 
       return ok(auditLog);
     } catch (error) {
-      logger.error(
-        "Failed to create audit log",
-        { params },
-        error as Error
-      );
+      logger.error("Failed to create audit log", { params }, error as Error);
       return err(
         ActionErrors.internal(
           "Failed to create audit log",
@@ -146,28 +142,34 @@ export class AuditLogService {
     filters?: AuditLogFilters
   ): Promise<ActionResult<{ logs: AuditLog[]; total: number }>> {
     try {
+      // Validate organization access before making any queries
+      const orgContext = await validateOrganizationContext(
+        "AuditLogService.getAuditLogs"
+      );
+      if (orgContext.isErr()) {
+        return err(orgContext.error);
+      }
+
+      // Verify user belongs to the organization they're querying
+      try {
+        assertOrganizationAccess(
+          organizationId,
+          orgContext.value.organizationId,
+          "AuditLogService.getAuditLogs"
+        );
+      } catch {
+        return err(
+          ActionErrors.notFound(
+            "Audit logs not found",
+            "AuditLogService.getAuditLogs"
+          )
+        );
+      }
+
       const [logs, total] = await Promise.all([
         AuditLogsQueries.findByFilters(organizationId, filters),
         AuditLogsQueries.countByFilters(organizationId, filters),
       ]);
-
-      // Verify all returned logs belong to the organization
-      for (const log of logs) {
-        try {
-          assertOrganizationAccess(
-            log.organizationId,
-            organizationId,
-            "AuditLogService.getAuditLogs"
-          );
-        } catch {
-          return err(
-            ActionErrors.notFound(
-              "Audit logs not found",
-              "AuditLogService.getAuditLogs"
-            )
-          );
-        }
-      }
 
       logger.info("Retrieved audit logs", {
         component: "AuditLogService",
@@ -205,30 +207,36 @@ export class AuditLogService {
     limit = 100
   ): Promise<ActionResult<AuditLog[]>> {
     try {
+      // Validate organization access before making any queries
+      const orgContext = await validateOrganizationContext(
+        "AuditLogService.getAuditLogsByResource"
+      );
+      if (orgContext.isErr()) {
+        return err(orgContext.error);
+      }
+
+      // Verify user belongs to the organization they're querying
+      try {
+        assertOrganizationAccess(
+          organizationId,
+          orgContext.value.organizationId,
+          "AuditLogService.getAuditLogsByResource"
+        );
+      } catch {
+        return err(
+          ActionErrors.notFound(
+            "Audit logs not found",
+            "AuditLogService.getAuditLogsByResource"
+          )
+        );
+      }
+
       const logs = await AuditLogsQueries.findByResource(
         resourceType,
         resourceId,
         organizationId,
         limit
       );
-
-      // Verify all returned logs belong to the organization
-      for (const log of logs) {
-        try {
-          assertOrganizationAccess(
-            log.organizationId,
-            organizationId,
-            "AuditLogService.getAuditLogsByResource"
-          );
-        } catch {
-          return err(
-            ActionErrors.notFound(
-              "Audit logs not found",
-              "AuditLogService.getAuditLogsByResource"
-            )
-          );
-        }
-      }
 
       return ok(logs);
     } catch (error) {
@@ -257,29 +265,35 @@ export class AuditLogService {
     limit = 100
   ): Promise<ActionResult<AuditLog[]>> {
     try {
+      // Validate organization access before making any queries
+      const orgContext = await validateOrganizationContext(
+        "AuditLogService.getAuditLogsByUser"
+      );
+      if (orgContext.isErr()) {
+        return err(orgContext.error);
+      }
+
+      // Verify user belongs to the organization they're querying
+      try {
+        assertOrganizationAccess(
+          organizationId,
+          orgContext.value.organizationId,
+          "AuditLogService.getAuditLogsByUser"
+        );
+      } catch {
+        return err(
+          ActionErrors.notFound(
+            "Audit logs not found",
+            "AuditLogService.getAuditLogsByUser"
+          )
+        );
+      }
+
       const logs = await AuditLogsQueries.findByUser(
         userId,
         organizationId,
         limit
       );
-
-      // Verify all returned logs belong to the organization
-      for (const log of logs) {
-        try {
-          assertOrganizationAccess(
-            log.organizationId,
-            organizationId,
-            "AuditLogService.getAuditLogsByUser"
-          );
-        } catch {
-          return err(
-            ActionErrors.notFound(
-              "Audit logs not found",
-              "AuditLogService.getAuditLogsByUser"
-            )
-          );
-        }
-      }
 
       return ok(logs);
     } catch (error) {
@@ -307,25 +321,31 @@ export class AuditLogService {
     organizationId: string
   ): Promise<ActionResult<Array<{ log: AuditLog; isValid: boolean }>>> {
     try {
-      const results = await AuditLogsQueries.verifyHashChain(organizationId);
-
-      // Verify all logs belong to the organization
-      for (const result of results) {
-        try {
-          assertOrganizationAccess(
-            result.log.organizationId,
-            organizationId,
-            "AuditLogService.verifyHashChain"
-          );
-        } catch {
-          return err(
-            ActionErrors.notFound(
-              "Audit logs not found",
-              "AuditLogService.verifyHashChain"
-            )
-          );
-        }
+      // Validate organization access before making any queries
+      const orgContext = await validateOrganizationContext(
+        "AuditLogService.verifyHashChain"
+      );
+      if (orgContext.isErr()) {
+        return err(orgContext.error);
       }
+
+      // Verify user belongs to the organization they're querying
+      try {
+        assertOrganizationAccess(
+          organizationId,
+          orgContext.value.organizationId,
+          "AuditLogService.verifyHashChain"
+        );
+      } catch {
+        return err(
+          ActionErrors.notFound(
+            "Audit logs not found",
+            "AuditLogService.verifyHashChain"
+          )
+        );
+      }
+
+      const results = await AuditLogsQueries.verifyHashChain(organizationId);
 
       const invalidHashLogs = results.filter((r) => !r.isValid);
       if (invalidHashLogs.length > 0) {
@@ -366,10 +386,7 @@ export class AuditLogService {
     const cfConnectingIp = headers.get("cf-connecting-ip");
 
     const ipAddress =
-      forwardedFor?.split(",")[0]?.trim() ??
-      realIp ??
-      cfConnectingIp ??
-      null;
+      forwardedFor?.split(",")[0]?.trim() ?? realIp ?? cfConnectingIp ?? null;
 
     const userAgent = headers.get("user-agent") ?? null;
 
