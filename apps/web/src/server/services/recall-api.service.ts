@@ -52,7 +52,7 @@ export class RecallApiService {
       const response = await fetch(`${this.API_BASE_URL}/bot/`, {
         method: "POST",
         headers: {
-          Authorization: `Token ${apiKey}`,
+          "Authorization": `Token ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -60,6 +60,7 @@ export class RecallApiService {
           webhook_url: webhookUrl,
           custom_metadata: customMetadata || {},
         }),
+        signal: AbortSignal.timeout(30000), // 30 second timeout
       });
 
       if (!response.ok) {
@@ -81,6 +82,20 @@ export class RecallApiService {
       }
 
       const data = await response.json();
+
+      if (!data.id) {
+        logger.error("Invalid Recall.ai API response: missing bot ID", {
+          component: "RecallApiService.createBotSession",
+          response: data,
+        });
+        return err(
+          ActionErrors.internal(
+            "Invalid API response: missing bot ID",
+            new Error("Response validation failed"),
+            "RecallApiService.createBotSession"
+          )
+        );
+      }
 
       logger.info("Successfully created Recall.ai bot session", {
         component: "RecallApiService.createBotSession",
