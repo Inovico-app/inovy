@@ -754,6 +754,8 @@ export class RecordingService {
       consentGivenBy: recording.consentGivenBy,
       consentGivenAt: recording.consentGivenAt,
       consentRevokedAt: recording.consentRevokedAt,
+      isEncrypted: recording.isEncrypted ?? false,
+      encryptionMetadata: recording.encryptionMetadata ?? null,
       createdAt: recording.createdAt,
       updatedAt: recording.updatedAt,
     };

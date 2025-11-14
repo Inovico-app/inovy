@@ -34,6 +34,8 @@ export interface RecordingDto {
   consentGivenBy: string | null;
   consentGivenAt: Date | null;
   consentRevokedAt: Date | null;
+  isEncrypted: boolean;
+  encryptionMetadata: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

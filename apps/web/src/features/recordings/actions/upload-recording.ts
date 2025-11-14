@@ -1,6 +1,7 @@
 "use server";
 
 import { getAuthSession } from "@/lib/auth";
+import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 import { RecordingService } from "@/server/services";
 import {
@@ -90,10 +91,61 @@ export async function uploadRecordingFormAction(
       fileSize: file.size,
     });
 
-    // Upload file to Vercel Blob
-    const blob = await put(`recordings/${Date.now()}-${file.name}`, file, {
-      access: "public",
-    });
+    // Encrypt file before upload (if encryption is enabled)
+    const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+    let fileToUpload: File | Buffer = file;
+    let encryptionMetadata: string | null = null;
+
+    // Validate encryption configuration before attempting encryption
+    if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
+      logger.error("Encryption enabled but master key not configured", {
+        component: "uploadRecordingFormAction",
+      });
+      return {
+        success: false,
+        error:
+          "Encryption is enabled but ENCRYPTION_MASTER_KEY is not configured. Please contact support.",
+      };
+    }
+
+    if (shouldEncrypt) {
+      try {
+        const fileBuffer = Buffer.from(await file.arrayBuffer());
+        const encryptedBase64 = encrypt(fileBuffer);
+        const encryptedBuffer = Buffer.from(encryptedBase64, "base64");
+        fileToUpload = encryptedBuffer;
+        encryptionMetadata = JSON.stringify(generateEncryptionMetadata());
+
+        logger.info("File encrypted before upload", {
+          component: "uploadRecordingFormAction",
+          originalSize: file.size,
+          encryptedSize: encryptedBuffer.length,
+        });
+      } catch (error) {
+        logger.error("Failed to encrypt file", {
+          component: "uploadRecordingFormAction",
+          error,
+        });
+        return {
+          success: false,
+          error: "Failed to encrypt file for secure storage",
+        };
+      }
+    }
+
+    // Upload file to Vercel Blob (use private access if encrypted)
+    const uploadOptions: {
+      access: "public" | "private";
+      contentType: string;
+    } = {
+      access: shouldEncrypt ? ("private" as const) : ("public" as const),
+      contentType: file.type,
+    };
+    const blob = await put(
+      `recordings/${Date.now()}-${file.name}`,
+      fileToUpload,
+      uploadOptions as Parameters<typeof put>[2]
+    );
 
     logger.info("File uploaded to Blob", {
       component: "uploadRecordingFormAction",
@@ -118,6 +170,8 @@ export async function uploadRecordingFormAction(
       consentGiven,
       consentGivenBy: consentGiven ? user.id : null,
       consentGivenAt: consentGiven && consentGivenAt ? consentGivenAt : null,
+      isEncrypted: shouldEncrypt,
+      encryptionMetadata: encryptionMetadata,
     });
 
     if (result.isErr()) {

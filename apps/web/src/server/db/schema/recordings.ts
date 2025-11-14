@@ -84,6 +84,9 @@ export const recordings = pgTable(
     consentGivenBy: text("consent_given_by"), // Kinde user ID
     consentGivenAt: timestamp("consent_given_at", { withTimezone: true }),
     consentRevokedAt: timestamp("consent_revoked_at", { withTimezone: true }),
+    // Encryption fields
+    isEncrypted: boolean("is_encrypted").notNull().default(false),
+    encryptionMetadata: text("encryption_metadata"), // JSON metadata
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
