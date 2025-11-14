@@ -1,10 +1,4 @@
-import {
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { recordings } from "./recordings";
 
 export const consentAuditActionEnum = [
@@ -31,7 +25,7 @@ export const consentAuditLog = pgTable("consent_audit_log", {
   performedByEmail: text("performed_by_email"), // Email for audit purposes
   ipAddress: text("ip_address"), // IP address for audit
   userAgent: text("user_agent"), // User agent for audit
-  metadata: jsonb("metadata"), // JSON metadata for additional context
+  metadata: jsonb("metadata").$type<Record<string, unknown> | null>(), // JSON metadata for additional context
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
