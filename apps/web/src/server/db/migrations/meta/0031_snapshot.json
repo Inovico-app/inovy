@@ -1,6 +1,6 @@
 {
-  "id": "5692a3f7-e349-4917-9c99-2c90342e796c",
-  "prevId": "4182ab06-d306-4335-b92e-141acc2e436b",
+  "id": "99fdeab3-6fc7-4f5d-897a-a29e6619d95f",
+  "prevId": "5692a3f7-e349-4917-9c99-2c90342e796c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1139,9 +1139,9 @@
           "notNull": true,
           "default": "'pending'"
         },
-        "download_url": {
-          "name": "download_url",
-          "type": "text",
+        "file_data": {
+          "name": "file_data",
+          "type": "bytea",
           "primaryKey": false,
           "notNull": false
         },
