@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
+import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { logger } from "../../lib/logger";
 import {
   AuditLogsQueries,
@@ -145,35 +146,27 @@ export class AuditLogService {
     filters?: AuditLogFilters
   ): Promise<ActionResult<{ logs: AuditLog[]; total: number }>> {
     try {
-      // Ensure filters don't override organizationId (defense in depth)
-      const safeFilters = {
-        ...filters,
-        organizationId, // Always use the provided organizationId
-      };
-
       const [logs, total] = await Promise.all([
-        AuditLogsQueries.findByFilters(organizationId, safeFilters),
-        AuditLogsQueries.countByFilters(organizationId, safeFilters),
+        AuditLogsQueries.findByFilters(organizationId, filters),
+        AuditLogsQueries.countByFilters(organizationId, filters),
       ]);
 
-      // Verify all returned logs belong to the organization (defense in depth)
-      const invalidLogs = logs.filter(
-        (log) => log.organizationId !== organizationId
-      );
-      if (invalidLogs.length > 0) {
-        logger.security.organizationViolation({
-          resourceOrgId: invalidLogs[0].organizationId,
-          userOrgId: organizationId,
-          context: "AuditLogService.getAuditLogs",
-          reason: `Found ${invalidLogs.length} audit logs with mismatched organization`,
-        });
-        return err(
-          ActionErrors.forbidden(
-            "Some audit logs do not belong to your organization",
-            undefined,
+      // Verify all returned logs belong to the organization
+      for (const log of logs) {
+        try {
+          assertOrganizationAccess(
+            log.organizationId,
+            organizationId,
             "AuditLogService.getAuditLogs"
-          )
-        );
+          );
+        } catch {
+          return err(
+            ActionErrors.notFound(
+              "Audit logs not found",
+              "AuditLogService.getAuditLogs"
+            )
+          );
+        }
       }
 
       logger.info("Retrieved audit logs", {
@@ -219,24 +212,22 @@ export class AuditLogService {
         limit
       );
 
-      // Verify all returned logs belong to the organization (defense in depth)
-      const invalidLogs = logs.filter(
-        (log) => log.organizationId !== organizationId
-      );
-      if (invalidLogs.length > 0) {
-        logger.security.organizationViolation({
-          resourceOrgId: invalidLogs[0].organizationId,
-          userOrgId: organizationId,
-          context: "AuditLogService.getAuditLogsByResource",
-          reason: `Found ${invalidLogs.length} audit logs with mismatched organization`,
-        });
-        return err(
-          ActionErrors.forbidden(
-            "Some audit logs do not belong to your organization",
-            undefined,
+      // Verify all returned logs belong to the organization
+      for (const log of logs) {
+        try {
+          assertOrganizationAccess(
+            log.organizationId,
+            organizationId,
             "AuditLogService.getAuditLogsByResource"
-          )
-        );
+          );
+        } catch {
+          return err(
+            ActionErrors.notFound(
+              "Audit logs not found",
+              "AuditLogService.getAuditLogsByResource"
+            )
+          );
+        }
       }
 
       return ok(logs);
@@ -272,24 +263,22 @@ export class AuditLogService {
         limit
       );
 
-      // Verify all returned logs belong to the organization (defense in depth)
-      const invalidLogs = logs.filter(
-        (log) => log.organizationId !== organizationId
-      );
-      if (invalidLogs.length > 0) {
-        logger.security.organizationViolation({
-          resourceOrgId: invalidLogs[0].organizationId,
-          userOrgId: organizationId,
-          context: "AuditLogService.getAuditLogsByUser",
-          reason: `Found ${invalidLogs.length} audit logs with mismatched organization`,
-        });
-        return err(
-          ActionErrors.forbidden(
-            "Some audit logs do not belong to your organization",
-            undefined,
+      // Verify all returned logs belong to the organization
+      for (const log of logs) {
+        try {
+          assertOrganizationAccess(
+            log.organizationId,
+            organizationId,
             "AuditLogService.getAuditLogsByUser"
-          )
-        );
+          );
+        } catch {
+          return err(
+            ActionErrors.notFound(
+              "Audit logs not found",
+              "AuditLogService.getAuditLogsByUser"
+            )
+          );
+        }
       }
 
       return ok(logs);
@@ -320,24 +309,22 @@ export class AuditLogService {
     try {
       const results = await AuditLogsQueries.verifyHashChain(organizationId);
 
-      // Verify all logs belong to the organization (defense in depth)
-      const invalidOrgLogs = results.filter(
-        (r) => r.log.organizationId !== organizationId
-      );
-      if (invalidOrgLogs.length > 0) {
-        logger.security.organizationViolation({
-          resourceOrgId: invalidOrgLogs[0].log.organizationId,
-          userOrgId: organizationId,
-          context: "AuditLogService.verifyHashChain",
-          reason: `Found ${invalidOrgLogs.length} audit logs with mismatched organization`,
-        });
-        return err(
-          ActionErrors.forbidden(
-            "Some audit logs do not belong to your organization",
-            undefined,
+      // Verify all logs belong to the organization
+      for (const result of results) {
+        try {
+          assertOrganizationAccess(
+            result.log.organizationId,
+            organizationId,
             "AuditLogService.verifyHashChain"
-          )
-        );
+          );
+        } catch {
+          return err(
+            ActionErrors.notFound(
+              "Audit logs not found",
+              "AuditLogService.verifyHashChain"
+            )
+          );
+        }
       }
 
       const invalidHashLogs = results.filter((r) => !r.isValid);
