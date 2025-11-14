@@ -1,6 +1,7 @@
 "use server";
 
 import { getAuthSession } from "@/lib/auth";
+import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 import { RecordingService } from "@/server/services";
 import {
@@ -84,9 +85,39 @@ export async function uploadRecordingFormAction(
       fileSize: file.size,
     });
 
-    // Upload file to Vercel Blob
-    const blob = await put(`recordings/${Date.now()}-${file.name}`, file, {
-      access: "public",
+    // Encrypt file before upload (if encryption is enabled)
+    const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+    let fileToUpload: File | Buffer = file;
+    let encryptionMetadata: string | null = null;
+
+    if (shouldEncrypt) {
+      try {
+        const fileBuffer = Buffer.from(await file.arrayBuffer());
+        const encryptedBuffer = Buffer.from(encrypt(fileBuffer), "base64");
+        fileToUpload = encryptedBuffer;
+        encryptionMetadata = JSON.stringify(generateEncryptionMetadata());
+
+        logger.info("File encrypted before upload", {
+          component: "uploadRecordingFormAction",
+          originalSize: file.size,
+          encryptedSize: encryptedBuffer.length,
+        });
+      } catch (error) {
+        logger.error("Failed to encrypt file", {
+          component: "uploadRecordingFormAction",
+          error,
+        });
+        return {
+          success: false,
+          error: "Failed to encrypt file for secure storage",
+        };
+      }
+    }
+
+    // Upload file to Vercel Blob (use private access if encrypted)
+    const blob = await put(`recordings/${Date.now()}-${file.name}`, fileToUpload, {
+      access: shouldEncrypt ? "private" : "public",
+      contentType: file.type,
     });
 
     logger.info("File uploaded to Blob", {
@@ -109,6 +140,8 @@ export async function uploadRecordingFormAction(
       transcriptionText: null,
       organizationId,
       createdById: user.id,
+      isEncrypted: shouldEncrypt,
+      encryptionMetadata: encryptionMetadata,
     });
 
     if (result.isErr()) {

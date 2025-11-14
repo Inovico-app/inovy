@@ -238,6 +238,8 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
                 fileName={recording.fileName}
                 isVideo={isVideo}
                 isAudio={isAudio}
+                recordingId={recording.id}
+                isEncrypted={recording.isEncrypted}
               />
             </div>
           </CardContent>

@@ -747,6 +747,8 @@ export class RecordingService {
       reprocessingTriggeredById: recording.reprocessingTriggeredById,
       organizationId: recording.organizationId,
       createdById: recording.createdById,
+      isEncrypted: recording.isEncrypted ?? false,
+      encryptionMetadata: recording.encryptionMetadata ?? null,
       createdAt: recording.createdAt,
       updatedAt: recording.updatedAt,
     };
