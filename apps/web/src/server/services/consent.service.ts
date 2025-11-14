@@ -4,15 +4,15 @@ import {
   type ActionResult,
   isActionError,
 } from "../../lib/action-errors";
-import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { logger } from "../../lib/logger";
+import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { ConsentQueries } from "../data-access/consent.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
-import { ConsentAuditService } from "./consent-audit.service";
 import type {
   ConsentParticipant,
   NewConsentParticipant,
 } from "../db/schema/consent";
+import { ConsentAuditService } from "./consent-audit.service";
 
 /**
  * Consent Service
@@ -44,7 +44,9 @@ export class ConsentService {
       }
 
       // Verify recording exists and belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
       if (!recording) {
         return err(
           ActionErrors.notFound("Recording", "ConsentService.grantConsent")
@@ -120,27 +122,32 @@ export class ConsentService {
           participantEmail,
           "granted",
           userId,
-          null, // Email will be fetched if needed
+          null,
           ipAddress,
           userAgent,
           {
             consentMethod,
             participantName,
-          }
+          },
+          organizationId
         );
       } catch (auditError) {
-        logger.error("Failed to log consent audit event", {
-          component: "ConsentService.grantConsent",
-          recordingId,
-          userId,
-        }, auditError as Error);
+        logger.error(
+          "Failed to log consent audit event",
+          {
+            component: "ConsentService.grantConsent",
+            recordingId,
+            userId,
+          },
+          auditError as Error
+        );
         // Audit failure doesn't block consent operation, but is logged for monitoring
       }
 
       logger.info("Consent granted", {
         component: "ConsentService.grantConsent",
         recordingId,
-        participantEmail,
+        participantId: participant.id,
         userId,
       });
 
@@ -173,7 +180,9 @@ export class ConsentService {
   ): Promise<ActionResult<ConsentParticipant>> {
     try {
       // Verify recording exists and belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
       if (!recording) {
         return err(
           ActionErrors.notFound("Recording", "ConsentService.revokeConsent")
@@ -210,24 +219,29 @@ export class ConsentService {
           participantEmail,
           "revoked",
           userId,
-          null, // Email will be fetched if needed
+          null,
           undefined,
           undefined,
-          {} // createdAt already captures when revocation occurred
+          {}, // createdAt already captures when revocation occurred
+          organizationId
         );
       } catch (auditError) {
-        logger.error("Failed to log consent audit event", {
-          component: "ConsentService.revokeConsent",
-          recordingId,
-          userId,
-        }, auditError as Error);
+        logger.error(
+          "Failed to log consent audit event",
+          {
+            component: "ConsentService.revokeConsent",
+            recordingId,
+            userId,
+          },
+          auditError as Error
+        );
         // Audit failure doesn't block consent operation, but is logged for monitoring
       }
 
       logger.info("Consent revoked", {
         component: "ConsentService.revokeConsent",
         recordingId,
-        participantEmail,
+        participantId: updated.id,
         userId,
       });
 
@@ -258,7 +272,9 @@ export class ConsentService {
   ): Promise<ActionResult<ConsentParticipant[]>> {
     try {
       // Verify recording exists and belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
       if (!recording) {
         return err(
           ActionErrors.notFound(
@@ -274,9 +290,8 @@ export class ConsentService {
         "ConsentService.getConsentParticipants"
       );
 
-      const participants = await ConsentQueries.getConsentParticipantsByRecordingId(
-        recordingId
-      );
+      const participants =
+        await ConsentQueries.getConsentParticipantsByRecordingId(recordingId);
 
       return ok(participants);
     } catch (error) {
@@ -312,7 +327,9 @@ export class ConsentService {
   > {
     try {
       // Verify recording exists and belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
       if (!recording) {
         return err(
           ActionErrors.notFound(
