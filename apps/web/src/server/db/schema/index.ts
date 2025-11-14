@@ -25,4 +25,5 @@ export * from "./bot-sessions";
 export * from "./consent";
 export * from "./consent-audit-log";
 export * from "./data-exports";
+export * from "./audit-logs";
 
