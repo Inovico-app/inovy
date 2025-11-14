@@ -150,3 +150,18 @@ const searchParams = await props.searchParams;
 coderabbit review --plain --type=committed
 ```
 
+## Development Workflow
+
+- Create a new branch for each feature or bug fix.
+- Name the branch with a descriptive name, e.g. feat/add-new-feature, fix/bug-fix-123, etc.
+- Push the branch to the remote repository.
+- Create a pull request to the main branch.
+- Wait for the pull request to be reviewed and merged.
+
+## Database Migration Workflow
+
+- Create a new migration file for each database schema change.
+- use `pnpm db:generate --name <migration-name>` to generate the migration file.
+- Give the migration file a descriptive name, e.g. 0001_create_users_table.ts, 0002_create_projects_table.ts, etc.
+- Never run `pnpm db:push` or `pnpm db:migrate` manually, always use the GitHub Actions workflow to run the migrations.
+
