@@ -36,7 +36,9 @@ import {
 interface LiveRecorderProps {
   onRecordingComplete: (
     audioBlob: Blob,
-    transcription: string
+    transcription: string,
+    consentGranted: boolean,
+    consentGrantedAt: Date
   ) => Promise<void>;
 }
 
@@ -44,6 +46,7 @@ export function LiveRecorder({ onRecordingComplete }: LiveRecorderProps) {
   const [showStopConfirm, setShowStopConfirm] = useState(false);
   const [showConsentBanner, setShowConsentBanner] = useState(false);
   const [consentGranted, setConsentGranted] = useState(false);
+  const [consentGrantedAt, setConsentGrantedAt] = useState<Date | null>(null);
 
   // Custom hooks
   const recording = useLiveRecording();
@@ -94,7 +97,9 @@ export function LiveRecorder({ onRecordingComplete }: LiveRecorderProps) {
 
   // Handle consent granted
   const handleConsentGranted = () => {
+    const now = new Date();
     setConsentGranted(true);
+    setConsentGrantedAt(now);
     setShowConsentBanner(false);
     // Start recording after consent is granted
     void handleStart();
@@ -130,8 +135,13 @@ export function LiveRecorder({ onRecordingComplete }: LiveRecorderProps) {
         .map((t) => t.text)
         .join(" ");
 
-      // Call completion handler
-      await onRecordingComplete(audioBlob, fullTranscript);
+      // Call completion handler with consent information
+      await onRecordingComplete(
+        audioBlob,
+        fullTranscript,
+        consentGranted,
+        consentGrantedAt ?? new Date()
+      );
 
       // Clear transcripts
       transcription.clearTranscripts();

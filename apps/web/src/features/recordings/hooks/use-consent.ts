@@ -44,38 +44,28 @@ export function useConsent({
             return;
           }
 
-          // Update local state
+          if (!result?.data) {
+            toast.error("Failed to grant consent", {
+              description: "No data returned from server",
+            });
+            reject(new Error("No data returned from server"));
+            return;
+          }
+
+          // Use server-returned participant with server-generated ID
+          const serverParticipant = result.data;
+
+          // Update local state with server response
           const existingIndex = participants.findIndex(
             (p) => p.participantEmail === email
           );
 
           if (existingIndex >= 0) {
             const updated = [...participants];
-            updated[existingIndex] = {
-              ...updated[existingIndex],
-              consentStatus: "granted",
-              consentGivenAt: new Date(),
-            };
+            updated[existingIndex] = serverParticipant;
             setParticipants(updated);
           } else {
-            setParticipants([
-              ...participants,
-              {
-                id: crypto.randomUUID(),
-                recordingId,
-                participantEmail: email,
-                participantName: name ?? null,
-                consentStatus: "granted",
-                consentMethod,
-                consentGivenAt: new Date(),
-                consentRevokedAt: null,
-                ipAddress: null,
-                userAgent: null,
-                userId: null,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              },
-            ]);
+            setParticipants([...participants, serverParticipant]);
           }
 
           toast.success("Consent granted");

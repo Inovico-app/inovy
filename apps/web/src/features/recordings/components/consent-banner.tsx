@@ -77,8 +77,8 @@ export function ConsentBanner({
               htmlFor="consent-read"
               className="text-sm text-muted-foreground cursor-pointer"
             >
-              I confirm that I have obtained consent from all participants, or
-              will obtain consent before recording begins.
+              I confirm that I have obtained explicit consent from all
+              participants before starting this recording.
             </label>
           </div>
         </div>

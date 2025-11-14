@@ -1,19 +1,21 @@
 "use server";
 
+import { ok } from "neverthrow";
+import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import {
   authorizedActionClient,
   resultToActionResponse,
 } from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
-import { ok } from "neverthrow";
+import { ActionErrors, type ActionError } from "../../../lib/action-errors";
+import { logger } from "../../../lib/logger";
+import type { ConsentParticipant } from "../../../server/db/schema/consent";
 import { ConsentService } from "../../../server/services/consent.service";
 import {
   bulkGrantConsentSchema,
   grantConsentSchema,
   revokeConsentSchema,
 } from "../../../server/validation/recordings/manage-consent";
-import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 
 /**
  * Grant consent for a participant
@@ -96,8 +98,8 @@ export const revokeConsentAction = authorizedActionClient
       throw result.error;
     }
 
-    // Revalidate recording page
-    revalidatePath(`/projects/[projectId]/recordings/${recordingId}`);
+    // Revalidate recording page using dynamic route pattern
+    revalidatePath("/projects/[projectId]/recordings/[recordingId]", "page");
 
     return resultToActionResponse(result);
   });
@@ -130,8 +132,8 @@ export const bulkGrantConsentAction = authorizedActionClient
       "unknown";
     const userAgent = headersList.get("user-agent") || "unknown";
 
-    // Grant consent for each participant
-    const results = await Promise.all(
+    // Grant consent for each participant using Promise.allSettled for partial success handling
+    const results = await Promise.allSettled(
       participants.map((participant) =>
         ConsentService.grantConsent(
           recordingId,
@@ -146,18 +148,46 @@ export const bulkGrantConsentAction = authorizedActionClient
       )
     );
 
-    // Check for errors
-    const errors = results.filter((r) => r.isErr());
-    if (errors.length > 0) {
-      throw errors[0].error;
+    // Separate successes and failures
+    const successfulResults: ConsentParticipant[] = [];
+    const failures: ActionError[] = [];
+
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        if (result.value.isOk()) {
+          successfulResults.push(result.value.value);
+        } else {
+          failures.push(result.value.error);
+        }
+      } else {
+        // Promise rejection (shouldn't happen with Result types, but handle defensively)
+        failures.push(
+          ActionErrors.internal(
+            "Unexpected error during bulk consent grant",
+            result.reason as Error,
+            "bulkGrantConsentAction"
+          )
+        );
+      }
     }
 
-    // Revalidate recording page
-    revalidatePath(`/projects/[projectId]/recordings/${recordingId}`);
+    // If all failed, throw the first error
+    if (failures.length > 0 && successfulResults.length === 0) {
+      throw failures[0];
+    }
 
-    const successfulResults = results
-      .map((r) => (r.isOk() ? r.value : null))
-      .filter((r): r is NonNullable<typeof r> => r !== null);
+    // If some failed, log warnings but return successes
+    if (failures.length > 0) {
+      logger.warn("Some consent grants failed in bulk operation", {
+        component: "bulkGrantConsentAction",
+        total: participants.length,
+        succeeded: successfulResults.length,
+        failed: failures.length,
+      });
+    }
+
+    // Revalidate recording page using dynamic route pattern
+    revalidatePath("/projects/[projectId]/recordings/[recordingId]", "page");
 
     return resultToActionResponse(ok(successfulResults));
   });

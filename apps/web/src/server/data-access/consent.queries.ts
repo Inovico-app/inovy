@@ -112,7 +112,9 @@ export class ConsentQueries {
       .set({
         consentGiven,
         consentGivenBy,
-        consentGivenAt: consentGivenAt ?? new Date(),
+        consentGivenAt: consentGiven
+          ? consentGivenAt ?? new Date()
+          : null,
         consentRevokedAt,
         updatedAt: new Date(),
       })

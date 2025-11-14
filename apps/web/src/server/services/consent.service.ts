@@ -1,5 +1,9 @@
 import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
+import {
+  ActionErrors,
+  type ActionResult,
+  isActionError,
+} from "../../lib/action-errors";
 import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { logger } from "../../lib/logger";
 import { ConsentQueries } from "../data-access/consent.queries";
@@ -28,6 +32,16 @@ export class ConsentService {
     userAgent?: string
   ): Promise<ActionResult<ConsentParticipant>> {
     try {
+      // Enforce explicit consent only for GDPR/HIPAA compliance
+      if (consentMethod !== "explicit") {
+        return err(
+          ActionErrors.validation(
+            "Only explicit consent is allowed for GDPR/HIPAA compliance. Implicit and bot-notification consent methods are not permitted.",
+            { consentMethod }
+          )
+        );
+      }
+
       // Verify recording exists and belongs to organization
       const recording = await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
@@ -107,6 +121,11 @@ export class ConsentService {
 
       return ok(participant);
     } catch (error) {
+      // Preserve ActionErrors (e.g., from assertOrganizationAccess)
+      if (isActionError(error)) {
+        return err(error);
+      }
+
       logger.error("Failed to grant consent", {}, error as Error);
       return err(
         ActionErrors.internal(
@@ -168,6 +187,11 @@ export class ConsentService {
 
       return ok(updated);
     } catch (error) {
+      // Preserve ActionErrors (e.g., from assertOrganizationAccess)
+      if (isActionError(error)) {
+        return err(error);
+      }
+
       logger.error("Failed to revoke consent", {}, error as Error);
       return err(
         ActionErrors.internal(
@@ -210,6 +234,11 @@ export class ConsentService {
 
       return ok(participants);
     } catch (error) {
+      // Preserve ActionErrors (e.g., from assertOrganizationAccess)
+      if (isActionError(error)) {
+        return err(error);
+      }
+
       logger.error("Failed to get consent participants", {}, error as Error);
       return err(
         ActionErrors.internal(
@@ -257,6 +286,11 @@ export class ConsentService {
 
       return ok(stats);
     } catch (error) {
+      // Preserve ActionErrors (e.g., from assertOrganizationAccess)
+      if (isActionError(error)) {
+        return err(error);
+      }
+
       logger.error("Failed to get consent statistics", {}, error as Error);
       return err(
         ActionErrors.internal(

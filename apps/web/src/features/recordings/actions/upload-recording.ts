@@ -45,6 +45,12 @@ export async function uploadRecordingFormAction(
     const title = formData.get("title") as string;
     const description = formData.get("description") as string | null;
     const recordingDateStr = formData.get("recordingDate") as string;
+    const consentGivenStr = formData.get("consentGiven") as string | null;
+    const consentGivenAtStr = formData.get("consentGivenAt") as string | null;
+    const consentGiven = consentGivenStr === "true";
+    const consentGivenAt = consentGivenAtStr
+      ? new Date(consentGivenAtStr)
+      : null;
 
     // Validate inputs
     if (!file) {
@@ -94,7 +100,7 @@ export async function uploadRecordingFormAction(
       url: blob.url,
     });
 
-    // Create recording in database
+    // Create recording in database with consent information
     const result = await RecordingService.createRecording({
       projectId,
       title,
@@ -109,6 +115,9 @@ export async function uploadRecordingFormAction(
       transcriptionText: null,
       organizationId,
       createdById: user.id,
+      consentGiven,
+      consentGivenBy: consentGiven ? user.id : null,
+      consentGivenAt: consentGiven && consentGivenAt ? consentGivenAt : null,
     });
 
     if (result.isErr()) {

@@ -54,6 +54,20 @@ export function createActionError(
 }
 
 /**
+ * Check if an error is an ActionError
+ */
+export function isActionError(error: unknown): error is ActionError {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    "message" in error &&
+    typeof (error as ActionError).code === "string" &&
+    typeof (error as ActionError).message === "string"
+  );
+}
+
+/**
  * Common error creators for frequent use cases
  */
 export const ActionErrors = {

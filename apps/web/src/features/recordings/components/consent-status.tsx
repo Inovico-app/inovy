@@ -7,10 +7,10 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react";
-import type { ConsentStatus } from "@/server/db/schema/consent";
+import type { ConsentStatus as ConsentStatusType } from "@/server/db/schema/consent";
 
 interface ConsentStatusProps {
-  status: ConsentStatus;
+  status: ConsentStatusType;
   count?: number;
   className?: string;
 }
@@ -47,6 +47,13 @@ export function ConsentStatus({
         return {
           icon: AlertCircle,
           label: "Consent Expired",
+          variant: "outline" as const,
+          className: "bg-gray-500/10 text-gray-700 dark:text-gray-400",
+        };
+      default:
+        return {
+          icon: AlertCircle,
+          label: "Unknown Status",
           variant: "outline" as const,
           className: "bg-gray-500/10 text-gray-700 dark:text-gray-400",
         };
