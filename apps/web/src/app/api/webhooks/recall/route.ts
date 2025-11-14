@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     if (signatureHeader) {
       // Parse comma/space-separated signature entries
       const signatureEntries = signatureHeader
-        .split(/[,\s]+/)
+        .split(/\s+/)
         .map((entry) => entry.trim())
         .filter((entry) => entry.length > 0);
 
