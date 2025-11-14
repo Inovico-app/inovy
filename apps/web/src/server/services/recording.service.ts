@@ -16,6 +16,8 @@ import { type RecordingDto } from "../dto";
 export class RecordingService {
   /**
    * Create a new recording
+   * If externalRecordingId is provided, checks for existing recording first
+   * and returns it if found (idempotency)
    */
   static async createRecording(
     data: NewRecording,
@@ -25,10 +27,34 @@ export class RecordingService {
       component: "RecordingService.createRecording",
       projectId: data.projectId,
       title: data.title,
+      externalRecordingId: data.externalRecordingId,
     });
 
     try {
-      const recording = await RecordingsQueries.insertRecording(data);
+      let recording: Recording;
+
+      // If externalRecordingId is provided, check for existing recording first
+      if (data.externalRecordingId && data.organizationId) {
+        const existing = await RecordingsQueries.selectRecordingByExternalId(
+          data.externalRecordingId,
+          data.organizationId
+        );
+
+        if (existing) {
+          logger.info("Recording already exists with external ID", {
+            component: "RecordingService.createRecording",
+            recordingId: existing.id,
+            externalRecordingId: data.externalRecordingId,
+          });
+          recording = existing;
+        } else {
+          // Create new recording
+          recording = await RecordingsQueries.insertRecording(data);
+        }
+      } else {
+        // Create new recording without external ID check
+        recording = await RecordingsQueries.insertRecording(data);
+      }
 
       // Invalidate recordings cache for this project
       if (invalidateCache) {

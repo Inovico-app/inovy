@@ -245,8 +245,65 @@ export class RecordingsQueries {
   }
 
   /**
-   * Get all recordings for an organization with project information
+   * Find a recording by external recording ID and organization ID
    */
+  static async selectRecordingByExternalId(
+    externalRecordingId: string,
+    organizationId: string
+  ): Promise<Recording | null> {
+    const [recording] = await db
+      .select()
+      .from(recordings)
+      .where(
+        and(
+          eq(recordings.externalRecordingId, externalRecordingId),
+          eq(recordings.organizationId, organizationId)
+        )
+      )
+      .limit(1);
+    return recording ?? null;
+  }
+
+  /**
+   * Create or update a recording by external recording ID (upsert)
+   * If a recording with the same externalRecordingId and organizationId exists,
+   * it will be updated; otherwise, a new recording will be created.
+   */
+  static async upsertRecordingByExternalId(
+    data: NewRecording & { externalRecordingId: string }
+  ): Promise<Recording> {
+    return await db.transaction(async (tx) => {
+      // Check if recording exists
+      const existing = await tx
+        .select()
+        .from(recordings)
+        .where(
+          and(
+            eq(recordings.externalRecordingId, data.externalRecordingId),
+            eq(recordings.organizationId, data.organizationId)
+          )
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        // Update existing recording
+        const [updated] = await tx
+          .update(recordings)
+          .set({
+            ...data,
+            updatedAt: new Date(),
+          })
+          .where(eq(recordings.id, existing[0].id))
+          .returning();
+        return updated;
+      } else {
+        // Insert new recording
+        const [created] = await tx.insert(recordings).values(data).returning();
+        return created;
+      }
+    });
+  }
+
   static async selectRecordingsByOrganization(
     organizationId: string,
     options?: {
@@ -273,6 +330,7 @@ export class RecordingsQueries {
       .select({
         id: recordings.id,
         projectId: recordings.projectId,
+        externalRecordingId: recordings.externalRecordingId,
         title: recordings.title,
         description: recordings.description,
         fileUrl: recordings.fileUrl,
