@@ -8,13 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import type { AuditLog } from "@/server/db/schema";
 import { Download } from "lucide-react";
-import { exportAuditLogs } from "../actions/export-audit-logs";
-import { AuditLogFilters } from "./audit-log-filters";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { useRouter, useSearchParams } from "next/navigation";
-import type { AuditLog } from "@/server/db/schema";
+import { exportAuditLogs } from "../actions/export-audit-logs";
+import { AuditLogFilters } from "./audit-log-filters";
 
 interface AuditLogViewerProps {
   initialData: {
@@ -32,18 +32,27 @@ interface AuditLogViewerProps {
   };
 }
 
-export function AuditLogViewer({ initialData, initialFilters }: AuditLogViewerProps) {
+export function AuditLogViewer({
+  initialData,
+  initialFilters,
+}: AuditLogViewerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const [eventTypes, setEventTypes] = useState<string[]>(
-    initialFilters?.eventType ? initialFilters.eventType.split(",").filter(Boolean) : []
+    initialFilters?.eventType
+      ? initialFilters.eventType.split(",").filter(Boolean)
+      : []
   );
   const [resourceTypes, setResourceTypes] = useState<string[]>(
-    initialFilters?.resourceType ? initialFilters.resourceType.split(",").filter(Boolean) : []
+    initialFilters?.resourceType
+      ? initialFilters.resourceType.split(",").filter(Boolean)
+      : []
   );
   const [actions, setActions] = useState<string[]>(
-    initialFilters?.action ? initialFilters.action.split(",").filter(Boolean) : []
+    initialFilters?.action
+      ? initialFilters.action.split(",").filter(Boolean)
+      : []
   );
   const [userId, setUserId] = useState<string | undefined>(
     initialFilters?.userId
@@ -61,7 +70,8 @@ export function AuditLogViewer({ initialData, initialFilters }: AuditLogViewerPr
   const updateURL = () => {
     const params = new URLSearchParams();
     if (eventTypes.length > 0) params.set("eventType", eventTypes.join(","));
-    if (resourceTypes.length > 0) params.set("resourceType", resourceTypes.join(","));
+    if (resourceTypes.length > 0)
+      params.set("resourceType", resourceTypes.join(","));
     if (actions.length > 0) params.set("action", actions.join(","));
     if (userId) params.set("userId", userId);
     if (resourceId) params.set("resourceId", resourceId);
@@ -182,7 +192,9 @@ export function AuditLogViewer({ initialData, initialFilters }: AuditLogViewerPr
               <div>
                 <CardTitle>Audit Logs</CardTitle>
                 <CardDescription>
-                  {isPending ? "Loading..." : `${total} total log${total !== 1 ? "s" : ""} found`}
+                  {isPending
+                    ? "Loading..."
+                    : `${total} total log${total !== 1 ? "s" : ""} found`}
                 </CardDescription>
               </div>
               <div className="flex gap-2">

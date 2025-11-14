@@ -1,6 +1,12 @@
-import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer";
 import { PageLayout } from "@/components/page-layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer";
 import { getAuthSession, ROLES } from "@/lib";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { redirect } from "next/navigation";
@@ -47,7 +53,9 @@ async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
   const filters = {
     userId: params.userId ?? undefined,
     eventType: params.eventType ? params.eventType.split(",") : undefined,
-    resourceType: params.resourceType ? params.resourceType.split(",") : undefined,
+    resourceType: params.resourceType
+      ? params.resourceType.split(",")
+      : undefined,
     action: params.action ? params.action.split(",") : undefined,
     resourceId: params.resourceId ?? undefined,
     startDate: params.startDate ? new Date(params.startDate) : undefined,
@@ -69,7 +77,8 @@ async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
         <div>
           <h1 className="text-3xl font-bold">Audit Logs</h1>
           <p className="text-muted-foreground mt-2">
-            Comprehensive audit trail for all system actions. Supports SOC 2 compliance requirements.
+            Comprehensive audit trail for all system actions. Supports SOC 2
+            compliance requirements.
           </p>
         </div>
 
@@ -101,7 +110,10 @@ export default function AuditLogsPage(props: AuditLogsPageProps) {
               <CardContent className="py-12">
                 <div className="space-y-4">
                   {[...Array(5)].map((_, i) => (
-                    <div key={i} className="h-16 bg-muted rounded animate-pulse" />
+                    <div
+                      key={i}
+                      className="h-16 bg-muted rounded animate-pulse"
+                    />
                   ))}
                 </div>
               </CardContent>
