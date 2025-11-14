@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,25 +18,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Download, Loader2, FileDown, Calendar, AlertCircle } from "lucide-react";
+import { getUserProjects } from "@/features/projects/actions/get-user-projects";
+import type { DataExport } from "@/server/db/schema";
+import { format } from "date-fns";
+import {
+  AlertCircle,
+  Calendar,
+  Download,
+  FileDown,
+  Loader2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { requestDataExport, getExportHistory } from "../actions/export-user-data";
-import { getUserProjects } from "@/features/projects/actions/get-user-projects";
-import { format } from "date-fns";
-import type { DataExport } from "@/server/db/schema";
+import {
+  getExportHistory,
+  requestDataExport,
+} from "../actions/export-user-data";
 
 export function DataExport() {
   const [isRequesting, setIsRequesting] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [exports, setExports] = useState<DataExport[]>([]);
-  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
-  
+  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>(
+    []
+  );
+
   // Form state
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
 
   useEffect(() => {
     loadHistory();
@@ -84,7 +95,7 @@ export function DataExport() {
         };
       }
 
-      if (selectedProjectId) {
+      if (selectedProjectId && selectedProjectId !== "all") {
         filters.projectId = selectedProjectId;
       }
 
@@ -93,11 +104,13 @@ export function DataExport() {
       );
 
       if (result.data?.success) {
-        toast.success("Export request created. Your export will be ready shortly.");
+        toast.success(
+          "Export request created. Your export will be ready shortly."
+        );
         // Reset form
         setStartDate("");
         setEndDate("");
-        setSelectedProjectId("");
+        setSelectedProjectId("all");
         // Reload history
         await loadHistory();
       } else {
@@ -136,25 +149,37 @@ export function DataExport() {
     switch (status) {
       case "pending":
         return (
-          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+          <Badge
+            variant="outline"
+            className="bg-yellow-50 text-yellow-700 border-yellow-200"
+          >
             Pending
           </Badge>
         );
       case "processing":
         return (
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+          <Badge
+            variant="outline"
+            className="bg-blue-50 text-blue-700 border-blue-200"
+          >
             Processing
           </Badge>
         );
       case "completed":
         return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          <Badge
+            variant="outline"
+            className="bg-green-50 text-green-700 border-green-200"
+          >
             Completed
           </Badge>
         );
       case "failed":
         return (
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+          <Badge
+            variant="outline"
+            className="bg-red-50 text-red-700 border-red-200"
+          >
             Failed
           </Badge>
         );
@@ -170,14 +195,15 @@ export function DataExport() {
       <CardHeader>
         <CardTitle>Data Export</CardTitle>
         <CardDescription>
-          Export all your personal data in compliance with GDPR. Your export will be available for 7 days.
+          Export all your personal data in compliance with GDPR. Your export
+          will be available for 7 days.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Request Form */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold">Request New Export</h3>
-          
+
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="startDate">Start Date (Optional)</Label>
@@ -204,12 +230,15 @@ export function DataExport() {
 
           <div className="space-y-2">
             <Label htmlFor="project">Project (Optional)</Label>
-            <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+            <Select
+              value={selectedProjectId}
+              onValueChange={setSelectedProjectId}
+            >
               <SelectTrigger id="project">
                 <SelectValue placeholder="All projects" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All projects</SelectItem>
+                <SelectItem value="all">All projects</SelectItem>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     {project.name}
@@ -221,7 +250,11 @@ export function DataExport() {
 
           <Button
             onClick={handleRequestExport}
-            disabled={isRequesting || !!(startDate && !endDate) || !!(!startDate && endDate)}
+            disabled={
+              isRequesting ||
+              !!(startDate && !endDate) ||
+              !!(!startDate && endDate)
+            }
             className="w-full"
           >
             {isRequesting ? (
@@ -248,7 +281,7 @@ export function DataExport() {
         {/* Export History */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold">Export History</h3>
-          
+
           {isLoadingHistory ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -268,7 +301,10 @@ export function DataExport() {
                     <div className="flex items-center gap-2">
                       {getStatusBadge(export_.status)}
                       {isExpired(export_.expiresAt) && (
-                        <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
+                        <Badge
+                          variant="outline"
+                          className="bg-gray-50 text-gray-600 border-gray-200"
+                        >
                           Expired
                         </Badge>
                       )}
@@ -277,22 +313,31 @@ export function DataExport() {
                       <div className="flex items-center gap-4">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {format(new Date(export_.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                          {format(
+                            new Date(export_.createdAt),
+                            "MMM d, yyyy 'at' h:mm a"
+                          )}
                         </span>
                         {export_.fileSize && (
                           <span>{formatFileSize(export_.fileSize)}</span>
                         )}
                       </div>
                       <div className="text-xs">
-                        {export_.recordingsCount} recordings, {export_.tasksCount} tasks, {export_.conversationsCount} conversations
+                        {export_.recordingsCount} recordings,{" "}
+                        {export_.tasksCount} tasks, {export_.conversationsCount}{" "}
+                        conversations
                       </div>
                       {export_.errorMessage && (
-                        <p className="text-xs text-red-600">{export_.errorMessage}</p>
+                        <p className="text-xs text-red-600">
+                          {export_.errorMessage}
+                        </p>
                       )}
                     </div>
                   </div>
                   <div className="ml-4">
-                    {export_.status === "completed" && export_.downloadUrl && !isExpired(export_.expiresAt) ? (
+                    {export_.status === "completed" &&
+                    export_.downloadUrl &&
+                    !isExpired(export_.expiresAt) ? (
                       <Button
                         variant="outline"
                         size="sm"
