@@ -45,8 +45,27 @@ export async function GET(
       return NextResponse.json({ error: "Recording not found" }, { status: 404 });
     }
 
-    // Download file from Vercel Blob
-    const response = await fetch(recording.fileUrl);
+    // Download file from Vercel Blob with timeout
+    // Note: This loads the entire file into memory. For files up to 500MB (MAX_FILE_SIZE),
+    // this is acceptable, but consider streaming decryption for future optimization.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+    let response: Response;
+    try {
+      response = await fetch(recording.fileUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === "AbortError") {
+        return NextResponse.json(
+          { error: "Request timeout while fetching recording file" },
+          { status: 504 }
+        );
+      }
+      throw error;
+    }
+
     if (!response.ok) {
       return NextResponse.json(
         { error: "Failed to fetch recording file" },
