@@ -183,7 +183,13 @@
       "when": 1763141150492,
       "tag": "0031_add_file_data_to_data_exports",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1763141910894,
+      "tag": "0032_add_comprehensive_audit_logs",
+      "breakpoints": true
     }
   ]
 }
-
