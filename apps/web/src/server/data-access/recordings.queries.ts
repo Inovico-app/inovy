@@ -1,4 +1,14 @@
-import { and, count, desc, eq, ilike, inArray } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  max,
+  sql,
+} from "drizzle-orm";
 import { db } from "../db";
 import {
   projects,
@@ -151,19 +161,37 @@ export class RecordingsQueries {
     lastRecordingDate: Date | null;
     recentCount: number;
   }> {
-    const allRecordings = await db
-      .select()
-      .from(recordings)
-      .where(eq(recordings.projectId, projectId))
-      .orderBy(desc(recordings.createdAt));
-    const totalCount = allRecordings.length;
-    const lastRecordingDate =
-      allRecordings.length > 0 ? allRecordings[0].createdAt : null;
+    // Calculate seven days ago for recent count filter
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const recentCount = allRecordings.filter(
-      (r) => r.createdAt >= sevenDaysAgo
-    ).length;
+
+    // Get total count and last recording date in a single optimized query
+    const statsResult = await db
+      .select({
+        totalCount: sql<number>`cast(count(${recordings.id}) as int)`,
+        lastRecordingDate: max(recordings.createdAt),
+      })
+      .from(recordings)
+      .where(eq(recordings.projectId, projectId));
+
+    const totalCount = statsResult[0]?.totalCount ?? 0;
+    const lastRecordingDate = statsResult[0]?.lastRecordingDate ?? null;
+
+    // Get recent count (recordings from last 7 days) using an optimized query
+    const recentStatsResult = await db
+      .select({
+        recentCount: sql<number>`cast(count(${recordings.id}) as int)`,
+      })
+      .from(recordings)
+      .where(
+        and(
+          eq(recordings.projectId, projectId),
+          gte(recordings.createdAt, sevenDaysAgo)
+        )
+      );
+
+    const recentCount = recentStatsResult[0]?.recentCount ?? 0;
+
     return {
       totalCount,
       lastRecordingDate,
