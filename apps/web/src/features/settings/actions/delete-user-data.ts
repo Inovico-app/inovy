@@ -1,11 +1,7 @@
 "use server";
 
-import {
-  authorizedActionClient,
-  resultToActionResponse,
-} from "@/lib/action-client";
+import { authorizedActionClient } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
-import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { GdprDeletionService } from "@/server/services";
 import {
@@ -28,10 +24,7 @@ export const requestDeletionAction = authorizedActionClient
     const { user, organizationId } = ctx;
 
     if (!user) {
-      throw ActionErrors.unauthenticated(
-        "User not found",
-        "request-deletion"
-      );
+      throw ActionErrors.unauthenticated("User not found", "request-deletion");
     }
 
     if (!organizationId) {
@@ -68,26 +61,26 @@ export const requestDeletionAction = authorizedActionClient
     }
 
     // Process deletion immediately (soft delete with anonymization)
-    const authResult = await getAuthSession();
-    if (authResult.isOk() && authResult.value.user) {
-      const processResult = await GdprDeletionService.processDeletionRequest(
-        result.value,
-        user.id,
-        organizationId,
-        user.email,
-        user.given_name && user.family_name
-          ? `${user.given_name} ${user.family_name}`
-          : user.given_name || null
-      );
+    const displayName =
+      user.given_name && user.family_name
+        ? `${user.given_name} ${user.family_name}`
+        : user.given_name ?? user.family_name ?? null;
 
-      if (processResult.isErr()) {
-        logger.error("Failed to process deletion request", {
-          component: "requestDeletionAction",
-          userId: user.id,
-          error: processResult.error,
-        });
-        throw processResult.error;
-      }
+    const processResult = await GdprDeletionService.processDeletionRequest(
+      result.value,
+      user.id,
+      organizationId,
+      user.email ?? null,
+      displayName
+    );
+
+    if (processResult.isErr()) {
+      logger.error("Failed to process deletion request", {
+        component: "requestDeletionAction",
+        userId: user.id,
+        error: processResult.error,
+      });
+      throw processResult.error;
     }
 
     revalidatePath("/settings/profile");
@@ -109,10 +102,7 @@ export const cancelDeletionAction = authorizedActionClient
     const { user, organizationId } = ctx;
 
     if (!user) {
-      throw ActionErrors.unauthenticated(
-        "User not found",
-        "cancel-deletion"
-      );
+      throw ActionErrors.unauthenticated("User not found", "cancel-deletion");
     }
 
     if (!organizationId) {

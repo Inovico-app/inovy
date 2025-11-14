@@ -343,7 +343,7 @@ export class GdprDeletionService {
           const speakerNames = insight.speakerNames as Record<string, string>;
           const anonymizedSpeakerNames: Record<string, string> = {};
           for (const [key, name] of Object.entries(speakerNames)) {
-            if (name === userName || name.includes(userName ?? "")) {
+            if (userName && (name === userName || name.includes(userName))) {
               anonymizedSpeakerNames[key] = anonymizedId;
             } else {
               anonymizedSpeakerNames[key] = name;
