@@ -134,6 +134,13 @@
       "when": 1763028288242,
       "tag": "0024_add_knowledge_base",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1763103360270,
+      "tag": "0025_add_bot_recording_mode_and_sessions",
+      "breakpoints": true
     }
   ]
 }

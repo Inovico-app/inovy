@@ -9,7 +9,7 @@ export const recordingStatusEnum = [
 ] as const;
 export type RecordingStatus = (typeof recordingStatusEnum)[number];
 
-export const recordingModeEnum = ["live", "upload"] as const;
+export const recordingModeEnum = ["live", "upload", "bot"] as const;
 export type RecordingMode = (typeof recordingModeEnum)[number];
 
 export const recordingArchiveStatusEnum = ["active", "archived"] as const;
