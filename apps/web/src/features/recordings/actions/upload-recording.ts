@@ -121,13 +121,17 @@ export async function uploadRecordingFormAction(
     }
 
     // Upload file to Vercel Blob (use private access if encrypted)
+    const uploadOptions: {
+      access: "public" | "private";
+      contentType: string;
+    } = {
+      access: shouldEncrypt ? ("private" as const) : ("public" as const),
+      contentType: file.type,
+    };
     const blob = await put(
       `recordings/${Date.now()}-${file.name}`,
       fileToUpload,
-      {
-        access: shouldEncrypt ? "private" : "public",
-        contentType: file.type,
-      }
+      uploadOptions as Parameters<typeof put>[2]
     );
 
     logger.info("File uploaded to Blob", {

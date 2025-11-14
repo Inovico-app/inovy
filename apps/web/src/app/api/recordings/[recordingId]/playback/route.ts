@@ -2,7 +2,6 @@ import { decrypt } from "@/lib/encryption";
 import { getAuthSession } from "@/lib/auth";
 import { RecordingService } from "@/server/services";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
-import { get } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -47,13 +46,19 @@ export async function GET(
     }
 
     // Download file from Vercel Blob
-    const blob = await get(recording.fileUrl);
+    const response = await fetch(recording.fileUrl);
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: "Failed to fetch recording file" },
+        { status: 500 }
+      );
+    }
 
     // Decrypt if encrypted
     let fileBuffer: Buffer;
     if (recording.isEncrypted) {
       try {
-        const encryptedData = await blob.arrayBuffer();
+        const encryptedData = await response.arrayBuffer();
         fileBuffer = decrypt(Buffer.from(encryptedData).toString("base64"));
       } catch (error) {
         console.error("Failed to decrypt recording", error);
@@ -63,11 +68,12 @@ export async function GET(
         );
       }
     } else {
-      fileBuffer = Buffer.from(await blob.arrayBuffer());
+      const arrayBuffer = await response.arrayBuffer();
+      fileBuffer = Buffer.from(arrayBuffer);
     }
 
     // Return decrypted file with appropriate headers
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(fileBuffer as unknown as BodyInit, {
       headers: {
         "Content-Type": recording.fileMimeType,
         "Content-Length": fileBuffer.length.toString(),

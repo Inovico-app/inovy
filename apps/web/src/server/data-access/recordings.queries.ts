@@ -360,6 +360,8 @@ export class RecordingsQueries {
         consentGivenBy: recordings.consentGivenBy,
         consentGivenAt: recordings.consentGivenAt,
         consentRevokedAt: recordings.consentRevokedAt,
+        isEncrypted: recordings.isEncrypted,
+        encryptionMetadata: recordings.encryptionMetadata,
         projectName: projects.name,
       })
       .from(recordings)
