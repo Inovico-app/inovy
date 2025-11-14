@@ -1,8 +1,8 @@
 import type {
-  RecordingStatus,
   RecordingArchiveStatus,
-  WorkflowStatus,
   RecordingMode,
+  RecordingStatus,
+  WorkflowStatus,
 } from "../db/schema/recordings";
 
 export interface RecordingDto {
@@ -30,6 +30,10 @@ export interface RecordingDto {
   reprocessingTriggeredById: string | null;
   organizationId: string;
   createdById: string;
+  consentGiven: boolean;
+  consentGivenBy: string | null;
+  consentGivenAt: Date | null;
+  consentRevokedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

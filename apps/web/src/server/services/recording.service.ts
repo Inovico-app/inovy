@@ -205,11 +205,10 @@ export class RecordingService {
     });
 
     try {
-      const recordings =
-        await RecordingsQueries.selectRecordingsByOrganization(
-          organizationId,
-          options
-        );
+      const recordings = await RecordingsQueries.selectRecordingsByOrganization(
+        organizationId,
+        options
+      );
 
       logger.info("Successfully fetched recordings", {
         component: "RecordingService.getRecordingsByOrganization",
@@ -218,10 +217,14 @@ export class RecordingService {
       });
 
       return ok(
-        recordings.map((recording) => ({
-          ...this.toDto(recording),
-          projectName: recording.projectName,
-        }))
+        recordings.map((recording) => {
+          // Extract projectName before converting to DTO
+          const { projectName, ...recordingWithoutProjectName } = recording;
+          return {
+            ...this.toDto(recordingWithoutProjectName as Recording),
+            projectName,
+          };
+        })
       );
     } catch (error) {
       logger.error("Failed to fetch recordings from database", {
@@ -747,6 +750,10 @@ export class RecordingService {
       reprocessingTriggeredById: recording.reprocessingTriggeredById,
       organizationId: recording.organizationId,
       createdById: recording.createdById,
+      consentGiven: recording.consentGiven,
+      consentGivenBy: recording.consentGivenBy,
+      consentGivenAt: recording.consentGivenAt,
+      consentRevokedAt: recording.consentRevokedAt,
       createdAt: recording.createdAt,
       updatedAt: recording.updatedAt,
     };
