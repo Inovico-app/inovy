@@ -8,9 +8,17 @@ import { logger, serializeError } from "../../lib/logger";
  */
 export class RecallApiService {
   private static readonly API_BASE_URL = "https://api.recall.ai/api/v1";
-  private static readonly WEBHOOK_BASE_URL =
-    process.env.NEXT_PUBLIC_APP_URL || "https://your-domain.com";
 
+  private static getWebhookBaseUrl(): string {
+    const webhookBaseUrl =
+      process.env.WEBHOOK_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+    if (!webhookBaseUrl) {
+      throw new Error(
+        "WEBHOOK_BASE_URL or NEXT_PUBLIC_APP_URL environment variable must be set"
+      );
+    }
+    return webhookBaseUrl;
+  }
   /**
    * Get API key from environment
    */
@@ -34,18 +42,17 @@ export class RecallApiService {
   ): Promise<ActionResult<{ botId: string; status: string }>> {
     try {
       const apiKey = this.getApiKey();
-      const webhookUrl = `${this.WEBHOOK_BASE_URL}/api/bot/webhook/recall`;
+      const webhookUrl = `${this.getWebhookBaseUrl()}/api/bot/webhook/recall`;
 
       logger.info("Creating Recall.ai bot session", {
         component: "RecallApiService.createBotSession",
-        meetingUrl,
         customMetadata,
       });
 
       const response = await fetch(`${this.API_BASE_URL}/bot/`, {
         method: "POST",
         headers: {
-          "Authorization": `Token ${apiKey}`,
+          Authorization: `Token ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -115,7 +122,7 @@ export class RecallApiService {
       const response = await fetch(`${this.API_BASE_URL}/bot/${botId}/`, {
         method: "GET",
         headers: {
-          "Authorization": `Token ${apiKey}`,
+          Authorization: `Token ${apiKey}`,
         },
       });
 
