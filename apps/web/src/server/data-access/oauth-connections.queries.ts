@@ -83,5 +83,14 @@ export class OAuthConnectionsQueries {
       );
     return (result?.rowCount ?? 0) > 0;
   }
+
+  /**
+   * Delete all OAuth connections for a user
+   */
+  static async deleteByUserId(userId: string): Promise<void> {
+    await db
+      .delete(oauthConnections)
+      .where(eq(oauthConnections.userId, userId));
+  }
 }
 

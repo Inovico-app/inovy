@@ -119,6 +119,25 @@ export class RecordingsQueries {
     return recording;
   }
 
+  /**
+   * Update transcription text and clear edited info (for anonymization)
+   */
+  static async anonymizeTranscriptionText(
+    id: string,
+    transcriptionText: string | null
+  ): Promise<Recording | undefined> {
+    const [recording] = await db
+      .update(recordings)
+      .set({
+        transcriptionText,
+        transcriptionLastEditedById: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(recordings.id, id))
+      .returning();
+    return recording;
+  }
+
   static async updateRecording(
     id: string,
     data: Partial<

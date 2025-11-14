@@ -20,4 +20,6 @@ export { KnowledgeBaseService } from "./knowledge-base.service";
 export { DocumentProcessingService } from "./document-processing.service";
 export { ConsentService } from "./consent.service";
 export { ConsentAuditService } from "./consent-audit.service";
+export { GdprDeletionService } from "./gdpr-deletion.service";
+export { AuditLogService } from "./audit-log.service";
 

@@ -1,4 +1,4 @@
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, inArray } from "drizzle-orm";
 import { db } from "../db";
 import {
   consentParticipants,
@@ -140,6 +140,37 @@ export class ConsentQueries {
       pending: participants.filter((p) => p.consentStatus === "pending").length,
       revoked: participants.filter((p) => p.consentStatus === "revoked").length,
     };
+  }
+
+  /**
+   * Find consent participants by user ID
+   */
+  static async findByUserId(userId: string): Promise<ConsentParticipant[]> {
+    return db
+      .select()
+      .from(consentParticipants)
+      .where(eq(consentParticipants.userId, userId));
+  }
+
+  /**
+   * Anonymize consent participants for given recording IDs
+   */
+  static async anonymizeByRecordingIds(
+    recordingIds: string[],
+    anonymizedEmail: string,
+    anonymizedName: string
+  ): Promise<void> {
+    if (recordingIds.length === 0) return;
+
+    await db
+      .update(consentParticipants)
+      .set({
+        participantEmail: anonymizedEmail,
+        participantName: anonymizedName,
+        userId: null,
+        updatedAt: new Date(),
+      })
+      .where(inArray(consentParticipants.recordingId, recordingIds));
   }
 }
 

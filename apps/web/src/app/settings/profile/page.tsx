@@ -8,7 +8,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AutoProcessToggle } from "@/features/recordings/components/auto-process-toggle";
+import { DataDeletion } from "@/features/settings/components/data-deletion";
 import { DataExport } from "@/features/settings/components/data-export";
+import { getDeletionStatus } from "@/features/settings/lib/get-deletion-status";
 import { getAuthSession } from "@/lib/auth";
 import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
@@ -35,6 +37,9 @@ async function ProfileContent() {
       | string
       | undefined) ??
     "Personal Organization";
+
+  // Fetch deletion status server-side
+  const deletionStatus = await getDeletionStatus();
 
   return (
     <div className="space-y-6">
@@ -103,6 +108,9 @@ async function ProfileContent() {
 
       {/* Data Export */}
       <DataExport />
+
+      {/* Data Deletion */}
+      <DataDeletion initialDeletionRequest={deletionStatus} />
 
       {/* Actions */}
       <div className="flex gap-3">

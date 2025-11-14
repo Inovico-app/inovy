@@ -280,5 +280,22 @@ export class ChatQueries {
       total: Number(stats.total),
     };
   }
+
+  /**
+   * Delete all conversations for a user in an organization
+   */
+  static async deleteByUserIdAndOrganizationId(
+    userId: string,
+    organizationId: string
+  ): Promise<void> {
+    await db
+      .delete(chatConversations)
+      .where(
+        and(
+          eq(chatConversations.userId, userId),
+          eq(chatConversations.organizationId, organizationId)
+        )
+      );
+  }
 }
 

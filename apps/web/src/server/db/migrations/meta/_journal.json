@@ -190,6 +190,13 @@
       "when": 1763141910894,
       "tag": "0032_add_comprehensive_audit_logs",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1763142883140,
+      "tag": "0033_add_user_deletion_requests",
+      "breakpoints": true
     }
   ]
 }

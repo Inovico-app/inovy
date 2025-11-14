@@ -252,5 +252,46 @@ export class TasksQueries {
       .where(eq(tasks.organizationId, organizationId));
     return Number(row?.value ?? 0);
   }
+
+  /**
+   * Delete tasks by IDs
+   */
+  static async deleteByIds(
+    taskIds: string[],
+    organizationId: string
+  ): Promise<void> {
+    if (taskIds.length === 0) return;
+
+    await db
+      .delete(tasks)
+      .where(
+        and(
+          inArray(tasks.id, taskIds),
+          eq(tasks.organizationId, organizationId)
+        )
+      );
+  }
+
+  /**
+   * Anonymize assignee for tasks assigned to a user
+   */
+  static async anonymizeAssigneeByUserId(
+    userId: string,
+    organizationId: string
+  ): Promise<void> {
+    await db
+      .update(tasks)
+      .set({
+        assigneeId: null,
+        assigneeName: null,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(tasks.assigneeId, userId),
+          eq(tasks.organizationId, organizationId)
+        )
+      );
+  }
 }
 
