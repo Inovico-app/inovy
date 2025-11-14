@@ -15,7 +15,7 @@ export const botStatusChangeEventSchema = z.object({
     status: z.string(),
     meeting_url: z.string().url().optional(),
   }),
-  custom_metadata: z.record(z.string()).optional(),
+  custom_metadata: z.record(z.string(), z.string()).optional(),
 });
 
 /**
@@ -41,7 +41,7 @@ export const botRecordingReadyEventSchema = z.object({
       end_time: z.string().optional(),
     })
     .optional(),
-  custom_metadata: z.record(z.string()).optional(),
+  custom_metadata: z.record(z.string(), z.string()).optional(),
 });
 
 /**

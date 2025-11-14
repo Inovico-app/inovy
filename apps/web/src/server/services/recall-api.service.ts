@@ -58,7 +58,7 @@ export class RecallApiService {
         body: JSON.stringify({
           meeting_url: meetingUrl,
           webhook_url: webhookUrl,
-          custom_metadata: customMetadata || {},
+          custom_metadata: customMetadata ?? {},
         }),
         signal: AbortSignal.timeout(30000), // 30 second timeout
       });
@@ -105,7 +105,7 @@ export class RecallApiService {
 
       return ok({
         botId: data.id,
-        status: data.status || "joining",
+        status: data.status ?? "joining",
       });
     } catch (error) {
       logger.error("Failed to create Recall.ai bot session", {
@@ -163,7 +163,7 @@ export class RecallApiService {
       const data = await response.json();
 
       return ok({
-        status: data.status || "unknown",
+        status: data.status ?? "unknown",
       });
     } catch (error) {
       logger.error("Failed to get bot status", {

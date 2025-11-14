@@ -3,13 +3,13 @@ import { err, ok } from "neverthrow";
 import { start } from "workflow/api";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { logger, serializeError } from "../../lib/logger";
-import { BotSessionsQueries } from "../data-access/bot-sessions.queries";
-import { RecordingService } from "./recording.service";
 import { convertRecordingIntoAiInsights } from "../../workflows/convert-recording";
+import { BotSessionsQueries } from "../data-access/bot-sessions.queries";
 import type {
   BotRecordingReadyEvent,
   BotStatusChangeEvent,
 } from "../validation/bot/recall-webhook.schema";
+import { RecordingService } from "./recording.service";
 
 /**
  * Bot Webhook Service
@@ -24,9 +24,11 @@ export class BotWebhookService {
   ): Promise<ActionResult<void>> {
     try {
       const { bot, custom_metadata } = event;
-      const organizationId = custom_metadata?.organizationId;
+      const organizationId = custom_metadata?.organizationId as
+        | string
+        | undefined;
 
-      if (!organizationId) {
+      if (!organizationId || typeof organizationId !== "string") {
         logger.warn("Status change event missing organizationId", {
           component: "BotWebhookService.processStatusChange",
           botId: bot.id,
@@ -86,11 +88,20 @@ export class BotWebhookService {
   ): Promise<ActionResult<void>> {
     try {
       const { bot, recording, meeting, custom_metadata } = event;
-      const projectId = custom_metadata?.projectId;
-      const organizationId = custom_metadata?.organizationId;
-      const userId = custom_metadata?.userId;
+      const projectId = custom_metadata?.projectId as string | undefined;
+      const organizationId = custom_metadata?.organizationId as
+        | string
+        | undefined;
+      const userId = custom_metadata?.userId as string | undefined;
 
-      if (!projectId || !organizationId || !userId) {
+      if (
+        !projectId ||
+        !organizationId ||
+        !userId ||
+        typeof projectId !== "string" ||
+        typeof organizationId !== "string" ||
+        typeof userId !== "string"
+      ) {
         logger.error("Recording ready event missing required metadata", {
           component: "BotWebhookService.processRecordingReady",
           botId: bot.id,
@@ -155,7 +166,9 @@ export class BotWebhookService {
       const { fileBuffer, mimeType } = downloadResult.value;
 
       // Determine file name
-      const fileName = `recall-${recording.id}.${this.getFileExtension(mimeType)}`;
+      const fileName = `recall-${recording.id}.${this.getFileExtension(
+        mimeType
+      )}`;
       const timestamp = Date.now();
       const blobPath = `recordings/${timestamp}-${fileName}`;
 
@@ -178,20 +191,20 @@ export class BotWebhookService {
 
       const createResult = await RecordingService.createRecording(
         {
-          projectId,
-          title: meeting?.title || session.meetingTitle || "Bot Recording",
+          projectId: projectId as string,
+          title: meeting?.title ?? session.meetingTitle ?? "Bot Recording",
           description: null,
           fileUrl: blob.url,
           fileName,
           fileSize: fileBuffer.length,
           fileMimeType: mimeType,
-          duration: recording.duration || null,
+          duration: recording.duration ?? null,
           recordingDate,
           recordingMode: "bot",
           transcriptionStatus: "pending",
           transcriptionText: null,
-          organizationId,
-          createdById: userId,
+          organizationId: organizationId as string,
+          createdById: userId as string,
         },
         true // Don't invalidate cache yet
       );
@@ -209,7 +222,7 @@ export class BotWebhookService {
       // Update bot session with recording ID
       await BotSessionsQueries.updateByRecallBotId(
         bot.id,
-        organizationId,
+        organizationId as string,
         {
           recordingId: createdRecording.id,
           recallStatus: bot.status,
@@ -280,8 +293,7 @@ export class BotWebhookService {
 
       const arrayBuffer = await response.arrayBuffer();
       const fileBuffer = Buffer.from(arrayBuffer);
-      const mimeType =
-        response.headers.get("content-type") || "video/mp4";
+      const mimeType = response.headers.get("content-type") ?? "video/mp4";
 
       return ok({ fileBuffer, mimeType });
     } catch (error) {
