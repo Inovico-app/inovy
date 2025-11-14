@@ -356,6 +356,10 @@ export class RecordingsQueries {
         createdById: recordings.createdById,
         createdAt: recordings.createdAt,
         updatedAt: recordings.updatedAt,
+        consentGiven: recordings.consentGiven,
+        consentGivenBy: recordings.consentGivenBy,
+        consentGivenAt: recordings.consentGivenAt,
+        consentRevokedAt: recordings.consentRevokedAt,
         projectName: projects.name,
       })
       .from(recordings)
