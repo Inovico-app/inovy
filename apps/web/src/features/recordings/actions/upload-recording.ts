@@ -96,10 +96,23 @@ export async function uploadRecordingFormAction(
     let fileToUpload: File | Buffer = file;
     let encryptionMetadata: string | null = null;
 
+    // Validate encryption configuration before attempting encryption
+    if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
+      logger.error("Encryption enabled but master key not configured", {
+        component: "uploadRecordingFormAction",
+      });
+      return {
+        success: false,
+        error:
+          "Encryption is enabled but ENCRYPTION_MASTER_KEY is not configured. Please contact support.",
+      };
+    }
+
     if (shouldEncrypt) {
       try {
         const fileBuffer = Buffer.from(await file.arrayBuffer());
-        const encryptedBuffer = Buffer.from(encrypt(fileBuffer), "base64");
+        const encryptedBase64 = encrypt(fileBuffer);
+        const encryptedBuffer = Buffer.from(encryptedBase64, "base64");
         fileToUpload = encryptedBuffer;
         encryptionMetadata = JSON.stringify(generateEncryptionMetadata());
 

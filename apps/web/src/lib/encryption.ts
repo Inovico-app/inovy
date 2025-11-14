@@ -77,34 +77,55 @@ export function encrypt(data: Buffer | string): string {
  * Expects base64-encoded string containing: salt + iv + encrypted data + auth tag
  */
 export function decrypt(encryptedData: string): Buffer {
-  const masterKey = getMasterKey();
+  try {
+    const masterKey = getMasterKey();
 
-  // Decode from base64
-  const combined = Buffer.from(encryptedData, "base64");
+    // Decode from base64
+    const combined = Buffer.from(encryptedData, "base64");
 
-  // Extract components
-  const salt = combined.subarray(0, SALT_LENGTH);
-  const iv = combined.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
-  const tag = combined.subarray(combined.length - TAG_LENGTH);
-  const encrypted = combined.subarray(
-    SALT_LENGTH + IV_LENGTH,
-    combined.length - TAG_LENGTH
-  );
+    // Validate minimum length
+    const minLength = SALT_LENGTH + IV_LENGTH + TAG_LENGTH;
+    if (combined.length < minLength) {
+      throw new Error(
+        `Invalid encrypted data: too short (${combined.length} bytes, minimum ${minLength} bytes)`
+      );
+    }
 
-  // Derive decryption key (same as encryption key)
-  const key = deriveKey(masterKey, salt);
+    // Extract components
+    const salt = combined.subarray(0, SALT_LENGTH);
+    const iv = combined.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
+    const tag = combined.subarray(combined.length - TAG_LENGTH);
+    const encrypted = combined.subarray(
+      SALT_LENGTH + IV_LENGTH,
+      combined.length - TAG_LENGTH
+    );
 
-  // Create decipher
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-  decipher.setAuthTag(tag);
+    // Derive decryption key (same as encryption key)
+    const key = deriveKey(masterKey, salt);
 
-  // Decrypt data
-  const decrypted = Buffer.concat([
-    decipher.update(encrypted),
-    decipher.final(),
-  ]);
+    // Create decipher
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+    decipher.setAuthTag(tag);
 
-  return decrypted;
+    // Decrypt data
+    const decrypted = Buffer.concat([
+      decipher.update(encrypted),
+      decipher.final(),
+    ]);
+
+    return decrypted;
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message.includes("Unsupported state or unable to authenticate data") ||
+        error.message.includes("bad decrypt"))
+    ) {
+      throw new Error("Decryption failed: Invalid key or tampered data");
+    }
+    throw new Error(
+      `Decryption failed: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+  }
 }
 
 /**
