@@ -18,4 +18,5 @@ export { TranscriptionEditService } from "./transcription-edit.service";
 export { VectorSearchService } from "./vector-search.service";
 export { KnowledgeBaseService } from "./knowledge-base.service";
 export { DocumentProcessingService } from "./document-processing.service";
+export { ConsentService } from "./consent.service";
 
