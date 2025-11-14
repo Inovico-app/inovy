@@ -133,7 +133,7 @@ export function useConsent({
 
   const hasConsent = (email: string): boolean => {
     const participant = participants.find((p) => p.participantEmail === email);
-    return participant?.consentStatus === "granted" ?? false;
+    return participant?.consentStatus === "granted";
   };
 
   const getConsentStatus = (email: string): ConsentParticipant["consentStatus"] | null => {

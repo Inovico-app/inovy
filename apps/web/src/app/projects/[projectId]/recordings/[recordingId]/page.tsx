@@ -4,6 +4,9 @@ import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { ok } from "neverthrow";
+import type { ActionResult } from "@/lib/action-errors";
+import type { ConsentParticipant } from "@/server/db/schema/consent";
 import { Button } from "../../../../../components/ui/button";
 import {
   Card,
@@ -55,7 +58,7 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
     AIInsightService.getInsightByTypeInternal(recordingId, "transcription"),
     organizationId
       ? ConsentService.getConsentParticipants(recordingId, organizationId)
-      : Promise.resolve({ isOk: () => true, isErr: () => false, value: [], error: null } as const),
+      : Promise.resolve(ok([]) as ActionResult<ConsentParticipant[]>),
   ]);
 
   if (recordingResult.isErr() || projectResult.isErr()) {

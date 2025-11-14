@@ -5,6 +5,7 @@ import {
   resultToActionResponse,
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
+import { ok } from "neverthrow";
 import { ConsentService } from "../../../server/services/consent.service";
 import {
   bulkGrantConsentSchema,
@@ -154,8 +155,10 @@ export const bulkGrantConsentAction = authorizedActionClient
     // Revalidate recording page
     revalidatePath(`/projects/[projectId]/recordings/${recordingId}`);
 
-    return resultToActionResponse(
-      results.map((r) => (r.isOk() ? r.value : null)).filter(Boolean)
-    );
+    const successfulResults = results
+      .map((r) => (r.isOk() ? r.value : null))
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+
+    return resultToActionResponse(ok(successfulResults));
   });
 
