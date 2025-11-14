@@ -30,6 +30,8 @@ export interface RecordingDto {
   reprocessingTriggeredById: string | null;
   organizationId: string;
   createdById: string;
+  isEncrypted: boolean;
+  encryptionMetadata: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

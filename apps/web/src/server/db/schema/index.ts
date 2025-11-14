@@ -22,4 +22,6 @@ export * from "./drive-watches";
 export * from "./knowledge-base-entries";
 export * from "./knowledge-base-documents";
 export * from "./bot-sessions";
+export * from "./consent";
+export * from "./consent-audit-log";
 

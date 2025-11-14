@@ -6,6 +6,7 @@ import type {
 import { type Result, err, ok } from "neverthrow";
 import { logger } from "./logger";
 import type { Role } from "./rbac";
+import { isSSOUser, getSSOProvider } from "./sso";
 
 /**
  * Server-side authentication utilities with proper error handling
@@ -71,10 +72,16 @@ export async function getAuthSession(): Promise<Result<AuthSession, string>> {
       ? organizationResult.value
       : null;
 
+    // Log SSO information if applicable
+    const ssoInfo = isSSOUser(user)
+      ? { ssoProvider: getSSOProvider(user), isSSO: true }
+      : { isSSO: false };
+
     logger.auth.sessionCheck(true, {
       userId: user.id,
       hasOrganization: !!organization,
       action: "getAuthSession",
+      ...ssoInfo,
     });
 
     return ok({
