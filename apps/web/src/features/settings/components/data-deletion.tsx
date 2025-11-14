@@ -22,96 +22,38 @@ import {
   Loader2,
   Trash2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import {
-  cancelDeletionAction,
-  getDeletionStatusAction,
-  requestDeletionAction,
-} from "../actions/delete-user-data";
+import { useState } from "react";
+import { useDataDeletion } from "../hooks/use-data-deletion";
 
-export function DataDeletion() {
-  const [isRequesting, setIsRequesting] = useState(false);
-  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
-  const [deletionRequest, setDeletionRequest] =
-    useState<UserDeletionRequest | null>(null);
+interface DataDeletionProps {
+  initialDeletionRequest?: UserDeletionRequest | null;
+}
+
+export function DataDeletion({
+  initialDeletionRequest = null,
+}: DataDeletionProps) {
   const [confirmationText, setConfirmationText] = useState("");
   const [confirmCheckbox, setConfirmCheckbox] = useState(false);
 
-  useEffect(() => {
-    loadStatus();
-  }, []);
+  const {
+    deletionRequest,
+    isRequesting,
+    isCancelling,
+    requestDeletion,
+    cancelDeletion,
+  } = useDataDeletion(initialDeletionRequest);
 
-  async function loadStatus() {
-    setIsLoadingStatus(true);
-    try {
-      const result = await getDeletionStatusAction();
-      // next-safe-action wraps the return value, so result.data.data is the actual value
-      const requestData = result.data as { data: UserDeletionRequest | null } | undefined;
-      setDeletionRequest(requestData?.data ?? null);
-    } catch (error) {
-      // Silently fail - no deletion request exists
-      setDeletionRequest(null);
-    } finally {
-      setIsLoadingStatus(false);
-    }
-  }
+  const handleRequestDeletion = () => {
+    requestDeletion(confirmationText, confirmCheckbox);
+    // Reset form on success (handled in hook)
+    setConfirmationText("");
+    setConfirmCheckbox(false);
+  };
 
-  async function handleRequestDeletion() {
-    if (confirmationText !== "DELETE MY DATA") {
-      toast.error("Confirmation text must be exactly 'DELETE MY DATA'");
-      return;
-    }
-
-    if (!confirmCheckbox) {
-      toast.error("You must confirm that you understand the consequences");
-      return;
-    }
-
-    setIsRequesting(true);
-    try {
-      const result = await requestDeletionAction({
-        confirmationText,
-        confirmCheckbox,
-      });
-
-      if (result.data) {
-        toast.success(
-          "Your data deletion request has been processed. Your account and data have been anonymized."
-        );
-        setConfirmationText("");
-        setConfirmCheckbox(false);
-        await loadStatus();
-      } else {
-        toast.error(result.serverError || "Failed to process deletion request");
-      }
-    } catch (error) {
-      toast.error("Failed to process deletion request");
-      console.error(error);
-    } finally {
-      setIsRequesting(false);
-    }
-  }
-
-  async function handleCancelDeletion() {
+  const handleCancelDeletion = () => {
     if (!deletionRequest) return;
-
-    try {
-      const result = await cancelDeletionAction({
-        requestId: deletionRequest.id,
-      });
-
-      if (result.data) {
-        toast.success("Deletion request cancelled successfully");
-        await loadStatus();
-      } else {
-        toast.error(result.serverError || "Failed to cancel deletion request");
-      }
-    } catch (error) {
-      toast.error("Failed to cancel deletion request");
-      console.error(error);
-    }
-  }
+    cancelDeletion(deletionRequest.id);
+  };
 
   function getStatusBadge(status: UserDeletionRequest["status"]) {
     switch (status) {
@@ -211,11 +153,7 @@ export function DataDeletion() {
         </Alert>
 
         {/* Status Display */}
-        {isLoadingStatus ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : deletionRequest ? (
+        {deletionRequest ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex-1 space-y-2">
@@ -273,8 +211,16 @@ export function DataDeletion() {
                     variant="outline"
                     size="sm"
                     onClick={handleCancelDeletion}
+                    disabled={isCancelling}
                   >
-                    Cancel Deletion
+                    {isCancelling ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Cancelling...
+                      </>
+                    ) : (
+                      "Cancel Deletion"
+                    )}
                   </Button>
                 </div>
               )}
@@ -287,9 +233,9 @@ export function DataDeletion() {
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Recovery Period Active</AlertTitle>
                   <AlertDescription>
-                    Your data has been anonymized but can still be recovered
-                    for {daysRemaining} more day{daysRemaining !== 1 ? "s" : ""}
-                    . After this period, the deletion will be permanent.
+                    Your data has been anonymized but can still be recovered for{" "}
+                    {daysRemaining} more day{daysRemaining !== 1 ? "s" : ""}.
+                    After this period, the deletion will be permanent.
                   </AlertDescription>
                 </Alert>
               )}

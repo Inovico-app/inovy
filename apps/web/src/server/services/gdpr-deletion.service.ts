@@ -1,29 +1,21 @@
 import { del } from "@vercel/blob";
 import { createHash } from "crypto";
-import { and, eq, inArray, sql } from "drizzle-orm";
 import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
+import { getAuthSession } from "../../lib/auth";
 import { logger } from "../../lib/logger";
-import { db } from "../db";
 import {
-  aiInsights,
-  auditLogs,
-  chatConversations,
-  chatMessages,
-  consentParticipants,
-  oauthConnections,
-  recordings,
-  summaryHistory,
-  tasks,
-  type UserDeletionRequest,
-  userDeletionRequests,
-} from "../db/schema";
-import {
+  AIInsightsQueries,
+  AuditLogsQueries,
   ChatQueries,
+  ConsentQueries,
+  OAuthConnectionsQueries,
   RecordingsQueries,
+  SummaryHistoryQueries,
   TasksQueries,
   UserDeletionRequestsQueries,
 } from "../data-access";
+import type { UserDeletionRequest } from "../db/schema";
 import { AuditLogService } from "./audit-log.service";
 
 /**
@@ -263,10 +255,11 @@ export class GdprDeletionService {
     organizationId: string
   ): Promise<void> {
     // Get all recordings (both active and archived) owned by user
-    const allRecordings = await RecordingsQueries.selectRecordingsByOrganization(
-      organizationId,
-      {}
-    );
+    const allRecordings =
+      await RecordingsQueries.selectRecordingsByOrganization(
+        organizationId,
+        {}
+      );
 
     const ownedRecordings = allRecordings.filter(
       (r) => r.createdById === userId
@@ -306,36 +299,27 @@ export class GdprDeletionService {
     anonymizedId: string
   ): Promise<void> {
     // Find recordings where user is a participant
-    const participantRecords = await db
-      .select()
-      .from(consentParticipants)
-      .where(eq(consentParticipants.userId, userId));
+    const participantRecords = await ConsentQueries.findByUserId(userId);
 
-    const recordingIds = participantRecords.map((p) => p.recordingId);
+    const recordingIds = participantRecords.map(
+      (p: { recordingId: string }) => p.recordingId
+    );
 
     if (recordingIds.length === 0) return;
 
     // Anonymize consent participants
-    const updateData: {
-      participantEmail: string;
-      participantName: string;
-      userId: string | null;
-    } = {
-      participantEmail: userEmail
-        ? `${anonymizedId}@anonymized.local`
-        : `${anonymizedId}@anonymized.local`,
-      participantName: anonymizedId,
-      userId: null,
-    };
-
-    await db
-      .update(consentParticipants)
-      .set(updateData)
-      .where(inArray(consentParticipants.recordingId, recordingIds));
+    const anonymizedEmail = `${anonymizedId}@anonymized.local`;
+    await ConsentQueries.anonymizeByRecordingIds(
+      recordingIds,
+      anonymizedEmail,
+      anonymizedId
+    );
 
     // Anonymize transcription text
     for (const recordingId of recordingIds) {
-      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
       if (recording && recording.transcriptionText) {
         const anonymizedText = this.anonymizeText(
           recording.transcriptionText,
@@ -343,39 +327,32 @@ export class GdprDeletionService {
           userName,
           anonymizedId
         );
-        await db
-          .update(recordings)
-          .set({
-            transcriptionText: anonymizedText,
-            transcriptionLastEditedById: null,
-          })
-          .where(eq(recordings.id, recordingId));
+        await RecordingsQueries.anonymizeTranscriptionText(
+          recordingId,
+          anonymizedText
+        );
       }
 
       // Anonymize AI insights (speaker names)
-      const insights = await db
-        .select()
-        .from(aiInsights)
-        .where(eq(aiInsights.recordingId, recordingId));
+      const insights = await AIInsightsQueries.getInsightsByRecordingId(
+        recordingId
+      );
 
       for (const insight of insights) {
         if (insight.speakerNames) {
           const speakerNames = insight.speakerNames as Record<string, string>;
           const anonymizedSpeakerNames: Record<string, string> = {};
           for (const [key, name] of Object.entries(speakerNames)) {
-            if (name === userName || name.includes(userName || "")) {
+            if (name === userName || name.includes(userName ?? "")) {
               anonymizedSpeakerNames[key] = anonymizedId;
             } else {
               anonymizedSpeakerNames[key] = name;
             }
           }
-          await db
-            .update(aiInsights)
-            .set({
-              speakerNames: anonymizedSpeakerNames,
-              lastEditedById: null,
-            })
-            .where(eq(aiInsights.id, insight.id));
+          await AIInsightsQueries.anonymizeSpeakerNames(
+            insight.id,
+            anonymizedSpeakerNames
+          );
         }
       }
     }
@@ -403,31 +380,14 @@ export class GdprDeletionService {
 
     if (createdTasks.length === 0) return;
 
-    await db
-      .delete(tasks)
-      .where(
-        and(
-          inArray(
-            tasks.id,
-            createdTasks.map((t) => t.id)
-          ),
-          eq(tasks.organizationId, organizationId)
-        )
-      );
+    // Delete tasks created by user
+    await TasksQueries.deleteByIds(
+      createdTasks.map((t) => t.id),
+      organizationId
+    );
 
     // Also anonymize tasks where user is assignee
-    await db
-      .update(tasks)
-      .set({
-        assigneeId: null,
-        assigneeName: null,
-      })
-      .where(
-        and(
-          eq(tasks.assigneeId, userId),
-          eq(tasks.organizationId, organizationId)
-        )
-      );
+    await TasksQueries.anonymizeAssigneeByUserId(userId, organizationId);
 
     logger.info("Deleted user tasks", {
       component: "GdprDeletionService.deleteUserTasks",
@@ -444,10 +404,11 @@ export class GdprDeletionService {
     organizationId: string
   ): Promise<void> {
     // Get all recordings owned by user to find their summaries
-    const allRecordings = await RecordingsQueries.selectRecordingsByOrganization(
-      organizationId,
-      {}
-    );
+    const allRecordings =
+      await RecordingsQueries.selectRecordingsByOrganization(
+        organizationId,
+        {}
+      );
 
     const ownedRecordingIds = allRecordings
       .filter((r) => r.createdById === userId)
@@ -456,14 +417,10 @@ export class GdprDeletionService {
     if (ownedRecordingIds.length === 0) return;
 
     // Delete summary history for user's recordings
-    await db
-      .delete(summaryHistory)
-      .where(
-        and(
-          inArray(summaryHistory.recordingId, ownedRecordingIds),
-          eq(summaryHistory.editedById, userId)
-        )
-      );
+    await SummaryHistoryQueries.deleteByRecordingIdsAndUserId(
+      ownedRecordingIds,
+      userId
+    );
 
     logger.info("Deleted user summaries", {
       component: "GdprDeletionService.deleteUserSummaries",
@@ -489,14 +446,7 @@ export class GdprDeletionService {
     if (conversationIds.length === 0) return;
 
     // Delete conversations (cascade will handle messages)
-    await db
-      .delete(chatConversations)
-      .where(
-        and(
-          eq(chatConversations.userId, userId),
-          eq(chatConversations.organizationId, organizationId)
-        )
-      );
+    await ChatQueries.deleteByUserIdAndOrganizationId(userId, organizationId);
 
     logger.info("Deleted user chat conversations", {
       component: "GdprDeletionService.deleteUserChatConversations",
@@ -513,17 +463,11 @@ export class GdprDeletionService {
     organizationId: string,
     anonymizedId: string
   ): Promise<void> {
-    await db
-      .update(auditLogs)
-      .set({
-        userId: anonymizedId,
-      })
-      .where(
-        and(
-          eq(auditLogs.userId, userId),
-          eq(auditLogs.organizationId, organizationId)
-        )
-      );
+    await AuditLogsQueries.anonymizeByUserId(
+      userId,
+      organizationId,
+      anonymizedId
+    );
 
     logger.info("Anonymized audit logs", {
       component: "GdprDeletionService.anonymizeAuditLogs",
@@ -535,9 +479,7 @@ export class GdprDeletionService {
    * Delete OAuth connections
    */
   private static async deleteOAuthConnections(userId: string): Promise<void> {
-    await db
-      .delete(oauthConnections)
-      .where(eq(oauthConnections.userId, userId));
+    await OAuthConnectionsQueries.deleteByUserId(userId);
 
     logger.info("Deleted OAuth connections", {
       component: "GdprDeletionService.deleteOAuthConnections",
@@ -614,18 +556,42 @@ export class GdprDeletionService {
   }
 
   /**
-   * Get deletion request status
+   * Get deletion request status for the authenticated user
+   * Handles authentication internally
    */
-  static async getDeletionRequestStatus(
-    userId: string
-  ): Promise<ActionResult<UserDeletionRequest | null>> {
+  static async getDeletionRequestStatus(): Promise<
+    ActionResult<UserDeletionRequest | null>
+  > {
     try {
-      const request = await UserDeletionRequestsQueries.findByUserId(userId);
+      // Check authentication
+      const authResult = await getAuthSession();
+      if (authResult.isErr()) {
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "GdprDeletionService.getDeletionRequestStatus"
+          )
+        );
+      }
+
+      const { user: authUser } = authResult.value;
+      if (!authUser) {
+        return err(
+          ActionErrors.unauthenticated(
+            "Authentication required",
+            "GdprDeletionService.getDeletionRequestStatus"
+          )
+        );
+      }
+
+      const request = await UserDeletionRequestsQueries.findByUserId(
+        authUser.id
+      );
       return ok(request);
     } catch (error) {
       logger.error("Failed to get deletion request status", {
         component: "GdprDeletionService.getDeletionRequestStatus",
-        userId,
         error,
       });
       return err(

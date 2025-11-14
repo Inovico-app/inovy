@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "../db";
 import {
   summaryHistory,
@@ -47,6 +47,25 @@ export class SummaryHistoryQueries {
       .limit(1);
 
     return result[0]?.versionNumber ?? 0;
+  }
+
+  /**
+   * Delete summary history entries by recording IDs and user ID
+   */
+  static async deleteByRecordingIdsAndUserId(
+    recordingIds: string[],
+    userId: string
+  ): Promise<void> {
+    if (recordingIds.length === 0) return;
+
+    await db
+      .delete(summaryHistory)
+      .where(
+        and(
+          inArray(summaryHistory.recordingId, recordingIds),
+          eq(summaryHistory.editedById, userId)
+        )
+      );
   }
 }
 

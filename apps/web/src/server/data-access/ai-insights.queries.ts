@@ -158,6 +158,25 @@ export class AIInsightsQueries {
     return updated;
   }
 
+  /**
+   * Update speaker names and clear last edited info (for anonymization)
+   */
+  static async anonymizeSpeakerNames(
+    insightId: string,
+    speakerNames: Record<string, string>
+  ): Promise<AIInsight | undefined> {
+    const [updated] = await db
+      .update(aiInsights)
+      .set({
+        speakerNames,
+        lastEditedById: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(aiInsights.id, insightId))
+      .returning();
+    return updated;
+  }
+
   static async getTranscriptionInsightByRecordingId(
     recordingId: string
   ): Promise<AIInsight | null> {

@@ -46,9 +46,7 @@ export class UserDeletionRequestsQueries {
   /**
    * Get deletion request by ID
    */
-  static async findById(
-    id: string
-  ): Promise<UserDeletionRequest | null> {
+  static async findById(id: string): Promise<UserDeletionRequest | null> {
     const [request] = await db
       .select()
       .from(userDeletionRequests)

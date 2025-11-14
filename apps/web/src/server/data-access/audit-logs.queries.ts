@@ -244,5 +244,26 @@ export class AuditLogsQueries {
 
     return results;
   }
+
+  /**
+   * Anonymize audit logs by replacing userId with anonymized ID
+   */
+  static async anonymizeByUserId(
+    userId: string,
+    organizationId: string,
+    anonymizedId: string
+  ): Promise<void> {
+    await db
+      .update(auditLogs)
+      .set({
+        userId: anonymizedId,
+      })
+      .where(
+        and(
+          eq(auditLogs.userId, userId),
+          eq(auditLogs.organizationId, organizationId)
+        )
+      );
+  }
 }
 

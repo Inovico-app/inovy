@@ -140,22 +140,14 @@ export const cancelDeletionAction = authorizedActionClient
 
 /**
  * Get deletion request status action
+ * Auth is handled internally by the service
  */
 export const getDeletionStatusAction = authorizedActionClient
   .metadata({
     policy: "settings:read",
   })
-  .action(async ({ ctx }) => {
-    const { user } = ctx;
-
-    if (!user) {
-      throw ActionErrors.unauthenticated(
-        "User not found",
-        "get-deletion-status"
-      );
-    }
-
-    const result = await GdprDeletionService.getDeletionRequestStatus(user.id);
+  .action(async () => {
+    const result = await GdprDeletionService.getDeletionRequestStatus();
 
     if (result.isErr()) {
       throw result.error;
