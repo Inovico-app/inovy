@@ -198,6 +198,39 @@ class Logger {
       });
     },
   };
+
+  // Helper method for structured audit logging
+  // This provides a consistent interface for audit log creation
+  audit = {
+    /**
+     * Log an audit event
+     * This is a convenience method that provides structured logging for audit events
+     * Actual audit log entries should be created via AuditLogService.createAuditLog()
+     */
+    event: (
+      eventType: string,
+      context: {
+        resourceType: string;
+        resourceId?: string;
+        userId: string;
+        organizationId: string;
+        action: string;
+        metadata?: Record<string, unknown>;
+      }
+    ) => {
+      this.info(`Audit event: ${eventType}`, {
+        component: "audit",
+        action: "event",
+        eventType,
+        resourceType: context.resourceType,
+        resourceId: context.resourceId,
+        userId: context.userId,
+        organizationId: context.organizationId,
+        action: context.action,
+        metadata: context.metadata,
+      });
+    },
+  };
 }
 
 export const logger = new Logger();
