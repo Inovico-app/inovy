@@ -8,19 +8,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Loader } from "@/components/loader";
-import { useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { exportAuditLogs } from "../actions/export-audit-logs";
 import { AuditLogFilters } from "./audit-log-filters";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { useRouter, useSearchParams } from "next/navigation";
+import type { AuditLog } from "@/server/db/schema";
 
 interface AuditLogViewerProps {
+  initialData: {
+    logs: AuditLog[];
+    total: number;
+  };
   initialFilters?: {
-    eventType?: string[];
-    resourceType?: string[];
-    action?: string[];
+    eventType?: string;
+    resourceType?: string;
+    action?: string;
     userId?: string;
     resourceId?: string;
     startDate?: string;
@@ -28,15 +32,18 @@ interface AuditLogViewerProps {
   };
 }
 
-export function AuditLogViewer({ initialFilters }: AuditLogViewerProps) {
+export function AuditLogViewer({ initialData, initialFilters }: AuditLogViewerProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
   const [eventTypes, setEventTypes] = useState<string[]>(
-    initialFilters?.eventType ?? []
+    initialFilters?.eventType ? initialFilters.eventType.split(",").filter(Boolean) : []
   );
   const [resourceTypes, setResourceTypes] = useState<string[]>(
-    initialFilters?.resourceType ?? []
+    initialFilters?.resourceType ? initialFilters.resourceType.split(",").filter(Boolean) : []
   );
   const [actions, setActions] = useState<string[]>(
-    initialFilters?.action ?? []
+    initialFilters?.action ? initialFilters.action.split(",").filter(Boolean) : []
   );
   const [userId, setUserId] = useState<string | undefined>(
     initialFilters?.userId
@@ -51,40 +58,22 @@ export function AuditLogViewer({ initialFilters }: AuditLogViewerProps) {
     initialFilters?.endDate
   );
 
-  const filters = {
-    eventType: eventTypes.length > 0 ? eventTypes : undefined,
-    resourceType: resourceTypes.length > 0 ? resourceTypes : undefined,
-    action: actions.length > 0 ? actions : undefined,
-    userId,
-    resourceId,
-    startDate: startDate ? new Date(startDate).toISOString() : undefined,
-    endDate: endDate ? new Date(endDate).toISOString() : undefined,
-    limit: 100,
-    offset: 0,
+  const updateURL = () => {
+    const params = new URLSearchParams();
+    if (eventTypes.length > 0) params.set("eventType", eventTypes.join(","));
+    if (resourceTypes.length > 0) params.set("resourceType", resourceTypes.join(","));
+    if (actions.length > 0) params.set("action", actions.join(","));
+    if (userId) params.set("userId", userId);
+    if (resourceId) params.set("resourceId", resourceId);
+    if (startDate) params.set("startDate", startDate);
+    if (endDate) params.set("endDate", endDate);
+
+    startTransition(() => {
+      router.push(`/admin/audit-logs?${params.toString()}`);
+    });
   };
 
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["audit-logs", filters],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filters.userId) params.set("userId", filters.userId);
-      if (filters.eventType) params.set("eventType", filters.eventType.join(","));
-      if (filters.resourceType) params.set("resourceType", filters.resourceType.join(","));
-      if (filters.action) params.set("action", filters.action.join(","));
-      if (filters.resourceId) params.set("resourceId", filters.resourceId);
-      if (filters.startDate) params.set("startDate", filters.startDate);
-      if (filters.endDate) params.set("endDate", filters.endDate);
-      params.set("limit", String(filters.limit ?? 100));
-      params.set("offset", String(filters.offset ?? 0));
-
-      const response = await fetch(`/api/audit-logs?${params.toString()}`);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error ?? "Failed to fetch audit logs");
-      }
-      return response.json();
-    },
-  });
+  const data = initialData;
 
   const handleClearFilters = () => {
     setEventTypes([]);
@@ -94,6 +83,13 @@ export function AuditLogViewer({ initialFilters }: AuditLogViewerProps) {
     setResourceId(undefined);
     setStartDate(undefined);
     setEndDate(undefined);
+    startTransition(() => {
+      router.push("/admin/audit-logs");
+    });
+  };
+
+  const handleFilterChange = () => {
+    updateURL();
   };
 
   const handleExport = async (format: "csv" | "json") => {
@@ -133,49 +129,48 @@ export function AuditLogViewer({ initialFilters }: AuditLogViewerProps) {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="py-12">
-          <Loader />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <p className="text-destructive">
-            Failed to load audit logs. Please try again.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const logs = data?.logs ?? [];
-  const total = data?.total ?? 0;
+  const logs = data.logs;
+  const total = data.total;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       <div className="lg:col-span-1">
         <AuditLogFilters
           eventTypes={eventTypes}
-          onEventTypesChange={setEventTypes}
+          onEventTypesChange={(types) => {
+            setEventTypes(types);
+            handleFilterChange();
+          }}
           resourceTypes={resourceTypes}
-          onResourceTypesChange={setResourceTypes}
+          onResourceTypesChange={(types) => {
+            setResourceTypes(types);
+            handleFilterChange();
+          }}
           actions={actions}
-          onActionsChange={setActions}
+          onActionsChange={(acts) => {
+            setActions(acts);
+            handleFilterChange();
+          }}
           userId={userId}
-          onUserIdChange={setUserId}
+          onUserIdChange={(id) => {
+            setUserId(id);
+            handleFilterChange();
+          }}
           resourceId={resourceId}
-          onResourceIdChange={setResourceId}
+          onResourceIdChange={(id) => {
+            setResourceId(id);
+            handleFilterChange();
+          }}
           startDate={startDate}
-          onStartDateChange={setStartDate}
+          onStartDateChange={(date) => {
+            setStartDate(date);
+            handleFilterChange();
+          }}
           endDate={endDate}
-          onEndDateChange={setEndDate}
+          onEndDateChange={(date) => {
+            setEndDate(date);
+            handleFilterChange();
+          }}
           onClearFilters={handleClearFilters}
         />
       </div>
@@ -187,7 +182,7 @@ export function AuditLogViewer({ initialFilters }: AuditLogViewerProps) {
               <div>
                 <CardTitle>Audit Logs</CardTitle>
                 <CardDescription>
-                  {total} total log{total !== 1 ? "s" : ""} found
+                  {isPending ? "Loading..." : `${total} total log${total !== 1 ? "s" : ""} found`}
                 </CardDescription>
               </div>
               <div className="flex gap-2">
