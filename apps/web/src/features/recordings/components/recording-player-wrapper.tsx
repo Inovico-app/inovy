@@ -10,6 +10,8 @@ interface RecordingPlayerWrapperProps {
   fileName: string;
   isVideo: boolean;
   isAudio: boolean;
+  recordingId?: string;
+  isEncrypted?: boolean;
 }
 
 export function RecordingPlayerWrapper({
@@ -18,6 +20,8 @@ export function RecordingPlayerWrapper({
   fileName,
   isVideo,
   isAudio,
+  recordingId,
+  isEncrypted = false,
 }: RecordingPlayerWrapperProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -54,6 +58,11 @@ export function RecordingPlayerWrapper({
     }
   }, [searchParams, isVideo, isAudio]);
 
+  // Use playback endpoint for encrypted recordings
+  const playbackUrl = isEncrypted && recordingId
+    ? `/api/recordings/${recordingId}/playback`
+    : fileUrl;
+
   if (isVideo) {
     return (
       <video
@@ -63,7 +72,7 @@ export function RecordingPlayerWrapper({
         preload="metadata"
         controlsList="nodownload"
       >
-        <source src={fileUrl} type={fileMimeType} />
+        <source src={playbackUrl} type={fileMimeType} />
         Your browser does not support the video player.
       </video>
     );
@@ -78,7 +87,7 @@ export function RecordingPlayerWrapper({
         preload="metadata"
         controlsList="nodownload"
       >
-        <source src={fileUrl} type={fileMimeType} />
+        <source src={playbackUrl} type={fileMimeType} />
         Your browser does not support the audio player.
       </audio>
     );
