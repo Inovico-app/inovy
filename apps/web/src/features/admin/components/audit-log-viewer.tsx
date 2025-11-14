@@ -78,8 +78,14 @@ export function AuditLogViewer({
     if (startDate) params.set("startDate", startDate);
     if (endDate) params.set("endDate", endDate);
 
+    const queryString = params.toString();
+    const url = queryString
+      ? `/admin/audit-logs?${queryString}`
+      : "/admin/audit-logs";
+
     startTransition(() => {
-      router.push(`/admin/audit-logs?${params.toString()}` as "/admin/audit-logs");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.push(url as any);
     });
   };
 
@@ -94,7 +100,8 @@ export function AuditLogViewer({
     setStartDate(undefined);
     setEndDate(undefined);
     startTransition(() => {
-      router.push("/admin/audit-logs" as "/admin/audit-logs");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.push("/admin/audit-logs" as any);
     });
   };
 
