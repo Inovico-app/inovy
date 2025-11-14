@@ -79,6 +79,11 @@ export const recordings = pgTable(
     organizationId: text("organization_id").notNull(), // Kinde organization code
     createdById: text("created_by_id").notNull(), // Kinde user ID
     externalRecordingId: text("external_recording_id"), // External recording ID (e.g., Recall.ai recording.id)
+    // Consent tracking fields
+    consentGiven: boolean("consent_given").notNull().default(false),
+    consentGivenBy: text("consent_given_by"), // Kinde user ID
+    consentGivenAt: timestamp("consent_given_at", { withTimezone: true }),
+    consentRevokedAt: timestamp("consent_revoked_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
