@@ -5,6 +5,19 @@ import type {
   NewConsentAuditLog,
 } from "../db/schema/consent-audit-log";
 
+export type ConsentAuditLogRecord = {
+  id: string;
+  recordingId: string;
+  participantEmail: string;
+  action: ConsentAuditAction;
+  performedBy: string;
+  performedByEmail: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: Date;
+};
+
 /**
  * Consent Audit Service
  * Handles audit logging for all consent-related actions
@@ -40,13 +53,17 @@ export class ConsentAuditService {
       logger.info("Consent action logged", {
         component: "ConsentAuditService.logConsentAction",
         recordingId,
-        participantEmail,
         action,
         performedBy,
       });
     } catch (error) {
       // Don't throw - audit logging failures shouldn't break the main flow
-      logger.error("Failed to log consent action", {}, error as Error);
+      logger.error("Failed to log consent action", {
+        component: "ConsentAuditService.logConsentAction",
+        recordingId,
+        action,
+        performedBy,
+      }, error as Error);
     }
   }
 
@@ -55,22 +72,14 @@ export class ConsentAuditService {
    */
   static async getAuditLogsByRecordingId(
     recordingId: string
-  ): Promise<Array<{
-    id: string;
-    recordingId: string;
-    participantEmail: string;
-    action: ConsentAuditAction;
-    performedBy: string;
-    performedByEmail: string | null;
-    ipAddress: string | null;
-    userAgent: string | null;
-    metadata: Record<string, unknown> | null;
-    createdAt: Date;
-  }>> {
+  ): Promise<ConsentAuditLogRecord[]> {
     try {
       return await ConsentAuditQueries.getAuditLogsByRecordingId(recordingId);
     } catch (error) {
-      logger.error("Failed to get consent audit logs", {}, error as Error);
+      logger.error("Failed to get consent audit logs", {
+        component: "ConsentAuditService.getAuditLogsByRecordingId",
+        recordingId,
+      }, error as Error);
       return [];
     }
   }
@@ -81,25 +90,18 @@ export class ConsentAuditService {
   static async getAuditLogsByParticipant(
     recordingId: string,
     participantEmail: string
-  ): Promise<Array<{
-    id: string;
-    recordingId: string;
-    participantEmail: string;
-    action: ConsentAuditAction;
-    performedBy: string;
-    performedByEmail: string | null;
-    ipAddress: string | null;
-    userAgent: string | null;
-    metadata: Record<string, unknown> | null;
-    createdAt: Date;
-  }>> {
+  ): Promise<ConsentAuditLogRecord[]> {
     try {
       return await ConsentAuditQueries.getAuditLogsByParticipant(
         recordingId,
         participantEmail
       );
     } catch (error) {
-      logger.error("Failed to get consent audit logs", {}, error as Error);
+      logger.error("Failed to get consent audit logs", {
+        component: "ConsentAuditService.getAuditLogsByParticipant",
+        recordingId,
+        // Note: participantEmail omitted to avoid logging PII
+      }, error as Error);
       return [];
     }
   }

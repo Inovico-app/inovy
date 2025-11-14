@@ -12,3 +12,7 @@ CREATE TABLE "consent_audit_log" (
 );
 --> statement-breakpoint
 ALTER TABLE "consent_audit_log" ADD CONSTRAINT "consent_audit_log_recording_id_recordings_id_fk" FOREIGN KEY ("recording_id") REFERENCES "public"."recordings"("id") ON DELETE cascade ON UPDATE no action;
+--> statement-breakpoint
+CREATE INDEX "consent_audit_log_recording_id_idx" ON "consent_audit_log" ("recording_id");
+--> statement-breakpoint
+CREATE INDEX "consent_audit_log_participant_email_idx" ON "consent_audit_log" ("participant_email");

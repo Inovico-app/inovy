@@ -114,19 +114,28 @@ export class ConsentService {
       }
 
       // Log audit event
-      await ConsentAuditService.logConsentAction(
-        recordingId,
-        participantEmail,
-        "granted",
-        userId,
-        null, // Email will be fetched if needed
-        ipAddress,
-        userAgent,
-        {
-          consentMethod,
-          participantName,
-        }
-      );
+      try {
+        await ConsentAuditService.logConsentAction(
+          recordingId,
+          participantEmail,
+          "granted",
+          userId,
+          null, // Email will be fetched if needed
+          ipAddress,
+          userAgent,
+          {
+            consentMethod,
+            participantName,
+          }
+        );
+      } catch (auditError) {
+        logger.error("Failed to log consent audit event", {
+          component: "ConsentService.grantConsent",
+          recordingId,
+          userId,
+        }, auditError as Error);
+        // Audit failure doesn't block consent operation, but is logged for monitoring
+      }
 
       logger.info("Consent granted", {
         component: "ConsentService.grantConsent",
@@ -195,18 +204,25 @@ export class ConsentService {
       }
 
       // Log audit event
-      await ConsentAuditService.logConsentAction(
-        recordingId,
-        participantEmail,
-        "revoked",
-        userId,
-        null, // Email will be fetched if needed
-        undefined,
-        undefined,
-        {
-          revokedAt: new Date().toISOString(),
-        }
-      );
+      try {
+        await ConsentAuditService.logConsentAction(
+          recordingId,
+          participantEmail,
+          "revoked",
+          userId,
+          null, // Email will be fetched if needed
+          undefined,
+          undefined,
+          {} // createdAt already captures when revocation occurred
+        );
+      } catch (auditError) {
+        logger.error("Failed to log consent audit event", {
+          component: "ConsentService.revokeConsent",
+          recordingId,
+          userId,
+        }, auditError as Error);
+        // Audit failure doesn't block consent operation, but is logged for monitoring
+      }
 
       logger.info("Consent revoked", {
         component: "ConsentService.revokeConsent",
