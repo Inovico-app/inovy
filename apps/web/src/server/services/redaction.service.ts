@@ -62,8 +62,8 @@ export class RedactionService {
       }
 
       await assertOrganizationAccess(
-        organizationId,
         recording.organizationId,
+        organizationId,
         "RedactionService.detectPII"
       );
 
