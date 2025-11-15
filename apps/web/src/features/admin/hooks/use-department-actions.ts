@@ -19,9 +19,7 @@ interface UseDepartmentActionsOptions {
  * Custom hook for department management actions
  * Uses useAction from next-safe-action to handle all submitting states and errors
  */
-export function useDepartmentActions(
-  options?: UseDepartmentActionsOptions
-) {
+export function useDepartmentActions(options?: UseDepartmentActionsOptions) {
   const router = useRouter();
 
   const {
@@ -88,7 +86,10 @@ export function useDepartmentActions(
     executeCreate({
       name,
       description: description || null,
-      parentDepartmentId: parentDepartmentId && parentDepartmentId !== "none" ? parentDepartmentId : null,
+      parentDepartmentId:
+        parentDepartmentId && parentDepartmentId !== "none"
+          ? parentDepartmentId
+          : null,
     });
   };
 
@@ -101,7 +102,10 @@ export function useDepartmentActions(
       id,
       name,
       description: description || null,
-      parentDepartmentId: parentDepartmentId && parentDepartmentId !== "none" ? parentDepartmentId : null,
+      parentDepartmentId:
+        parentDepartmentId && parentDepartmentId !== "none"
+          ? parentDepartmentId
+          : null,
     });
   };
 

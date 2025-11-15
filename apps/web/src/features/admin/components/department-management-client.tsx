@@ -1,7 +1,7 @@
 "use client";
 
 import type { DepartmentDto } from "@/server/dto/department.dto";
-import { useState } from "react";
+import { Activity, useState } from "react";
 import { useDepartmentActions } from "../hooks/use-department-actions";
 import { CreateDepartmentDialog } from "./create-department-dialog";
 import { DepartmentItem } from "./department-item";
@@ -34,17 +34,15 @@ export function DepartmentManagementClient({
 
   return (
     <div className="space-y-4">
-      {canEdit && (
-        <CreateDepartmentDialog
-          departments={departments}
-          open={isCreateOpen}
-          onOpenChange={setIsCreateOpen}
-          onSubmit={handleCreate}
-          isSubmitting={isSubmitting}
-        />
-      )}
+      <CreateDepartmentDialog
+        departments={departments}
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSubmit={handleCreate}
+        isSubmitting={isSubmitting}
+      />
 
-      {editingDepartment && (
+      <Activity mode={editingDepartment ? "visible" : "hidden"}>
         <EditDepartmentDialog
           department={editingDepartment}
           departments={departments}
@@ -54,10 +52,14 @@ export function DepartmentManagementClient({
               setEditingDepartment(null);
             }
           }}
-          onSubmit={(formData) => handleUpdate(editingDepartment.id, formData)}
+          onSubmit={(formData) => {
+            if (editingDepartment) {
+              handleUpdate(editingDepartment.id, formData);
+            }
+          }}
           isSubmitting={isSubmitting}
         />
-      )}
+      </Activity>
 
       {departments.length === 0 ? (
         <p className="text-muted-foreground text-center py-8">

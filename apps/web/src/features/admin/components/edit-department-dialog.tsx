@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { DepartmentDto } from "@/server/dto/department.dto";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface EditDepartmentDialogProps {
   department: DepartmentDto | null;
