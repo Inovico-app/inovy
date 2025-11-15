@@ -25,7 +25,7 @@ import {
   deleteTeam,
 } from "../actions/teams";
 import { Plus, Edit, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { TeamDto } from "@/server/dto/team.dto";
 import type { DepartmentDto } from "@/server/dto/department.dto";
@@ -47,6 +47,14 @@ export function TeamManagementClient({
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<TeamDto | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createDepartmentId, setCreateDepartmentId] = useState<string>("none");
+  const [editDepartmentId, setEditDepartmentId] = useState<string>("none");
+
+  useEffect(() => {
+    if (editingTeam) {
+      setEditDepartmentId(editingTeam.departmentId ?? "none");
+    }
+  }, [editingTeam]);
 
   const handleCreate = async (formData: FormData) => {
     setIsSubmitting(true);
@@ -54,10 +62,11 @@ export function TeamManagementClient({
       const result = await createTeam({
         name: formData.get("name") as string,
         description: (formData.get("description") as string) || null,
-        departmentId: (formData.get("departmentId") as string) || null,
+        departmentId: createDepartmentId && createDepartmentId !== "none" ? createDepartmentId : null,
       });
       if (result?.data) {
         setIsCreateOpen(false);
+        setCreateDepartmentId("none");
         router.refresh();
       }
     } finally {
@@ -73,7 +82,7 @@ export function TeamManagementClient({
         id: editingTeam.id,
         name: formData.get("name") as string,
         description: (formData.get("description") as string) || null,
-        departmentId: (formData.get("departmentId") as string) || null,
+        departmentId: editDepartmentId && editDepartmentId !== "none" ? editDepartmentId : null,
       });
       if (result?.data) {
         setEditingTeam(null);
@@ -129,12 +138,15 @@ export function TeamManagementClient({
               </div>
               <div>
                 <Label htmlFor="departmentId">Department</Label>
-                <Select name="departmentId">
+                <Select
+                  value={createDepartmentId}
+                  onValueChange={setCreateDepartmentId}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="None (Standalone Team)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None (Standalone Team)</SelectItem>
+                    <SelectItem value="none">None (Standalone Team)</SelectItem>
                     {departments.map((dept) => (
                       <SelectItem key={dept.id} value={dept.id}>
                         {dept.name}
@@ -163,7 +175,10 @@ export function TeamManagementClient({
       {editingTeam && (
         <Dialog
           open={!!editingTeam}
-          onOpenChange={() => setEditingTeam(null)}
+          onOpenChange={() => {
+            setEditingTeam(null);
+            setEditDepartmentId("none");
+          }}
         >
           <DialogContent>
             <DialogHeader>
@@ -191,14 +206,14 @@ export function TeamManagementClient({
               <div>
                 <Label htmlFor="edit-departmentId">Department</Label>
                 <Select
-                  name="departmentId"
-                  defaultValue={editingTeam.departmentId || ""}
+                  value={editDepartmentId}
+                  onValueChange={setEditDepartmentId}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="None (Standalone Team)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None (Standalone Team)</SelectItem>
+                    <SelectItem value="none">None (Standalone Team)</SelectItem>
                     {departments.map((dept) => (
                       <SelectItem key={dept.id} value={dept.id}>
                         {dept.name}
