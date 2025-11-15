@@ -10,7 +10,12 @@ import {
 } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
 import { getOrganizationMembers } from "@/server/data-access/organization.queries";
+import {
+  getCachedUserTeams,
+  getCachedTeamsByOrganization,
+} from "@/server/cache";
 import { UserRoleBadge } from "./user-role-badge";
+import { Badge } from "@/components/ui/badge";
 
 export async function UserManagementTable() {
   try {
@@ -34,6 +39,28 @@ export async function UserManagementTable() {
 
     const { organization } = authResult.value;
     const members = await getOrganizationMembers(organization.orgCode);
+
+    // Fetch teams for all users in a single batch query
+    const allTeams = await getCachedTeamsByOrganization(organization.orgCode);
+    const teamMap = new Map(allTeams.map((t) => [t.id, t]));
+    
+    // Batch fetch all user teams
+    const { TeamService } = await import("@/server/services/team.service");
+    const userTeamsResult = await TeamService.getUserTeamsByUserIds(
+      members.map((m) => m.id),
+      organization.orgCode
+    );
+
+    const userTeamsMap = new Map<string, Array<{ teamId: string; role: string }>>();
+    if (userTeamsResult.isOk()) {
+      const batchUserTeamsMap = userTeamsResult.value;
+      for (const [userId, userTeams] of batchUserTeamsMap.entries()) {
+        userTeamsMap.set(
+          userId,
+          userTeams.map((ut) => ({ teamId: ut.teamId, role: ut.role }))
+        );
+      }
+    }
 
     if (!members || members.length === 0) {
       return (
@@ -63,6 +90,7 @@ export async function UserManagementTable() {
                   <th className="text-left py-3 px-4 font-semibold">Name</th>
                   <th className="text-left py-3 px-4 font-semibold">Email</th>
                   <th className="text-left py-3 px-4 font-semibold">Roles</th>
+                  <th className="text-left py-3 px-4 font-semibold">Teams</th>
                 </tr>
               </thead>
               <tbody>
@@ -92,6 +120,37 @@ export async function UserManagementTable() {
                             No roles
                           </span>
                         )}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex flex-wrap gap-1">
+                        {(() => {
+                          const userTeams = userTeamsMap.get(member.id) || [];
+                          return userTeams.length > 0 ? (
+                            userTeams.map((ut) => {
+                              const team = teamMap.get(ut.teamId);
+                              if (!team) return null;
+                              return (
+                                <Badge
+                                  key={ut.teamId}
+                                  variant="outline"
+                                  className="text-xs"
+                                >
+                                  {team.name}
+                                  {ut.role !== "member" && (
+                                    <span className="ml-1 text-muted-foreground">
+                                      ({ut.role})
+                                    </span>
+                                  )}
+                                </Badge>
+                              );
+                            })
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              No teams
+                            </span>
+                          );
+                        })()}
                       </div>
                     </td>
                   </tr>

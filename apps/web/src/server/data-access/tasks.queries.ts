@@ -9,8 +9,10 @@ import {
   type Task,
   type TaskHistory,
 } from "@/server/db/schema";
-import { and, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import type { TaskStatsDto } from "../dto";
+import { TeamQueries } from "./teams.queries";
+import { UserTeamQueries } from "./user-teams.queries";
 
 export interface TaskWithContext extends Task {
   project: { id: string; name: string };
@@ -59,6 +61,8 @@ export class TasksQueries {
       projectIds?: string[];
       assigneeId?: string;
       search?: string;
+      teamIds?: string[];
+      departmentId?: string;
     }
   ): Promise<Task[]> {
     const conditions = [eq(tasks.organizationId, organizationId)];
@@ -78,6 +82,43 @@ export class TasksQueries {
         )!
       );
     }
+
+    // Filter by team: get user IDs in the specified teams
+    if (filters?.teamIds && filters.teamIds.length > 0) {
+      const usersByTeams = await UserTeamQueries.selectUsersByTeamIds(
+        filters.teamIds
+      );
+      const userIds = Array.from(new Set(usersByTeams.map((u) => u.userId)));
+      if (userIds.length > 0) {
+        conditions.push(inArray(tasks.assigneeId, userIds));
+      } else {
+        // No users in these teams, return empty result by using impossible condition
+        conditions.push(sql`1 = 0`);
+      }
+    }
+
+    // Filter by department: get teams in department, then users in those teams
+    if (filters?.departmentId) {
+      const departmentTeams = await TeamQueries.selectTeamsByDepartment(
+        filters.departmentId
+      );
+      const teamIds = departmentTeams.map((t) => t.id);
+      if (teamIds.length > 0) {
+        const usersByTeams = await UserTeamQueries.selectUsersByTeamIds(
+          teamIds
+        );
+        const userIds = Array.from(new Set(usersByTeams.map((u) => u.userId)));
+        if (userIds.length > 0) {
+          conditions.push(inArray(tasks.assigneeId, userIds));
+        } else {
+          // No users in department teams, return empty result
+          conditions.push(sql`1 = 0`);
+        }
+      } else {
+        // No teams in department, return empty result
+        conditions.push(sql`1 = 0`);
+      }
+    }
     return await db
       .select()
       .from(tasks)
@@ -93,6 +134,8 @@ export class TasksQueries {
       projectIds?: string[];
       assigneeId?: string;
       search?: string;
+      teamIds?: string[];
+      departmentId?: string;
     }
   ): Promise<TaskWithContext[]> {
     const conditions = [eq(tasks.organizationId, organizationId)];
@@ -111,6 +154,43 @@ export class TasksQueries {
           ilike(tasks.description, `%${filters.search}%`)
         )!
       );
+    }
+
+    // Filter by team: get user IDs in the specified teams
+    if (filters?.teamIds && filters.teamIds.length > 0) {
+      const usersByTeams = await UserTeamQueries.selectUsersByTeamIds(
+        filters.teamIds
+      );
+      const userIds = Array.from(new Set(usersByTeams.map((u) => u.userId)));
+      if (userIds.length > 0) {
+        conditions.push(inArray(tasks.assigneeId, userIds));
+      } else {
+        // No users in these teams, return empty result by using impossible condition
+        conditions.push(sql`1 = 0`);
+      }
+    }
+
+    // Filter by department: get teams in department, then users in those teams
+    if (filters?.departmentId) {
+      const departmentTeams = await TeamQueries.selectTeamsByDepartment(
+        filters.departmentId
+      );
+      const teamIds = departmentTeams.map((t) => t.id);
+      if (teamIds.length > 0) {
+        const usersByTeams = await UserTeamQueries.selectUsersByTeamIds(
+          teamIds
+        );
+        const userIds = Array.from(new Set(usersByTeams.map((u) => u.userId)));
+        if (userIds.length > 0) {
+          conditions.push(inArray(tasks.assigneeId, userIds));
+        } else {
+          // No users in department teams, return empty result
+          conditions.push(sql`1 = 0`);
+        }
+      } else {
+        // No teams in department, return empty result
+        conditions.push(sql`1 = 0`);
+      }
     }
     return await db
       .select({

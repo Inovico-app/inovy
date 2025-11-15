@@ -49,4 +49,14 @@ export {
   getCachedKnowledgeDocuments,
   getCachedHierarchicalKnowledge,
 } from "./knowledge-base.cache";
+export {
+  getCachedDepartmentsByOrganization,
+  getCachedDepartmentById,
+} from "./department.cache";
+export {
+  getCachedTeamsByOrganization,
+  getCachedTeamsByDepartment,
+  getCachedTeamById,
+  getCachedUserTeams,
+} from "./team.cache";
 

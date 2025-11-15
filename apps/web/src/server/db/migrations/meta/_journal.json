@@ -204,6 +204,13 @@
       "when": 1763143132305,
       "tag": "0034_add_pii_redaction_workflows",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1763197621258,
+      "tag": "0035_add_department_team_hierarchies",
+      "breakpoints": true
     }
   ]
 }

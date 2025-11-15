@@ -117,12 +117,9 @@ export class KnowledgeBaseService {
       // Validate scope-specific permissions
       const authResult = await getAuthSession();
       if (authResult.isErr() || !authResult.value.user) {
-        return err(
-          ActionErrors.unauthenticated(
-            "Authentication required",
-            "KnowledgeBaseService.getEntriesByScope"
-          )
-        );
+        // Silently return empty array instead of error for better UX
+        // This can happen during page revalidation when session context is not available
+        return ok([]);
       }
 
       const permissionResult = await this.validateScopePermissions(
@@ -686,12 +683,9 @@ export class KnowledgeBaseService {
       // Validate scope-specific permissions
       const authResult = await getAuthSession();
       if (authResult.isErr() || !authResult.value.user) {
-        return err(
-          ActionErrors.unauthenticated(
-            "Authentication required",
-            "KnowledgeBaseService.getDocumentsByScope"
-          )
-        );
+        // Silently return empty array instead of error for better UX
+        // This can happen during page revalidation when session context is not available
+        return ok([]);
       }
 
       const permissionResult = await this.validateScopePermissions(
