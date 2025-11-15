@@ -9,6 +9,7 @@ import {
 import { ActionErrors } from "../../../lib/action-errors";
 import { CacheInvalidation, CacheTags } from "../../../lib/cache-utils";
 import { DepartmentService } from "../../../server/services/department.service";
+import type { UpdateDepartmentDto } from "../../../server/dto/department.dto";
 import {
   createDepartmentSchema,
   updateDepartmentSchema,
@@ -68,11 +69,20 @@ export const updateDepartment = authorizedActionClient
       );
     }
 
-    const result = await DepartmentService.updateDepartment(id, {
-      name,
-      description: description ?? null,
-      parentDepartmentId: parentDepartmentId ?? null,
-    });
+    // Build update DTO only with fields that are actually present
+    const updateData: UpdateDepartmentDto = {};
+
+    if (typeof name !== "undefined") {
+      updateData.name = name;
+    }
+    if ("description" in parsedInput) {
+      updateData.description = description ?? null;
+    }
+    if ("parentDepartmentId" in parsedInput) {
+      updateData.parentDepartmentId = parentDepartmentId ?? null;
+    }
+
+    const result = await DepartmentService.updateDepartment(id, updateData);
 
     // Invalidate cache
     CacheInvalidation.invalidateDepartmentCache(organizationId, id);

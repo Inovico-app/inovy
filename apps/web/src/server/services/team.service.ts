@@ -113,16 +113,24 @@ export class TeamService {
         );
       }
 
-      const teams = await TeamQueries.selectTeamsByDepartment(departmentId);
-
-      if (teams.length > 0) {
-        // Verify organization access using first team
-        assertOrganizationAccess(
-          teams[0].organizationId,
-          organization.orgCode,
-          "TeamService.getTeamsByDepartment"
+      // Validate department exists and user has access
+      const department = await DepartmentQueries.selectDepartmentById(
+        departmentId
+      );
+      if (!department) {
+        return err(
+          ActionErrors.notFound("Department", "TeamService.getTeamsByDepartment")
         );
       }
+
+      // Verify organization access
+      assertOrganizationAccess(
+        department.organizationId,
+        organization.orgCode,
+        "TeamService.getTeamsByDepartment"
+      );
+
+      const teams = await TeamQueries.selectTeamsByDepartment(departmentId);
 
       const teamDtos: TeamDto[] = teams.map((team) => ({
         id: team.id,
@@ -274,6 +282,96 @@ export class TeamService {
           "Failed to get user teams",
           error as Error,
           "TeamService.getUserTeams"
+        )
+      );
+    }
+  }
+
+  /**
+   * Get user teams for multiple users (batch query)
+   * Returns a map of userId -> UserTeamRoleDto[]
+   */
+  static async getUserTeamsByUserIds(
+    userIds: string[],
+    organizationId: string
+  ): Promise<ActionResult<Map<string, UserTeamRoleDto[]>>> {
+    try {
+      const authResult = await getAuthSession();
+      if (authResult.isErr()) {
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "TeamService.getUserTeamsByUserIds"
+          )
+        );
+      }
+
+      const { organization } = authResult.value;
+      if (!organization) {
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "TeamService.getUserTeamsByUserIds"
+          )
+        );
+      }
+
+      // Verify organization access
+      assertOrganizationAccess(
+        organizationId,
+        organization.orgCode,
+        "TeamService.getUserTeamsByUserIds"
+      );
+
+      if (userIds.length === 0) {
+        return ok(new Map());
+      }
+
+      // Fetch all user teams in one query
+      const allUserTeams = await UserTeamQueries.selectUserTeamsByUserIds(
+        userIds
+      );
+
+      // Get all team IDs and fetch teams to filter by organization
+      const teamIds = Array.from(new Set(allUserTeams.map((ut) => ut.teamId)));
+      const teams =
+        teamIds.length > 0
+          ? await TeamQueries.selectTeamsByOrganization(organizationId)
+          : [];
+
+      const validTeamIds = new Set(teams.map((t) => t.id));
+
+      // Build the map grouped by userId
+      const userTeamsMap = new Map<string, UserTeamRoleDto[]>();
+      for (const ut of allUserTeams) {
+        // Only include teams in the user's organization
+        if (validTeamIds.has(ut.teamId)) {
+          if (!userTeamsMap.has(ut.userId)) {
+            userTeamsMap.set(ut.userId, []);
+          }
+          userTeamsMap.get(ut.userId)!.push({
+            userId: ut.userId,
+            teamId: ut.teamId,
+            role: ut.role,
+            joinedAt: ut.joinedAt,
+          });
+        }
+      }
+
+      return ok(userTeamsMap);
+    } catch (error) {
+      logger.error(
+        "Failed to get user teams by user IDs",
+        { userIds, organizationId },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to get user teams by user IDs",
+          error as Error,
+          "TeamService.getUserTeamsByUserIds"
         )
       );
     }
@@ -728,6 +826,15 @@ export class TeamService {
         teamId,
         role
       );
+
+      if (!userTeam) {
+        return err(
+          ActionErrors.notFound(
+            "UserTeam",
+            "TeamService.updateUserTeamRole"
+          )
+        );
+      }
 
       // Invalidate cache
       CacheInvalidation.invalidateTeamCache(team.organizationId);

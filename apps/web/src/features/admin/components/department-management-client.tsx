@@ -28,17 +28,13 @@ import type { DepartmentDto } from "@/server/dto/department.dto";
 interface DepartmentManagementClientProps {
   departments: DepartmentDto[];
   topLevelDepartments: DepartmentDto[];
-  departmentMap: Map<string, DepartmentDto>;
   canEdit: boolean;
-  organizationId: string;
 }
 
 export function DepartmentManagementClient({
   departments,
   topLevelDepartments,
-  departmentMap,
   canEdit,
-  organizationId,
 }: DepartmentManagementClientProps) {
   const router = useRouter();
   const [isCreateOpen, setIsCreateOpen] = useState(false);

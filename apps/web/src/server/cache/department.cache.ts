@@ -1,12 +1,12 @@
-"use cache";
-
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import { DepartmentService } from "../services/department.service";
+import type { DepartmentDto } from "../dto/department.dto";
 
 /**
  * Cached department queries
  * Uses Next.js 16 cache with tags for invalidation
+ * Uses "use cache: private" to include request-time auth context in cache key
  */
 
 /**
@@ -15,8 +15,8 @@ import { DepartmentService } from "../services/department.service";
  */
 export async function getCachedDepartmentsByOrganization(
   organizationId: string
-) {
-  "use cache";
+): Promise<DepartmentDto[]> {
+  "use cache: private";
   cacheTag(CacheTags.departmentsByOrg(organizationId));
 
   const departments = await DepartmentService.getDepartmentsByOrganization(
@@ -34,8 +34,10 @@ export async function getCachedDepartmentsByOrganization(
  * Get department by ID (cached)
  * Calls DepartmentService which includes business logic and auth checks
  */
-export async function getCachedDepartmentById(id: string) {
-  "use cache";
+export async function getCachedDepartmentById(
+  id: string
+): Promise<DepartmentDto | null> {
+  "use cache: private";
   cacheTag(CacheTags.department(id));
 
   const department = await DepartmentService.getDepartmentById(id);

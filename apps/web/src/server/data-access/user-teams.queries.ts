@@ -81,20 +81,36 @@ export class UserTeamQueries {
   }
 
   /**
+   * Get user teams for multiple users (batch query)
+   */
+  static async selectUserTeamsByUserIds(
+    userIds: string[]
+  ): Promise<UserTeam[]> {
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    return await db
+      .select()
+      .from(userTeams)
+      .where(inArray(userTeams.userId, userIds));
+  }
+
+  /**
    * Update user's role in a team
    */
   static async updateUserTeamRole(
     userId: string,
     teamId: string,
     role: UserTeamRole
-  ): Promise<UserTeam> {
+  ): Promise<UserTeam | null> {
     const [userTeam] = await db
       .update(userTeams)
       .set({ role })
       .where(and(eq(userTeams.userId, userId), eq(userTeams.teamId, teamId)))
       .returning();
 
-    return userTeam;
+    return userTeam ?? null;
   }
 
   /**

@@ -9,6 +9,7 @@ import {
 import { ActionErrors } from "../../../lib/action-errors";
 import { CacheInvalidation } from "../../../lib/cache-utils";
 import { TeamService } from "../../../server/services/team.service";
+import type { UpdateTeamDto } from "../../../server/dto/team.dto";
 import {
   assignUserToTeamSchema,
   createTeamSchema,
@@ -70,11 +71,20 @@ export const updateTeam = authorizedActionClient
       );
     }
 
-    const result = await TeamService.updateTeam(id, {
-      name,
-      description: description ?? null,
-      departmentId: departmentId ?? null,
-    });
+    // Build update DTO only with fields that are actually present
+    const updateData: UpdateTeamDto = {};
+
+    if (typeof name !== "undefined") {
+      updateData.name = name;
+    }
+    if ("description" in parsedInput) {
+      updateData.description = description ?? null;
+    }
+    if ("departmentId" in parsedInput) {
+      updateData.departmentId = departmentId ?? null;
+    }
+
+    const result = await TeamService.updateTeam(id, updateData);
 
     // Invalidate cache
     const updatedDepartmentId = result.isOk() && result.value ? result.value.departmentId : undefined;

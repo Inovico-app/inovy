@@ -1,5 +1,9 @@
 import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
+import {
+  ActionErrors,
+  type ActionResult,
+  isActionError,
+} from "../../lib/action-errors";
 import { getAuthSession } from "../../lib/auth";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { assertOrganizationAccess } from "../../lib/organization-isolation";
@@ -69,6 +73,10 @@ export class DepartmentService {
 
       return ok(departmentDtos);
     } catch (error) {
+      // Preserve ActionErrors thrown by assertOrganizationAccess
+      if (isActionError(error)) {
+        return err(error);
+      }
       logger.error(
         "Failed to get departments",
         { organizationId },
@@ -138,6 +146,10 @@ export class DepartmentService {
 
       return ok(departmentDto);
     } catch (error) {
+      // Preserve ActionErrors thrown by assertOrganizationAccess
+      if (isActionError(error)) {
+        return err(error);
+      }
       logger.error("Failed to get department", { id }, error as Error);
       return err(
         ActionErrors.internal(
@@ -225,6 +237,10 @@ export class DepartmentService {
 
       return ok(departmentDto);
     } catch (error) {
+      // Preserve ActionErrors thrown by assertOrganizationAccess
+      if (isActionError(error)) {
+        return err(error);
+      }
       logger.error("Failed to create department", { data }, error as Error);
       return err(
         ActionErrors.internal(
@@ -330,6 +346,10 @@ export class DepartmentService {
 
       return ok(departmentDto);
     } catch (error) {
+      // Preserve ActionErrors thrown by assertOrganizationAccess
+      if (isActionError(error)) {
+        return err(error);
+      }
       logger.error("Failed to update department", { id, data }, error as Error);
       return err(
         ActionErrors.internal(
@@ -400,6 +420,10 @@ export class DepartmentService {
 
       return ok(undefined);
     } catch (error) {
+      // Preserve ActionErrors thrown by assertOrganizationAccess
+      if (isActionError(error)) {
+        return err(error);
+      }
       logger.error("Failed to delete department", { id }, error as Error);
       return err(
         ActionErrors.internal(

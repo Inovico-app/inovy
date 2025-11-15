@@ -46,7 +46,6 @@ export async function DepartmentManagement() {
   const departments = await getCachedDepartmentsByOrganization(orgCode);
 
   // Build hierarchy
-  const departmentMap = new Map(departments.map((d) => [d.id, d]));
   const topLevelDepartments = departments.filter(
     (d) => !d.parentDepartmentId
   );
@@ -63,9 +62,7 @@ export async function DepartmentManagement() {
         <DepartmentManagementClient
           departments={departments}
           topLevelDepartments={topLevelDepartments}
-          departmentMap={departmentMap}
           canEdit={canEdit}
-          organizationId={orgCode}
         />
       </CardContent>
     </Card>
