@@ -4,6 +4,7 @@ import { getAuthSession } from "../../lib/auth";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { logger } from "../../lib/logger";
+import { DepartmentQueries } from "../data-access/departments.queries";
 import { TeamQueries } from "../data-access/teams.queries";
 import {
   UserTeamQueries,
@@ -316,9 +317,6 @@ export class TeamService {
 
       // Validate department if provided
       if (data.departmentId) {
-        const { DepartmentQueries } = await import(
-          "../data-access/departments.queries"
-        );
         const department = await DepartmentQueries.selectDepartmentById(
           data.departmentId
         );
@@ -414,9 +412,6 @@ export class TeamService {
 
       // Validate department if provided
       if (data.departmentId !== undefined && data.departmentId !== null) {
-        const { DepartmentQueries } = await import(
-          "../data-access/departments.queries"
-        );
         const department = await DepartmentQueries.selectDepartmentById(
           data.departmentId
         );

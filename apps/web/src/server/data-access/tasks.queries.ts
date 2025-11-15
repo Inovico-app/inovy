@@ -9,8 +9,9 @@ import {
   type Task,
   type TaskHistory,
 } from "@/server/db/schema";
-import { and, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import type { TaskStatsDto } from "../dto";
+import { TeamQueries } from "./teams.queries";
 import { UserTeamQueries } from "./user-teams.queries";
 
 export interface TaskWithContext extends Task {
@@ -84,7 +85,6 @@ export class TasksQueries {
 
     // Filter by team: get user IDs in the specified teams
     if (filters?.teamIds && filters.teamIds.length > 0) {
-      const { UserTeamQueries } = await import("./user-teams.queries");
       const usersByTeams = await UserTeamQueries.selectUsersByTeamIds(
         filters.teamIds
       );
@@ -92,17 +92,13 @@ export class TasksQueries {
       if (userIds.length > 0) {
         conditions.push(inArray(tasks.assigneeId, userIds));
       } else {
-        // No users in these teams, return empty result
-        conditions.push(
-          eq(tasks.id, "00000000-0000-0000-0000-000000000000" as any)
-        );
+        // No users in these teams, return empty result by using impossible condition
+        conditions.push(sql`1 = 0`);
       }
     }
 
     // Filter by department: get teams in department, then users in those teams
     if (filters?.departmentId) {
-      const { TeamQueries } = await import("./teams.queries");
-      const { UserTeamQueries } = await import("./user-teams.queries");
       const departmentTeams = await TeamQueries.selectTeamsByDepartment(
         filters.departmentId
       );
@@ -116,15 +112,11 @@ export class TasksQueries {
           conditions.push(inArray(tasks.assigneeId, userIds));
         } else {
           // No users in department teams, return empty result
-          conditions.push(
-            eq(tasks.id, "00000000-0000-0000-0000-000000000000" as any)
-          );
+          conditions.push(sql`1 = 0`);
         }
       } else {
         // No teams in department, return empty result
-        conditions.push(
-          eq(tasks.id, "00000000-0000-0000-0000-000000000000" as any)
-        );
+        conditions.push(sql`1 = 0`);
       }
     }
     return await db
@@ -173,17 +165,13 @@ export class TasksQueries {
       if (userIds.length > 0) {
         conditions.push(inArray(tasks.assigneeId, userIds));
       } else {
-        // No users in these teams, return empty result
-        conditions.push(
-          eq(tasks.id, "00000000-0000-0000-0000-000000000000" as any)
-        );
+        // No users in these teams, return empty result by using impossible condition
+        conditions.push(sql`1 = 0`);
       }
     }
 
     // Filter by department: get teams in department, then users in those teams
     if (filters?.departmentId) {
-      const { TeamQueries } = await import("./teams.queries");
-      const { UserTeamQueries } = await import("./user-teams.queries");
       const departmentTeams = await TeamQueries.selectTeamsByDepartment(
         filters.departmentId
       );
@@ -197,15 +185,11 @@ export class TasksQueries {
           conditions.push(inArray(tasks.assigneeId, userIds));
         } else {
           // No users in department teams, return empty result
-          conditions.push(
-            eq(tasks.id, "00000000-0000-0000-0000-000000000000" as any)
-          );
+          conditions.push(sql`1 = 0`);
         }
       } else {
         // No teams in department, return empty result
-        conditions.push(
-          eq(tasks.id, "00000000-0000-0000-0000-000000000000" as any)
-        );
+        conditions.push(sql`1 = 0`);
       }
     }
     return await db
