@@ -6,14 +6,18 @@ import { z } from "zod";
 
 export const createTeamSchema = z.object({
   name: z.string().min(1, "Name is required").max(255, "Name is too long"),
-  description: z.string().max(1000, "Description is too long").nullable().optional(),
-  departmentId: z.string().uuid().nullable().optional(),
+  description: z.string().max(1000, "Description is too long").nullish(),
+  departmentId: z.string().uuid().nullish(),
 });
 
 export const updateTeamSchema = z.object({
-  name: z.string().min(1, "Name is required").max(255, "Name is too long").optional(),
-  description: z.string().max(1000, "Description is too long").nullable().optional(),
-  departmentId: z.string().uuid().nullable().optional(),
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(255, "Name is too long")
+    .optional(),
+  description: z.string().max(1000, "Description is too long").nullish(),
+  departmentId: z.string().uuid().nullish(),
 });
 
 export const assignUserToTeamSchema = z.object({

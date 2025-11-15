@@ -7,9 +7,8 @@ import {
   resultToActionResponse,
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
-import { CacheInvalidation } from "../../../lib/cache-utils";
-import { TeamService } from "../../../server/services/team.service";
 import type { UpdateTeamDto } from "../../../server/dto/team.dto";
+import { TeamService } from "../../../server/services/team.service";
 import {
   assignUserToTeamSchema,
   createTeamSchema,
@@ -44,9 +43,10 @@ export const createTeam = authorizedActionClient
       departmentId: departmentId ?? null,
     });
 
-    // Invalidate cache
-    CacheInvalidation.invalidateTeamCache(organizationId, undefined, departmentId || undefined);
-    revalidatePath("/settings/organization");
+    // Revalidate Next.js route cache (service handles data cache invalidation)
+    if (result.isOk()) {
+      revalidatePath("/settings/organization");
+    }
 
     return resultToActionResponse(result);
   });
@@ -86,10 +86,10 @@ export const updateTeam = authorizedActionClient
 
     const result = await TeamService.updateTeam(id, updateData);
 
-    // Invalidate cache
-    const updatedDepartmentId = result.isOk() && result.value ? result.value.departmentId : undefined;
-    CacheInvalidation.invalidateTeamCache(organizationId, id, updatedDepartmentId || undefined);
-    revalidatePath("/settings/organization");
+    // Revalidate Next.js route cache (service handles data cache invalidation)
+    if (result.isOk()) {
+      revalidatePath("/settings/organization");
+    }
 
     return resultToActionResponse(result);
   });
@@ -116,9 +116,10 @@ export const deleteTeam = authorizedActionClient
 
     const result = await TeamService.deleteTeam(id);
 
-    // Invalidate cache
-    CacheInvalidation.invalidateTeamCache(organizationId, id);
-    revalidatePath("/settings/organization");
+    // Revalidate Next.js route cache (service handles data cache invalidation)
+    if (result.isOk()) {
+      revalidatePath("/settings/organization");
+    }
 
     return resultToActionResponse(result);
   });
@@ -145,11 +146,11 @@ export const assignUserToTeam = authorizedActionClient
 
     const result = await TeamService.assignUserToTeam(userId, teamId, role);
 
-    // Invalidate cache
-    CacheInvalidation.invalidateTeamCache(organizationId, teamId);
-    CacheInvalidation.invalidateUserTeamsCache(userId, organizationId);
-    revalidatePath("/settings/organization");
-    revalidatePath("/settings/profile");
+    // Revalidate Next.js route cache (service handles data cache invalidation)
+    if (result.isOk()) {
+      revalidatePath("/settings/organization");
+      revalidatePath("/settings/profile");
+    }
 
     return resultToActionResponse(result);
   });
@@ -181,11 +182,11 @@ export const removeUserFromTeam = authorizedActionClient
 
     const result = await TeamService.removeUserFromTeam(userId, teamId);
 
-    // Invalidate cache
-    CacheInvalidation.invalidateTeamCache(organizationId, teamId);
-    CacheInvalidation.invalidateUserTeamsCache(userId, organizationId);
-    revalidatePath("/settings/organization");
-    revalidatePath("/settings/profile");
+    // Revalidate Next.js route cache (service handles data cache invalidation)
+    if (result.isOk()) {
+      revalidatePath("/settings/organization");
+      revalidatePath("/settings/profile");
+    }
 
     return resultToActionResponse(result);
   });
@@ -212,11 +213,11 @@ export const updateUserTeamRole = authorizedActionClient
 
     const result = await TeamService.updateUserTeamRole(userId, teamId, role);
 
-    // Invalidate cache
-    CacheInvalidation.invalidateTeamCache(organizationId, teamId);
-    CacheInvalidation.invalidateUserTeamsCache(userId, organizationId);
-    revalidatePath("/settings/organization");
-    revalidatePath("/settings/profile");
+    // Revalidate Next.js route cache (service handles data cache invalidation)
+    if (result.isOk()) {
+      revalidatePath("/settings/organization");
+      revalidatePath("/settings/profile");
+    }
 
     return resultToActionResponse(result);
   });

@@ -10,9 +10,7 @@ export class DepartmentQueries {
   /**
    * Create a new department
    */
-  static async insertDepartment(
-    data: NewDepartment
-  ): Promise<Department> {
+  static async insertDepartment(data: NewDepartment): Promise<Department> {
     const [department] = await db
       .insert(departments)
       .values({

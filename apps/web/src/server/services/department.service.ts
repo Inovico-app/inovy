@@ -6,10 +6,9 @@ import {
 } from "../../lib/action-errors";
 import { getAuthSession } from "../../lib/auth";
 import { CacheInvalidation } from "../../lib/cache-utils";
-import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { logger } from "../../lib/logger";
+import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { DepartmentQueries } from "../data-access/departments.queries";
-import type { Department } from "../db/schema";
 import type {
   CreateDepartmentDto,
   DepartmentDto,
@@ -57,9 +56,8 @@ export class DepartmentService {
         "DepartmentService.getDepartmentsByOrganization"
       );
 
-      const departments = await DepartmentQueries.selectDepartmentsByOrganization(
-        organizationId
-      );
+      const departments =
+        await DepartmentQueries.selectDepartmentsByOrganization(organizationId);
 
       const departmentDtos: DepartmentDto[] = departments.map((dept) => ({
         id: dept.id,
@@ -285,7 +283,10 @@ export class DepartmentService {
       const existing = await DepartmentQueries.selectDepartmentById(id);
       if (!existing) {
         return err(
-          ActionErrors.notFound("Department", "DepartmentService.updateDepartment")
+          ActionErrors.notFound(
+            "Department",
+            "DepartmentService.updateDepartment"
+          )
         );
       }
 
@@ -326,13 +327,22 @@ export class DepartmentService {
               )
             );
           }
+
+          if (parent.parentDepartmentId === id) {
+            return err(
+              ActionErrors.badRequest(
+                "Cannot create circular department hierarchy",
+                "DepartmentService.updateDepartment"
+              )
+            );
+          }
         }
       }
 
       const department = await DepartmentQueries.updateDepartment(id, data);
 
-      // Invalidate cache
-      CacheInvalidation.invalidateDepartmentCache(existing.organizationId);
+      // Invalidate cache - include department-specific tag
+      CacheInvalidation.invalidateDepartmentCache(existing.organizationId, id);
 
       const departmentDto: DepartmentDto = {
         id: department.id,
@@ -391,7 +401,10 @@ export class DepartmentService {
       const existing = await DepartmentQueries.selectDepartmentById(id);
       if (!existing) {
         return err(
-          ActionErrors.notFound("Department", "DepartmentService.deleteDepartment")
+          ActionErrors.notFound(
+            "Department",
+            "DepartmentService.deleteDepartment"
+          )
         );
       }
 
@@ -413,10 +426,22 @@ export class DepartmentService {
         );
       }
 
+      // Check for associated teams
+      const { TeamQueries } = await import("../data-access/teams.queries");
+      const teams = await TeamQueries.selectTeamsByDepartment(id);
+      if (teams.length > 0) {
+        return err(
+          ActionErrors.badRequest(
+            "Cannot delete department with associated teams",
+            "DepartmentService.deleteDepartment"
+          )
+        );
+      }
+
       await DepartmentQueries.deleteDepartment(id);
 
-      // Invalidate cache
-      CacheInvalidation.invalidateDepartmentCache(existing.organizationId);
+      // Invalidate cache - include department-specific tag
+      CacheInvalidation.invalidateDepartmentCache(existing.organizationId, id);
 
       return ok(undefined);
     } catch (error) {

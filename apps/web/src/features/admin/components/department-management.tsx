@@ -9,9 +9,7 @@ import {
 } from "@/components/ui/card";
 import { getAuthSession } from "@/lib/auth";
 import { isOrganizationAdmin } from "@/lib/rbac";
-import {
-  getCachedDepartmentsByOrganization,
-} from "@/server/cache";
+import { getCachedDepartmentsByOrganization } from "@/server/cache";
 import { DepartmentManagementClient } from "./department-management-client";
 
 export async function DepartmentManagement() {
@@ -29,14 +27,10 @@ export async function DepartmentManagement() {
     );
   }
 
-  const { user, organization } = authResult.value;
-  const orgCode =
-    ((organization as unknown as Record<string, unknown>).org_code as
-      | string
-      | undefined) ||
-    ((organization as unknown as Record<string, unknown>).code as
-      | string
-      | undefined);
+  const {
+    user,
+    organization: { orgCode },
+  } = authResult.value;
 
   if (!orgCode) {
     return null;
@@ -46,9 +40,7 @@ export async function DepartmentManagement() {
   const departments = await getCachedDepartmentsByOrganization(orgCode);
 
   // Build hierarchy
-  const topLevelDepartments = departments.filter(
-    (d) => !d.parentDepartmentId
-  );
+  const topLevelDepartments = departments.filter((d) => !d.parentDepartmentId);
 
   return (
     <Card>

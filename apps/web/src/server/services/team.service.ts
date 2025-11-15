@@ -2,15 +2,14 @@ import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { getAuthSession } from "../../lib/auth";
 import { CacheInvalidation } from "../../lib/cache-utils";
-import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { logger } from "../../lib/logger";
+import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { DepartmentQueries } from "../data-access/departments.queries";
 import { TeamQueries } from "../data-access/teams.queries";
 import {
   UserTeamQueries,
   type UserTeamRole,
 } from "../data-access/user-teams.queries";
-import type { Team } from "../db/schema";
 import type {
   CreateTeamDto,
   TeamDto,
@@ -119,7 +118,10 @@ export class TeamService {
       );
       if (!department) {
         return err(
-          ActionErrors.notFound("Department", "TeamService.getTeamsByDepartment")
+          ActionErrors.notFound(
+            "Department",
+            "TeamService.getTeamsByDepartment"
+          )
         );
       }
 
@@ -162,9 +164,7 @@ export class TeamService {
   /**
    * Get a team by ID
    */
-  static async getTeamById(
-    id: string
-  ): Promise<ActionResult<TeamDto | null>> {
+  static async getTeamById(id: string): Promise<ActionResult<TeamDto | null>> {
     try {
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
@@ -380,9 +380,7 @@ export class TeamService {
   /**
    * Create a new team
    */
-  static async createTeam(
-    data: CreateTeamDto
-  ): Promise<ActionResult<TeamDto>> {
+  static async createTeam(data: CreateTeamDto): Promise<ActionResult<TeamDto>> {
     try {
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
@@ -496,9 +494,7 @@ export class TeamService {
 
       const existing = await TeamQueries.selectTeamById(id);
       if (!existing) {
-        return err(
-          ActionErrors.notFound("Team", "TeamService.updateTeam")
-        );
+        return err(ActionErrors.notFound("Team", "TeamService.updateTeam"));
       }
 
       // Verify organization access
@@ -533,8 +529,27 @@ export class TeamService {
 
       const team = await TeamQueries.updateTeam(id, data);
 
-      // Invalidate cache
-      CacheInvalidation.invalidateTeamCache(existing.organizationId);
+      if (!team) {
+        return err(ActionErrors.notFound("Team", "TeamService.updateTeam"));
+      }
+
+      // Invalidate cache - include department-scoped tags
+      CacheInvalidation.invalidateTeamCache(
+        existing.organizationId,
+        id,
+        existing.departmentId ?? undefined
+      );
+      // If department changed, also invalidate the new department's cache
+      if (
+        data.departmentId !== undefined &&
+        data.departmentId !== existing.departmentId
+      ) {
+        CacheInvalidation.invalidateTeamCache(
+          existing.organizationId,
+          undefined,
+          data.departmentId ?? undefined
+        );
+      }
 
       const teamDto: TeamDto = {
         id: team.id,
@@ -588,9 +603,7 @@ export class TeamService {
 
       const existing = await TeamQueries.selectTeamById(id);
       if (!existing) {
-        return err(
-          ActionErrors.notFound("Team", "TeamService.deleteTeam")
-        );
+        return err(ActionErrors.notFound("Team", "TeamService.deleteTeam"));
       }
 
       // Verify organization access
@@ -605,8 +618,12 @@ export class TeamService {
 
       await TeamQueries.deleteTeam(id);
 
-      // Invalidate cache
-      CacheInvalidation.invalidateTeamCache(existing.organizationId);
+      // Invalidate cache - include department-scoped tag
+      CacheInvalidation.invalidateTeamCache(
+        existing.organizationId,
+        id,
+        existing.departmentId ?? undefined
+      );
 
       return ok(undefined);
     } catch (error) {
@@ -829,10 +846,7 @@ export class TeamService {
 
       if (!userTeam) {
         return err(
-          ActionErrors.notFound(
-            "UserTeam",
-            "TeamService.updateUserTeamRole"
-          )
+          ActionErrors.notFound("UserTeam", "TeamService.updateUserTeamRole")
         );
       }
 

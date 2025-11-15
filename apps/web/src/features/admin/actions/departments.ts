@@ -7,9 +7,8 @@ import {
   resultToActionResponse,
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
-import { CacheInvalidation, CacheTags } from "../../../lib/cache-utils";
-import { DepartmentService } from "../../../server/services/department.service";
 import type { UpdateDepartmentDto } from "../../../server/dto/department.dto";
+import { DepartmentService } from "../../../server/services/department.service";
 import {
   createDepartmentSchema,
   updateDepartmentSchema,
@@ -42,9 +41,10 @@ export const createDepartment = authorizedActionClient
       parentDepartmentId: parentDepartmentId ?? null,
     });
 
-    // Invalidate cache
-    CacheInvalidation.invalidateDepartmentCache(organizationId);
-    revalidatePath("/settings/organization");
+    // Revalidate Next.js route cache (service handles data cache invalidation)
+    if (result.isOk()) {
+      revalidatePath("/settings/organization");
+    }
 
     return resultToActionResponse(result);
   });
@@ -84,9 +84,10 @@ export const updateDepartment = authorizedActionClient
 
     const result = await DepartmentService.updateDepartment(id, updateData);
 
-    // Invalidate cache
-    CacheInvalidation.invalidateDepartmentCache(organizationId, id);
-    revalidatePath("/settings/organization");
+    // Revalidate Next.js route cache (service handles data cache invalidation)
+    if (result.isOk()) {
+      revalidatePath("/settings/organization");
+    }
 
     return resultToActionResponse(result);
   });
@@ -113,9 +114,10 @@ export const deleteDepartment = authorizedActionClient
 
     const result = await DepartmentService.deleteDepartment(id);
 
-    // Invalidate cache
-    CacheInvalidation.invalidateDepartmentCache(organizationId, id);
-    revalidatePath("/settings/organization");
+    // Revalidate Next.js route cache (service handles data cache invalidation)
+    if (result.isOk()) {
+      revalidatePath("/settings/organization");
+    }
 
     return resultToActionResponse(result);
   });

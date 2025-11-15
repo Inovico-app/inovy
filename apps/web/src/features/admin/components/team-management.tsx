@@ -10,8 +10,8 @@ import {
 import { getAuthSession } from "@/lib/auth";
 import { isOrganizationAdmin } from "@/lib/rbac";
 import {
-  getCachedTeamsByOrganization,
   getCachedDepartmentsByOrganization,
+  getCachedTeamsByOrganization,
 } from "@/server/cache";
 import { TeamManagementClient } from "./team-management-client";
 
@@ -30,18 +30,10 @@ export async function TeamManagement() {
     );
   }
 
-  const { user, organization } = authResult.value;
-  const orgCode =
-    ((organization as unknown as Record<string, unknown>).org_code as
-      | string
-      | undefined) ||
-    ((organization as unknown as Record<string, unknown>).code as
-      | string
-      | undefined);
-
-  if (!orgCode) {
-    return null;
-  }
+  const {
+    user,
+    organization: { orgCode },
+  } = authResult.value;
 
   const canEdit = user ? isOrganizationAdmin(user) : false;
   const teams = await getCachedTeamsByOrganization(orgCode);

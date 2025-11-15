@@ -1,4 +1,4 @@
-import { and, eq, isNull, or } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../db";
 import { teams, type NewTeam, type Team } from "../db/schema";
 
@@ -38,9 +38,7 @@ export class TeamQueries {
   /**
    * Get teams by department
    */
-  static async selectTeamsByDepartment(
-    departmentId: string
-  ): Promise<Team[]> {
+  static async selectTeamsByDepartment(departmentId: string): Promise<Team[]> {
     return await db
       .select()
       .from(teams)
@@ -51,9 +49,7 @@ export class TeamQueries {
   /**
    * Get teams without a department (standalone teams)
    */
-  static async selectStandaloneTeams(
-    organizationId: string
-  ): Promise<Team[]> {
+  static async selectStandaloneTeams(organizationId: string): Promise<Team[]> {
     return await db
       .select()
       .from(teams)
@@ -85,7 +81,7 @@ export class TeamQueries {
   static async updateTeam(
     id: string,
     data: Partial<Omit<NewTeam, "id" | "organizationId" | "createdAt">>
-  ): Promise<Team> {
+  ): Promise<Team | null> {
     const [team] = await db
       .update(teams)
       .set({
@@ -95,7 +91,7 @@ export class TeamQueries {
       .where(eq(teams.id, id))
       .returning();
 
-    return team;
+    return team ?? null;
   }
 
   /**
