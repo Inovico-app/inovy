@@ -10,6 +10,8 @@ import {
 import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/components/organization-knowledge-base-section";
 import { getOrganizationSettings } from "@/features/settings/actions/organization-settings";
 import { OrganizationInstructionsSection } from "@/features/settings/components/organization-instructions-section";
+import { DepartmentManagement } from "@/features/admin/components/department-management";
+import { TeamManagement } from "@/features/admin/components/team-management";
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { isOrganizationAdmin } from "@/lib/rbac";
@@ -178,6 +180,12 @@ async function OrganizationContent() {
           canEdit={canEdit}
         />
       )}
+
+      {/* Departments */}
+      {orgCode && <DepartmentManagement />}
+
+      {/* Teams */}
+      {orgCode && <TeamManagement />}
 
       {/* Members List */}
       <Card>

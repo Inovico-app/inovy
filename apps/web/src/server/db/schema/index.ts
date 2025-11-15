@@ -28,4 +28,7 @@ export * from "./data-exports";
 export * from "./audit-logs";
 export * from "./user-deletion-requests";
 export * from "./redactions";
+export * from "./departments";
+export * from "./teams";
+export * from "./user-teams";
 

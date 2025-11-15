@@ -11,6 +11,7 @@ import {
 } from "@/server/db/schema";
 import { and, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import type { TaskStatsDto } from "../dto";
+import { UserTeamQueries } from "./user-teams.queries";
 
 export interface TaskWithContext extends Task {
   project: { id: string; name: string };
@@ -59,6 +60,8 @@ export class TasksQueries {
       projectIds?: string[];
       assigneeId?: string;
       search?: string;
+      teamIds?: string[];
+      departmentId?: string;
     }
   ): Promise<Task[]> {
     const conditions = [eq(tasks.organizationId, organizationId)];
@@ -78,6 +81,52 @@ export class TasksQueries {
         )!
       );
     }
+
+    // Filter by team: get user IDs in the specified teams
+    if (filters?.teamIds && filters.teamIds.length > 0) {
+      const { UserTeamQueries } = await import("./user-teams.queries");
+      const usersByTeams = await UserTeamQueries.selectUsersByTeamIds(
+        filters.teamIds
+      );
+      const userIds = Array.from(new Set(usersByTeams.map((u) => u.userId)));
+      if (userIds.length > 0) {
+        conditions.push(inArray(tasks.assigneeId, userIds));
+      } else {
+        // No users in these teams, return empty result
+        conditions.push(
+          eq(tasks.id, "00000000-0000-0000-0000-000000000000" as any)
+        );
+      }
+    }
+
+    // Filter by department: get teams in department, then users in those teams
+    if (filters?.departmentId) {
+      const { TeamQueries } = await import("./teams.queries");
+      const { UserTeamQueries } = await import("./user-teams.queries");
+      const departmentTeams = await TeamQueries.selectTeamsByDepartment(
+        filters.departmentId
+      );
+      const teamIds = departmentTeams.map((t) => t.id);
+      if (teamIds.length > 0) {
+        const usersByTeams = await UserTeamQueries.selectUsersByTeamIds(
+          teamIds
+        );
+        const userIds = Array.from(new Set(usersByTeams.map((u) => u.userId)));
+        if (userIds.length > 0) {
+          conditions.push(inArray(tasks.assigneeId, userIds));
+        } else {
+          // No users in department teams, return empty result
+          conditions.push(
+            eq(tasks.id, "00000000-0000-0000-0000-000000000000" as any)
+          );
+        }
+      } else {
+        // No teams in department, return empty result
+        conditions.push(
+          eq(tasks.id, "00000000-0000-0000-0000-000000000000" as any)
+        );
+      }
+    }
     return await db
       .select()
       .from(tasks)
@@ -93,6 +142,8 @@ export class TasksQueries {
       projectIds?: string[];
       assigneeId?: string;
       search?: string;
+      teamIds?: string[];
+      departmentId?: string;
     }
   ): Promise<TaskWithContext[]> {
     const conditions = [eq(tasks.organizationId, organizationId)];
@@ -111,6 +162,51 @@ export class TasksQueries {
           ilike(tasks.description, `%${filters.search}%`)
         )!
       );
+    }
+
+    // Filter by team: get user IDs in the specified teams
+    if (filters?.teamIds && filters.teamIds.length > 0) {
+      const usersByTeams = await UserTeamQueries.selectUsersByTeamIds(
+        filters.teamIds
+      );
+      const userIds = Array.from(new Set(usersByTeams.map((u) => u.userId)));
+      if (userIds.length > 0) {
+        conditions.push(inArray(tasks.assigneeId, userIds));
+      } else {
+        // No users in these teams, return empty result
+        conditions.push(
+          eq(tasks.id, "00000000-0000-0000-0000-000000000000" as any)
+        );
+      }
+    }
+
+    // Filter by department: get teams in department, then users in those teams
+    if (filters?.departmentId) {
+      const { TeamQueries } = await import("./teams.queries");
+      const { UserTeamQueries } = await import("./user-teams.queries");
+      const departmentTeams = await TeamQueries.selectTeamsByDepartment(
+        filters.departmentId
+      );
+      const teamIds = departmentTeams.map((t) => t.id);
+      if (teamIds.length > 0) {
+        const usersByTeams = await UserTeamQueries.selectUsersByTeamIds(
+          teamIds
+        );
+        const userIds = Array.from(new Set(usersByTeams.map((u) => u.userId)));
+        if (userIds.length > 0) {
+          conditions.push(inArray(tasks.assigneeId, userIds));
+        } else {
+          // No users in department teams, return empty result
+          conditions.push(
+            eq(tasks.id, "00000000-0000-0000-0000-000000000000" as any)
+          );
+        }
+      } else {
+        // No teams in department, return empty result
+        conditions.push(
+          eq(tasks.id, "00000000-0000-0000-0000-000000000000" as any)
+        );
+      }
     }
     return await db
       .select({

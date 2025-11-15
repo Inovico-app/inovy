@@ -363,6 +363,8 @@ export class RecordingsQueries {
       statusFilter?: "active" | "archived";
       search?: string;
       projectIds?: string[];
+      teamIds?: string[];
+      departmentId?: string;
     }
   ): Promise<Array<Recording & { projectName: string }>> {
     const conditions = [eq(recordings.organizationId, organizationId)];
@@ -377,6 +379,45 @@ export class RecordingsQueries {
 
     if (options?.projectIds && options.projectIds.length > 0) {
       conditions.push(inArray(recordings.projectId, options.projectIds));
+    }
+
+    // Filter by team: get user IDs in the specified teams
+    if (options?.teamIds && options.teamIds.length > 0) {
+      const { userTeams } = await import("../db/schema");
+      const { UserTeamQueries } = await import("./user-teams.queries");
+      const usersByTeams = await UserTeamQueries.selectUsersByTeamIds(
+        options.teamIds
+      );
+      const userIds = Array.from(new Set(usersByTeams.map((u) => u.userId)));
+      if (userIds.length > 0) {
+        conditions.push(inArray(recordings.createdById, userIds));
+      } else {
+        // No users in these teams, return empty result
+        conditions.push(eq(recordings.id, "00000000-0000-0000-0000-000000000000" as any));
+      }
+    }
+
+    // Filter by department: get teams in department, then users in those teams
+    if (options?.departmentId) {
+      const { TeamQueries } = await import("./teams.queries");
+      const { UserTeamQueries } = await import("./user-teams.queries");
+      const departmentTeams = await TeamQueries.selectTeamsByDepartment(
+        options.departmentId
+      );
+      const teamIds = departmentTeams.map((t) => t.id);
+      if (teamIds.length > 0) {
+        const usersByTeams = await UserTeamQueries.selectUsersByTeamIds(teamIds);
+        const userIds = Array.from(new Set(usersByTeams.map((u) => u.userId)));
+        if (userIds.length > 0) {
+          conditions.push(inArray(recordings.createdById, userIds));
+        } else {
+          // No users in department teams, return empty result
+          conditions.push(eq(recordings.id, "00000000-0000-0000-0000-000000000000" as any));
+        }
+      } else {
+        // No teams in department, return empty result
+        conditions.push(eq(recordings.id, "00000000-0000-0000-0000-000000000000" as any));
+      }
     }
 
     const result = await db

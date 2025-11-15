@@ -12,9 +12,11 @@ import { DataDeletion } from "@/features/settings/components/data-deletion";
 import { DataExport } from "@/features/settings/components/data-export";
 import { getDeletionStatus } from "@/features/settings/lib/get-deletion-status";
 import { getAuthSession } from "@/lib/auth";
-import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
+import { getCachedUserTeams, getCachedTeamsByOrganization } from "@/server/cache";
+import { Building2Icon, MailIcon, UserIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
+import { Badge } from "@/components/ui/badge";
 
 async function ProfileContent() {
   const authResult = await getAuthSession();
@@ -37,6 +39,23 @@ async function ProfileContent() {
       | string
       | undefined) ??
     "Personal Organization";
+
+  const orgCode =
+    ((organization as unknown as Record<string, unknown>).org_code as
+      | string
+      | undefined) ||
+    ((organization as unknown as Record<string, unknown>).code as
+      | string
+      | undefined);
+
+  // Fetch user teams
+  const userTeams = orgCode
+    ? await getCachedUserTeams(user.id, orgCode)
+    : [];
+  const allTeams = orgCode
+    ? await getCachedTeamsByOrganization(orgCode)
+    : [];
+  const teamMap = new Map(allTeams.map((t) => [t.id, t]));
 
   // Fetch deletion status server-side
   const deletionStatus = await getDeletionStatus();
@@ -100,6 +119,40 @@ async function ProfileContent() {
               <p className="text-lg font-semibold">{orgName}</p>
             </div>
           </div>
+
+          {/* Teams */}
+          {userTeams.length > 0 && (
+            <div className="flex items-start space-x-4">
+              <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
+                <UsersIcon className="h-5 w-5 text-orange-600 dark:text-orange-300" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Teams
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {userTeams.map((userTeam) => {
+                    const team = teamMap.get(userTeam.teamId);
+                    if (!team) return null;
+                    return (
+                      <Badge
+                        key={userTeam.teamId}
+                        variant="outline"
+                        className="text-sm"
+                      >
+                        {team.name}
+                        {userTeam.role !== "member" && (
+                          <span className="ml-1 text-xs text-muted-foreground">
+                            ({userTeam.role})
+                          </span>
+                        )}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
