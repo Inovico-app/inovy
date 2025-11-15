@@ -1,13 +1,13 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
   authorizedActionClient,
   resultToActionResponse,
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
-import { CacheTags } from "../../../lib/cache-utils";
+import { CacheInvalidation } from "../../../lib/cache-utils";
 import { TeamService } from "../../../server/services/team.service";
 import {
   assignUserToTeamSchema,
@@ -44,10 +44,7 @@ export const createTeam = authorizedActionClient
     });
 
     // Invalidate cache
-    revalidateTag(CacheTags.teamsByOrg(organizationId));
-    if (departmentId) {
-      revalidateTag(CacheTags.teamsByDepartment(departmentId));
-    }
+    CacheInvalidation.invalidateTeamCache(organizationId, undefined, departmentId || undefined);
     revalidatePath("/settings/organization");
 
     return resultToActionResponse(result);
@@ -80,13 +77,8 @@ export const updateTeam = authorizedActionClient
     });
 
     // Invalidate cache
-    revalidateTag(CacheTags.teamsByOrg(organizationId));
-    if (result.isOk() && result.value) {
-      revalidateTag(CacheTags.team(id));
-      if (result.value.departmentId) {
-        revalidateTag(CacheTags.teamsByDepartment(result.value.departmentId));
-      }
-    }
+    const updatedDepartmentId = result.isOk() && result.value ? result.value.departmentId : undefined;
+    CacheInvalidation.invalidateTeamCache(organizationId, id, updatedDepartmentId || undefined);
     revalidatePath("/settings/organization");
 
     return resultToActionResponse(result);
@@ -115,8 +107,7 @@ export const deleteTeam = authorizedActionClient
     const result = await TeamService.deleteTeam(id);
 
     // Invalidate cache
-    revalidateTag(CacheTags.teamsByOrg(organizationId));
-    revalidateTag(CacheTags.team(id));
+    CacheInvalidation.invalidateTeamCache(organizationId, id);
     revalidatePath("/settings/organization");
 
     return resultToActionResponse(result);
@@ -145,9 +136,8 @@ export const assignUserToTeam = authorizedActionClient
     const result = await TeamService.assignUserToTeam(userId, teamId, role);
 
     // Invalidate cache
-    revalidateTag(CacheTags.teamsByOrg(organizationId));
-    revalidateTag(CacheTags.team(teamId));
-    revalidateTag(CacheTags.userTeams(userId, organizationId));
+    CacheInvalidation.invalidateTeamCache(organizationId, teamId);
+    CacheInvalidation.invalidateUserTeamsCache(userId, organizationId);
     revalidatePath("/settings/organization");
     revalidatePath("/settings/profile");
 
@@ -182,9 +172,8 @@ export const removeUserFromTeam = authorizedActionClient
     const result = await TeamService.removeUserFromTeam(userId, teamId);
 
     // Invalidate cache
-    revalidateTag(CacheTags.teamsByOrg(organizationId));
-    revalidateTag(CacheTags.team(teamId));
-    revalidateTag(CacheTags.userTeams(userId, organizationId));
+    CacheInvalidation.invalidateTeamCache(organizationId, teamId);
+    CacheInvalidation.invalidateUserTeamsCache(userId, organizationId);
     revalidatePath("/settings/organization");
     revalidatePath("/settings/profile");
 
@@ -214,9 +203,8 @@ export const updateUserTeamRole = authorizedActionClient
     const result = await TeamService.updateUserTeamRole(userId, teamId, role);
 
     // Invalidate cache
-    revalidateTag(CacheTags.teamsByOrg(organizationId));
-    revalidateTag(CacheTags.team(teamId));
-    revalidateTag(CacheTags.userTeams(userId, organizationId));
+    CacheInvalidation.invalidateTeamCache(organizationId, teamId);
+    CacheInvalidation.invalidateUserTeamsCache(userId, organizationId);
     revalidatePath("/settings/organization");
     revalidatePath("/settings/profile");
 

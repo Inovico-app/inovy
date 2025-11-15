@@ -1,13 +1,13 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
   authorizedActionClient,
   resultToActionResponse,
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
-import { CacheTags } from "../../../lib/cache-utils";
+import { CacheInvalidation, CacheTags } from "../../../lib/cache-utils";
 import { DepartmentService } from "../../../server/services/department.service";
 import {
   createDepartmentSchema,
@@ -42,7 +42,7 @@ export const createDepartment = authorizedActionClient
     });
 
     // Invalidate cache
-    revalidateTag(CacheTags.departmentsByOrg(organizationId));
+    CacheInvalidation.invalidateDepartmentCache(organizationId);
     revalidatePath("/settings/organization");
 
     return resultToActionResponse(result);
@@ -75,10 +75,7 @@ export const updateDepartment = authorizedActionClient
     });
 
     // Invalidate cache
-    revalidateTag(CacheTags.departmentsByOrg(organizationId));
-    if (result.isOk() && result.value) {
-      revalidateTag(CacheTags.department(id));
-    }
+    CacheInvalidation.invalidateDepartmentCache(organizationId, id);
     revalidatePath("/settings/organization");
 
     return resultToActionResponse(result);
@@ -107,8 +104,7 @@ export const deleteDepartment = authorizedActionClient
     const result = await DepartmentService.deleteDepartment(id);
 
     // Invalidate cache
-    revalidateTag(CacheTags.departmentsByOrg(organizationId));
-    revalidateTag(CacheTags.department(id));
+    CacheInvalidation.invalidateDepartmentCache(organizationId, id);
     revalidatePath("/settings/organization");
 
     return resultToActionResponse(result);

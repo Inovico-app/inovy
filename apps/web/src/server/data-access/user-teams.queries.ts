@@ -7,6 +7,8 @@ import {
   type UserTeamRole,
 } from "../db/schema";
 
+export type { UserTeamRole };
+
 /**
  * Database queries for User-Team relationship operations
  * Pure data access layer - no business logic
@@ -16,10 +18,7 @@ export class UserTeamQueries {
    * Assign a user to a team
    */
   static async insertUserTeam(data: NewUserTeam): Promise<UserTeam> {
-    const [userTeam] = await db
-      .insert(userTeams)
-      .values(data)
-      .returning();
+    const [userTeam] = await db.insert(userTeams).values(data).returning();
 
     return userTeam;
   }
@@ -54,9 +53,7 @@ export class UserTeamQueries {
     const [userTeam] = await db
       .select()
       .from(userTeams)
-      .where(
-        and(eq(userTeams.userId, userId), eq(userTeams.teamId, teamId))
-      )
+      .where(and(eq(userTeams.userId, userId), eq(userTeams.teamId, teamId)))
       .limit(1);
 
     return userTeam ?? null;
@@ -94,9 +91,7 @@ export class UserTeamQueries {
     const [userTeam] = await db
       .update(userTeams)
       .set({ role })
-      .where(
-        and(eq(userTeams.userId, userId), eq(userTeams.teamId, teamId))
-      )
+      .where(and(eq(userTeams.userId, userId), eq(userTeams.teamId, teamId)))
       .returning();
 
     return userTeam;
@@ -108,9 +103,7 @@ export class UserTeamQueries {
   static async deleteUserTeam(userId: string, teamId: string): Promise<void> {
     await db
       .delete(userTeams)
-      .where(
-        and(eq(userTeams.userId, userId), eq(userTeams.teamId, teamId))
-      );
+      .where(and(eq(userTeams.userId, userId), eq(userTeams.teamId, teamId)));
   }
 
   /**
