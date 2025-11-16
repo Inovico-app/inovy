@@ -69,6 +69,7 @@ export function useDepartmentActions(options?: UseDepartmentActionsOptions) {
       if (data !== undefined) {
         toast.success("Department deleted successfully");
         router.refresh();
+        options?.onDeleteSuccess?.();
       }
     },
     onError: ({ error }) => {

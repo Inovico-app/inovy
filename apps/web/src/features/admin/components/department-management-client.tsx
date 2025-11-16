@@ -34,13 +34,15 @@ export function DepartmentManagementClient({
 
   return (
     <div className="space-y-4">
-      <CreateDepartmentDialog
-        departments={departments}
-        open={isCreateOpen}
-        onOpenChange={setIsCreateOpen}
-        onSubmit={handleCreate}
-        isSubmitting={isSubmitting}
-      />
+      {canEdit && (
+        <CreateDepartmentDialog
+          departments={departments}
+          open={isCreateOpen}
+          onOpenChange={setIsCreateOpen}
+          onSubmit={handleCreate}
+          isSubmitting={isSubmitting}
+        />
+      )}
 
       <Activity mode={editingDepartment ? "visible" : "hidden"}>
         <EditDepartmentDialog

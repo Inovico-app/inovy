@@ -47,6 +47,8 @@ export function DepartmentItem({
               variant="ghost"
               size="sm"
               onClick={() => onEdit(department)}
+              disabled={isSubmitting}
+              aria-label={`Edit ${department.name}`}
             >
               <Edit className="h-4 w-4" />
             </Button>
@@ -55,6 +57,7 @@ export function DepartmentItem({
               size="sm"
               onClick={() => onDelete(department.id)}
               disabled={isSubmitting}
+              aria-label={`Delete ${department.name}`}
             >
               <Trash2 className="h-4 w-4" />
             </Button>

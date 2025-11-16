@@ -43,7 +43,9 @@ export async function getCachedKnowledgeEntries(
   }
 
   cacheTag(tag);
-  const result = await KnowledgeBaseService.getEntriesByScope(scope, scopeId);
+  const result = await KnowledgeBaseService.getEntriesByScope(scope, scopeId, {
+    allowUnauthenticated: true,
+  });
   return result.isErr() ? [] : result.value;
 }
 
@@ -75,7 +77,9 @@ export async function getCachedKnowledgeDocuments(
   }
 
   cacheTag(tag);
-  const result = await KnowledgeBaseService.getDocumentsByScope(scope, scopeId);
+  const result = await KnowledgeBaseService.getDocumentsByScope(scope, scopeId, {
+    allowUnauthenticated: true,
+  });
   return result.isErr() ? [] : result.value;
 }
 

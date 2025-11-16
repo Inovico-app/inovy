@@ -47,8 +47,8 @@ export async function getOrganizationMembers(orgCode: string): Promise<
 
     logger.error("Failed to get organization members", { orgCode }, errorObj);
 
-    // Return empty array instead of throwing to prevent UI crashes
-    return [];
+    // Re-throw non-recoverable errors so callers can handle them appropriately
+    throw errorObj;
   }
 }
 

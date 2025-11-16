@@ -328,13 +328,31 @@ export class DepartmentService {
             );
           }
 
-          if (parent.parentDepartmentId === id) {
-            return err(
-              ActionErrors.badRequest(
-                "Cannot create circular department hierarchy",
-                "DepartmentService.updateDepartment"
-              )
+          // Check for circular parent-child relationships by walking up the parent chain
+          // Start from the supplied parentDepartmentId
+          let currentParentId: string | null = data.parentDepartmentId;
+          while (currentParentId) {
+            const ancestor = await DepartmentQueries.selectDepartmentById(
+              currentParentId
             );
+
+            // Break if ancestor not found (shouldn't happen, but safety check)
+            if (!ancestor) {
+              break;
+            }
+
+            // Check if this ancestor is the department being updated (circular reference)
+            if (ancestor.id === id) {
+              return err(
+                ActionErrors.badRequest(
+                  "Cannot create circular department hierarchy",
+                  "DepartmentService.updateDepartment"
+                )
+              );
+            }
+
+            // Move to the next parent in the chain
+            currentParentId = ancestor.parentDepartmentId;
           }
         }
       }

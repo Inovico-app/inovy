@@ -111,17 +111,27 @@ export class KnowledgeBaseService {
   static async getEntriesByScope(
     scope: KnowledgeBaseScope,
     scopeId: string | null,
-    options?: { includeInactive?: boolean }
+    options?: { includeInactive?: boolean; allowUnauthenticated?: boolean }
   ): Promise<ActionResult<KnowledgeEntryDto[]>> {
     try {
       // Validate scope-specific permissions
       const authResult = await getAuthSession();
       if (authResult.isErr() || !authResult.value.user) {
-        // Silently return empty array instead of error for better UX
-        // This can happen during page revalidation when session context is not available
-        return ok([]);
+        // Only return empty array if explicitly allowed (e.g., during revalidation)
+        if (options?.allowUnauthenticated) {
+          return ok([]);
+        }
+        // Otherwise, preserve auth error flow so callers can distinguish failures
+        return err(
+          ActionErrors.unauthenticated(
+            "Authentication required",
+            "KnowledgeBaseService.getEntriesByScope"
+          )
+        );
       }
 
+      // Always validate permissions when auth is present
+      // allowUnauthenticated only affects behavior when auth is missing
       const permissionResult = await this.validateScopePermissions(
         scope,
         scopeId,
@@ -677,17 +687,28 @@ export class KnowledgeBaseService {
    */
   static async getDocumentsByScope(
     scope: KnowledgeBaseScope,
-    scopeId: string | null
+    scopeId: string | null,
+    options?: { allowUnauthenticated?: boolean }
   ): Promise<ActionResult<KnowledgeDocumentDto[]>> {
     try {
       // Validate scope-specific permissions
       const authResult = await getAuthSession();
       if (authResult.isErr() || !authResult.value.user) {
-        // Silently return empty array instead of error for better UX
-        // This can happen during page revalidation when session context is not available
-        return ok([]);
+        // Only return empty array if explicitly allowed (e.g., during revalidation)
+        if (options?.allowUnauthenticated) {
+          return ok([]);
+        }
+        // Otherwise, preserve auth error flow so callers can distinguish failures
+        return err(
+          ActionErrors.unauthenticated(
+            "Authentication required",
+            "KnowledgeBaseService.getDocumentsByScope"
+          )
+        );
       }
 
+      // Always validate permissions when auth is present
+      // allowUnauthenticated only affects behavior when auth is missing
       const permissionResult = await this.validateScopePermissions(
         scope,
         scopeId,
