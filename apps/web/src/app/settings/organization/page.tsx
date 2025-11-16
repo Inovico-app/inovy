@@ -7,6 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { DepartmentManagement } from "@/features/admin/components/department-management";
+import { TeamManagement } from "@/features/admin/components/team-management";
 import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/components/organization-knowledge-base-section";
 import { getOrganizationSettings } from "@/features/settings/actions/organization-settings";
 import { OrganizationInstructionsSection } from "@/features/settings/components/organization-instructions-section";
@@ -44,21 +46,7 @@ async function OrganizationContent() {
     );
   }
 
-  const orgCode =
-    ((organization as unknown as Record<string, unknown>).org_code as
-      | string
-      | undefined) ||
-    ((organization as unknown as Record<string, unknown>).code as
-      | string
-      | undefined);
-  const orgName =
-    ((organization as unknown as Record<string, unknown>).display_name as
-      | string
-      | undefined) ??
-    ((organization as unknown as Record<string, unknown>).name as
-      | string
-      | undefined) ??
-    "Organization";
+  const { orgCode, orgName } = organization;
 
   // Check if user is admin
   const canEdit = auth.user ? isOrganizationAdmin(auth.user) : false;
@@ -178,6 +166,12 @@ async function OrganizationContent() {
           canEdit={canEdit}
         />
       )}
+
+      {/* Departments */}
+      {orgCode && <DepartmentManagement />}
+
+      {/* Teams */}
+      {orgCode && <TeamManagement />}
 
       {/* Members List */}
       <Card>

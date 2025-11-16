@@ -111,12 +111,17 @@ export class KnowledgeBaseService {
   static async getEntriesByScope(
     scope: KnowledgeBaseScope,
     scopeId: string | null,
-    options?: { includeInactive?: boolean }
+    options?: { includeInactive?: boolean; allowUnauthenticated?: boolean }
   ): Promise<ActionResult<KnowledgeEntryDto[]>> {
     try {
       // Validate scope-specific permissions
       const authResult = await getAuthSession();
       if (authResult.isErr() || !authResult.value.user) {
+        // Only return empty array if explicitly allowed (e.g., during revalidation)
+        if (options?.allowUnauthenticated) {
+          return ok([]);
+        }
+        // Otherwise, preserve auth error flow so callers can distinguish failures
         return err(
           ActionErrors.unauthenticated(
             "Authentication required",
@@ -125,6 +130,8 @@ export class KnowledgeBaseService {
         );
       }
 
+      // Always validate permissions when auth is present
+      // allowUnauthenticated only affects behavior when auth is missing
       const permissionResult = await this.validateScopePermissions(
         scope,
         scopeId,
@@ -680,12 +687,18 @@ export class KnowledgeBaseService {
    */
   static async getDocumentsByScope(
     scope: KnowledgeBaseScope,
-    scopeId: string | null
+    scopeId: string | null,
+    options?: { allowUnauthenticated?: boolean }
   ): Promise<ActionResult<KnowledgeDocumentDto[]>> {
     try {
       // Validate scope-specific permissions
       const authResult = await getAuthSession();
       if (authResult.isErr() || !authResult.value.user) {
+        // Only return empty array if explicitly allowed (e.g., during revalidation)
+        if (options?.allowUnauthenticated) {
+          return ok([]);
+        }
+        // Otherwise, preserve auth error flow so callers can distinguish failures
         return err(
           ActionErrors.unauthenticated(
             "Authentication required",
@@ -694,6 +707,8 @@ export class KnowledgeBaseService {
         );
       }
 
+      // Always validate permissions when auth is present
+      // allowUnauthenticated only affects behavior when auth is missing
       const permissionResult = await this.validateScopePermissions(
         scope,
         scopeId,

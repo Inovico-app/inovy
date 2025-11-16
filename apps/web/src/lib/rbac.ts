@@ -59,6 +59,18 @@ export const POLICIES = {
 
   // Integrations management
   "integrations:manage": "integrations:manage",
+
+  // Department management
+  "departments:create": "departments:create",
+  "departments:read": "departments:read",
+  "departments:update": "departments:update",
+  "departments:delete": "departments:delete",
+
+  // Team management
+  "teams:create": "teams:create",
+  "teams:read": "teams:read",
+  "teams:update": "teams:update",
+  "teams:delete": "teams:delete",
 } as const;
 
 export type PolicyKey = keyof typeof POLICIES;
@@ -111,6 +123,14 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "settings:read",
     "settings:update",
     "integrations:manage",
+    "departments:create",
+    "departments:read",
+    "departments:update",
+    "departments:delete",
+    "teams:create",
+    "teams:read",
+    "teams:update",
+    "teams:delete",
   ],
   [ROLES.ADMIN]: [
     "projects:create",
@@ -140,6 +160,14 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "settings:read",
     "settings:update",
     "integrations:manage",
+    "departments:create",
+    "departments:read",
+    "departments:update",
+    "departments:delete",
+    "teams:create",
+    "teams:read",
+    "teams:update",
+    "teams:delete",
   ],
   [ROLES.MANAGER]: [
     "projects:create",
@@ -162,6 +190,8 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "settings:read",
     "settings:update",
     "integrations:manage",
+    "departments:read",
+    "teams:read",
   ],
   [ROLES.USER]: [
     "projects:create",
@@ -178,6 +208,8 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "org:instructions:read",
     "settings:read",
     "settings:update",
+    "departments:read",
+    "teams:read",
   ],
   [ROLES.VIEWER]: [
     "projects:read",
@@ -187,6 +219,8 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
     "chat:project",
     "org:instructions:read",
     "settings:read",
+    "departments:read",
+    "teams:read",
   ],
 };
 
@@ -385,5 +419,67 @@ export function getOrganizationIdFromSession(
   session: SessionWithRoles
 ): string | undefined {
   return session.organizationId ?? session.user.organization_code ?? undefined;
+}
+
+/**
+ * Check if a user can access a department
+ * Verifies organization access and RBAC permissions
+ */
+export function canAccessDepartment(
+  session: SessionWithRoles,
+  department: { organizationId: string } | null
+): {
+  canAccess: boolean;
+  reason?: string;
+  requiredRoles?: Role[];
+} {
+  return canAccessResource(session, department, "departments:read");
+}
+
+/**
+ * Check if a user can access a team
+ * Verifies organization access and RBAC permissions
+ */
+export function canAccessTeam(
+  session: SessionWithRoles,
+  team: { organizationId: string } | null
+): {
+  canAccess: boolean;
+  reason?: string;
+  requiredRoles?: Role[];
+} {
+  return canAccessResource(session, team, "teams:read");
+}
+
+/**
+ * Check if a user is a department admin
+ * Note: This checks organization-level admin role.
+ * Department-specific admin roles would require additional logic.
+ */
+export function isDepartmentAdmin(
+  user: AuthUser | (AuthUser & { roles: Role[] })
+): boolean {
+  return isOrganizationAdmin(user);
+}
+
+/**
+ * Check if a user is a team admin
+ * Checks if user has team admin role in user-teams table
+ * This is a basic check - actual implementation requires querying user-teams
+ */
+export function isTeamAdmin(
+  userTeamRole: string | null | undefined
+): boolean {
+  return userTeamRole === "admin";
+}
+
+/**
+ * Check if a user is a team lead
+ * Checks if user has team lead role in user-teams table
+ */
+export function isTeamLead(
+  userTeamRole: string | null | undefined
+): boolean {
+  return userTeamRole === "lead" || userTeamRole === "admin";
 }
 

@@ -28,12 +28,27 @@ export async function getOrganizationMembers(orgCode: string): Promise<
       roles: user.roles || [],
     }));
   } catch (error) {
-    logger.error(
-      "Failed to get organization members",
-      { orgCode },
-      error as Error
-    );
-    throw new Error("Failed to fetch organization members");
+    // Handle "not_found" response from Kinde API gracefully
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    if (errorMessage.includes("not_found") || errorMessage === "not_found") {
+      // Organization not found or no members - return empty array
+      logger.info("Organization not found or has no members", { orgCode });
+      return [];
+    }
+
+    // Log other errors properly
+    const errorObj =
+      error instanceof Error
+        ? error
+        : new Error(
+            typeof error === "string" ? error : "Unknown error occurred"
+          );
+
+    logger.error("Failed to get organization members", { orgCode }, errorObj);
+
+    // Re-throw non-recoverable errors so callers can handle them appropriately
+    throw errorObj;
   }
 }
 

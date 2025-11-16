@@ -48,10 +48,13 @@ export async function getAuthSession(): Promise<Result<AuthSession, string>> {
     ]);
 
     if (userResult.isErr()) {
-      logger.auth.error(
-        "Failed to get user in getAuthSession",
-        new Error(userResult.error)
-      );
+      // Log as warning instead of error - this can happen during cache operations
+      // when session context is not available
+      logger.warn("Failed to get user in getAuthSession", {
+        component: "auth",
+        error: userResult.error,
+        action: "getAuthSession",
+      });
       return err("Failed to get user data");
     }
 
