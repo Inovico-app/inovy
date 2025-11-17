@@ -161,10 +161,13 @@ export class EmbeddingService {
         });
       }
 
-      // Track cache hits/misses
-      const cacheHitCount = cachedMap.size;
-      this.cacheHits += cacheHitCount;
-      this.cacheMisses += texts.length - cacheHitCount;
+      // Track cache hits/misses - count actual hits per input text, not unique cached entries
+      const hits = contentHashes.reduce(
+        (count, hash) => count + (hash && cachedMap.has(hash) ? 1 : 0),
+        0
+      );
+      this.cacheHits += hits;
+      this.cacheMisses += texts.length - hits;
 
       // Find texts that need embedding generation
       const uncachedIndices: number[] = [];
@@ -231,7 +234,7 @@ export class EmbeddingService {
       logger.debug("Batch embedding generation completed", {
         component: "EmbeddingService",
         total: texts.length,
-        cached: cacheHitCount,
+        cached: hits,
         generated: uncachedTexts.length,
         cacheHitRate: this.getCacheHitRate(),
       });
