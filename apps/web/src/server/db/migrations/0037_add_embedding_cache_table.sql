@@ -1,0 +1,2 @@
+ALTER TABLE "embedding_cache" DROP CONSTRAINT "embedding_cache_content_hash_unique";--> statement-breakpoint
+ALTER TABLE "embedding_cache" ADD CONSTRAINT "embedding_cache_content_hash_model_unique" UNIQUE("content_hash","model");
