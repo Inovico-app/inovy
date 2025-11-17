@@ -7,7 +7,7 @@
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { QdrantClientService } from "@/server/services/rag/qdrant.service";
-import { type SearchResult } from "@/server/services/rag/vector-search.service";
+import { type SearchResult } from "@/server/services/rag/rag.service";
 import { err, ok } from "neverthrow";
 
 export interface HybridSearchOptions {

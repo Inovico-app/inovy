@@ -11,7 +11,6 @@ import {
   QdrantClientService,
   type QdrantPoint,
 } from "@/server/services/rag/qdrant.service";
-import { type SearchResult } from "@/server/services/rag/vector-search.service";
 import { randomUUID } from "crypto";
 import { err, ok } from "neverthrow";
 import {
@@ -19,6 +18,34 @@ import {
   type HybridSearchOptions,
 } from "./hybrid-search.service";
 import { RerankerService } from "./reranker.service";
+// SearchResult interface - shared across RAG services
+export interface SearchResult {
+  id: string;
+  contentType:
+    | "recording"
+    | "transcription"
+    | "summary"
+    | "task"
+    | "knowledge_document";
+  contentId: string;
+  contentText: string;
+  similarity: number;
+  rerankedScore?: number; // Cross-encoder score from re-ranking
+  originalScore?: number; // Original similarity score (preserved from similarity field)
+  metadata: {
+    title?: string;
+    recordingTitle?: string;
+    recordingDate?: string;
+    recordingId?: string;
+    priority?: string;
+    status?: string;
+    timestamp?: number;
+    chunkIndex?: number;
+    documentId?: string; // For knowledge documents
+    documentTitle?: string; // For knowledge documents
+    [key: string]: unknown;
+  };
+}
 
 export interface RAGSearchOptions {
   limit?: number;
@@ -64,7 +91,7 @@ export class RAGService {
    */
   async search(
     query: string,
-    userId: string,
+    userId: string = "",
     options: RAGSearchOptions = {}
   ): Promise<ActionResult<SearchResult[]>> {
     try {
@@ -373,6 +400,10 @@ export class RAGService {
 
       // Batch upsert (Qdrant handles up to 100 points efficiently)
       const batchSize = 100;
+      let succeededCount = 0;
+      let failedCount = 0;
+      let firstErrorMessage: string | undefined;
+
       for (let i = 0; i < points.length; i += batchSize) {
         const batch = points.slice(i, i + batchSize);
         const upsertResult = await this.qdrantService.upsert(
@@ -381,6 +412,8 @@ export class RAGService {
         );
 
         if (upsertResult.isErr()) {
+          failedCount += batch.length;
+          firstErrorMessage ??= upsertResult.error.message;
           logger.error("Failed to upsert batch", {
             component: "RAGService",
             batchIndex: i,
@@ -390,6 +423,28 @@ export class RAGService {
           // Continue with remaining batches
           continue;
         }
+
+        succeededCount += batch.length;
+      }
+
+      if (failedCount > 0) {
+        logger.error("Some batches failed to upsert", {
+          component: "RAGService",
+          succeeded: succeededCount,
+          failed: failedCount,
+          error: firstErrorMessage,
+        });
+        return err(
+          ActionErrors.internal(
+            "Some batches failed to upsert",
+            {
+              succeeded: succeededCount,
+              failed: failedCount,
+              error: firstErrorMessage,
+            },
+            "RAGService.addDocumentBatch"
+          )
+        );
       }
 
       logger.debug("Batch documents added to Qdrant", {
@@ -431,12 +486,15 @@ export class RAGService {
     const must: Array<{
       key: string;
       match?: { value?: string | string[]; text?: string };
-    }> = [
-      {
+    }> = [];
+
+    // Only add userId filter if provided
+    if (userId) {
+      must.push({
         key: "userId",
         match: { value: userId },
-      },
-    ];
+      });
+    }
 
     if (organizationId) {
       must.push({
@@ -529,6 +587,109 @@ export class RAGService {
   }
 
   /**
+   * Update projectId for documents matching contentId and contentType
+   */
+  async updateProjectId(
+    contentId: string,
+    contentType: string,
+    newProjectId: string
+  ): Promise<ActionResult<void>> {
+    try {
+      const updateResult = await this.qdrantService.setPayload(
+        { projectId: newProjectId },
+        {
+          must: [
+            {
+              key: "contentId",
+              match: { value: contentId },
+            },
+            {
+              key: "contentType",
+              match: { value: contentType },
+            },
+          ],
+        },
+        this.collectionName
+      );
+
+      if (updateResult.isErr()) {
+        return err(updateResult.error);
+      }
+
+      logger.info("Updated projectId in Qdrant", {
+        component: "RAGService",
+        contentId,
+        contentType,
+        newProjectId,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Error updating projectId", {
+        component: "RAGService",
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return err(
+        ActionErrors.internal(
+          "Error updating projectId",
+          error as Error,
+          "RAGService.updateProjectId"
+        )
+      );
+    }
+  }
+
+  /**
+   * Delete documents by organization and content type
+   */
+  async deleteByOrganizationAndContentType(
+    organizationId: string,
+    contentType: string
+  ): Promise<ActionResult<void>> {
+    try {
+      const deleteResult = await this.qdrantService.deleteByFilter(
+        {
+          must: [
+            {
+              key: "organizationId",
+              match: { value: organizationId },
+            },
+            {
+              key: "contentType",
+              match: { value: contentType },
+            },
+          ],
+        },
+        this.collectionName
+      );
+
+      if (deleteResult.isErr()) {
+        return err(deleteResult.error);
+      }
+
+      logger.info("Documents deleted from Qdrant", {
+        component: "RAGService",
+        organizationId,
+        contentType,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Error deleting documents", {
+        component: "RAGService",
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return err(
+        ActionErrors.internal(
+          "Error deleting documents",
+          error as Error,
+          "RAGService.deleteByOrganizationAndContentType"
+        )
+      );
+    }
+  }
+
+  /**
    * Get statistics about user's knowledge base
    */
   async getUserStats(userId: string): Promise<
@@ -566,7 +727,7 @@ export class RAGService {
       ).size;
 
       // Approximate storage size (vector dimensions * 4 bytes per float32)
-      const vectorSize = 1536 * 4; // Using text-embedding-3-small dimensions
+      const vectorSize = 3072 * 4; // Using text-embedding-3-large dimensions
       const storageSize = points.length * vectorSize;
 
       return ok({

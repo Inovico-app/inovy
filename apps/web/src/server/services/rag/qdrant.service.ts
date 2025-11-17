@@ -432,6 +432,44 @@ export class QdrantClientService {
   }
 
   /**
+   * Update payload for points matching a filter
+   */
+  async setPayload(
+    payload: Record<string, unknown>,
+    filter: {
+      must?: Array<{
+        key: string;
+        match?: { value: string | string[] };
+      }>;
+    },
+    collectionName?: string
+  ): Promise<ActionResult<void>> {
+    const targetCollection = collectionName ?? this.defaultCollectionName;
+
+    // Ensure collection is initialized
+    const initResult = await this.initialize(targetCollection);
+    if (initResult.isErr()) {
+      return err(initResult.error);
+    }
+
+    return await this.executeWithRetry(async () => {
+      await this.client.setPayload(targetCollection, {
+        payload,
+        filter,
+        wait: true,
+      });
+
+      logger.debug("Updated payload in Qdrant", {
+        component: "QdrantClientService",
+        collectionName: targetCollection,
+        filter,
+      });
+
+      return ok(undefined);
+    });
+  }
+
+  /**
    * Execute operation with retry logic and exponential backoff
    */
   private async executeWithRetry<T>(

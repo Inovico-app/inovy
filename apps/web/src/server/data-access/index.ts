@@ -10,6 +10,7 @@ export { ChatQueries } from "./chat.queries";
 export { ConsentQueries } from "./consent.queries";
 export { DriveWatchesQueries } from "./drive-watches.queries";
 export { EmbeddingCacheQueries } from "./embedding-cache.queries";
+// @deprecated Use RAGService instead - PostgreSQL embeddings migrated to Qdrant
 export { EmbeddingsQueries } from "./embeddings.queries";
 export { IntegrationSettingsQueries } from "./integration-settings.queries";
 export { IntegrationTemplatesQueries } from "./integration-templates.queries";

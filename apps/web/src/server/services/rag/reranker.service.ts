@@ -7,7 +7,7 @@
 
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { type SearchResult } from "@/server/services/rag/vector-search.service";
+import { type SearchResult } from "@/server/services/rag/rag.service";
 import { err, ok } from "neverthrow";
 
 export class RerankerService {

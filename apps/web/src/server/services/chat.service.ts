@@ -20,12 +20,165 @@ import {
   buildSystemPromptWithGuardRails,
   validatePromptSafety,
 } from "./prompt-builder.service";
-import { VectorSearchService } from "./rag/vector-search.service";
+import { RAGService, type SearchResult } from "./rag/rag.service";
 
 export class ChatService {
   private static openai = createOpenAI({
     apiKey: process.env.OPENAI_API_KEY ?? "",
   });
+  private static ragService = new RAGService();
+
+  /**
+   * Build context string from search results for LLM
+   */
+  private static buildContextFromResults(results: SearchResult[]): string {
+    if (results.length === 0) {
+      return "No relevant information found in the project.";
+    }
+
+    const contextParts: string[] = [];
+
+    // Group results by recording
+    const recordingGroups = new Map<string, SearchResult[]>();
+
+    for (const result of results) {
+      const recordingId = result.metadata.recordingId ?? result.contentId;
+      if (!recordingGroups.has(recordingId)) {
+        recordingGroups.set(recordingId, []);
+      }
+      recordingGroups.get(recordingId)?.push(result);
+    }
+
+    // Build context for each recording
+    for (const [recordingId, recordingResults] of recordingGroups.entries()) {
+      const recordingTitle =
+        recordingResults[0]?.metadata.recordingTitle ?? "Unknown Recording";
+      const recordingDate =
+        recordingResults[0]?.metadata.recordingDate ?? "Unknown Date";
+
+      contextParts.push(`\n## Recording: ${recordingTitle}`);
+      contextParts.push(`Date: ${recordingDate}`);
+      contextParts.push(`Recording ID: ${recordingId}`);
+
+      // Add transcription chunks
+      const transcriptions = recordingResults.filter(
+        (r) => r.contentType === "transcription"
+      );
+      if (transcriptions.length > 0) {
+        contextParts.push("\n### Transcription:");
+        transcriptions.forEach((t) => {
+          contextParts.push(t.contentText);
+        });
+      }
+
+      // Add summary
+      const summaries = recordingResults.filter(
+        (r) => r.contentType === "summary"
+      );
+      if (summaries.length > 0) {
+        contextParts.push("\n### Summary:");
+        summaries.forEach((s) => {
+          contextParts.push(s.contentText);
+        });
+      }
+
+      // Add tasks
+      const tasks = recordingResults.filter((r) => r.contentType === "task");
+      if (tasks.length > 0) {
+        contextParts.push("\n### Related Tasks:");
+        tasks.forEach((task) => {
+          contextParts.push(`- ${task.contentText}`);
+        });
+      }
+
+      contextParts.push("---");
+    }
+
+    // Add knowledge documents separately (if any)
+    const knowledgeDocs = results.filter(
+      (r) => r.contentType === "knowledge_document"
+    );
+    if (knowledgeDocs.length > 0) {
+      contextParts.push("\n## Knowledge Base Documents:");
+      knowledgeDocs.forEach((doc) => {
+        const docTitle =
+          (doc.metadata.documentTitle as string) ||
+          (doc.metadata.title as string) ||
+          "Knowledge Document";
+        contextParts.push(`\n### ${docTitle}`);
+        contextParts.push(doc.contentText);
+      });
+    }
+
+    return contextParts.join("\n");
+  }
+
+  /**
+   * Format search results as source citations
+   */
+  private static formatSourceCitations(results: SearchResult[]): Array<{
+    contentId: string;
+    contentType:
+      | "recording"
+      | "transcription"
+      | "summary"
+      | "task"
+      | "knowledge_document";
+    title: string;
+    excerpt: string;
+    similarityScore: number;
+    recordingId?: string;
+    timestamp?: number;
+    recordingDate?: string;
+    projectName?: string;
+    projectId?: string;
+    documentId?: string; // For knowledge documents
+    documentTitle?: string; // For knowledge documents
+  }> {
+    return results.map((result) => {
+      // Handle knowledge documents differently
+      if (result.contentType === "knowledge_document") {
+        return {
+          contentId: result.contentId,
+          contentType: result.contentType,
+          title:
+            (result.metadata.documentTitle as string) ||
+            (result.metadata.title as string) ||
+            "Knowledge Document",
+          excerpt:
+            result.contentText.length > 200
+              ? result.contentText.substring(0, 200) + "..."
+              : result.contentText,
+          similarityScore: result.similarity,
+          documentId: result.metadata.documentId as string,
+          documentTitle: result.metadata.documentTitle as string,
+        };
+      }
+
+      // Handle regular recording sources
+      return {
+        contentId: result.contentId,
+        contentType: result.contentType,
+        title:
+          result.metadata.title ?? result.metadata.recordingTitle ?? "Untitled",
+        excerpt:
+          result.contentText.length > 200
+            ? result.contentText.substring(0, 200) + "..."
+            : result.contentText,
+        similarityScore: result.similarity,
+        // For transcriptions, the contentId IS the recordingId
+        recordingId:
+          result.metadata.recordingId ??
+          (result.contentType === "transcription"
+            ? result.contentId
+            : undefined),
+        timestamp: result.metadata.timestamp,
+        recordingDate: result.metadata.recordingDate as string | undefined,
+        projectName: result.metadata.projectName as string | undefined,
+        projectId: result.metadata.projectId as string | undefined,
+      };
+    });
+  }
 
   /**
    * Create a new conversation for a project
@@ -254,8 +407,8 @@ General Guidelines:
       };
       await ChatQueries.createMessage(userMessageEntry);
 
-      // Get relevant context using vector search
-      const contextResult = await VectorSearchService.getRelevantContext(
+      // Get relevant context using RAG search
+      const contextResult = await this.getRelevantContext(
         userMessage,
         projectId
       );
@@ -265,15 +418,25 @@ General Guidelines:
 
       if (contextResult.isOk()) {
         context = contextResult.value.context;
-        sources = contextResult.value.sources.map((source) => ({
-          contentId: source.contentId,
-          contentType: source.contentType,
-          title: source.title,
-          excerpt: source.excerpt,
-          similarityScore: source.similarityScore,
-          recordingId: source.recordingId,
-          timestamp: source.timestamp,
-        }));
+        sources = contextResult.value.sources.map(
+          (source: {
+            contentId: string;
+            contentType: string;
+            title: string;
+            excerpt: string;
+            similarityScore: number;
+            recordingId?: string;
+            timestamp?: number;
+          }) => ({
+            contentId: source.contentId,
+            contentType: source.contentType as SourceReference["contentType"],
+            title: source.title,
+            excerpt: source.excerpt,
+            similarityScore: source.similarityScore,
+            recordingId: source.recordingId,
+            timestamp: source.timestamp,
+          })
+        );
       }
 
       // Get conversation history
@@ -414,8 +577,8 @@ Please answer the user's question based on this information.`
       };
       await ChatQueries.createMessage(userMessageEntry);
 
-      // Get relevant context using vector search
-      const contextResult = await VectorSearchService.getRelevantContext(
+      // Get relevant context using RAG search
+      const contextResult = await this.getRelevantContext(
         userMessage,
         projectId
       );
@@ -425,15 +588,25 @@ Please answer the user's question based on this information.`
 
       if (contextResult.isOk()) {
         context = contextResult.value.context;
-        sources = contextResult.value.sources.map((source) => ({
-          contentId: source.contentId,
-          contentType: source.contentType,
-          title: source.title,
-          excerpt: source.excerpt,
-          similarityScore: source.similarityScore,
-          recordingId: source.recordingId,
-          timestamp: source.timestamp,
-        }));
+        sources = contextResult.value.sources.map(
+          (source: {
+            contentId: string;
+            contentType: string;
+            title: string;
+            excerpt: string;
+            similarityScore: number;
+            recordingId?: string;
+            timestamp?: number;
+          }) => ({
+            contentId: source.contentId,
+            contentType: source.contentType as SourceReference["contentType"],
+            title: source.title,
+            excerpt: source.excerpt,
+            similarityScore: source.similarityScore,
+            recordingId: source.recordingId,
+            timestamp: source.timestamp,
+          })
+        );
       }
 
       // Get conversation history
@@ -582,27 +755,36 @@ Please answer the user's question based on this information.`
       };
       await ChatQueries.createMessage(userMessageEntry);
 
-      // Get relevant context using organization-wide vector search
-      const contextResult =
-        await VectorSearchService.getRelevantContextOrganizationWide(
-          userMessage,
-          organizationId
-        );
+      // Get relevant context using organization-wide RAG search
+      const contextResult = await this.getRelevantContextOrganizationWide(
+        userMessage,
+        organizationId
+      );
 
       let context = "";
       let sources: SourceReference[] = [];
 
       if (contextResult.isOk()) {
         context = contextResult.value.context;
-        sources = contextResult.value.sources.map((source) => ({
-          contentId: source.contentId,
-          contentType: source.contentType,
-          title: source.title,
-          excerpt: source.excerpt,
-          similarityScore: source.similarityScore,
-          recordingId: source.recordingId,
-          timestamp: source.timestamp,
-        }));
+        sources = contextResult.value.sources.map(
+          (source: {
+            contentId: string;
+            contentType: string;
+            title: string;
+            excerpt: string;
+            similarityScore: number;
+            recordingId?: string;
+            timestamp?: number;
+          }) => ({
+            contentId: source.contentId,
+            contentType: source.contentType as SourceReference["contentType"],
+            title: source.title,
+            excerpt: source.excerpt,
+            similarityScore: source.similarityScore,
+            recordingId: source.recordingId,
+            timestamp: source.timestamp,
+          })
+        );
       }
 
       // Get conversation history
@@ -1153,6 +1335,136 @@ Please answer the user's question based on this information. When referencing in
           "Failed to export conversation as PDF",
           error as Error,
           "ChatService.exportConversationAsPDF"
+        )
+      );
+    }
+  }
+
+  /**
+   * Get relevant context for a user query (project-level)
+   */
+  private static async getRelevantContext(
+    query: string,
+    projectId: string
+  ): Promise<
+    ActionResult<{
+      context: string;
+      sources: Array<{
+        contentId: string;
+        contentType:
+          | "recording"
+          | "transcription"
+          | "summary"
+          | "task"
+          | "knowledge_document";
+        title: string;
+        excerpt: string;
+        similarityScore: number;
+        recordingId?: string;
+        timestamp?: number;
+        recordingDate?: string;
+        projectName?: string;
+        projectId?: string;
+        documentTitle?: string;
+      }>;
+    }>
+  > {
+    try {
+      const searchResult = await this.ragService.search(query, "", {
+        projectId,
+        limit: 8,
+        scoreThreshold: 0.6, // Higher threshold for better relevance
+        useHybrid: false,
+        useReranking: true, // Enable re-ranking for LLM context
+      });
+
+      if (searchResult.isErr()) {
+        return err(searchResult.error);
+      }
+
+      const results = searchResult.value;
+      const context = this.buildContextFromResults(results);
+      const sources = this.formatSourceCitations(results);
+
+      return ok({ context, sources });
+    } catch (error) {
+      logger.error("Error getting relevant context", {
+        error,
+        query,
+        projectId,
+      });
+      return err(
+        ActionErrors.internal(
+          "Error getting relevant context",
+          error as Error,
+          "ChatService.getRelevantContext"
+        )
+      );
+    }
+  }
+
+  /**
+   * Get relevant context for a user query (organization-wide)
+   */
+  private static async getRelevantContextOrganizationWide(
+    query: string,
+    organizationId: string
+  ): Promise<
+    ActionResult<{
+      context: string;
+      sources: Array<{
+        contentId: string;
+        contentType:
+          | "recording"
+          | "transcription"
+          | "summary"
+          | "task"
+          | "knowledge_document";
+        title: string;
+        excerpt: string;
+        similarityScore: number;
+        recordingId?: string;
+        timestamp?: number;
+        recordingDate?: string;
+        projectName?: string;
+        projectId?: string;
+        documentTitle?: string;
+      }>;
+    }>
+  > {
+    try {
+      const searchResult = await this.ragService.search(query, "", {
+        organizationId,
+        limit: 12, // Get more results for org-wide search
+        scoreThreshold: 0.6, // Higher threshold for better relevance
+        useHybrid: false,
+        useReranking: true, // Enable re-ranking for LLM context
+      });
+
+      if (searchResult.isErr()) {
+        return err(searchResult.error);
+      }
+
+      const results = searchResult.value;
+      const context = this.buildContextFromResults(results);
+      const sources = this.formatSourceCitations(results).map((source) => ({
+        ...source,
+        projectId: results.find((r) => r.contentId === source.contentId)
+          ?.metadata.projectId as string | undefined,
+      }));
+
+      return ok({ context, sources });
+    } catch (error) {
+      logger.error("Error getting organization-wide relevant context", {
+        error,
+        query,
+        organizationId,
+      });
+      return err(
+        ActionErrors.internal(
+          "Error getting organization-wide relevant context",
+          error as Error,
+          "ChatService.getRelevantContextOrganizationWide"
         )
       );
     }

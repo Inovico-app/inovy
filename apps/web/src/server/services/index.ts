@@ -18,7 +18,6 @@ export { OrganizationSettingsService } from "./organization-settings.service";
 export { OrganizationService } from "./organization.service";
 export { PIIDetectionService } from "./pii-detection.service";
 export { ProjectService } from "./project.service";
-export { VectorSearchService } from "./rag/vector-search.service";
 export { RecordingService } from "./recording.service";
 export { RedactionService } from "./redaction.service";
 export { ReprocessingService } from "./reprocessing.service";

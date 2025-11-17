@@ -2,11 +2,10 @@ import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { EmbeddingCacheQueries } from "@/server/data-access/embedding-cache.queries";
-import { EmbeddingsQueries } from "@/server/data-access/embeddings.queries";
 import { ProjectTemplateQueries } from "@/server/data-access/project-templates.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { TasksQueries } from "@/server/data-access/tasks.queries";
-import { type NewChatEmbedding } from "@/server/db/schema";
+import { RAGService } from "@/server/services/rag/rag.service";
 import { createHash } from "crypto";
 import { err, ok } from "neverthrow";
 import OpenAI from "openai";
@@ -16,9 +15,19 @@ export class EmbeddingService {
     apiKey: process.env.OPENAI_API_KEY ?? "",
   });
 
-  private static readonly EMBEDDING_MODEL = "text-embedding-3-small";
+  // Using text-embedding-3-large (3072 dimensions) for Qdrant
+  private static readonly EMBEDDING_MODEL = "text-embedding-3-large";
+  private static _ragService: RAGService | null = null;
   private static readonly CHUNK_SIZE = 500; // tokens per chunk
   private static readonly BATCH_SIZE = 100; // embeddings per batch
+
+  /**
+   * Lazy-loaded RAG service instance to avoid circular dependency
+   */
+  private static get ragService(): RAGService {
+    this._ragService ??= new RAGService();
+    return this._ragService;
+  }
 
   // Cache hit rate tracking (for monitoring)
   private static cacheHits = 0;
@@ -326,58 +335,42 @@ export class EmbeddingService {
         );
       }
 
-      // Check if already indexed
-      const hasExisting = await EmbeddingsQueries.hasEmbeddings(
-        recordingId,
-        "transcription"
-      );
-      if (hasExisting) {
-        logger.info("Transcription already indexed, skipping", { recordingId });
-        return ok(undefined);
-      }
-
       // Chunk the transcription
       const chunks = this.chunkText(
         recording.transcriptionText,
         this.CHUNK_SIZE
       );
 
-      // Generate embeddings for all chunks
-      const embeddingsResult = await this.generateEmbeddingsBatch(chunks);
-
-      if (embeddingsResult.isErr()) {
-        return err(embeddingsResult.error);
-      }
-
-      const embeddings = embeddingsResult.value;
-
-      // Create embedding entries
-      const embeddingEntries: NewChatEmbedding[] = embeddings.map(
-        (embedding, index) => ({
-          projectId,
-          organizationId,
-          contentType: "transcription" as const,
+      // Prepare documents for Qdrant batch indexing
+      const documents = chunks.map((chunk, index) => ({
+        content: chunk,
+        metadata: {
+          contentType: "transcription",
+          documentId: recordingId,
           contentId: recordingId,
-          contentText: chunks[index] ?? "",
-          embedding,
-          metadata: {
-            recordingTitle: recording.title,
-            recordingDate: recording.recordingDate.toISOString(),
-            chunkIndex: index,
-            totalChunks: chunks.length,
-          },
-        })
+          projectId,
+          filename: recording.title,
+          recordingTitle: recording.title,
+          recordingDate: recording.recordingDate.toISOString(),
+          chunkIndex: index,
+          totalChunks: chunks.length,
+        },
+      }));
+
+      // Index to Qdrant using batch operation
+      const indexResult = await this.ragService.addDocumentBatch(
+        documents,
+        recording.createdById,
+        organizationId
       );
 
-      // Save in batches
-      for (let i = 0; i < embeddingEntries.length; i += this.BATCH_SIZE) {
-        const batch = embeddingEntries.slice(i, i + this.BATCH_SIZE);
-        await EmbeddingsQueries.createEmbeddingsBatch(batch);
+      if (indexResult.isErr()) {
+        return err(indexResult.error);
       }
 
       logger.info("Successfully indexed transcription", {
         recordingId,
-        chunksCreated: embeddingEntries.length,
+        chunksCreated: chunks.length,
       });
 
       return ok(undefined);
@@ -423,47 +416,34 @@ export class EmbeddingService {
         );
       }
 
-      // Check if already indexed
-      const hasExisting = await EmbeddingsQueries.hasEmbeddings(
-        summary.id,
-        "summary"
-      );
-      if (hasExisting) {
-        logger.info("Summary already indexed, skipping", {
-          summaryId: summary.id,
-        });
-        return ok(undefined);
-      }
-
       // Convert summary content to text
       const summaryText = JSON.stringify(summary.content);
-
-      // Generate embedding
-      const embeddingResult = await this.generateEmbedding(summaryText);
-
-      if (embeddingResult.isErr()) {
-        return err(embeddingResult.error);
-      }
 
       // Get recording details for metadata
       const recording = await RecordingsQueries.selectRecordingById(
         recordingId
       );
 
-      // Create embedding entry
-      await EmbeddingsQueries.createEmbedding({
-        projectId,
-        organizationId,
-        contentType: "summary",
-        contentId: summary.id,
-        contentText: summaryText,
-        embedding: embeddingResult.value,
-        metadata: {
+      // Index to Qdrant
+      const indexResult = await this.ragService.addDocument(
+        summaryText,
+        {
+          contentType: "summary",
+          documentId: summary.id,
+          contentId: summary.id,
+          projectId,
+          filename: recording?.title,
           recordingTitle: recording?.title,
           recordingDate: recording?.recordingDate?.toISOString(),
           recordingId,
         },
-      });
+        recording?.createdById ?? "",
+        organizationId
+      );
+
+      if (indexResult.isErr()) {
+        return err(indexResult.error);
+      }
 
       logger.info("Successfully indexed summary", { summaryId: summary.id });
 
@@ -503,79 +483,39 @@ export class EmbeddingService {
         recordingId
       );
 
-      const embeddingEntries: NewChatEmbedding[] = [];
+      // Prepare documents for Qdrant batch indexing
+      const documents = tasks.map((task) => ({
+        content: `Task: ${task.title}\nDescription: ${
+          task.description ?? "N/A"
+        }\nPriority: ${task.priority}\nStatus: ${task.status}`,
+        metadata: {
+          contentType: "task",
+          documentId: task.id,
+          contentId: task.id,
+          projectId,
+          title: task.title,
+          priority: task.priority,
+          status: task.status,
+          recordingTitle: recording?.title,
+          recordingDate: recording?.recordingDate?.toISOString(),
+          recordingId,
+        },
+      }));
 
-      // Process tasks in batches
-      for (let i = 0; i < tasks.length; i += this.BATCH_SIZE) {
-        const batch = tasks.slice(i, i + this.BATCH_SIZE);
+      // Index to Qdrant using batch operation
+      const indexResult = await this.ragService.addDocumentBatch(
+        documents,
+        recording?.createdById ?? "",
+        organizationId
+      );
 
-        // Check which tasks are not yet indexed
-        const tasksToIndex = [];
-        for (const task of batch) {
-          const hasExisting = await EmbeddingsQueries.hasEmbeddings(
-            task.id,
-            "task"
-          );
-          if (!hasExisting) {
-            tasksToIndex.push(task);
-          }
-        }
-
-        if (tasksToIndex.length === 0) {
-          continue;
-        }
-
-        // Create text representations of tasks
-        const taskTexts = tasksToIndex.map(
-          (task) =>
-            `Task: ${task.title}\nDescription: ${
-              task.description ?? "N/A"
-            }\nPriority: ${task.priority}\nStatus: ${task.status}`
-        );
-
-        // Generate embeddings
-        const embeddingsResult = await this.generateEmbeddingsBatch(taskTexts);
-
-        if (embeddingsResult.isErr()) {
-          return err(embeddingsResult.error);
-        }
-
-        const embeddings = embeddingsResult.value;
-
-        // Create embedding entries
-        const batchEntries: NewChatEmbedding[] = tasksToIndex.map(
-          (task, index) => ({
-            projectId,
-            organizationId,
-            contentType: "task" as const,
-            contentId: task.id,
-            contentText: taskTexts[index] ?? "",
-            embedding: embeddings[index] ?? [],
-            metadata: {
-              title: task.title,
-              priority: task.priority,
-              status: task.status,
-              recordingTitle: recording?.title,
-              recordingDate: recording?.recordingDate?.toISOString(),
-              recordingId,
-            },
-          })
-        );
-
-        embeddingEntries.push(...batchEntries);
-      }
-
-      // Save all embeddings
-      if (embeddingEntries.length > 0) {
-        for (let i = 0; i < embeddingEntries.length; i += this.BATCH_SIZE) {
-          const batch = embeddingEntries.slice(i, i + this.BATCH_SIZE);
-          await EmbeddingsQueries.createEmbeddingsBatch(batch);
-        }
+      if (indexResult.isErr()) {
+        return err(indexResult.error);
       }
 
       logger.info("Successfully indexed tasks", {
         recordingId,
-        tasksIndexed: embeddingEntries.length,
+        tasksIndexed: tasks.length,
       });
 
       return ok(undefined);
@@ -676,56 +616,39 @@ export class EmbeddingService {
         return ok(undefined);
       }
 
-      // Check if already indexed
-      const hasExisting = await EmbeddingsQueries.hasEmbeddings(
-        template.id,
-        "project_template"
-      );
-      if (hasExisting) {
-        logger.info("Project template already indexed, skipping", {
-          projectId,
-        });
-        return ok(undefined);
-      }
-
       // Chunk the template instructions
       const chunks = this.chunkText(template.instructions, this.CHUNK_SIZE);
 
-      // Generate embeddings for all chunks
-      const embeddingsResult = await this.generateEmbeddingsBatch(chunks);
-
-      if (embeddingsResult.isErr()) {
-        return err(embeddingsResult.error);
-      }
-
-      const embeddings = embeddingsResult.value;
-
-      // Create embedding entries
-      const embeddingEntries: NewChatEmbedding[] = embeddings.map(
-        (embedding, index) => ({
-          projectId,
-          organizationId,
-          contentType: "project_template" as const,
+      // Prepare documents for Qdrant batch indexing
+      const documents = chunks.map((chunk, index) => ({
+        content: chunk,
+        metadata: {
+          contentType: "project_template",
+          documentId: template.id,
           contentId: template.id,
-          contentText: chunks[index] ?? "",
-          embedding,
-          metadata: {
-            title: "Project Template",
-            chunkIndex: index,
-            totalChunks: chunks.length,
-          },
-        })
+          projectId,
+          filename: "Project Template",
+          title: "Project Template",
+          chunkIndex: index,
+          totalChunks: chunks.length,
+        },
+      }));
+
+      // Index to Qdrant using batch operation
+      // Note: userId is not available for project templates, using empty string
+      const indexResult = await this.ragService.addDocumentBatch(
+        documents,
+        "",
+        organizationId
       );
 
-      // Save in batches
-      for (let i = 0; i < embeddingEntries.length; i += this.BATCH_SIZE) {
-        const batch = embeddingEntries.slice(i, i + this.BATCH_SIZE);
-        await EmbeddingsQueries.createEmbeddingsBatch(batch);
+      if (indexResult.isErr()) {
+        return err(indexResult.error);
       }
 
       logger.info("Successfully indexed project template", {
         projectId,
-        chunksCreated: embeddingEntries.length,
+        chunksCreated: chunks.length,
       });
 
       return ok(undefined);
@@ -752,56 +675,38 @@ export class EmbeddingService {
     try {
       logger.info("Indexing organization instructions", { organizationId });
 
-      // Check if already indexed
-      const hasExisting = await EmbeddingsQueries.hasEmbeddings(
-        settingsId,
-        "organization_instructions"
-      );
-      if (hasExisting) {
-        logger.info("Organization instructions already indexed, skipping", {
-          organizationId,
-        });
-        return ok(undefined);
-      }
-
       // Chunk the instructions (max 500 tokens per chunk as per acceptance criteria)
       const chunks = this.chunkText(instructions, 500);
 
-      // Generate embeddings for all chunks
-      const embeddingsResult = await this.generateEmbeddingsBatch(chunks);
-
-      if (embeddingsResult.isErr()) {
-        return err(embeddingsResult.error);
-      }
-
-      const embeddings = embeddingsResult.value;
-
-      // Create embedding entries with projectId: null for org-level
-      const embeddingEntries: NewChatEmbedding[] = embeddings.map(
-        (embedding, index) => ({
-          projectId: null,
-          organizationId,
-          contentType: "organization_instructions" as const,
+      // Prepare documents for Qdrant batch indexing
+      const documents = chunks.map((chunk, index) => ({
+        content: chunk,
+        metadata: {
+          contentType: "organization_instructions",
+          documentId: settingsId,
           contentId: settingsId,
-          contentText: chunks[index] ?? "",
-          embedding,
-          metadata: {
-            title: "Organization Instructions",
-            chunkIndex: index,
-            totalChunks: chunks.length,
-          },
-        })
+          filename: "Organization Instructions",
+          title: "Organization Instructions",
+          chunkIndex: index,
+          totalChunks: chunks.length,
+        },
+      }));
+
+      // Index to Qdrant using batch operation
+      // Note: userId is not available for organization instructions, using empty string
+      const indexResult = await this.ragService.addDocumentBatch(
+        documents,
+        "",
+        organizationId
       );
 
-      // Save in batches
-      for (let i = 0; i < embeddingEntries.length; i += this.BATCH_SIZE) {
-        const batch = embeddingEntries.slice(i, i + this.BATCH_SIZE);
-        await EmbeddingsQueries.createEmbeddingsBatch(batch);
+      if (indexResult.isErr()) {
+        return err(indexResult.error);
       }
 
       logger.info("Successfully indexed organization instructions", {
         organizationId,
-        chunksCreated: embeddingEntries.length,
+        chunksCreated: chunks.length,
       });
 
       return ok(undefined);
@@ -831,8 +736,19 @@ export class EmbeddingService {
     try {
       logger.info("Reindexing organization instructions", { organizationId });
 
-      // Delete existing embeddings
-      await EmbeddingsQueries.deleteByOrganizationId(organizationId);
+      // Delete existing organization instructions from Qdrant
+      const deleteResult =
+        await this.ragService.deleteByOrganizationAndContentType(
+          organizationId,
+          "organization_instructions"
+        );
+      if (deleteResult.isErr()) {
+        logger.warn("Failed to delete existing organization instructions", {
+          organizationId,
+          error: deleteResult.error,
+        });
+        // Continue with reindexing anyway
+      }
 
       // Index new instructions
       return await this.indexOrganizationInstructions(
