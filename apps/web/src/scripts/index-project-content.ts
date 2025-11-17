@@ -13,7 +13,7 @@
  */
 
 import { logger } from "@/lib/logger";
-import { EmbeddingService } from "@/server/services/embedding.service";
+import { RAGService } from "@/server/services/rag/rag.service";
 
 async function main() {
   const projectId = process.env.PROJECT_ID;
@@ -31,7 +31,8 @@ async function main() {
   console.log(`Organization: ${organizationId}`);
   console.log("---");
 
-  const result = await EmbeddingService.indexProject(projectId, organizationId);
+  const ragService = new RAGService();
+  const result = await ragService.indexProject(projectId, organizationId);
 
   if (result.isErr()) {
     console.error("Indexing failed:", result.error.message);

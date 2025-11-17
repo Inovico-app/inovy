@@ -13,7 +13,7 @@ export const embeddingCache = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     contentHash: text("content_hash").notNull(),
-    embedding: vector("embedding", { dimensions: 3072 }).notNull(), // Supports text-embedding-3-large (3072) and text-embedding-3-small (1536) - using max dimension
+    embedding: vector("embedding", { dimensions: 3072 }).notNull(), // OpenAI text-embedding-3-large (3072 dimensions)
     model: text("model").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

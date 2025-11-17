@@ -3,7 +3,7 @@ import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger, serializeError } from "../../lib/logger";
 import { assertOrganizationAccess } from "../../lib/organization-isolation";
-import { EmbeddingsQueries } from "../data-access/embeddings.queries";
+import { RAGService } from "./rag/rag.service";
 import { ProjectQueries } from "../data-access/projects.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { type NewRecording, type Recording } from "../db/schema";
@@ -674,11 +674,20 @@ export class RecordingService {
         );
       }
 
-      // Update embeddings project
-      await EmbeddingsQueries.updateEmbeddingsProject(
+      // Update embeddings project in Qdrant
+      const ragService = new RAGService();
+      const updateResult = await ragService.updateProjectId(
         recordingId,
+        "transcription", // Update transcription embeddings
         targetProjectId
       );
+      if (updateResult.isErr()) {
+        logger.warn("Failed to update embeddings project", {
+          recordingId,
+          error: updateResult.error,
+        });
+        // Continue even if update fails - non-critical
+      }
 
       // Invalidate cache for both source and target projects
       CacheInvalidation.invalidateProjectRecordings(

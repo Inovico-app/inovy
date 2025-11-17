@@ -30,7 +30,7 @@ export const chatEmbeddings = pgTable(
     contentType: text("content_type", { enum: contentTypeEnum }).notNull(),
     contentId: uuid("content_id").notNull(), // References original content (recording, task, etc.)
     contentText: text("content_text").notNull(), // The actual text content
-    embedding: vector("embedding", { dimensions: 1536 }), // OpenAI text-embedding-3-small dimensions
+    embedding: vector("embedding", { dimensions: 1536 }), // OpenAI text-embedding-3-small dimensions (PostgreSQL HNSW limit: 2000)
     metadata: jsonb("metadata").$type<{
       title?: string;
       recordingTitle?: string;

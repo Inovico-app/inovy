@@ -1,4 +1,4 @@
-import { QdrantClientService } from "@/server/services/qdrant.service";
+import { QdrantClientService } from "@/server/services/rag/qdrant.service";
 import { NextResponse } from "next/server";
 
 /**
