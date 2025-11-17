@@ -125,6 +125,10 @@ Inovy follows **Clean Architecture** principles with clear separation of concern
    KINDE_SITE_URL="http://localhost:3000"
    KINDE_POST_LOGOUT_REDIRECT_URL="http://localhost:3000"
    KINDE_POST_LOGIN_REDIRECT_URL="http://localhost:3000"
+
+   # Qdrant Vector Database (Cloud-hosted)
+   QDRANT_URL="https://your-cluster.qdrant.io"  # Your Qdrant cloud cluster URL
+   QDRANT_API_KEY="your-qdrant-api-key"  # Required for cloud instances
    ```
 
 4. **Database Setup**
@@ -141,7 +145,47 @@ Inovy follows **Clean Architecture** principles with clear separation of concern
    npm run db:studio
    ```
 
-5. **Start Development Server**
+5. **Qdrant Vector Database Setup**
+
+   **Cloud Hosting (Production):**
+
+   Configure your cloud-hosted Qdrant instance:
+
+   ```bash
+   # Set environment variables in .env.local
+   QDRANT_URL="https://your-cluster.qdrant.io"
+   QDRANT_API_KEY="your-qdrant-api-key"
+   ```
+
+   Verify Qdrant connectivity:
+
+   ```bash
+   curl http://localhost:3000/api/qdrant/health
+   ```
+
+   **Local Development (Optional):**
+
+   For local development, you can use Docker Compose:
+
+   ```bash
+   # From project root
+   docker-compose up -d qdrant
+   ```
+
+   This will start Qdrant locally on:
+
+   - HTTP API: `http://localhost:6333`
+   - gRPC: `localhost:6334`
+   - Storage: `./data/qdrant_storage`
+
+   For local development, set:
+
+   ```env
+   QDRANT_URL="http://localhost:6333"
+   QDRANT_API_KEY=""  # Not required for local
+   ```
+
+6. **Start Development Server**
 
    ```bash
    # From project root
@@ -152,10 +196,12 @@ Inovy follows **Clean Architecture** principles with clear separation of concern
    npm run dev
    ```
 
-6. **Access Application**
+7. **Access Application**
    - Web App: [http://localhost:3000](http://localhost:3000)
    - Database Studio: [http://localhost:4983](http://localhost:4983)
    - Cache Health: [http://localhost:3000/api/cache/health](http://localhost:3000/api/cache/health)
+   - Qdrant Health: [http://localhost:3000/api/qdrant/health](http://localhost:3000/api/qdrant/health)
+   - Qdrant Dashboard (local only): [http://localhost:6333/dashboard](http://localhost:6333/dashboard)
 
 ## 📁 Project Structure
 
@@ -312,6 +358,31 @@ curl http://localhost:3000/api/cache/health
 # View cache in Redis (if using local Redis)
 redis-cli monitor
 redis-cli keys "inovy:*"
+```
+
+### Qdrant Vector Database Management
+
+**Cloud Hosting:**
+
+```bash
+# Check Qdrant health (works with cloud or local)
+curl http://localhost:3000/api/qdrant/health
+```
+
+**Local Development (Optional):**
+
+```bash
+# Start Qdrant service (local Docker)
+docker-compose up -d qdrant
+
+# Stop Qdrant service
+docker-compose stop qdrant
+
+# View Qdrant logs
+docker-compose logs -f qdrant
+
+# Access Qdrant dashboard (local only)
+open http://localhost:6333/dashboard
 ```
 
 ### Project Management
