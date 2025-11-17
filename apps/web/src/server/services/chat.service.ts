@@ -20,7 +20,7 @@ import {
   buildSystemPromptWithGuardRails,
   validatePromptSafety,
 } from "./prompt-builder.service";
-import { VectorSearchService } from "./vector-search.service";
+import { VectorSearchService } from "./rag/vector-search.service";
 
 export class ChatService {
   private static openai = createOpenAI({

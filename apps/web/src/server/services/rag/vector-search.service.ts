@@ -1,17 +1,23 @@
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { EmbeddingsQueries } from "@/server/data-access/embeddings.queries";
+import { RerankerService } from "@/server/services/rag/reranker.service";
 import { err, ok } from "neverthrow";
-import { EmbeddingService } from "./embedding.service";
-import { KnowledgeBaseService } from "./knowledge-base.service";
-import { KnowledgeBaseDocumentsQueries } from "@/server/data-access";
+import { EmbeddingService } from "../embedding.service";
 
 export interface SearchResult {
   id: string;
-  contentType: "recording" | "transcription" | "summary" | "task" | "knowledge_document";
+  contentType:
+    | "recording"
+    | "transcription"
+    | "summary"
+    | "task"
+    | "knowledge_document";
   contentId: string;
   contentText: string;
   similarity: number;
+  rerankedScore?: number; // Cross-encoder score from re-ranking
+  originalScore?: number; // Original similarity score (preserved from similarity field)
   metadata: {
     title?: string;
     recordingTitle?: string;
@@ -28,6 +34,8 @@ export interface SearchResult {
 }
 
 export class VectorSearchService {
+  private static reranker = new RerankerService();
+
   /**
    * Search for relevant content in a project using vector similarity
    */
@@ -37,6 +45,7 @@ export class VectorSearchService {
     options: {
       matchThreshold?: number;
       matchCount?: number;
+      enableReranking?: boolean;
     } = {}
   ): Promise<ActionResult<SearchResult[]>> {
     try {
@@ -58,13 +67,13 @@ export class VectorSearchService {
         queryEmbedding,
         projectId,
         {
-          matchThreshold: options.matchThreshold || 0.5,
-          matchCount: options.matchCount || 10,
+          matchThreshold: options.matchThreshold ?? 0.5,
+          matchCount: options.matchCount ?? 10,
         }
       );
 
       // Transform results (knowledge documents will be included if embeddings exist)
-      const searchResults: SearchResult[] = results.map((result) => ({
+      let searchResults: SearchResult[] = results.map((result) => ({
         id: result.id,
         contentType: result.contentType as SearchResult["contentType"],
         contentId: result.contentId,
@@ -73,10 +82,24 @@ export class VectorSearchService {
         metadata: (result.metadata as SearchResult["metadata"]) || {},
       }));
 
+      // Optionally re-rank results using cross-encoder
+      if (options.enableReranking && searchResults.length > 0) {
+        const rerankResult = await this.reranker.rerank(
+          query,
+          searchResults,
+          options.matchCount ?? 10
+        );
+        if (rerankResult.isOk()) {
+          searchResults = rerankResult.value;
+        }
+        // If re-ranking fails, continue with original results (non-blocking)
+      }
+
       logger.info("Vector search completed", {
         query,
         projectId,
         resultsCount: searchResults.length,
+        reranked: options.enableReranking ?? false,
       });
 
       return ok(searchResults);
@@ -110,7 +133,7 @@ export class VectorSearchService {
     const recordingGroups = new Map<string, SearchResult[]>();
 
     for (const result of results) {
-      const recordingId = result.metadata.recordingId || result.contentId;
+      const recordingId = result.metadata.recordingId ?? result.contentId;
       if (!recordingGroups.has(recordingId)) {
         recordingGroups.set(recordingId, []);
       }
@@ -120,9 +143,9 @@ export class VectorSearchService {
     // Build context for each recording
     for (const [recordingId, recordingResults] of recordingGroups.entries()) {
       const recordingTitle =
-        recordingResults[0]?.metadata.recordingTitle || "Unknown Recording";
+        recordingResults[0]?.metadata.recordingTitle ?? "Unknown Recording";
       const recordingDate =
-        recordingResults[0]?.metadata.recordingDate || "Unknown Date";
+        recordingResults[0]?.metadata.recordingDate ?? "Unknown Date";
 
       contextParts.push(`\n## Recording: ${recordingTitle}`);
       contextParts.push(`Date: ${recordingDate}`);
@@ -169,7 +192,10 @@ export class VectorSearchService {
     if (knowledgeDocs.length > 0) {
       contextParts.push("\n## Knowledge Base Documents:");
       knowledgeDocs.forEach((doc) => {
-        const docTitle = doc.metadata.documentTitle as string || doc.metadata.title as string || "Knowledge Document";
+        const docTitle =
+          (doc.metadata.documentTitle as string) ||
+          (doc.metadata.title as string) ||
+          "Knowledge Document";
         contextParts.push(`\n### ${docTitle}`);
         contextParts.push(doc.contentText);
       });
@@ -183,7 +209,12 @@ export class VectorSearchService {
    */
   static formatSourceCitations(results: SearchResult[]): Array<{
     contentId: string;
-    contentType: "recording" | "transcription" | "summary" | "task" | "knowledge_document";
+    contentType:
+      | "recording"
+      | "transcription"
+      | "summary"
+      | "task"
+      | "knowledge_document";
     title: string;
     excerpt: string;
     similarityScore: number;
@@ -201,7 +232,10 @@ export class VectorSearchService {
         return {
           contentId: result.contentId,
           contentType: result.contentType,
-          title: result.metadata.documentTitle as string || result.metadata.title as string || "Knowledge Document",
+          title:
+            (result.metadata.documentTitle as string) ||
+            (result.metadata.title as string) ||
+            "Knowledge Document",
           excerpt:
             result.contentText.length > 200
               ? result.contentText.substring(0, 200) + "..."
@@ -217,7 +251,7 @@ export class VectorSearchService {
         contentId: result.contentId,
         contentType: result.contentType,
         title:
-          result.metadata.title || result.metadata.recordingTitle || "Untitled",
+          result.metadata.title ?? result.metadata.recordingTitle ?? "Untitled",
         excerpt:
           result.contentText.length > 200
             ? result.contentText.substring(0, 200) + "..."
@@ -226,7 +260,9 @@ export class VectorSearchService {
         // For transcriptions, the contentId IS the recordingId
         recordingId:
           result.metadata.recordingId ??
-          (result.contentType === "transcription" ? result.contentId : undefined),
+          (result.contentType === "transcription"
+            ? result.contentId
+            : undefined),
         timestamp: result.metadata.timestamp,
         recordingDate: result.metadata.recordingDate as string | undefined,
         projectName: result.metadata.projectName as string | undefined,
@@ -268,6 +304,7 @@ export class VectorSearchService {
       const searchResult = await this.search(query, projectId, {
         matchThreshold: 0.6, // Higher threshold for better relevance
         matchCount: 8, // Get top 8 results
+        enableReranking: true, // Enable re-ranking by default for LLM context
       });
 
       if (searchResult.isErr()) {
@@ -305,6 +342,7 @@ export class VectorSearchService {
     options: {
       matchThreshold?: number;
       matchCount?: number;
+      enableReranking?: boolean;
     } = {}
   ): Promise<ActionResult<SearchResult[]>> {
     try {
@@ -330,13 +368,13 @@ export class VectorSearchService {
         queryEmbedding,
         organizationId,
         {
-          matchThreshold: options.matchThreshold || 0.5,
-          matchCount: options.matchCount || 15,
+          matchThreshold: options.matchThreshold ?? 0.5,
+          matchCount: options.matchCount ?? 15,
         }
       );
 
       // Transform results
-      const searchResults: SearchResult[] = results.map((result) => ({
+      let searchResults: SearchResult[] = results.map((result) => ({
         id: result.id,
         contentType: result.contentType as SearchResult["contentType"],
         contentId: result.contentId,
@@ -345,10 +383,24 @@ export class VectorSearchService {
         metadata: (result.metadata as SearchResult["metadata"]) || {},
       }));
 
+      // Optionally re-rank results using cross-encoder
+      if (options.enableReranking && searchResults.length > 0) {
+        const rerankResult = await this.reranker.rerank(
+          query,
+          searchResults,
+          options.matchCount ?? 15
+        );
+        if (rerankResult.isOk()) {
+          searchResults = rerankResult.value;
+        }
+        // If re-ranking fails, continue with original results (non-blocking)
+      }
+
       logger.info("Organization-wide vector search completed", {
         query,
         organizationId,
         resultsCount: searchResults.length,
+        reranked: options.enableReranking ?? false,
       });
 
       return ok(searchResults);
@@ -404,6 +456,7 @@ export class VectorSearchService {
         {
           matchThreshold: 0.6, // Higher threshold for better relevance
           matchCount: 12, // Get more results for org-wide search
+          enableReranking: true, // Enable re-ranking by default for LLM context
         }
       );
 

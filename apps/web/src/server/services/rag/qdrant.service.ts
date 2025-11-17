@@ -39,7 +39,7 @@ export interface QdrantSearchOptions {
   filter?: {
     must?: Array<{
       key: string;
-      match?: { value: string | string[] };
+      match?: { value?: string | string[]; text?: string };
     }>;
   };
 }
@@ -50,8 +50,8 @@ const RETRY_DELAYS = [1000, 2000, 4000]; // 1s, 2s, 4s exponential backoff
 export class QdrantClientService {
   private static instance: QdrantClientService | null = null;
   private client: QdrantClient;
-  private readonly collectionName = "knowledge_base";
-  private initialized = false;
+  private readonly defaultCollectionName = "knowledge_base";
+  private initializedCollections = new Set<string>();
 
   private constructor() {
     const qdrantUrl = process.env.QDRANT_URL ?? "http://localhost:6333";
@@ -94,8 +94,10 @@ export class QdrantClientService {
    * Initialize collection and payload indices
    * Idempotent - safe to call multiple times
    */
-  async initialize(): Promise<ActionResult<void>> {
-    if (this.initialized) {
+  async initialize(collectionName?: string): Promise<ActionResult<void>> {
+    const targetCollection = collectionName ?? this.defaultCollectionName;
+
+    if (this.initializedCollections.has(targetCollection)) {
       return ok(undefined);
     }
 
@@ -103,16 +105,16 @@ export class QdrantClientService {
       // Check if collection exists
       const collections = await this.client.getCollections();
       const collectionExists = collections.collections.some(
-        (c) => c.name === this.collectionName
+        (c) => c.name === targetCollection
       );
 
       if (!collectionExists) {
         logger.info("Creating Qdrant collection", {
           component: "QdrantClientService",
-          collectionName: this.collectionName,
+          collectionName: targetCollection,
         });
 
-        await this.client.createCollection(this.collectionName, {
+        await this.client.createCollection(targetCollection, {
           vectors: {
             size: 3072, // OpenAI text-embedding-3-large dimensions
             distance: "Cosine",
@@ -125,14 +127,14 @@ export class QdrantClientService {
 
         logger.info("Qdrant collection created", {
           component: "QdrantClientService",
-          collectionName: this.collectionName,
+          collectionName: targetCollection,
         });
       }
 
       // Create payload indices
-      await this.createPayloadIndices();
+      await this.createPayloadIndices(targetCollection);
 
-      this.initialized = true;
+      this.initializedCollections.add(targetCollection);
       return ok(undefined);
     });
   }
@@ -140,7 +142,7 @@ export class QdrantClientService {
   /**
    * Create payload indices for efficient filtering
    */
-  private async createPayloadIndices(): Promise<void> {
+  private async createPayloadIndices(collectionName: string): Promise<void> {
     try {
       const indices: Array<{
         field_name: string;
@@ -161,7 +163,7 @@ export class QdrantClientService {
 
       for (const index of indices) {
         try {
-          await this.client.createPayloadIndex(this.collectionName, {
+          await this.client.createPayloadIndex(collectionName, {
             field_name: index.field_name,
             field_schema: index.field_schema as
               | "keyword"
@@ -218,15 +220,20 @@ export class QdrantClientService {
   /**
    * Upsert points (insert or update) into the collection
    */
-  async upsert(points: QdrantPoint[]): Promise<ActionResult<void>> {
+  async upsert(
+    points: QdrantPoint[],
+    collectionName?: string
+  ): Promise<ActionResult<void>> {
+    const targetCollection = collectionName ?? this.defaultCollectionName;
+
     // Ensure collection is initialized
-    const initResult = await this.initialize();
+    const initResult = await this.initialize(targetCollection);
     if (initResult.isErr()) {
       return err(initResult.error);
     }
 
     return await this.executeWithRetry(async () => {
-      await this.client.upsert(this.collectionName, {
+      await this.client.upsert(targetCollection, {
         wait: true,
         points: points.map((point) => ({
           id: point.id,
@@ -246,7 +253,7 @@ export class QdrantClientService {
 
       logger.debug("Upserted points to Qdrant", {
         component: "QdrantClientService",
-        collectionName: this.collectionName,
+        collectionName: targetCollection,
         pointCount: points.length,
       });
 
@@ -259,7 +266,7 @@ export class QdrantClientService {
    */
   async search(
     queryVector: number[],
-    options: QdrantSearchOptions = {}
+    options: QdrantSearchOptions & { collectionName?: string } = {}
   ): Promise<
     ActionResult<
       Array<{
@@ -269,18 +276,22 @@ export class QdrantClientService {
       }>
     >
   > {
+    const targetCollection =
+      options.collectionName ?? this.defaultCollectionName;
+    const { collectionName: _, ...searchOptions } = options;
+
     // Ensure collection is initialized
-    const initResult = await this.initialize();
+    const initResult = await this.initialize(targetCollection);
     if (initResult.isErr()) {
       return err(initResult.error);
     }
 
     return await this.executeWithRetry(async () => {
-      const searchResult = await this.client.search(this.collectionName, {
+      const searchResult = await this.client.search(targetCollection, {
         vector: queryVector,
-        limit: options.limit ?? 10,
-        score_threshold: options.scoreThreshold,
-        filter: options.filter,
+        limit: searchOptions.limit ?? 10,
+        score_threshold: searchOptions.scoreThreshold,
+        filter: searchOptions.filter,
       });
 
       const results = searchResult.map((result) => ({
@@ -291,7 +302,61 @@ export class QdrantClientService {
 
       logger.debug("Searched Qdrant collection", {
         component: "QdrantClientService",
-        collectionName: this.collectionName,
+        collectionName: targetCollection,
+        resultCount: results.length,
+      });
+
+      return ok(results);
+    });
+  }
+
+  /**
+   * Scroll points by filter (for keyword/full-text search)
+   */
+  async scroll(
+    filter: {
+      must?: Array<{
+        key: string;
+        match?: { value?: string | string[]; text?: string; any?: string[] };
+      }>;
+    },
+    options: {
+      limit?: number;
+      collectionName?: string;
+    } = {}
+  ): Promise<
+    ActionResult<
+      Array<{
+        id: string | number;
+        payload?: QdrantPayload;
+      }>
+    >
+  > {
+    const targetCollection =
+      options.collectionName ?? this.defaultCollectionName;
+
+    // Ensure collection is initialized
+    const initResult = await this.initialize(targetCollection);
+    if (initResult.isErr()) {
+      return err(initResult.error);
+    }
+
+    return await this.executeWithRetry(async () => {
+      const scrollResult = await this.client.scroll(targetCollection, {
+        filter,
+        limit: options.limit ?? 100,
+        with_payload: true,
+        with_vector: false,
+      });
+
+      const results = scrollResult.points.map((point) => ({
+        id: point.id,
+        payload: point.payload as QdrantPayload | undefined,
+      }));
+
+      logger.debug("Scrolled Qdrant collection", {
+        component: "QdrantClientService",
+        collectionName: targetCollection,
         resultCount: results.length,
       });
 
@@ -302,22 +367,27 @@ export class QdrantClientService {
   /**
    * Delete points by IDs
    */
-  async delete(ids: (string | number)[]): Promise<ActionResult<void>> {
+  async delete(
+    ids: (string | number)[],
+    collectionName?: string
+  ): Promise<ActionResult<void>> {
+    const targetCollection = collectionName ?? this.defaultCollectionName;
+
     // Ensure collection is initialized
-    const initResult = await this.initialize();
+    const initResult = await this.initialize(targetCollection);
     if (initResult.isErr()) {
       return err(initResult.error);
     }
 
     return await this.executeWithRetry(async () => {
-      await this.client.delete(this.collectionName, {
+      await this.client.delete(targetCollection, {
         wait: true,
         points: ids,
       });
 
       logger.debug("Deleted points from Qdrant", {
         component: "QdrantClientService",
-        collectionName: this.collectionName,
+        collectionName: targetCollection,
         pointCount: ids.length,
       });
 
@@ -328,27 +398,32 @@ export class QdrantClientService {
   /**
    * Delete points by filter
    */
-  async deleteByFilter(filter: {
-    must?: Array<{
-      key: string;
-      match?: { value: string | string[] };
-    }>;
-  }): Promise<ActionResult<void>> {
+  async deleteByFilter(
+    filter: {
+      must?: Array<{
+        key: string;
+        match?: { value: string | string[] };
+      }>;
+    },
+    collectionName?: string
+  ): Promise<ActionResult<void>> {
+    const targetCollection = collectionName ?? this.defaultCollectionName;
+
     // Ensure collection is initialized
-    const initResult = await this.initialize();
+    const initResult = await this.initialize(targetCollection);
     if (initResult.isErr()) {
       return err(initResult.error);
     }
 
     return await this.executeWithRetry(async () => {
-      await this.client.delete(this.collectionName, {
+      await this.client.delete(targetCollection, {
         wait: true,
         filter,
       });
 
       logger.debug("Deleted points by filter from Qdrant", {
         component: "QdrantClientService",
-        collectionName: this.collectionName,
+        collectionName: targetCollection,
         filter,
       });
 

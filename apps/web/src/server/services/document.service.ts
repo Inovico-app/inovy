@@ -9,7 +9,7 @@ import {
   QdrantClientService,
   type QdrantPayload,
   type QdrantPoint,
-} from "./qdrant.service";
+} from "./rag/qdrant.service";
 import { RedisService } from "./redis.service";
 import type {
   ChunkingOptions,
