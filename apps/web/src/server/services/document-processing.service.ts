@@ -10,13 +10,73 @@ import type {
   CreateKnowledgeDocumentDto,
   KnowledgeDocumentDto,
 } from "../dto/knowledge-base.dto";
-import { EmbeddingService } from "./embedding.service";
+import { DocumentService } from "./document.service";
 
 /**
  * Document Processing Service
  * Handles document upload, text extraction, and embedding creation for knowledge base documents
  */
 export class DocumentProcessingService {
+  /**
+   * Resolve organization ID from document and auth session
+   * Priority:
+   * 1. authResult.value.organization.orgCode (if present)
+   * 2. Persisted document.organization/orgCode field (if available in future schema)
+   * 3. For project scope: load Project by scopeId and read its organizationId
+   * 4. For organization scope: document.scopeId IS the orgCode
+   * 5. Return error if all lookups fail
+   */
+  private static async resolveOrganizationId(
+    document: KnowledgeDocumentDto,
+    authResult: Awaited<ReturnType<typeof getAuthSession>>
+  ): Promise<ActionResult<string>> {
+    // Priority 1: Use organization from auth session if available
+    if (
+      authResult.isOk() &&
+      authResult.value.organization?.orgCode &&
+      authResult.value.isAuthenticated
+    ) {
+      return ok(authResult.value.organization.orgCode);
+    }
+
+    // Priority 2: Use persisted document.organization/orgCode field if available
+    // Note: This field doesn't exist in current schema but is included for future compatibility
+    // If a document.organizationId or document.orgCode field is added, check it here
+    // Example: if ((document as any).organizationId) return ok((document as any).organizationId);
+
+    // Priority 3: For project scope, load the project to get its organizationId
+    if (document.scope === "project" && document.scopeId) {
+      try {
+        const organizationId =
+          await ProjectQueries.getOrganizationIdByProjectId(document.scopeId);
+
+        if (organizationId) {
+          return ok(organizationId);
+        }
+      } catch (error) {
+        logger.error("Failed to load project for organization ID", {
+          component: "DocumentProcessingService",
+          documentId: document.id,
+          scopeId: document.scopeId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    // Priority 4: For organization scope, scopeId IS the orgCode
+    if (document.scope === "organization" && document.scopeId) {
+      return ok(document.scopeId);
+    }
+
+    // All lookups failed
+    return err(
+      ActionErrors.internal(
+        "Unable to resolve organization ID. Authentication required or document must have valid scope.",
+        undefined,
+        "DocumentProcessingService.resolveOrganizationId"
+      )
+    );
+  }
   /**
    * Validate that a document belongs to the user's organization based on scope
    * This ensures organization isolation for knowledge base documents
@@ -410,43 +470,71 @@ export class DocumentProcessingService {
         );
       }
 
-      // Extract text from document
-      const extractResult = await this.extractTextFromDocument(document);
-      if (extractResult.isErr()) {
+      // Resolve organization ID using proper resolution flow
+      const authResult = await getAuthSession();
+      const orgIdResult = await this.resolveOrganizationId(
+        document,
+        authResult
+      );
+
+      if (orgIdResult.isErr()) {
         await KnowledgeBaseDocumentsQueries.updateProcessingStatus(
           documentId,
           "failed",
-          extractResult.error.message
+          orgIdResult.error.message
         );
-        return err(extractResult.error);
+        return err(orgIdResult.error);
       }
 
-      const extractedText = extractResult.value;
+      const organizationId = orgIdResult.value;
+
+      // Process and index document using Qdrant pipeline
+      const pipelineResult =
+        await DocumentService.Processing.processAndIndexDocument(
+          {
+            url: document.fileUrl,
+            type: document.fileType,
+            name: document.fileName,
+          },
+          document.createdById,
+          {
+            documentId: document.id,
+            filename: document.fileName,
+            fileType: document.fileType,
+            fileSize: document.fileSize,
+            title: document.title,
+            description: document.description ?? undefined,
+            organizationId,
+            projectId:
+              document.scope === "project"
+                ? document.scopeId ?? undefined
+                : undefined,
+            userId: document.createdById,
+          }
+        );
+
+      if (pipelineResult.isErr()) {
+        await KnowledgeBaseDocumentsQueries.updateProcessingStatus(
+          documentId,
+          "failed",
+          pipelineResult.error.message
+        );
+        return err(pipelineResult.error);
+      }
+
+      const processedDocument = pipelineResult.value;
 
       // Update document with extracted text
       await KnowledgeBaseDocumentsQueries.updateDocument(documentId, {
-        extractedText,
+        extractedText: processedDocument.chunks
+          .map((chunk) => chunk.content)
+          .join("\n\n"),
         processingStatus: "completed",
       });
 
-      // Create embeddings for the document
-      // Note: This uses the same embedding pattern as recordings
-      const embeddingResult = await this.createDocumentEmbeddings(
-        documentId,
-        extractedText,
-        document.scopeId ?? undefined
-      );
-      if (embeddingResult.isErr()) {
-        logger.warn("Failed to create embeddings for document", {
-          documentId,
-          error: embeddingResult.error,
-        });
-        // Don't fail the whole process if embeddings fail
-      }
-
       logger.info("Document processed successfully", {
         documentId,
-        textLength: extractedText.length,
+        chunkCount: processedDocument.chunks.length,
       });
 
       return ok(undefined);
@@ -557,55 +645,6 @@ export class DocumentProcessingService {
   }
 
   /**
-   * Create embeddings for document text
-   * Uses the same chunking and embedding strategy as recordings
-   */
-  private static async createDocumentEmbeddings(
-    documentId: string,
-    text: string,
-    _organizationId?: string
-  ): Promise<ActionResult<void>> {
-    try {
-      // Use EmbeddingService to create embeddings
-      // Note: This would need to be adapted to work with knowledge base documents
-      // For now, we'll create a basic embedding of the full text
-      const embeddingResult = await EmbeddingService.generateEmbedding(text);
-      if (embeddingResult.isErr()) {
-        return err(embeddingResult.error);
-      }
-
-      // Store embedding in embeddings table
-      // Note: This would need a new content_type for knowledge base documents
-      // For now, we'll log that embeddings were created
-      logger.info("Document embeddings created", {
-        documentId,
-        textLength: text.length,
-      });
-
-      // TODO: Store embeddings in embeddings table with content_type='knowledge_document'
-      // This would require:
-      // 1. Adding 'knowledge_document' to contentTypeEnum
-      // 2. Creating embedding entries with documentId as contentId
-      // 3. Chunking long documents similar to how recordings are chunked
-
-      return ok(undefined);
-    } catch (error) {
-      logger.error(
-        "Failed to create document embeddings",
-        { documentId },
-        error as Error
-      );
-      return err(
-        ActionErrors.internal(
-          "Failed to create document embeddings",
-          error as Error,
-          "DocumentProcessingService.createDocumentEmbeddings"
-        )
-      );
-    }
-  }
-
-  /**
    * Get document content (extracted text)
    */
   static async getDocumentContent(
@@ -708,6 +747,35 @@ export class DocumentProcessingService {
             "DocumentProcessingService.deleteDocument"
           )
         );
+      }
+
+      // Resolve organization ID for Qdrant deletion using proper resolution flow
+      const orgAuthResult = await getAuthSession();
+      const orgIdResult = await this.resolveOrganizationId(
+        document,
+        orgAuthResult
+      );
+
+      if (orgIdResult.isOk()) {
+        const organizationId = orgIdResult.value;
+        const deleteChunksResult =
+          await DocumentService.Processing.deleteDocumentChunks(
+            documentId,
+            organizationId
+          );
+        if (deleteChunksResult.isErr()) {
+          logger.warn("Failed to delete document chunks from Qdrant", {
+            documentId,
+            error: deleteChunksResult.error,
+          });
+          // Continue with database deletion even if Qdrant deletion fails
+        }
+      } else {
+        logger.warn("Failed to resolve organization ID for Qdrant deletion", {
+          documentId,
+          error: orgIdResult.error,
+        });
+        // Continue with database deletion even if org resolution fails
       }
 
       // Delete from Blob storage
