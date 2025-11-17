@@ -17,10 +17,6 @@ services:
       - QDRANT__SERVICE__GRPC_PORT=6334
       - QDRANT__LOG_LEVEL=INFO
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    # Healthcheck removed - curl is not available in qdrant/qdrant:latest image
+    # Use the application-level health check endpoint instead: /api/qdrant/health
 

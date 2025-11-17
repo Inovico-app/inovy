@@ -10,19 +10,11 @@ export async function GET() {
   try {
     const qdrantService = QdrantClientService.getInstance();
     const healthResult = await qdrantService.healthCheck();
-
-    if (healthResult.isErr()) {
-      return NextResponse.json(
-        {
-          status: "unhealthy",
-          service: "qdrant",
-          error: healthResult.error.message,
-        },
-        { status: 503 }
-      );
-    }
-
-    const { healthy, message } = healthResult.value;
+    // healthCheck() always returns ok(), so unwrapOr is safe here
+    const { healthy, message } = healthResult.unwrapOr({
+      healthy: false,
+      message: "Health check failed",
+    });
 
     if (!healthy) {
       return NextResponse.json(
@@ -35,11 +27,14 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({
-      status: "healthy",
-      service: "qdrant",
-      timestamp: new Date().toISOString(),
-    });
+    return NextResponse.json(
+      {
+        status: "healthy",
+        service: "qdrant",
+        timestamp: new Date().toISOString(),
+      },
+      { status: 200 }
+    );
   } catch (error) {
     return NextResponse.json(
       {
