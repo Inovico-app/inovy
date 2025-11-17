@@ -18,6 +18,66 @@ import { DocumentService } from "./document.service";
  */
 export class DocumentProcessingService {
   /**
+   * Resolve organization ID from document and auth session
+   * Priority:
+   * 1. authResult.value.organization.orgCode (if present)
+   * 2. Persisted document.organization/orgCode field (if available in future schema)
+   * 3. For project scope: load Project by scopeId and read its organizationId
+   * 4. For organization scope: document.scopeId IS the orgCode
+   * 5. Return error if all lookups fail
+   */
+  private static async resolveOrganizationId(
+    document: KnowledgeDocumentDto,
+    authResult: Awaited<ReturnType<typeof getAuthSession>>
+  ): Promise<ActionResult<string>> {
+    // Priority 1: Use organization from auth session if available
+    if (
+      authResult.isOk() &&
+      authResult.value.organization?.orgCode &&
+      authResult.value.isAuthenticated
+    ) {
+      return ok(authResult.value.organization.orgCode);
+    }
+
+    // Priority 2: Use persisted document.organization/orgCode field if available
+    // Note: This field doesn't exist in current schema but is included for future compatibility
+    // If a document.organizationId or document.orgCode field is added, check it here
+    // Example: if ((document as any).organizationId) return ok((document as any).organizationId);
+
+    // Priority 3: For project scope, load the project to get its organizationId
+    if (document.scope === "project" && document.scopeId) {
+      try {
+        const organizationId =
+          await ProjectQueries.getOrganizationIdByProjectId(document.scopeId);
+
+        if (organizationId) {
+          return ok(organizationId);
+        }
+      } catch (error) {
+        logger.error("Failed to load project for organization ID", {
+          component: "DocumentProcessingService",
+          documentId: document.id,
+          scopeId: document.scopeId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    // Priority 4: For organization scope, scopeId IS the orgCode
+    if (document.scope === "organization" && document.scopeId) {
+      return ok(document.scopeId);
+    }
+
+    // All lookups failed
+    return err(
+      ActionErrors.internal(
+        "Unable to resolve organization ID. Authentication required or document must have valid scope.",
+        undefined,
+        "DocumentProcessingService.resolveOrganizationId"
+      )
+    );
+  }
+  /**
    * Validate that a document belongs to the user's organization based on scope
    * This ensures organization isolation for knowledge base documents
    */
@@ -410,38 +470,23 @@ export class DocumentProcessingService {
         );
       }
 
-      // Get organization ID from auth session
+      // Resolve organization ID using proper resolution flow
       const authResult = await getAuthSession();
-      if (authResult.isErr() || !authResult.value) {
-        await KnowledgeBaseDocumentsQueries.updateProcessingStatus(
-          documentId,
-          "failed",
-          "Authentication required"
-        );
-        return err(
-          ActionErrors.unauthenticated(
-            "Authentication required",
-            "DocumentProcessingService.processDocument"
-          )
-        );
-      }
-      const organizationId =
-        authResult.value.organization?.orgCode ?? document.scopeId ?? null;
+      const orgIdResult = await this.resolveOrganizationId(
+        document,
+        authResult
+      );
 
-      if (!organizationId) {
+      if (orgIdResult.isErr()) {
         await KnowledgeBaseDocumentsQueries.updateProcessingStatus(
           documentId,
           "failed",
-          "Organization ID not found"
+          orgIdResult.error.message
         );
-        return err(
-          ActionErrors.internal(
-            "Organization ID not found",
-            undefined,
-            "DocumentProcessingService.processDocument"
-          )
-        );
+        return err(orgIdResult.error);
       }
+
+      const organizationId = orgIdResult.value;
 
       // Process and index document using Qdrant pipeline
       const pipelineResult =
@@ -704,17 +749,15 @@ export class DocumentProcessingService {
         );
       }
 
-      // Get organization ID for Qdrant deletion
+      // Resolve organization ID for Qdrant deletion using proper resolution flow
       const orgAuthResult = await getAuthSession();
-      const organizationId =
-        orgAuthResult.isOk() && orgAuthResult.value
-          ? orgAuthResult.value.organization?.orgCode ??
-            document.scopeId ??
-            null
-          : document.scopeId ?? null;
+      const orgIdResult = await this.resolveOrganizationId(
+        document,
+        orgAuthResult
+      );
 
-      // Delete chunks from Qdrant
-      if (organizationId) {
+      if (orgIdResult.isOk()) {
+        const organizationId = orgIdResult.value;
         const deleteChunksResult =
           await DocumentService.Processing.deleteDocumentChunks(
             documentId,
@@ -727,6 +770,12 @@ export class DocumentProcessingService {
           });
           // Continue with database deletion even if Qdrant deletion fails
         }
+      } else {
+        logger.warn("Failed to resolve organization ID for Qdrant deletion", {
+          documentId,
+          error: orgIdResult.error,
+        });
+        // Continue with database deletion even if org resolution fails
       }
 
       // Delete from Blob storage

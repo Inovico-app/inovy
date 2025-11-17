@@ -1,6 +1,6 @@
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import mammoth from "mammoth";
 import { err, ok } from "neverthrow";
 import OpenAI from "openai";
@@ -106,13 +106,19 @@ export class DocumentService {
         chunks.push(currentChunk);
       }
 
-      return this.applyOverlap(chunks, options.chunkOverlap);
+      return this.applyOverlap(chunks, options.chunkOverlap, options.chunkSize);
     }
 
     /**
      * Apply overlap between chunks
+     * Overlap is prepended from the previous chunk, but the final chunk length
+     * is clamped to chunkSize to ensure no chunk exceeds the configured limit.
      */
-    private static applyOverlap(chunks: string[], overlap: number): string[] {
+    private static applyOverlap(
+      chunks: string[],
+      overlap: number,
+      chunkSize: number
+    ): string[] {
       if (overlap === 0 || chunks.length === 0) {
         return chunks;
       }
@@ -126,6 +132,8 @@ export class DocumentService {
           const prevChunk = chunks[i - 1] ?? "";
           const overlapText = prevChunk.slice(-overlap);
           chunk = overlapText + chunk;
+          // Clamp to chunkSize after applying overlap to prevent exceeding the limit
+          chunk = chunk.slice(0, chunkSize);
         }
 
         overlappedChunks.push(chunk);
@@ -208,7 +216,7 @@ export class DocumentService {
         // 4. Enrich chunks with context
         const enrichedChunks = this.enrichChunks(chunks, enrichedMetadata);
 
-        const documentId = metadata.documentId ?? crypto.randomUUID();
+        const documentId = metadata.documentId ?? randomUUID();
 
         return ok({
           documentId,
@@ -426,7 +434,7 @@ export class DocumentService {
       metadata: DocumentMetadata
     ): DocumentChunk[] {
       return chunks.map((content, index) => ({
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         content,
         index,
         metadata: {
@@ -756,8 +764,24 @@ export class DocumentService {
         });
 
         // 3. Create Qdrant points with proper payload structure
+        const expectedDimensions =
+          DocumentService.Embedding.getModelInfo().dimensions;
         const points: QdrantPoint[] = processedDocument.chunks.map(
           (chunk, index) => {
+            const embedding = embeddings[index];
+
+            if (!embedding) {
+              throw new Error(
+                `Missing embedding for documentId=${processedDocument.documentId}, chunkIndex=${chunk.index}, expected dimension=${expectedDimensions}`
+              );
+            }
+
+            if (embedding.length !== expectedDimensions) {
+              throw new Error(
+                `Invalid embedding dimension for documentId=${processedDocument.documentId}, chunkIndex=${chunk.index}: expected ${expectedDimensions}, got ${embedding.length}`
+              );
+            }
+
             const payload: QdrantPayload = {
               userId,
               organizationId: metadata.organizationId ?? "",
@@ -776,7 +800,7 @@ export class DocumentService {
 
             return {
               id: chunk.id,
-              vector: embeddings[index] ?? [],
+              vector: embedding,
               payload,
             };
           }

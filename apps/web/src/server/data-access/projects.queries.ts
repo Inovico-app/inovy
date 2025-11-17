@@ -89,6 +89,22 @@ export class ProjectQueries {
   }
 
   /**
+   * Get organization ID for a project by project ID
+   * Used for resolving organization context when only project ID is known
+   */
+  static async getOrganizationIdByProjectId(
+    projectId: string
+  ): Promise<string | null> {
+    const result = await db
+      .select({ organizationId: projects.organizationId })
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+
+    return result.length > 0 ? result[0]?.organizationId ?? null : null;
+  }
+
+  /**
    * Find a basic project by ID
    */
   static async findById(
