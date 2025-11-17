@@ -27,7 +27,7 @@ Inovy is a modern web application that helps organizations manage meeting record
 
 ### Frontend
 
-- **Next.js 15** - React framework with App Router
+- **Next.js 16** - React framework with App Router
 - **React 19** - Latest React with Server Components
 - **TypeScript** - Type safety and developer experience
 - **Tailwind CSS 4** - Utility-first CSS framework

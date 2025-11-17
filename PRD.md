@@ -51,7 +51,7 @@ To eliminate the overhead of manual meeting documentation and follow-up tasks by
 
 ### 3.1 Technology Stack
 
-- **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS, Shadcn UI
+- **Frontend**: Next.js 16 (App Router), React 19, Tailwind CSS, Shadcn UI
 - **Backend**: Next.js API Routes, Server Actions
 - **Database**: Neon (PostgreSQL)
 - **ORM**: Drizzle ORM + Drizzle Kit

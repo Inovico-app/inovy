@@ -256,7 +256,7 @@ interface ActionItem {
 
 ### 6.1 Technology Stack (MVP)
 
-- **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS, Shadcn UI
+- **Frontend**: Next.js 16 (App Router), React 19, Tailwind CSS, Shadcn UI
 - **Backend**: Next.js API Routes, Server Actions
 - **Database**: Neon (PostgreSQL) with Drizzle ORM
 - **Authentication**: Kinde (basic organization setup)
