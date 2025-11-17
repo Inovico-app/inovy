@@ -1,11 +1,13 @@
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
+import { EmbeddingCacheQueries } from "@/server/data-access/embedding-cache.queries";
 import { EmbeddingsQueries } from "@/server/data-access/embeddings.queries";
 import { ProjectTemplateQueries } from "@/server/data-access/project-templates.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { TasksQueries } from "@/server/data-access/tasks.queries";
 import { type NewChatEmbedding } from "@/server/db/schema";
+import { createHash } from "crypto";
 import { err, ok } from "neverthrow";
 import OpenAI from "openai";
 
@@ -18,15 +20,76 @@ export class EmbeddingService {
   private static readonly CHUNK_SIZE = 500; // tokens per chunk
   private static readonly BATCH_SIZE = 100; // embeddings per batch
 
+  // Cache hit rate tracking (for monitoring)
+  private static cacheHits = 0;
+  private static cacheMisses = 0;
+
   /**
-   * Generate embedding for a single text
+   * Generate SHA-256 hash of text content for cache key
+   */
+  private static generateContentHash(text: string): string {
+    return createHash("sha256").update(text).digest("hex");
+  }
+
+  /**
+   * Get cache hit rate (for monitoring)
+   */
+  static getCacheHitRate(): number {
+    const total = this.cacheHits + this.cacheMisses;
+    if (total === 0) return 0;
+    return this.cacheHits / total;
+  }
+
+  /**
+   * Reset cache statistics
+   */
+  static resetCacheStats(): void {
+    this.cacheHits = 0;
+    this.cacheMisses = 0;
+  }
+
+  /**
+   * Generate embedding for a single text with caching
    */
   static async generateEmbedding(
-    text: string
+    text: string,
+    model: string = this.EMBEDDING_MODEL
   ): Promise<ActionResult<number[]>> {
     try {
+      const contentHash = this.generateContentHash(text);
+
+      // Check cache first
+      try {
+        const cached = await EmbeddingCacheQueries.getCachedEmbedding(
+          contentHash,
+          model
+        );
+
+        if (cached) {
+          this.cacheHits++;
+          logger.debug("Embedding cache hit", {
+            component: "EmbeddingService",
+            model,
+            hash: contentHash.substring(0, 8),
+          });
+          return ok(cached);
+        }
+      } catch (cacheError) {
+        // Cache lookup failed - log but continue with API call
+        logger.warn("Cache lookup failed, proceeding with API call", {
+          component: "EmbeddingService",
+          error:
+            cacheError instanceof Error
+              ? cacheError.message
+              : String(cacheError),
+        });
+      }
+
+      this.cacheMisses++;
+
+      // Generate embedding via API
       const response = await this.openai.embeddings.create({
-        model: this.EMBEDDING_MODEL,
+        model,
         input: text,
       });
 
@@ -42,6 +105,16 @@ export class EmbeddingService {
         );
       }
 
+      // Cache asynchronously (non-blocking)
+      EmbeddingCacheQueries.cacheEmbedding(contentHash, embedding, model).catch(
+        (error) => {
+          logger.warn("Failed to cache embedding", {
+            component: "EmbeddingService",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      );
+
       return ok(embedding);
     } catch (error) {
       logger.error("Error generating embedding", { error });
@@ -56,30 +129,117 @@ export class EmbeddingService {
   }
 
   /**
-   * Generate embeddings for multiple texts in batch
+   * Generate embeddings for multiple texts in batch with caching
    */
   static async generateEmbeddingsBatch(
-    texts: string[]
+    texts: string[],
+    model: string = this.EMBEDDING_MODEL
   ): Promise<ActionResult<number[][]>> {
     try {
-      const response = await this.openai.embeddings.create({
-        model: this.EMBEDDING_MODEL,
-        input: texts,
-      });
+      if (texts.length === 0) {
+        return ok([]);
+      }
 
-      const embeddings = response.data.map((item) => item.embedding);
+      // Generate hashes for all texts
+      const contentHashes = texts.map((text) => this.generateContentHash(text));
 
-      if (embeddings.length !== texts.length) {
-        return err(
-          ActionErrors.internal(
-            "Mismatch in embedding count",
-            undefined,
-            "EmbeddingService.generateEmbeddingsBatch"
-          )
+      // Batch lookup from cache
+      let cachedMap: Map<string, number[]> = new Map();
+      try {
+        cachedMap = await EmbeddingCacheQueries.getCachedEmbeddingsBatch(
+          contentHashes,
+          model
+        );
+      } catch (cacheError) {
+        // Cache lookup failed - log but continue with API calls
+        logger.warn("Batch cache lookup failed, proceeding with API calls", {
+          component: "EmbeddingService",
+          error:
+            cacheError instanceof Error
+              ? cacheError.message
+              : String(cacheError),
+        });
+      }
+
+      // Track cache hits/misses - count actual hits per input text, not unique cached entries
+      const hits = contentHashes.reduce(
+        (count, hash) => count + (hash && cachedMap.has(hash) ? 1 : 0),
+        0
+      );
+      this.cacheHits += hits;
+      this.cacheMisses += texts.length - hits;
+
+      // Find texts that need embedding generation
+      const uncachedIndices: number[] = [];
+      const uncachedTexts: string[] = [];
+
+      for (let i = 0; i < texts.length; i++) {
+        if (!cachedMap.has(contentHashes[i] ?? "")) {
+          uncachedIndices.push(i);
+          uncachedTexts.push(texts[i] ?? "");
+        }
+      }
+
+      // Generate embeddings for uncached texts
+      let uncachedEmbeddings: number[][] = [];
+      if (uncachedTexts.length > 0) {
+        const response = await this.openai.embeddings.create({
+          model,
+          input: uncachedTexts,
+        });
+
+        uncachedEmbeddings = response.data.map((item) => item.embedding);
+
+        if (uncachedEmbeddings.length !== uncachedTexts.length) {
+          return err(
+            ActionErrors.internal(
+              "Mismatch in embedding count",
+              undefined,
+              "EmbeddingService.generateEmbeddingsBatch"
+            )
+          );
+        }
+
+        // Cache new embeddings asynchronously (non-blocking)
+        const cacheEntries = uncachedTexts.map((text, index) => ({
+          hash: contentHashes[uncachedIndices[index] ?? 0] ?? "",
+          embedding: uncachedEmbeddings[index] ?? [],
+          model,
+        }));
+
+        EmbeddingCacheQueries.cacheEmbeddingsBatch(cacheEntries).catch(
+          (error) => {
+            logger.warn("Failed to cache batch embeddings", {
+              component: "EmbeddingService",
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
         );
       }
 
-      return ok(embeddings);
+      // Combine cached and newly generated embeddings in correct order
+      const allEmbeddings: number[][] = [];
+      let uncachedIndex = 0;
+
+      for (let i = 0; i < texts.length; i++) {
+        const hash = contentHashes[i];
+        if (hash && cachedMap.has(hash)) {
+          allEmbeddings.push(cachedMap.get(hash) ?? []);
+        } else {
+          allEmbeddings.push(uncachedEmbeddings[uncachedIndex] ?? []);
+          uncachedIndex++;
+        }
+      }
+
+      logger.debug("Batch embedding generation completed", {
+        component: "EmbeddingService",
+        total: texts.length,
+        cached: hits,
+        generated: uncachedTexts.length,
+        cacheHitRate: this.getCacheHitRate(),
+      });
+
+      return ok(allEmbeddings);
     } catch (error) {
       logger.error("Error generating embeddings batch", { error });
       return err(
@@ -529,10 +689,7 @@ export class EmbeddingService {
       }
 
       // Chunk the template instructions
-      const chunks = this.chunkText(
-        template.instructions,
-        this.CHUNK_SIZE
-      );
+      const chunks = this.chunkText(template.instructions, this.CHUNK_SIZE);
 
       // Generate embeddings for all chunks
       const embeddingsResult = await this.generateEmbeddingsBatch(chunks);

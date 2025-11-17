@@ -211,6 +211,20 @@
       "when": 1763197621258,
       "tag": "0035_add_department_team_hierarchies",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1763391911197,
+      "tag": "0036_add_embedding_cache_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1763391970470,
+      "tag": "0037_add_embedding_cache_table",
+      "breakpoints": true
     }
   ]
 }
