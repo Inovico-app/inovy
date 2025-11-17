@@ -144,7 +144,7 @@ export class QdrantClientService {
     try {
       const indices: Array<{
         field_name: string;
-        field_schema: "keyword" | "text" | "datetime";
+        field_schema: "keyword" | "text" | "datetime" | "integer";
       }> = [
         { field_name: "userId", field_schema: "keyword" },
         { field_name: "organizationId", field_schema: "keyword" },
@@ -154,13 +154,20 @@ export class QdrantClientService {
         { field_name: "content", field_schema: "text" },
         { field_name: "filename", field_schema: "keyword" },
         { field_name: "timestamp", field_schema: "datetime" },
+        { field_name: "documentId", field_schema: "keyword" },
+        { field_name: "chunkIndex", field_schema: "integer" },
+        { field_name: "totalChunks", field_schema: "integer" },
       ];
 
       for (const index of indices) {
         try {
           await this.client.createPayloadIndex(this.collectionName, {
             field_name: index.field_name,
-            field_schema: index.field_schema as "keyword" | "text" | "datetime",
+            field_schema: index.field_schema as
+              | "keyword"
+              | "text"
+              | "datetime"
+              | "integer",
           });
           logger.debug("Created payload index", {
             component: "QdrantClientService",
