@@ -14,7 +14,6 @@
 import { db } from "@/server/db";
 import { chatEmbeddings } from "@/server/db/schema";
 import { logger } from "@/lib/logger";
-import { EmbeddingService } from "@/server/services/embedding.service";
 import { RAGService } from "@/server/services/rag/rag.service";
 import { eq } from "drizzle-orm";
 

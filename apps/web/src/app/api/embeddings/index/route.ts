@@ -1,9 +1,9 @@
+import { logger } from "@/lib/logger";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
+import { ProjectService } from "@/server/services/project.service";
+import { RAGService } from "@/server/services/rag/rag.service";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
-import { EmbeddingService } from "@/server/services/embedding.service";
-import { ProjectService } from "@/server/services/project.service";
-import { logger } from "@/lib/logger";
 import { z } from "zod";
 
 const indexRequestSchema = z.object({
@@ -45,14 +45,14 @@ export async function POST(request: NextRequest) {
     }
 
     const project = projectResult.value;
-    
+
     try {
       assertOrganizationAccess(
         project.organizationId,
         organization.orgCode,
         "api/embeddings/index"
       );
-    } catch (error) {
+    } catch {
       // Return 404 to prevent information leakage
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -60,7 +60,8 @@ export async function POST(request: NextRequest) {
     // Trigger indexing
     logger.info("Starting manual indexing", { projectId, userId: user.id });
 
-    const indexResult = await EmbeddingService.indexProject(
+    const ragService = new RAGService();
+    const indexResult = await ragService.indexProject(
       projectId,
       organization.orgCode
     );

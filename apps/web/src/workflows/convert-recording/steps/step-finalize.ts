@@ -1,6 +1,6 @@
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
-import { EmbeddingService } from "@/server/services/embedding.service";
+import { RAGService } from "@/server/services/rag/rag.service";
 
 /**
  * Step 3: Invalidate caches, create embeddings, and finalize workflow
@@ -27,7 +27,9 @@ export async function executeFinalStep(
     });
 
     // Create embeddings for chat feature (async, don't block workflow)
-    EmbeddingService.indexRecording(recordingId, projectId, orgCode)
+    const ragService = new RAGService();
+    ragService
+      .indexRecording(recordingId, projectId, orgCode)
       .then((result) => {
         if (result.isOk()) {
           logger.info("Embeddings created successfully for recording", {

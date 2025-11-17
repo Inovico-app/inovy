@@ -6,6 +6,10 @@
 
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
+import { ProjectTemplateQueries } from "@/server/data-access/project-templates.queries";
+import { RecordingsQueries } from "@/server/data-access/recordings.queries";
+import { TasksQueries } from "@/server/data-access/tasks.queries";
 import { EmbeddingService } from "@/server/services/embedding.service";
 import {
   QdrantClientService,
@@ -63,6 +67,7 @@ export class RAGService {
   private qdrantService: QdrantClientService;
   private hybridSearch: HybridSearchEngine;
   private reranker: RerankerService;
+  private embeddingService: EmbeddingService;
   private readonly collectionName: string;
 
   constructor(collectionName?: string) {
@@ -70,6 +75,7 @@ export class RAGService {
     this.qdrantService = QdrantClientService.getInstance();
     this.hybridSearch = new HybridSearchEngine(this.collectionName);
     this.reranker = new RerankerService();
+    this.embeddingService = new EmbeddingService();
   }
 
   /**
@@ -123,9 +129,8 @@ export class RAGService {
       }
 
       // 1. Generate query embedding
-      const queryEmbeddingResult = await EmbeddingService.generateEmbedding(
-        query
-      );
+      const queryEmbeddingResult =
+        await this.embeddingService.generateEmbedding(query);
 
       if (queryEmbeddingResult.isErr()) {
         return err(queryEmbeddingResult.error);
@@ -288,7 +293,9 @@ export class RAGService {
   ): Promise<ActionResult<void>> {
     try {
       // Generate embedding
-      const embeddingResult = await EmbeddingService.generateEmbedding(content);
+      const embeddingResult = await this.embeddingService.generateEmbedding(
+        content
+      );
 
       if (embeddingResult.isErr()) {
         return err(embeddingResult.error);
@@ -365,9 +372,8 @@ export class RAGService {
 
       // Generate embeddings in batch
       const contents = documents.map((d) => d.content);
-      const embeddingsResult = await EmbeddingService.generateEmbeddingsBatch(
-        contents
-      );
+      const embeddingsResult =
+        await this.embeddingService.generateEmbeddingsBatch(contents);
 
       if (embeddingsResult.isErr()) {
         return err(embeddingsResult.error);
@@ -745,6 +751,570 @@ export class RAGService {
           "Error getting user stats",
           error as Error,
           "RAGService.getUserStats"
+        )
+      );
+    }
+  }
+
+  /**
+   * Chunk long text into smaller pieces for embedding
+   */
+  private chunkText(text: string, maxTokens: number): string[] {
+    // Simple chunking by character count (approximation: ~4 chars per token)
+    const maxChars = maxTokens * 4;
+    const chunks: string[] = [];
+
+    if (text.length <= maxChars) {
+      return [text];
+    }
+
+    // Split by paragraphs first
+    const paragraphs = text.split(/\n\n+/);
+    let currentChunk = "";
+
+    for (const paragraph of paragraphs) {
+      if ((currentChunk + paragraph).length <= maxChars) {
+        currentChunk += (currentChunk ? "\n\n" : "") + paragraph;
+      } else {
+        if (currentChunk) {
+          chunks.push(currentChunk);
+        }
+        // If single paragraph is too long, split by sentences
+        if (paragraph.length > maxChars) {
+          const sentences = paragraph.match(/[^.!?]+[.!?]+/g) ?? [paragraph];
+          currentChunk = "";
+          for (const sentence of sentences) {
+            if ((currentChunk + sentence).length <= maxChars) {
+              currentChunk += sentence;
+            } else {
+              if (currentChunk) {
+                chunks.push(currentChunk);
+              }
+              currentChunk = sentence;
+            }
+          }
+        } else {
+          currentChunk = paragraph;
+        }
+      }
+    }
+
+    if (currentChunk) {
+      chunks.push(currentChunk);
+    }
+
+    return chunks.length > 0 ? chunks : [text];
+  }
+
+  /**
+   * Index a recording's transcription
+   */
+  async indexRecordingTranscription(
+    recordingId: string,
+    projectId: string,
+    organizationId: string
+  ): Promise<ActionResult<void>> {
+    try {
+      logger.info("Indexing recording transcription", { recordingId });
+
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+
+      if (!recording || !recording.transcriptionText) {
+        return err(
+          ActionErrors.notFound(
+            "Recording or transcription",
+            "RAGService.indexRecordingTranscription"
+          )
+        );
+      }
+
+      // Chunk the transcription
+      const chunks = this.chunkText(recording.transcriptionText, 500);
+
+      // Prepare documents for Qdrant batch indexing
+      const documents = chunks.map((chunk, index) => ({
+        content: chunk,
+        metadata: {
+          contentType: "transcription",
+          documentId: recordingId,
+          contentId: recordingId,
+          projectId,
+          filename: recording.title,
+          recordingTitle: recording.title,
+          recordingDate: recording.recordingDate.toISOString(),
+          chunkIndex: index,
+          totalChunks: chunks.length,
+        },
+      }));
+
+      // Index to Qdrant using batch operation
+      const indexResult = await this.addDocumentBatch(
+        documents,
+        recording.createdById,
+        organizationId
+      );
+
+      if (indexResult.isErr()) {
+        return err(indexResult.error);
+      }
+
+      logger.info("Successfully indexed transcription", {
+        recordingId,
+        chunksCreated: chunks.length,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Error indexing recording transcription", {
+        error,
+        recordingId,
+      });
+      return err(
+        ActionErrors.internal(
+          "Error indexing recording transcription",
+          error as Error,
+          "RAGService.indexRecordingTranscription"
+        )
+      );
+    }
+  }
+
+  /**
+   * Index a recording's summary
+   */
+  async indexRecordingSummary(
+    recordingId: string,
+    projectId: string,
+    organizationId: string
+  ): Promise<ActionResult<void>> {
+    try {
+      logger.info("Indexing recording summary", { recordingId });
+
+      const summaries = await AIInsightsQueries.getInsightsByRecordingId(
+        recordingId
+      );
+      const summary = summaries.find(
+        (s: { insightType: string }) => s.insightType === "summary"
+      );
+
+      if (!summary || !summary.content) {
+        return err(
+          ActionErrors.notFound("Summary", "RAGService.indexRecordingSummary")
+        );
+      }
+
+      // Convert summary content to text
+      const summaryText = JSON.stringify(summary.content);
+
+      // Get recording details for metadata
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+
+      // Index to Qdrant
+      const indexResult = await this.addDocument(
+        summaryText,
+        {
+          contentType: "summary",
+          documentId: summary.id,
+          contentId: summary.id,
+          projectId,
+          filename: recording?.title,
+          recordingTitle: recording?.title,
+          recordingDate: recording?.recordingDate?.toISOString(),
+          recordingId,
+        },
+        recording?.createdById ?? "",
+        organizationId
+      );
+
+      if (indexResult.isErr()) {
+        return err(indexResult.error);
+      }
+
+      logger.info("Successfully indexed summary", { summaryId: summary.id });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Error indexing recording summary", { error, recordingId });
+      return err(
+        ActionErrors.internal(
+          "Error indexing recording summary",
+          error as Error,
+          "RAGService.indexRecordingSummary"
+        )
+      );
+    }
+  }
+
+  /**
+   * Index all tasks for a recording
+   */
+  async indexRecordingTasks(
+    recordingId: string,
+    projectId: string,
+    organizationId: string
+  ): Promise<ActionResult<void>> {
+    try {
+      logger.info("Indexing recording tasks", { recordingId });
+
+      const tasks = await TasksQueries.getTasksByRecordingId(recordingId);
+
+      if (!tasks || tasks.length === 0) {
+        logger.info("No tasks found for recording", { recordingId });
+        return ok(undefined);
+      }
+
+      // Get recording details for metadata
+      const recording = await RecordingsQueries.selectRecordingById(
+        recordingId
+      );
+
+      // Prepare documents for Qdrant batch indexing
+      const documents = tasks.map((task) => ({
+        content: `Task: ${task.title}\nDescription: ${
+          task.description ?? "N/A"
+        }\nPriority: ${task.priority}\nStatus: ${task.status}`,
+        metadata: {
+          contentType: "task",
+          documentId: task.id,
+          contentId: task.id,
+          projectId,
+          title: task.title,
+          priority: task.priority,
+          status: task.status,
+          recordingTitle: recording?.title,
+          recordingDate: recording?.recordingDate?.toISOString(),
+          recordingId,
+        },
+      }));
+
+      // Index to Qdrant using batch operation
+      const indexResult = await this.addDocumentBatch(
+        documents,
+        recording?.createdById ?? "",
+        organizationId
+      );
+
+      if (indexResult.isErr()) {
+        return err(indexResult.error);
+      }
+
+      logger.info("Successfully indexed tasks", {
+        recordingId,
+        tasksIndexed: tasks.length,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Error indexing recording tasks", { error, recordingId });
+      return err(
+        ActionErrors.internal(
+          "Error indexing recording tasks",
+          error as Error,
+          "RAGService.indexRecordingTasks"
+        )
+      );
+    }
+  }
+
+  /**
+   * Index all content for a recording
+   */
+  async indexRecording(
+    recordingId: string,
+    projectId: string,
+    organizationId: string
+  ): Promise<ActionResult<void>> {
+    try {
+      logger.info("Starting full recording indexing", { recordingId });
+
+      // Index transcription
+      const transcriptionResult = await this.indexRecordingTranscription(
+        recordingId,
+        projectId,
+        organizationId
+      );
+      if (transcriptionResult.isErr()) {
+        logger.warn("Failed to index transcription", {
+          recordingId,
+          error: transcriptionResult.error,
+        });
+      }
+
+      // Index summary
+      const summaryResult = await this.indexRecordingSummary(
+        recordingId,
+        projectId,
+        organizationId
+      );
+      if (summaryResult.isErr()) {
+        logger.warn("Failed to index summary", {
+          recordingId,
+          error: summaryResult.error,
+        });
+      }
+
+      // Index tasks
+      const tasksResult = await this.indexRecordingTasks(
+        recordingId,
+        projectId,
+        organizationId
+      );
+      if (tasksResult.isErr()) {
+        logger.warn("Failed to index tasks", {
+          recordingId,
+          error: tasksResult.error,
+        });
+      }
+
+      logger.info("Completed full recording indexing", { recordingId });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Error indexing recording", { error, recordingId });
+      return err(
+        ActionErrors.internal(
+          "Error indexing recording",
+          error as Error,
+          "RAGService.indexRecording"
+        )
+      );
+    }
+  }
+
+  /**
+   * Index a project template for RAG context
+   */
+  async indexProjectTemplate(
+    projectId: string,
+    organizationId: string
+  ): Promise<ActionResult<void>> {
+    try {
+      logger.info("Indexing project template", { projectId });
+
+      const template = await ProjectTemplateQueries.findByProjectId(
+        projectId,
+        organizationId
+      );
+
+      if (!template) {
+        logger.info("No project template found, skipping", { projectId });
+        return ok(undefined);
+      }
+
+      // Chunk the template instructions
+      const chunks = this.chunkText(template.instructions, 500);
+
+      // Prepare documents for Qdrant batch indexing
+      const documents = chunks.map((chunk, index) => ({
+        content: chunk,
+        metadata: {
+          contentType: "project_template",
+          documentId: template.id,
+          contentId: template.id,
+          projectId,
+          filename: "Project Template",
+          title: "Project Template",
+          chunkIndex: index,
+          totalChunks: chunks.length,
+        },
+      }));
+
+      // Index to Qdrant using batch operation
+      // Note: userId is not available for project templates, using empty string
+      const indexResult = await this.addDocumentBatch(
+        documents,
+        "",
+        organizationId
+      );
+
+      if (indexResult.isErr()) {
+        return err(indexResult.error);
+      }
+
+      logger.info("Successfully indexed project template", {
+        projectId,
+        chunksCreated: chunks.length,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Error indexing project template", { error, projectId });
+      return err(
+        ActionErrors.internal(
+          "Error indexing project template",
+          error as Error,
+          "RAGService.indexProjectTemplate"
+        )
+      );
+    }
+  }
+
+  /**
+   * Index organization instructions for RAG context
+   */
+  async indexOrganizationInstructions(
+    organizationId: string,
+    instructions: string,
+    settingsId: string
+  ): Promise<ActionResult<void>> {
+    try {
+      logger.info("Indexing organization instructions", { organizationId });
+
+      // Chunk the instructions (max 500 tokens per chunk as per acceptance criteria)
+      const chunks = this.chunkText(instructions, 500);
+
+      // Prepare documents for Qdrant batch indexing
+      const documents = chunks.map((chunk, index) => ({
+        content: chunk,
+        metadata: {
+          contentType: "organization_instructions",
+          documentId: settingsId,
+          contentId: settingsId,
+          filename: "Organization Instructions",
+          title: "Organization Instructions",
+          chunkIndex: index,
+          totalChunks: chunks.length,
+        },
+      }));
+
+      // Index to Qdrant using batch operation
+      // Note: userId is not available for organization instructions, using empty string
+      const indexResult = await this.addDocumentBatch(
+        documents,
+        "",
+        organizationId
+      );
+
+      if (indexResult.isErr()) {
+        return err(indexResult.error);
+      }
+
+      logger.info("Successfully indexed organization instructions", {
+        organizationId,
+        chunksCreated: chunks.length,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Error indexing organization instructions", {
+        error,
+        organizationId,
+      });
+      return err(
+        ActionErrors.internal(
+          "Error indexing organization instructions",
+          error as Error,
+          "RAGService.indexOrganizationInstructions"
+        )
+      );
+    }
+  }
+
+  /**
+   * Reindex organization instructions (deletes old, creates new)
+   */
+  async reindexOrganizationInstructions(
+    organizationId: string,
+    instructions: string,
+    settingsId: string
+  ): Promise<ActionResult<void>> {
+    try {
+      logger.info("Reindexing organization instructions", { organizationId });
+
+      // Delete existing organization instructions from Qdrant
+      const deleteResult = await this.deleteByOrganizationAndContentType(
+        organizationId,
+        "organization_instructions"
+      );
+      if (deleteResult.isErr()) {
+        logger.warn("Failed to delete existing organization instructions", {
+          organizationId,
+          error: deleteResult.error,
+        });
+        // Continue with reindexing anyway
+      }
+
+      // Index new instructions
+      return await this.indexOrganizationInstructions(
+        organizationId,
+        instructions,
+        settingsId
+      );
+    } catch (error) {
+      logger.error("Error reindexing organization instructions", {
+        error,
+        organizationId,
+      });
+      return err(
+        ActionErrors.internal(
+          "Error reindexing organization instructions",
+          error as Error,
+          "RAGService.reindexOrganizationInstructions"
+        )
+      );
+    }
+  }
+
+  /**
+   * Index all recordings and project template in a project
+   */
+  async indexProject(
+    projectId: string,
+    organizationId: string
+  ): Promise<ActionResult<{ indexed: number; failed: number }>> {
+    try {
+      logger.info("Starting project indexing", { projectId });
+
+      // First, index project template (if exists)
+      const templateResult = await this.indexProjectTemplate(
+        projectId,
+        organizationId
+      );
+
+      if (templateResult.isErr()) {
+        logger.warn("Failed to index project template", {
+          projectId,
+          error: templateResult.error.message,
+        });
+        // Continue indexing recordings even if template indexing fails
+      }
+
+      const recordings = await RecordingsQueries.selectRecordingsByProjectId(
+        projectId,
+        organizationId
+      );
+
+      let indexed = 0;
+      let failed = 0;
+
+      for (const recording of recordings) {
+        const result = await this.indexRecording(
+          recording.id,
+          projectId,
+          organizationId
+        );
+
+        if (result.isOk()) {
+          indexed++;
+        } else {
+          failed++;
+        }
+      }
+
+      logger.info("Completed project indexing", { projectId, indexed, failed });
+
+      return ok({ indexed, failed });
+    } catch (error) {
+      logger.error("Error indexing project", { error, projectId });
+      return err(
+        ActionErrors.internal(
+          "Error indexing project",
+          error as Error,
+          "RAGService.indexProject"
         )
       );
     }

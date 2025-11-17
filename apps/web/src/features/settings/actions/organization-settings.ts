@@ -5,7 +5,7 @@ import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { isOrganizationAdmin } from "@/lib/rbac";
-import { EmbeddingService } from "@/server/services/embedding.service";
+import { RAGService } from "@/server/services/rag/rag.service";
 import { OrganizationSettingsService } from "@/server/services/organization-settings.service";
 import { updateOrganizationSettingsSchema } from "@/server/validation/organization-settings.validation";
 import { z } from "zod";
@@ -89,7 +89,8 @@ export const updateOrganizationSettings = authorizedActionClient
 
     // Trigger embedding reindex in background
     // Using void to fire and forget - errors will be logged by the service
-    EmbeddingService.reindexOrganizationInstructions(
+    const ragService = new RAGService();
+    ragService.reindexOrganizationInstructions(
       organizationId,
       parsedInput.instructions,
       result.value.id
