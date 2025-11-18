@@ -367,7 +367,7 @@ General Guidelines:
   }
 
   /**
-   * Generate chat response using GPT-4-turbo with streaming
+   * Generate chat response using GPT-5-nano with streaming
    */
   static async generateResponse(
     conversationId: string,
@@ -484,7 +484,7 @@ Please answer the user's question based on this information.`
         userQuery: userMessage,
       });
 
-      // Stream response from GPT-4-turbo with retry logic and request tracking
+      // Stream response from GPT-5-nano with retry logic and request tracking
       let streamError: Error | null = null;
 
       const result = await connectionPool.executeWithRetry(
@@ -697,6 +697,9 @@ Please answer the user's question based on this information.`
       });
 
       // Stream response from GPT-5-nano with error handling and request tracking
+      // Note: Streaming endpoints use single-attempt by design to avoid duplicate streamed answers.
+      // The streamText call itself may retry internally via the AI SDK, but we don't wrap it
+      // in executeWithRetry to prevent restarting streams that have already begun.
       // Get pooled client to track active requests
       const { client: openai, pooled } =
         connectionPool.getOpenAIClientWithTracking();
@@ -904,7 +907,10 @@ Please answer the user's question based on this information. When referencing in
         userQuery: userMessage,
       });
 
-      // Stream response from GPT-4-turbo with error handling and request tracking
+      // Stream response from GPT-5-nano with error handling and request tracking
+      // Note: Streaming endpoints use single-attempt by design to avoid duplicate streamed answers.
+      // The streamText call itself may retry internally via the AI SDK, but we don't wrap it
+      // in executeWithRetry to prevent restarting streams that have already begun.
       // Get pooled client to track active requests
       const { client: openai, pooled } =
         connectionPool.getOpenAIClientWithTracking();

@@ -61,7 +61,7 @@ export class TaskExtractionService {
   };
 
   /**
-   * Extract action items from transcription using OpenAI GPT-4
+   * Extract action items from transcription using OpenAI GPT-5
    * Includes AI-004 priority assignment logic
    */
   static async extractTasks(
@@ -120,21 +120,20 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
 
       const userPrompt = `Analyseer deze vergadertranscriptie en extraheer alle actiepunten met hun prioriteit:\n\n${transcriptionText}`;
 
-      // Call OpenAI API with function calling for structured output, retry logic, and request tracking
+      // Call OpenAI API with structured JSON output and retry logic
+      // Each retry attempt gets a fresh client from the pool for better round-robin and recovery
       const completion = await connectionPool.executeWithRetry(
         async () =>
-          connectionPool.withRawOpenAIClient(async (openai) =>
-            openai.chat.completions.create({
-              model: "gpt-5-nano",
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt },
-              ],
-              response_format: { type: "json_object" },
-              temperature: 0.3,
-              max_tokens: 2000,
-            })
-          ),
+          connectionPool.getRawOpenAIClient().chat.completions.create({
+            model: "gpt-5-nano",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.3,
+            max_tokens: 2000,
+          }),
         "openai"
       );
 

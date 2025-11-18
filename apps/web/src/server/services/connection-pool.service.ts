@@ -13,6 +13,9 @@ import OpenAI from "openai";
  * - Metrics tracking (active connections, pool utilization)
  */
 
+// Retry configuration for connection pool operations
+// Note: These differ from workflow retry delays (1s, 5s, 15s) in convert-recording/types.ts
+// This pool uses faster retries (1s, 2s, 4s) for API calls that should fail fast
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff: 1s, 2s, 4s
 const POOL_SIZE = 5;
@@ -200,7 +203,6 @@ export class ConnectionPoolService {
   /**
    * Get raw OpenAI client from pool (round-robin)
    * Use this for embeddings and direct API calls
-   * @deprecated Use withRawOpenAIClient instead to track active requests
    */
   getRawOpenAIClient(): OpenAI {
     const pooled = this.getNextHealthyOpenAIClient();
@@ -295,14 +297,18 @@ export class ConnectionPoolService {
         const delay =
           RETRY_DELAYS[retryCount] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
 
-        logger.warn(`${serviceName} operation failed, retrying...`, {
-          component: "ConnectionPoolService",
-          serviceName,
-          retryCount: retryCount + 1,
-          maxRetries: MAX_RETRIES,
-          delayMs: delay,
-          error: error instanceof Error ? error.message : String(error),
-        });
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.warn(
+          `${serviceName} operation failed, retrying...`,
+          {
+            component: "ConnectionPoolService",
+            serviceName,
+            retryCount: retryCount + 1,
+            maxRetries: MAX_RETRIES,
+            delayMs: delay,
+          },
+          err
+        );
 
         await new Promise((resolve) => setTimeout(resolve, delay));
         return this.executeWithRetry(operation, serviceName, retryCount + 1);
@@ -370,6 +376,9 @@ export class ConnectionPoolService {
 
   /**
    * Mark a client as unhealthy
+   * Note: Currently marks the first client as unhealthy since we don't track
+   * which specific client was used in executeWithRetry. For per-client tracking,
+   * use withOpenAIClient/withRawOpenAIClient/withAnthropicClient wrappers instead.
    */
   private markClientUnhealthy(
     serviceName: "openai" | "anthropic",
@@ -380,11 +389,15 @@ export class ConnectionPoolService {
 
     // Mark all clients as potentially unhealthy if we've exhausted retries
     // In a more sophisticated implementation, we'd track which specific client failed
-    logger.error(`${serviceName} client marked as unhealthy`, {
-      component: "ConnectionPoolService",
-      serviceName,
-      error: error instanceof Error ? error.message : String(error),
-    });
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(
+      `${serviceName} client marked as unhealthy`,
+      {
+        component: "ConnectionPoolService",
+        serviceName,
+      },
+      err
+    );
 
     // Mark first client as unhealthy (simplified - in production, track per-client)
     if (pool.length > 0) {
@@ -419,11 +432,15 @@ export class ConnectionPoolService {
       client.lastHealthCheck = Date.now();
       return client.isHealthy;
     } catch (error) {
-      logger.warn(`Health check failed for ${serviceName} client`, {
-        component: "ConnectionPoolService",
-        serviceName,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.warn(
+        `Health check failed for ${serviceName} client`,
+        {
+          component: "ConnectionPoolService",
+          serviceName,
+        },
+        err
+      );
       return false;
     }
   }
@@ -434,10 +451,14 @@ export class ConnectionPoolService {
   private startHealthChecks(): void {
     this.healthCheckInterval = setInterval(() => {
       this.performHealthChecks().catch((error) => {
-        logger.error("Error during health checks", {
-          component: "ConnectionPoolService",
-          error: error instanceof Error ? error.message : String(error),
-        });
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error(
+          "Error during health checks",
+          {
+            component: "ConnectionPoolService",
+          },
+          err
+        );
       });
     }, HEALTH_CHECK_INTERVAL);
   }

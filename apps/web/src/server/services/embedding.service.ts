@@ -76,15 +76,14 @@ export class EmbeddingService {
 
       EmbeddingService.cacheMisses++;
 
-      // Generate embedding via API with retry logic and request tracking
+      // Generate embedding via API with retry logic
+      // Each retry attempt gets a fresh client from the pool for better round-robin and recovery
       const response = await connectionPool.executeWithRetry(
         async () =>
-          connectionPool.withRawOpenAIClient(async (openai) =>
-            openai.embeddings.create({
-              model,
-              input: text,
-            })
-          ),
+          connectionPool.getRawOpenAIClient().embeddings.create({
+            model,
+            input: text,
+          }),
         "openai"
       );
 
@@ -175,17 +174,16 @@ export class EmbeddingService {
         }
       }
 
-      // Generate embeddings for uncached texts with retry logic and request tracking
+      // Generate embeddings for uncached texts with retry logic
+      // Each retry attempt gets a fresh client from the pool for better round-robin and recovery
       let uncachedEmbeddings: number[][] = [];
       if (uncachedTexts.length > 0) {
         const response = await connectionPool.executeWithRetry(
           async () =>
-            connectionPool.withRawOpenAIClient(async (openai) =>
-              openai.embeddings.create({
-                model,
-                input: uncachedTexts,
-              })
-            ),
+            connectionPool.getRawOpenAIClient().embeddings.create({
+              model,
+              input: uncachedTexts,
+            }),
           "openai"
         );
 

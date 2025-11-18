@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { connectionPool } from "@/server/services/connection-pool.service";
 import { NextResponse } from "next/server";
 
@@ -13,9 +14,20 @@ export async function GET() {
   try {
     const metrics = connectionPool.getAllMetrics();
 
+    // Determine overall health status
+    const isHealthy =
+      metrics.openai.healthyClients > 0 &&
+      metrics.anthropic.healthyClients > 0;
+    const isDegraded =
+      metrics.openai.healthyClients > 0 ||
+      metrics.anthropic.healthyClients > 0;
+
+    const status = isHealthy ? "ok" : isDegraded ? "degraded" : "unhealthy";
+    const httpStatus = isHealthy ? 200 : isDegraded ? 503 : 503;
+
     return NextResponse.json(
       {
-        status: "ok",
+        status,
         timestamp: new Date().toISOString(),
         pools: {
           openai: {
@@ -29,14 +41,19 @@ export async function GET() {
           },
         },
       },
-      { status: 200 }
+      { status: httpStatus }
     );
   } catch (error) {
+    // Log full error server-side instead of returning it verbatim
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error("Connection pool health check error", {
+      component: "connection-pool-health",
+    }, err);
+
     return NextResponse.json(
       {
         status: "error",
-        error:
-          error instanceof Error ? error.message : "Unknown error occurred",
+        error: "Internal error checking connection pool",
       },
       { status: 500 }
     );
