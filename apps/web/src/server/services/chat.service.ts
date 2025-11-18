@@ -393,7 +393,7 @@ General Guidelines:
           organizationId,
           "ChatService.generateResponse"
         );
-      } catch (error) {
+      } catch {
         throw new Error("Conversation not found");
       }
 
@@ -484,29 +484,66 @@ Please answer the user's question based on this information.`
         userQuery: userMessage,
       });
 
-      // Stream response from GPT-4-turbo with retry logic
-      const openai = connectionPool.getOpenAIClient();
+      // Stream response from GPT-4-turbo with retry logic and request tracking
+      let streamError: Error | null = null;
+
       const result = await connectionPool.executeWithRetry(
         async () =>
-          streamText({
-            model: openai("gpt-5-nano"),
-            system: systemPromptWithGuardRails,
-            messages: [
-              ...conversationHistory,
-              {
-                role: "user",
-                content: completePrompt,
+          connectionPool.withOpenAIClient(async (openai) => {
+            return streamText({
+              model: openai("gpt-5-nano"),
+              system: systemPromptWithGuardRails,
+              messages: [
+                ...conversationHistory,
+                {
+                  role: "user",
+                  content: completePrompt,
+                },
+              ],
+              temperature: 0.7,
+              onError: (error) => {
+                // Capture streaming errors
+                streamError =
+                  error instanceof Error ? error : new Error(String(error));
+                logger.error("Stream error during chat response generation", {
+                  component: "ChatService.generateResponse",
+                  conversationId,
+                  projectId,
+                  error: streamError,
+                });
               },
-            ],
-            temperature: 0.7,
+            });
           }),
         "openai"
       );
 
-      // Collect the full response
+      // Collect the full response with error handling
       let fullResponse = "";
-      for await (const textPart of result.textStream) {
-        fullResponse += textPart;
+      try {
+        for await (const textPart of result.textStream) {
+          fullResponse += textPart;
+        }
+      } catch (error) {
+        // Handle errors during stream consumption
+        const streamConsumptionError =
+          error instanceof Error ? error : new Error(String(error));
+        logger.error("Error consuming stream in generateResponse", {
+          component: "ChatService.generateResponse",
+          conversationId,
+          projectId,
+          error: streamConsumptionError,
+        });
+
+        // If we have partial content, we could still save it, but for now we'll fail
+        if (streamError) {
+          throw streamError;
+        }
+        throw streamConsumptionError;
+      }
+
+      // Check if stream error occurred
+      if (streamError) {
+        throw streamError;
       }
 
       // Save assistant message
@@ -568,7 +605,7 @@ Please answer the user's question based on this information.`
           organizationId,
           "ChatService.streamResponse"
         );
-      } catch (error) {
+      } catch {
         throw new Error("Conversation not found");
       }
 
@@ -659,8 +696,12 @@ Please answer the user's question based on this information.`
         userQuery: userMessage,
       });
 
-      // Stream response from GPT-4-turbo
-      const openai = connectionPool.getOpenAIClient();
+      // Stream response from GPT-5-nano with error handling and request tracking
+      // Get pooled client to track active requests
+      const { client: openai, pooled } =
+        connectionPool.getOpenAIClientWithTracking();
+      let streamError: Error | null = null;
+
       const result = streamText({
         model: openai("gpt-5-nano"),
         system: systemPrompt,
@@ -672,7 +713,33 @@ Please answer the user's question based on this information.`
           },
         ],
         temperature: 0.7,
+        onError: (error) => {
+          // Decrement active requests on error
+          pooled.activeRequests--;
+          // Capture streaming errors
+          streamError =
+            error instanceof Error ? error : new Error(String(error));
+          logger.error("Stream error during chat response streaming", {
+            component: "ChatService.streamResponse",
+            conversationId,
+            projectId,
+            error: streamError,
+          });
+        },
         async onFinish({ text }) {
+          // Decrement active requests when stream finishes
+          pooled.activeRequests--;
+
+          // Only save if stream completed successfully
+          if (streamError) {
+            logger.warn("Stream finished with error, not saving message", {
+              component: "ChatService.streamResponse",
+              conversationId,
+              error: streamError,
+            });
+            return;
+          }
+
           // Save assistant message after streaming is complete
           const assistantMessageEntry: NewChatMessage = {
             conversationId,
@@ -694,6 +761,12 @@ Please answer the user's question based on this information.`
           logger.info("Chat streaming completed", { conversationId });
         },
       });
+
+      // If stream error occurred immediately, decrement and throw
+      if (streamError) {
+        pooled.activeRequests--;
+        throw streamError;
+      }
 
       // Return stream with sources as metadata in the response
       return ok({
@@ -742,7 +815,7 @@ Please answer the user's question based on this information.`
           organizationId,
           "ChatService.streamOrganizationResponse"
         );
-      } catch (error) {
+      } catch {
         throw new Error("Conversation not found");
       }
 
@@ -831,8 +904,12 @@ Please answer the user's question based on this information. When referencing in
         userQuery: userMessage,
       });
 
-      // Stream response from GPT-4-turbo
-      const openai = connectionPool.getOpenAIClient();
+      // Stream response from GPT-4-turbo with error handling and request tracking
+      // Get pooled client to track active requests
+      const { client: openai, pooled } =
+        connectionPool.getOpenAIClientWithTracking();
+      let streamError: Error | null = null;
+
       const result = streamText({
         model: openai("gpt-5-nano"),
         system: systemPrompt,
@@ -844,7 +921,36 @@ Please answer the user's question based on this information. When referencing in
           },
         ],
         temperature: 0.7,
+        onError: (error) => {
+          // Decrement active requests on error
+          pooled.activeRequests--;
+          // Capture streaming errors
+          streamError =
+            error instanceof Error ? error : new Error(String(error));
+          logger.error(
+            "Stream error during organization chat response streaming",
+            {
+              component: "ChatService.streamOrganizationResponse",
+              conversationId,
+              organizationId,
+              error: streamError,
+            }
+          );
+        },
         async onFinish({ text }) {
+          // Decrement active requests when stream finishes
+          pooled.activeRequests--;
+
+          // Only save if stream completed successfully
+          if (streamError) {
+            logger.warn("Stream finished with error, not saving message", {
+              component: "ChatService.streamOrganizationResponse",
+              conversationId,
+              error: streamError,
+            });
+            return;
+          }
+
           // Save assistant message after streaming is complete
           const assistantMessageEntry: NewChatMessage = {
             conversationId,
@@ -868,6 +974,12 @@ Please answer the user's question based on this information. When referencing in
           });
         },
       });
+
+      // If stream error occurred immediately, decrement and throw
+      if (streamError) {
+        pooled.activeRequests--;
+        throw streamError;
+      }
 
       // Return stream with sources as metadata in the response
       return ok({
@@ -1000,7 +1112,7 @@ Please answer the user's question based on this information. When referencing in
           organizationId,
           "ChatService.softDeleteConversation"
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Conversation",
@@ -1063,7 +1175,7 @@ Please answer the user's question based on this information. When referencing in
           organizationId,
           "ChatService.restoreConversation"
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Conversation",
@@ -1123,7 +1235,7 @@ Please answer the user's question based on this information. When referencing in
           organizationId,
           "ChatService.archiveConversation"
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Conversation",
@@ -1183,7 +1295,7 @@ Please answer the user's question based on this information. When referencing in
           organizationId,
           "ChatService.unarchiveConversation"
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Conversation",

@@ -22,7 +22,6 @@ interface TaskExtractionResult {
 }
 
 export class TaskExtractionService {
-
   /**
    * Dutch urgency keywords for priority detection (AI-004)
    */
@@ -121,20 +120,21 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
 
       const userPrompt = `Analyseer deze vergadertranscriptie en extraheer alle actiepunten met hun prioriteit:\n\n${transcriptionText}`;
 
-      // Call OpenAI API with function calling for structured output and retry logic
-      const openai = connectionPool.getRawOpenAIClient();
+      // Call OpenAI API with function calling for structured output, retry logic, and request tracking
       const completion = await connectionPool.executeWithRetry(
         async () =>
-          openai.chat.completions.create({
-            model: "gpt-4-turbo-preview",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0.3,
-            max_tokens: 2000,
-          }),
+          connectionPool.withRawOpenAIClient(async (openai) =>
+            openai.chat.completions.create({
+              model: "gpt-5-nano",
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt },
+              ],
+              response_format: { type: "json_object" },
+              temperature: 0.3,
+              max_tokens: 2000,
+            })
+          ),
         "openai"
       );
 

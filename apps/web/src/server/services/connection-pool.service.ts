@@ -124,10 +124,10 @@ export class ConnectionPoolService {
   }
 
   /**
-   * Get OpenAI AI SDK client from pool (round-robin)
-   * Use this for streamText and other AI SDK functions
+   * Get next healthy OpenAI client from pool (round-robin)
+   * Internal helper for selecting clients
    */
-  getOpenAIClient(): ReturnType<typeof createOpenAI> {
+  private getNextHealthyOpenAIClient(): PooledClient<OpenAIClientPair> {
     if (this.openaiPool.length === 0) {
       throw new Error(
         "OpenAI pool is empty. Check OPENAI_API_KEY configuration."
@@ -141,7 +141,7 @@ export class ConnectionPoolService {
       this.currentOpenAI = (this.currentOpenAI + 1) % this.openaiPool.length;
 
       if (client.isHealthy) {
-        return client.client.aiSdkClient;
+        return client;
       }
 
       attempts++;
@@ -151,44 +151,81 @@ export class ConnectionPoolService {
     logger.warn("No healthy OpenAI clients found, using first client", {
       component: "ConnectionPoolService",
     });
-    return this.openaiPool[0]?.client.aiSdkClient;
+    return this.openaiPool[0];
+  }
+
+  /**
+   * Get OpenAI AI SDK client from pool (round-robin)
+   * Use this for streamText and other AI SDK functions
+   * @deprecated Use withOpenAIClient instead to track active requests
+   */
+  getOpenAIClient(): ReturnType<typeof createOpenAI> {
+    const pooled = this.getNextHealthyOpenAIClient();
+    return pooled.client.aiSdkClient;
+  }
+
+  /**
+   * Execute operation with OpenAI AI SDK client, tracking active requests
+   * This method properly tracks activeRequests for metrics
+   */
+  async withOpenAIClient<T>(
+    fn: (client: ReturnType<typeof createOpenAI>) => Promise<T>
+  ): Promise<T> {
+    const pooled = this.getNextHealthyOpenAIClient();
+    pooled.activeRequests++;
+    try {
+      return await fn(pooled.client.aiSdkClient);
+    } finally {
+      pooled.activeRequests--;
+    }
+  }
+
+  /**
+   * Get OpenAI AI SDK client with manual request tracking for streaming
+   * Returns the client and a cleanup function to decrement activeRequests
+   * Use this for streaming operations where you need to track requests manually
+   */
+  getOpenAIClientWithTracking(): {
+    client: ReturnType<typeof createOpenAI>;
+    pooled: PooledClient<OpenAIClientPair>;
+  } {
+    const pooled = this.getNextHealthyOpenAIClient();
+    pooled.activeRequests++;
+    return {
+      client: pooled.client.aiSdkClient,
+      pooled,
+    };
   }
 
   /**
    * Get raw OpenAI client from pool (round-robin)
    * Use this for embeddings and direct API calls
+   * @deprecated Use withRawOpenAIClient instead to track active requests
    */
   getRawOpenAIClient(): OpenAI {
-    if (this.openaiPool.length === 0) {
-      throw new Error(
-        "OpenAI pool is empty. Check OPENAI_API_KEY configuration."
-      );
-    }
-
-    // Find next healthy client using round-robin
-    let attempts = 0;
-    while (attempts < this.openaiPool.length) {
-      const client = this.openaiPool[this.currentOpenAI];
-      this.currentOpenAI = (this.currentOpenAI + 1) % this.openaiPool.length;
-
-      if (client.isHealthy) {
-        return client.client.rawClient;
-      }
-
-      attempts++;
-    }
-
-    // If no healthy client found, return first client anyway (will retry)
-    logger.warn("No healthy OpenAI clients found, using first client", {
-      component: "ConnectionPoolService",
-    });
-    return this.openaiPool[0]?.client.rawClient;
+    const pooled = this.getNextHealthyOpenAIClient();
+    return pooled.client.rawClient;
   }
 
   /**
-   * Get Anthropic client from pool (round-robin)
+   * Execute operation with raw OpenAI client, tracking active requests
+   * This method properly tracks activeRequests for metrics
    */
-  getAnthropicClient(): Anthropic {
+  async withRawOpenAIClient<T>(fn: (client: OpenAI) => Promise<T>): Promise<T> {
+    const pooled = this.getNextHealthyOpenAIClient();
+    pooled.activeRequests++;
+    try {
+      return await fn(pooled.client.rawClient);
+    } finally {
+      pooled.activeRequests--;
+    }
+  }
+
+  /**
+   * Get next healthy Anthropic client from pool (round-robin)
+   * Internal helper for selecting clients
+   */
+  private getNextHealthyAnthropicClient(): PooledClient<Anthropic> {
     if (this.anthropicPool.length === 0) {
       throw new Error(
         "Anthropic pool is empty. Check ANTHROPIC_API_KEY configuration."
@@ -203,7 +240,7 @@ export class ConnectionPoolService {
         (this.currentAnthropic + 1) % this.anthropicPool.length;
 
       if (client.isHealthy) {
-        return client.client;
+        return client;
       }
 
       attempts++;
@@ -213,7 +250,32 @@ export class ConnectionPoolService {
     logger.warn("No healthy Anthropic clients found, using first client", {
       component: "ConnectionPoolService",
     });
-    return this.anthropicPool[0]?.client ?? this.anthropicPool[0]?.client;
+    return this.anthropicPool[0];
+  }
+
+  /**
+   * Get Anthropic client from pool (round-robin)
+   * @deprecated Use withAnthropicClient instead to track active requests
+   */
+  getAnthropicClient(): Anthropic {
+    const pooled = this.getNextHealthyAnthropicClient();
+    return pooled.client;
+  }
+
+  /**
+   * Execute operation with Anthropic client, tracking active requests
+   * This method properly tracks activeRequests for metrics
+   */
+  async withAnthropicClient<T>(
+    fn: (client: Anthropic) => Promise<T>
+  ): Promise<T> {
+    const pooled = this.getNextHealthyAnthropicClient();
+    pooled.activeRequests++;
+    try {
+      return await fn(pooled.client);
+    } finally {
+      pooled.activeRequests--;
+    }
   }
 
   /**

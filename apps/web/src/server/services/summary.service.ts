@@ -139,20 +139,21 @@ Antwoord ALLEEN met valid JSON in het volgende formaat (gebruik Engels voor de v
 
       const userPrompt = `Maak een gestructureerde samenvatting van deze vergadertranscriptie:\n\n${transcriptionText}`;
 
-      // Call OpenAI API with retry logic
-      const openai = connectionPool.getRawOpenAIClient();
+      // Call OpenAI API with retry logic and request tracking
       const completion = await connectionPool.executeWithRetry(
         async () =>
-          openai.chat.completions.create({
-            model: "gpt-4-turbo-preview",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0.3,
-            max_tokens: 2000,
-          }),
+          connectionPool.withRawOpenAIClient(async (openai) =>
+            openai.chat.completions.create({
+              model: "gpt-4-turbo-preview",
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt },
+              ],
+              response_format: { type: "json_object" },
+              temperature: 0.3,
+              max_tokens: 2000,
+            })
+          ),
         "openai"
       );
 
