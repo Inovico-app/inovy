@@ -2,6 +2,12 @@ import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { err, ok } from "neverthrow";
+import type {
+  QdrantFilter,
+  QdrantPayload,
+  QdrantPoint,
+  QdrantSearchOptions,
+} from "./types";
 
 /**
  * Qdrant Vector Database Client Service
@@ -15,34 +21,6 @@ import { err, ok } from "neverthrow";
  * - Distance metric: Cosine
  * - HNSW index: m=16, ef_construct=100
  */
-export interface QdrantPayload {
-  userId: string;
-  organizationId: string;
-  departmentId?: string;
-  teamId?: string[];
-  projectId?: string;
-  content: string;
-  filename?: string;
-  timestamp?: Date | string;
-  [key: string]: unknown;
-}
-
-export interface QdrantPoint {
-  id: string | number;
-  vector: number[];
-  payload?: QdrantPayload;
-}
-
-export interface QdrantSearchOptions {
-  limit?: number;
-  scoreThreshold?: number;
-  filter?: {
-    must?: Array<{
-      key: string;
-      match?: { value?: string | string[]; text?: string };
-    }>;
-  };
-}
 
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [1000, 2000, 4000]; // 1s, 2s, 4s exponential backoff
@@ -291,7 +269,7 @@ export class QdrantClientService {
         vector: queryVector,
         limit: searchOptions.limit ?? 10,
         score_threshold: searchOptions.scoreThreshold,
-        filter: searchOptions.filter,
+        filter: searchOptions.filter as Record<string, unknown> | undefined,
       });
 
       const results = searchResult.map((result) => ({
@@ -314,12 +292,7 @@ export class QdrantClientService {
    * Scroll points by filter (for keyword/full-text search)
    */
   async scroll(
-    filter: {
-      must?: Array<{
-        key: string;
-        match?: { value?: string | string[]; text?: string; any?: string[] };
-      }>;
-    },
+    filter: QdrantFilter,
     options: {
       limit?: number;
       collectionName?: string;
@@ -343,7 +316,7 @@ export class QdrantClientService {
 
     return await this.executeWithRetry(async () => {
       const scrollResult = await this.client.scroll(targetCollection, {
-        filter,
+        filter: filter as Record<string, unknown>,
         limit: options.limit ?? 100,
         with_payload: true,
         with_vector: false,
@@ -399,12 +372,7 @@ export class QdrantClientService {
    * Delete points by filter
    */
   async deleteByFilter(
-    filter: {
-      must?: Array<{
-        key: string;
-        match?: { value: string | string[] };
-      }>;
-    },
+    filter: QdrantFilter,
     collectionName?: string
   ): Promise<ActionResult<void>> {
     const targetCollection = collectionName ?? this.defaultCollectionName;
@@ -418,7 +386,7 @@ export class QdrantClientService {
     return await this.executeWithRetry(async () => {
       await this.client.delete(targetCollection, {
         wait: true,
-        filter,
+        filter: filter as Record<string, unknown>,
       });
 
       logger.debug("Deleted points by filter from Qdrant", {
@@ -436,12 +404,7 @@ export class QdrantClientService {
    */
   async setPayload(
     payload: Record<string, unknown>,
-    filter: {
-      must?: Array<{
-        key: string;
-        match?: { value: string | string[] };
-      }>;
-    },
+    filter: QdrantFilter,
     collectionName?: string
   ): Promise<ActionResult<void>> {
     const targetCollection = collectionName ?? this.defaultCollectionName;
@@ -455,7 +418,7 @@ export class QdrantClientService {
     return await this.executeWithRetry(async () => {
       await this.client.setPayload(targetCollection, {
         payload,
-        filter,
+        filter: filter as Record<string, unknown>,
         wait: true,
       });
 

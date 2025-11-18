@@ -11,57 +11,19 @@ import { ProjectTemplateQueries } from "@/server/data-access/project-templates.q
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { TasksQueries } from "@/server/data-access/tasks.queries";
 import { EmbeddingService } from "@/server/services/embedding.service";
-import {
-  QdrantClientService,
-  type QdrantPoint,
-} from "@/server/services/rag/qdrant.service";
+import { QdrantClientService } from "@/server/services/rag/qdrant.service";
 import { randomUUID } from "crypto";
 import { err, ok } from "neverthrow";
-import {
-  HybridSearchEngine,
-  type HybridSearchOptions,
-} from "./hybrid-search.service";
+import { HybridSearchEngine } from "./hybrid-search.service";
 import { RerankerService } from "./reranker.service";
-// SearchResult interface - shared across RAG services
-export interface SearchResult {
-  id: string;
-  contentType:
-    | "recording"
-    | "transcription"
-    | "summary"
-    | "task"
-    | "knowledge_document";
-  contentId: string;
-  contentText: string;
-  similarity: number;
-  rerankedScore?: number; // Cross-encoder score from re-ranking
-  originalScore?: number; // Original similarity score (preserved from similarity field)
-  metadata: {
-    title?: string;
-    recordingTitle?: string;
-    recordingDate?: string;
-    recordingId?: string;
-    priority?: string;
-    status?: string;
-    timestamp?: number;
-    chunkIndex?: number;
-    documentId?: string; // For knowledge documents
-    documentTitle?: string; // For knowledge documents
-    [key: string]: unknown;
-  };
-}
-
-export interface RAGSearchOptions {
-  limit?: number;
-  useHybrid?: boolean;
-  useReranking?: boolean;
-  filters?: Record<string, unknown>;
-  vectorWeight?: number;
-  keywordWeight?: number;
-  scoreThreshold?: number;
-  organizationId?: string;
-  projectId?: string;
-}
+import type {
+  HybridSearchOptions,
+  MatchCondition,
+  QdrantFilter,
+  QdrantPoint,
+  RAGSearchOptions,
+  SearchResult,
+} from "./types";
 
 export class RAGService {
   private qdrantService: QdrantClientService;
@@ -91,9 +53,8 @@ export class RAGService {
    *
    * Pipeline:
    * 1. Generate query embedding
-   * 2. Hybrid search (vector + keyword)
-   * 3. Re-rank top results
-   * 4. Apply metadata filtering
+   * 2. Hybrid search (vector + keyword) with metadata filtering via Qdrant filters
+   * 3. Re-rank top results (if enabled)
    */
   async search(
     query: string,
@@ -184,10 +145,13 @@ export class RAGService {
       }
 
       // 3. Re-rank if enabled
+      let didRerank = false;
       if (useReranking && results.length > 0) {
         const rerankResult = await this.reranker.rerank(query, results, limit);
         if (rerankResult.isOk()) {
           results = rerankResult.value;
+          // Check if reranking actually succeeded by verifying rerankedScore exists
+          didRerank = results.some((r) => r.rerankedScore !== undefined);
         }
         // If re-ranking fails, continue with original results (non-blocking)
       } else {
@@ -197,7 +161,8 @@ export class RAGService {
       logger.debug("RAG search completed", {
         component: "RAGService",
         resultsCount: results.length,
-        reranked: useReranking,
+        reranked: didRerank,
+        rerankingEnabled: useReranking,
       });
 
       return ok(results);
@@ -483,15 +448,10 @@ export class RAGService {
     organizationId: string | undefined,
     projectId: string | undefined,
     additionalFilters: Record<string, unknown>
-  ): {
-    must?: Array<{
-      key: string;
-      match?: { value?: string | string[]; text?: string };
-    }>;
-  } {
+  ): QdrantFilter {
     const must: Array<{
       key: string;
-      match?: { value?: string | string[]; text?: string };
+      match?: MatchCondition;
     }> = [];
 
     // Only add userId filter if provided

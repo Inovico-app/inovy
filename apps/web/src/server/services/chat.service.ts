@@ -20,7 +20,8 @@ import {
   buildSystemPromptWithGuardRails,
   validatePromptSafety,
 } from "./prompt-builder.service";
-import { RAGService, type SearchResult } from "./rag/rag.service";
+import { RAGService } from "./rag/rag.service";
+import type { SearchResult } from "./rag/types";
 
 export class ChatService {
   private static openai = createOpenAI({
