@@ -5,10 +5,12 @@ import { redirect } from "next/navigation";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
-import { ProjectService } from "../../../server/services";
-import { createProjectSchema } from "../../../server/validation/create-project";
+} from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
+import { logger } from "@/lib/logger";
+import { ProjectService } from "@/server/services";
+import { AuditLogService } from "@/server/services/audit-log.service";
+import { createProjectSchema } from "@/server/validation/create-project";
 
 /**
  * Project creation using Result types throughout
@@ -43,6 +45,37 @@ export const createProjectAction = authorizedActionClient
       user,
       organizationId
     );
+
+    if (result.isErr()) {
+      throw result.error;
+    }
+
+    const project = result.value;
+
+    // Log audit event
+    logger.audit.event("project_created", {
+      resourceType: "project",
+      resourceId: project.id,
+      userId: user.id,
+      organizationId,
+      action: "create",
+      metadata: {
+        projectName: name,
+      },
+    });
+
+    // Create audit log entry
+    await AuditLogService.createAuditLog({
+      eventType: "project_created",
+      resourceType: "project",
+      resourceId: project.id,
+      userId: user.id,
+      organizationId,
+      action: "create",
+      metadata: {
+        projectName: name,
+      },
+    });
 
     // Convert Result to action response (throws if error)
     return resultToActionResponse(result);

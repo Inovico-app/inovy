@@ -1,7 +1,9 @@
 /**
- * Enterprise-level logging utility for structured logging
+ * Enterprise-level logging utility for structured logging using Pino
  * Supports different log levels and structured data
  */
+
+import pino from "pino";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -14,103 +16,136 @@ interface LogContext {
   [key: string]: unknown;
 }
 
-interface LogEntry {
-  level: LogLevel;
-  message: string;
-  timestamp: string;
-  context?: LogContext;
-  error?: Error;
+// Determine log level from environment variable or default based on NODE_ENV
+const getLogLevel = (): pino.Level => {
+  const envLogLevel = process.env.LOG_LEVEL?.toLowerCase();
+  if (envLogLevel && ["debug", "info", "warn", "error"].includes(envLogLevel)) {
+    return envLogLevel as pino.Level;
+  }
+  return process.env.NODE_ENV === "development" ? "debug" : "info";
+};
+
+// Create base pino logger instance
+const isDevelopment = process.env.NODE_ENV === "development";
+
+// Configure pino with environment-based settings
+const pinoConfig: pino.LoggerOptions = {
+  level: getLogLevel(),
+  formatters: {
+    level: (label: string) => {
+      return { level: label };
+    },
+  },
+  timestamp: pino.stdTimeFunctions.isoTime,
+  // Redact sensitive fields
+  redact: {
+    paths: [
+      "password",
+      "apiKey",
+      "api_key",
+      "token",
+      "accessToken",
+      "access_token",
+      "refreshToken",
+      "refresh_token",
+      "secret",
+      "secretKey",
+      "secret_key",
+      "authorization",
+      "cookie",
+      "sessionId",
+      "session_id",
+    ],
+    censor: "[Redacted]",
+  },
+  // Base context
+  base: {
+    env: process.env.NODE_ENV,
+    pid: process.pid,
+  },
+};
+
+// In development, use pino-pretty for readable output
+// In production, use JSON output for log aggregation
+let pinoLogger: pino.Logger;
+
+if (isDevelopment) {
+  // Use pino-pretty transport in development
+  pinoLogger = pino(
+    {
+      ...pinoConfig,
+      transport: {
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+          translateTime: "HH:MM:ss Z",
+          ignore: "pid,hostname",
+          singleLine: false,
+        },
+      },
+    },
+    pino.destination({ sync: false })
+  );
+} else {
+  // Use JSON output in production
+  pinoLogger = pino(pinoConfig, pino.destination({ sync: false }));
 }
 
 class Logger {
-  private isDevelopment = process.env.NODE_ENV === "development";
+  private logger: pino.Logger;
 
-  private formatLogEntry(entry: LogEntry): string {
-    const { level, message, timestamp, context, error } = entry;
-
-    if (this.isDevelopment) {
-      // Pretty format for development
-      let logString = `[${timestamp}] ${level.toUpperCase()}: ${message}`;
-
-      if (context && Object.keys(context).length > 0) {
-        logString += `\n  Context: ${JSON.stringify(context, null, 2)}`;
-      }
-
-      if (error) {
-        logString += `\n  Error: ${error.message}`;
-        logString += `\n  Stack: ${error.stack}`;
-      }
-
-      return logString;
-    } else {
-      // JSON format for production (better for log aggregation)
-      return JSON.stringify({
-        ...entry,
-        error: error
-          ? {
-              message: error.message,
-              stack: error.stack,
-              name: error.name,
-            }
-          : undefined,
-      });
-    }
+  constructor(loggerInstance?: pino.Logger) {
+    this.logger = loggerInstance ?? pinoLogger;
   }
 
-  private log(
-    level: LogLevel,
-    message: string,
-    context?: LogContext,
-    error?: Error
-  ): void {
-    const entry: LogEntry = {
-      level,
-      message,
-      timestamp: new Date().toISOString(),
-      context,
-      error,
-    };
-
-    const formattedLog = this.formatLogEntry(entry);
-
-    // Route to appropriate console method
-    switch (level) {
-      case "debug":
-        console.debug(formattedLog);
-        break;
-      case "info":
-        console.info(formattedLog);
-        break;
-      case "warn":
-        console.warn(formattedLog);
-        break;
-      case "error":
-        console.error(formattedLog);
-        break;
-    }
-
-    // In production, you might want to send logs to external service
-    // like DataDog, Sentry, CloudWatch, etc.
-    if (!this.isDevelopment && level === "error") {
-      // TODO: Send to external logging service
-      // e.g., sendToDataDog(entry);
-    }
+  /**
+   * Create a child logger with default context
+   * This enables automatic context propagation without passing it in every call
+   */
+  child(bindings: Record<string, unknown>): Logger {
+    return new Logger(this.logger.child(bindings));
   }
 
   debug(message: string, context?: LogContext): void {
-    this.log("debug", message, context);
+    if (context) {
+      this.logger.debug(context, message);
+    } else {
+      this.logger.debug(message);
+    }
   }
 
   info(message: string, context?: LogContext): void {
-    this.log("info", message, context);
+    if (context) {
+      this.logger.info(context, message);
+    } else {
+      this.logger.info(message);
+    }
   }
 
   warn(message: string, context?: LogContext, error?: Error): void {
-    this.log("warn", message, context, error);
+    const logData: Record<string, unknown> = { ...context };
+    if (error) {
+      // Pino automatically serializes Error objects when passed in the 'err' field
+      logData.err = error;
+    }
+    if (Object.keys(logData).length > 0) {
+      this.logger.warn(logData, message);
+    } else {
+      this.logger.warn(message);
+    }
   }
 
   error(message: string, context?: LogContext, error?: Error): void {
-    this.log("error", message, context, error);
+    const logData: Record<string, unknown> = { ...context };
+    if (error) {
+      // Pino automatically serializes Error objects when passed in the 'err' field
+      logData.err = error;
+    }
+    if (Object.keys(logData).length > 0) {
+      this.logger.error(logData, message);
+    } else {
+      this.logger.error(message);
+    }
   }
 
   // Helper method for auth-related logging

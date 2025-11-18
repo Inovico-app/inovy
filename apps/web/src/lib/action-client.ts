@@ -180,12 +180,12 @@ async function authenticationMiddleware({
   const { isAuthorized, requiredRoles } = userIsAuthorized(session, policy);
 
   if (!isAuthorized) {
-    ctx.logger.error("User not authorized for action", {
+    // Log unauthorized access attempt using security logger
+    ctx.logger.security.unauthorizedAccess({
       userId: session.user.id,
-      organizationId,
-      policy,
-      requiredRoles,
-      component: "auth-middleware",
+      resource: policy ?? "unknown",
+      action: "access",
+      reason: `User does not have required roles: ${requiredRoles.join(", ")}`,
     });
 
     const actionError = ActionErrors.forbidden(

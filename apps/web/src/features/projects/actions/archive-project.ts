@@ -1,9 +1,11 @@
 "use server";
 
-import { authorizedActionClient } from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
-import { ProjectService } from "../../../server/services";
-import { archiveProjectSchema } from "../../../server/validation/projects/archive-project";
+import { authorizedActionClient } from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
+import { logger } from "@/lib/logger";
+import { ProjectService } from "@/server/services";
+import { AuditLogService } from "@/server/services/audit-log.service";
+import { archiveProjectSchema } from "@/server/validation/projects/archive-project";
 
 /**
  * Archive project action
@@ -26,7 +28,10 @@ export const archiveProjectAction = authorizedActionClient
     }
 
     // Archive project
-    const result = await ProjectService.archiveProject(projectId, organizationId);
+    const result = await ProjectService.archiveProject(
+      projectId,
+      organizationId
+    );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
@@ -35,6 +40,25 @@ export const archiveProjectAction = authorizedActionClient
         "archive-project"
       );
     }
+
+    // Log audit event
+    logger.audit.event("project_archived", {
+      resourceType: "project",
+      resourceId: projectId,
+      userId: ctx.user?.id ?? "unknown",
+      organizationId,
+      action: "archive",
+    });
+
+    // Create audit log entry
+    await AuditLogService.createAuditLog({
+      eventType: "project_archived",
+      resourceType: "project",
+      resourceId: projectId,
+      userId: ctx.user?.id ?? "unknown",
+      organizationId,
+      action: "archive",
+    });
 
     return { data: { success: result.value } };
   });
