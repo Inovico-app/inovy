@@ -7,6 +7,15 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "./auth";
 
 /**
+ * Convert a timestamp in milliseconds to Unix timestamp in seconds
+ * @param timestampMs Timestamp in milliseconds
+ * @returns Unix timestamp in seconds as a string
+ */
+function toUnixSeconds(timestampMs: number): string {
+  return Math.floor(timestampMs / 1000).toString();
+}
+
+/**
  * Rate limit options for API routes
  */
 export interface RateLimitOptions {
@@ -95,14 +104,17 @@ export async function checkRateLimit(
         remaining: limitResult.remaining,
         resetAt: limitResult.resetAt,
         limit: effectiveMaxRequests,
-        retryAfter: Math.ceil((limitResult.resetAt - Date.now()) / 1000),
+        retryAfter: Math.max(
+          0,
+          Math.ceil((limitResult.resetAt - Date.now()) / 1000)
+        ),
       };
     }
   }
 
   const retryAfter = limitResult.allowed
     ? undefined
-    : Math.ceil((limitResult.resetAt - Date.now()) / 1000);
+    : Math.max(0, Math.ceil((limitResult.resetAt - Date.now()) / 1000));
 
   return {
     allowed: limitResult.allowed,
@@ -122,7 +134,7 @@ export function createRateLimitResponse(
   const headers = new Headers();
   headers.set("X-RateLimit-Limit", result.limit.toString());
   headers.set("X-RateLimit-Remaining", result.remaining.toString());
-  headers.set("X-RateLimit-Reset", new Date(result.resetAt).toISOString());
+  headers.set("X-RateLimit-Reset", toUnixSeconds(result.resetAt));
 
   if (result.retryAfter !== undefined) {
     headers.set("Retry-After", result.retryAfter.toString());
@@ -133,6 +145,7 @@ export function createRateLimitResponse(
       error: "Rate limit exceeded",
       message: "Too many requests. Please try again later.",
       retryAfter: result.retryAfter,
+      resetAt: parseInt(toUnixSeconds(result.resetAt), 10),
     },
     {
       status: 429,
@@ -151,7 +164,7 @@ export function addRateLimitHeaders(
   const headers = new Headers(response.headers);
   headers.set("X-RateLimit-Limit", result.limit.toString());
   headers.set("X-RateLimit-Remaining", result.remaining.toString());
-  headers.set("X-RateLimit-Reset", new Date(result.resetAt).toISOString());
+  headers.set("X-RateLimit-Reset", toUnixSeconds(result.resetAt));
 
   return new NextResponse(response.body, {
     status: response.status,
@@ -164,7 +177,7 @@ export function addRateLimitHeaders(
  * Extract user ID from request
  * This function attempts to get the user ID from the authenticated session
  */
-async function extractUserId(request: NextRequest): Promise<string | null> {
+async function extractUserId(_request: NextRequest): Promise<string | null> {
   try {
     const sessionResult = await getAuthSession();
 
@@ -185,9 +198,11 @@ async function extractUserId(request: NextRequest): Promise<string | null> {
 /**
  * Handler function type for API routes
  * Supports both simple handlers and Next.js dynamic route handlers with params
+ * @note Using `any` for context is necessary to support Next.js route handlers with various context types
  */
 type ApiRouteHandler = (
   request: NextRequest,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   context?: any
 ) => Promise<Response | NextResponse>;
 
@@ -267,10 +282,7 @@ export function withRateLimit(
         "X-RateLimit-Remaining",
         rateLimitResult.remaining.toString()
       );
-      headers.set(
-        "X-RateLimit-Reset",
-        new Date(rateLimitResult.resetAt).toISOString()
-      );
+      headers.set("X-RateLimit-Reset", toUnixSeconds(rateLimitResult.resetAt));
 
       return new Response(response.body, {
         status: response.status,
