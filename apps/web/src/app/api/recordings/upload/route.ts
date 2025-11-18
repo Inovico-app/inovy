@@ -1,4 +1,8 @@
 import { logger, serializeError } from "@/lib/logger";
+import {
+  checkRateLimit,
+  createRateLimitResponse,
+} from "@/lib/rate-limit";
 import { RecordingService } from "@/server/services";
 import {
   ALLOWED_MIME_TYPES,
@@ -52,6 +56,25 @@ export async function POST(request: NextRequest) {
 
         if (!user || !organization) {
           throw new Error("Unauthorized");
+        }
+
+        // Check rate limit (10 uploads/hour free, 100 uploads/hour pro)
+        const rateLimitResult = await checkRateLimit(user.id, {
+          maxRequests: undefined, // Use tier-based default, but override with custom limits
+          windowSeconds: 3600, // 1 hour
+        });
+
+        // Override with custom limits for uploads
+        const tierLimits = rateLimitResult.limit === 100 ? 10 : 100; // free: 10, pro: 100
+        const customRateLimitResult = await checkRateLimit(user.id, {
+          maxRequests: tierLimits,
+          windowSeconds: 3600,
+        });
+
+        if (!customRateLimitResult.allowed) {
+          throw new Error(
+            `Rate limit exceeded. Retry after ${customRateLimitResult.retryAfter} seconds.`
+          );
         }
 
         logger.info("Generating client token for recording upload", {

@@ -1,5 +1,10 @@
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import {
+  addRateLimitHeaders,
+  checkRateLimit,
+  createRateLimitResponse,
+} from "@/lib/rate-limit";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { RecordingService } from "@/server/services";
 import { TranscriptionService } from "@/server/services/transcription.service";
@@ -20,6 +25,25 @@ export async function POST(
       !authResult.value.user
     ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = authResult.value.user;
+
+    // Check rate limit (10/hour free, 100/hour pro)
+    const rateLimitResult = await checkRateLimit(user.id, {
+      maxRequests: undefined, // Use tier-based default, but override with custom limits
+      windowSeconds: 3600, // 1 hour
+    });
+
+    // Override with custom limits for transcription
+    const tierLimits = rateLimitResult.limit === 100 ? 10 : 100; // free: 10, pro: 100
+    const customRateLimitResult = await checkRateLimit(user.id, {
+      maxRequests: tierLimits,
+      windowSeconds: 3600,
+    });
+
+    if (!customRateLimitResult.allowed) {
+      return createRateLimitResponse(customRateLimitResult);
     }
 
     // Get recording
@@ -90,10 +114,12 @@ export async function POST(
       );
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       transcription: result.value,
     });
+
+    return addRateLimitHeaders(response, customRateLimitResult);
   } catch (error) {
     logger.error("Error in transcription API", {
       component: "TranscribeRoute",
