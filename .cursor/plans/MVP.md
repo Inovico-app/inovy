@@ -308,7 +308,7 @@ Given your breadth, I'd recommend a **phased launch**:
 
 2. **AI Model Strategy:**
 
-   - Use foundation models (GPT-4, Claude) via API initially
+   - Use foundation models (GPT-5, Claude) via API initially
    - Offer self-hosted LLM option for sensitive deployments (Llama, Mistral)
    - Build fine-tuned models for industry-specific insights
 

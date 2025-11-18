@@ -1,24 +1,17 @@
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { EmbeddingCacheQueries } from "@/server/data-access/embedding-cache.queries";
+import { connectionPool } from "@/server/services/connection-pool.service";
 import { createHash } from "crypto";
 import { err, ok } from "neverthrow";
-import OpenAI from "openai";
 
 export class EmbeddingService {
-  private openai: OpenAI;
   private readonly EMBEDDING_MODEL = "text-embedding-3-large";
   private readonly BATCH_SIZE = 100; // embeddings per batch
 
   // Cache hit rate tracking (for monitoring) - shared across instances
   private static cacheHits = 0;
   private static cacheMisses = 0;
-
-  constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY ?? "",
-    });
-  }
 
   /**
    * Generate SHA-256 hash of text content for cache key
@@ -83,11 +76,16 @@ export class EmbeddingService {
 
       EmbeddingService.cacheMisses++;
 
-      // Generate embedding via API
-      const response = await this.openai.embeddings.create({
-        model,
-        input: text,
-      });
+      // Generate embedding via API with retry logic
+      // Each retry attempt gets a fresh client from the pool for better round-robin and recovery
+      const response = await connectionPool.executeWithRetry(
+        async () =>
+          connectionPool.getRawOpenAIClient().embeddings.create({
+            model,
+            input: text,
+          }),
+        "openai"
+      );
 
       const embedding = response.data[0]?.embedding;
 
@@ -176,13 +174,18 @@ export class EmbeddingService {
         }
       }
 
-      // Generate embeddings for uncached texts
+      // Generate embeddings for uncached texts with retry logic
+      // Each retry attempt gets a fresh client from the pool for better round-robin and recovery
       let uncachedEmbeddings: number[][] = [];
       if (uncachedTexts.length > 0) {
-        const response = await this.openai.embeddings.create({
-          model,
-          input: uncachedTexts,
-        });
+        const response = await connectionPool.executeWithRetry(
+          async () =>
+            connectionPool.getRawOpenAIClient().embeddings.create({
+              model,
+              input: uncachedTexts,
+            }),
+          "openai"
+        );
 
         uncachedEmbeddings = response.data.map((item) => item.embedding);
 
