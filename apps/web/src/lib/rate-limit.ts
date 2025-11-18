@@ -92,11 +92,12 @@ export async function checkRateLimit(
     );
 
     if (!costAllowed) {
-      logger.info("Cost limit exceeded", {
+      logger.security.suspiciousActivity("Cost limit exceeded", {
         component: "rate-limit",
         userId,
         cost,
         maxCost: effectiveMaxCost,
+        action: "rate_limit_exceeded",
       });
 
       return {
@@ -110,6 +111,18 @@ export async function checkRateLimit(
         ),
       };
     }
+  }
+
+  // Log rate limit violations as suspicious activity
+  if (!limitResult.allowed) {
+    logger.security.suspiciousActivity("Rate limit exceeded", {
+      component: "rate-limit",
+      userId,
+      limit: effectiveMaxRequests,
+      remaining: limitResult.remaining,
+      windowSeconds,
+      action: "rate_limit_exceeded",
+    });
   }
 
   const retryAfter = limitResult.allowed

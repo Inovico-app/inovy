@@ -1,9 +1,11 @@
 "use server";
 
-import { authorizedActionClient } from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
-import { RecordingService } from "../../../server/services";
-import { archiveRecordingSchema } from "../../../server/validation/recordings/archive-recording";
+import { authorizedActionClient } from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
+import { logger } from "@/lib/logger";
+import { RecordingService } from "@/server/services";
+import { AuditLogService } from "@/server/services/audit-log.service";
+import { archiveRecordingSchema } from "@/server/validation/recordings/archive-recording";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -27,7 +29,9 @@ export const archiveRecordingAction = authorizedActionClient
     }
 
     // Get recording to find project ID for cache invalidation
-    const recordingResult = await RecordingService.getRecordingById(recordingId);
+    const recordingResult = await RecordingService.getRecordingById(
+      recordingId
+    );
     if (recordingResult.isErr() || !recordingResult.value) {
       throw ActionErrors.notFound("Recording", "archive-recording");
     }
@@ -35,7 +39,10 @@ export const archiveRecordingAction = authorizedActionClient
     const recording = recordingResult.value;
 
     // Archive recording
-    const result = await RecordingService.archiveRecording(recordingId, organizationId);
+    const result = await RecordingService.archiveRecording(
+      recordingId,
+      organizationId
+    );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
@@ -45,9 +52,36 @@ export const archiveRecordingAction = authorizedActionClient
       );
     }
 
+    // Log audit event
+    logger.audit.event("recording_archived", {
+      resourceType: "recording",
+      resourceId: recordingId,
+      userId: ctx.user?.id ?? "unknown",
+      organizationId,
+      action: "archive",
+      metadata: {
+        projectId: recording.projectId,
+      },
+    });
+
+    // Create audit log entry
+    await AuditLogService.createAuditLog({
+      eventType: "recording_archived",
+      resourceType: "recording",
+      resourceId: recordingId,
+      userId: ctx.user?.id ?? "unknown",
+      organizationId,
+      action: "archive",
+      metadata: {
+        projectId: recording.projectId,
+      },
+    });
+
     // Revalidate paths
     revalidatePath(`/projects/${recording.projectId}`);
-    revalidatePath(`/projects/${recording.projectId}/recordings/${recordingId}`);
+    revalidatePath(
+      `/projects/${recording.projectId}/recordings/${recordingId}`
+    );
 
     return { data: { success: result.value } };
   });

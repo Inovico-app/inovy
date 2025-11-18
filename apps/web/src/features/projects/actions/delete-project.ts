@@ -1,11 +1,12 @@
 "use server";
 
+import { authorizedActionClient } from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
+import { logger } from "@/lib/logger";
+import { ProjectService } from "@/server/services";
+import { AuditLogService } from "@/server/services/audit-log.service";
+import { deleteProjectSchema } from "@/server/validation/projects/delete-project";
 import { revalidatePath } from "next/cache";
-import { authorizedActionClient } from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
-import { logger } from "../../../lib/logger";
-import { ProjectService } from "../../../server/services";
-import { deleteProjectSchema } from "../../../server/validation/projects/delete-project";
 
 /**
  * Delete project action (hard delete with blob cleanup)
@@ -21,10 +22,7 @@ export const deleteProjectAction = authorizedActionClient
     const { user, organizationId } = ctx;
 
     if (!user) {
-      throw ActionErrors.unauthenticated(
-        "User not found",
-        "delete-project"
-      );
+      throw ActionErrors.unauthenticated("User not found", "delete-project");
     }
 
     if (!organizationId) {
@@ -44,10 +42,7 @@ export const deleteProjectAction = authorizedActionClient
     const project = projectResult.value;
 
     // Validate confirmation text (must be "DELETE" or exact project name)
-    if (
-      confirmationText !== "DELETE" &&
-      confirmationText !== project.name
-    ) {
+    if (confirmationText !== "DELETE" && confirmationText !== project.name) {
       throw ActionErrors.validation(
         "Confirmation text does not match. Please type DELETE or the exact project name.",
         { confirmationText }
@@ -72,6 +67,31 @@ export const deleteProjectAction = authorizedActionClient
     if (result.isErr()) {
       throw result.error;
     }
+
+    // Log audit event
+    logger.audit.event("project_deleted", {
+      resourceType: "project",
+      resourceId: projectId,
+      userId: user.id,
+      organizationId,
+      action: "delete",
+      metadata: {
+        projectName: project.name,
+      },
+    });
+
+    // Create audit log entry
+    await AuditLogService.createAuditLog({
+      eventType: "project_deleted",
+      resourceType: "project",
+      resourceId: projectId,
+      userId: user.id,
+      organizationId,
+      action: "delete",
+      metadata: {
+        projectName: project.name,
+      },
+    });
 
     logger.info("Successfully deleted project via action", {
       component: "deleteProjectAction",

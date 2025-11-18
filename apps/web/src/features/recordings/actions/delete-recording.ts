@@ -1,12 +1,13 @@
 "use server";
 
-import { authorizedActionClient } from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
-import { RecordingService } from "../../../server/services";
-import { deleteRecordingSchema } from "../../../server/validation/recordings/delete-recording";
-import { revalidatePath } from "next/cache";
+import { authorizedActionClient } from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
+import { logger } from "@/lib/logger";
+import { RecordingService } from "@/server/services";
+import { AuditLogService } from "@/server/services/audit-log.service";
+import { deleteRecordingSchema } from "@/server/validation/recordings/delete-recording";
 import { del } from "@vercel/blob";
-import { logger } from "../../../lib/logger";
+import { revalidatePath } from "next/cache";
 
 /**
  * Delete recording action (hard delete with blob cleanup)
@@ -29,7 +30,9 @@ export const deleteRecordingAction = authorizedActionClient
     }
 
     // Get recording to get file URL and validate confirmation
-    const recordingResult = await RecordingService.getRecordingById(recordingId);
+    const recordingResult = await RecordingService.getRecordingById(
+      recordingId
+    );
     if (recordingResult.isErr() || !recordingResult.value) {
       throw ActionErrors.notFound("Recording", "delete-recording");
     }
@@ -37,10 +40,7 @@ export const deleteRecordingAction = authorizedActionClient
     const recording = recordingResult.value;
 
     // Validate confirmation text (must be "DELETE" or recording title)
-    if (
-      confirmationText !== "DELETE" &&
-      confirmationText !== recording.title
-    ) {
+    if (confirmationText !== "DELETE" && confirmationText !== recording.title) {
       throw ActionErrors.validation(
         "Confirmation text does not match. Please type DELETE or the exact recording title.",
         { confirmationText }
@@ -48,11 +48,41 @@ export const deleteRecordingAction = authorizedActionClient
     }
 
     // Delete from database first (this will cascade to related records)
-    const result = await RecordingService.deleteRecording(recordingId, organizationId);
+    const result = await RecordingService.deleteRecording(
+      recordingId,
+      organizationId
+    );
 
     if (result.isErr()) {
       throw result.error;
     }
+
+    // Log audit event
+    logger.audit.event("recording_deleted", {
+      resourceType: "recording",
+      resourceId: recordingId,
+      userId: ctx.user?.id ?? "unknown",
+      organizationId,
+      action: "delete",
+      metadata: {
+        recordingTitle: recording.title,
+        projectId: recording.projectId,
+      },
+    });
+
+    // Create audit log entry
+    await AuditLogService.createAuditLog({
+      eventType: "recording_deleted",
+      resourceType: "recording",
+      resourceId: recordingId,
+      userId: ctx.user?.id ?? "unknown",
+      organizationId,
+      action: "delete",
+      metadata: {
+        recordingTitle: recording.title,
+        projectId: recording.projectId,
+      },
+    });
 
     // Delete file from Vercel Blob
     try {
