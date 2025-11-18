@@ -1,9 +1,8 @@
 /**
- * Enterprise-level logging utility for structured logging using Pino
+ * Enterprise-level logging utility for structured logging
+ * Uses Pino on the server side and console methods on the client side
  * Supports different log levels and structured data
  */
-
-import pino from "pino";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -16,86 +15,74 @@ interface LogContext {
   [key: string]: unknown;
 }
 
-// Determine log level from environment variable or default based on NODE_ENV
-const getLogLevel = (): pino.Level => {
-  const envLogLevel = process.env.LOG_LEVEL?.toLowerCase();
-  if (envLogLevel && ["debug", "info", "warn", "error"].includes(envLogLevel)) {
-    return envLogLevel as pino.Level;
+// Type for pino logger (only used on server side)
+type PinoLogger = {
+  debug: (obj: Record<string, unknown> | string, msg?: string) => void;
+  info: (obj: Record<string, unknown> | string, msg?: string) => void;
+  warn: (obj: Record<string, unknown> | string, msg?: string) => void;
+  error: (obj: Record<string, unknown> | string, msg?: string) => void;
+  child: (bindings: Record<string, unknown>) => PinoLogger;
+};
+
+// Check if we're running in a browser environment
+const isBrowser = typeof window !== "undefined";
+
+/**
+ * Lazy initialization function for pino logger
+ * Dynamically imports the server logger only when needed on the server
+ */
+function getPinoLogger(): PinoLogger | null {
+  // Early return if in browser
+  if (isBrowser) {
+    return null;
   }
-  return process.env.NODE_ENV === "development" ? "debug" : "info";
-};
 
-// Create base pino logger instance
-const isDevelopment = process.env.NODE_ENV === "development";
-
-// Configure pino with environment-based settings
-const pinoConfig: pino.LoggerOptions = {
-  level: getLogLevel(),
-  formatters: {
-    level: (label: string) => {
-      return { level: label };
-    },
-  },
-  timestamp: pino.stdTimeFunctions.isoTime,
-  // Redact sensitive fields
-  redact: {
-    paths: [
-      "password",
-      "apiKey",
-      "api_key",
-      "token",
-      "accessToken",
-      "access_token",
-      "refreshToken",
-      "refresh_token",
-      "secret",
-      "secretKey",
-      "secret_key",
-      "authorization",
-      "cookie",
-      "sessionId",
-      "session_id",
-    ],
-    censor: "[Redacted]",
-  },
-  // Base context
-  base: {
-    env: process.env.NODE_ENV,
-    pid: process.pid,
-  },
-};
-
-// In development, use pino-pretty for readable output
-// In production, use JSON output for log aggregation
-let pinoLogger: pino.Logger;
-
-if (isDevelopment) {
-  // Use pino-pretty transport in development
-  pinoLogger = pino(
-    {
-      ...pinoConfig,
-      transport: {
-        target: "pino-pretty",
-        options: {
-          colorize: true,
-          translateTime: "HH:MM:ss Z",
-          ignore: "pid,hostname",
-          singleLine: false,
-        },
-      },
-    },
-    pino.destination({ sync: false })
-  );
-} else {
-  // Use JSON output in production
-  pinoLogger = pino(pinoConfig, pino.destination({ sync: false }));
+  // Dynamic import of server logger - this prevents bundling in client
+  // Using a try-catch to handle cases where the module can't be loaded
+  // Using string concatenation to prevent static analysis
+  try {
+    // This will only execute on the server side
+    // The server directory is treated as server-only by Next.js
+    // Using string concatenation to prevent Turbopack from analyzing the require
+    const serverLoggerPath = "../" + "server/" + "logger";
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getServerLogger } = require(serverLoggerPath);
+    return getServerLogger();
+  } catch {
+    // If server logger can't be loaded, return null
+    return null;
+  }
 }
 
-class Logger {
-  private logger: pino.Logger;
+// Helper function to format context for console output
+const formatContext = (context?: LogContext): string => {
+  if (!context || Object.keys(context).length === 0) {
+    return "";
+  }
+  return ` ${JSON.stringify(context)}`;
+};
 
-  constructor(loggerInstance?: pino.Logger) {
-    this.logger = loggerInstance ?? pinoLogger;
+// Helper function to format error for console output
+const formatError = (error?: Error): string => {
+  if (!error) {
+    return "";
+  }
+  return `\nError: ${error.message}${error.stack ? `\n${error.stack}` : ""}`;
+};
+
+class Logger {
+  private logger: PinoLogger | null;
+  private isClient: boolean;
+
+  constructor(loggerInstance?: PinoLogger) {
+    this.isClient = isBrowser;
+    if (this.isClient) {
+      // Client-side: use console methods
+      this.logger = null;
+    } else {
+      // Server-side: use pino (lazy initialization)
+      this.logger = loggerInstance ?? getPinoLogger();
+    }
   }
 
   /**
@@ -103,48 +90,97 @@ class Logger {
    * This enables automatic context propagation without passing it in every call
    */
   child(bindings: Record<string, unknown>): Logger {
-    return new Logger(this.logger.child(bindings));
+    if (this.isClient) {
+      // On client, return a new logger instance (context will be included in each call)
+      return new Logger();
+    }
+    // Lazy initialize pino logger if needed
+    const logger = this.logger ?? getPinoLogger();
+    if (!logger) {
+      return new Logger();
+    }
+    return new Logger(logger.child(bindings));
   }
 
   debug(message: string, context?: LogContext): void {
-    if (context) {
-      this.logger.debug(context, message);
+    if (this.isClient) {
+      console.debug(`[DEBUG] ${message}${formatContext(context)}`);
     } else {
-      this.logger.debug(message);
+      // Lazy initialize pino logger if needed
+      const logger = this.logger ?? getPinoLogger();
+      if (!logger) {
+        return;
+      }
+      if (context) {
+        logger.debug(context, message);
+      } else {
+        logger.debug(message);
+      }
     }
   }
 
   info(message: string, context?: LogContext): void {
-    if (context) {
-      this.logger.info(context, message);
+    if (this.isClient) {
+      console.info(`[INFO] ${message}${formatContext(context)}`);
     } else {
-      this.logger.info(message);
+      // Lazy initialize pino logger if needed
+      const logger = this.logger ?? getPinoLogger();
+      if (!logger) {
+        return;
+      }
+      if (context) {
+        logger.info(context, message);
+      } else {
+        logger.info(message);
+      }
     }
   }
 
   warn(message: string, context?: LogContext, error?: Error): void {
-    const logData: Record<string, unknown> = { ...context };
-    if (error) {
-      // Pino automatically serializes Error objects when passed in the 'err' field
-      logData.err = error;
-    }
-    if (Object.keys(logData).length > 0) {
-      this.logger.warn(logData, message);
+    if (this.isClient) {
+      console.warn(
+        `[WARN] ${message}${formatContext(context)}${formatError(error)}`
+      );
     } else {
-      this.logger.warn(message);
+      // Lazy initialize pino logger if needed
+      const logger = this.logger ?? getPinoLogger();
+      if (!logger) {
+        return;
+      }
+      const logData: Record<string, unknown> = { ...context };
+      if (error) {
+        // Pino automatically serializes Error objects when passed in the 'err' field
+        logData.err = error;
+      }
+      if (Object.keys(logData).length > 0) {
+        logger.warn(logData, message);
+      } else {
+        logger.warn(message);
+      }
     }
   }
 
   error(message: string, context?: LogContext, error?: Error): void {
-    const logData: Record<string, unknown> = { ...context };
-    if (error) {
-      // Pino automatically serializes Error objects when passed in the 'err' field
-      logData.err = error;
-    }
-    if (Object.keys(logData).length > 0) {
-      this.logger.error(logData, message);
+    if (this.isClient) {
+      console.error(
+        `[ERROR] ${message}${formatContext(context)}${formatError(error)}`
+      );
     } else {
-      this.logger.error(message);
+      // Lazy initialize pino logger if needed
+      const logger = this.logger ?? getPinoLogger();
+      if (!logger) {
+        return;
+      }
+      const logData: Record<string, unknown> = { ...context };
+      if (error) {
+        // Pino automatically serializes Error objects when passed in the 'err' field
+        logData.err = error;
+      }
+      if (Object.keys(logData).length > 0) {
+        logger.error(logData, message);
+      } else {
+        logger.error(message);
+      }
     }
   }
 
