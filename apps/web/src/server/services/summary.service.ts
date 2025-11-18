@@ -3,8 +3,8 @@ import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
+import { connectionPool } from "@/server/services/connection-pool.service";
 import { err, ok } from "neverthrow";
-import OpenAI from "openai";
 import {
   getCachedSummary,
   type SummaryContent,
@@ -14,9 +14,6 @@ import { KnowledgeBaseService } from "./knowledge-base.service";
 import { NotificationService } from "./notification.service";
 
 export class SummaryService {
-  private static openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY ?? "",
-  });
 
   /**
    * Generate meeting summary from transcription using OpenAI GPT-4
@@ -142,17 +139,22 @@ Antwoord ALLEEN met valid JSON in het volgende formaat (gebruik Engels voor de v
 
       const userPrompt = `Maak een gestructureerde samenvatting van deze vergadertranscriptie:\n\n${transcriptionText}`;
 
-      // Call OpenAI API
-      const completion = await this.openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.3,
-        max_tokens: 2000,
-      });
+      // Call OpenAI API with retry logic
+      const openai = connectionPool.getRawOpenAIClient();
+      const completion = await connectionPool.executeWithRetry(
+        async () =>
+          openai.chat.completions.create({
+            model: "gpt-4-turbo-preview",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.3,
+            max_tokens: 2000,
+          }),
+        "openai"
+      );
 
       const responseContent = completion.choices[0]?.message?.content;
 

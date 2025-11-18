@@ -2,8 +2,8 @@ import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { TasksQueries } from "@/server/data-access/tasks.queries";
+import { connectionPool } from "@/server/services/connection-pool.service";
 import { err, ok } from "neverthrow";
-import OpenAI from "openai";
 import { NotificationService } from "./notification.service";
 
 interface ExtractedTask {
@@ -22,9 +22,6 @@ interface TaskExtractionResult {
 }
 
 export class TaskExtractionService {
-  private static openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY ?? "",
-  });
 
   /**
    * Dutch urgency keywords for priority detection (AI-004)
@@ -124,17 +121,22 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
 
       const userPrompt = `Analyseer deze vergadertranscriptie en extraheer alle actiepunten met hun prioriteit:\n\n${transcriptionText}`;
 
-      // Call OpenAI API with function calling for structured output
-      const completion = await this.openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.3,
-        max_tokens: 2000,
-      });
+      // Call OpenAI API with function calling for structured output and retry logic
+      const openai = connectionPool.getRawOpenAIClient();
+      const completion = await connectionPool.executeWithRetry(
+        async () =>
+          openai.chat.completions.create({
+            model: "gpt-4-turbo-preview",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.3,
+            max_tokens: 2000,
+          }),
+        "openai"
+      );
 
       const responseContent = completion.choices[0]?.message?.content;
 

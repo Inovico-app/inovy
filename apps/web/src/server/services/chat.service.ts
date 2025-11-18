@@ -9,10 +9,10 @@ import {
   type NewChatMessage,
   type SourceReference,
 } from "@/server/db/schema";
-import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, type CoreMessage } from "ai";
 import { err, ok } from "neverthrow";
 import { getCachedProjectTemplate } from "../cache/project-template.cache";
+import { connectionPool } from "./connection-pool.service";
 import { KnowledgeBaseService } from "./knowledge-base.service";
 import { ProjectService } from "./project.service";
 import {
@@ -24,9 +24,6 @@ import { RAGService } from "./rag/rag.service";
 import type { SearchResult } from "./rag/types";
 
 export class ChatService {
-  private static openai = createOpenAI({
-    apiKey: process.env.OPENAI_API_KEY ?? "",
-  });
   private static ragService = new RAGService();
 
   /**
@@ -487,19 +484,24 @@ Please answer the user's question based on this information.`
         userQuery: userMessage,
       });
 
-      // Stream response from GPT-4-turbo
-      const result = await streamText({
-        model: this.openai("gpt-5-nano"),
-        system: systemPromptWithGuardRails,
-        messages: [
-          ...conversationHistory,
-          {
-            role: "user",
-            content: completePrompt,
-          },
-        ],
-        temperature: 0.7,
-      });
+      // Stream response from GPT-4-turbo with retry logic
+      const openai = connectionPool.getOpenAIClient();
+      const result = await connectionPool.executeWithRetry(
+        async () =>
+          streamText({
+            model: openai("gpt-5-nano"),
+            system: systemPromptWithGuardRails,
+            messages: [
+              ...conversationHistory,
+              {
+                role: "user",
+                content: completePrompt,
+              },
+            ],
+            temperature: 0.7,
+          }),
+        "openai"
+      );
 
       // Collect the full response
       let fullResponse = "";
@@ -658,8 +660,9 @@ Please answer the user's question based on this information.`
       });
 
       // Stream response from GPT-4-turbo
+      const openai = connectionPool.getOpenAIClient();
       const result = streamText({
-        model: this.openai("gpt-4-turbo"),
+        model: openai("gpt-5-nano"),
         system: systemPrompt,
         messages: [
           ...conversationHistory,
@@ -829,8 +832,9 @@ Please answer the user's question based on this information. When referencing in
       });
 
       // Stream response from GPT-4-turbo
+      const openai = connectionPool.getOpenAIClient();
       const result = streamText({
-        model: this.openai("gpt-4-turbo"),
+        model: openai("gpt-5-nano"),
         system: systemPrompt,
         messages: [
           ...conversationHistory,
