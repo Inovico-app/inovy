@@ -2,7 +2,7 @@ import { decrypt } from "@/lib/encryption";
 import { getAuthSession } from "@/lib/auth";
 import { RecordingService } from "@/server/services";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 /**
  * API endpoint to serve decrypted recording files

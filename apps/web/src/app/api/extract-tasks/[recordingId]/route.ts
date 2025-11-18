@@ -1,11 +1,11 @@
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import {
   addRateLimitHeaders,
   checkRateLimit,
   createRateLimitResponse,
 } from "@/lib/rate-limit";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { RecordingService } from "@/server/services";
 import { AIInsightService } from "@/server/services/ai-insight.service";
 import { TaskExtractionService } from "@/server/services/task-extraction.service";

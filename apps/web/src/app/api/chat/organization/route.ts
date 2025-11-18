@@ -1,9 +1,6 @@
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import {
-  checkRateLimit,
-  createRateLimitResponse,
-} from "@/lib/rate-limit";
+import { withRateLimit } from "@/lib/rate-limit";
 import { canAccessOrganizationChat } from "@/lib/rbac";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
 import { ChatService } from "@/server/services/chat.service";
@@ -28,166 +25,158 @@ function getRequestMetadata(request: NextRequest) {
   };
 }
 
-export async function POST(request: NextRequest) {
-  const metadata = getRequestMetadata(request);
+export const POST = withRateLimit(
+  async (request: NextRequest) => {
+    const metadata = getRequestMetadata(request);
 
-  try {
-    // Get authenticated session with roles
-    const sessionResult = await getAuthSession();
+    try {
+      // Get authenticated session with roles
+      const sessionResult = await getAuthSession();
 
-    if (sessionResult.isErr()) {
-      logger.error("Failed to get auth session", {
-        error: sessionResult.error,
-      });
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+      if (sessionResult.isErr()) {
+        logger.error("Failed to get auth session", {
+          error: sessionResult.error,
+        });
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
 
-    const session = sessionResult.value;
+      const session = sessionResult.value;
 
-    if (!session.isAuthenticated || !session.user || !session.organization) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+      if (!session.isAuthenticated || !session.user || !session.organization) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
 
-    const { user, organization } = session;
-    const orgCode = organization.orgCode;
+      const { user, organization } = session;
+      const orgCode = organization.orgCode;
 
-    if (!orgCode) {
-      return NextResponse.json(
-        { error: "Organization not found" },
-        { status: 404 }
-      );
-    }
+      if (!orgCode) {
+        return NextResponse.json(
+          { error: "Organization not found" },
+          { status: 404 }
+        );
+      }
 
-    // Check rate limit (100 req/hour free, 1000 req/hour pro)
-    const rateLimitResult = await checkRateLimit(user.id, {
-      maxRequests: undefined, // Use tier-based default
-      windowSeconds: 3600, // 1 hour
-    });
+      // Check if user has permission to access organization-level chat
+      const hasAccess = canAccessOrganizationChat(user);
 
-    if (!rateLimitResult.allowed) {
-      return createRateLimitResponse(rateLimitResult);
-    }
-
-    // Check if user has permission to access organization-level chat
-    const hasAccess = canAccessOrganizationChat(user);
-
-    // Log access attempt
-    await ChatAuditService.logChatAccess({
-      userId: user.id,
-      organizationId: orgCode,
-      chatContext: "organization",
-      granted: hasAccess,
-      ipAddress: metadata.ipAddress,
-      userAgent: metadata.userAgent,
-      metadata: {
-        userRoles: user.roles,
-        endpoint: "POST /api/chat/organization",
-      },
-    });
-
-    if (!hasAccess) {
-      logger.warn("Organization chat access denied", {
+      // Log access attempt
+      await ChatAuditService.logChatAccess({
         userId: user.id,
         organizationId: orgCode,
-        userRoles: user.roles,
+        chatContext: "organization",
+        granted: hasAccess,
+        ipAddress: metadata.ipAddress,
+        userAgent: metadata.userAgent,
+        metadata: {
+          userRoles: user.roles,
+          endpoint: "POST /api/chat/organization",
+        },
       });
 
-      return NextResponse.json(
-        {
-          error: "Forbidden",
-          message: "Organization-level chat requires administrator privileges",
-          requiredRole: "admin",
-        },
-        { status: 403 }
+      if (!hasAccess) {
+        logger.warn("Organization chat access denied", {
+          userId: user.id,
+          organizationId: orgCode,
+          userRoles: user.roles,
+        });
+
+        return NextResponse.json(
+          {
+            error: "Forbidden",
+            message:
+              "Organization-level chat requires administrator privileges",
+            requiredRole: "admin",
+          },
+          { status: 403 }
+        );
+      }
+
+      // Parse request body
+      const body = await request.json();
+      const validationResult = chatRequestSchema.safeParse(body);
+
+      if (!validationResult.success) {
+        return NextResponse.json(
+          { error: "Invalid request", details: validationResult.error },
+          { status: 400 }
+        );
+      }
+
+      const { message, conversationId } = validationResult.data;
+
+      // Log the query
+      await ChatAuditService.logChatQuery({
+        userId: user.id,
+        organizationId: orgCode,
+        chatContext: "organization",
+        query: message,
+        ipAddress: metadata.ipAddress,
+        userAgent: metadata.userAgent,
+      });
+
+      // Create or get conversation
+      let activeConversationId = conversationId;
+
+      if (!activeConversationId) {
+        const conversationResult =
+          await ChatService.createOrganizationConversation(user.id, orgCode);
+
+        if (conversationResult.isErr()) {
+          logger.error("Failed to create organization conversation", {
+            error: conversationResult.error,
+          });
+          return NextResponse.json(
+            { error: "Failed to create conversation" },
+            { status: 500 }
+          );
+        }
+
+        activeConversationId = conversationResult.value.conversationId;
+      }
+
+      // Stream the response
+      const streamResult = await ChatService.streamOrganizationResponse(
+        activeConversationId,
+        message,
+        orgCode
       );
-    }
 
-    // Parse request body
-    const body = await request.json();
-    const validationResult = chatRequestSchema.safeParse(body);
-
-    if (!validationResult.success) {
-      return NextResponse.json(
-        { error: "Invalid request", details: validationResult.error },
-        { status: 400 }
-      );
-    }
-
-    const { message, conversationId } = validationResult.data;
-
-    // Log the query
-    await ChatAuditService.logChatQuery({
-      userId: user.id,
-      organizationId: orgCode,
-      chatContext: "organization",
-      query: message,
-      ipAddress: metadata.ipAddress,
-      userAgent: metadata.userAgent,
-    });
-
-    // Create or get conversation
-    let activeConversationId = conversationId;
-
-    if (!activeConversationId) {
-      const conversationResult =
-        await ChatService.createOrganizationConversation(user.id, orgCode);
-
-      if (conversationResult.isErr()) {
-        logger.error("Failed to create organization conversation", {
-          error: conversationResult.error,
+      if (streamResult.isErr()) {
+        logger.error("Failed to stream organization response", {
+          error: streamResult.error,
         });
         return NextResponse.json(
-          { error: "Failed to create conversation" },
+          { error: "Failed to generate response" },
           { status: 500 }
         );
       }
 
-      activeConversationId = conversationResult.value.conversationId;
-    }
+      // Return the streaming response with conversation ID in header
+      const response = streamResult.value.stream;
 
-    // Stream the response
-    const streamResult = await ChatService.streamOrganizationResponse(
-      activeConversationId,
-      message,
-      orgCode
-    );
+      // Clone the response to add custom headers
+      // Note: Rate limit headers are automatically added by withRateLimit wrapper
+      const headers = new Headers(response.headers);
+      headers.set("X-Conversation-Id", activeConversationId);
 
-    if (streamResult.isErr()) {
-      logger.error("Failed to stream organization response", {
-        error: streamResult.error,
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
       });
+    } catch (error) {
+      logger.error("Error in organization chat API", { error });
       return NextResponse.json(
-        { error: "Failed to generate response" },
+        { error: "Internal server error" },
         { status: 500 }
       );
     }
-
-    // Return the streaming response with conversation ID in header
-    const response = streamResult.value.stream;
-
-    // Clone the response to add custom headers
-    const headers = new Headers(response.headers);
-    headers.set("X-Conversation-Id", activeConversationId);
-    headers.set("X-RateLimit-Limit", rateLimitResult.limit.toString());
-    headers.set("X-RateLimit-Remaining", rateLimitResult.remaining.toString());
-    headers.set(
-      "X-RateLimit-Reset",
-      new Date(rateLimitResult.resetAt).toISOString()
-    );
-
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
-  } catch (error) {
-    logger.error("Error in organization chat API", { error });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  },
+  {
+    maxRequests: undefined, // Use tier-based default (100 req/hour free, 1000 req/hour pro)
+    windowSeconds: 3600, // 1 hour
   }
-}
+);
 
 // GET endpoint to retrieve conversation history
 export async function GET(request: NextRequest) {

@@ -3,7 +3,7 @@ import {
   rateLimiter,
   type UserTier,
 } from "@/server/services/rate-limiter.service";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 /**
  * Rate limit options for API routes
@@ -165,5 +165,125 @@ export function addRateLimitHeaders(
     statusText: response.statusText,
     headers,
   });
+}
+
+/**
+ * Extract user ID from request
+ * This function attempts to get the user ID from the authenticated session
+ */
+async function extractUserId(request: NextRequest): Promise<string | null> {
+  try {
+    const { getAuthSession } = await import("@/lib/auth");
+    const sessionResult = await getAuthSession();
+
+    if (sessionResult.isOk() && sessionResult.value.isAuthenticated) {
+      return sessionResult.value.user?.id ?? null;
+    }
+
+    return null;
+  } catch (error) {
+    logger.warn("Failed to extract user ID for rate limiting", {
+      component: "rate-limit",
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
+/**
+ * Handler function type for API routes
+ */
+type ApiRouteHandler = (
+  request: NextRequest,
+  context?: any
+) => Promise<Response | NextResponse>;
+
+/**
+ * Wrapper function to add rate limiting to API route handlers
+ *
+ * @example
+ * ```typescript
+ * export const POST = withRateLimit(
+ *   async (request: NextRequest) => {
+ *     // Your handler code
+ *     return NextResponse.json({ success: true });
+ *   },
+ *   {
+ *     maxRequests: 100,
+ *     windowSeconds: 3600,
+ *   }
+ * );
+ * ```
+ *
+ * @example With custom user ID extraction
+ * ```typescript
+ * export const POST = withRateLimit(
+ *   async (request: NextRequest) => {
+ *     const user = await getUser();
+ *     // Your handler code
+ *     return NextResponse.json({ success: true });
+ *   },
+ *   {
+ *     maxRequests: 100,
+ *     windowSeconds: 3600,
+ *   },
+ *   async (request) => {
+ *     const user = await getUser();
+ *     return user?.id ?? null;
+ *   }
+ * );
+ * ```
+ */
+export function withRateLimit(
+  handler: ApiRouteHandler,
+  options: RateLimitOptions = {},
+  getUserId?: (request: NextRequest) => Promise<string | null>
+): ApiRouteHandler {
+  return async (request: NextRequest, context?: any) => {
+    // Extract user ID
+    const userId = getUserId
+      ? await getUserId(request)
+      : await extractUserId(request);
+
+    // If no user ID, allow the request (handler should handle auth)
+    if (!userId) {
+      return handler(request, context);
+    }
+
+    // Check rate limit
+    const rateLimitResult = await checkRateLimit(userId, options);
+
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult);
+    }
+
+    // Call the original handler
+    const response = await handler(request, context);
+
+    // Add rate limit headers to the response
+    // Handle both NextResponse and regular Response
+    if (response instanceof NextResponse) {
+      return addRateLimitHeaders(response, rateLimitResult);
+    }
+
+    // For streaming responses or regular Response objects
+    if (response instanceof Response) {
+      const headers = new Headers(response.headers);
+      headers.set("X-RateLimit-Limit", rateLimitResult.limit.toString());
+      headers.set("X-RateLimit-Remaining", rateLimitResult.remaining.toString());
+      headers.set(
+        "X-RateLimit-Reset",
+        new Date(rateLimitResult.resetAt).toISOString()
+      );
+
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      });
+    }
+
+    return response;
+  };
 }
 

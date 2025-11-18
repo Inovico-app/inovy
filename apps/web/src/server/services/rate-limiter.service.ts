@@ -169,11 +169,16 @@ export class RateLimiterService {
         });
 
         let resetAt = now + windowSeconds * 1000;
-        if (oldestEntries && Array.isArray(oldestEntries) && oldestEntries.length >= 2) {
+        if (
+          oldestEntries &&
+          Array.isArray(oldestEntries) &&
+          oldestEntries.length >= 2
+        ) {
           // Upstash returns [member, score] pairs when withScores is true
-          const oldestTimestamp = typeof oldestEntries[1] === "number" 
-            ? oldestEntries[1] 
-            : parseInt(String(oldestEntries[1]), 10);
+          const oldestTimestamp =
+            typeof oldestEntries[1] === "number"
+              ? oldestEntries[1]
+              : parseInt(String(oldestEntries[1]), 10);
           resetAt = oldestTimestamp + windowSeconds * 1000;
         }
 

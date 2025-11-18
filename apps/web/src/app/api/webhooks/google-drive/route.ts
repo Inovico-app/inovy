@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { DriveWatchesQueries } from "@/server/data-access/drive-watches.queries";
 import { GoogleDriveService } from "@/server/services/google-drive.service";
