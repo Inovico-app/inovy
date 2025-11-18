@@ -7,12 +7,14 @@
 
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { type SearchResult } from "@/server/services/rag/rag.service";
 import { err, ok } from "neverthrow";
+import type { SearchResult } from "./types";
 
 export class RerankerService {
   private model = "cross-encoder/ms-marco-MiniLM-L-6-v2";
   private apiUrl = "https://api-inference.huggingface.co/models/";
+  private static apiKeyWarningLogged = false;
+  private static readonly MAX_RESULTS_FOR_RERANKING = 50;
 
   /**
    * Re-rank search results using cross-encoder
@@ -34,6 +36,8 @@ export class RerankerService {
       // Check for API key
       const apiKey = process.env.HUGGINGFACE_API_KEY;
       if (!apiKey) {
+        // Only log warning once to reduce noise
+        if (!RerankerService.apiKeyWarningLogged) {
         logger.warn(
           "HUGGINGFACE_API_KEY not configured, returning original results",
           {
@@ -41,6 +45,8 @@ export class RerankerService {
             action: "rerank",
           }
         );
+          RerankerService.apiKeyWarningLogged = true;
+        }
         // Return original results sorted by similarity
         return ok(
           [...results]
@@ -49,15 +55,23 @@ export class RerankerService {
         );
       }
 
+      // Cap the number of results sent to HF to reduce cost and noise
+      // We'll rerank the top candidates, then slice to topK after
+      const resultsToRerank = results.slice(
+        0,
+        Math.min(results.length, RerankerService.MAX_RESULTS_FOR_RERANKING)
+      );
+
       logger.debug("Re-ranking search results", {
         component: "RerankerService",
         queryLength: query.length,
         resultsCount: results.length,
+        resultsToRerank: resultsToRerank.length,
         topK,
       });
 
       // Prepare pairs for cross-encoder
-      const pairs = results.map((result) => ({
+      const pairs = resultsToRerank.map((result) => ({
         text: query,
         text_pair: result.contentText,
       }));
@@ -81,7 +95,7 @@ export class RerankerService {
       const scores = scoresResult.value;
 
       // Re-rank based on cross-encoder scores
-      const rerankedResults: SearchResult[] = results
+      const rerankedResults: SearchResult[] = resultsToRerank
         .map((result, index) => ({
           ...result,
           rerankedScore: scores[index],

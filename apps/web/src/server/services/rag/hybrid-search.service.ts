@@ -7,31 +7,15 @@
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { QdrantClientService } from "@/server/services/rag/qdrant.service";
-import { type SearchResult } from "@/server/services/rag/rag.service";
 import { err, ok } from "neverthrow";
-
-export interface HybridSearchOptions {
-  userId?: string;
-  organizationId?: string;
-  projectId?: string;
-  limit?: number;
-  vectorWeight?: number;
-  keywordWeight?: number;
-  scoreThreshold?: number;
-  filters?: Record<string, unknown>;
-  collectionName?: string;
-}
-
-interface RankedResult {
-  id: string;
-  contentType: string;
-  contentId: string;
-  contentText: string;
-  similarity: number;
-  metadata: Record<string, unknown> | null;
-  rank: number;
-  source: "vector" | "keyword";
-}
+import type {
+  HybridSearchOptions,
+  MatchCondition,
+  QdrantFilter,
+  RankedResult,
+  SearchResult,
+  VectorSearchResult,
+} from "./types";
 
 export class HybridSearchEngine {
   private qdrantService: QdrantClientService;
@@ -103,13 +87,26 @@ export class HybridSearchEngine {
       );
 
       // 1. Vector search
-      const vectorResults = await this.vectorSearch(
+      const vectorSearchResult = await this.vectorSearch(
         queryEmbedding,
         baseFilter,
         Math.round(limit * 1.5), // Fetch more for fusion
         scoreThreshold,
         targetCollection
       );
+
+      // Log vector search errors for observability, but continue with keyword results
+      if (vectorSearchResult.hadError) {
+        logger.warn(
+          "Vector search encountered an error, continuing with keyword results",
+          {
+            component: "HybridSearchEngine",
+            error: vectorSearchResult.error,
+          }
+        );
+      }
+
+      const vectorResults = vectorSearchResult.results;
 
       // 2. Keyword search using Qdrant's scroll with full-text search
       const keywordResults = await this.keywordSearch(
@@ -165,19 +162,15 @@ export class HybridSearchEngine {
 
   /**
    * Perform vector similarity search using Qdrant
+   * Returns a tagged result structure to distinguish between "no results" and "error occurred"
    */
   private async vectorSearch(
     embedding: number[],
-    filter: {
-      must?: Array<{
-        key: string;
-        match?: { value: string | string[] };
-      }>;
-    },
+    filter: QdrantFilter,
     limit: number,
     scoreThreshold: number,
     collectionName: string
-  ): Promise<RankedResult[]> {
+  ): Promise<VectorSearchResult> {
     try {
       const searchResult = await this.qdrantService.search(embedding, {
         limit,
@@ -191,10 +184,14 @@ export class HybridSearchEngine {
           component: "HybridSearchEngine",
           error: searchResult.error.message,
         });
-        return [];
+        return {
+          results: [],
+          hadError: true,
+          error: searchResult.error.message,
+        };
       }
 
-      return searchResult.value.map((result, index) => {
+      const results = searchResult.value.map((result, index) => {
         const payload = result.payload;
         return {
           id: String(result.id),
@@ -214,12 +211,23 @@ export class HybridSearchEngine {
           source: "vector" as const,
         };
       });
+
+      return {
+        results,
+        hadError: false,
+      };
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       logger.error("Error in vector search", {
         component: "HybridSearchEngine",
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage,
       });
-      return [];
+      return {
+        results: [],
+        hadError: true,
+        error: errorMessage,
+      };
     }
   }
 
@@ -229,12 +237,7 @@ export class HybridSearchEngine {
    */
   private async keywordSearch(
     query: string,
-    baseFilter: {
-      must?: Array<{
-        key: string;
-        match?: { value: string | string[] };
-      }>;
-    },
+    baseFilter: QdrantFilter,
     limit: number,
     collectionName: string
   ): Promise<RankedResult[]> {
@@ -336,15 +339,10 @@ export class HybridSearchEngine {
     organizationId: string | undefined,
     projectId: string | undefined,
     additionalFilters: Record<string, unknown>
-  ): {
-    must?: Array<{
-      key: string;
-      match?: { value: string | string[] };
-    }>;
-  } {
+  ): QdrantFilter {
     const must: Array<{
       key: string;
-      match?: { value: string | string[] };
+      match?: MatchCondition;
     }> = [];
 
     if (userId) {

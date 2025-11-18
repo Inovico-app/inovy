@@ -5,11 +5,8 @@ import mammoth from "mammoth";
 import { err, ok } from "neverthrow";
 import OpenAI from "openai";
 import pdfParse from "pdf-parse";
-import {
-  QdrantClientService,
-  type QdrantPayload,
-  type QdrantPoint,
-} from "./rag/qdrant.service";
+import { QdrantClientService } from "./rag/qdrant.service";
+import type { QdrantPayload, QdrantPoint } from "./rag/types";
 import { RedisService } from "./redis.service";
 import type {
   ChunkingOptions,
