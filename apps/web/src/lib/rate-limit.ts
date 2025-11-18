@@ -4,6 +4,7 @@ import {
   type UserTier,
 } from "@/server/services/rate-limiter.service";
 import { type NextRequest, NextResponse } from "next/server";
+import { getAuthSession } from "./auth";
 
 /**
  * Rate limit options for API routes
@@ -11,8 +12,9 @@ import { type NextRequest, NextResponse } from "next/server";
 export interface RateLimitOptions {
   /**
    * Maximum requests per window (defaults to tier-based limit)
+   * Can be a function that receives userId and returns the limit
    */
-  maxRequests?: number;
+  maxRequests?: number | ((userId: string) => Promise<number> | number);
   /**
    * Time window in seconds (default: 3600 = 1 hour)
    */
@@ -49,13 +51,7 @@ export async function checkRateLimit(
   userId: string,
   options: RateLimitOptions = {}
 ): Promise<RateLimitCheckResult> {
-  const {
-    maxRequests,
-    windowSeconds = 3600,
-    cost,
-    maxCost,
-    tier,
-  } = options;
+  const { maxRequests, windowSeconds = 3600, cost, maxCost, tier } = options;
 
   // Get user tier if not provided
   const userTier = tier ?? (await rateLimiter.getUserTier(userId));
@@ -63,8 +59,11 @@ export async function checkRateLimit(
   // Get tier limits
   const tierLimits = rateLimiter.getTierLimits(userTier);
 
-  // Use provided limits or tier defaults
-  const effectiveMaxRequests = maxRequests ?? tierLimits.maxRequests;
+  // Resolve maxRequests if it's a function
+  const effectiveMaxRequests =
+    typeof maxRequests === "function"
+      ? await maxRequests(userId)
+      : maxRequests ?? tierLimits.maxRequests;
   const effectiveMaxCost = maxCost ?? tierLimits.maxCost;
 
   // Check request-based limit
@@ -123,10 +122,7 @@ export function createRateLimitResponse(
   const headers = new Headers();
   headers.set("X-RateLimit-Limit", result.limit.toString());
   headers.set("X-RateLimit-Remaining", result.remaining.toString());
-  headers.set(
-    "X-RateLimit-Reset",
-    new Date(result.resetAt).toISOString()
-  );
+  headers.set("X-RateLimit-Reset", new Date(result.resetAt).toISOString());
 
   if (result.retryAfter !== undefined) {
     headers.set("Retry-After", result.retryAfter.toString());
@@ -155,10 +151,7 @@ export function addRateLimitHeaders(
   const headers = new Headers(response.headers);
   headers.set("X-RateLimit-Limit", result.limit.toString());
   headers.set("X-RateLimit-Remaining", result.remaining.toString());
-  headers.set(
-    "X-RateLimit-Reset",
-    new Date(result.resetAt).toISOString()
-  );
+  headers.set("X-RateLimit-Reset", new Date(result.resetAt).toISOString());
 
   return new NextResponse(response.body, {
     status: response.status,
@@ -173,7 +166,6 @@ export function addRateLimitHeaders(
  */
 async function extractUserId(request: NextRequest): Promise<string | null> {
   try {
-    const { getAuthSession } = await import("@/lib/auth");
     const sessionResult = await getAuthSession();
 
     if (sessionResult.isOk() && sessionResult.value.isAuthenticated) {
@@ -192,6 +184,7 @@ async function extractUserId(request: NextRequest): Promise<string | null> {
 
 /**
  * Handler function type for API routes
+ * Supports both simple handlers and Next.js dynamic route handlers with params
  */
 type ApiRouteHandler = (
   request: NextRequest,
@@ -239,7 +232,7 @@ export function withRateLimit(
   options: RateLimitOptions = {},
   getUserId?: (request: NextRequest) => Promise<string | null>
 ): ApiRouteHandler {
-  return async (request: NextRequest, context?: any) => {
+  return async (request: NextRequest, context?: unknown) => {
     // Extract user ID
     const userId = getUserId
       ? await getUserId(request)
@@ -250,7 +243,7 @@ export function withRateLimit(
       return handler(request, context);
     }
 
-    // Check rate limit
+    // Check rate limit (options may contain functions that will be resolved)
     const rateLimitResult = await checkRateLimit(userId, options);
 
     if (!rateLimitResult.allowed) {
@@ -270,7 +263,10 @@ export function withRateLimit(
     if (response instanceof Response) {
       const headers = new Headers(response.headers);
       headers.set("X-RateLimit-Limit", rateLimitResult.limit.toString());
-      headers.set("X-RateLimit-Remaining", rateLimitResult.remaining.toString());
+      headers.set(
+        "X-RateLimit-Remaining",
+        rateLimitResult.remaining.toString()
+      );
       headers.set(
         "X-RateLimit-Reset",
         new Date(rateLimitResult.resetAt).toISOString()

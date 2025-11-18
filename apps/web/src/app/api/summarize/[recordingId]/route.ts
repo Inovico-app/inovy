@@ -1,143 +1,141 @@
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import {
-  addRateLimitHeaders,
-  checkRateLimit,
-  createRateLimitResponse,
-} from "@/lib/rate-limit";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
+import { withRateLimit } from "@/lib/rate-limit";
 import { RecordingService } from "@/server/services";
 import { AIInsightService } from "@/server/services/ai-insight.service";
+import { rateLimiter } from "@/server/services/rate-limiter.service";
 import { SummaryService } from "@/server/services/summary.service";
 import { type NextRequest, NextResponse } from "next/server";
 
-export async function POST(
-  request: NextRequest,
-  props: { params: Promise<{ recordingId: string }> }
-) {
-  try {
-    const { recordingId } = await props.params;
-
-    // Verify authentication
-    const authResult = await getAuthSession();
-    if (
-      authResult.isErr() ||
-      !authResult.value.isAuthenticated ||
-      !authResult.value.user
-    ) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const user = authResult.value.user;
-
-    // Check rate limit (5/hour free, 50/hour pro)
-    const rateLimitResult = await checkRateLimit(user.id, {
-      maxRequests: undefined, // Use tier-based default, but override with custom limits
-      windowSeconds: 3600, // 1 hour
-    });
-
-    // Override with custom limits for summarization
-    const tierLimits = rateLimitResult.limit === 100 ? 5 : 50; // free: 5, pro: 50
-    const customRateLimitResult = await checkRateLimit(user.id, {
-      maxRequests: tierLimits,
-      windowSeconds: 3600,
-    });
-
-    if (!customRateLimitResult.allowed) {
-      return createRateLimitResponse(customRateLimitResult);
-    }
-
-    // Get recording
-    const recordingResult = await RecordingService.getRecordingById(
-      recordingId
-    );
-
-    if (recordingResult.isErr() || !recordingResult.value) {
-      return NextResponse.json(
-        { error: "Recording not found" },
-        { status: 404 }
-      );
-    }
-
-    const recording = recordingResult.value;
-
-    // Verify user has access
-    const organization = authResult.value.organization;
-
+export const POST = withRateLimit(
+  async (
+    request: NextRequest,
+    props: { params: Promise<{ recordingId: string }> }
+  ) => {
     try {
-      assertOrganizationAccess(
-        recording.organizationId,
-        organization?.orgCode,
-        "api/summarize/[recordingId]/POST"
-      );
-    } catch (error) {
-      // Return 404 to prevent information leakage
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
+      const { recordingId } = await props.params;
 
-    // Check if transcription is available
-    if (!recording.transcriptionText) {
-      return NextResponse.json(
-        { error: "Recording not yet transcribed" },
-        { status: 400 }
-      );
-    }
+      // Verify authentication
+      const authResult = await getAuthSession();
+      if (
+        authResult.isErr() ||
+        !authResult.value.isAuthenticated ||
+        !authResult.value.user
+      ) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
 
-    logger.info("Starting summary generation", {
-      component: "SummarizeRoute",
-      recordingId,
-    });
+      const user = authResult.value.user;
 
-    // Get transcription insight for utterances
-    const transcriptionInsightResult =
-      await AIInsightService.getInsightByTypeInternal(
-        recordingId,
-        "transcription"
+      // Get recording
+      const recordingResult = await RecordingService.getRecordingById(
+        recordingId
       );
 
-    let utterances;
-    if (transcriptionInsightResult.isOk() && transcriptionInsightResult.value) {
-      utterances = transcriptionInsightResult.value.utterances ?? undefined;
-    }
+      if (recordingResult.isErr() || !recordingResult.value) {
+        return NextResponse.json(
+          { error: "Recording not found" },
+          { status: 404 }
+        );
+      }
 
-    // Generate summary
-    const result = await SummaryService.generateSummary(
-      recordingId,
-      recording.transcriptionText,
-      utterances
-    );
+      const recording = recordingResult.value;
 
-    if (result.isErr()) {
-      logger.error("Summary generation failed", {
+      // Verify user has access
+      const organization = authResult.value.organization;
+
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organization?.orgCode,
+          "api/summarize/[recordingId]/POST"
+        );
+      } catch (error) {
+        // Return 404 to prevent information leakage
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+
+      // Check if transcription is available
+      if (!recording.transcriptionText) {
+        return NextResponse.json(
+          { error: "Recording not yet transcribed" },
+          { status: 400 }
+        );
+      }
+
+      logger.info("Starting summary generation", {
         component: "SummarizeRoute",
         recordingId,
-        error: result.error,
+      });
+
+      // Get transcription insight for utterances
+      const transcriptionInsightResult =
+        await AIInsightService.getInsightByTypeInternal(
+          recordingId,
+          "transcription"
+        );
+
+      let utterances;
+      if (
+        transcriptionInsightResult.isOk() &&
+        transcriptionInsightResult.value
+      ) {
+        utterances = transcriptionInsightResult.value.utterances ?? undefined;
+      }
+
+      // Generate summary
+      const result = await SummaryService.generateSummary(
+        recordingId,
+        recording.transcriptionText,
+        utterances
+      );
+
+      if (result.isErr()) {
+        logger.error("Summary generation failed", {
+          component: "SummarizeRoute",
+          recordingId,
+          error: result.error,
+        });
+
+        return NextResponse.json(
+          { error: result.error.message },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        summary: result.value,
+      });
+    } catch (error) {
+      logger.error("Error in summary API", {
+        component: "SummarizeRoute",
+        error,
       });
 
       return NextResponse.json(
-        { error: result.error.message },
+        { error: "Internal server error" },
         { status: 500 }
       );
     }
-
-    const response = NextResponse.json({
-      success: true,
-      summary: result.value,
-    });
-
-    return addRateLimitHeaders(response, customRateLimitResult);
-  } catch (error) {
-    logger.error("Error in summary API", {
-      component: "SummarizeRoute",
-      error,
-    });
-
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  },
+  {
+    maxRequests: async (userId: string) => {
+      const tier = await rateLimiter.getUserTier(userId);
+      return tier === "free" ? 5 : 50;
+    },
+    windowSeconds: 3600, // 1 hour
+  },
+  async () => {
+    // Custom user ID extraction for rate limiting
+    const authResult = await getAuthSession();
+    if (authResult.isOk() && authResult.value.isAuthenticated) {
+      return authResult.value.user?.id ?? null;
+    }
+    return null;
   }
-}
+);
 
 // GET endpoint to retrieve existing summary
 export async function GET(
