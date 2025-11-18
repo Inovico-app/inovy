@@ -1,5 +1,9 @@
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import {
+  checkRateLimit,
+  createRateLimitResponse,
+} from "@/lib/rate-limit";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { canAccessOrganizationChat } from "@/lib/rbac";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
@@ -85,6 +89,16 @@ export async function POST(request: NextRequest) {
         { error: "Organization not found" },
         { status: 404 }
       );
+    }
+
+    // Check rate limit (100 req/hour free, 1000 req/hour pro)
+    const rateLimitResult = await checkRateLimit(user.id, {
+      maxRequests: undefined, // Use tier-based default
+      windowSeconds: 3600, // 1 hour
+    });
+
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult);
     }
 
     // Parse request body
@@ -206,6 +220,12 @@ export async function POST(request: NextRequest) {
       // Clone the response to add custom headers
       const headers = new Headers(response.headers);
       headers.set("X-Conversation-Id", activeConversationId);
+      headers.set("X-RateLimit-Limit", rateLimitResult.limit.toString());
+      headers.set("X-RateLimit-Remaining", rateLimitResult.remaining.toString());
+      headers.set(
+        "X-RateLimit-Reset",
+        new Date(rateLimitResult.resetAt).toISOString()
+      );
 
       return new Response(response.body, {
         status: response.status,
@@ -290,6 +310,12 @@ export async function POST(request: NextRequest) {
       // Clone the response to add custom headers
       const headers = new Headers(response.headers);
       headers.set("X-Conversation-Id", activeConversationId);
+      headers.set("X-RateLimit-Limit", rateLimitResult.limit.toString());
+      headers.set("X-RateLimit-Remaining", rateLimitResult.remaining.toString());
+      headers.set(
+        "X-RateLimit-Reset",
+        new Date(rateLimitResult.resetAt).toISOString()
+      );
 
       return new Response(response.body, {
         status: response.status,
