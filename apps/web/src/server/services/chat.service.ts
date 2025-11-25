@@ -121,7 +121,9 @@ export class ChatService {
       | "transcription"
       | "summary"
       | "task"
-      | "knowledge_document";
+      | "knowledge_document"
+      | "project_template"
+      | "organization_instructions";
     title: string;
     excerpt: string;
     similarityScore: number;
@@ -1479,7 +1481,9 @@ Please answer the user's question based on this information. When referencing in
           | "transcription"
           | "summary"
           | "task"
-          | "knowledge_document";
+          | "knowledge_document"
+          | "project_template"
+          | "organization_instructions";
         title: string;
         excerpt: string;
         similarityScore: number;
@@ -1542,7 +1546,9 @@ Please answer the user's question based on this information. When referencing in
           | "transcription"
           | "summary"
           | "task"
-          | "knowledge_document";
+          | "knowledge_document"
+          | "project_template"
+          | "organization_instructions";
         title: string;
         excerpt: string;
         similarityScore: number;

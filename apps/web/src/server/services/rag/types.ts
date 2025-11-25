@@ -54,7 +54,9 @@ export interface SearchResult {
     | "transcription"
     | "summary"
     | "task"
-    | "knowledge_document";
+    | "knowledge_document"
+    | "project_template"
+    | "organization_instructions";
   contentId: string;
   contentText: string;
   similarity: number;
