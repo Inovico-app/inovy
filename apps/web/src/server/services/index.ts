@@ -24,3 +24,10 @@ export { ReprocessingService } from "./reprocessing.service";
 export { TaskService } from "./task.service";
 export { TranscriptionEditService } from "./transcription-edit.service";
 
+// Export tools
+export { RAGSearchTool } from "./tools/rag-search.tool";
+export type {
+  RAGSearchInput,
+  RAGSearchResponse,
+  FormattedSearchResult,
+} from "./tools/rag-search.tool";
