@@ -76,6 +76,9 @@ export function getServerLogger(): PinoLogger {
       env: process.env.NODE_ENV,
       pid: process.pid,
     },
+    browser: {
+      asObject: true,
+    },
   };
 
   // In development, use pino-pretty for readable output
