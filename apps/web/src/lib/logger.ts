@@ -187,7 +187,7 @@ class Logger {
   // Helper method for auth-related logging
   auth = {
     sessionCheck: (success: boolean, context?: LogContext) => {
-      this.info(`Auth session check: ${success ? "valid" : "invalid"}`, {
+      this.debug(`Auth session check: ${success ? "valid" : "invalid"}`, {
         ...context,
         component: "auth",
         action: "sessionCheck",

@@ -149,8 +149,6 @@ Antwoord ALLEEN met valid JSON in het volgende formaat (gebruik Engels voor de v
               { role: "user", content: userPrompt },
             ],
             response_format: { type: "json_object" },
-            temperature: 0.3,
-            max_tokens: 2000,
           }),
         "openai"
       );
@@ -246,9 +244,10 @@ Antwoord ALLEEN met valid JSON in het volgende formaat (gebruik Engels voor de v
         ...summaryContent,
         knowledgeUsed: knowledgeEntries.map((e) => e.id), // Track which knowledge entries were used
       };
+
       await AIInsightsQueries.updateInsightContent(
         insight.id,
-        summaryContentWithKnowledge as unknown as Record<string, unknown>,
+        summaryContentWithKnowledge,
         confidence
       );
 

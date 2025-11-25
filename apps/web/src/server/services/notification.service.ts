@@ -1,13 +1,14 @@
 import { err, ok } from "neverthrow";
+import { revalidateTag } from "next/cache";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { getAuthSession } from "../../lib/auth";
-import { CacheInvalidation } from "../../lib/cache-utils";
+import { CacheInvalidation, CacheTags } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
-import { NotificationsQueries } from "../data-access/notifications.queries";
 import {
   getCachedNotifications,
   getCachedUnreadCount,
 } from "../cache/notification.cache";
+import { NotificationsQueries } from "../data-access/notifications.queries";
 import type { NewNotification } from "../db/schema/notifications";
 import type {
   NotificationDto,
@@ -31,7 +32,14 @@ export class NotificationService {
       const notification = await NotificationsQueries.createNotification(data);
 
       // Invalidate cache for this user
-      await this.invalidateCache(data.userId, data.organizationId);
+      revalidateTag(
+        CacheTags.notifications(data.userId, data.organizationId),
+        "max"
+      );
+      revalidateTag(
+        CacheTags.notificationUnreadCount(data.userId, data.organizationId),
+        "max"
+      );
 
       return ok(this.toDto(notification));
     } catch (error) {
@@ -181,9 +189,8 @@ export class NotificationService {
       }
 
       // Get notification first to verify organization ownership
-      const existingNotification = await NotificationsQueries.getNotificationById(
-        notificationId
-      );
+      const existingNotification =
+        await NotificationsQueries.getNotificationById(notificationId);
 
       if (!existingNotification) {
         return err(
@@ -270,7 +277,11 @@ export class NotificationService {
 
       return ok(count);
     } catch (error) {
-      logger.error("Failed to mark all notifications as read", {}, error as Error);
+      logger.error(
+        "Failed to mark all notifications as read",
+        {},
+        error as Error
+      );
       return err(
         ActionErrors.internal(
           "Failed to mark all notifications as read",
@@ -321,3 +332,4 @@ export class NotificationService {
     };
   }
 }
+
