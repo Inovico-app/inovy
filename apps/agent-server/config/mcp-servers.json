@@ -1,0 +1,48 @@
+[
+  {
+    "name": "google-drive",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-google-drive"],
+    "env": {
+      "GOOGLE_CREDENTIALS_FILE": "./credentials/google-credentials.json",
+      "GOOGLE_TOKEN_FILE": "./credentials/google-token.json"
+    },
+    "retryAttempts": 3,
+    "retryDelay": 2000
+  },
+  {
+    "name": "google-calendar",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-google-calendar"],
+    "env": {
+      "GOOGLE_CREDENTIALS_FILE": "./credentials/google-credentials.json",
+      "GOOGLE_TOKEN_FILE": "./credentials/google-token.json"
+    },
+    "retryAttempts": 3,
+    "retryDelay": 2000
+  },
+  {
+    "name": "microsoft365",
+    "command": "npx",
+    "args": ["-y", "@softeria/ms-365-mcp-server", "--org-mode"],
+    "env": {
+      "MS_CLIENT_ID": "${MS_CLIENT_ID}",
+      "MS_CLIENT_SECRET": "${MS_CLIENT_SECRET}",
+      "MS_TENANT_ID": "${MS_TENANT_ID}"
+    },
+    "retryAttempts": 3,
+    "retryDelay": 2000
+  },
+  {
+    "name": "filesystem",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-filesystem",
+      "./allowed-directory"
+    ],
+    "retryAttempts": 3,
+    "retryDelay": 2000
+  }
+]
+

@@ -4,3 +4,10 @@ node_modules
 .env
 .vercel
 .env*.local
+
+# Build outputs
+dist
+*.tsbuildinfo
+
+# Credentials
+credentials/
