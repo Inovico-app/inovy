@@ -7,7 +7,13 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   reactCompiler: true,
   // Exclude pino and related packages from bundling (server-only)
-  serverExternalPackages: ["pino", "pino-pretty"],
+  serverExternalPackages: [
+    "pino",
+    "pino-pretty",
+    "pino-file",
+    "pino-worker",
+    "thread-system",
+  ],
   experimental: {
     turbopackFileSystemCacheForDev: true,
     serverActions: {
@@ -32,7 +38,7 @@ const nextConfig: NextConfig = {
         assert: false,
       };
       // Explicitly exclude pino from client bundle
-      config.externals = config.externals || [];
+      config.externals = config.externals ?? [];
       if (typeof config.externals === "function") {
         const originalExternals = config.externals;
         config.externals = [
