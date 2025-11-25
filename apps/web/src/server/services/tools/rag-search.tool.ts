@@ -45,7 +45,11 @@ export const ragSearchInputSchema = z.object({
     .string()
     .optional()
     .describe("Organization ID for filtering results"),
-  projectId: z.uuid().optional().describe("Project ID for filtering"),
+  projectId: z
+    .string()
+    .uuid()
+    .optional()
+    .describe("Project ID for filtering"),
   filters: z
     .record(z.string(), z.unknown())
     .optional()
