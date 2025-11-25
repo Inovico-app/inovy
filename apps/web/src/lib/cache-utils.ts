@@ -1,4 +1,4 @@
-import { updateTag as nextUpdateTag } from "next/cache";
+import { updateTag as nextUpdateTag, revalidateTag } from "next/cache";
 
 /**
  * Cache tag utilities for Next.js 16 cache system
@@ -214,7 +214,7 @@ export const CacheInvalidation = {
    * Invalidate summary cache
    */
   invalidateSummary(recordingId: string): void {
-    invalidateCache(CacheTags.summary(recordingId));
+    revalidateTag(CacheTags.summary(recordingId), "max");
   },
 
   /**
@@ -412,7 +412,11 @@ export const CacheInvalidation = {
   /**
    * Invalidate team cache
    */
-  invalidateTeamCache(orgCode: string, teamId?: string, departmentId?: string): void {
+  invalidateTeamCache(
+    orgCode: string,
+    teamId?: string,
+    departmentId?: string
+  ): void {
     const tags = [CacheTags.teamsByOrg(orgCode)];
     if (teamId) {
       tags.push(CacheTags.team(teamId));
