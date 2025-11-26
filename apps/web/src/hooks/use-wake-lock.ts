@@ -13,7 +13,9 @@ interface UseWakeLockReturn {
  * Prevents screen from locking during recording on mobile devices
  */
 export function useWakeLock(): UseWakeLockReturn {
-  const [isSupported] = useState(() => "wakeLock" in navigator);
+  const [isSupported] = useState(
+    () => typeof navigator !== "undefined" && "wakeLock" in navigator
+  );
   const [isActive, setIsActive] = useState(false);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
