@@ -147,10 +147,13 @@ export function EditRecordingForm({
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting && <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />}
+          {isSubmitting && (
+            <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+          )}
           Save Changes
         </Button>
       </div>
     </form>
   );
 }
+

@@ -46,10 +46,11 @@ export function EditProjectForm({
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     // @ts-expect-error - Zod v4 type incompatibility with @hookform/resolvers
+
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialData.name,
-      description: initialData.description || "",
+      description: initialData.description ?? "",
     },
   });
 
@@ -120,7 +121,9 @@ export function EditProjectForm({
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting && <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />}
+          {isSubmitting && (
+            <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+          )}
           Save Changes
         </Button>
       </div>

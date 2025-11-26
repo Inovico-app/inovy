@@ -184,8 +184,6 @@ export function UploadRecordingForm({
         signal: abortControllerRef.current.signal,
       });
 
-      toast.success("Recording uploaded successfully!");
-
       // Refresh the router cache to get updated data
       router.refresh();
 

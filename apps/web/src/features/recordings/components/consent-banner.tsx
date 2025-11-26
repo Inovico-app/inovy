@@ -46,7 +46,9 @@ export function ConsentBanner({
           <div className="rounded-lg border bg-muted/50 p-4">
             <h4 className="font-medium mb-2">Consent Requirements:</h4>
             <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              <li>All participants must explicitly consent to being recorded</li>
+              <li>
+                All participants must explicitly consent to being recorded
+              </li>
               <li>Consent can be revoked at any time</li>
               <li>Consent status will be tracked and audited</li>
             </ul>
@@ -92,8 +94,7 @@ export function ConsentBanner({
             disabled={!hasRead}
             className="gap-2"
           >
-            <CheckCircle2 className="h-4 w-4" />
-            I Have Consent
+            <CheckCircle2 className="h-4 w-4" />I Have Consent
           </Button>
         </DialogFooter>
       </DialogContent>
