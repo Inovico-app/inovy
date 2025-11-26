@@ -1,5 +1,6 @@
 import type { PutBlobResult } from "@vercel/blob";
 import { upload } from "@vercel/blob/client";
+import { toast } from "sonner";
 
 export interface UploadRecordingOptions {
   clientPayload?: string;
@@ -23,14 +24,21 @@ export async function uploadRecordingToBlob(
   file: File,
   options?: UploadRecordingOptions
 ): Promise<PutBlobResult> {
-  console.log("uploading recording to blob", file);
-
-  return upload(`recordings/${file.name}`, file, {
-    access: "public",
-    handleUploadUrl: "/api/recordings/upload",
-    clientPayload: options?.clientPayload,
-    onUploadProgress: options?.onUploadProgress,
-    abortSignal: options?.signal,
-  });
+  return toast
+    .promise(
+      upload(`recordings/${file.name}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/recordings/upload",
+        clientPayload: options?.clientPayload,
+        onUploadProgress: options?.onUploadProgress,
+        abortSignal: options?.signal,
+      }),
+      {
+        loading: "Opname wordt opgeslagen en geüpload... Een moment geduld.",
+        success: "Opname succesvol opgeslagen!",
+        error: "Fout bij opslaan van opname",
+      }
+    )
+    .unwrap();
 }
 

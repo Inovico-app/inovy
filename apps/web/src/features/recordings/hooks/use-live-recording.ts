@@ -1,3 +1,4 @@
+import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useMicrophone } from "@/providers/MicrophoneProvider";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useRecordingDuration } from "./use-recording-duration";
@@ -15,6 +16,7 @@ export function useLiveRecording() {
     useMicrophone();
   const { duration, startTimer, stopTimer, resetTimer } =
     useRecordingDuration();
+  const wakeLock = useWakeLock(); // Prevent screen from locking during recording
 
   // Refs
   const audioChunksRef = useRef<Blob[]>([]);
@@ -58,6 +60,9 @@ export function useLiveRecording() {
         resetTimer();
         startTimer();
 
+        // Request wake lock to prevent screen from locking during recording
+        await wakeLock.request();
+
         // If transcription is disabled, start microphone immediately
         // Otherwise, wait for transcription connection (caller handles this)
         if (!enableTranscription) {
@@ -73,6 +78,8 @@ export function useLiveRecording() {
         setRecorderError("Kon opname niet starten");
         stopTimer();
         setIsRecording(false);
+        // Release wake lock if recording failed
+        await wakeLock.release();
       }
     }
   );
@@ -101,6 +108,9 @@ export function useLiveRecording() {
       setIsSaving(true);
       stopTimer();
       stopMicrophone();
+
+      // Release wake lock when recording stops
+      await wakeLock.release();
 
       // Combine audio chunks into single blob
       const audioBlob = new Blob(audioChunksRef.current, {
@@ -154,6 +164,10 @@ export function useLiveRecording() {
 
     // Refs
     audioChunksRef: getAudioChunksRef(),
+
+    // Wake Lock
+    wakeLockSupported: wakeLock.isSupported,
+    wakeLockActive: wakeLock.isActive,
   };
 }
 

@@ -36,7 +36,6 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
     projects[0]?.id ?? ""
   );
   const [autoProcessEnabled, setAutoProcessEnabled] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
 
   // Check auto-process preference on mount
   useEffect(() => {
@@ -58,9 +57,6 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
     }
 
     try {
-      setIsUploading(true);
-
-      // Convert blob to file with proper naming
       const audioFile = await convertBlobToMp3(
         audioBlob,
         `live-recording-${Date.now()}`
@@ -83,7 +79,6 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
         clientPayload,
       });
 
-      toast.success("Opname succesvol opgeslagen!");
       router.push(`/projects/${selectedProjectId}`);
       router.refresh();
     } catch (error) {
@@ -91,8 +86,6 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
       toast.error(
         error instanceof Error ? error.message : "Fout bij opslaan van opname"
       );
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -184,15 +177,6 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
           <InfoIcon className="h-4 w-4" />
           <AlertDescription>
             Selecteer een project om te beginnen met opnemen
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {isUploading && (
-        <Alert>
-          <InfoIcon className="h-4 w-4" />
-          <AlertDescription>
-            Opname wordt opgeslagen en geüpload... Een moment geduld.
           </AlertDescription>
         </Alert>
       )}

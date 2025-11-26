@@ -14,7 +14,6 @@ export async function convertBlobToMp3(
   const mp3MimeType = "audio/mpeg";
   const isMP3Supported = MediaRecorder.isTypeSupported(mp3MimeType);
 
-  console.log("isMP3Supported", isMP3Supported);
   // If already MP3, just convert to File
   if (audioBlob.type === mp3MimeType) {
     return new File(
