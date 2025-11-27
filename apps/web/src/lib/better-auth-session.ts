@@ -97,6 +97,7 @@ export const getBetterAuthSession = cache(
       }
 
       // Map Better Auth member role to application roles
+      // Always assign at least a default role to ensure authorization works downstream
       const roles: Role[] = [];
       if (activeMember) {
         const memberRole = activeMember.role?.toLowerCase();
@@ -106,7 +107,22 @@ export const getBetterAuthSession = cache(
           roles.push("manager");
         } else if (memberRole === "member") {
           roles.push("user");
+        } else {
+          // Unexpected or missing role - log warning and assign default role
+          const rawRole = activeMember.role ?? "missing";
+          logger.warn("Unexpected Better Auth member role encountered", {
+            component: "better-auth-session",
+            userId: session.user.id,
+            organizationId: activeMember.organizationId,
+            rawRole,
+            action: "getBetterAuthSession",
+          });
+          // Assign default "user" role for unrecognized roles
+          roles.push("user");
         }
+      } else {
+        // No active member - assign default role for authenticated users
+        roles.push("user");
       }
 
       logger.auth.sessionCheck(true, {
@@ -133,7 +149,7 @@ export const getBetterAuthSession = cache(
               role: activeMember.role,
             }
           : null,
-        roles: roles.length > 0 ? roles : null,
+        roles: roles.length > 0 ? roles : ["user"], // Ensure roles is never empty for authenticated users
       });
     } catch (error) {
       const errorMessage = "Critical error in getBetterAuthSession";
@@ -199,6 +215,8 @@ export async function getBetterAuthSessionUncached(): Promise<
       };
     }
 
+    // Map Better Auth member role to application roles
+    // Always assign at least a default role to ensure authorization works downstream
     const roles: Role[] = [];
     if (activeMember) {
       const memberRole = activeMember.role?.toLowerCase();
@@ -208,7 +226,22 @@ export async function getBetterAuthSessionUncached(): Promise<
         roles.push("manager");
       } else if (memberRole === "member") {
         roles.push("user");
+      } else {
+        // Unexpected or missing role - log warning and assign default role
+        const rawRole = activeMember.role ?? "missing";
+        logger.warn("Unexpected Better Auth member role encountered", {
+          component: "better-auth-session",
+          userId: session.user.id,
+          organizationId: activeMember.organizationId,
+          rawRole,
+          action: "getBetterAuthSessionUncached",
+        });
+        // Assign default "user" role for unrecognized roles
+        roles.push("user");
       }
+    } else {
+      // No active member - assign default role for authenticated users
+      roles.push("user");
     }
 
     return ok({
@@ -229,7 +262,7 @@ export async function getBetterAuthSessionUncached(): Promise<
             role: activeMember.role,
           }
         : null,
-      roles: roles.length > 0 ? roles : null,
+      roles: roles.length > 0 ? roles : ["user"], // Ensure roles is never empty for authenticated users
     });
   } catch (error) {
     const errorMessage = "Critical error in getBetterAuthSessionUncached";
