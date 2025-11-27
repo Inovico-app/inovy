@@ -45,7 +45,8 @@ export function EditProjectForm({
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(formSchema as any),
     defaultValues: {
       name: initialData.name,
       description: initialData.description ?? "",
@@ -57,7 +58,7 @@ export function EditProjectForm({
       const result = await updateProjectAction({
         projectId,
         name: data.name,
-        description: data.description || undefined,
+        description: data.description ?? undefined,
       });
 
       if (result?.serverError) {
@@ -70,7 +71,7 @@ export function EditProjectForm({
         const firstError = Array.isArray(firstFieldErrors)
           ? firstFieldErrors[0]
           : firstFieldErrors?._errors?.[0];
-        toast.error(firstError || "Validation failed");
+        toast.error(firstError ?? "Validation failed");
         return;
       }
 

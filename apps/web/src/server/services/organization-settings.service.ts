@@ -12,14 +12,15 @@ import type { OrganizationSettingsDto } from "../dto/organization-settings.dto";
  */
 export class OrganizationSettingsService {
   /**
-   * Get organization settings by organization code
+   * Get organization settings by organization ID
+   * @param organizationId - Better Auth organization ID (UUID)
    */
   static async getOrganizationSettings(
-    orgCode: string
+    organizationId: string
   ): Promise<ActionResult<OrganizationSettingsDto | null>> {
     try {
       const settings = await OrganizationSettingsQueries.findByOrganizationId(
-        orgCode
+        organizationId
       );
 
       if (!settings) {
@@ -37,7 +38,7 @@ export class OrganizationSettingsService {
     } catch (error) {
       logger.error(
         "Failed to get organization settings",
-        { orgCode },
+        { organizationId },
         error as Error
       );
       return err(
@@ -52,22 +53,23 @@ export class OrganizationSettingsService {
 
   /**
    * Update organization settings (creates if doesn't exist)
+   * @param organizationId - Better Auth organization ID (UUID)
    */
   static async updateOrganizationSettings(
-    orgCode: string,
+    organizationId: string,
     instructions: string,
     userId: string
   ): Promise<ActionResult<OrganizationSettingsDto>> {
     try {
       // Use createOrUpdate to handle both cases
       const settings = await OrganizationSettingsQueries.createOrUpdate({
-        organizationId: orgCode,
+        organizationId,
         instructions,
         createdById: userId,
       });
 
       // Invalidate cache
-      CacheInvalidation.invalidateOrganizationSettings(orgCode);
+      CacheInvalidation.invalidateOrganizationSettings(organizationId);
 
       return ok({
         id: settings.id,
@@ -80,7 +82,7 @@ export class OrganizationSettingsService {
     } catch (error) {
       logger.error(
         "Failed to update organization settings",
-        { orgCode, userId },
+        { organizationId, userId },
         error as Error
       );
       return err(
@@ -96,28 +98,30 @@ export class OrganizationSettingsService {
   /**
    * Create organization instructions
    * Alias for updateOrganizationSettings to match ORG-INST-002 API
+   * @param organizationId - Better Auth organization ID (UUID)
    */
   static async createInstructions(
     instructions: string,
-    orgCode: string,
+    organizationId: string,
     user: AuthUser
   ): Promise<ActionResult<OrganizationSettingsDto>> {
-    return this.updateOrganizationSettings(orgCode, instructions, user.id);
+    return this.updateOrganizationSettings(organizationId, instructions, user.id);
   }
 
   /**
    * Update organization instructions
    * Alias for updateOrganizationSettings to match ORG-INST-002 API
+   * @param organizationId - Better Auth organization ID (UUID)
    */
   static async updateInstructions(
     instructions: string,
-    orgCode: string
+    organizationId: string
   ): Promise<ActionResult<OrganizationSettingsDto>> {
     // Note: We need a userId but the caller doesn't provide one.
     // For updates, we'll use the existing createdById from the DB
     try {
       const existing = await OrganizationSettingsQueries.findByOrganizationId(
-        orgCode
+        organizationId
       );
 
       if (!existing) {
@@ -130,14 +134,14 @@ export class OrganizationSettingsService {
       }
 
       return this.updateOrganizationSettings(
-        orgCode,
+        organizationId,
         instructions,
         existing.createdById
       );
     } catch (error) {
       logger.error(
         "Failed to update instructions",
-        { orgCode },
+        { organizationId },
         error as Error
       );
       return err(

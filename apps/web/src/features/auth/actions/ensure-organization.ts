@@ -74,12 +74,12 @@ export async function ensureUserOrganization(): Promise<{
 
     logger.info("Successfully ensured user organization", {
       userId: user.id,
-      organizationCode: organization.code,
+      organizationId: organization.id,
     });
 
     return {
       success: true,
-      organizationCode: organization.code,
+      organizationCode: organization.id, // organizationCode is the Better Auth organization ID
     };
   } catch (error) {
     logger.error("Unexpected error in ensureUserOrganization", {}, error as Error);
