@@ -1,4 +1,4 @@
-import { logger } from "@/lib";
+import { logger } from "@/lib/logger";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 interface UseWakeLockReturn {
