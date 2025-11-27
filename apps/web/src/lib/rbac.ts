@@ -1,9 +1,11 @@
 /**
  * Role-Based Access Control (RBAC) utilities
  * Provides authorization logic for server actions
+ * Integrated with Better Auth organization roles
  */
 
 import type { AuthUser } from "./auth";
+import type { BetterAuthMember } from "./better-auth-session";
 
 /**
  * Available policies in the system
@@ -225,39 +227,125 @@ const ROLE_POLICIES: Record<Role, PolicyKey[]> = {
 };
 
 /**
+ * Better Auth organization role types
+ */
+export type BetterAuthOrgRole = "owner" | "admin" | "member";
+
+/**
  * Extended session interface with roles and organization context
+ * Compatible with Better Auth session structure
  */
 export interface SessionWithRoles {
   user: AuthUser & {
     roles?: Role[];
   };
   accessToken?: string;
-  organizationId?: string; // Organization code from Kinde
+  organizationId?: string;
+  member?: BetterAuthMember | null; // Better Auth organization member info
 }
 
 /**
- * Get user roles from AuthUser
- * Returns roles from user object or defaults to USER
+ * Map Better Auth organization role to application roles
+ * Better Auth provides: owner, admin, member
+ * Application roles: superadmin, admin, manager, user, viewer
+ *
+ * @param betterAuthRole - The Better Auth organization role
+ * @returns Array of application roles
  */
-function getUserRoles(user: AuthUser): Role[] {
-  if (!user.roles) {
+export function mapBetterAuthRoleToApplicationRoles(
+  betterAuthRole: BetterAuthOrgRole | string | null | undefined
+): Role[] {
+  if (!betterAuthRole) {
     return [ROLES.USER];
   }
-  // Convert string array to Role enum values
-  return user.roles.map((role) => {
-    const roleValue = Object.values(ROLES).find((r) => r === role);
-    return roleValue ?? ROLES.USER;
-  });
+
+  const normalizedRole = betterAuthRole.toLowerCase();
+
+  switch (normalizedRole) {
+    case "owner":
+      // Organization owners get admin privileges
+      return [ROLES.ADMIN];
+    case "admin":
+      // Organization admins get admin privileges
+      return [ROLES.ADMIN];
+    case "member":
+      // Regular members get user privileges
+      return [ROLES.USER];
+    default:
+      // Unknown role defaults to user
+      return [ROLES.USER];
+  }
+}
+
+/**
+ * Extract roles from Better Auth session structure
+ * Checks multiple sources: user.roles, member.role, or defaults to USER
+ *
+ * @param session - Session with Better Auth structure
+ * @returns Array of application roles
+ */
+function extractRolesFromSession(session: SessionWithRoles): Role[] {
+  // First, check if roles are already mapped in user.roles
+  if (session.user.roles && session.user.roles.length > 0) {
+    // Validate and filter roles
+    return session.user.roles
+      .map((role) => {
+        const roleValue = Object.values(ROLES).find((r) => r === role);
+        return roleValue ?? null;
+      })
+      .filter((role): role is Role => role !== null);
+  }
+
+  // If no roles in user, check Better Auth member role
+  if (session.member?.role) {
+    return mapBetterAuthRoleToApplicationRoles(session.member.role);
+  }
+
+  // Default to user role
+  return [ROLES.USER];
+}
+
+/**
+ * Get user roles from AuthUser or Better Auth session
+ * Returns roles from user object, member role, or defaults to USER
+ *
+ * @param user - AuthUser object
+ * @param member - Optional Better Auth member info
+ * @returns Array of application roles
+ */
+function getUserRoles(
+  user: AuthUser,
+  member?: BetterAuthMember | null
+): Role[] {
+  // Check if roles are already set on user
+  if (user.roles && user.roles.length > 0) {
+    return user.roles
+      .map((role) => {
+        const roleValue = Object.values(ROLES).find((r) => r === role);
+        return roleValue ?? ROLES.USER;
+      })
+      .filter((role, index, arr) => arr.indexOf(role) === index); // Remove duplicates
+  }
+
+  // If member info is available, map Better Auth role
+  if (member?.role) {
+    return mapBetterAuthRoleToApplicationRoles(member.role);
+  }
+
+  // Default to user role
+  return [ROLES.USER];
 }
 
 /**
  * Check if a user is authorized to perform a specific action
+ * Extracts roles from Better Auth session structure
  */
 export function userIsAuthorized(
   session: SessionWithRoles,
   policy: PolicyKey
 ): { isAuthorized: boolean; requiredRoles: Role[] } {
-  const userRoles = session.user.roles ?? getUserRoles(session.user);
+  // Extract roles from Better Auth session structure
+  const userRoles = extractRolesFromSession(session);
 
   // Find which roles have access to this policy
   const requiredRoles = Object.entries(ROLE_POLICIES)
@@ -274,28 +362,31 @@ export function userIsAuthorized(
 
 /**
  * Check if a user has a specific role
+ * Extracts roles from Better Auth session structure
  */
 export function userHasRole(session: SessionWithRoles, role: Role): boolean {
-  const userRoles = session.user.roles ?? getUserRoles(session.user);
+  const userRoles = extractRolesFromSession(session);
   return userRoles.includes(role);
 }
 
 /**
  * Check if a user has any of the specified roles
+ * Extracts roles from Better Auth session structure
  */
 export function userHasAnyRole(
   session: SessionWithRoles,
   roles: Role[]
 ): boolean {
-  const userRoles = session.user.roles ?? getUserRoles(session.user);
+  const userRoles = extractRolesFromSession(session);
   return roles.some((role) => userRoles.includes(role));
 }
 
 /**
  * Get all policies a user has access to
+ * Extracts roles from Better Auth session structure
  */
 export function getUserPolicies(session: SessionWithRoles): PolicyKey[] {
-  const userRoles = session.user.roles ?? getUserRoles(session.user);
+  const userRoles = extractRolesFromSession(session);
 
   const policies = new Set<PolicyKey>();
 
@@ -310,32 +401,42 @@ export function getUserPolicies(session: SessionWithRoles): PolicyKey[] {
 /**
  * Check if a user is an organization admin
  * This is a convenience method that checks if the user has the ADMIN role
+ * Works with Better Auth organization roles (owner, admin)
  */
 export function isOrganizationAdmin(
-  user: AuthUser | (AuthUser & { roles: Role[] })
+  user: AuthUser | (AuthUser & { roles?: Role[] }),
+  member?: BetterAuthMember | null
 ): boolean {
-  const roles = user.roles ?? getUserRoles(user);
+  const roles = user.roles ?? getUserRoles(user, member);
   return roles.includes(ROLES.ADMIN) || roles.includes(ROLES.SUPER_ADMIN);
 }
 
 /**
  * Check if a user is a project manager
  * This is a convenience method that checks if the user has the MANAGER role
+ * Works with Better Auth organization roles
  */
 export function isProjectManager(
-  user: AuthUser | (AuthUser & { roles: Role[] })
+  user: AuthUser | (AuthUser & { roles?: Role[] }),
+  member?: BetterAuthMember | null
 ): boolean {
-  const roles = user.roles ?? getUserRoles(user);
-  return roles.includes(ROLES.MANAGER) || roles.includes(ROLES.ADMIN) || roles.includes(ROLES.SUPER_ADMIN);
+  const roles = user.roles ?? getUserRoles(user, member);
+  return (
+    roles.includes(ROLES.MANAGER) ||
+    roles.includes(ROLES.ADMIN) ||
+    roles.includes(ROLES.SUPER_ADMIN)
+  );
 }
 
 /**
  * Check if a user can access organization-level chat
+ * Works with Better Auth organization roles
  */
 export function canAccessOrganizationChat(
-  user: AuthUser | (AuthUser & { roles: Role[] })
+  user: AuthUser | (AuthUser & { roles?: Role[] }),
+  member?: BetterAuthMember | null
 ): boolean {
-  return isOrganizationAdmin(user);
+  return isOrganizationAdmin(user, member);
 }
 
 /**
@@ -395,7 +496,11 @@ export function canAccessResource<T extends { organizationId: string | null }>(
   }
 
   // Check organization isolation
-  const userOrgId = session.organizationId ?? session.user.organization_code;
+  // Extract organization ID from Better Auth session structure
+  const userOrgId =
+    session.organizationId ??
+    session.member?.organizationId ??
+    session.user.organization_code;
   if (!verifyOrganizationAccess(userOrgId, resource.organizationId)) {
     return {
       canAccess: false,
@@ -410,7 +515,7 @@ export function canAccessResource<T extends { organizationId: string | null }>(
 
 /**
  * Extract organization ID from session
- * Tries multiple sources to ensure compatibility
+ * Tries multiple sources to ensure compatibility with Better Auth session structure
  *
  * @param session - The user session
  * @returns Organization ID or undefined
@@ -418,7 +523,12 @@ export function canAccessResource<T extends { organizationId: string | null }>(
 export function getOrganizationIdFromSession(
   session: SessionWithRoles
 ): string | undefined {
-  return session.organizationId ?? session.user.organization_code ?? undefined;
+  return (
+    session.organizationId ??
+    session.member?.organizationId ??
+    session.user.organization_code ??
+    undefined
+  );
 }
 
 /**
@@ -455,11 +565,13 @@ export function canAccessTeam(
  * Check if a user is a department admin
  * Note: This checks organization-level admin role.
  * Department-specific admin roles would require additional logic.
+ * Works with Better Auth organization roles
  */
 export function isDepartmentAdmin(
-  user: AuthUser | (AuthUser & { roles: Role[] })
+  user: AuthUser | (AuthUser & { roles?: Role[] }),
+  member?: BetterAuthMember | null
 ): boolean {
-  return isOrganizationAdmin(user);
+  return isOrganizationAdmin(user, member);
 }
 
 /**
@@ -467,9 +579,7 @@ export function isDepartmentAdmin(
  * Checks if user has team admin role in user-teams table
  * This is a basic check - actual implementation requires querying user-teams
  */
-export function isTeamAdmin(
-  userTeamRole: string | null | undefined
-): boolean {
+export function isTeamAdmin(userTeamRole: string | null | undefined): boolean {
   return userTeamRole === "admin";
 }
 
@@ -477,9 +587,7 @@ export function isTeamAdmin(
  * Check if a user is a team lead
  * Checks if user has team lead role in user-teams table
  */
-export function isTeamLead(
-  userTeamRole: string | null | undefined
-): boolean {
+export function isTeamLead(userTeamRole: string | null | undefined): boolean {
   return userTeamRole === "lead" || userTeamRole === "admin";
 }
 

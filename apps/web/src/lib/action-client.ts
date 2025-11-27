@@ -14,6 +14,7 @@ import { z } from "zod";
 
 import { ActionErrors, type ActionError } from "./action-errors";
 import { getAuthSession, type AuthUser } from "./auth";
+import { getBetterAuthSession } from "./better-auth-session";
 import { generateApplicationErrorMessage } from "./error-messages";
 import { logger } from "./logger";
 import { POLICY_KEYS, userIsAuthorized, type SessionWithRoles } from "./rbac";
@@ -146,6 +147,9 @@ async function authenticationMiddleware({
     throw createErrorForNextSafeAction(actionError);
   }
 
+  // Get Better Auth session to access member information for RBAC
+  const betterAuthResult = await getBetterAuthSession();
+
   // Extract organization ID - this is critical for organization isolation
   const organizationId = organization?.id ?? authUser.organization_code;
 
@@ -167,14 +171,15 @@ async function authenticationMiddleware({
     throw createErrorForNextSafeAction(actionError);
   }
 
-  // Create session compatible with RBAC
-  // The roles are already in the correct format from getAuthSession
+  // Create session compatible with RBAC and Better Auth session structure
+  // Include member information for proper role extraction
   const session: SessionWithRoles = {
     user: {
       ...authUser,
       roles: authUser.roles ?? undefined,
     } as SessionWithRoles["user"],
     organizationId, // Add organization ID to session
+    member: betterAuthResult.isOk() ? betterAuthResult.value.member : null, // Include Better Auth member info
     // Add access token if available from your auth system
   };
 
