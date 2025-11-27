@@ -1,9 +1,12 @@
 "use server";
 
-import { authorizedActionClient, resultToActionResponse } from "@/lib";
+import {
+  authorizedActionClient,
+  resultToActionResponse,
+} from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { RecordingService } from "@/server/services";
+import { RecordingService } from "@/server/services/recording.service";
 import { updateRecordingMetadataSchema } from "@/server/validation/recordings/update-recording-metadata";
 import { revalidatePath } from "next/cache";
 

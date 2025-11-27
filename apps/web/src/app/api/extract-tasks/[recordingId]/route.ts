@@ -2,7 +2,7 @@ import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { withRateLimit } from "@/lib/rate-limit";
-import { RecordingService } from "@/server/services";
+import { RecordingService } from "@/server/services/recording.service";
 import { AIInsightService } from "@/server/services/ai-insight.service";
 import { rateLimiter } from "@/server/services/rate-limiter.service";
 import { TaskExtractionService } from "@/server/services/task-extraction.service";

@@ -4,7 +4,7 @@ import {
   integrationSettings,
   type IntegrationSettings,
   type NewIntegrationSettings,
-} from "../db/schema";
+} from "../db/schema/integration-settings";
 
 export class IntegrationSettingsQueries {
   static async getByUserAndProvider(

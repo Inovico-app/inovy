@@ -10,8 +10,9 @@ import {
 import { TaskCard } from "@/features/tasks/components/task-card";
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import { getCachedTaskStats } from "@/server/cache";
-import { DashboardService, TaskService } from "@/server/services";
+import { getCachedTaskStats } from "@/server/cache/task.cache";
+import { DashboardService } from "@/server/services/dashboard.service";
+import { TaskService } from "@/server/services/task.service";
 import {
   Building2,
   FolderIcon,

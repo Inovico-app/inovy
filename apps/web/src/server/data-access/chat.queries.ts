@@ -1,12 +1,14 @@
 import { db } from "@/server/db";
 import {
   chatConversations,
-  chatMessages,
   type ChatConversation,
-  type ChatMessage,
   type NewChatConversation,
+} from "@/server/db/schema/chat-conversations";
+import {
+  chatMessages,
+  type ChatMessage,
   type NewChatMessage,
-} from "@/server/db/schema";
+} from "@/server/db/schema/chat-messages";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 export class ChatQueries {

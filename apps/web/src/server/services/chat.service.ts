@@ -1,14 +1,16 @@
 import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
-import { getCachedOrganizationSettings } from "@/server/cache";
+import { getCachedOrganizationSettings } from "@/server/cache/organization-settings.cache";
 import { ChatQueries } from "@/server/data-access/chat.queries";
-import {
-  type ChatConversation,
-  type NewChatConversation,
-  type NewChatMessage,
-  type SourceReference,
-} from "@/server/db/schema";
+import type {
+  ChatConversation,
+  NewChatConversation,
+} from "@/server/db/schema/chat-conversations";
+import type {
+  NewChatMessage,
+  SourceReference,
+} from "@/server/db/schema/chat-messages";
 import { streamText, type CoreMessage } from "ai";
 import { err, ok } from "neverthrow";
 import { getCachedProjectTemplate } from "../cache/project-template.cache";

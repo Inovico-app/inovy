@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../../../components/ui/dialog";
-import type { RecordingDto } from "../../../server/dto";
+import type { RecordingDto } from "../../../server/dto/recording.dto";
 import { EditRecordingForm } from "./edit-recording-form";
 
 interface EditRecordingModalProps {

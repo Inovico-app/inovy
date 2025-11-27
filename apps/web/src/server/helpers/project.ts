@@ -1,6 +1,6 @@
-import { logger } from "@/lib";
+import { logger } from "@/lib/logger";
 import { err, ok, type Result } from "neverthrow";
-import { ProjectQueries } from "../data-access";
+import { ProjectQueries } from "../data-access/projects.queries";
 
 export async function checkProjectNameUnique(
   name: string

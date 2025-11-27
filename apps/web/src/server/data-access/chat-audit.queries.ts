@@ -4,7 +4,7 @@ import {
   chatAuditLog,
   type ChatAuditLog,
   type NewChatAuditLog,
-} from "../db/schema";
+} from "../db/schema/chat-audit-log";
 
 export interface AuditLogFilters {
   userId?: string;

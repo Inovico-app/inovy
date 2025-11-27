@@ -4,7 +4,7 @@ import {
   type DataExport,
   type ExportStatus,
   type NewDataExport,
-} from "@/server/db/schema";
+} from "@/server/db/schema/data-exports";
 import { and, desc, eq } from "drizzle-orm";
 
 export class DataExportsQueries {

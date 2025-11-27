@@ -4,18 +4,16 @@ import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { getAuthSession } from "../../lib/auth";
 import { logger } from "../../lib/logger";
-import {
-  AIInsightsQueries,
-  AuditLogsQueries,
-  ChatQueries,
-  ConsentQueries,
-  OAuthConnectionsQueries,
-  RecordingsQueries,
-  SummaryHistoryQueries,
-  TasksQueries,
-  UserDeletionRequestsQueries,
-} from "../data-access";
-import type { UserDeletionRequest } from "../db/schema";
+import { AIInsightsQueries } from "../data-access/ai-insights.queries";
+import { AuditLogsQueries } from "../data-access/audit-logs.queries";
+import { ChatQueries } from "../data-access/chat.queries";
+import { ConsentQueries } from "../data-access/consent.queries";
+import { OAuthConnectionsQueries } from "../data-access/oauth-connections.queries";
+import { RecordingsQueries } from "../data-access/recordings.queries";
+import { SummaryHistoryQueries } from "../data-access/summary-history.queries";
+import { TasksQueries } from "../data-access/tasks.queries";
+import { UserDeletionRequestsQueries } from "../data-access/user-deletion-requests.queries";
+import type { UserDeletionRequest } from "../db/schema/user-deletion-requests";
 import { AuditLogService } from "./audit-log.service";
 
 /**

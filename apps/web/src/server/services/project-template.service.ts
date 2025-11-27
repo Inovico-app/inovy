@@ -1,4 +1,5 @@
-import { ActionErrors, type ActionResult } from "@/lib";
+import { ActionErrors } from "@/lib/action-errors";
+import type { ActionResult } from "@/lib/action-client";
 import { err, ok } from "neverthrow";
 import { getAuthSession, type AuthUser } from "../../lib/auth";
 import { CacheInvalidation } from "../../lib/cache-utils";
@@ -8,7 +9,7 @@ import type {
   CreateProjectTemplateDto,
   ProjectTemplateDto,
   UpdateProjectTemplateDto,
-} from "../dto";
+} from "../dto/project-template.dto";
 
 /**
  * Business logic layer for ProjectTemplate operations

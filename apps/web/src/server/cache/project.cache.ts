@@ -1,6 +1,6 @@
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
-import { ProjectQueries } from "../data-access";
+import { ProjectQueries } from "../data-access/projects.queries";
 import { ProjectService } from "../services/project.service";
 
 /**

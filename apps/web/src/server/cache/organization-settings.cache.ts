@@ -2,7 +2,7 @@
 
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
-import type { OrganizationSettingsDto } from "../dto";
+import type { OrganizationSettingsDto } from "../dto/organization-settings.dto";
 import { OrganizationSettingsQueries } from "../data-access/organization-settings.queries";
 
 /**

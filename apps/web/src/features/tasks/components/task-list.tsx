@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Task } from "@/server/db/schema";
+import type { Task } from "@/server/db/schema/tasks";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";

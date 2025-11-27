@@ -3,8 +3,8 @@ import { db } from "../db";
 import {
   knowledgeBaseDocuments,
   type DocumentProcessingStatus,
-  type KnowledgeBaseScope,
-} from "../db/schema";
+} from "../db/schema/knowledge-base-documents";
+import type { KnowledgeBaseScope } from "../db/schema/knowledge-base-entries";
 import type {
   CreateKnowledgeDocumentDto,
   KnowledgeDocumentDto,

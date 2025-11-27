@@ -3,7 +3,7 @@
 import { authorizedActionClient } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { RecordingService } from "@/server/services";
+import { RecordingService } from "@/server/services/recording.service";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { deleteRecordingSchema } from "@/server/validation/recordings/delete-recording";
 import { del } from "@vercel/blob";

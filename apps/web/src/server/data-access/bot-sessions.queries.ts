@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db";
-import { botSessions } from "../db/schema";
+import { botSessions } from "../db/schema/bot-sessions";
 import type { BotSession, NewBotSession } from "../db/schema/bot-sessions";
 
 /**

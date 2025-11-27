@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getUserProjects } from "@/features/projects/actions/get-user-projects";
-import type { DataExport } from "@/server/db/schema";
+import type { DataExport } from "@/server/db/schema/data-exports";
 import { format } from "date-fns";
 import {
   AlertCircle,

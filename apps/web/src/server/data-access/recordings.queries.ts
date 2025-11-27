@@ -10,12 +10,12 @@ import {
   sql,
 } from "drizzle-orm";
 import { db } from "../db";
+import { projects } from "../db/schema/projects";
 import {
-  projects,
   recordings,
   type NewRecording,
   type Recording,
-} from "../db/schema";
+} from "../db/schema/recordings";
 import { TeamQueries } from "./teams.queries";
 import { UserTeamQueries } from "./user-teams.queries";
 

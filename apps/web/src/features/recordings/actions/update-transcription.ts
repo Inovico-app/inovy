@@ -1,7 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
-import { TranscriptionEditService } from "@/server/services";
+import { TranscriptionEditService } from "@/server/services/transcription-edit.service";
 import {
   updateTranscriptionSchema,
   type UpdateTranscriptionInput,

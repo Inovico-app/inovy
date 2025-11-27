@@ -1,14 +1,12 @@
 "use client";
 
+import type { Route } from "next";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
-import type { Route } from "next";
 import { toast } from "sonner";
-import {
-  signUpEmailAction,
-  getSocialSignInUrlAction,
-  sendMagicLinkAction,
-} from "../actions";
+import { sendMagicLinkAction } from "../actions/magic-link";
+import { getSocialSignInUrlAction } from "../actions/sign-in";
+import { signUpEmailAction } from "../actions/sign-up";
 
 export function useSignUp() {
   const router = useRouter();

@@ -1,16 +1,19 @@
-import { ActionErrors, type ActionResult } from "@/lib";
+import { ActionErrors } from "@/lib/action-errors";
+import type { ActionResult } from "@/lib/action-client";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { err, ok } from "neverthrow";
 import { getAuthSession } from "../../lib/auth";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
-import { getCachedTaskStats } from "../cache";
+import { getCachedTaskStats } from "../cache/task.cache";
 import { TaskTagsQueries } from "../data-access/task-tags.queries";
 import {
   TasksQueries,
   type TaskWithContext,
 } from "../data-access/tasks.queries";
-import type { Task, TaskHistory, TaskTag } from "../db/schema";
+import type { Task } from "../db/schema/tasks";
+import type { TaskHistory } from "../db/schema/task-history";
+import type { TaskTag } from "../db/schema/task-tags";
 import type {
   TaskDto,
   TaskFiltersDto,
@@ -18,7 +21,7 @@ import type {
   TaskStatsDto,
   TaskWithContextDto,
   UpdateTaskMetadataDto,
-} from "../dto";
+} from "../dto/task.dto";
 
 /**
  * Business logic layer for Task operations

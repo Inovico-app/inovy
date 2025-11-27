@@ -6,8 +6,8 @@ import {
 } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { CacheInvalidation } from "@/lib/cache-utils";
-import { KnowledgeBaseEntriesQueries } from "@/server/data-access";
-import { KnowledgeBaseService } from "@/server/services";
+import { KnowledgeBaseEntriesQueries } from "@/server/data-access/knowledge-base-entries.queries";
+import { KnowledgeBaseService } from "@/server/services/knowledge-base.service";
 import { deleteKnowledgeEntrySchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 

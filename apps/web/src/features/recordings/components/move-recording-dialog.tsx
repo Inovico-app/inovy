@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { RecordingDto } from "@/server/dto";
+import type { RecordingDto } from "@/server/dto/recording.dto";
 import { ArrowRightIcon, FolderIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";

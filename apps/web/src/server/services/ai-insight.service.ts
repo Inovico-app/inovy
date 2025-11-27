@@ -4,7 +4,7 @@ import { logger } from "../../lib/logger";
 import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { AIInsightsQueries } from "../data-access/ai-insights.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
-import type { AIInsight, NewAIInsight } from "../db/schema";
+import type { AIInsight, NewAIInsight } from "../db/schema/ai-insights";
 import type {
   AIInsightDto,
   InsightType,

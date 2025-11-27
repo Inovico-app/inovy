@@ -1,8 +1,8 @@
 "use server";
 
 import { logger } from "@/lib/logger";
-import type { TaskWithContextDto } from "@/server/dto";
-import { TaskService } from "@/server/services";
+import type { TaskWithContextDto } from "@/server/dto/task.dto";
+import { TaskService } from "@/server/services/task.service";
 import {
   filterTasksSchema,
   type FilterTasksInput,

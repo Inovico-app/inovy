@@ -25,7 +25,7 @@ import {
   getGoogleIntegrationStatus,
   retryFailedAction,
 } from "../actions/google-status";
-import type { AutoAction } from "@/server/db/schema";
+import type { AutoAction } from "@/server/db/schema/auto-actions";
 
 export function GoogleStatusDashboard() {
   const [loading, setLoading] = useState(true);

@@ -1,4 +1,5 @@
-import type { ChatConversation, ChatMessage } from "@/server/db/schema";
+import type { ChatConversation } from "@/server/db/schema/chat-conversations";
+import type { ChatMessage } from "@/server/db/schema/chat-messages";
 
 /**
  * Format conversation as plain text

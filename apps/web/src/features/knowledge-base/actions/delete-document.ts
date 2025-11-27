@@ -6,7 +6,7 @@ import {
 } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { CacheInvalidation } from "@/lib/cache-utils";
-import { DocumentProcessingService } from "@/server/services";
+import { DocumentProcessingService } from "@/server/services/document-processing.service";
 import { deleteKnowledgeDocumentSchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 
@@ -31,7 +31,7 @@ export const deleteKnowledgeDocumentAction = authorizedActionClient
 
     // Get document first to know its scope for cache invalidation
     const { KnowledgeBaseDocumentsQueries } = await import(
-      "../../../server/data-access"
+      "../../../server/data-access/knowledge-base-documents.queries"
     );
     const document = await KnowledgeBaseDocumentsQueries.getDocumentById(id);
 

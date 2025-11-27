@@ -6,7 +6,8 @@ import { logger } from "../../lib/logger";
 import { convertRecordingIntoAiInsights } from "../../workflows/convert-recording";
 import { DriveWatchesQueries } from "../data-access/drive-watches.queries";
 import { ProjectQueries } from "../data-access/projects.queries";
-import type { DriveWatch, NewRecording } from "../db/schema";
+import type { DriveWatch } from "../db/schema/drive-watches";
+import type { NewRecording } from "../db/schema/recordings";
 import {
   type DriveWatchDto,
   type DriveWatchListItemDto,

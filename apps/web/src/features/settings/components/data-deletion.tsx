@@ -13,7 +13,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { UserDeletionRequest } from "@/server/db/schema";
+import type { UserDeletionRequest } from "@/server/db/schema/user-deletion-requests";
 import { format } from "date-fns";
 import {
   AlertCircle,

@@ -3,7 +3,7 @@
 import { authorizedActionClient } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { OrganizationService } from "@/server/services";
+import { OrganizationService } from "@/server/services/organization.service";
 import { z } from "zod";
 
 export interface OrganizationMember {

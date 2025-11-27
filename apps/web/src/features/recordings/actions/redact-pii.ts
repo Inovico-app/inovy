@@ -6,7 +6,7 @@ import {
   resultToActionResponse,
 } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
-import { RedactionService } from "@/server/services";
+import { RedactionService } from "@/server/services/redaction.service";
 import {
   applyAutomaticRedactionsSchema,
   bulkRedactionSchema,

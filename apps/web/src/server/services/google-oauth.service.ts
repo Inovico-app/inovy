@@ -9,8 +9,8 @@ import {
   revokeToken,
 } from "../../lib/google-oauth";
 import { logger } from "../../lib/logger";
-import { OAuthConnectionsQueries } from "../data-access";
-import type { OAuthConnection } from "../db/schema";
+import { OAuthConnectionsQueries } from "../data-access/oauth-connections.queries";
+import type { OAuthConnection } from "../db/schema/oauth-connections";
 
 /**
  * Google OAuth Service

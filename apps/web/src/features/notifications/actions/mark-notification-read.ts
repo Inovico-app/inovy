@@ -1,12 +1,12 @@
 "use server";
 
 import { logger } from "@/lib/logger";
-import { NotificationService } from "@/server/services";
+import { NotificationService } from "@/server/services/notification.service";
 import {
   markAsReadSchema,
   type MarkAsReadInput,
 } from "@/server/validation/notifications/mark-as-read";
-import type { NotificationDto } from "@/server/dto";
+import type { NotificationDto } from "@/server/dto/notification.dto";
 
 export async function markNotificationRead(
   input: MarkAsReadInput

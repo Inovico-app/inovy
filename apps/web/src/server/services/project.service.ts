@@ -1,15 +1,16 @@
-import { ActionErrors, type ActionResult } from "@/lib";
+import { ActionErrors } from "@/lib/action-errors";
+import type { ActionResult } from "@/lib/action-client";
 import { AuthService } from "@/lib/kinde-api";
 import { del } from "@vercel/blob";
 import { err, ok } from "neverthrow";
 import { getAuthSession, type AuthUser } from "../../lib/auth";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
-import { getCachedProjectByIdWithCreator } from "../cache";
-import { ProjectQueries } from "../data-access";
+import { getCachedProjectByIdWithCreator } from "../cache/project.cache";
+import { ProjectQueries } from "../data-access/projects.queries";
 import type { AllowedStatus } from "../data-access/projects.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
-import type { Recording } from "../db/schema";
+import type { Recording } from "../db/schema/recordings";
 import type {
   CreateProjectDto,
   ProjectDto,
@@ -17,7 +18,7 @@ import type {
   ProjectWithCreatorDetailsDto,
   ProjectWithCreatorDto,
   ProjectWithRecordingCountDto,
-} from "../dto";
+} from "../dto/project.dto";
 import type { CreateProjectInput } from "../validation/create-project";
 
 /**

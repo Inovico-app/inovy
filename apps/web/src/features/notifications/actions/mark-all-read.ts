@@ -1,7 +1,7 @@
 "use server";
 
 import { logger } from "@/lib/logger";
-import { NotificationService } from "@/server/services";
+import { NotificationService } from "@/server/services/notification.service";
 
 export async function markAllNotificationsRead(): Promise<{
   success: boolean;

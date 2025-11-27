@@ -4,7 +4,7 @@ import {
   integrationTemplates,
   type IntegrationTemplate,
   type NewIntegrationTemplate,
-} from "../db/schema";
+} from "../db/schema/integration-templates";
 
 export class IntegrationTemplatesQueries {
   static async getByUser(

@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { ChatConversation } from "@/server/db/schema";
+import type { ChatConversation } from "@/server/db/schema/chat-conversations";
 import { Building2, FolderOpen, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConversationActionsMenu } from "./conversation-actions-menu";

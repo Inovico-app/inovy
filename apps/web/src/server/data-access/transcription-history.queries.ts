@@ -4,7 +4,7 @@ import {
   transcriptionHistory,
   type NewTranscriptionHistory,
   type TranscriptionHistory,
-} from "../db/schema";
+} from "../db/schema/transcription-history";
 
 export class TranscriptionHistoryQueries {
   static async insertTranscriptionHistory(

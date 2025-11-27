@@ -3,7 +3,7 @@
 import { getAuthSession } from "@/lib/auth";
 import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
-import { RecordingService } from "@/server/services";
+import { RecordingService } from "@/server/services/recording.service";
 import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE,

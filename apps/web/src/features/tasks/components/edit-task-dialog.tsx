@@ -27,7 +27,7 @@ import { TaskVersionHistoryDialog } from "./task-version-history-dialog";
 import { useOrganizationMembers } from "../hooks/use-organization-members";
 import { useUpdateTaskMetadataMutation } from "../hooks/use-update-task-metadata-mutation";
 import { useTaskTags } from "../hooks/use-task-tags";
-import type { TaskDto } from "@/server/dto";
+import type { TaskDto } from "@/server/dto/task.dto";
 import type { TaskPriority, TaskStatus } from "@/server/db/schema/tasks";
 
 interface EditTaskDialogProps {

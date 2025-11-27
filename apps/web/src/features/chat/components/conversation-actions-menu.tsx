@@ -10,7 +10,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { ChatConversation } from "@/server/db/schema";
+import type { ChatConversation } from "@/server/db/schema/chat-conversations";
 import {
   Archive,
   ArchiveRestore,

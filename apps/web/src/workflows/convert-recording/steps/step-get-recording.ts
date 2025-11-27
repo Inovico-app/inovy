@@ -1,5 +1,5 @@
 import type { RecordingDto } from "@/server/dto/recording.dto";
-import { RecordingService } from "@/server/services";
+import { RecordingService } from "@/server/services/recording.service";
 import type { WorkflowResult } from "@/workflows/lib/workflow-result";
 import { failure, success } from "@/workflows/lib/workflow-result";
 

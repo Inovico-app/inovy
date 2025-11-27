@@ -9,10 +9,8 @@ import {
 } from "@/components/ui/card";
 import { getAuthSession } from "@/lib/auth";
 import { isOrganizationAdmin } from "@/lib/rbac";
-import {
-  getCachedDepartmentsByOrganization,
-  getCachedTeamsByOrganization,
-} from "@/server/cache";
+import { getCachedDepartmentsByOrganization } from "@/server/cache/department.cache";
+import { getCachedTeamsByOrganization } from "@/server/cache/team.cache";
 import { TeamManagementClient } from "./team-management-client";
 
 export async function TeamManagement() {

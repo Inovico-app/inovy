@@ -5,7 +5,7 @@ import {
   type NewUserTeam,
   type UserTeam,
   type UserTeamRole,
-} from "../db/schema";
+} from "../db/schema/user-teams";
 
 export type { UserTeamRole };
 

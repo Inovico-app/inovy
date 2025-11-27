@@ -1,7 +1,7 @@
 import { CacheTags } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { cacheTag } from "next/cache";
-import { KnowledgeBaseEntriesQueries } from "../data-access";
+import { KnowledgeBaseEntriesQueries } from "../data-access/knowledge-base-entries.queries";
 import type { KnowledgeBaseScope } from "../db/schema/knowledge-base-entries";
 import type {
   HierarchicalKnowledgeEntryDto,

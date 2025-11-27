@@ -10,7 +10,7 @@ import {
   AuditLogsQueries,
   type AuditLogFilters,
 } from "../data-access/audit-logs.queries";
-import { type AuditLog, type NewAuditLog } from "../db/schema";
+import { type AuditLog, type NewAuditLog } from "../db/schema/audit-logs";
 
 /**
  * Comprehensive Audit Log Service

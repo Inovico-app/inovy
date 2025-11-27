@@ -1,7 +1,7 @@
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import { NotificationsQueries } from "../data-access/notifications.queries";
-import type { NotificationFiltersDto } from "../dto";
+import type { NotificationFiltersDto } from "../dto/notification.dto";
 
 /**
  * Cached notification queries

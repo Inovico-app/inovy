@@ -2,10 +2,10 @@ import { and, eq, desc, inArray } from "drizzle-orm";
 import { db } from "../db";
 import {
   consentParticipants,
-  recordings,
   type ConsentParticipant,
   type NewConsentParticipant,
-} from "../db/schema";
+} from "../db/schema/consent";
+import { recordings } from "../db/schema/recordings";
 
 /**
  * Consent Participants Queries

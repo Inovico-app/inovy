@@ -1,12 +1,13 @@
-import { ActionErrors, type ActionResult } from "@/lib";
+import { ActionErrors } from "@/lib/action-errors";
+import type { ActionResult } from "@/lib/action-client";
 import { err, ok } from "neverthrow";
 import { logger } from "../../lib/logger";
 import { IntegrationTemplatesQueries } from "../data-access/integration-templates.queries";
-import {
-  type CalendarTemplateContent,
-  type EmailTemplateContent,
-  type IntegrationTemplate,
-} from "../db/schema";
+import type {
+  CalendarTemplateContent,
+  EmailTemplateContent,
+  IntegrationTemplate,
+} from "../db/schema/integration-templates";
 
 /**
  * Template Service

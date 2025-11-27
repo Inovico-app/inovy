@@ -6,7 +6,7 @@ import {
 } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { CacheInvalidation } from "@/lib/cache-utils";
-import { DocumentProcessingService } from "@/server/services";
+import { DocumentProcessingService } from "@/server/services/document-processing.service";
 import { uploadKnowledgeDocumentSchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";

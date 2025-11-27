@@ -4,8 +4,8 @@ import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { createGoogleOAuthClient } from "../../lib/google-oauth";
 import { logger } from "../../lib/logger";
-import { AutoActionsQueries } from "../data-access";
-import type { Recording } from "../db/schema";
+import { AutoActionsQueries } from "../data-access/auto-actions.queries";
+import type { Recording } from "../db/schema/recordings";
 import { GoogleOAuthService } from "./google-oauth.service";
 
 /**

@@ -3,7 +3,7 @@
 import { authorizedActionClient } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { ProjectService } from "@/server/services";
+import { ProjectService } from "@/server/services/project.service";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { deleteProjectSchema } from "@/server/validation/projects/delete-project";
 import { revalidatePath } from "next/cache";

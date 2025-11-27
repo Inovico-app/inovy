@@ -2,7 +2,7 @@ import { getAuthSession } from "@/lib/auth";
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import { cache } from "react";
-import type { ProjectTemplateDto } from "../dto";
+import type { ProjectTemplateDto } from "../dto/project-template.dto";
 import { ProjectTemplateService } from "../services/project-template.service";
 
 /**

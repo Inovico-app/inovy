@@ -18,7 +18,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { LiveRecorder } from "./live-recorder";
+import { LiveRecorder } from "./live-recorder/live-recorder";
 import { UploadRecordingForm } from "./upload-recording-form";
 
 interface UploadModeSelectorProps {

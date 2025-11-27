@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TaskStatus } from "@/server/db/schema/tasks";
-import type { TaskWithContextDto } from "@/server/dto";
+import type { TaskWithContextDto } from "@/server/dto/task.dto";
 import { TaskCard } from "./task-card";
 import { TaskListEmpty } from "./task-list-empty";
 import { TaskSearch } from "./task-search";

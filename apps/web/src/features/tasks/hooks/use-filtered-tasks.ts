@@ -1,5 +1,5 @@
 import type { TaskPriority, TaskStatus } from "@/server/db/schema/tasks";
-import type { TaskWithContextDto } from "@/server/dto";
+import type { TaskWithContextDto } from "@/server/dto/task.dto";
 import type { SortField, SortOrder } from "../components/task-sort";
 
 interface UseFilteredTasksParams {

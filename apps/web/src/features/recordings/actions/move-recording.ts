@@ -1,6 +1,6 @@
 "use server";
 
-import { ActionErrors } from "@/lib";
+import { ActionErrors } from "@/lib/action-errors";
 import {
   authorizedActionClient,
   resultToActionResponse,

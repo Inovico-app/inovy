@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "../../../components/ui/card";
 import { Checkbox } from "../../../components/ui/checkbox";
-import type { RecordingDto } from "../../../server/dto";
+import type { RecordingDto } from "../../../server/dto/recording.dto";
 import { useRecordingStatus } from "../hooks/use-recording-status-query";
 import { StatusBadge } from "./status-badge";
 

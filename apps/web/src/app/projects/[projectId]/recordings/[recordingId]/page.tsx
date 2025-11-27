@@ -1,12 +1,14 @@
-import { AIInsightService, ConsentService, TaskService } from "@/server/services";
+import type { ActionResult } from "@/lib/action-errors";
+import type { ConsentParticipant } from "@/server/db/schema/consent";
+import { AIInsightService } from "@/server/services/ai-insight.service";
+import { ConsentService } from "@/server/services/consent.service";
+import { TaskService } from "@/server/services/task.service";
 import { ArrowLeftIcon, CalendarIcon, ClockIcon, FileIcon } from "lucide-react";
+import { ok } from "neverthrow";
 import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ok } from "neverthrow";
-import type { ActionResult } from "@/lib/action-errors";
-import type { ConsentParticipant } from "@/server/db/schema/consent";
 import { Button } from "../../../../../components/ui/button";
 import {
   Card,
@@ -21,10 +23,10 @@ import { RecordingDetailStatus } from "../../../../../features/recordings/compon
 import { RecordingPlayerWrapper } from "../../../../../features/recordings/components/recording-player-wrapper";
 import { ReprocessButton } from "../../../../../features/recordings/components/reprocess-button";
 import { ReprocessingStatusIndicator } from "../../../../../features/recordings/components/reprocessing-status-indicator";
-import { TranscriptionSection } from "../../../../../features/recordings/components/transcription";
+import { TranscriptionSection } from "../../../../../features/recordings/components/transcription/transcription-section";
 import { TaskCard } from "../../../../../features/tasks/components/task-card-with-edit";
-import { getCachedSummary } from "../../../../../server/cache/summary.cache";
 import { getAuthSession } from "../../../../../lib/auth";
+import { getCachedSummary } from "../../../../../server/cache/summary.cache";
 import { ProjectService } from "../../../../../server/services/project.service";
 import { RecordingService } from "../../../../../server/services/recording.service";
 

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProjectService } from "@/server/services";
+import { ProjectService } from "@/server/services/project.service";
 import { ArrowLeftIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";

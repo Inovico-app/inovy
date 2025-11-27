@@ -1,6 +1,6 @@
 import { getAuthSession } from "@/lib/auth";
 import { getCachedRecordingsByOrganization } from "@/server/cache/recording.cache";
-import { ProjectService } from "@/server/services";
+import { ProjectService } from "@/server/services/project.service";
 import { RecordingsOverviewClient } from "./recordings-overview-client";
 
 export async function RecordingsOverview() {

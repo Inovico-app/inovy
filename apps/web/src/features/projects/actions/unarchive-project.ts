@@ -4,7 +4,7 @@ import {
   authorizedActionClient,
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
-import { ProjectService } from "../../../server/services";
+import { ProjectService } from "../../../server/services/project.service";
 import { archiveProjectSchema } from "../../../server/validation/projects/archive-project";
 
 /**

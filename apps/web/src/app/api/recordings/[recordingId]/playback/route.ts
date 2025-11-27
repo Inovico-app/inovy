@@ -1,6 +1,6 @@
 import { decrypt } from "@/lib/encryption";
 import { getAuthSession } from "@/lib/auth";
-import { RecordingService } from "@/server/services";
+import { RecordingService } from "@/server/services/recording.service";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { type NextRequest, NextResponse } from "next/server";
 

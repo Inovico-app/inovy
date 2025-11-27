@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import type { ChatConversation } from "@/server/db/schema";
+import type { ChatConversation } from "@/server/db/schema/chat-conversations";
 import { FileText, FileType, Loader2 } from "lucide-react";
 
 interface ExportDialogProps {

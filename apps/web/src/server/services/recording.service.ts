@@ -6,8 +6,11 @@ import { assertOrganizationAccess } from "../../lib/organization-isolation";
 import { RAGService } from "./rag/rag.service";
 import { ProjectQueries } from "../data-access/projects.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
-import { type NewRecording, type Recording } from "../db/schema";
-import { type RecordingDto } from "../dto";
+import {
+  type NewRecording,
+  type Recording,
+} from "../db/schema/recordings";
+import { type RecordingDto } from "../dto/recording.dto";
 
 /**
  * Recording Service

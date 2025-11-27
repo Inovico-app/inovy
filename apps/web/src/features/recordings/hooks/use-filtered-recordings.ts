@@ -1,6 +1,6 @@
 "use client";
 
-import type { RecordingDto } from "@/server/dto";
+import type { RecordingDto } from "@/server/dto/recording.dto";
 
 interface UseFilteredRecordingsParams {
   recordings: Array<RecordingDto & { projectName: string }>;

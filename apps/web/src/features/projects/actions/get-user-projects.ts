@@ -1,7 +1,7 @@
 "use server";
 
 import { logger } from "@/lib/logger";
-import { ProjectService } from "@/server/services";
+import { ProjectService } from "@/server/services/project.service";
 
 /**
  * Server action to get projects for the authenticated user's organization

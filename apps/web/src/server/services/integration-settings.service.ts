@@ -1,8 +1,9 @@
-import { ActionErrors, type ActionResult } from "@/lib";
+import { ActionErrors } from "@/lib/action-errors";
+import type { ActionResult } from "@/lib/action-client";
 import { err, ok } from "neverthrow";
 import { logger } from "../../lib/logger";
 import { IntegrationSettingsQueries } from "../data-access/integration-settings.queries";
-import { type IntegrationSettings } from "../db/schema";
+import { type IntegrationSettings } from "../db/schema/integration-settings";
 
 /**
  * Integration Settings Service

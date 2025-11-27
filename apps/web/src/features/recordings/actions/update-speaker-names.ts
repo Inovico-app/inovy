@@ -1,6 +1,6 @@
 "use server";
 
-import { logger } from "@/lib";
+import { logger } from "@/lib/logger";
 import { authorizedActionClient } from "@/lib/action-client";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { AIInsightService } from "@/server/services/ai-insight.service";

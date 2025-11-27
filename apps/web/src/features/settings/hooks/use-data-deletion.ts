@@ -1,6 +1,6 @@
 "use client";
 
-import type { UserDeletionRequest } from "@/server/db/schema";
+import type { UserDeletionRequest } from "@/server/db/schema/user-deletion-requests";
 import { useAction } from "next-safe-action/hooks";
 import { useState } from "react";
 import { toast } from "sonner";

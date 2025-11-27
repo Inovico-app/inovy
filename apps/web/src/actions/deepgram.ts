@@ -1,6 +1,6 @@
 "use server";
 
-import { logger } from "@/lib";
+import { logger } from "@/lib/logger";
 import { publicActionClient } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { getAuthSession } from "@/lib/auth";

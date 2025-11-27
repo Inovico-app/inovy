@@ -1,7 +1,8 @@
-import { ActionErrors, type ActionResult } from "@/lib";
+import { ActionErrors } from "@/lib/action-errors";
+import type { ActionResult } from "@/lib/action-client";
 import { err, ok } from "neverthrow";
-import { AutoActionsQueries } from "../data-access";
-import type { AutoAction, NewAutoAction } from "../db/schema";
+import { AutoActionsQueries } from "../data-access/auto-actions.queries";
+import type { AutoAction, NewAutoAction } from "../db/schema/auto-actions";
 
 export class AutoActionsService {
   static async getRecentAutoActions(

@@ -13,7 +13,7 @@ import {
   exportAsSRT,
   exportAsText,
 } from "@/lib/export-transcription-utils";
-import type { Utterance } from "@/server/dto";
+import type { Utterance } from "@/server/dto/ai-insight.dto";
 import { Download } from "lucide-react";
 import { useCallback } from "react";
 

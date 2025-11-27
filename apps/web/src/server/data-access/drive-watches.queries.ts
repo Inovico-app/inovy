@@ -4,7 +4,7 @@ import {
   driveWatches,
   type DriveWatch,
   type NewDriveWatch,
-} from "../db/schema";
+} from "../db/schema/drive-watches";
 
 /**
  * Drive Watches Queries

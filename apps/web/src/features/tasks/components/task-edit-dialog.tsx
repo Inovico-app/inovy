@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { TaskDto } from "@/server/dto";
+import type { TaskDto } from "@/server/dto/task.dto";
 import { useUpdateTaskMutation } from "../hooks/use-update-task-mutation";
 import { Pencil, Loader2 } from "lucide-react";
 

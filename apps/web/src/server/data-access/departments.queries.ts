@@ -1,6 +1,10 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../db";
-import { departments, type Department, type NewDepartment } from "../db/schema";
+import {
+  departments,
+  type Department,
+  type NewDepartment,
+} from "../db/schema/departments";
 
 /**
  * Database queries for Department operations

@@ -5,7 +5,7 @@ import {
   ChatAuditQueries,
   type AuditLogFilters,
 } from "../data-access/chat-audit.queries";
-import { type NewChatAuditLog } from "../db/schema";
+import { type NewChatAuditLog } from "../db/schema/chat-audit-log";
 
 /**
  * Chat Audit Service
