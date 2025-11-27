@@ -1,11 +1,9 @@
+import { logger } from "@/lib/logger";
 import { db } from "@/server/db";
 import { member, user } from "@/server/db/schema/auth";
 import { eq } from "drizzle-orm";
-import { logger } from "@/lib/logger";
 
-export async function getOrganizationMembers(
-  organizationId: string
-): Promise<
+export async function getOrganizationMembers(organizationId: string): Promise<
   Array<{
     id: string;
     email: string | null;

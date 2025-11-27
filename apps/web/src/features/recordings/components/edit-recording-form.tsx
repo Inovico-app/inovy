@@ -55,7 +55,8 @@ export function EditRecordingForm({
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(formSchema as any),
     defaultValues: {
       title: initialData.title,
       description: initialData.description ?? "",
