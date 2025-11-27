@@ -1,7 +1,8 @@
 import { PageLayout } from "@/components/page-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserManagementTable } from "@/features/admin/components/user-management-table";
-import { getAuthSession, ROLES } from "@/lib";
+import { ROLES } from "@/lib";
+import { getAuthSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 

@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib";
+import { getAuthSession } from "@/lib/auth";
 import { ROLES } from "@/lib/rbac";
 import { NextResponse } from "next/server";
 

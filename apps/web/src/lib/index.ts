@@ -46,9 +46,6 @@ export {
   type SessionWithRoles,
 } from "./rbac";
 
-// Auth exports (re-export from existing auth module)
-export { getAuthSession, type AuthUser } from "./auth";
-
 // Logger export (re-export from existing logger)
 export { logger } from "./logger";
 
