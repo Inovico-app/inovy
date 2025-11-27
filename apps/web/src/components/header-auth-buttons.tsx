@@ -2,10 +2,11 @@
 
 import { useUserRole } from "@/hooks/use-user-role";
 import { logger } from "@/lib/logger";
-import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
-import { LoginLink, LogoutLink } from "@kinde-oss/kinde-auth-nextjs/components";
+import { authClient, useSession, signOut } from "@/lib/auth-client";
 import { Settings, Shield, User } from "lucide-react";
 import Link from "next/link";
+import type { Route } from "next";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
@@ -20,15 +21,20 @@ import {
 } from "./ui/dropdown-menu";
 
 export function HeaderAuthButtons() {
-  const { user, isAuthenticated, isLoading, error } = useKindeBrowserClient();
+  const { data: session, isPending, error } = useSession();
   const { data: userRoleData } = useUserRole();
+  const router = useRouter();
   const [hasLoggedError, setHasLoggedError] = useState(false);
+
+  const user = session?.user;
+  const isAuthenticated = !!user;
+  const isLoading = isPending;
 
   // Log auth errors on client side
   useEffect(() => {
     if (error && !hasLoggedError) {
-      const errorObj = new Error(`Kinde auth error: ${String(error)}`);
-      logger.auth.error("Kinde client authentication error", errorObj);
+      const errorObj = new Error(`Better Auth error: ${error.message ?? String(error)}`);
+      logger.auth.error("Better Auth client authentication error", errorObj);
       setHasLoggedError(true);
     }
   }, [error, hasLoggedError]);
@@ -49,13 +55,17 @@ export function HeaderAuthButtons() {
 
   const handleLoginClick = () => {
     logger.auth.loginAttempt({ component: "HeaderAuthButtons" });
+    router.push("/sign-in" as Route);
   };
 
-  const handleLogoutClick = () => {
+  const handleLogoutClick = async () => {
     logger.auth.logoutAttempt({
       userId: user?.id,
       component: "HeaderAuthButtons",
     });
+    await signOut();
+    router.push("/sign-in" as Route);
+    router.refresh();
   };
 
   if (isLoading) {
@@ -87,10 +97,14 @@ export function HeaderAuthButtons() {
 
   if (isAuthenticated && user) {
     // Get user initials for avatar fallback
+    const userName = (user.name ?? user.email) ?? "User";
     const initials =
-      user.given_name && user.family_name
-        ? `${user.given_name[0]}${user.family_name[0]}`.toUpperCase()
-        : user.email?.[0]?.toUpperCase() ?? "U";
+      userName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2) || (user.email?.[0]?.toUpperCase() ?? "U");
 
     return (
       <DropdownMenu>
@@ -98,7 +112,7 @@ export function HeaderAuthButtons() {
           <Button variant="ghost" className="relative h-9 w-9 rounded-full">
             <Avatar className="h-9 w-9">
               <AvatarImage
-                src={user.picture ?? undefined}
+                src={user.image ?? undefined}
                 alt={user.email ?? "User"}
               />
               <AvatarFallback>{initials}</AvatarFallback>
@@ -109,11 +123,7 @@ export function HeaderAuthButtons() {
           <DropdownMenuLabel className="font-normal">
             <div className="flex justify-between gap-4 items-center">
               <div className="flex flex-col gap-2">
-                <p className="text-sm font-medium leading-none">
-                  {user.given_name && user.family_name
-                    ? `${user.given_name} ${user.family_name}`
-                    : user.email}
-                </p>
+                <p className="text-sm font-medium leading-none">{userName}</p>
                 <p className="text-xs leading-none text-muted-foreground">
                   {user.email}
                 </p>
@@ -153,13 +163,11 @@ export function HeaderAuthButtons() {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <LogoutLink
-              onClick={handleLogoutClick}
-              className="cursor-pointer w-full"
-            >
-              <span>Log out</span>
-            </LogoutLink>
+          <DropdownMenuItem
+            onClick={handleLogoutClick}
+            className="cursor-pointer"
+          >
+            <span>Log out</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -167,9 +175,9 @@ export function HeaderAuthButtons() {
   }
 
   return (
-    <LoginLink onClick={handleLoginClick}>
-      <Button size="sm">Login</Button>
-    </LoginLink>
+    <Button size="sm" onClick={handleLoginClick}>
+      Login
+    </Button>
   );
 }
 

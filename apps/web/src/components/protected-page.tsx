@@ -1,7 +1,8 @@
-import { getAuthSession } from "@/lib/auth";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
-import { LoginLink } from "@kinde-oss/kinde-auth-nextjs/components";
 import { redirect } from "next/navigation";
+import type { Route } from "next";
+import Link from "next/link";
 import { type ReactNode } from "react";
 import { Button } from "./ui/button";
 
@@ -16,17 +17,48 @@ export async function ProtectedPage({
   fallback,
   redirectOnAuth = true,
 }: ProtectedPageProps) {
-  const authResult = await getAuthSession();
+  try {
+    const session = await getBetterAuthSession();
 
-  if (authResult.isErr()) {
+    if (!session?.user) {
+      if (redirectOnAuth) {
+        redirect("/sign-in" as Route);
+      }
+
+      return (
+        fallback || (
+          <div className="container mx-auto max-w-2xl px-4 py-16">
+            <div className="text-center space-y-6">
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold">Welcome to Inovy</h1>
+                <p className="text-muted-foreground text-lg">
+                  AI-powered meeting recording and task management platform
+                </p>
+              </div>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Please log in to access your projects, recordings, and tasks.
+                </p>
+                <Link href={"/sign-in" as Route}>
+                  <Button size="lg">Log In to Continue</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )
+      );
+    }
+
+    return <>{children}</>;
+  } catch (error) {
     logger.error("Auth error in ProtectedPage", {
       component: "ProtectedPage",
-      error: authResult.error,
+      error: error instanceof Error ? error.message : String(error),
     });
 
     // On auth system failure, redirect to login for safety
     if (redirectOnAuth) {
-      redirect("/api/auth/login");
+      redirect("/sign-in" as Route);
     }
 
     // Show fallback UI indicating system error
@@ -43,47 +75,14 @@ export async function ProtectedPage({
               </p>
             </div>
             <div className="space-y-4">
-              <Button size="lg" onClick={() => window.location.reload()}>
-                Retry
-              </Button>
+              <Link href={"/sign-in" as Route}>
+                <Button size="lg">Go to Sign In</Button>
+              </Link>
             </div>
           </div>
         </div>
       )
     );
   }
-
-  const { isAuthenticated } = authResult.value;
-
-  if (!isAuthenticated) {
-    if (redirectOnAuth) {
-      redirect("/api/auth/login");
-    }
-
-    return (
-      fallback || (
-        <div className="container mx-auto max-w-2xl px-4 py-16">
-          <div className="text-center space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold">Welcome to Inovy</h1>
-              <p className="text-muted-foreground text-lg">
-                AI-powered meeting recording and task management platform
-              </p>
-            </div>
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Please log in to access your projects, recordings, and tasks.
-              </p>
-              <LoginLink>
-                <Button size="lg">Log In to Continue</Button>
-              </LoginLink>
-            </div>
-          </div>
-        </div>
-      )
-    );
-  }
-
-  return <>{children}</>;
 }
 
