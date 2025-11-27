@@ -1,8 +1,8 @@
+import { ActionErrors, type ActionResult } from "@/lib/action-errors";
+import type { AuthUser } from "@/lib/auth";
+import { betterAuthInstance } from "@/lib/better-auth-server";
+import { logger } from "@/lib/logger";
 import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
-import type { AuthUser } from "../../lib/auth";
-import { betterAuthInstance } from "../../lib/better-auth";
-import { logger } from "../../lib/logger";
 import { headers } from "next/headers";
 
 /**
@@ -134,16 +134,15 @@ export class OrganizationAssignmentService {
 
       // Create organization using Better Auth API
       try {
-        const createOrgResponse = await betterAuthInstance.api.createOrganization(
-          {
+        const createOrgResponse =
+          await betterAuthInstance.api.createOrganization({
             headers: await headers(),
             body: {
               name: orgName,
               slug: orgSlug,
               userId: user.id, // Set creator as the user
             },
-          }
-        );
+          });
 
         // Better Auth API returns organization data
         // The response structure may vary, so handle both cases
@@ -174,13 +173,10 @@ export class OrganizationAssignmentService {
 
         // Better Auth automatically adds the creator as owner when creating an organization
         // So we don't need to explicitly add the member
-        logger.info(
-          "Successfully created and assigned organization to user",
-          {
-            userId: user.id,
-            organizationId: newOrganization.id,
-          }
-        );
+        logger.info("Successfully created and assigned organization to user", {
+          userId: user.id,
+          organizationId: newOrganization.id,
+        });
 
         return ok(newOrganization);
       } catch (error) {

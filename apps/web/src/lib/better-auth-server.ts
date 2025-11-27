@@ -40,9 +40,9 @@ export const betterAuthInstance = betterAuth({
     },
   }),
   baseURL:
-    process.env.BETTER_AUTH_URL ??
-    process.env.NEXT_PUBLIC_APP_URL ??
-    "http://localhost:3000",
+    process.env.NODE_ENV === "development"
+      ? "http://localhost:3000"
+      : (process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL),
   basePath: "/api/auth",
   secret: process.env.BETTER_AUTH_SECRET ?? "change-me-in-production",
 
@@ -113,11 +113,13 @@ export const betterAuthInstance = betterAuth({
         organization: { name: string };
         inviter: { user: { name: string | null; email: string } };
       }) {
-        const inviteLink = `${
-          process.env.BETTER_AUTH_URL ??
-          process.env.NEXT_PUBLIC_APP_URL ??
-          "http://localhost:3000"
-        }/accept-invitation/${data.id}`;
+        const baseUrl =
+          process.env.NODE_ENV === "development"
+            ? "http://localhost:3000"
+            : (process.env.BETTER_AUTH_URL ??
+              process.env.NEXT_PUBLIC_APP_URL ??
+              "http://localhost:3000");
+        const inviteLink = `${baseUrl}/accept-invitation/${data.id}`;
         await sendEmailFromTemplate({
           to: data.email,
           subject: `You've been invited to join ${data.organization.name}`,
@@ -152,7 +154,7 @@ export const betterAuthInstance = betterAuth({
     }),
     passkey({
       rpID:
-        process.env.BETTER_AUTH_URL?.replace(/https?:\/\//, "").split("/")[0] ||
+        process.env.BETTER_AUTH_URL?.replace(/https?:\/\//, "").split("/")[0] ??
         "localhost",
       rpName: "Inovy",
     }),

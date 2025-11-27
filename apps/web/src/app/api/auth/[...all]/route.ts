@@ -1,4 +1,4 @@
-import { betterAuthInstance } from "@/lib/better-auth";
+import { betterAuthInstance } from "@/lib/better-auth-server";
 import { toNextJsHandler } from "better-auth/next-js";
 
 /**

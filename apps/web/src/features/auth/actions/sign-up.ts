@@ -2,7 +2,7 @@
 
 import { publicActionClient } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
-import { betterAuthInstance } from "@/lib/better-auth";
+import { betterAuthInstance } from "@/lib/better-auth-server";
 import type { Route } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
