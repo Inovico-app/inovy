@@ -2,14 +2,15 @@
 
 import { authorizedActionClient } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
-import { AuthService } from "@/lib/kinde-api";
 import { logger } from "@/lib/logger";
+import { getOrganizationMembers } from "@/server/data-access/organization.queries";
 import type { KindeOrganizationUserDto } from "@/server/dto/kinde.dto";
 import { z } from "zod";
 
 /**
  * Server action to get users from the authenticated user's organization
  * Used for populating assignee dropdowns
+ * Uses Better Auth organization member queries
  */
 export const getOrganizationUsers = authorizedActionClient
   .metadata({ policy: "users:read" })
@@ -22,26 +23,19 @@ export const getOrganizationUsers = authorizedActionClient
     }
 
     try {
-      const Organizations = await AuthService.getOrganizations();
-      const response = await Organizations.getOrganizationUsers({
-        orgCode: organizationId,
-      });
+      const members = await getOrganizationMembers(organizationId);
 
-      if (!response?.organization_users) {
-        return [];
-      }
-
-      return response.organization_users.map((user) => ({
-        id: user.id || "",
-        email: user.email || null,
-        given_name: user.first_name || null,
-        family_name: user.last_name || null,
-        roles: user.roles || [],
+      return members.map((member) => ({
+        id: member.id,
+        email: member.email ?? null,
+        given_name: member.given_name ?? null,
+        family_name: member.family_name ?? null,
+        roles: member.roles ?? [],
       }));
     } catch (error) {
       logger.error(
         "Failed to get organization users",
-        { orgCode: organizationId },
+        { organizationId },
         error as Error
       );
       throw new Error("Failed to fetch organization users");

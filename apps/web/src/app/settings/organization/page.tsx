@@ -20,6 +20,7 @@ import {
   getCachedKnowledgeEntries,
 } from "@/server/cache/knowledge-base.cache";
 import { OrganizationService } from "@/server/services/organization.service";
+import type { KindeOrganization } from "@kinde-oss/kinde-auth-nextjs/types";
 import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -46,7 +47,11 @@ async function OrganizationContent() {
     );
   }
 
-  const { orgCode, orgName } = organization;
+  // orgCode is actually the Better Auth organization ID
+  const organizationId = organization.orgCode;
+  // KindeOrganization type is extended with name in auth.ts mapping
+  // Use type assertion to access the name property
+  const orgName = (organization as KindeOrganization & { name?: string }).name ?? "Organization";
 
   // Check if user is admin
   const canEdit = auth.user ? isOrganizationAdmin(auth.user) : false;
@@ -60,9 +65,9 @@ async function OrganizationContent() {
     roles?: string[];
   }> = [];
 
-  if (orgCode) {
+  if (organizationId) {
     const membersResult = await OrganizationService.getOrganizationMembers(
-      orgCode
+      organizationId
     );
     if (membersResult.isOk()) {
       members = membersResult.value;
@@ -83,20 +88,20 @@ async function OrganizationContent() {
     ReturnType<typeof getCachedKnowledgeDocuments>
   > = [];
 
-  if (orgCode) {
+  if (organizationId) {
     try {
       knowledgeEntries = await getCachedKnowledgeEntries(
         "organization",
-        orgCode
+        organizationId
       );
       knowledgeDocuments = await getCachedKnowledgeDocuments(
         "organization",
-        orgCode
+        organizationId
       );
     } catch (error) {
       logger.error("Failed to fetch knowledge base data", {
         component: "OrganizationPage",
-        organizationId: orgCode,
+        organizationId,
         error: error instanceof Error ? error : new Error(String(error)),
       });
       // Continue rendering with empty arrays
@@ -149,29 +154,29 @@ async function OrganizationContent() {
       </Card>
 
       {/* AI Instructions */}
-      {orgCode && (
+      {organizationId && (
         <OrganizationInstructionsSection
           initialInstructions={instructions}
-          organizationId={orgCode}
+          organizationId={organizationId}
           canEdit={canEdit}
         />
       )}
 
       {/* Knowledge Base */}
-      {orgCode && (
+      {organizationId && (
         <OrganizationKnowledgeBaseSection
           initialEntries={knowledgeEntries}
           initialDocuments={knowledgeDocuments}
-          organizationId={orgCode}
+          organizationId={organizationId}
           canEdit={canEdit}
         />
       )}
 
       {/* Departments */}
-      {orgCode && <DepartmentManagement />}
+      {organizationId && <DepartmentManagement />}
 
       {/* Teams */}
-      {orgCode && <TeamManagement />}
+      {organizationId && <TeamManagement />}
 
       {/* Members List */}
       <Card>
@@ -196,7 +201,7 @@ async function OrganizationContent() {
                       <p className="font-medium">
                         {member.given_name && member.family_name
                           ? `${member.given_name} ${member.family_name}`
-                          : member.given_name || member.email || "Unknown"}
+                          : member.given_name ?? member.email ?? "Unknown"}
                       </p>
                       {member.roles && member.roles.length > 0 && (
                         <div className="flex gap-1">

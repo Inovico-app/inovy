@@ -14,34 +14,36 @@ export interface OrganizationMemberDto {
 /**
  * Organization Service
  * Handles business logic for organization-related operations
+ * Uses Better Auth organization plugin for member management
  */
 export class OrganizationService {
   /**
    * Get all members of an organization
+   * @param organizationId - Better Auth organization ID (UUID)
    */
   static async getOrganizationMembers(
-    orgCode: string
+    organizationId: string
   ): Promise<ActionResult<OrganizationMemberDto[]>> {
     logger.info("Fetching organization members", {
       component: "OrganizationService.getOrganizationMembers",
-      orgCode,
+      organizationId,
     });
 
     try {
-      const members = await getOrganizationMembers(orgCode);
+      const members = await getOrganizationMembers(organizationId);
 
       logger.info("Successfully fetched organization members", {
         component: "OrganizationService.getOrganizationMembers",
-        orgCode,
+        organizationId,
         count: members.length,
       });
 
       return ok(members);
     } catch (error) {
-      logger.error("Failed to get organization members from database", {
+      logger.error("Failed to get organization members", {
         component: "OrganizationService.getOrganizationMembers",
         error,
-        orgCode,
+        organizationId,
       });
 
       return err(

@@ -1,7 +1,11 @@
-import { AuthService } from "@/lib/kinde-api";
+import { db } from "@/server/db";
+import { member, user } from "@/server/db/schema/auth";
+import { eq } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 
-export async function getOrganizationMembers(orgCode: string): Promise<
+export async function getOrganizationMembers(
+  organizationId: string
+): Promise<
   Array<{
     id: string;
     email: string | null;
@@ -11,29 +15,50 @@ export async function getOrganizationMembers(orgCode: string): Promise<
   }>
 > {
   try {
-    const Organizations = await AuthService.getOrganizations();
-    const response = await Organizations.getOrganizationUsers({
-      orgCode,
-    });
+    // Query organization members directly from Better Auth tables
+    const members = await db
+      .select({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: member.role,
+      })
+      .from(member)
+      .innerJoin(user, eq(member.userId, user.id))
+      .where(eq(member.organizationId, organizationId));
 
-    if (!response?.organization_users) {
+    if (members.length === 0) {
       return [];
     }
 
-    return response.organization_users.map((user) => ({
-      id: user.id || "",
-      email: user.email || null,
-      given_name: user.first_name || null,
-      family_name: user.last_name || null,
-      roles: user.roles || [],
-    }));
+    // Map Better Auth member format to our expected format
+    return members.map((member) => {
+      const roles = member.role ? [member.role] : [];
+      const nameParts = member.name?.split(" ") ?? [];
+      const given_name = nameParts[0] ?? null;
+      const family_name = nameParts.slice(1).join(" ") || null;
+
+      return {
+        id: member.id,
+        email: member.email ?? null,
+        given_name,
+        family_name,
+        roles,
+      };
+    });
   } catch (error) {
-    // Handle "not_found" response from Kinde API gracefully
+    // Handle organization not found or no members gracefully
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    if (errorMessage.includes("not_found") || errorMessage === "not_found") {
+    if (
+      errorMessage.includes("not_found") ||
+      errorMessage === "not_found" ||
+      errorMessage.includes("Organization not found")
+    ) {
       // Organization not found or no members - return empty array
-      logger.info("Organization not found or has no members", { orgCode });
+      logger.info("Organization not found or has no members", {
+        organizationId,
+      });
       return [];
     }
 
@@ -45,7 +70,11 @@ export async function getOrganizationMembers(orgCode: string): Promise<
             typeof error === "string" ? error : "Unknown error occurred"
           );
 
-    logger.error("Failed to get organization members", { orgCode }, errorObj);
+    logger.error(
+      "Failed to get organization members",
+      { organizationId },
+      errorObj
+    );
 
     // Re-throw non-recoverable errors so callers can handle them appropriately
     throw errorObj;
