@@ -1,3 +1,4 @@
+import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import {
   addRateLimitHeaders,
@@ -7,7 +8,6 @@ import {
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { ChatService } from "@/server/services/chat.service";
 import { ProjectService } from "@/server/services/project.service";
-import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -22,13 +22,13 @@ export async function POST(
 ) {
   try {
     const { projectId } = await params;
-    const { getUser, getOrganization } = getKindeServerSession();
-    const user = await getUser();
-    const organization = await getOrganization();
+    const authResult = await getAuthSession();
 
-    if (!user || !organization) {
+    if (authResult.isErr() || !authResult.value.isAuthenticated || !authResult.value.user || !authResult.value.organization) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { user, organization } = authResult.value;
 
     // Check rate limit (100 req/hour free, 1000 req/hour pro)
     const rateLimitResult = await checkRateLimit(user.id, {
@@ -51,7 +51,7 @@ export async function POST(
     try {
       assertOrganizationAccess(
         project.organizationId,
-        organization.orgCode,
+        organization.id,
         "api/chat/[projectId]"
       );
     } catch (error) {
@@ -79,7 +79,7 @@ export async function POST(
       const conversationResult = await ChatService.createConversation(
         projectId,
         user.id,
-        organization.orgCode
+        organization.id
       );
 
       if (conversationResult.isErr()) {
@@ -100,7 +100,7 @@ export async function POST(
       activeConversationId,
       message,
       projectId,
-      organization.orgCode
+      organization.id
     );
 
     if (streamResult.isErr()) {
@@ -145,13 +145,13 @@ export async function GET(
 ) {
   try {
     const { projectId } = await params;
-    const { getUser, getOrganization } = getKindeServerSession();
-    const user = await getUser();
-    const organization = await getOrganization();
+    const authResult = await getAuthSession();
 
-    if (!user || !organization) {
+    if (authResult.isErr() || !authResult.value.isAuthenticated || !authResult.value.user || !authResult.value.organization) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { user, organization } = authResult.value;
 
     // Verify user has access to the project
     const projectResult = await ProjectService.getProjectById(projectId);
@@ -164,7 +164,7 @@ export async function GET(
     try {
       assertOrganizationAccess(
         project.organizationId,
-        organization.orgCode,
+        organization.id,
         "api/chat/[projectId]"
       );
     } catch (error) {

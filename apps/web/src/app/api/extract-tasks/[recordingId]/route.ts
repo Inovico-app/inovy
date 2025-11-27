@@ -48,7 +48,7 @@ export const POST = withRateLimit(
       try {
         assertOrganizationAccess(
           recording.organizationId,
-          organization?.orgCode,
+          organization?.id,
           "api/extract-tasks/[recordingId]"
         );
       } catch (error) {

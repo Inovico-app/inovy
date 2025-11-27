@@ -45,7 +45,7 @@ export const consentParticipants = pgTable(
     consentRevokedAt: timestamp("consent_revoked_at", { withTimezone: true }),
     ipAddress: text("ip_address"), // For audit purposes
     userAgent: text("user_agent"), // For audit purposes
-    userId: text("user_id"), // Kinde user ID if participant is a registered user
+    userId: text("user_id"), // Better Auth user ID if participant is a registered user
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

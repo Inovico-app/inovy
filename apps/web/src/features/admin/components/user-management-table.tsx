@@ -36,17 +36,17 @@ export async function UserManagementTable() {
     }
 
     const { organization } = authResult.value;
-    const members = await getOrganizationMembers(organization.orgCode);
+    const members = await getOrganizationMembers(organization.id);
 
     // Fetch teams for all users in a single batch query
-    const allTeams = await getCachedTeamsByOrganization(organization.orgCode);
+    const allTeams = await getCachedTeamsByOrganization(organization.id);
     const teamMap = new Map(allTeams.map((t) => [t.id, t]));
     
     // Batch fetch all user teams
     const { TeamService } = await import("@/server/services/team.service");
     const userTeamsResult = await TeamService.getUserTeamsByUserIds(
       members.map((m) => m.id),
-      organization.orgCode
+      organization.id
     );
 
     const userTeamsMap = new Map<string, Array<{ teamId: string; role: string }>>();

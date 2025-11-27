@@ -3,7 +3,6 @@ import {
   createActionError,
   type ActionResult,
 } from "@/lib/action-errors";
-import { AuthService } from "@/lib/kinde-api";
 import { logger } from "@/lib/logger";
 import * as archiver from "archiver";
 import { addDays } from "date-fns";
@@ -14,6 +13,7 @@ import { DataExportsQueries } from "../data-access/data-exports.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { TasksQueries } from "../data-access/tasks.queries";
 import type { DataExport } from "../db/schema/data-exports";
+import { UserService } from "./user.service";
 
 export interface ExportFilters {
   dateRange?: {
@@ -238,28 +238,28 @@ export class GdprExportService {
     filters?: ExportFilters
   ): Promise<ActionResult<UserExportData>> {
     try {
-      // Get user profile from Kinde
+      // Get user profile using UserService
       let userProfile: UserExportData["user"];
-      try {
-        const Users = await AuthService.getUsers();
-        const kindeUser = await Users.getUserData({ id: userId });
+      const userResult = await UserService.getUserById(userId);
 
+      if (userResult.isOk()) {
+        const userData = userResult.value;
         userProfile = {
-          id: kindeUser.id || userId,
-          email: kindeUser.preferred_email || null,
-          given_name: kindeUser.first_name || null,
-          family_name: kindeUser.last_name || null,
-          picture: kindeUser.picture || null,
-          created_on: kindeUser.created_on || undefined,
-          last_signed_in: kindeUser.last_signed_in || undefined,
+          id: userData.id,
+          email: userData.email ?? null,
+          given_name: userData.given_name ?? null,
+          family_name: userData.family_name ?? null,
+          picture: userData.picture ?? null,
+          created_on: userData.created_on,
+          last_signed_in: userData.last_signed_in,
         };
-      } catch (error) {
-        logger.warn("Failed to fetch user profile from Kinde", {
+      } else {
+        // Fallback to basic user info
+        logger.warn("Failed to fetch user profile from database", {
           component: "GdprExportService.aggregateUserData",
           userId,
-          error,
+          error: userResult.error,
         });
-        // Fallback to basic user info
         userProfile = {
           id: userId,
           email: null,

@@ -21,8 +21,8 @@ export const notifications = pgTable("notifications", {
   projectId: uuid("project_id")
     .notNull()
     .references(() => projects.id),
-  userId: text("user_id").notNull(), // Kinde user ID
-  organizationId: text("organization_id").notNull(), // Kinde organization code
+  userId: text("user_id").notNull(), // Better Auth user ID
+  organizationId: text("organization_id").notNull(), // Better Auth organization ID
   type: text("type", { enum: notificationTypeEnum }).notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),

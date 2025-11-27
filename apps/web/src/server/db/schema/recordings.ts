@@ -76,13 +76,13 @@ export const recordings = pgTable(
     workflowError: text("workflow_error"),
     workflowRetryCount: integer("workflow_retry_count").notNull().default(0),
     lastReprocessedAt: timestamp("last_reprocessed_at", { withTimezone: true }),
-    reprocessingTriggeredById: text("reprocessing_triggered_by_id"), // Kinde user ID
-    organizationId: text("organization_id").notNull(), // Kinde organization code
-    createdById: text("created_by_id").notNull(), // Kinde user ID
+    reprocessingTriggeredById: text("reprocessing_triggered_by_id"), // Better Auth user ID
+    organizationId: text("organization_id").notNull(), // Better Auth organization ID
+    createdById: text("created_by_id").notNull(), // Better Auth user ID
     externalRecordingId: text("external_recording_id"), // External recording ID (e.g., Recall.ai recording.id)
     // Consent tracking fields
     consentGiven: boolean("consent_given").notNull().default(false),
-    consentGivenBy: text("consent_given_by"), // Kinde user ID
+    consentGivenBy: text("consent_given_by"), // Better Auth user ID
     consentGivenAt: timestamp("consent_given_at", { withTimezone: true }),
     consentRevokedAt: timestamp("consent_revoked_at", { withTimezone: true }),
     // Encryption fields

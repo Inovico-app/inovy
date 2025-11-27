@@ -10,8 +10,8 @@ export const projects = pgTable("projects", {
   status: text("status", { enum: projectStatusEnum })
     .notNull()
     .default("active"),
-  organizationId: text("organization_id").notNull(), // Kinde organization code
-  createdById: text("created_by_id").notNull(), // Kinde user ID
+  organizationId: text("organization_id").notNull(), // Better Auth organization ID
+  createdById: text("created_by_id").notNull(), // Better Auth user ID
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

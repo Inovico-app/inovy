@@ -86,13 +86,13 @@ export class NotificationService {
 
       const notifications = await getCachedNotifications(
         authUser.id,
-        organization.orgCode,
+        organization.id,
         filters
       );
 
       const unreadCount = await getCachedUnreadCount(
         authUser.id,
-        organization.orgCode
+        organization.id
       );
 
       return ok({
@@ -142,7 +142,7 @@ export class NotificationService {
 
       const count = await getCachedUnreadCount(
         authUser.id,
-        organization.orgCode
+        organization.id
       );
 
       return ok(count);
@@ -202,7 +202,7 @@ export class NotificationService {
       }
 
       // Verify notification belongs to user's organization
-      if (existingNotification.organizationId !== organization.orgCode) {
+      if (existingNotification.organizationId !== organization.id) {
         return err(
           ActionErrors.notFound(
             "Notification not found",
@@ -225,7 +225,7 @@ export class NotificationService {
         );
       }
 
-      await this.invalidateCache(authUser.id, organization.orgCode);
+      await this.invalidateCache(authUser.id, organization.id);
 
       return ok(this.toDto(notification));
     } catch (error) {
@@ -270,10 +270,10 @@ export class NotificationService {
 
       const count = await NotificationsQueries.markAllAsRead(
         authUser.id,
-        organization.orgCode
+        organization.id
       );
 
-      await this.invalidateCache(authUser.id, organization.orgCode);
+      await this.invalidateCache(authUser.id, organization.id);
 
       return ok(count);
     } catch (error) {

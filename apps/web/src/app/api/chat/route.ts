@@ -79,14 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { user, organization } = session;
-    const orgCode = organization.orgCode;
-
-    if (!orgCode) {
-      return NextResponse.json(
-        { error: "Organization not found" },
-        { status: 404 }
-      );
-    }
+    const organizationId = organization.id;
 
     // Check rate limit (100 req/hour free, 1000 req/hour pro)
     const rateLimitResult = await checkRateLimit(user.id, {
@@ -135,7 +128,7 @@ export async function POST(request: NextRequest) {
       // Log access attempt
       await ChatAuditService.logChatAccess({
         userId: user.id,
-        organizationId: orgCode,
+        organizationId: organizationId,
         chatContext: "organization",
         granted: hasAccess,
         ipAddress: metadata.ipAddress,
@@ -149,7 +142,7 @@ export async function POST(request: NextRequest) {
       if (!hasAccess) {
         logger.warn("Organization chat access denied", {
           userId: user.id,
-          organizationId: orgCode,
+          organizationId: organizationId,
           userRoles: user.roles,
         });
 
@@ -167,7 +160,7 @@ export async function POST(request: NextRequest) {
       // Log the query
       await ChatAuditService.logChatQuery({
         userId: user.id,
-        organizationId: orgCode,
+        organizationId: organizationId,
         chatContext: "organization",
         query: lastUserMessage,
         ipAddress: metadata.ipAddress,
@@ -179,7 +172,10 @@ export async function POST(request: NextRequest) {
 
       if (!activeConversationId) {
         const conversationResult =
-          await ChatService.createOrganizationConversation(user.id, orgCode);
+          await ChatService.createOrganizationConversation(
+            user.id,
+            organizationId
+          );
 
         if (conversationResult.isErr()) {
           logger.error("Failed to create organization conversation", {
@@ -198,7 +194,7 @@ export async function POST(request: NextRequest) {
       const streamResult = await ChatService.streamOrganizationResponse(
         activeConversationId,
         lastUserMessage,
-        orgCode
+        organizationId
       );
 
       if (streamResult.isErr()) {
@@ -255,7 +251,7 @@ export async function POST(request: NextRequest) {
       try {
         assertOrganizationAccess(
           project.organizationId,
-          orgCode,
+          organizationId,
           "api/chat/POST"
         );
       } catch (error) {
@@ -270,7 +266,7 @@ export async function POST(request: NextRequest) {
         const conversationResult = await ChatService.createConversation(
           projectId,
           user.id,
-          orgCode
+          organizationId
         );
 
         if (conversationResult.isErr()) {
@@ -291,7 +287,7 @@ export async function POST(request: NextRequest) {
         activeConversationId,
         lastUserMessage,
         projectId,
-        organization.orgCode
+        organizationId
       );
 
       if (streamResult.isErr()) {

@@ -484,7 +484,7 @@ All organization-scoped tables must include:
 ```typescript
 export const tasks = pgTable("tasks", {
   id: uuid("id").defaultRandom().primaryKey(),
-  organizationId: text("organization_id").notNull(), // Kinde organization code
+  organizationId: text("organization_id").notNull(), // Better Auth organization ID
   // ... other fields
 });
 ```

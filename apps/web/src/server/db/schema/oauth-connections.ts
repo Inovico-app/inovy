@@ -10,7 +10,7 @@ export type OAuthProvider = (typeof oauthProviderEnum)[number];
  */
 export const oauthConnections = pgTable("oauth_connections", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("user_id").notNull(), // Kinde user ID
+  userId: text("user_id").notNull(), // Better Auth user ID
   provider: text("provider", { enum: oauthProviderEnum }).notNull(),
   accessToken: text("access_token").notNull(), // Encrypted
   refreshToken: text("refresh_token").notNull(), // Encrypted

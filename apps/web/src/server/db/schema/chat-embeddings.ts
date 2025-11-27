@@ -26,7 +26,7 @@ export const chatEmbeddings = pgTable(
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "cascade",
     }),
-    organizationId: text("organization_id").notNull(), // Kinde organization code
+    organizationId: text("organization_id").notNull(), // Better Auth organization ID
     contentType: text("content_type", { enum: contentTypeEnum }).notNull(),
     contentId: uuid("content_id").notNull(), // References original content (recording, task, etc.)
     contentText: text("content_text").notNull(), // The actual text content

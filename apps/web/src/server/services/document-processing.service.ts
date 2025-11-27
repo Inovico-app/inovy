@@ -21,7 +21,7 @@ export class DocumentProcessingService {
   /**
    * Resolve organization ID from document and auth session
    * Priority:
-   * 1. authResult.value.organization.orgCode (if present)
+   * 1. authResult.value.organization.id (if present)
    * 2. Persisted document.organization/orgCode field (if available in future schema)
    * 3. For project scope: load Project by scopeId and read its organizationId
    * 4. For organization scope: document.scopeId IS the orgCode
@@ -34,10 +34,10 @@ export class DocumentProcessingService {
     // Priority 1: Use organization from auth session if available
     if (
       authResult.isOk() &&
-      authResult.value.organization?.orgCode &&
+      authResult.value.organization?.id &&
       authResult.value.isAuthenticated
     ) {
-      return ok(authResult.value.organization.orgCode);
+      return ok(authResult.value.organization.id);
     }
 
     // Priority 2: Use persisted document.organization/orgCode field if available
@@ -94,7 +94,7 @@ export class DocumentProcessingService {
         );
       }
 
-      const userOrgId = authResult.value.organization?.orgCode;
+      const userOrgId = authResult.value.organization?.id;
       if (!userOrgId) {
         return err(
           ActionErrors.forbidden(
@@ -186,7 +186,7 @@ export class DocumentProcessingService {
       }
 
       const user = authResult.value.user;
-      const userOrgId = authResult.value.organization?.orgCode;
+      const userOrgId = authResult.value.organization?.id;
 
       if (!userOrgId) {
         return err(

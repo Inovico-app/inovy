@@ -24,13 +24,13 @@ export async function RecordingsOverview() {
     );
   }
 
-  const orgCode = organization.orgCode;
+  const organizationId = organization.id;
 
   // Fetch recordings and projects in parallel
   const [recordings, projectsResult] = await Promise.all([
-    getCachedRecordingsByOrganization(orgCode),
+    getCachedRecordingsByOrganization(organizationId),
     ProjectService.getProjectsByOrganization({
-      organizationId: orgCode,
+      organizationId: organizationId,
       status: "active",
     }),
   ]);

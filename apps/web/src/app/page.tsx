@@ -69,11 +69,10 @@ async function DashboardContent() {
     );
   }
 
-  // Extract org_code from organization
-  const orgCode = organization.orgCode;
+  const organizationId = organization.id;
 
   const dashboardOverview = await DashboardService.getDashboardOverview(
-    orgCode
+    organizationId
   );
   if (dashboardOverview.isErr()) {
     logger.error("Failed to get dashboard overview in Dashboard", {
@@ -83,7 +82,7 @@ async function DashboardContent() {
   }
 
   // Get task statistics (cached)
-  const taskStats = await getCachedTaskStats(user.id, orgCode);
+  const taskStats = await getCachedTaskStats(user.id, organizationId);
 
   // Get recent tasks (limit to 3 for dashboard)
   const recentTasksResult = await TaskService.getTasksWithContext();

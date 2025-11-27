@@ -34,7 +34,7 @@ export const getAdminUsers = authorizedActionClient
       }
 
       const { organization } = authResult.value;
-      const users = await getOrganizationMembers(organization.orgCode);
+      const users = await getOrganizationMembers(organization.id);
 
       return users.map((user) => ({
         id: user.id,

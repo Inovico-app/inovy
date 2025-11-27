@@ -14,8 +14,8 @@ export const botSessions = pgTable("bot_sessions", {
       onDelete: "cascade",
       onUpdate: "no action",
     }),
-  organizationId: text("organization_id").notNull(), // Kinde organization code
-  userId: text("user_id").notNull(), // Kinde user ID
+  organizationId: text("organization_id").notNull(), // Better Auth organization ID
+  userId: text("user_id").notNull(), // Better Auth user ID
   recallBotId: text("recall_bot_id").notNull(), // Recall.ai bot session ID
   recallStatus: text("recall_status").notNull(), // Status from Recall.ai
   meetingUrl: text("meeting_url").notNull(),

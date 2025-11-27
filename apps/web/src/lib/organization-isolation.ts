@@ -4,13 +4,13 @@
  * to prevent cross-organization data access
  */
 
-import type { KindeOrganization } from "@kinde-oss/kinde-auth-nextjs/types";
 import { eq } from "drizzle-orm";
 import type { Result } from "neverthrow";
 import { err, ok } from "neverthrow";
 import type { ActionError } from "./action-errors";
 import { ActionErrors } from "./action-errors";
 import { getAuthSession } from "./auth";
+import type { BetterAuthOrganization } from "./better-auth-session";
 import { logger } from "./logger";
 
 /**
@@ -91,7 +91,7 @@ export function filterByOrganization(
  * @returns Result containing the organization or an error
  */
 export async function getOrganizationFromSession(): Promise<
-  Result<KindeOrganization, ActionError>
+  Result<BetterAuthOrganization, ActionError>
 > {
   const authResult = await getAuthSession();
 
@@ -185,7 +185,7 @@ export async function validateOrganizationContext(context?: string): Promise<
     {
       userId: string;
       organizationId: string;
-      organization: KindeOrganization;
+      organization: BetterAuthOrganization;
     },
     ActionError
   >
@@ -225,7 +225,7 @@ export async function validateOrganizationContext(context?: string): Promise<
 
   return ok({
     userId: user.id,
-    organizationId: organization.orgCode,
+    organizationId: organization.id,
     organization,
   });
 }

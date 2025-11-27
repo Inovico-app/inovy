@@ -1,6 +1,6 @@
 /**
  * Data Transfer Objects for Project-related operations
- * organizationId and createdById are now Kinde IDs (strings)
+ * organizationId and createdById are Better Auth IDs (strings)
  */
 
 import type { AllowedStatus } from "../data-access/projects.queries";
@@ -8,8 +8,8 @@ import type { AllowedStatus } from "../data-access/projects.queries";
 export interface CreateProjectDto {
   name: string;
   description?: string;
-  organizationId: string; // Kinde organization code
-  createdById: string; // Kinde user ID
+  organizationId: string; // Better Auth organization ID
+  createdById: string; // Better Auth user ID
 }
 
 export interface UpdateProjectDto {
@@ -29,7 +29,10 @@ export interface ProjectDto {
 }
 
 export interface ProjectWithCreatorDto extends ProjectDto {
-  createdById: string; // Kinde user ID
+  createdById: string; // better auth user ID
+  creatorName: string | null;
+  creatorEmail: string | null;
+  creatorImage: string | null;
 }
 
 export interface ProjectWithCreatorDetailsDto extends ProjectWithCreatorDto {

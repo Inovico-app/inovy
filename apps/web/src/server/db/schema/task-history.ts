@@ -13,7 +13,7 @@ export const taskHistory = pgTable("task_history", {
   field: text("field").notNull(), // Changed field name (e.g., "title", "priority")
   oldValue: jsonb("old_value"), // Previous value (stored as JSON for flexibility)
   newValue: jsonb("new_value"), // New value (stored as JSON for flexibility)
-  changedById: text("changed_by_id").notNull(), // Kinde user ID who made the change
+  changedById: text("changed_by_id").notNull(), // Better Auth user ID who made the change
   changedAt: timestamp("changed_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

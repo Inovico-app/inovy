@@ -14,7 +14,7 @@ export const reprocessingHistory = pgTable("reprocessing_history", {
   recordingId: uuid("recording_id")
     .notNull()
     .references(() => recordings.id, { onDelete: "cascade" }),
-  triggeredById: text("triggered_by_id").notNull(), // Kinde user ID
+  triggeredById: text("triggered_by_id").notNull(), // Better Auth user ID
   status: text("status", { enum: reprocessingStatusEnum })
     .notNull()
     .default("pending"),

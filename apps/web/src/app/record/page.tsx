@@ -28,7 +28,7 @@ async function RecordPageContent() {
     );
   }
 
-  if (!organization.orgCode) {
+  if (!organization.id) {
     return (
       <div className="text-center">
         <p className="text-red-500">Organization code not found</p>
@@ -38,7 +38,7 @@ async function RecordPageContent() {
 
   // Fetch active projects for this organization
   const projectsResult = await ProjectService.getProjectsByOrganization({
-    organizationId: organization.orgCode,
+    organizationId: organization.id,
     status: "active",
   });
 

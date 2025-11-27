@@ -1,7 +1,7 @@
 import { err, ok } from "neverthrow";
 import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { logger } from "../../lib/logger";
-import { getOrganizationMembers } from "../data-access/organization.queries";
+import { OrganizationQueries } from "../data-access/organization.queries";
 
 export interface OrganizationMemberDto {
   id: string;
@@ -30,7 +30,19 @@ export class OrganizationService {
     });
 
     try {
-      const members = await getOrganizationMembers(organizationId);
+      const membersData = await OrganizationQueries.getMembers(organizationId);
+      
+      const members: OrganizationMemberDto[] = membersData.map((member) => {
+        const roles = member.role ? [member.role] : [];
+        const nameParts = member.name?.split(" ") ?? [];
+        return {
+          id: member.id,
+          email: member.email ?? null,
+          given_name: nameParts[0] ?? null,
+          family_name: nameParts.slice(1).join(" ") || null,
+          roles,
+        };
+      });
 
       logger.info("Successfully fetched organization members", {
         component: "OrganizationService.getOrganizationMembers",

@@ -1,22 +1,15 @@
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema/auth";
 import { passkey } from "@better-auth/passkey";
-import { stripe } from "@better-auth/stripe";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink, organization } from "better-auth/plugins";
-import Stripe from "stripe";
 import { sendEmailFromTemplate } from "./email";
-import { VerificationEmail } from "./email-templates/verification-email";
-import { PasswordResetEmail } from "./email-templates/password-reset-email";
 import { MagicLinkEmail } from "./email-templates/magic-link-email";
 import { OrganizationInvitationEmail } from "./email-templates/organization-invitation-email";
-
-// Initialize Stripe client
-const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-  apiVersion: "2025-11-17.clover",
-});
+import { PasswordResetEmail } from "./email-templates/password-reset-email";
+import { VerificationEmail } from "./email-templates/verification-email";
 
 /**
  * Better Auth instance configuration
@@ -162,36 +155,6 @@ export const betterAuthInstance = betterAuth({
         process.env.BETTER_AUTH_URL?.replace(/https?:\/\//, "").split("/")[0] ||
         "localhost",
       rpName: "Inovy",
-    }),
-    stripe({
-      stripeClient,
-      stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
-      createCustomerOnSignUp: true,
-      subscription: {
-        enabled: true,
-        plans: [
-          {
-            name: "pro",
-            priceId: process.env.STRIPE_PRO_PRICE_ID ?? "",
-          },
-          {
-            name: "enterprise",
-            priceId: process.env.STRIPE_ENTERPRISE_PRICE_ID ?? "",
-          },
-        ],
-      },
-      async authorizeReference({
-        referenceId,
-        user,
-      }: {
-        referenceId: string;
-        user: { id: string };
-      }) {
-        // For Enterprise org subscriptions, verify user is org admin
-        // For Pro user subscriptions, verify referenceId matches userId
-        // TODO: Implement authorization logic (Phase 4: INO-235)
-        return true;
-      },
     }),
     nextCookies(), // Must be last plugin
   ],

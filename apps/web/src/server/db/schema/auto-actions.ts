@@ -23,7 +23,7 @@ export type AutoActionStatus = (typeof autoActionStatusEnum)[number];
  */
 export const autoActions = pgTable("auto_actions", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("user_id").notNull(), // Kinde user ID
+  userId: text("user_id").notNull(), // Better Auth user ID
   type: text("type", { enum: autoActionTypeEnum }).notNull(),
   provider: text("provider", { enum: autoActionProviderEnum }).notNull(),
   taskId: uuid("task_id").references(() => tasks.id), // Optional: for calendar events from tasks

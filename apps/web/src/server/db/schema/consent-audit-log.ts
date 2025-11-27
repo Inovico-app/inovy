@@ -21,7 +21,7 @@ export const consentAuditLog = pgTable("consent_audit_log", {
     .references(() => recordings.id, { onDelete: "cascade" }),
   participantEmail: text("participant_email").notNull(),
   action: text("action", { enum: consentAuditActionEnum }).notNull(),
-  performedBy: text("performed_by").notNull(), // Kinde user ID
+  performedBy: text("performed_by").notNull(), // Better Auth user ID
   performedByEmail: text("performed_by_email"), // Email for audit purposes
   ipAddress: text("ip_address"), // IP address for audit
   userAgent: text("user_agent"), // User agent for audit

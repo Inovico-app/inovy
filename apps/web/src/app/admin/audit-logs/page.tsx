@@ -66,7 +66,7 @@ async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
   };
 
   const result = await AuditLogService.getAuditLogs(
-    organization.orgCode,
+    organization.id,
     filters
   );
 

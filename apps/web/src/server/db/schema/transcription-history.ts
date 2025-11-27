@@ -27,7 +27,7 @@ export const transcriptionHistory = pgTable("transcription_history", {
     .references(() => recordings.id, { onDelete: "cascade" }),
   content: text("content").notNull(), // Full transcription content snapshot
   editedSections: jsonb("edited_sections").$type<TranscriptionEdit[]>(), // Track specific edited sections
-  editedById: text("edited_by_id").notNull(), // Kinde user ID who made the edit
+  editedById: text("edited_by_id").notNull(), // Better Auth user ID who made the edit
   editedAt: timestamp("edited_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

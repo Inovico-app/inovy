@@ -18,7 +18,7 @@ Inovy is a modern web application that helps organizations manage meeting record
 
 - **Clean Architecture** - Separation of concerns with proper data access patterns
 - **Type Safety** - Full TypeScript implementation with comprehensive DTOs
-- **Enterprise Security** - Kinde authentication with session management
+- **Enterprise Security** - Better Auth authentication with session management
 - **Caching Layer** - Redis for performance optimization
 - **Modern UI** - Responsive design with Shadcn/UI and Tailwind CSS
 - **Database** - PostgreSQL with Drizzle ORM for type-safe queries
@@ -41,7 +41,7 @@ Inovy is a modern web application that helps organizations manage meeting record
 - **Drizzle ORM** - Type-safe database operations
 - **PostgreSQL** - Primary database
 - **Redis** - Caching and session storage
-- **Kinde** - Authentication and user management
+- **Better Auth** - Authentication and user management
 
 ### Development
 
@@ -89,7 +89,7 @@ Inovy follows **Clean Architecture** principles with clear separation of concern
 - Node.js 18+
 - PostgreSQL database
 - Redis instance
-- Kinde authentication account
+- Better Auth configured (or use email/password)
 
 ### Installation
 
@@ -118,13 +118,15 @@ Inovy follows **Clean Architecture** principles with clear separation of concern
    UPSTASH_REDIS_REST_URL="your-redis-url"
    UPSTASH_REDIS_REST_TOKEN="your-redis-token"
 
-   # Kinde Auth
-   KINDE_CLIENT_ID="your-kinde-client-id"
-   KINDE_CLIENT_SECRET="your-kinde-client-secret"
-   KINDE_ISSUER_URL="https://your-domain.kinde.com"
-   KINDE_SITE_URL="http://localhost:3000"
-   KINDE_POST_LOGOUT_REDIRECT_URL="http://localhost:3000"
-   KINDE_POST_LOGIN_REDIRECT_URL="http://localhost:3000"
+   # Better Auth
+   BETTER_AUTH_SECRET="your-better-auth-secret"
+   BETTER_AUTH_URL="http://localhost:3000"
+   
+   # Optional: OAuth providers
+   GOOGLE_CLIENT_ID="your-google-client-id"
+   GOOGLE_CLIENT_SECRET="your-google-client-secret"
+   MICROSOFT_CLIENT_ID="your-microsoft-client-id"
+   MICROSOFT_CLIENT_SECRET="your-microsoft-client-secret"
 
    # Qdrant Vector Database (Cloud-hosted)
    QDRANT_URL="https://your-cluster.qdrant.io"  # Your Qdrant cloud cluster URL
@@ -310,8 +312,8 @@ inovy/
 // Hierarchical cache key structure
 project:{id}                    // Individual project
 project:org:{orgId}:active     // Organization projects
-user:kinde:{kindeId}           // User by Kinde ID
-org:{kindeId}                  // Organization by Kinde ID
+user:{userId}                  // User by Better Auth ID
+org:{organizationId}           // Organization by Better Auth ID
 api:/projects:?status=active   // API response cache
 ```
 
@@ -393,8 +395,8 @@ pnpm check-types           # TypeScript validation
 
 ## 🔐 Authentication Flow
 
-1. **User Login** - Redirected to Kinde authentication
-2. **Session Creation** - Kinde manages user session
+1. **User Login** - Email/password or OAuth via Better Auth
+2. **Session Creation** - Better Auth manages user session
 3. **User Sync** - Auto-sync user data to local database
 4. **Organization Assignment** - Users assigned to organizations
 5. **Protected Routes** - Middleware protects authenticated routes
@@ -404,7 +406,7 @@ pnpm check-types           # TypeScript validation
 ### Core Entities
 
 - **Organizations** - Multi-tenant organization structure
-- **Users** - User profiles linked to Kinde authentication
+- **Users** - User profiles managed by Better Auth
 - **Projects** - Project containers for recordings
 - **Recordings** - Meeting recordings with metadata _(Coming Soon)_
 - **Tasks** - AI-extracted action items _(Coming Soon)_

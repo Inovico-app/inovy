@@ -1,12 +1,11 @@
 import { relations } from "drizzle-orm";
 import {
+  bigint,
+  boolean,
+  index,
   pgTable,
   text,
   timestamp,
-  boolean,
-  index,
-  uuid,
-  bigint,
 } from "drizzle-orm/pg-core";
 
 // Core Better Auth tables
@@ -253,9 +252,7 @@ export const subscription = pgTable(
     organizationId: text("organization_id").references(() => organization.id, {
       onDelete: "cascade",
     }),
-    stripeSubscriptionId: text("stripe_subscription_id")
-      .notNull()
-      .unique(),
+    stripeSubscriptionId: text("stripe_subscription_id").notNull().unique(),
     stripeCustomerId: text("stripe_customer_id").notNull(),
     plan: text("plan").notNull(), // pro, enterprise
     status: text("status").notNull(), // active, canceled, past_due, etc.

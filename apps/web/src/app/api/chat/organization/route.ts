@@ -47,22 +47,15 @@ export const POST = withRateLimit(
       }
 
       const { user, organization } = session;
-      const orgCode = organization.orgCode;
-
-      if (!orgCode) {
-        return NextResponse.json(
-          { error: "Organization not found" },
-          { status: 404 }
-        );
-      }
+      const organizationId = organization.id;
 
       // Check if user has permission to access organization-level chat
       const hasAccess = canAccessOrganizationChat(user);
 
       // Log access attempt
       await ChatAuditService.logChatAccess({
+        organizationId,
         userId: user.id,
-        organizationId: orgCode,
         chatContext: "organization",
         granted: hasAccess,
         ipAddress: metadata.ipAddress,
@@ -75,8 +68,8 @@ export const POST = withRateLimit(
 
       if (!hasAccess) {
         logger.warn("Organization chat access denied", {
+          organizationId,
           userId: user.id,
-          organizationId: orgCode,
           userRoles: user.roles,
         });
 
@@ -107,7 +100,7 @@ export const POST = withRateLimit(
       // Log the query
       await ChatAuditService.logChatQuery({
         userId: user.id,
-        organizationId: orgCode,
+        organizationId,
         chatContext: "organization",
         query: message,
         ipAddress: metadata.ipAddress,
@@ -119,7 +112,10 @@ export const POST = withRateLimit(
 
       if (!activeConversationId) {
         const conversationResult =
-          await ChatService.createOrganizationConversation(user.id, orgCode);
+          await ChatService.createOrganizationConversation(
+            user.id,
+            organizationId
+          );
 
         if (conversationResult.isErr()) {
           logger.error("Failed to create organization conversation", {
@@ -138,7 +134,7 @@ export const POST = withRateLimit(
       const streamResult = await ChatService.streamOrganizationResponse(
         activeConversationId,
         message,
-        orgCode
+        organizationId
       );
 
       if (streamResult.isErr()) {
@@ -200,22 +196,15 @@ export async function GET(request: NextRequest) {
     }
 
     const { user, organization } = session;
-    const orgCode = organization.orgCode;
-
-    if (!orgCode) {
-      return NextResponse.json(
-        { error: "Organization not found" },
-        { status: 404 }
-      );
-    }
+    const organizationId = organization.id;
 
     // Check if user has permission to access organization-level chat
     const hasAccess = canAccessOrganizationChat(user);
 
     // Log access attempt
     await ChatAuditService.logChatAccess({
+      organizationId,
       userId: user.id,
-      organizationId: orgCode,
       chatContext: "organization",
       granted: hasAccess,
       ipAddress: metadata.ipAddress,
@@ -228,8 +217,8 @@ export async function GET(request: NextRequest) {
 
     if (!hasAccess) {
       logger.warn("Organization chat access denied", {
+        organizationId,
         userId: user.id,
-        organizationId: orgCode,
         userRoles: user.roles,
       });
 

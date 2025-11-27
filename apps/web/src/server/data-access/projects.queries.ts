@@ -1,5 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db";
+import { user } from "../db/schema/auth";
 import { projects } from "../db/schema/projects";
 import { recordings } from "../db/schema/recordings";
 import type {
@@ -48,7 +49,7 @@ export class ProjectQueries {
 
   /**
    * Find a project by ID with creator information
-   * Note: createdById is now a Kinde user ID (string), creator details fetched separately
+   * Fetches creator details using a JOIN with the user table
    */
   static async findByIdWithCreator(
     projectId: string,
@@ -64,8 +65,12 @@ export class ProjectQueries {
         createdById: projects.createdById,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
+        creatorName: user.name,
+        creatorEmail: user.email,
+        creatorImage: user.image,
       })
       .from(projects)
+      .leftJoin(user, eq(projects.createdById, user.id))
       .where(
         and(
           eq(projects.id, projectId),
@@ -86,6 +91,9 @@ export class ProjectQueries {
       createdById: project.createdById,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
+      creatorName: project.creatorName,
+      creatorEmail: project.creatorEmail,
+      creatorImage: project.creatorImage,
     };
   }
 
@@ -161,7 +169,7 @@ export class ProjectQueries {
 
   /**
    * Find projects by organization with creator information
-   * Note: createdById is now a Kinde user ID (string), creator details fetched separately
+   * Fetches creator details using a JOIN with the user table
    */
   static async findByOrganizationWithCreator(filters: {
     organizationId: string;
@@ -185,8 +193,12 @@ export class ProjectQueries {
         createdById: projects.createdById,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
+        creatorName: user.name,
+        creatorEmail: user.email,
+        creatorImage: user.image,
       })
       .from(projects)
+      .leftJoin(user, eq(projects.createdById, user.id))
       .where(and(...whereConditions));
 
     return result.map((project) => ({
@@ -198,6 +210,9 @@ export class ProjectQueries {
       createdById: project.createdById,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
+      creatorName: project.creatorName,
+      creatorEmail: project.creatorEmail,
+      creatorImage: project.creatorImage,
     }));
   }
 
@@ -313,6 +328,7 @@ export class ProjectQueries {
 
   /**
    * Find projects by organization with recording counts
+   * Fetches creator details using a JOIN with the user table
    */
   static async findByOrganizationWithRecordingCount(filters: {
     organizationId: string;
@@ -337,11 +353,15 @@ export class ProjectQueries {
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
         recordingCount: sql<number>`cast(count(${recordings.id}) as int)`,
+        creatorName: user.name,
+        creatorEmail: user.email,
+        creatorImage: user.image,
       })
       .from(projects)
       .leftJoin(recordings, eq(projects.id, recordings.projectId))
+      .leftJoin(user, eq(projects.createdById, user.id))
       .where(and(...whereConditions))
-      .groupBy(projects.id);
+      .groupBy(projects.id, user.id, user.name, user.email, user.image);
 
     return result.map((project) => ({
       id: project.id,
@@ -353,6 +373,9 @@ export class ProjectQueries {
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
       recordingCount: project.recordingCount,
+      creatorName: project.creatorName,
+      creatorEmail: project.creatorEmail,
+      creatorImage: project.creatorImage,
     }));
   }
 

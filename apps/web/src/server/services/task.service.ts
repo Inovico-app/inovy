@@ -163,7 +163,7 @@ export class TaskService {
       }
 
       const tasks = await TasksQueries.getTasksWithContext(
-        organization.orgCode,
+        organization.id,
         {
           ...filters,
           assigneeId: authUser.id,
@@ -211,21 +211,7 @@ export class TaskService {
         );
       }
 
-      // Extract org_code from organization
-      const orgCode = (organization as unknown as Record<string, unknown>)
-        .org_code as string | undefined;
-
-      if (!orgCode) {
-        return err(
-          ActionErrors.forbidden(
-            "Organization code required",
-            undefined,
-            "TaskService.getTaskStats"
-          )
-        );
-      }
-
-      const stats = await getCachedTaskStats(authUser.id, orgCode);
+      const stats = await getCachedTaskStats(authUser.id, organization.id);
 
       return ok(stats);
     } catch (error) {
@@ -293,7 +279,7 @@ export class TaskService {
       try {
         assertOrganizationAccess(
           task.organizationId,
-          organization.orgCode,
+          organization.id,
           "TaskService.updateTaskStatus"
         );
       } catch (error) {
@@ -316,7 +302,7 @@ export class TaskService {
         );
       }
 
-      await this.invalidateCache(authUser.id, organization.orgCode);
+      await this.invalidateCache(authUser.id, organization.id);
 
       return ok(this.toDto(updated));
     } catch (error) {
@@ -373,7 +359,7 @@ export class TaskService {
       try {
         assertOrganizationAccess(
           task.organizationId,
-          organization.orgCode,
+          organization.id,
           "TaskService.updateTaskMetadata"
         );
       } catch (error) {
@@ -424,7 +410,7 @@ export class TaskService {
         }
       }
 
-      await this.invalidateCache(authUser.id, organization.orgCode);
+      await this.invalidateCache(authUser.id, organization.id);
 
       return ok(this.toDto(updated));
     } catch (error) {
@@ -479,7 +465,7 @@ export class TaskService {
       try {
         assertOrganizationAccess(
           task.organizationId,
-          organization.orgCode,
+          organization.id,
           "TaskService.getTaskHistory"
         );
       } catch (error) {

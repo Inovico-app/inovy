@@ -45,7 +45,7 @@ export class KnowledgeBaseService {
         );
       }
 
-      const userOrgId = authResult.value.organization?.orgCode;
+      const userOrgId = authResult.value.organization?.id;
       if (!userOrgId) {
         return err(
           ActionErrors.forbidden(
@@ -921,7 +921,7 @@ export class KnowledgeBaseService {
         // Verify project exists and belongs to user's organization
         const project = await ProjectQueries.findById(
           scopeId,
-          authResult.value.organization?.orgCode ?? ""
+          authResult.value.organization?.id ?? ""
         );
         if (!project) {
           return err(
@@ -950,7 +950,7 @@ export class KnowledgeBaseService {
         }
 
         // Verify organization matches user's organization
-        if (scopeId !== authResult.value.organization?.orgCode) {
+        if (scopeId !== authResult.value.organization?.id) {
           return err(
             ActionErrors.forbidden(
               "Cannot access other organization's knowledge base",

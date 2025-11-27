@@ -4,7 +4,7 @@ export const departments = pgTable(
   "departments",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    organizationId: text("organization_id").notNull(), // Kinde organization code
+    organizationId: text("organization_id").notNull(), // Better Auth organization ID
     name: text("name").notNull(),
     description: text("description"),
     parentDepartmentId: uuid("parent_department_id"), // Nullable for top-level departments

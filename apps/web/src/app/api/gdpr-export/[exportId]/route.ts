@@ -33,7 +33,7 @@ export async function GET(
     }
 
     const userId = sessionResult.value.user?.id;
-    const organizationId = sessionResult.value.organization?.orgCode;
+    const organizationId = sessionResult.value.organization?.id;
 
     if (!userId || !organizationId) {
       return NextResponse.json(

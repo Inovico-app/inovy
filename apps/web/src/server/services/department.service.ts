@@ -52,7 +52,7 @@ export class DepartmentService {
       // Verify organization access
       assertOrganizationAccess(
         organizationId,
-        organization.orgCode,
+        organization.id,
         "DepartmentService.getDepartmentsByOrganization"
       );
 
@@ -128,7 +128,7 @@ export class DepartmentService {
       // Verify organization access
       assertOrganizationAccess(
         department.organizationId,
-        organization.orgCode,
+        organization.id,
         "DepartmentService.getDepartmentById"
       );
 
@@ -191,7 +191,7 @@ export class DepartmentService {
       // Verify organization access
       assertOrganizationAccess(
         data.organizationId,
-        organization.orgCode,
+        organization.id,
         "DepartmentService.createDepartment"
       );
 
@@ -293,7 +293,7 @@ export class DepartmentService {
       // Verify organization access
       assertOrganizationAccess(
         existing.organizationId,
-        organization.orgCode,
+        organization.id,
         "DepartmentService.updateDepartment"
       );
 
@@ -429,7 +429,7 @@ export class DepartmentService {
       // Verify organization access
       assertOrganizationAccess(
         existing.organizationId,
-        organization.orgCode,
+        organization.id,
         "DepartmentService.deleteDepartment"
       );
 
