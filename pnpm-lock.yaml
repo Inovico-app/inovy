@@ -249,9 +249,6 @@ importers:
       resend:
         specifier: ^6.5.2
         version: 6.5.2(@react-email/render@0.0.16(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
-      server-only:
-        specifier: ^0.0.1
-        version: 0.0.1
       shiki:
         specifier: ^3.14.0
         version: 3.14.0
@@ -343,6 +340,9 @@ importers:
       pino-pretty:
         specifier: ^13.0.0
         version: 13.1.2
+      server-only:
+        specifier: ^0.0.1
+        version: 0.0.1
       tailwindcss:
         specifier: ^4.1.13
         version: 4.1.13
