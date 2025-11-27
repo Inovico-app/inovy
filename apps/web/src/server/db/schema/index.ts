@@ -1,5 +1,6 @@
 export * from "./ai-insights";
 export * from "./audit-logs";
+export * from "./auth";
 export * from "./auto-actions";
 export * from "./bot-sessions";
 export * from "./chat-audit-log";

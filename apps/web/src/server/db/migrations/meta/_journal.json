@@ -225,6 +225,13 @@
       "when": 1763391970470,
       "tag": "0037_add_embedding_cache_table",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1764245476786,
+      "tag": "0038_add_better_auth_schema",
+      "breakpoints": true
     }
   ]
 }
