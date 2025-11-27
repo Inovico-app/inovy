@@ -1,9 +1,16 @@
+import "server-only";
+
 /**
  * Main exports for server action utilities
  * Smart approach using neverthrow Result types throughout
+ *
+ * NOTE: This file is server-only. Client components should import directly from specific modules:
+ * - For logger: import { logger } from "@/lib/logger"
+ * - For action clients: import from "@/lib/action-client" (server actions only)
+ * - For RBAC: import from "@/lib/rbac" (server components/actions only)
  */
 
-// Smart action client exports (recommended approach)
+// Smart action client exports (server-only)
 export {
   authorizedActionClient,
   chainResults,
@@ -30,7 +37,7 @@ export {
 // Error message utilities
 export { generateApplicationErrorMessage } from "./error-messages";
 
-// RBAC exports
+// RBAC exports (server-only - constants and types are safe but functions require server context)
 export {
   canAccessOrganizationChat,
   getUserPolicies,
@@ -45,9 +52,6 @@ export {
   type Role,
   type SessionWithRoles,
 } from "./rbac";
-
-// Auth exports (re-export from existing auth module)
-export { getAuthSession, type AuthUser } from "./auth";
 
 // Logger export (re-export from existing logger)
 export { logger } from "./logger";

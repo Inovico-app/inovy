@@ -1,8 +1,9 @@
 "use server";
 
-import { getAuthSession, logger } from "@/lib";
+import { logger } from "@/lib";
 import { publicActionClient } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
+import { getAuthSession } from "@/lib/auth";
 import { getTemporaryDeepgramToken } from "@/lib/deepgram";
 
 export const getDeepgramClientTokenAction = publicActionClient.action(

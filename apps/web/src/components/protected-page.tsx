@@ -1,8 +1,8 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
-import { redirect } from "next/navigation";
 import type { Route } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { type ReactNode } from "react";
 import { Button } from "./ui/button";
 
@@ -18,9 +18,9 @@ export async function ProtectedPage({
   redirectOnAuth = true,
 }: ProtectedPageProps) {
   try {
-    const session = await getBetterAuthSession();
+    const sessionResult = await getBetterAuthSession();
 
-    if (!session?.user) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       if (redirectOnAuth) {
         redirect("/sign-in" as Route);
       }

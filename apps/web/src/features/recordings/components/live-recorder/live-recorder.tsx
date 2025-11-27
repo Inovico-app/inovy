@@ -22,7 +22,7 @@ import { ConsentBanner } from "@/features/recordings/components/consent-banner";
 import { ConsentStatus } from "@/features/recordings/components/consent-status";
 import { useLiveRecording } from "@/features/recordings/hooks/use-live-recording";
 import { useLiveTranscription } from "@/features/recordings/hooks/use-live-transcription";
-import { logger } from "@/lib";
+import { logger } from "@/lib/logger";
 import { useState } from "react";
 import {
   HelpText,

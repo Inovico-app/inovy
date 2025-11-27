@@ -1,10 +1,7 @@
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import {
-  checkRateLimit,
-  createRateLimitResponse,
-} from "@/lib/rate-limit";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
+import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { canAccessOrganizationChat } from "@/lib/rbac";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
 import { ChatService } from "@/server/services/chat.service";
@@ -221,7 +218,10 @@ export async function POST(request: NextRequest) {
       const headers = new Headers(response.headers);
       headers.set("X-Conversation-Id", activeConversationId);
       headers.set("X-RateLimit-Limit", rateLimitResult.limit.toString());
-      headers.set("X-RateLimit-Remaining", rateLimitResult.remaining.toString());
+      headers.set(
+        "X-RateLimit-Remaining",
+        rateLimitResult.remaining.toString()
+      );
       headers.set(
         "X-RateLimit-Reset",
         new Date(rateLimitResult.resetAt).toISOString()
@@ -251,7 +251,7 @@ export async function POST(request: NextRequest) {
       }
 
       const project = projectResult.value;
-      
+
       try {
         assertOrganizationAccess(
           project.organizationId,
@@ -311,7 +311,10 @@ export async function POST(request: NextRequest) {
       const headers = new Headers(response.headers);
       headers.set("X-Conversation-Id", activeConversationId);
       headers.set("X-RateLimit-Limit", rateLimitResult.limit.toString());
-      headers.set("X-RateLimit-Remaining", rateLimitResult.remaining.toString());
+      headers.set(
+        "X-RateLimit-Remaining",
+        rateLimitResult.remaining.toString()
+      );
       headers.set(
         "X-RateLimit-Reset",
         new Date(rateLimitResult.resetAt).toISOString()

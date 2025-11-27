@@ -1,9 +1,12 @@
+import "server-only";
+
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import type {
   KindeOrganization,
   KindeUser,
 } from "@kinde-oss/kinde-auth-nextjs/types";
-import { type Result, err, ok } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
+import { getBetterAuthSession } from "./better-auth-session";
 import { logger } from "./logger";
 import type { Role } from "./rbac";
 
@@ -27,13 +30,81 @@ interface AuthSession {
   organization: KindeOrganization | null;
 }
 
+/**
+ * Get authentication session using Better Auth
+ * This is the new implementation that will replace Kinde
+ * Uses React cache() for deduplication within the same render
+ *
+ * @returns Result containing session data compatible with existing AuthSession interface
+ */
 export async function getAuthSession(): Promise<Result<AuthSession, string>> {
+  try {
+    const betterAuthResult = await getBetterAuthSession();
+
+    if (betterAuthResult.isErr()) {
+      return err(betterAuthResult.error);
+    }
+
+    const betterAuth = betterAuthResult.value;
+
+    if (!betterAuth.isAuthenticated || !betterAuth.user) {
+      logger.auth.sessionCheck(false, { action: "getAuthSession" });
+      return ok({
+        isAuthenticated: false,
+        user: null,
+        organization: null,
+      });
+    }
+
+    // Map Better Auth session to AuthSession interface for backward compatibility
+    const user: AuthUser = {
+      id: betterAuth.user.id,
+      email: betterAuth.user.email ?? null,
+      given_name: betterAuth.user.name?.split(" ")[0] ?? null,
+      family_name: betterAuth.user.name?.split(" ").slice(1).join(" ") ?? null,
+      picture: betterAuth.user.image ?? null,
+      organization_code: betterAuth.organization?.id ?? undefined,
+      roles: betterAuth.roles,
+    };
+
+    // Map Better Auth organization to KindeOrganization-like structure
+    const organization: KindeOrganization | null = betterAuth.organization
+      ? ({
+          orgCode: betterAuth.organization.id,
+          name: betterAuth.organization.name,
+          // Add other KindeOrganization fields as needed
+        } as KindeOrganization)
+      : null;
+
+    logger.auth.sessionCheck(true, {
+      userId: user.id,
+      hasOrganization: !!organization,
+      action: "getAuthSession",
+    });
+
+    return ok({
+      isAuthenticated: true,
+      user,
+      organization,
+    });
+  } catch (error) {
+    const errorMessage = "Critical error in getAuthSession";
+    logger.auth.error(errorMessage, error as Error);
+    return err(errorMessage);
+  }
+}
+
+/**
+ * Legacy Kinde-based getAuthSession (kept for reference during migration)
+ * TODO: Remove in Phase 7 (INO-238)
+ */
+async function getAuthSessionKinde(): Promise<Result<AuthSession, string>> {
   try {
     const { isAuthenticated, getUser, getOrganization, getRoles } =
       getKindeServerSession();
 
     if (!isAuthenticated) {
-      logger.auth.sessionCheck(false, { action: "getAuthSession" });
+      logger.auth.sessionCheck(false, { action: "getAuthSessionKinde" });
       return ok({
         isAuthenticated: false,
         user: null,
@@ -48,12 +119,10 @@ export async function getAuthSession(): Promise<Result<AuthSession, string>> {
     ]);
 
     if (userResult.isErr()) {
-      // Log as warning instead of error - this can happen during cache operations
-      // when session context is not available
-      logger.warn("Failed to get user in getAuthSession", {
+      logger.warn("Failed to get user in getAuthSessionKinde", {
         component: "auth",
         error: userResult.error,
-        action: "getAuthSession",
+        action: "getAuthSessionKinde",
       });
       return err("Failed to get user data");
     }
@@ -66,7 +135,6 @@ export async function getAuthSession(): Promise<Result<AuthSession, string>> {
           userId: userResult.value.id,
         }
       );
-      // Organization failure is not critical, continue without it
     }
 
     const user = userResult.value;
@@ -77,7 +145,7 @@ export async function getAuthSession(): Promise<Result<AuthSession, string>> {
     logger.auth.sessionCheck(true, {
       userId: user.id,
       hasOrganization: !!organization,
-      action: "getAuthSession",
+      action: "getAuthSessionKinde",
     });
 
     return ok({
@@ -90,7 +158,7 @@ export async function getAuthSession(): Promise<Result<AuthSession, string>> {
       organization,
     });
   } catch (error) {
-    const errorMessage = "Critical error in getAuthSession";
+    const errorMessage = "Critical error in getAuthSessionKinde";
     logger.auth.error(errorMessage, error as Error);
     return err(errorMessage);
   }

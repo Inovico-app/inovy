@@ -55,7 +55,6 @@ export function EditRecordingForm({
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
-    // @ts-expect-error - Zod v4 type incompatibility with @hookform/resolvers
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: initialData.title,

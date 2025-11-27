@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Smart Next-safe-action server action client using neverthrow Result types
  * This approach eliminates custom error classes in favor of functional error handling
