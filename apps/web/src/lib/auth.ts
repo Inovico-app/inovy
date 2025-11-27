@@ -3,13 +3,10 @@ import type {
   KindeOrganization,
   KindeUser,
 } from "@kinde-oss/kinde-auth-nextjs/types";
-import { type Result, err, ok } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
+import { getBetterAuthSession } from "./better-auth-session";
 import { logger } from "./logger";
 import type { Role } from "./rbac";
-import {
-  getBetterAuthSession,
-  type BetterAuthSessionData,
-} from "./better-auth-session";
 
 /**
  * Server-side authentication utilities with proper error handling
@@ -62,8 +59,7 @@ export async function getAuthSession(): Promise<Result<AuthSession, string>> {
       id: betterAuth.user.id,
       email: betterAuth.user.email ?? null,
       given_name: betterAuth.user.name?.split(" ")[0] ?? null,
-      family_name:
-        betterAuth.user.name?.split(" ").slice(1).join(" ") ?? null,
+      family_name: betterAuth.user.name?.split(" ").slice(1).join(" ") ?? null,
       picture: betterAuth.user.image ?? null,
       organization_code: betterAuth.organization?.id ?? undefined,
       roles: betterAuth.roles,
@@ -71,11 +67,11 @@ export async function getAuthSession(): Promise<Result<AuthSession, string>> {
 
     // Map Better Auth organization to KindeOrganization-like structure
     const organization: KindeOrganization | null = betterAuth.organization
-      ? {
+      ? ({
           orgCode: betterAuth.organization.id,
           name: betterAuth.organization.name,
           // Add other KindeOrganization fields as needed
-        } as KindeOrganization
+        } as KindeOrganization)
       : null;
 
     logger.auth.sessionCheck(true, {

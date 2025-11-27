@@ -1,7 +1,9 @@
-import { cache } from "react";
-import { headers } from "next/headers";
-import { betterAuthInstance } from "./better-auth";
+import "server-only";
+
 import { type Result, err, ok } from "neverthrow";
+import { headers } from "next/headers";
+import { cache } from "react";
+import { betterAuthInstance } from "./better-auth";
 import { logger } from "./logger";
 import type { Role } from "./rbac";
 
@@ -142,12 +144,16 @@ async function fetchAndBuildSession(
 
     // Get active organization and member
     const [organizationsResult, activeMemberResult] = await Promise.all([
-      betterAuthInstance.api.listOrganizations({
-        headers: await headers(),
-      }).catch(() => null),
-      betterAuthInstance.api.getActiveMember({
-        headers: await headers(),
-      }).catch(() => null),
+      betterAuthInstance.api
+        .listOrganizations({
+          headers: await headers(),
+        })
+        .catch(() => null),
+      betterAuthInstance.api
+        .getActiveMember({
+          headers: await headers(),
+        })
+        .catch(() => null),
     ]);
 
     const organizations = organizationsResult ?? [];
@@ -157,11 +163,7 @@ async function fetchAndBuildSession(
       organizations,
       activeMember
     );
-    const roles = mapMemberRoles(
-      activeMember,
-      session.user.id,
-      actionContext
-    );
+    const roles = mapMemberRoles(activeMember, session.user.id, actionContext);
 
     logger.auth.sessionCheck(true, {
       userId: session.user.id,
@@ -199,6 +201,7 @@ async function fetchAndBuildSession(
 /**
  * Cached server-side session helper for Better Auth
  * Uses React cache() to deduplicate session requests within the same render
+ * Note: This caches per-request, not across users - each user's session is isolated
  *
  * @returns Result containing Better Auth session data
  */
@@ -217,3 +220,4 @@ export async function getBetterAuthSessionUncached(): Promise<
 > {
   return fetchAndBuildSession("getBetterAuthSessionUncached");
 }
+

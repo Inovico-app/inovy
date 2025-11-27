@@ -1,8 +1,8 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
-import { redirect } from "next/navigation";
 import type { Route } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { type ReactNode } from "react";
 import { Button } from "./ui/button";
 
