@@ -7,6 +7,11 @@ import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink, organization } from "better-auth/plugins";
 import Stripe from "stripe";
+import { sendEmailFromTemplate } from "./email";
+import { VerificationEmail } from "./email-templates/verification-email";
+import { PasswordResetEmail } from "./email-templates/password-reset-email";
+import { MagicLinkEmail } from "./email-templates/magic-link-email";
+import { OrganizationInvitationEmail } from "./email-templates/organization-invitation-email";
 
 // Initialize Stripe client
 const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
@@ -60,8 +65,14 @@ export const betterAuthInstance = betterAuth({
       url: string;
       token: string;
     }) {
-      // TODO: Implement email sending via Resend (Phase 6: INO-237)
-      console.log("Verification email:", { email: user.email, url, token });
+      await sendEmailFromTemplate({
+        to: user.email,
+        subject: "Verify your email address",
+        react: VerificationEmail({
+          verificationUrl: url,
+          userName: user.name,
+        }),
+      });
     },
     async sendResetPassword({
       user,
@@ -72,8 +83,14 @@ export const betterAuthInstance = betterAuth({
       url: string;
       token: string;
     }) {
-      // TODO: Implement email sending via Resend (Phase 6: INO-237)
-      console.log("Reset password email:", { email: user.email, url, token });
+      await sendEmailFromTemplate({
+        to: user.email,
+        subject: "Reset your password",
+        react: PasswordResetEmail({
+          resetUrl: url,
+          userName: user.name,
+        }),
+      });
     },
   },
 
@@ -103,17 +120,20 @@ export const betterAuthInstance = betterAuth({
         organization: { name: string };
         inviter: { user: { name: string | null; email: string } };
       }) {
-        // TODO: Implement email sending via Resend (Phase 6: INO-237)
         const inviteLink = `${
           process.env.BETTER_AUTH_URL ??
           process.env.NEXT_PUBLIC_APP_URL ??
           "http://localhost:3000"
         }/accept-invitation/${data.id}`;
-        console.log("Organization invitation email:", {
-          email: data.email,
-          inviteLink,
-          organization: data.organization.name,
-          inviter: data.inviter.user.name,
+        await sendEmailFromTemplate({
+          to: data.email,
+          subject: `You've been invited to join ${data.organization.name}`,
+          react: OrganizationInvitationEmail({
+            invitationUrl: inviteLink,
+            organizationName: data.organization.name,
+            inviterName: data.inviter.user.name,
+            inviterEmail: data.inviter.user.email,
+          }),
         });
       },
     }),
@@ -127,8 +147,14 @@ export const betterAuthInstance = betterAuth({
         url: string;
         token: string;
       }) {
-        // TODO: Implement email sending via Resend (Phase 6: INO-237)
-        console.log("Magic link email:", { email, url, token });
+        await sendEmailFromTemplate({
+          to: email,
+          subject: "Sign in to Inovy",
+          react: MagicLinkEmail({
+            magicLinkUrl: url,
+            email,
+          }),
+        });
       },
     }),
     passkey({
