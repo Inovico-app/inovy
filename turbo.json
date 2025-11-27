@@ -18,7 +18,8 @@
         "UPSTASH_REDIS_REST_TOKEN",
         "BLOB_READ_WRITE_TOKEN",
         "QDRANT_URL",
-        "QDRANT_API_KEY"
+        "QDRANT_API_KEY",
+        "STRIPE_SECRET_KEY"
       ],
       "outputs": [".next/**", "!.next/cache/**"]
     },

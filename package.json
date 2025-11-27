@@ -17,9 +17,7 @@
     "db:generate": "turbo -F web db:generate",
     "db:migrate": "turbo -F web db:migrate"
   },
-  "dependencies": {},
   "devDependencies": {
-    "turbo": "^2.5.4"
+    "turbo": "^2.6.1"
   }
 }
-

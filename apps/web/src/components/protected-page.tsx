@@ -18,9 +18,9 @@ export async function ProtectedPage({
   redirectOnAuth = true,
 }: ProtectedPageProps) {
   try {
-    const session = await getBetterAuthSession();
+    const sessionResult = await getBetterAuthSession();
 
-    if (!session?.user) {
+    if (sessionResult.isErr() || !sessionResult.value.user) {
       if (redirectOnAuth) {
         redirect("/sign-in" as Route);
       }
