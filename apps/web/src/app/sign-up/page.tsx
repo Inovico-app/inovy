@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSignUp } from "@/features/auth/hooks";
+import { useSignUp } from "@/features/auth/hooks/use-sign-up";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");

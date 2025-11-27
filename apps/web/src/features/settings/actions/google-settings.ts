@@ -9,7 +9,7 @@ import {
   type UpdateGoogleSettingsInput,
 } from "@/server/validation/integrations/google-settings";
 import { revalidatePath } from "next/cache";
-import type { IntegrationSettings } from "@/server/db/schema";
+import type { IntegrationSettings } from "@/server/db/schema/integration-settings";
 import { z } from "zod";
 
 const getGoogleSettingsSchema = z.object({

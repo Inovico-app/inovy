@@ -1,7 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
-import { TaskService } from "@/server/services";
+import { TaskService } from "@/server/services/task.service";
 import {
   updateTaskMetadataSchema,
   type UpdateTaskMetadataInput,

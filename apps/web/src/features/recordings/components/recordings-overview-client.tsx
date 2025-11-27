@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { RecordingDto } from "@/server/dto";
+import type { RecordingDto } from "@/server/dto/recording.dto";
 import { RecordingCard } from "./recording-card";
 import { RecordingsFilters } from "./recordings-filters";
 import { RecordingsViewToggle } from "./recordings-view-toggle";

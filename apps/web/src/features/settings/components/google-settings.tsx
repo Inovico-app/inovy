@@ -19,7 +19,7 @@ import {
   updateGoogleSettings,
   resetGoogleSettings,
 } from "../actions/google-settings";
-import type { IntegrationSettings } from "@/server/db/schema";
+import type { IntegrationSettings } from "@/server/db/schema/integration-settings";
 
 interface GoogleSettingsProps {
   projectId?: string;

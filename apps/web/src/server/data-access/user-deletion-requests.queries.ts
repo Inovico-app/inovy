@@ -4,7 +4,7 @@ import {
   type NewUserDeletionRequest,
   type UserDeletionRequest,
   userDeletionRequests,
-} from "../db/schema";
+} from "../db/schema/user-deletion-requests";
 
 export class UserDeletionRequestsQueries {
   /**

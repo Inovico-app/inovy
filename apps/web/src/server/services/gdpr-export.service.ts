@@ -13,7 +13,7 @@ import { ChatQueries } from "../data-access/chat.queries";
 import { DataExportsQueries } from "../data-access/data-exports.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { TasksQueries } from "../data-access/tasks.queries";
-import type { DataExport } from "../db/schema";
+import type { DataExport } from "../db/schema/data-exports";
 
 export interface ExportFilters {
   dateRange?: {

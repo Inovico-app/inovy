@@ -1,7 +1,7 @@
 import { ProtectedPage } from "@/components/protected-page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getAuthSession } from "@/lib/auth";
-import { ProjectService } from "@/server/services";
+import { ProjectService } from "@/server/services/project.service";
 import { InfoIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";

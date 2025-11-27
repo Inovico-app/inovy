@@ -1,4 +1,4 @@
-import type { TaskWithContextDto } from "@/server/dto";
+import type { TaskWithContextDto } from "@/server/dto/task.dto";
 
 interface TaskCounts {
   low: number;

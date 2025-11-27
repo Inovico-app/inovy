@@ -1,6 +1,7 @@
 import { count, desc, eq } from "drizzle-orm";
 import { db } from "../db";
-import { projects, recordings } from "../db/schema";
+import { projects } from "../db/schema/projects";
+import { recordings } from "../db/schema/recordings";
 
 /**
  * Dashboard Data Access Queries

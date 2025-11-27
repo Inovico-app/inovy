@@ -5,7 +5,7 @@ import {
   resultToActionResponse,
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
-import { KnowledgeBaseEntriesQueries } from "../../../server/data-access";
+import { KnowledgeBaseEntriesQueries } from "../../../server/data-access/knowledge-base-entries.queries";
 import { ok } from "neverthrow";
 import { z } from "zod";
 

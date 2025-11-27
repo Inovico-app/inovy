@@ -1,5 +1,8 @@
 import { db } from "@/server/db";
-import { embeddingCache, type NewEmbeddingCache } from "@/server/db/schema";
+import {
+  embeddingCache,
+  type NewEmbeddingCache,
+} from "@/server/db/schema/embedding-cache";
 import { and, eq, inArray, lt, sql } from "drizzle-orm";
 
 /**

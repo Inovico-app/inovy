@@ -8,7 +8,7 @@ import type {
   IntegrationTemplate,
   EmailTemplateContent,
   CalendarTemplateContent,
-} from "@/server/db/schema";
+} from "@/server/db/schema/integration-templates";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 

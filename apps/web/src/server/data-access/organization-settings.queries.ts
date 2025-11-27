@@ -4,7 +4,7 @@ import {
   organizationSettings,
   type OrganizationSettings,
   type NewOrganizationSettings,
-} from "../db/schema";
+} from "../db/schema/organization-settings";
 
 /**
  * Database queries for OrganizationSettings operations

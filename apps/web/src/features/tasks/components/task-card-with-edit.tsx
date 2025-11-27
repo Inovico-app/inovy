@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import type { TaskDto } from "@/server/dto";
+import type { TaskDto } from "@/server/dto/task.dto";
 import { CheckCircle2Icon, CircleIcon } from "lucide-react";
 import { EditTaskDialog } from "./edit-task-dialog";
 import { TaskVersionHistoryDialog } from "./task-version-history-dialog";

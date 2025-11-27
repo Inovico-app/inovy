@@ -1,11 +1,11 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../db";
-import { projectTemplates } from "../db/schema";
+import { projectTemplates } from "../db/schema/project-templates";
 import type {
   CreateProjectTemplateDto,
   ProjectTemplateDto,
   UpdateProjectTemplateDto,
-} from "../dto";
+} from "../dto/project-template.dto";
 
 /**
  * Database queries for ProjectTemplate operations

@@ -1,7 +1,7 @@
 "use client";
 
 import { queryKeys } from "@/lib/query-keys";
-import type { TaskWithContextDto } from "@/server/dto";
+import type { TaskWithContextDto } from "@/server/dto/task.dto";
 import { useQueries } from "@tanstack/react-query";
 import { getUserProjects } from "../../projects/actions/get-user-projects";
 import { getUserTasks } from "../actions/get-user-tasks";

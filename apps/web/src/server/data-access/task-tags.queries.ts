@@ -5,7 +5,7 @@ import {
   type NewTaskTag,
   type NewTaskTagAssignment,
   type TaskTag,
-} from "@/server/db/schema";
+} from "@/server/db/schema/task-tags";
 import { and, eq, inArray } from "drizzle-orm";
 
 export class TaskTagsQueries {

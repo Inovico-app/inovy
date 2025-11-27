@@ -1,16 +1,14 @@
 import { db } from "@/server/db";
+import { projects } from "@/server/db/schema/projects";
+import { recordings } from "@/server/db/schema/recordings";
+import { tasks, type NewTask, type Task } from "@/server/db/schema/tasks";
 import {
-  projects,
-  recordings,
   taskHistory,
-  tasks,
-  type NewTask,
   type NewTaskHistory,
-  type Task,
   type TaskHistory,
-} from "@/server/db/schema";
+} from "@/server/db/schema/task-history";
 import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
-import type { TaskStatsDto } from "../dto";
+import type { TaskStatsDto } from "../dto/task.dto";
 import { TeamQueries } from "./teams.queries";
 import { UserTeamQueries } from "./user-teams.queries";
 

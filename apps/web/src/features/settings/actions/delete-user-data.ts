@@ -3,7 +3,7 @@
 import { authorizedActionClient } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { GdprDeletionService } from "@/server/services";
+import { GdprDeletionService } from "@/server/services/gdpr-deletion.service";
 import {
   cancelDeletionSchema,
   requestDeletionSchema,

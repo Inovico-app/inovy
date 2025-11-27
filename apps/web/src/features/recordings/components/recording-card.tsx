@@ -1,4 +1,4 @@
-import type { RecordingDto } from "@/server/dto";
+import type { RecordingDto } from "@/server/dto/recording.dto";
 import {
   CalendarIcon,
   ClockIcon,

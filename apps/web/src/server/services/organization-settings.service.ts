@@ -4,7 +4,7 @@ import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { err, ok } from "neverthrow";
 import { OrganizationSettingsQueries } from "../data-access/organization-settings.queries";
-import type { OrganizationSettingsDto } from "../dto";
+import type { OrganizationSettingsDto } from "../dto/organization-settings.dto";
 
 /**
  * Business logic layer for OrganizationSettings operations

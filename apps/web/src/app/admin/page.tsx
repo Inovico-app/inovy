@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ROLES } from "@/lib";
+import { ROLES } from "@/lib/rbac";
 import { getAuthSession } from "@/lib/auth";
 import { BarChart3Icon, UsersIcon } from "lucide-react";
 import Link from "next/link";

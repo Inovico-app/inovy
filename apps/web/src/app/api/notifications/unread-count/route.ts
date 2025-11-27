@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth";
-import { NotificationService } from "@/server/services";
+import { NotificationService } from "@/server/services/notification.service";
 import { logger } from "@/lib/logger";
 
 /**

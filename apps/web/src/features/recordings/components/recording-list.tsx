@@ -1,5 +1,5 @@
 import { Button } from "../../../components/ui/button";
-import { getCachedRecordingsByProjectId } from "../../../server/cache";
+import { getCachedRecordingsByProjectId } from "../../../server/cache/recording.cache";
 import { RecordingListClient } from "./recording-list-client";
 import { UploadRecordingModal } from "./upload-recording-modal";
 

@@ -9,7 +9,7 @@ import {
   getCachedSummary,
   type SummaryContent,
   type SummaryResult,
-} from "../cache";
+} from "../cache/summary.cache";
 import { KnowledgeBaseService } from "./knowledge-base.service";
 import { NotificationService } from "./notification.service";
 

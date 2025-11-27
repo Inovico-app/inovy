@@ -12,7 +12,7 @@
  */
 
 import { db } from "@/server/db";
-import { chatEmbeddings } from "@/server/db/schema";
+import { chatEmbeddings } from "@/server/db/schema/chat-embeddings";
 import { logger } from "@/lib/logger";
 import { RAGService } from "@/server/services/rag/rag.service";
 import { eq } from "drizzle-orm";

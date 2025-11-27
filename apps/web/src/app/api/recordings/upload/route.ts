@@ -1,6 +1,6 @@
 import { logger, serializeError } from "@/lib/logger";
 import { withRateLimit } from "@/lib/rate-limit";
-import { RecordingService } from "@/server/services";
+import { RecordingService } from "@/server/services/recording.service";
 import { rateLimiter } from "@/server/services/rate-limiter.service";
 import {
   ALLOWED_MIME_TYPES,

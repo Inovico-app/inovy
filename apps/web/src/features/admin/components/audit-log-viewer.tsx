@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { AuditLog } from "@/server/db/schema";
+import type { AuditLog } from "@/server/db/schema/audit-logs";
 import { Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";

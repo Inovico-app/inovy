@@ -8,7 +8,7 @@ import { convertRecordingIntoAiInsights } from "../../workflows/convert-recordin
 import { BotSessionsQueries } from "../data-access/bot-sessions.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { db } from "../db";
-import { botSessions } from "../db/schema";
+import { botSessions } from "../db/schema/bot-sessions";
 import type {
   BotRecordingReadyEvent,
   BotStatusChangeEvent,

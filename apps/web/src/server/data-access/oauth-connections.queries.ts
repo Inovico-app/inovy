@@ -4,7 +4,7 @@ import {
   oauthConnections,
   type NewOAuthConnection,
   type OAuthConnection,
-} from "../db/schema";
+} from "../db/schema/oauth-connections";
 
 /**
  * OAuth Connections Queries

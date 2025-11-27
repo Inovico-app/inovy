@@ -1,8 +1,8 @@
 "use server";
 
 import { logger } from "@/lib/logger";
-import { TaskService } from "@/server/services";
-import type { TaskDto } from "@/server/dto";
+import { TaskService } from "@/server/services/task.service";
+import type { TaskDto } from "@/server/dto/task.dto";
 import {
   updateTaskStatusSchema,
   type UpdateTaskStatusInput,

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import type { ProjectTemplateDto } from "@/server/dto";
+import type { ProjectTemplateDto } from "@/server/dto/project-template.dto";
 import { Loader2Icon } from "lucide-react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";

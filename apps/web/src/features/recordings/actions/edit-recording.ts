@@ -5,7 +5,7 @@ import {
   resultToActionResponse,
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
-import { RecordingService } from "../../../server/services";
+import { RecordingService } from "../../../server/services/recording.service";
 import { updateRecordingSchema } from "../../../server/validation/recordings/update-recording";
 import { revalidatePath } from "next/cache";
 

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { queryKeys } from "@/lib/query-keys";
 import { updateTaskMetadata } from "../actions/update-task-metadata";
 import type { UpdateTaskMetadataInput } from "@/server/validation/tasks/update-task-metadata";
-import type { TaskDto } from "@/server/dto";
+import type { TaskDto } from "@/server/dto/task.dto";
 
 interface UseUpdateTaskMetadataMutationOptions {
   onSuccess?: (data: TaskDto) => void;

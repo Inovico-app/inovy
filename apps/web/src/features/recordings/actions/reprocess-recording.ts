@@ -1,9 +1,13 @@
 "use server";
 
-import { authorizedActionClient, resultToActionResponse } from "@/lib";
+import {
+  authorizedActionClient,
+  resultToActionResponse,
+} from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
-import { RecordingService, ReprocessingService } from "@/server/services";
+import { RecordingService } from "@/server/services/recording.service";
+import { ReprocessingService } from "@/server/services/reprocessing.service";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 

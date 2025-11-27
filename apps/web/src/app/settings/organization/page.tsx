@@ -19,7 +19,7 @@ import {
   getCachedKnowledgeDocuments,
   getCachedKnowledgeEntries,
 } from "@/server/cache/knowledge-base.cache";
-import { OrganizationService } from "@/server/services";
+import { OrganizationService } from "@/server/services/organization.service";
 import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";

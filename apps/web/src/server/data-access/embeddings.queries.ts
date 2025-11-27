@@ -1,5 +1,8 @@
 import { db } from "@/server/db";
-import { chatEmbeddings, type NewChatEmbedding } from "@/server/db/schema";
+import {
+  chatEmbeddings,
+  type NewChatEmbedding,
+} from "@/server/db/schema/chat-embeddings";
 import { and, eq, sql } from "drizzle-orm";
 
 export class EmbeddingsQueries {

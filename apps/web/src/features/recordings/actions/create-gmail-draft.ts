@@ -8,7 +8,8 @@ import { logger } from "@/lib/logger";
 import { GoogleGmailService } from "@/server/services/google-gmail.service";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { db } from "@/server/db";
-import { recordings, aiInsights } from "@/server/db/schema";
+import { recordings } from "@/server/db/schema/recordings";
+import { aiInsights } from "@/server/db/schema/ai-insights";
 import { eq, and } from "drizzle-orm";
 
 const createGmailDraftSchema = z.object({

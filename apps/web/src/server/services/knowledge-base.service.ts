@@ -1,13 +1,12 @@
-import { ActionErrors, type ActionResult } from "@/lib";
+import { ActionErrors } from "@/lib/action-errors";
+import type { ActionResult } from "@/lib/action-client";
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { ROLES } from "@/lib/rbac";
 import { err, ok } from "neverthrow";
-import {
-  KnowledgeBaseDocumentsQueries,
-  KnowledgeBaseEntriesQueries,
-  ProjectQueries,
-} from "../data-access";
+import { KnowledgeBaseDocumentsQueries } from "../data-access/knowledge-base-documents.queries";
+import { KnowledgeBaseEntriesQueries } from "../data-access/knowledge-base-entries.queries";
+import { ProjectQueries } from "../data-access/projects.queries";
 import type { KnowledgeBaseScope } from "../db/schema/knowledge-base-entries";
 import type {
   CreateKnowledgeDocumentDto,

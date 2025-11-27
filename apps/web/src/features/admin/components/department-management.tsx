@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/card";
 import { getAuthSession } from "@/lib/auth";
 import { isOrganizationAdmin } from "@/lib/rbac";
-import { getCachedDepartmentsByOrganization } from "@/server/cache";
+import { getCachedDepartmentsByOrganization } from "@/server/cache/department.cache";
 import { DepartmentManagementClient } from "./department-management-client";
 
 export async function DepartmentManagement() {

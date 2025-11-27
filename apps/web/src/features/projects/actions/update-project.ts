@@ -6,7 +6,7 @@ import {
 } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { ProjectService } from "@/server/services";
+import { ProjectService } from "@/server/services/project.service";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { updateProjectSchema } from "@/server/validation/projects/update-project";
 

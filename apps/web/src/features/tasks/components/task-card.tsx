@@ -13,8 +13,8 @@ import {
   PlayCircle,
   Edit,
 } from "lucide-react";
-import type { Task } from "@/server/db/schema";
-import type { TaskWithContextDto } from "@/server/dto";
+import type { Task } from "@/server/db/schema/tasks";
+import type { TaskWithContextDto } from "@/server/dto/task.dto";
 import Link from "next/link";
 import { TaskEditDialog } from "./task-edit-dialog";
 

@@ -24,14 +24,12 @@ import { useLiveRecording } from "@/features/recordings/hooks/use-live-recording
 import { useLiveTranscription } from "@/features/recordings/hooks/use-live-transcription";
 import { logger } from "@/lib/logger";
 import { useState } from "react";
-import {
-  HelpText,
-  RecordingControls,
-  RecordingErrors,
-  TranscriptionDisplay,
-  TranscriptionSettings,
-  TranscriptionStatus,
-} from "./index";
+import { HelpText } from "./help-text";
+import { RecordingControls } from "./recording-controls";
+import { RecordingErrors } from "./recording-errors";
+import { TranscriptionDisplay } from "./transcription-display";
+import { TranscriptionSettings } from "./transcription-settings";
+import { TranscriptionStatus } from "./transcription-status";
 
 interface LiveRecorderProps {
   onRecordingComplete: (

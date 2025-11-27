@@ -10,10 +10,8 @@ import {
 } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
 import { getOrganizationMembers } from "@/server/data-access/organization.queries";
-import {
-  getCachedUserTeams,
-  getCachedTeamsByOrganization,
-} from "@/server/cache";
+import { getCachedUserTeams } from "@/server/cache/team.cache";
+import { getCachedTeamsByOrganization } from "@/server/cache/team.cache";
 import { UserRoleBadge } from "./user-role-badge";
 import { Badge } from "@/components/ui/badge";
 

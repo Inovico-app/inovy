@@ -4,7 +4,8 @@ import { logger } from "@/lib/logger";
 import { ROLES } from "@/lib/rbac";
 import { put as putBlob } from "@vercel/blob";
 import { err, ok } from "neverthrow";
-import { KnowledgeBaseDocumentsQueries, ProjectQueries } from "../data-access";
+import { KnowledgeBaseDocumentsQueries } from "../data-access/knowledge-base-documents.queries";
+import { ProjectQueries } from "../data-access/projects.queries";
 import type { KnowledgeBaseScope } from "../db/schema/knowledge-base-entries";
 import type {
   CreateKnowledgeDocumentDto,

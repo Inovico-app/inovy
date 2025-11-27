@@ -1,9 +1,12 @@
 "use server";
 
-import { authorizedActionClient, resultToActionResponse } from "@/lib";
+import {
+  authorizedActionClient,
+  resultToActionResponse,
+} from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
-import { RecordingService } from "@/server/services";
+import { RecordingService } from "@/server/services/recording.service";
 import { z } from "zod";
 
 const getRecordingStatusSchema = z.object({

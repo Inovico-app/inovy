@@ -2,7 +2,7 @@
 
 import { queryKeys } from "@/lib/query-keys";
 import type { TaskStatus } from "@/server/db/schema/tasks";
-import type { TaskWithContextDto } from "@/server/dto";
+import type { TaskWithContextDto } from "@/server/dto/task.dto";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { updateTaskStatus } from "../actions/update-task-status";

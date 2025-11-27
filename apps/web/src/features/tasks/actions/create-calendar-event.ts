@@ -8,7 +8,7 @@ import { logger } from "@/lib/logger";
 import { GoogleCalendarService } from "@/server/services/google-calendar.service";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { db } from "@/server/db";
-import { tasks } from "@/server/db/schema";
+import { tasks } from "@/server/db/schema/tasks";
 import { eq } from "drizzle-orm";
 
 const createCalendarEventSchema = z.object({

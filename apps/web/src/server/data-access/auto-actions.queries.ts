@@ -1,7 +1,9 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db";
-import type { AutoAction, NewAutoAction } from "../db/schema";
-import { autoActions, recordings, tasks } from "../db/schema";
+import type { AutoAction, NewAutoAction } from "../db/schema/auto-actions";
+import { autoActions } from "../db/schema/auto-actions";
+import { recordings } from "../db/schema/recordings";
+import { tasks } from "../db/schema/tasks";
 
 /**
  * Auto Actions Queries

@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer";
-import { ROLES } from "@/lib";
+import { ROLES } from "@/lib/rbac";
 import { getAuthSession } from "@/lib/auth";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { redirect } from "next/navigation";

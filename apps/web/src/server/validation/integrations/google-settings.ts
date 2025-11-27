@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { taskPriorityEnum } from "../../db/schema";
+import { taskPriorityEnum } from "../../db/schema/tasks";
 
 /**
  * Validation schemas for Google integration settings

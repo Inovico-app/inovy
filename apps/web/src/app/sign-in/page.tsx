@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSignIn } from "@/features/auth/hooks";
+import { useSignIn } from "@/features/auth/hooks/use-sign-in";
 import type { Route } from "next";
 import Link from "next/link";
 import { useState } from "react";

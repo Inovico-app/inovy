@@ -7,7 +7,7 @@ import {
 } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { CacheInvalidation } from "@/lib/cache-utils";
-import { KnowledgeBaseService } from "@/server/services";
+import { KnowledgeBaseService } from "@/server/services/knowledge-base.service";
 import { updateKnowledgeEntrySchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";

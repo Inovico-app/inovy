@@ -5,7 +5,7 @@
  * prompt injection and ensure system instructions always take priority.
  */
 
-import type { ProjectTemplateDto } from "@/server/dto";
+import type { ProjectTemplateDto } from "@/server/dto/project-template.dto";
 
 export interface PromptContext {
   systemInstructions: string;

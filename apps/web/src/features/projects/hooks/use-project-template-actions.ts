@@ -2,11 +2,9 @@
 
 import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
-import {
-  createProjectTemplateAction,
-  deleteProjectTemplateAction,
-  updateProjectTemplateAction,
-} from "../actions/index";
+import { createProjectTemplateAction } from "../actions/create-project-template";
+import { deleteProjectTemplateAction } from "../actions/delete-project-template";
+import { updateProjectTemplateAction } from "../actions/update-project-template";
 
 /**
  * Provides a React hook that performs project template creation and reports failures to the user.

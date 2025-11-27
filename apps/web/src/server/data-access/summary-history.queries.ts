@@ -4,7 +4,7 @@ import {
   summaryHistory,
   type NewSummaryHistory,
   type SummaryHistory,
-} from "../db/schema";
+} from "../db/schema/summary-history";
 
 /**
  * Data access layer for summary history

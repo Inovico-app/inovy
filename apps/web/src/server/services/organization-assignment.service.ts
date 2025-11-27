@@ -3,7 +3,7 @@ import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import type { AuthUser } from "../../lib/auth";
 import { AuthService } from "../../lib/kinde-api";
 import { logger } from "../../lib/logger";
-import type { KindeOrganizationDto } from "../dto";
+import type { KindeOrganizationDto } from "../dto/kinde.dto";
 
 /**
  * Service for handling user organization assignment

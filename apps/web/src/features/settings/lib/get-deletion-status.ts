@@ -1,7 +1,7 @@
 "use server";
 
-import type { UserDeletionRequest } from "@/server/db/schema";
-import { GdprDeletionService } from "@/server/services";
+import type { UserDeletionRequest } from "@/server/db/schema/user-deletion-requests";
+import { GdprDeletionService } from "@/server/services/gdpr-deletion.service";
 
 /**
  * Server function to get user deletion request status

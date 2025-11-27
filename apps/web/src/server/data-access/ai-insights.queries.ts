@@ -3,7 +3,7 @@ import {
   aiInsights,
   type AIInsight,
   type NewAIInsight,
-} from "@/server/db/schema";
+} from "@/server/db/schema/ai-insights";
 import { and, desc, eq, inArray } from "drizzle-orm";
 
 export class AIInsightsQueries {

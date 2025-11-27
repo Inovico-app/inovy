@@ -1,6 +1,6 @@
 "use server";
 
-import { OrganizationAssignmentService } from "@/server/services";
+import { OrganizationAssignmentService } from "@/server/services/organization-assignment.service";
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { authorizedActionClient } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
-import { RecordingService } from "../../../server/services";
+import { RecordingService } from "../../../server/services/recording.service";
 import { archiveRecordingSchema } from "../../../server/validation/recordings/archive-recording";
 
 /**

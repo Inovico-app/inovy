@@ -1,6 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../db";
-import { teams, type NewTeam, type Team } from "../db/schema";
+import { teams, type NewTeam, type Team } from "../db/schema/teams";
 
 /**
  * Database queries for Team operations

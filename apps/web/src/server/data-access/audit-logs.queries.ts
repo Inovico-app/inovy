@@ -12,7 +12,7 @@ import {
   auditLogs,
   type AuditLog,
   type NewAuditLog,
-} from "../db/schema";
+} from "../db/schema/audit-logs";
 
 export interface AuditLogFilters {
   userId?: string;

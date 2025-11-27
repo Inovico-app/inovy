@@ -3,13 +3,12 @@
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
+import { sendMagicLinkAction } from "../actions/magic-link";
+import { requestPasswordResetAction } from "../actions/password-reset";
 import {
-  signInEmailAction,
   getSocialSignInUrlAction,
-  sendMagicLinkAction,
-  requestPasswordResetAction,
-} from "../actions";
+  signInEmailAction,
+} from "../actions/sign-in";
 
 export function useSignIn() {
   const router = useRouter();
