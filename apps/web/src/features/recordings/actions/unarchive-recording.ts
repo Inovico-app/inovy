@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { authorizedActionClient } from "../../../lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "../../../lib/action-errors";
 import { RecordingService } from "../../../server/services/recording.service";
 import { archiveRecordingSchema } from "../../../server/validation/recordings/archive-recording";
@@ -11,7 +12,7 @@ import { archiveRecordingSchema } from "../../../server/validation/recordings/ar
  */
 export const unarchiveRecordingAction = authorizedActionClient
   .metadata({
-    policy: "recordings:update",
+    permissions: policyToPermissions("recordings:update"),
   })
   .inputSchema(archiveRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {

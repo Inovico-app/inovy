@@ -1,6 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { TaskService } from "@/server/services/task.service";
 import { z } from "zod";
@@ -14,7 +15,7 @@ const createTagSchema = z.object({
  * Server action to create a new tag
  */
 export const createTag = authorizedActionClient
-  .metadata({ policy: "tasks:create" })
+  .metadata({ permissions: policyToPermissions("tasks:create") })
   .schema(createTagSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId } = ctx;

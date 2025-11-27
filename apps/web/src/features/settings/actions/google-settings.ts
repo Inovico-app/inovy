@@ -1,6 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { IntegrationSettingsService } from "@/server/services/integration-settings.service";
@@ -20,7 +21,7 @@ const getGoogleSettingsSchema = z.object({
  * Get Google integration settings
  */
 export const getGoogleSettings = authorizedActionClient
-  .metadata({ policy: "settings:read" })
+  .metadata({ permissions: policyToPermissions("settings:read") })
   .schema(getGoogleSettingsSchema.optional())
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -66,7 +67,7 @@ export const getGoogleSettings = authorizedActionClient
  * Update Google integration settings
  */
 export const updateGoogleSettings = authorizedActionClient
-  .metadata({ policy: "settings:update" })
+  .metadata({ permissions: policyToPermissions("settings:update") })
   .schema(updateGoogleSettingsSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -121,7 +122,7 @@ const resetGoogleSettingsSchema = z.object({
  * Reset Google integration settings to defaults
  */
 export const resetGoogleSettings = authorizedActionClient
-  .metadata({ policy: "settings:update" })
+  .metadata({ permissions: policyToPermissions("settings:update") })
   .schema(resetGoogleSettingsSchema.optional())
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;

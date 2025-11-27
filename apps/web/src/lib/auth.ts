@@ -3,7 +3,7 @@ import "server-only";
 import { err, ok, type Result } from "neverthrow";
 import { getBetterAuthSession, type BetterAuthOrganization } from "./better-auth-session";
 import { logger } from "./logger";
-import type { Role } from "./rbac";
+import type { RoleName } from "./access-control";
 
 /**
  * Server-side authentication utilities with proper error handling
@@ -16,7 +16,7 @@ export interface AuthUser {
   family_name: string | null;
   picture: string | null;
   organization_code?: string;
-  roles?: Role[] | null;
+  roles?: RoleName[] | null;
 }
 
 interface AuthSession {

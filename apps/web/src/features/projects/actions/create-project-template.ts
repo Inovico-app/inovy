@@ -8,6 +8,7 @@ import {
   authorizedActionClient,
   resultToActionResponse,
 } from "../../../lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ProjectTemplateService } from "../../../server/services/project-template.service";
 import { createProjectTemplateSchema } from "../../../server/validation/project-templates/create-project-template";
 
@@ -16,7 +17,7 @@ import { createProjectTemplateSchema } from "../../../server/validation/project-
  */
 export const createProjectTemplateAction = authorizedActionClient
   .metadata({
-    policy: "projects:update",
+    permissions: policyToPermissions("projects:update"),
   })
   .inputSchema(createProjectTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {

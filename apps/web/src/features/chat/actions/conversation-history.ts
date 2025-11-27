@@ -1,6 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ChatService } from "@/server/services/chat.service";
 import {
   conversationIdSchema,
@@ -10,7 +11,7 @@ import {
 import { revalidatePath } from "next/cache";
 
 export const listConversationsAction = authorizedActionClient
-  .metadata({ policy: "chat:project" })
+  .metadata({ permissions: policyToPermissions("chat:project") })
   .schema(listConversationsSchema)
   .action(
     async ({
@@ -40,7 +41,7 @@ export const listConversationsAction = authorizedActionClient
   );
 
 export const searchConversationsAction = authorizedActionClient
-  .metadata({ policy: "chat:project" })
+  .metadata({ permissions: policyToPermissions("chat:project") })
   .schema(searchConversationsSchema)
   .action(
     async ({
@@ -69,7 +70,7 @@ export const searchConversationsAction = authorizedActionClient
   );
 
 export const softDeleteConversationAction = authorizedActionClient
-  .metadata({ policy: "chat:project" })
+  .metadata({ permissions: policyToPermissions("chat:project") })
   .schema(conversationIdSchema)
   .action(
     async ({ parsedInput: { conversationId }, ctx: { user, organizationId } }) => {
@@ -97,7 +98,7 @@ export const softDeleteConversationAction = authorizedActionClient
   );
 
 export const restoreConversationAction = authorizedActionClient
-  .metadata({ policy: "chat:project" })
+  .metadata({ permissions: policyToPermissions("chat:project") })
   .schema(conversationIdSchema)
   .action(
     async ({ parsedInput: { conversationId }, ctx: { user, organizationId } }) => {
@@ -131,7 +132,7 @@ export const restoreConversationAction = authorizedActionClient
   );
 
 export const archiveConversationAction = authorizedActionClient
-  .metadata({ policy: "chat:project" })
+  .metadata({ permissions: policyToPermissions("chat:project") })
   .schema(conversationIdSchema)
   .action(
     async ({ parsedInput: { conversationId }, ctx: { user, organizationId } }) => {
@@ -159,7 +160,7 @@ export const archiveConversationAction = authorizedActionClient
   );
 
 export const unarchiveConversationAction = authorizedActionClient
-  .metadata({ policy: "chat:project" })
+  .metadata({ permissions: policyToPermissions("chat:project") })
   .schema(conversationIdSchema)
   .action(
     async ({ parsedInput: { conversationId }, ctx: { user, organizationId } }) => {
@@ -187,7 +188,7 @@ export const unarchiveConversationAction = authorizedActionClient
   );
 
 export const getConversationStatsAction = authorizedActionClient
-  .metadata({ policy: "chat:project" })
+  .metadata({ permissions: policyToPermissions("chat:project") })
   .action(async ({ ctx: { user } }) => {
     if (!user) {
       throw new Error("User not authenticated");
@@ -206,7 +207,7 @@ export const getConversationStatsAction = authorizedActionClient
   });
 
 export const getConversationMessagesAction = authorizedActionClient
-  .metadata({ policy: "chat:project" })
+  .metadata({ permissions: policyToPermissions("chat:project") })
   .schema(conversationIdSchema)
   .action(async ({ parsedInput: { conversationId }, ctx: { user } }) => {
     if (!user) {

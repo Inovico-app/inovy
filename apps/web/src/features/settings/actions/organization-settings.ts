@@ -1,6 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
@@ -14,7 +15,7 @@ import { z } from "zod";
  * Get organization settings - accessible to all organization members
  */
 export const getOrganizationSettings = authorizedActionClient
-  .metadata({ policy: "settings:read" })
+  .metadata({ permissions: policyToPermissions("settings:read") })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { organizationId } = ctx;
@@ -42,7 +43,7 @@ export const getOrganizationSettings = authorizedActionClient
  * Update organization settings - admin only
  */
 export const updateOrganizationSettings = authorizedActionClient
-  .metadata({ policy: "settings:update" })
+  .metadata({ permissions: policyToPermissions("settings:update") })
   .schema(updateOrganizationSettingsSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId, user } = ctx;

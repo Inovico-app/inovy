@@ -4,6 +4,7 @@ import {
   authorizedActionClient,
   resultToActionResponse,
 } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { KnowledgeBaseEntriesQueries } from "@/server/data-access/knowledge-base-entries.queries";
@@ -16,7 +17,7 @@ import { revalidatePath } from "next/cache";
  */
 export const deleteKnowledgeEntryAction = authorizedActionClient
   .metadata({
-    policy: "projects:update", // Project knowledge requires project access
+    permissions: policyToPermissions("projects:update"), // Project knowledge requires project access
   })
   .inputSchema(deleteKnowledgeEntrySchema)
   .action(async ({ parsedInput, ctx }) => {

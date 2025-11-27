@@ -7,6 +7,7 @@ import {
   resultToActionResponse,
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
+import { policyToPermissions } from "../../../lib/permission-helpers";
 import type { UpdateDepartmentDto } from "../../../server/dto/department.dto";
 import { DepartmentService } from "../../../server/services/department.service";
 import {
@@ -19,7 +20,7 @@ import {
  */
 export const createDepartment = authorizedActionClient
   .metadata({
-    policy: "departments:create",
+    permissions: policyToPermissions("departments:create"),
   })
   .inputSchema(createDepartmentSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -54,7 +55,7 @@ export const createDepartment = authorizedActionClient
  */
 export const updateDepartment = authorizedActionClient
   .metadata({
-    policy: "departments:update",
+    permissions: policyToPermissions("departments:update"),
   })
   .inputSchema(updateDepartmentSchema.extend({ id: z.string().uuid() }))
   .action(async ({ parsedInput, ctx }) => {
@@ -97,7 +98,7 @@ export const updateDepartment = authorizedActionClient
  */
 export const deleteDepartment = authorizedActionClient
   .metadata({
-    policy: "departments:delete",
+    permissions: policyToPermissions("departments:delete"),
   })
   .inputSchema(z.object({ id: z.string().uuid() }))
   .action(async ({ parsedInput, ctx }) => {

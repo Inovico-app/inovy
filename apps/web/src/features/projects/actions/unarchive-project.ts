@@ -3,6 +3,7 @@
 import {
   authorizedActionClient,
 } from "../../../lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "../../../lib/action-errors";
 import { ProjectService } from "../../../server/services/project.service";
 import { archiveProjectSchema } from "../../../server/validation/projects/archive-project";
@@ -12,7 +13,7 @@ import { archiveProjectSchema } from "../../../server/validation/projects/archiv
  */
 export const unarchiveProjectAction = authorizedActionClient
   .metadata({
-    policy: "projects:update",
+    permissions: policyToPermissions("projects:update"),
   })
   .inputSchema(archiveProjectSchema)
   .action(async ({ parsedInput, ctx }) => {

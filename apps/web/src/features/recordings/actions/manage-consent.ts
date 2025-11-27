@@ -7,6 +7,7 @@ import {
   authorizedActionClient,
   resultToActionResponse,
 } from "../../../lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors, type ActionError } from "../../../lib/action-errors";
 import { logger } from "../../../lib/logger";
 import type { ConsentParticipant } from "../../../server/db/schema/consent";
@@ -22,7 +23,7 @@ import {
  */
 export const grantConsentAction = authorizedActionClient
   .metadata({
-    policy: "recordings:update",
+    permissions: policyToPermissions("recordings:update"),
   })
   .inputSchema(grantConsentSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -72,7 +73,7 @@ export const grantConsentAction = authorizedActionClient
  */
 export const revokeConsentAction = authorizedActionClient
   .metadata({
-    policy: "recordings:update",
+    permissions: policyToPermissions("recordings:update"),
   })
   .inputSchema(revokeConsentSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -109,7 +110,7 @@ export const revokeConsentAction = authorizedActionClient
  */
 export const bulkGrantConsentAction = authorizedActionClient
   .metadata({
-    policy: "recordings:update",
+    permissions: policyToPermissions("recordings:update"),
   })
   .inputSchema(bulkGrantConsentSchema)
   .action(async ({ parsedInput, ctx }) => {

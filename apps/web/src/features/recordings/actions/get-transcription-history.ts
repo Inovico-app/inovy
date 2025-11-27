@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { TranscriptionEditService } from "@/server/services/transcription-edit.service";
 
 const getTranscriptionHistorySchema = z.object({
@@ -12,7 +13,7 @@ const getTranscriptionHistorySchema = z.object({
  * Server action to get transcription version history
  */
 export const getTranscriptionHistory = authorizedActionClient
-  .metadata({ policy: "recordings:read" })
+  .metadata({ permissions: policyToPermissions("recordings:read") })
   .schema(getTranscriptionHistorySchema)
   .action(async ({ parsedInput, ctx }) => {
     if (!ctx.organizationId) {

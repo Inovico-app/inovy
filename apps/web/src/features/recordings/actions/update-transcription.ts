@@ -1,6 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { TranscriptionEditService } from "@/server/services/transcription-edit.service";
 import {
   updateTranscriptionSchema,
@@ -12,7 +13,7 @@ import {
  * Creates a new version in history and marks as manually edited
  */
 export const updateTranscription = authorizedActionClient
-  .metadata({ policy: "recordings:update" })
+  .metadata({ permissions: policyToPermissions("recordings:update") })
   .schema(updateTranscriptionSchema)
   .action(async ({ parsedInput, ctx }) => {
     if (!ctx.user || !ctx.organizationId) {

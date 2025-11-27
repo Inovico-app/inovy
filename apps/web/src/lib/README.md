@@ -40,7 +40,7 @@ const updateUserSchema = z.object({
 });
 
 export const updateUserAction = authorizedActionClient
-  .metadata({ policy: "users:update" })
+  .metadata({ permissions: { user: ["update"] } })
   .schema(updateUserSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { id, name } = parsedInput;
@@ -414,7 +414,7 @@ const batchResult = batchVerifyOrganization(
 
 ```typescript
 export const updateTaskAction = authorizedActionClient
-  .metadata({ policy: "tasks:update" })
+  .metadata({ permissions: { task: ["update"] } })
   .schema(updateTaskSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { taskId, updates } = parsedInput;
@@ -580,7 +580,7 @@ Organization isolation works alongside RBAC:
 import { canAccessResource } from "@/lib/rbac";
 
 // Combined RBAC + Organization check
-const access = canAccessResource(session, task, "tasks:update");
+const access = await canAccessResource(session, task, { task: ["update"] });
 
 if (!access.canAccess) {
   return err(

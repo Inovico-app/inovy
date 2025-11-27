@@ -2,6 +2,7 @@
 
 import { logger } from "@/lib/logger";
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { AIInsightService } from "@/server/services/ai-insight.service";
 import { revalidatePath } from "next/cache";
@@ -21,7 +22,7 @@ const updateSpeakerNamesSchema = z.object({
 });
 
 export const updateSpeakerNames = authorizedActionClient
-  .metadata({ policy: "recordings:update" })
+  .metadata({ permissions: policyToPermissions("recordings:update") })
   .inputSchema(updateSpeakerNamesSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId, speakerNumber, speakerName } = parsedInput;

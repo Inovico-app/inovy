@@ -4,6 +4,7 @@ import {
   authorizedActionClient,
   resultToActionResponse,
 } from "../../../lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "../../../lib/action-errors";
 import { assertOrganizationAccess } from "../../../lib/organization-isolation";
 import { DriveWatchesService } from "../../../server/services/drive-watches.service";
@@ -22,7 +23,7 @@ import {
  */
 export const startDriveWatchAction = authorizedActionClient
   .metadata({
-    policy: "integrations:manage",
+    permissions: policyToPermissions("integrations:manage"),
   })
   .inputSchema(startDriveWatchSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -74,7 +75,7 @@ export const startDriveWatchAction = authorizedActionClient
  */
 export const stopDriveWatchAction = authorizedActionClient
   .metadata({
-    policy: "integrations:manage",
+    permissions: policyToPermissions("integrations:manage"),
   })
   .inputSchema(stopDriveWatchSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -101,7 +102,7 @@ export const stopDriveWatchAction = authorizedActionClient
  */
 export const listDriveWatchesAction = authorizedActionClient
   .metadata({
-    policy: "integrations:manage",
+    permissions: policyToPermissions("integrations:manage"),
   })
   .action(async ({ ctx }) => {
     const { user } = ctx;
@@ -126,7 +127,7 @@ export const listDriveWatchesAction = authorizedActionClient
  */
 export const updateDriveWatchAction = authorizedActionClient
   .metadata({
-    policy: "integrations:manage",
+    permissions: policyToPermissions("integrations:manage"),
   })
   .inputSchema(updateDriveWatchSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -200,7 +201,7 @@ export const updateDriveWatchAction = authorizedActionClient
  */
 export const deleteDriveWatchAction = authorizedActionClient
   .metadata({
-    policy: "integrations:manage",
+    permissions: policyToPermissions("integrations:manage"),
   })
   .inputSchema(deleteDriveWatchSchema)
   .action(async ({ parsedInput, ctx }) => {

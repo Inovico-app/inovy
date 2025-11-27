@@ -48,6 +48,7 @@ Before responding to any request, follow these steps:
 - Separate concerns into separate files
 - Create new hooks instead of defining them in the component file, even if it's a small or single use hook
 - If a component is too big, split it into smaller components with proper naming and folder structure
+- NEVER use inline imports
 
 ### Naming Conventions
 

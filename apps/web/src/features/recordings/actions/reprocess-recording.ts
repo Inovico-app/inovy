@@ -4,6 +4,7 @@ import {
   authorizedActionClient,
   resultToActionResponse,
 } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { RecordingService } from "@/server/services/recording.service";
@@ -19,7 +20,7 @@ const reprocessRecordingSchema = z.object({
  * Reprocess AI insights for a recording
  */
 export const reprocessRecordingAction = authorizedActionClient
-  .metadata({ policy: "recordings:update" })
+  .metadata({ permissions: policyToPermissions("recordings:update") })
   .schema(reprocessRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
@@ -84,7 +85,7 @@ const getReprocessingStatusSchema = z.object({
  * Get reprocessing status for a recording
  */
 export const getReprocessingStatusAction = authorizedActionClient
-  .metadata({ policy: "recordings:read" })
+  .metadata({ permissions: policyToPermissions("recordings:read") })
   .schema(getReprocessingStatusSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;

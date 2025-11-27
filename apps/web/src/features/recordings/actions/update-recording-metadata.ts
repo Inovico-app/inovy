@@ -4,6 +4,7 @@ import {
   authorizedActionClient,
   resultToActionResponse,
 } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { RecordingService } from "@/server/services/recording.service";
@@ -14,7 +15,7 @@ import { revalidatePath } from "next/cache";
  * Update recording metadata using authorized action client
  */
 export const updateRecordingMetadataAction = authorizedActionClient
-  .metadata({ policy: "recordings:update" })
+  .metadata({ permissions: policyToPermissions("recordings:update") })
   .schema(updateRecordingMetadataSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;

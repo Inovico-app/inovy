@@ -5,6 +5,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink, organization } from "better-auth/plugins";
+import { ac, roleMapping, roles } from "./access-control";
 import { sendEmailFromTemplate } from "./email";
 import { MagicLinkEmail } from "./email-templates/magic-link-email";
 import { OrganizationInvitationEmail } from "./email-templates/organization-invitation-email";
@@ -107,6 +108,19 @@ export const betterAuthInstance = betterAuth({
 
   plugins: [
     organization({
+      // Access control configuration
+      ac,
+      roles: {
+        // Map Better Auth organization roles to application roles
+        owner: roleMapping.owner,
+        admin: roleMapping.admin,
+        member: roleMapping.member,
+        // Also include application-specific roles
+        superadmin: roles.superadmin,
+        manager: roles.manager,
+        user: roles.user,
+        viewer: roles.viewer,
+      },
       async sendInvitationEmail(data: {
         id: string;
         email: string;

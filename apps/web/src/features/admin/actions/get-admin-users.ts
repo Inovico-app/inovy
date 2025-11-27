@@ -3,6 +3,7 @@
 import { authorizedActionClient } from "@/lib/action-client";
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { getOrganizationMembers } from "@/server/data-access/organization.queries";
 import { z } from "zod";
 
@@ -19,7 +20,7 @@ export interface AdminUser {
  * Only accessible to admins
  */
 export const getAdminUsers = authorizedActionClient
-  .metadata({ policy: "admin:all" })
+  .metadata({ permissions: policyToPermissions("admin:all") })
   .inputSchema(z.object({}))
   .action(async (): Promise<AdminUser[]> => {
     try {

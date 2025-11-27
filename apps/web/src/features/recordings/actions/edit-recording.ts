@@ -4,6 +4,7 @@ import {
   authorizedActionClient,
   resultToActionResponse,
 } from "../../../lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "../../../lib/action-errors";
 import { RecordingService } from "../../../server/services/recording.service";
 import { updateRecordingSchema } from "../../../server/validation/recordings/update-recording";
@@ -14,7 +15,7 @@ import { revalidatePath } from "next/cache";
  */
 export const updateRecordingAction = authorizedActionClient
   .metadata({
-    policy: "recordings:update",
+    permissions: policyToPermissions("recordings:update"),
   })
   .inputSchema(updateRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {

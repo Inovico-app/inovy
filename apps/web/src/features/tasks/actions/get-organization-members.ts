@@ -1,6 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { OrganizationService } from "@/server/services/organization.service";
@@ -18,7 +19,7 @@ export interface OrganizationMember {
  * Server action to get organization members
  */
 export const getOrgMembers = authorizedActionClient
-  .metadata({ policy: "tasks:read" })
+  .metadata({ permissions: policyToPermissions("tasks:read") })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { organizationId } = ctx;

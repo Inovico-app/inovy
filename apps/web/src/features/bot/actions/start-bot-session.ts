@@ -4,6 +4,7 @@ import {
   authorizedActionClient,
   createErrorForNextSafeAction,
 } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { ProjectQueries } from "@/server/data-access/projects.queries";
@@ -17,7 +18,7 @@ import { startBotSessionSchema } from "@/server/validation/bot/start-bot-session
  */
 export const startBotSessionAction = authorizedActionClient
   .metadata({
-    policy: "recordings:create", // Bot sessions create recordings
+    permissions: policyToPermissions("recordings:create"), // Bot sessions create recordings
   })
   .inputSchema(startBotSessionSchema)
   .action(async ({ parsedInput, ctx }) => {

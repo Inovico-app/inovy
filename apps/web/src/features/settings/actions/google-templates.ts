@@ -1,6 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { TemplateService } from "@/server/services/template.service";
@@ -16,7 +17,7 @@ import { z } from "zod";
  * Get email templates
  */
 export const getEmailTemplates = authorizedActionClient
-  .metadata({ policy: "settings:read" })
+  .metadata({ permissions: policyToPermissions("settings:read") })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { user } = ctx;
@@ -42,7 +43,7 @@ export const getEmailTemplates = authorizedActionClient
  * Get calendar templates
  */
 export const getCalendarTemplates = authorizedActionClient
-  .metadata({ policy: "settings:read" })
+  .metadata({ permissions: policyToPermissions("settings:read") })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { user } = ctx;
@@ -79,7 +80,7 @@ const saveEmailTemplateSchema = z.object({
  * Save email template
  */
 export const saveEmailTemplate = authorizedActionClient
-  .metadata({ policy: "settings:update" })
+  .metadata({ permissions: policyToPermissions("settings:update") })
   .schema(saveEmailTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -114,7 +115,7 @@ const saveCalendarTemplateSchema = z.object({
  * Save calendar template
  */
 export const saveCalendarTemplate = authorizedActionClient
-  .metadata({ policy: "settings:update" })
+  .metadata({ permissions: policyToPermissions("settings:update") })
   .schema(saveCalendarTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -151,7 +152,7 @@ const deleteTemplateSchema = z.object({
  * Delete template
  */
 export const deleteTemplate = authorizedActionClient
-  .metadata({ policy: "settings:update" })
+  .metadata({ permissions: policyToPermissions("settings:update") })
   .schema(deleteTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;

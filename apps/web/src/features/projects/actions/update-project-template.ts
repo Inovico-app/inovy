@@ -4,6 +4,7 @@ import {
   authorizedActionClient,
   resultToActionResponse,
 } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { getUserOrganizationCode } from "@/lib/action-helpers";
 import { CacheInvalidation } from "@/lib/cache-utils";
@@ -15,7 +16,7 @@ import { updateProjectTemplateSchema } from "@/server/validation/project-templat
  */
 export const updateProjectTemplateAction = authorizedActionClient
   .metadata({
-    policy: "projects:update",
+    permissions: policyToPermissions("projects:update"),
   })
   .inputSchema(updateProjectTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {

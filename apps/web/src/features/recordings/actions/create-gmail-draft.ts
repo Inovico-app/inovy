@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { logger } from "@/lib/logger";
@@ -22,7 +23,7 @@ const createGmailDraftSchema = z.object({
  * Server action to create a Gmail draft from a recording summary
  */
 export const createGmailDraft = authorizedActionClient
-  .metadata({ policy: "recordings:update" })
+  .metadata({ permissions: policyToPermissions("recordings:update") })
   .schema(createGmailDraftSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId, user } = ctx;

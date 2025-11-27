@@ -4,6 +4,7 @@ import {
   authorizedActionClient,
   resultToActionResponse,
 } from "../../../lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "../../../lib/action-errors";
 import { KnowledgeBaseEntriesQueries } from "../../../server/data-access/knowledge-base-entries.queries";
 import { ok } from "neverthrow";
@@ -18,7 +19,7 @@ const getEntriesByIdsInputSchema = z.object({
  */
 export const getKnowledgeEntriesByIdsAction = authorizedActionClient
   .metadata({
-    policy: "projects:read", // Read access required
+    permissions: policyToPermissions("projects:read"), // Read access required
   })
   .inputSchema(getEntriesByIdsInputSchema)
   .action(async ({ parsedInput }) => {

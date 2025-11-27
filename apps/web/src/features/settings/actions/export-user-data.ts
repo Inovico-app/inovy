@@ -1,6 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { GdprExportService } from "@/server/services/gdpr-export.service";
@@ -12,7 +13,7 @@ import { z } from "zod";
  * Server action to request a GDPR data export
  */
 export const requestDataExport = authorizedActionClient
-  .metadata({ policy: "settings:update" })
+  .metadata({ permissions: policyToPermissions("settings:update") })
   .schema(exportUserDataSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;
@@ -87,7 +88,7 @@ export const requestDataExport = authorizedActionClient
  * Server action to get user's export history
  */
 export const getExportHistory = authorizedActionClient
-  .metadata({ policy: "settings:read" })
+  .metadata({ permissions: policyToPermissions("settings:read") })
   .inputSchema(z.object({}))
   .action(async ({ ctx }) => {
     const { user, organizationId } = ctx;

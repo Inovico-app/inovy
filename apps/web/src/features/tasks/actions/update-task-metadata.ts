@@ -1,6 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { TaskService } from "@/server/services/task.service";
 import {
   updateTaskMetadataSchema,
@@ -12,7 +13,7 @@ import {
  * Allows editing task fields with full history tracking
  */
 export const updateTaskMetadata = authorizedActionClient
-  .metadata({ policy: "tasks:update" })
+  .metadata({ permissions: policyToPermissions("tasks:update") })
   .schema(updateTaskMetadataSchema)
   .action(async ({ parsedInput }: { parsedInput: UpdateTaskMetadataInput }) => {
     const result = await TaskService.updateTaskMetadata(parsedInput);

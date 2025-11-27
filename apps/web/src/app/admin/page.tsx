@@ -6,8 +6,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ROLES } from "@/lib/rbac";
 import { getAuthSession } from "@/lib/auth";
+import { Permissions } from "@/lib/permissions";
+import { checkPermission } from "@/lib/permissions-server";
 import { BarChart3Icon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -51,20 +52,17 @@ function AdminMenuGrid() {
 }
 
 async function AdminContainer() {
-  // Check if user is authenticated and has admin role
+  // Check if user is authenticated and has admin permissions
   const sessionResult = await getAuthSession();
 
   if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
     redirect("/");
   }
 
-  const userRoles =
-    sessionResult.value.user?.roles?.map((role) => role.toLowerCase()) ?? [];
+  // Check admin permissions using type-safe helper
+  const hasAdminPermission = await checkPermission(Permissions.admin.all);
 
-  if (
-    !userRoles.includes(ROLES.ADMIN) &&
-    !userRoles.includes(ROLES.SUPER_ADMIN)
-  ) {
+  if (!hasAdminPermission) {
     redirect("/");
   }
 

@@ -5,6 +5,7 @@ import {
   resultToActionResponse,
 } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { EmbeddingCacheQueries } from "@/server/data-access/embedding-cache.queries";
 import { ok } from "neverthrow";
 import { z } from "zod";
@@ -19,7 +20,7 @@ const invalidateCacheByModelSchema = z.object({
  */
 export const invalidateEmbeddingCache = authorizedActionClient
   .metadata({
-    policy: "admin:all",
+    permissions: policyToPermissions("admin:all"),
   })
   .action(async () => {
     try {
@@ -47,7 +48,7 @@ export const invalidateEmbeddingCache = authorizedActionClient
  */
 export const invalidateEmbeddingCacheByModel = authorizedActionClient
   .metadata({
-    policy: "admin:all",
+    permissions: policyToPermissions("admin:all"),
   })
   .inputSchema(invalidateCacheByModelSchema)
   .action(async ({ parsedInput }) => {
@@ -81,7 +82,7 @@ export const invalidateEmbeddingCacheByModel = authorizedActionClient
  */
 export const getEmbeddingCacheStats = authorizedActionClient
   .metadata({
-    policy: "admin:all",
+    permissions: policyToPermissions("admin:all"),
   })
   .action(async () => {
     try {

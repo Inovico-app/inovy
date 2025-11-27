@@ -17,13 +17,14 @@ import { getAuthSession, type AuthUser } from "./auth";
 import { getBetterAuthSession } from "./better-auth-session";
 import { generateApplicationErrorMessage } from "./error-messages";
 import { logger } from "./logger";
-import { POLICY_KEYS, userIsAuthorized, type SessionWithRoles } from "./rbac";
+import { userIsAuthorized, type SessionWithRoles } from "./rbac";
 
 /**
  * Metadata schema for actions
+ * Uses Better Auth permission format directly
  */
 const schemaMetadata = z.object({
-  policy: z.enum(POLICY_KEYS),
+  permissions: z.record(z.string(), z.array(z.string())), // Better Auth permission format
   skipAuth: z.boolean().optional(),
 });
 
@@ -73,10 +74,10 @@ async function actionLoggerMiddleware({
     ctx: NC;
   }) => Promise<MiddlewareResult<string, NC>>;
 }) {
-  const { policy } = metadata;
+  const { permissions } = metadata;
 
-  logger.info(`Executing server action: ${policy}`, {
-    action: policy,
+  logger.info(`Executing server action`, {
+    permissions: JSON.stringify(permissions),
     component: "server-action",
   });
 
@@ -107,7 +108,7 @@ async function publicActionLoggerMiddleware({
 async function authenticationMiddleware({
   next,
   ctx,
-  metadata: { policy, skipAuth },
+  metadata: { permissions, skipAuth },
 }: {
   next: <NC extends object>(opts: {
     ctx: NC;
@@ -125,7 +126,7 @@ async function authenticationMiddleware({
     ctx.logger.error("Authentication error in middleware", {
       component: "auth-middleware",
       error: authResult.error,
-      policy,
+      permissions,
     });
 
     // Convert to ActionError and throw
@@ -156,7 +157,7 @@ async function authenticationMiddleware({
   if (!organizationId) {
     ctx.logger.error("User does not belong to an organization", {
       userId: authUser.id,
-      policy,
+      permissions,
       component: "auth-middleware",
     });
 
@@ -164,7 +165,7 @@ async function authenticationMiddleware({
       "User must belong to an organization",
       {
         userId: authUser.id,
-        policy,
+        permissions,
       },
       "auth-middleware"
     );
@@ -183,14 +184,17 @@ async function authenticationMiddleware({
     // Add access token if available from your auth system
   };
 
-  // Check authorization
-  const { isAuthorized, requiredRoles } = userIsAuthorized(session, policy);
+  // Check authorization using Better Auth's built-in API
+  const { isAuthorized, requiredRoles } = await userIsAuthorized(
+    session,
+    permissions
+  );
 
   if (!isAuthorized) {
     // Log unauthorized access attempt using security logger
     ctx.logger.security.unauthorizedAccess({
       userId: session.user.id,
-      resource: policy ?? "unknown",
+      resource: JSON.stringify(permissions),
       action: "access",
       reason: `User does not have required roles: ${requiredRoles.join(", ")}`,
     });
@@ -201,7 +205,7 @@ async function authenticationMiddleware({
         userId: session.user.id,
         organizationId,
         "required-roles": requiredRoles,
-        policy,
+        permissions,
       },
       "auth-middleware"
     );
@@ -211,7 +215,7 @@ async function authenticationMiddleware({
   logger.info("User authenticated and authorized", {
     userId: authUser.id,
     organizationId,
-    policy,
+    permissions,
     component: "auth-middleware",
   });
 

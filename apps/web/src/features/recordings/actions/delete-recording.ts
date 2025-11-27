@@ -1,6 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { RecordingService } from "@/server/services/recording.service";
@@ -14,7 +15,7 @@ import { revalidatePath } from "next/cache";
  */
 export const deleteRecordingAction = authorizedActionClient
   .metadata({
-    policy: "recordings:delete",
+    permissions: policyToPermissions("recordings:delete"),
   })
   .inputSchema(deleteRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {

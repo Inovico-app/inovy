@@ -6,6 +6,7 @@ import {
   authorizedActionClient,
   resultToActionResponse,
 } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { ProjectService } from "@/server/services/project.service";
@@ -17,7 +18,7 @@ import { createProjectSchema } from "@/server/validation/create-project";
  */
 export const createProjectAction = authorizedActionClient
   .metadata({
-    policy: "projects:create",
+    permissions: policyToPermissions("projects:create"),
   })
   .inputSchema(createProjectSchema)
   .action(async ({ parsedInput, ctx }) => {

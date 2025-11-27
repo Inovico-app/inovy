@@ -7,6 +7,7 @@ import {
   resultToActionResponse,
 } from "../../../lib/action-client";
 import { ActionErrors } from "../../../lib/action-errors";
+import { policyToPermissions } from "../../../lib/permission-helpers";
 import type { UpdateTeamDto } from "../../../server/dto/team.dto";
 import { TeamService } from "../../../server/services/team.service";
 import {
@@ -21,7 +22,7 @@ import {
  */
 export const createTeam = authorizedActionClient
   .metadata({
-    policy: "teams:create",
+    permissions: policyToPermissions("teams:create"),
   })
   .inputSchema(createTeamSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -56,7 +57,7 @@ export const createTeam = authorizedActionClient
  */
 export const updateTeam = authorizedActionClient
   .metadata({
-    policy: "teams:update",
+    permissions: policyToPermissions("teams:update"),
   })
   .inputSchema(updateTeamSchema.extend({ id: z.string().uuid() }))
   .action(async ({ parsedInput, ctx }) => {
@@ -99,7 +100,7 @@ export const updateTeam = authorizedActionClient
  */
 export const deleteTeam = authorizedActionClient
   .metadata({
-    policy: "teams:delete",
+    permissions: policyToPermissions("teams:delete"),
   })
   .inputSchema(z.object({ id: z.string().uuid() }))
   .action(async ({ parsedInput, ctx }) => {
@@ -129,7 +130,7 @@ export const deleteTeam = authorizedActionClient
  */
 export const assignUserToTeam = authorizedActionClient
   .metadata({
-    policy: "teams:update",
+    permissions: policyToPermissions("teams:update"),
   })
   .inputSchema(assignUserToTeamSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -160,7 +161,7 @@ export const assignUserToTeam = authorizedActionClient
  */
 export const removeUserFromTeam = authorizedActionClient
   .metadata({
-    policy: "teams:update",
+    permissions: policyToPermissions("teams:update"),
   })
   .inputSchema(
     z.object({
@@ -196,7 +197,7 @@ export const removeUserFromTeam = authorizedActionClient
  */
 export const updateUserTeamRole = authorizedActionClient
   .metadata({
-    policy: "teams:update",
+    permissions: policyToPermissions("teams:update"),
   })
   .inputSchema(updateUserTeamRoleSchema)
   .action(async ({ parsedInput, ctx }) => {

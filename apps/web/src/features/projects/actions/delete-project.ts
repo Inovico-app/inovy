@@ -1,6 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { ProjectService } from "@/server/services/project.service";
@@ -14,7 +15,7 @@ import { revalidatePath } from "next/cache";
  */
 export const deleteProjectAction = authorizedActionClient
   .metadata({
-    policy: "projects:delete",
+    permissions: policyToPermissions("projects:delete"),
   })
   .inputSchema(deleteProjectSchema)
   .action(async ({ parsedInput, ctx }) => {

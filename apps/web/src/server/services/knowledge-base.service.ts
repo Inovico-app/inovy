@@ -1,8 +1,9 @@
-import { ActionErrors } from "@/lib/action-errors";
 import type { ActionResult } from "@/lib/action-client";
+import { ActionErrors } from "@/lib/action-errors";
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import { ROLES } from "@/lib/rbac";
+import { Permissions } from "@/lib/permissions";
+import { checkPermission } from "@/lib/permissions-server";
 import { err, ok } from "neverthrow";
 import { KnowledgeBaseDocumentsQueries } from "../data-access/knowledge-base-documents.queries";
 import { KnowledgeBaseEntriesQueries } from "../data-access/knowledge-base-entries.queries";
@@ -535,8 +536,8 @@ export class KnowledgeBaseService {
         toScope === "global"
           ? null
           : toScope === "organization"
-          ? existing.scopeId
-          : null; // For project promotion, scopeId would need to be provided separately
+            ? existing.scopeId
+            : null; // For project promotion, scopeId would need to be provided separately
 
       if (toScope === "project") {
         return err(
@@ -789,9 +790,8 @@ export class KnowledgeBaseService {
         createdById: userId,
       };
 
-      const document = await KnowledgeBaseDocumentsQueries.createDocument(
-        createDto
-      );
+      const document =
+        await KnowledgeBaseDocumentsQueries.createDocument(createDto);
 
       logger.info("Knowledge base document created", {
         documentId: document.id,
@@ -964,18 +964,16 @@ export class KnowledgeBaseService {
           );
         }
 
-        // For write operations, require admin or manager role
+        // For write operations, check permissions using type-safe helper
         if (operation === "write") {
-          const userRoles = user.roles ?? [];
-          const hasPermission =
-            userRoles.includes(ROLES.ADMIN) ||
-            userRoles.includes(ROLES.MANAGER) ||
-            userRoles.includes(ROLES.SUPER_ADMIN);
+          const hasPermission = await checkPermission(
+            Permissions.orgInstruction.write
+          );
 
           if (!hasPermission) {
             return err(
               ActionErrors.forbidden(
-                "Organization knowledge base requires admin or manager role",
+                "Organization knowledge base requires admin or manager permissions",
                 {
                   scope,
                   scopeId,
@@ -997,13 +995,14 @@ export class KnowledgeBaseService {
           );
         }
 
-        // For write operations, require super admin role
+        // For write operations, check super admin permissions using type-safe helper
         if (operation === "write") {
-          const userRoles = user.roles ?? [];
-          if (!userRoles.includes(ROLES.SUPER_ADMIN)) {
+          const hasPermission = await checkPermission(Permissions.admin.all);
+
+          if (!hasPermission) {
             return err(
               ActionErrors.forbidden(
-                "Global knowledge base requires super admin role",
+                "Global knowledge base requires super admin permissions",
                 {
                   scope,
                   scopeId,

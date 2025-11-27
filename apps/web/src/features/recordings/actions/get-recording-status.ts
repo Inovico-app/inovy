@@ -4,6 +4,7 @@ import {
   authorizedActionClient,
   resultToActionResponse,
 } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { RecordingService } from "@/server/services/recording.service";
@@ -14,7 +15,7 @@ const getRecordingStatusSchema = z.object({
 });
 
 export const getRecordingStatusAction = authorizedActionClient
-  .metadata({ policy: "recordings:read" })
+  .metadata({ permissions: policyToPermissions("recordings:read") })
   .schema(getRecordingStatusSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;

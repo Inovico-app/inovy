@@ -1,6 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { UserService } from "@/server/services/user.service";
@@ -10,7 +11,7 @@ import { updateProfileSchema } from "@/server/validation/settings/update-profile
  * Server action to update user profile information
  */
 export const updateProfile = authorizedActionClient
-  .metadata({ policy: "settings:update" })
+  .metadata({ permissions: policyToPermissions("settings:update") })
   .schema(updateProfileSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;

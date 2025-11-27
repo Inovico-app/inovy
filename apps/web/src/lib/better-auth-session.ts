@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { cache } from "react";
 import { betterAuthInstance } from "./better-auth-server";
 import { logger } from "./logger";
-import type { Role } from "./rbac";
+import type { RoleName } from "./access-control";
 
 /**
  * Better Auth session types
@@ -36,7 +36,7 @@ export interface BetterAuthSessionData {
   user: BetterAuthUser | null;
   organization: BetterAuthOrganization | null;
   member: BetterAuthMember | null;
-  roles: Role[] | null;
+  roles: RoleName[] | null;
 }
 
 /**
@@ -87,8 +87,8 @@ function mapMemberRoles(
   } | null,
   userId: string,
   actionContext: string
-): Role[] {
-  const roles: Role[] = [];
+): RoleName[] {
+  const roles: RoleName[] = [];
 
   if (activeMember) {
     const memberRole = activeMember.role?.toLowerCase();

@@ -1,6 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { UserNotesService } from "@/server/services/user-notes.service";
@@ -17,7 +18,7 @@ export type UpdateUserNotesInput = z.infer<typeof updateUserNotesSchema>;
  * Server action to update user notes for a recording summary
  */
 export const updateUserNotes = authorizedActionClient
-  .metadata({ policy: "recordings:update" })
+  .metadata({ permissions: policyToPermissions("recordings:update") })
   .schema(updateUserNotesSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;

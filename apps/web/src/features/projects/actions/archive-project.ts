@@ -1,6 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { ProjectService } from "@/server/services/project.service";
@@ -12,7 +13,7 @@ import { archiveProjectSchema } from "@/server/validation/projects/archive-proje
  */
 export const archiveProjectAction = authorizedActionClient
   .metadata({
-    policy: "projects:delete",
+    permissions: policyToPermissions("projects:delete"),
   })
   .inputSchema(archiveProjectSchema)
   .action(async ({ parsedInput, ctx }) => {

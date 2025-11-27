@@ -1,6 +1,7 @@
 "use server";
 
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { AuditLogService } from "@/server/services/audit-log.service";
@@ -23,7 +24,7 @@ const exportAuditLogsSchema = z.object({
  * Returns audit logs in CSV or JSON format
  */
 export const exportAuditLogs = authorizedActionClient
-  .metadata({ policy: "admin:all" })
+  .metadata({ permissions: policyToPermissions("admin:all") })
   .inputSchema(exportAuditLogsSchema)
   .action(async ({ parsedInput }) => {
     try {

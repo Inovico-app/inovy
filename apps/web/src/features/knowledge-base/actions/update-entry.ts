@@ -5,6 +5,7 @@ import {
   createErrorForNextSafeAction,
   resultToActionResponse,
 } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { KnowledgeBaseService } from "@/server/services/knowledge-base.service";
@@ -21,7 +22,7 @@ const updateEntryInputSchema = updateKnowledgeEntrySchema.safeExtend({
 
 export const updateKnowledgeEntryAction = authorizedActionClient
   .metadata({
-    policy: "projects:update", // Project knowledge requires project access
+    permissions: policyToPermissions("projects:update"), // Project knowledge requires project access
   })
   .inputSchema(updateEntryInputSchema)
   .action(async ({ parsedInput, ctx }) => {

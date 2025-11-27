@@ -4,6 +4,7 @@ import {
   authorizedActionClient,
   resultToActionResponse,
 } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { OrganizationSettingsService } from "@/server/services/organization-settings.service";
 import {
@@ -17,7 +18,7 @@ import {
  */
 export const createOrganizationInstructionsAction = authorizedActionClient
   .metadata({
-    policy: "org:instructions:write",
+    permissions: policyToPermissions("org:instructions:write"),
   })
   .inputSchema(createOrganizationInstructionsSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -47,7 +48,7 @@ export const createOrganizationInstructionsAction = authorizedActionClient
  */
 export const updateOrganizationInstructionsAction = authorizedActionClient
   .metadata({
-    policy: "org:instructions:write",
+    permissions: policyToPermissions("org:instructions:write"),
   })
   .inputSchema(updateOrganizationInstructionsSchema)
   .action(async ({ parsedInput, ctx }) => {

@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/permission-helpers";
 import { ActionErrors } from "@/lib/action-errors";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { logger } from "@/lib/logger";
@@ -20,7 +21,7 @@ const createCalendarEventSchema = z.object({
  * Server action to create a Google Calendar event from a task
  */
 export const createCalendarEvent = authorizedActionClient
-  .metadata({ policy: "tasks:update" })
+  .metadata({ permissions: policyToPermissions("tasks:update") })
   .schema(createCalendarEventSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId, user } = ctx;
@@ -111,7 +112,7 @@ const createCalendarEventsForTasksSchema = z.object({
  * Server action to create calendar events for multiple tasks
  */
 export const createCalendarEventsForTasks = authorizedActionClient
-  .metadata({ policy: "tasks:update" })
+  .metadata({ permissions: policyToPermissions("tasks:update") })
   .schema(createCalendarEventsForTasksSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId, user } = ctx;
