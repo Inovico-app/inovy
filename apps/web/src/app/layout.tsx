@@ -1,5 +1,5 @@
 import { PageLayout } from "@/components/page-layout";
-import { KindeAuthProvider } from "@/providers/AuthProvider";
+import { BetterAuthProvider } from "@/providers/AuthProvider";
 import { DeepgramContextProvider } from "@/providers/DeepgramProvider";
 import { MicrophoneContextProvider } from "@/providers/MicrophoneProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
@@ -37,7 +37,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <KindeAuthProvider>
+        <BetterAuthProvider>
           <DeepgramContextProvider>
             <MicrophoneContextProvider>
               <QueryProvider>
@@ -54,7 +54,7 @@ export default function RootLayout({
               </QueryProvider>
             </MicrophoneContextProvider>
           </DeepgramContextProvider>
-        </KindeAuthProvider>
+        </BetterAuthProvider>
       </body>
     </html>
   );
