@@ -8,7 +8,7 @@ export default async function proxy(req: NextRequest) {
     res.headers.append("Access-Control-Allow-Credentials", "true");
     res.headers.append(
       "Access-Control-Allow-Origin",
-      process.env.CORS_ORIGIN || ""
+      process.env.CORS_ORIGIN ?? ""
     );
     res.headers.append("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     res.headers.append(
@@ -18,36 +18,39 @@ export default async function proxy(req: NextRequest) {
     return res;
   }
 
-  // Skip auth check for public routes
-  const publicRoutes = [
-    "/sign-in",
-    "/sign-up",
-    "/api/auth",
-    "/_next",
-    "/favicon.ico",
-  ];
-  const isPublicRoute = publicRoutes.some((route) =>
+  // Always allow these routes (no auth check needed)
+  const alwaysPublicRoutes = ["/api/auth", "/_next", "/favicon.ico"];
+  const isAlwaysPublic = alwaysPublicRoutes.some((route) =>
     req.nextUrl.pathname.startsWith(route)
   );
 
-  if (isPublicRoute) {
+  if (isAlwaysPublic) {
     return NextResponse.next();
   }
+
+  // Check if this is an auth page (sign-in, sign-up)
+  const isAuthPage = ["/sign-in", "/sign-up"].includes(req.nextUrl.pathname);
 
   // Optimistic session check using cookie cache
   // Note: This is optimistic - full validation happens in ProtectedPage components
   const session = await getCookieCache(req);
 
+  // Handle auth pages: redirect authenticated users away, allow unauthenticated users
+  if (isAuthPage) {
+    if (session) {
+      // Authenticated user trying to access sign-in/sign-up - redirect to home
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+    // Unauthenticated user accessing sign-in/sign-up - allow access
+    return NextResponse.next();
+  }
+
+  // For all other routes, require authentication
   if (!session) {
     // Redirect to sign-in, preserving the original URL for redirect after login
     const signInUrl = new URL("/sign-in", req.url);
     signInUrl.searchParams.set("redirect", req.nextUrl.pathname);
     return NextResponse.redirect(signInUrl);
-  }
-
-  // Redirect authenticated users away from auth pages
-  if (["/sign-in", "/sign-up"].includes(req.nextUrl.pathname)) {
-    return NextResponse.redirect(new URL("/", req.url));
   }
 
   return NextResponse.next();
