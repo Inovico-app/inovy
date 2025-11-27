@@ -11,7 +11,7 @@ export const projectTemplates = pgTable(
     organizationId: text("organization_id").notNull(),
 
     instructions: text("instructions").notNull(),
-    createdById: text("created_by_id").notNull(), // Kinde user ID
+    createdById: text("created_by_id").notNull(), // Better Auth user ID
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

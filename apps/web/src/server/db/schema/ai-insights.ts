@@ -61,7 +61,7 @@ export const aiInsights = pgTable("ai_insights", {
   speakerNames: jsonb("speaker_names").$type<Record<string, string>>(), // e.g., { "0": "John Doe", "1": "Jane Smith" }
   errorMessage: text("error_message"),
   isManuallyEdited: boolean("is_manually_edited").notNull().default(false), // Track if insight has been manually edited
-  lastEditedById: text("last_edited_by_id"), // Kinde user ID who last edited
+  lastEditedById: text("last_edited_by_id"), // Better Auth user ID who last edited
   lastEditedAt: timestamp("last_edited_at", { withTimezone: true }), // Last manual edit timestamp
   userNotes: text("user_notes"), // User-written markdown notes
   createdAt: timestamp("created_at", { withTimezone: true })

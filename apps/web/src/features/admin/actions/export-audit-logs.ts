@@ -51,7 +51,7 @@ export const exportAuditLogs = authorizedActionClient
       };
 
       const result = await AuditLogService.getAuditLogs(
-        organization.orgCode,
+        organization.id,
         filters
       );
 
@@ -67,7 +67,7 @@ export const exportAuditLogs = authorizedActionClient
           eventType: "audit_log_exported",
           resourceType: "export",
           userId: authResult.value.user.id,
-          organizationId: organization.orgCode,
+          organizationId: organization.id,
           action: "export",
           metadata: {
             format: parsedInput.format,

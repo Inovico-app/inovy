@@ -8,8 +8,8 @@ export const chatConversations = pgTable(
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "cascade",
     }), // Made nullable for organization-level conversations
-    userId: text("user_id").notNull(), // Kinde user ID
-    organizationId: text("organization_id").notNull(), // Kinde organization code
+    userId: text("user_id").notNull(), // Better Auth user ID
+    organizationId: text("organization_id").notNull(), // Better Auth organization ID
     context: text("context", { enum: ["project", "organization"] }).notNull(), // Conversation context
     title: text("title"), // Optional title, auto-generated from first message
     deletedAt: timestamp("deleted_at", { withTimezone: true }), // Soft delete timestamp

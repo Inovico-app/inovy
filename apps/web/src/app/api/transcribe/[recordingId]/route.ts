@@ -62,7 +62,7 @@ export const POST = withRateLimit(
       try {
         assertOrganizationAccess(
           recording.organizationId,
-          organization?.orgCode,
+          organization?.id,
           "api/transcribe/[recordingId]"
         );
       } catch (error) {

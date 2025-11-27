@@ -1,11 +1,11 @@
 "use client";
 
 import { useUserRole } from "@/hooks/use-user-role";
+import { signOut, useSession } from "@/lib/auth-client";
 import { logger } from "@/lib/logger";
-import { authClient, useSession, signOut } from "@/lib/auth-client";
 import { Settings, Shield, User } from "lucide-react";
-import Link from "next/link";
 import type { Route } from "next";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -33,7 +33,9 @@ export function HeaderAuthButtons() {
   // Log auth errors on client side
   useEffect(() => {
     if (error && !hasLoggedError) {
-      const errorObj = new Error(`Better Auth error: ${error.message ?? String(error)}`);
+      const errorObj = new Error(
+        `Better Auth error: ${error.message ?? String(error)}`
+      );
       logger.auth.error("Better Auth client authentication error", errorObj);
       setHasLoggedError(true);
     }
@@ -97,14 +99,15 @@ export function HeaderAuthButtons() {
 
   if (isAuthenticated && user) {
     // Get user initials for avatar fallback
-    const userName = (user.name ?? user.email) ?? "User";
+    const userName = user.name ?? user.email ?? "User";
     const initials =
       userName
         .split(" ")
         .map((n) => n[0])
         .join("")
         .toUpperCase()
-        .slice(0, 2) || (user.email?.[0]?.toUpperCase() ?? "U");
+        .slice(0, 2) ||
+      (user.email?.[0]?.toUpperCase() ?? "U");
 
     return (
       <DropdownMenu>

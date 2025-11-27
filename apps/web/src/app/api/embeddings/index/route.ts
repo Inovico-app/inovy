@@ -1,8 +1,8 @@
+import { getAuthSession } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { ProjectService } from "@/server/services/project.service";
 import { RAGService } from "@/server/services/rag/rag.service";
-import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -17,13 +17,13 @@ const indexRequestSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
-    const { getUser, getOrganization } = getKindeServerSession();
-    const user = await getUser();
-    const organization = await getOrganization();
+    const authResult = await getAuthSession();
 
-    if (!user || !organization) {
+    if (authResult.isErr() || !authResult.value.isAuthenticated || !authResult.value.user || !authResult.value.organization) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { user, organization } = authResult.value;
 
     // Parse request body
     const body = await request.json();
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     try {
       assertOrganizationAccess(
         project.organizationId,
-        organization.orgCode,
+        organization.id,
         "api/embeddings/index"
       );
     } catch {
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     const ragService = new RAGService();
     const indexResult = await ragService.indexProject(
       projectId,
-      organization.orgCode
+      organization.id
     );
 
     if (indexResult.isErr()) {

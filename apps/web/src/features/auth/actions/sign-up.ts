@@ -1,11 +1,11 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { headers } from "next/headers";
-import type { Route } from "next";
 import { publicActionClient } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { betterAuthInstance } from "@/lib/better-auth";
+import type { Route } from "next";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { signUpEmailSchema } from "../validation/auth.schema";
 
 /**

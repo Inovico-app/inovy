@@ -35,7 +35,7 @@ export interface CalendarTemplateContent {
  */
 export const integrationTemplates = pgTable("integration_templates", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("user_id").notNull(), // Kinde user ID
+  userId: text("user_id").notNull(), // Better Auth user ID
   provider: text("provider", { enum: templateProviderEnum }).notNull(),
   templateType: text("template_type", { enum: templateTypeEnum }).notNull(),
   name: text("name").notNull(), // User-friendly name (e.g., "Default", "Formal", "Brief")

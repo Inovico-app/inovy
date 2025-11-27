@@ -1,3 +1,4 @@
+import { getAuthSession } from "@/lib/auth";
 import { logger, serializeError } from "@/lib/logger";
 import { withRateLimit } from "@/lib/rate-limit";
 import { RecordingService } from "@/server/services/recording.service";
@@ -7,7 +8,6 @@ import {
   MAX_FILE_SIZE,
 } from "@/server/validation/recordings/upload-recording";
 import { convertRecordingIntoAiInsights } from "@/workflows/convert-recording";
-import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { revalidatePath } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
@@ -49,18 +49,18 @@ export const POST = withRateLimit(
         request,
         onBeforeGenerateToken: async (pathname, clientPayload) => {
           // Authenticate user
-          const { getUser, getOrganization } = getKindeServerSession();
-          const user = await getUser();
-          const organization = await getOrganization();
+          const authResult = await getAuthSession();
 
-          if (!user || !organization) {
+          if (authResult.isErr() || !authResult.value.isAuthenticated || !authResult.value.user || !authResult.value.organization) {
             throw new Error("Unauthorized");
           }
+
+          const { user, organization } = authResult.value;
 
           logger.info("Generating client token for recording upload", {
             component: "POST /api/recordings/upload - onBeforeGenerateToken",
             userId: user.id,
-            organizationId: organization.orgCode,
+            organizationId: organization.id,
             pathname,
           });
 
@@ -96,7 +96,7 @@ export const POST = withRateLimit(
           const tokenPayload: TokenPayload = {
             ...metadata,
             userId: user.id,
-            organizationId: organization.orgCode,
+            organizationId: organization.id,
           };
 
           return {
@@ -128,8 +128,8 @@ export const POST = withRateLimit(
 
           // Get user info for consent tracking
           // Note: user is not currently used but may be needed for future consent tracking
-          const { getUser } = getKindeServerSession();
-          const _user = await getUser();
+          const authResult = await getAuthSession();
+          const _user = authResult.isOk() && authResult.value.isAuthenticated ? authResult.value.user : null;
 
           const result = await RecordingService.createRecording(
             {
@@ -227,9 +227,8 @@ export const POST = withRateLimit(
   },
   async (_request) => {
     // Custom user ID extraction for rate limiting
-    const { getUser } = getKindeServerSession();
-    const user = await getUser();
-    return user?.id ?? null;
+    const authResult = await getAuthSession();
+    return authResult.isOk() && authResult.value.isAuthenticated && authResult.value.user ? authResult.value.user.id : null;
   }
 );
 

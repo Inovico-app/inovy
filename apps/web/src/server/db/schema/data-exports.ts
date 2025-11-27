@@ -30,8 +30,8 @@ const bytea = customType<{ data: Buffer; driverData: Buffer }>({
 
 export const dataExports = pgTable("data_exports", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("user_id").notNull(), // Kinde user ID
-  organizationId: text("organization_id").notNull(), // Kinde organization code
+  userId: text("user_id").notNull(), // Better Auth user ID
+  organizationId: text("organization_id").notNull(), // Better Auth organization ID
   status: text("status", { enum: exportStatusEnum })
     .notNull()
     .default("pending"),

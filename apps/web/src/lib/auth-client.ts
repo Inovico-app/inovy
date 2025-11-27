@@ -1,12 +1,11 @@
 "use client";
 
 import { passkeyClient } from "@better-auth/passkey/client";
-import { stripeClient } from "@better-auth/stripe/client";
-import { createAuthClient } from "better-auth/react";
 import {
   magicLinkClient,
   organizationClient,
 } from "better-auth/client/plugins";
+import { createAuthClient } from "better-auth/react";
 
 /**
  * Better Auth client instance
@@ -17,12 +16,7 @@ import {
  */
 export const authClient = createAuthClient({
   baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-  plugins: [
-    magicLinkClient(),
-    passkeyClient(),
-    stripeClient({ subscription: true }),
-    organizationClient(),
-  ],
+  plugins: [magicLinkClient(), passkeyClient(), organizationClient()],
 });
 
 // Export commonly used hooks and methods for convenience

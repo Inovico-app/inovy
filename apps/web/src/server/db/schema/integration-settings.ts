@@ -11,7 +11,7 @@ export type IntegrationProvider = (typeof integrationProviderEnum)[number];
  */
 export const integrationSettings = pgTable("integration_settings", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("user_id").notNull(), // Kinde user ID
+  userId: text("user_id").notNull(), // Better Auth user ID
   provider: text("provider", { enum: integrationProviderEnum }).notNull(),
   projectId: uuid("project_id").references(() => projects.id), // Null = global setting
   autoCalendarEnabled: boolean("auto_calendar_enabled")

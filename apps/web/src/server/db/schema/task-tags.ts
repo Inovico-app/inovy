@@ -11,7 +11,7 @@ export const taskTags = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     name: text("name").notNull(),
     color: text("color").notNull().default("#3b82f6"), // Default to blue
-    organizationId: text("organization_id").notNull(), // Kinde organization code
+    organizationId: text("organization_id").notNull(), // Better Auth organization ID
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -1,14 +1,13 @@
-import { ActionErrors } from "@/lib/action-errors";
 import type { ActionResult } from "@/lib/action-client";
-import { AuthService } from "@/lib/kinde-api";
+import { ActionErrors } from "@/lib/action-errors";
 import { del } from "@vercel/blob";
 import { err, ok } from "neverthrow";
 import { getAuthSession, type AuthUser } from "../../lib/auth";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { getCachedProjectByIdWithCreator } from "../cache/project.cache";
-import { ProjectQueries } from "../data-access/projects.queries";
 import type { AllowedStatus } from "../data-access/projects.queries";
+import { ProjectQueries } from "../data-access/projects.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import type { Recording } from "../db/schema/recordings";
 import type {
@@ -58,10 +57,10 @@ export class ProjectService {
         );
       }
 
-      // Get project with creator ID using Next.js cache
+      // Get project with creator details using Next.js cache (includes JOIN with user table)
       const project = await getCachedProjectByIdWithCreator(
         projectId,
-        organization.orgCode
+        organization.id
       );
 
       if (!project) {
@@ -70,38 +69,18 @@ export class ProjectService {
         );
       }
 
-      // Fetch creator details from Kinde API
-      let creator = null;
-      try {
-        const Users = await AuthService.getUsers();
-        const response = await Users.getUserData({
-          id: project.createdById,
-        });
-
-        if (response) {
-          creator = {
-            id: response.id || project.createdById,
-            email: response.preferred_email || null,
-            given_name: response.first_name || null,
-            family_name: response.last_name || null,
-            picture: response.picture || null,
-          };
-        }
-      } catch (error) {
-        logger.warn("Failed to fetch creator details from Kinde", {
-          projectId,
-          createdById: project.createdById,
-          error,
-        });
-      }
+      // Split creator name into givenName and familyName (matching UserService logic)
+      const nameParts = project.creatorName?.split(" ") ?? [];
+      const givenName = nameParts[0] ?? null;
+      const familyName = nameParts.slice(1).join(" ") || null;
 
       const projectWithDetails: ProjectWithCreatorDetailsDto = {
         ...project,
         createdBy: {
           id: project.createdById,
-          givenName: creator?.given_name ?? null,
-          familyName: creator?.family_name ?? null,
-          email: creator?.email ?? null,
+          givenName,
+          familyName,
+          email: project.creatorEmail ?? null,
         },
       };
 
@@ -151,7 +130,7 @@ export class ProjectService {
 
       // Get all active projects in the organization using data access layer
       const projectFilters: ProjectFiltersDto = filters ?? {
-        organizationId: organization.orgCode,
+        organizationId: organization.id,
         status: "active",
       };
 
@@ -206,7 +185,7 @@ export class ProjectService {
 
       // Get projects with recording counts
       const filters: ProjectFiltersDto = {
-        organizationId: organization.orgCode,
+        organizationId: organization.id,
         status: status ?? "active",
       };
 
@@ -260,7 +239,7 @@ export class ProjectService {
 
       // Get count using data access layer
       const count = await ProjectQueries.countByOrganization(
-        organization.orgCode,
+        organization.id,
         status
       );
 

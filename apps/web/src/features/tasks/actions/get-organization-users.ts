@@ -4,7 +4,7 @@ import { authorizedActionClient } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
 import { getOrganizationMembers } from "@/server/data-access/organization.queries";
-import type { KindeOrganizationUserDto } from "@/server/dto/kinde.dto";
+import type { AuthOrganizationUserDto } from "@/server/dto/auth.dto";
 import { z } from "zod";
 
 /**
@@ -15,7 +15,7 @@ import { z } from "zod";
 export const getOrganizationUsers = authorizedActionClient
   .metadata({ policy: "users:read" })
   .schema(z.object({})) // No input needed
-  .action(async ({ ctx }): Promise<KindeOrganizationUserDto[]> => {
+  .action(async ({ ctx }): Promise<AuthOrganizationUserDto[]> => {
     const { organizationId } = ctx;
 
     if (!organizationId) {

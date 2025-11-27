@@ -54,7 +54,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         organizationId,
-        organization.orgCode,
+        organization.id,
         "TeamService.getTeamsByOrganization"
       );
 
@@ -128,7 +128,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         department.organizationId,
-        organization.orgCode,
+        organization.id,
         "TeamService.getTeamsByDepartment"
       );
 
@@ -197,7 +197,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         team.organizationId,
-        organization.orgCode,
+        organization.id,
         "TeamService.getTeamById"
       );
 
@@ -259,7 +259,7 @@ export class TeamService {
       const teamIds = userTeams.map((ut) => ut.teamId);
       const teams =
         teamIds.length > 0
-          ? await TeamQueries.selectTeamsByOrganization(organization.orgCode)
+          ? await TeamQueries.selectTeamsByOrganization(organization.id)
           : [];
 
       const validTeamIds = new Set(teams.map((t) => t.id));
@@ -321,7 +321,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         organizationId,
-        organization.orgCode,
+        organization.id,
         "TeamService.getUserTeamsByUserIds"
       );
 
@@ -407,7 +407,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         data.organizationId,
-        organization.orgCode,
+        organization.id,
         "TeamService.createTeam"
       );
 
@@ -500,7 +500,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         existing.organizationId,
-        organization.orgCode,
+        organization.id,
         "TeamService.updateTeam"
       );
 
@@ -609,7 +609,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         existing.organizationId,
-        organization.orgCode,
+        organization.id,
         "TeamService.deleteTeam"
       );
 
@@ -679,7 +679,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         team.organizationId,
-        organization.orgCode,
+        organization.id,
         "TeamService.assignUserToTeam"
       );
 
@@ -767,7 +767,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         team.organizationId,
-        organization.orgCode,
+        organization.id,
         "TeamService.removeUserFromTeam"
       );
 
@@ -834,7 +834,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         team.organizationId,
-        organization.orgCode,
+        organization.id,
         "TeamService.updateUserTeamRole"
       );
 

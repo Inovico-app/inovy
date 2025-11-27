@@ -9,9 +9,9 @@ export const organizationSettings = pgTable(
   "organization_settings",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    organizationId: text("organization_id").notNull(), // Kinde organization code
+    organizationId: text("organization_id").notNull(), // Better Auth organization ID
     instructions: text("instructions"), // Up to 100,000 characters for comprehensive org guidelines
-    createdById: text("created_by_id").notNull(), // Kinde user ID
+    createdById: text("created_by_id").notNull(), // Better Auth user ID
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

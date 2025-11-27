@@ -8,7 +8,7 @@ export const teams = pgTable(
     departmentId: uuid("department_id").references(() => departments.id, {
       onDelete: "set null",
     }), // Nullable - teams can exist without departments
-    organizationId: text("organization_id").notNull(), // Kinde organization code
+    organizationId: text("organization_id").notNull(), // Better Auth organization ID
     name: text("name").notNull(),
     description: text("description"),
     createdAt: timestamp("created_at", { withTimezone: true })

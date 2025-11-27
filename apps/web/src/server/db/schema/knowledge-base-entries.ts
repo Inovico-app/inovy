@@ -31,7 +31,7 @@ export const knowledgeBaseEntries = pgTable(
     context: text("context"), // Optional context about when/how to use this term
     examples: jsonb("examples").$type<string[]>(), // Array of example usage strings
     isActive: boolean("is_active").notNull().default(true), // Soft delete flag
-    createdById: text("created_by_id").notNull(), // Kinde user ID
+    createdById: text("created_by_id").notNull(), // Better Auth user ID
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

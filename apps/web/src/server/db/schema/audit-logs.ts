@@ -105,7 +105,7 @@ export const auditLogs = pgTable("audit_logs", {
   eventType: auditEventTypeEnum("event_type").notNull(),
   resourceType: auditResourceTypeEnum("resource_type").notNull(),
   resourceId: uuid("resource_id"), // Can be null for system-level events
-  userId: text("user_id").notNull(), // Kinde user ID
+  userId: text("user_id").notNull(), // Better Auth user ID
   organizationId: text("organization_id").notNull(),
   action: auditActionEnum("action").notNull(),
   ipAddress: text("ip_address"), // IP address for audit trail

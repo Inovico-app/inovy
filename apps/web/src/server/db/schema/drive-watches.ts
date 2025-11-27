@@ -18,7 +18,7 @@ export const driveWatches = pgTable(
   "drive_watches",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    userId: text("user_id").notNull(), // Kinde user ID
+    userId: text("user_id").notNull(), // Better Auth user ID
     folderId: text("folder_id").notNull(), // Google Drive folder ID
     channelId: text("channel_id").notNull().unique(), // Google Drive channel ID (unique)
     resourceId: text("resource_id").notNull(), // Google Drive resource ID
@@ -29,7 +29,7 @@ export const driveWatches = pgTable(
       .references(() => projects.id, {
         onDelete: "cascade",
       }), // References projects table
-    organizationId: text("organization_id").notNull(), // Kinde organization code
+    organizationId: text("organization_id").notNull(), // Better Auth organization ID
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

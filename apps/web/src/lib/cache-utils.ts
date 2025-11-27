@@ -30,7 +30,7 @@ export const CacheTags = {
   summary: (recordingId: string) => `summary:${recordingId}`,
 
   // User tags
-  user: (kindeUserId: string) => `user:${kindeUserId}`,
+  user: (userId: string) => `user:${userId}`,
   usersByOrg: (orgCode: string) => `users:org:${orgCode}`,
 
   // Organization tags
@@ -174,8 +174,8 @@ export const CacheInvalidation = {
   /**
    * Invalidate user-related cache
    */
-  invalidateUser(kindeUserId: string, orgCode: string): void {
-    invalidateCache(CacheTags.user(kindeUserId), CacheTags.usersByOrg(orgCode));
+  invalidateUser(userId: string, orgCode: string): void {
+    invalidateCache(CacheTags.user(userId), CacheTags.usersByOrg(orgCode));
   },
 
   /**

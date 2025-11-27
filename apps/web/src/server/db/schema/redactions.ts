@@ -30,7 +30,7 @@ export const redactions = pgTable("redactions", {
   detectedBy: text("detected_by", { enum: detectedByEnum })
     .notNull()
     .default("automatic"),
-  redactedBy: text("redacted_by").notNull(), // Kinde user ID
+  redactedBy: text("redacted_by").notNull(), // Better Auth user ID
   redactedAt: timestamp("redacted_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

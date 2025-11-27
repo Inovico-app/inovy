@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     const { user, organization } = session;
 
-    if (!organization.orgCode) {
+    if (!organization.id) {
       return NextResponse.json(
         { error: "Organization not found" },
         { status: 404 }
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       user.id,
       folderId,
       projectId,
-      organization.orgCode,
+      organization.id,
       webhookUrl
     );
 

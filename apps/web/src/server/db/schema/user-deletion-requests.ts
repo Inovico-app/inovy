@@ -7,8 +7,8 @@ import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
  */
 export const userDeletionRequests = pgTable("user_deletion_requests", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("user_id").notNull(), // Kinde user ID
-  organizationId: text("organization_id").notNull(), // Kinde organization code
+  userId: text("user_id").notNull(), // Better Auth user ID
+  organizationId: text("organization_id").notNull(), // Better Auth organization ID
   status: text("status", {
     enum: ["pending", "processing", "completed", "cancelled"],
   })
@@ -22,7 +22,7 @@ export const userDeletionRequests = pgTable("user_deletion_requests", {
     withTimezone: true,
   }), // When permanent deletion will occur (30 days after processing)
   cancelledAt: timestamp("cancelled_at", { withTimezone: true }), // If user cancels before permanent deletion
-  cancelledBy: text("cancelled_by"), // Kinde user ID who cancelled
+  cancelledBy: text("cancelled_by"), // Better Auth user ID who cancelled
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

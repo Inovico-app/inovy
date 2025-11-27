@@ -41,20 +41,14 @@ async function ProfileContent() {
       | undefined) ??
     "Personal Organization";
 
-  const orgCode =
-    ((organization as unknown as Record<string, unknown>).org_code as
-      | string
-      | undefined) ||
-    ((organization as unknown as Record<string, unknown>).code as
-      | string
-      | undefined);
+  const organizationId = organization?.id;
 
   // Fetch user teams
-  const userTeams = orgCode
-    ? await getCachedUserTeams(user.id, orgCode)
+  const userTeams = organizationId
+    ? await getCachedUserTeams(user.id, organizationId)
     : [];
-  const allTeams = orgCode
-    ? await getCachedTeamsByOrganization(orgCode)
+  const allTeams = organizationId
+    ? await getCachedTeamsByOrganization(organizationId)
     : [];
   const teamMap = new Map(allTeams.map((t) => [t.id, t]));
 

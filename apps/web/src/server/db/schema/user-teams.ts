@@ -7,7 +7,7 @@ export type UserTeamRole = (typeof userTeamRoleEnum)[number];
 export const userTeams = pgTable(
   "user_teams",
   {
-    userId: text("user_id").notNull(), // Kinde user ID
+    userId: text("user_id").notNull(), // Better Auth user ID
     teamId: uuid("team_id")
       .notNull()
       .references(() => teams.id, { onDelete: "cascade" }),

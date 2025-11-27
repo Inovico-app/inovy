@@ -1,5 +1,3 @@
-import { AuthService } from "@/lib/kinde-api";
-import { logger } from "@/lib/logger";
 import { CalendarIcon, FileTextIcon, FolderIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -20,37 +18,21 @@ interface ProjectsListProps {
   status?: AllowedStatus;
 }
 
-const getCreatorName = async (createdById: string) => {
-  try {
-    const Users = await AuthService.getUsers();
-    const response = await Users.getUserData({
-      id: createdById,
-    });
-
-    if (!response) {
-      return "Unknown Creator";
-    }
-
-    const given_name = response.first_name || null;
-    const family_name = response.last_name || null;
-
-    if (given_name && family_name) {
-      return `${given_name} ${family_name}`;
-    }
-    if (given_name) {
-      return given_name;
-    }
-    if (family_name) {
-      return family_name;
-    }
-    return "Unknown Creator";
-  } catch (error) {
-    logger.warn("Failed to fetch creator details", {
-      createdById,
-      error,
-    });
-    return "Unknown Creator";
+/**
+ * Format creator name from creatorName field (fetched via JOIN)
+ * Falls back to email or "Unknown Creator" if name is not available
+ */
+const getCreatorDisplayName = (
+  creatorName: string | null,
+  creatorEmail: string | null
+): string => {
+  if (creatorName) {
+    return creatorName;
   }
+  if (creatorEmail) {
+    return creatorEmail;
+  }
+  return "Unknown Creator";
 };
 
 async function ProjectsList({
@@ -83,12 +65,11 @@ async function ProjectsList({
     );
   }
 
-  const projectsWithCreators = await Promise.all(
-    projects.map(async (project) => ({
-      ...project,
-      createdBy: await getCreatorName(project.createdById),
-    }))
-  );
+  // Creator details are already included via JOIN, no need to fetch separately
+  const projectsWithCreators = projects.map((project) => ({
+    ...project,
+    createdBy: getCreatorDisplayName(project.creatorName, project.creatorEmail),
+  }));
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", {

@@ -12,7 +12,7 @@ export interface CreateKnowledgeEntryDto {
   definition: string;
   context?: string | null;
   examples?: string[] | null;
-  createdById: string; // Kinde user ID
+  createdById: string; // Better Auth user ID
 }
 
 export interface UpdateKnowledgeEntryDto {
@@ -50,7 +50,7 @@ export interface CreateKnowledgeDocumentDto {
   fileName: string;
   fileSize: number;
   fileType: string;
-  createdById: string; // Kinde user ID
+  createdById: string; // Better Auth user ID
 }
 
 export interface UpdateKnowledgeDocumentDto {

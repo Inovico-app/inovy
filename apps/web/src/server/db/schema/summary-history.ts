@@ -19,7 +19,7 @@ export const summaryHistory = pgTable("summary_history", {
     .notNull()
     .references(() => recordings.id, { onDelete: "cascade" }),
   content: jsonb("content").notNull().$type<Record<string, unknown>>(), // Full summary content snapshot
-  editedById: text("edited_by_id").notNull(), // Kinde user ID who made the edit
+  editedById: text("edited_by_id").notNull(), // Better Auth user ID who made the edit
   editedAt: timestamp("edited_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

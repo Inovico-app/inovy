@@ -20,7 +20,7 @@ import {
   getCachedKnowledgeEntries,
 } from "@/server/cache/knowledge-base.cache";
 import { OrganizationService } from "@/server/services/organization.service";
-import type { KindeOrganization } from "@kinde-oss/kinde-auth-nextjs/types";
+import type { BetterAuthOrganization } from "@/lib/better-auth-session";
 import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -47,11 +47,8 @@ async function OrganizationContent() {
     );
   }
 
-  // orgCode is actually the Better Auth organization ID
-  const organizationId = organization.orgCode;
-  // KindeOrganization type is extended with name in auth.ts mapping
-  // Use type assertion to access the name property
-  const orgName = (organization as KindeOrganization & { name?: string }).name ?? "Organization";
+  const organizationId = organization.id;
+  const orgName = organization.name ?? "Organization";
 
   // Check if user is admin
   const canEdit = auth.user ? isOrganizationAdmin(auth.user) : false;

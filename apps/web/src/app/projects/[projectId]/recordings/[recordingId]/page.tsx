@@ -41,7 +41,7 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
   const authResult = await getAuthSession();
   const organizationId =
     authResult.isOk() && authResult.value.organization
-      ? authResult.value.organization.orgCode
+      ? authResult.value.organization.id
       : null;
 
   // Fetch recording, project, summary, tasks, transcription insight, and consent in parallel

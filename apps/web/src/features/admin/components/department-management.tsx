@@ -27,15 +27,15 @@ export async function DepartmentManagement() {
 
   const {
     user,
-    organization: { orgCode },
+    organization: { id: organizationId },
   } = authResult.value;
 
-  if (!orgCode) {
+  if (!organizationId) {
     return null;
   }
 
   const canEdit = user ? isOrganizationAdmin(user) : false;
-  const departments = await getCachedDepartmentsByOrganization(orgCode);
+  const departments = await getCachedDepartmentsByOrganization(organizationId);
 
   // Build hierarchy
   const topLevelDepartments = departments.filter((d) => !d.parentDepartmentId);

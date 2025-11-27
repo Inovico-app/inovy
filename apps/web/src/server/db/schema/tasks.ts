@@ -27,19 +27,19 @@ export const tasks = pgTable("tasks", {
     .notNull()
     .default("medium"),
   status: text("status", { enum: taskStatusEnum }).notNull().default("pending"),
-  assigneeId: text("assignee_id"), // Kinde user ID
+  assigneeId: text("assignee_id"), // Better Auth user ID
   assigneeName: text("assignee_name"), // Extracted from transcription
   dueDate: timestamp("due_date", { withTimezone: true }),
   confidenceScore: real("confidence_score"), // AI confidence in task extraction
   meetingTimestamp: integer("meeting_timestamp"), // Timestamp in recording (seconds)
-  organizationId: text("organization_id").notNull(), // Kinde organization code
-  createdById: text("created_by_id").notNull(), // Kinde user ID who created (or AI)
+  organizationId: text("organization_id").notNull(), // Better Auth organization ID
+  createdById: text("created_by_id").notNull(), // Better Auth user ID who created (or AI)
   isManuallyEdited: text("is_manually_edited")
     .notNull()
     .default("false")
     .$type<"true" | "false">(), // Track if task has been manually edited
   lastEditedAt: timestamp("last_edited_at", { withTimezone: true }), // Last manual edit timestamp
-  lastEditedById: text("last_edited_by_id"), // Kinde user ID who last edited
+  lastEditedById: text("last_edited_by_id"), // Better Auth user ID who last edited
   lastEditedByName: text("last_edited_by_name"), // Display name of who last edited
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

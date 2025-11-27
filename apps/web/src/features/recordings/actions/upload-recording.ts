@@ -34,7 +34,7 @@ export async function uploadRecordingFormAction(
     }
 
     const user = authResult.value.user;
-    const organizationId = authResult.value.organization?.orgCode;
+    const organizationId = authResult.value.organization?.id;
 
     if (!organizationId) {
       return { success: false, error: "No organization found" };

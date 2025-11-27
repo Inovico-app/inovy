@@ -1,7 +1,7 @@
-import { decrypt } from "@/lib/encryption";
 import { getAuthSession } from "@/lib/auth";
-import { RecordingService } from "@/server/services/recording.service";
+import { decrypt } from "@/lib/encryption";
 import { assertOrganizationAccess } from "@/lib/organization-isolation";
+import { RecordingService } from "@/server/services/recording.service";
 import { type NextRequest, NextResponse } from "next/server";
 
 /**
@@ -27,9 +27,14 @@ export async function GET(
     }
 
     // Get recording
-    const recordingResult = await RecordingService.getRecordingById(recordingId);
+    const recordingResult = await RecordingService.getRecordingById(
+      recordingId
+    );
     if (recordingResult.isErr() || !recordingResult.value) {
-      return NextResponse.json({ error: "Recording not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Recording not found" },
+        { status: 404 }
+      );
     }
 
     const recording = recordingResult.value;
@@ -38,11 +43,14 @@ export async function GET(
     try {
       assertOrganizationAccess(
         recording.organizationId,
-        organization.orgCode,
+        organization.id,
         "recording-playback"
       );
     } catch {
-      return NextResponse.json({ error: "Recording not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Recording not found" },
+        { status: 404 }
+      );
     }
 
     // Download file from Vercel Blob with timeout

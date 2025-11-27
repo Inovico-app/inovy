@@ -41,7 +41,7 @@ export const knowledgeBaseDocuments = pgTable(
       .notNull()
       .default("pending"),
     processingError: text("processing_error"), // Error message if processing failed
-    createdById: text("created_by_id").notNull(), // Kinde user ID
+    createdById: text("created_by_id").notNull(), // Better Auth user ID
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -51,7 +51,7 @@ export class ProjectTemplateService {
       // Get template
       const template = await ProjectTemplateQueries.findByProjectId(
         projectId,
-        organization.orgCode
+        organization.id
       );
 
       return ok(template);

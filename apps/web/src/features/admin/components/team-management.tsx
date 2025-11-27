@@ -30,12 +30,12 @@ export async function TeamManagement() {
 
   const {
     user,
-    organization: { orgCode },
+    organization: { id: organizationId },
   } = authResult.value;
 
   const canEdit = user ? isOrganizationAdmin(user) : false;
-  const teams = await getCachedTeamsByOrganization(orgCode);
-  const departments = await getCachedDepartmentsByOrganization(orgCode);
+  const teams = await getCachedTeamsByOrganization(organizationId);
+  const departments = await getCachedDepartmentsByOrganization(organizationId);
 
   return (
     <Card>
@@ -50,7 +50,7 @@ export async function TeamManagement() {
           teams={teams}
           departments={departments}
           canEdit={canEdit}
-          organizationId={orgCode}
+          organizationId={organizationId}
         />
       </CardContent>
     </Card>

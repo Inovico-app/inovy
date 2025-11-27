@@ -35,7 +35,7 @@ export interface ActionContext {
   logger: typeof logger;
   session?: SessionWithRoles;
   user?: AuthUser;
-  organizationId?: string; // Organization code from Kinde
+  organizationId?: string; // Organization ID from Better Auth
 }
 
 /**
@@ -147,7 +147,7 @@ async function authenticationMiddleware({
   }
 
   // Extract organization ID - this is critical for organization isolation
-  const organizationId = organization?.orgCode ?? authUser.organization_code;
+  const organizationId = organization?.id ?? authUser.organization_code;
 
   if (!organizationId) {
     ctx.logger.error("User does not belong to an organization", {

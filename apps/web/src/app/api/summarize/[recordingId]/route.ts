@@ -48,7 +48,7 @@ export const POST = withRateLimit(
       try {
         assertOrganizationAccess(
           recording.organizationId,
-          organization?.orgCode,
+          organization?.id,
           "api/summarize/[recordingId]/POST"
         );
       } catch (error) {
@@ -175,7 +175,7 @@ export async function GET(
     try {
       assertOrganizationAccess(
         recording.organizationId,
-        organization?.orgCode,
+        organization?.id,
         "api/summarize/[recordingId]/GET"
       );
     } catch (error) {

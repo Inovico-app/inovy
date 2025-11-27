@@ -25,7 +25,7 @@ export const getDeepgramClientTokenAction = publicActionClient.action(
       component: "getDeepgramClientTokenAction",
       action: "getDeepgramClientTokenAction",
       userId: user.id,
-      organizationId: organization.orgCode,
+      organizationId: organization.id,
     });
 
     const { result: tokenResult, error: tokenError } =
