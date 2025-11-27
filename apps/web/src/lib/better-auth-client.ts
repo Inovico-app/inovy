@@ -15,7 +15,10 @@ import { createAuthClient } from "better-auth/react";
  * Uses 'better-auth/react' for React hooks support (useSession, etc.)
  */
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  baseURL:
+    process.env.NODE_ENV === "development"
+      ? "http://localhost:3000"
+      : process.env.NEXT_PUBLIC_APP_URL,
   plugins: [magicLinkClient(), passkeyClient(), organizationClient()],
 });
 

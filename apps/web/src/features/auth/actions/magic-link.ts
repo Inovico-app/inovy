@@ -1,9 +1,9 @@
 "use server";
 
-import { headers } from "next/headers";
 import { publicActionClient } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
-import { betterAuthInstance } from "@/lib/better-auth";
+import { betterAuthInstance } from "@/lib/better-auth-server";
+import { headers } from "next/headers";
 import { magicLinkSchema } from "../validation/auth.schema";
 
 /**

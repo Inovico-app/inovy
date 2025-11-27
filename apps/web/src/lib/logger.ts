@@ -309,14 +309,47 @@ export const logger = new Logger();
 /**
  * Helper function to serialize errors for logging
  * Useful when passing errors as part of the context object
+ * Includes cause property for Drizzle and other wrapped errors
  */
 export function serializeError(error: unknown): unknown {
   if (error instanceof Error) {
-    return {
+    const serialized: Record<string, unknown> = {
       message: error.message,
       stack: error.stack,
       name: error.name,
     };
+
+    // Include cause if it exists (common in Drizzle errors)
+    if ("cause" in error && error.cause) {
+      if (error.cause instanceof Error) {
+        const causeError = error.cause as Error & Record<string, unknown>;
+        serialized.cause = {
+          message: causeError.message,
+          stack: causeError.stack,
+          name: causeError.name,
+          // Include any additional properties from the cause
+          ...(Object.fromEntries(
+            Object.entries(causeError).filter(
+              ([key]) => !["message", "stack", "name"].includes(key)
+            )
+          ) as Record<string, unknown>),
+        };
+      } else {
+        serialized.cause = error.cause;
+      }
+    }
+
+    // Include query property if it exists (Drizzle query errors)
+    if ("query" in error) {
+      serialized.query = (error as { query?: unknown }).query;
+    }
+
+    // Include params property if it exists (Drizzle query errors)
+    if ("params" in error) {
+      serialized.params = (error as { params?: unknown }).params;
+    }
+
+    return serialized;
   }
   return error;
 }

@@ -1,15 +1,23 @@
-import { getCookieCache } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
+
+const getSessionCookie = async (req: NextRequest) => {
+  const cookieName =
+    process.env.NODE_ENV === "production"
+      ? "__Secure-better-auth.session_token"
+      : "better-auth.session_token";
+  return req.cookies.get(cookieName);
+};
 
 export default async function proxy(req: NextRequest) {
   // Handle CORS for API routes
   if (req.nextUrl.pathname.startsWith("/api/")) {
     const res = NextResponse.next();
     res.headers.append("Access-Control-Allow-Credentials", "true");
-    res.headers.append(
-      "Access-Control-Allow-Origin",
-      process.env.CORS_ORIGIN ?? ""
-    );
+    const corsOrigin =
+      process.env.CORS_ORIGIN ??
+      process.env.NEXT_PUBLIC_APP_URL ??
+      "http://localhost:3000";
+    res.headers.append("Access-Control-Allow-Origin", corsOrigin);
     res.headers.append("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     res.headers.append(
       "Access-Control-Allow-Headers",
@@ -33,11 +41,11 @@ export default async function proxy(req: NextRequest) {
 
   // Optimistic session check using cookie cache
   // Note: This is optimistic - full validation happens in ProtectedPage components
-  const session = await getCookieCache(req);
+  const sessionCookie = await getSessionCookie(req);
 
   // Handle auth pages: redirect authenticated users away, allow unauthenticated users
   if (isAuthPage) {
-    if (session) {
+    if (sessionCookie) {
       // Authenticated user trying to access sign-in/sign-up - redirect to home
       return NextResponse.redirect(new URL("/", req.url));
     }
@@ -46,7 +54,7 @@ export default async function proxy(req: NextRequest) {
   }
 
   // For all other routes, require authentication
-  if (!session) {
+  if (!sessionCookie) {
     // Redirect to sign-in, preserving the original URL for redirect after login
     const signInUrl = new URL("/sign-in", req.url);
     signInUrl.searchParams.set("redirect", req.nextUrl.pathname);

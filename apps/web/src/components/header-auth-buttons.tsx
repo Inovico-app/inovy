@@ -1,7 +1,7 @@
 "use client";
 
 import { useUserRole } from "@/hooks/use-user-role";
-import { signOut, useSession } from "@/lib/auth-client";
+import { signOut, useSession } from "@/lib/better-auth-client";
 import { logger } from "@/lib/logger";
 import { Settings, Shield, User } from "lucide-react";
 import type { Route } from "next";
@@ -136,8 +136,8 @@ export function HeaderAuthButtons() {
                 {isSuperAdmin
                   ? "Superadmin"
                   : isAdmin
-                  ? "Admin"
-                  : firstRole ?? "User"}
+                    ? "Admin"
+                    : (firstRole ?? "User")}
               </Badge>
             </div>
           </DropdownMenuLabel>

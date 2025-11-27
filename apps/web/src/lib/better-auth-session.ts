@@ -3,7 +3,7 @@ import "server-only";
 import { type Result, err, ok } from "neverthrow";
 import { headers } from "next/headers";
 import { cache } from "react";
-import { betterAuthInstance } from "./better-auth";
+import { betterAuthInstance } from "./better-auth-server";
 import { logger } from "./logger";
 import type { Role } from "./rbac";
 

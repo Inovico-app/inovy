@@ -1,10 +1,10 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { publicActionClient } from "@/lib/action-client";
 import { ActionErrors } from "@/lib/action-errors";
-import { betterAuthInstance } from "@/lib/better-auth";
+import { betterAuthInstance } from "@/lib/better-auth-server";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import {
   signInEmailSchema,
   socialSignInSchema,
@@ -27,14 +27,11 @@ export const signInEmailAction = publicActionClient
         },
         headers: await headers(),
       });
-
-      // Redirect to home page after successful sign-in
-      // Cookies are set automatically by nextCookies plugin
-      redirect("/");
     } catch (error) {
+      console.error("SIGIN INERROR:", error);
       const message =
         error instanceof Error ? error.message : "Failed to sign in";
-      
+
       // Check if it's an email verification error
       if (message.includes("email") && message.includes("verify")) {
         throw ActionErrors.forbidden(
@@ -45,6 +42,9 @@ export const signInEmailAction = publicActionClient
 
       throw ActionErrors.validation(message, { email });
     }
+
+    // Always redirect to home page after successful sign-in
+    redirect("/");
   });
 
 /**
