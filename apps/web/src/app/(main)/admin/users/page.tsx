@@ -1,9 +1,16 @@
 import { PageLayout } from "@/components/page-layout";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TeamMemberAssignment } from "@/features/admin/components/team-member-assignment";
 import { UserManagementTable } from "@/features/admin/components/user-management-table";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
+import { getCachedOrganizationMembers } from "@/server/cache/organization.cache";
+import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
+import { OrganizationService } from "@/server/services/organization.service";
+import { TeamService } from "@/server/services/team.service";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -17,6 +24,62 @@ function AdminUsersHeader() {
         View and manage all organization members
       </p>
     </div>
+  );
+}
+
+async function TeamAssignmentTab() {
+  const authResult = await getAuthSession();
+
+  if (
+    authResult.isErr() ||
+    !authResult.value.isAuthenticated ||
+    !authResult.value.organization
+  ) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">
+          Unable to load team assignments. Please refresh and try again.
+        </p>
+      </div>
+    );
+  }
+
+  const { organization, user } = authResult.value;
+  const canEdit = user ? isOrganizationAdmin(user) : false;
+
+  // Fetch members and teams
+  const membersResult = await OrganizationService.getOrganizationMembers(
+    organization.id
+  );
+  const teams = await getCachedTeamsWithMemberCounts(organization.id);
+
+  // Fetch team memberships for all users
+  const members = membersResult.isOk() ? membersResult.value : [];
+  const membersWithTeams = await Promise.all(
+    members.map(async (member) => {
+      const userTeamsResult = await TeamService.getUserTeams(member.id);
+      const userTeams = userTeamsResult.isOk() ? userTeamsResult.value : [];
+
+      return {
+        ...member,
+        teams: userTeams.map((ut) => {
+          const team = teams.find((t) => t.id === ut.teamId);
+          return {
+            teamId: ut.teamId,
+            teamName: team?.name || "Unknown",
+            role: "member", // Better Auth doesn't support team member roles
+          };
+        }),
+      };
+    })
+  );
+
+  return (
+    <TeamMemberAssignment
+      members={membersWithTeams}
+      teams={teams}
+      canEdit={canEdit}
+    />
   );
 }
 
@@ -39,22 +102,46 @@ async function AdminUsersContainer() {
     <PageLayout>
       <AdminUsersHeader />
 
-      <div className="space-y-6">
-        <Suspense
-          fallback={
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-16 bg-muted rounded-lg animate-pulse"
-                />
-              ))}
-            </div>
-          }
-        >
-          <UserManagementTable />
-        </Suspense>
-      </div>
+      <Tabs defaultValue="users" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="team-assignments">Team Assignments</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users">
+          <Suspense
+            fallback={
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-16 bg-muted rounded-lg animate-pulse"
+                  />
+                ))}
+              </div>
+            }
+          >
+            <UserManagementTable />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="team-assignments">
+          <Suspense
+            fallback={
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-16 bg-muted rounded-lg animate-pulse"
+                  />
+                ))}
+              </div>
+            }
+          >
+            <TeamAssignmentTab />
+          </Suspense>
+        </TabsContent>
+      </Tabs>
     </PageLayout>
   );
 }
