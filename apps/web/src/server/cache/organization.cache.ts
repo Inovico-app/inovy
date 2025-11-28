@@ -7,7 +7,7 @@ import {
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
 import { db } from "@/server/db";
-import { members, users } from "@/server/db/schema/auth";
+import { members, organizations, users } from "@/server/db/schema/auth";
 import { eq } from "drizzle-orm";
 import { err, ok } from "neverthrow";
 import { cacheTag } from "next/cache";
@@ -107,6 +107,68 @@ export async function getCachedOrganizationInstructions(
         "Failed to get organization instructions",
         error as Error,
         "getCachedOrganizationInstructions"
+      )
+    );
+  }
+}
+
+/**
+ * Organization DTO for list view
+ */
+export interface OrganizationListDto {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  createdAt: Date;
+  memberCount: number;
+}
+
+/**
+ * Get all organizations (cached)
+ * For superadmin use only
+ */
+export async function getCachedAllOrganizations(): Promise<
+  ActionResult<OrganizationListDto[]>
+> {
+  "use cache";
+  cacheTag(CacheTags.organizations());
+
+  try {
+    // Query all organizations with member counts
+    const orgsResult = await db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        slug: organizations.slug,
+        logo: organizations.logo,
+        createdAt: organizations.createdAt,
+      })
+      .from(organizations);
+
+    // Get member counts for each organization
+    const orgsWithCounts = await Promise.all(
+      orgsResult.map(async (org) => {
+        const memberCountResult = await db
+          .select()
+          .from(members)
+          .where(eq(members.organizationId, org.id));
+
+        return {
+          ...org,
+          memberCount: memberCountResult.length,
+        };
+      })
+    );
+
+    return ok(orgsWithCounts);
+  } catch (error) {
+    logger.error("Failed to get all organizations", {}, error as Error);
+    return err(
+      ActionErrors.internal(
+        "Failed to get all organizations",
+        error as Error,
+        "getCachedAllOrganizations"
       )
     );
   }
