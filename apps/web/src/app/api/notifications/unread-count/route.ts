@@ -1,14 +1,14 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { getAuthSession } from "@/lib/auth";
-import { NotificationService } from "@/server/services/notification.service";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
+import { NotificationService } from "@/server/services/notification.service";
+import { NextResponse } from "next/server";
 
 /**
  * GET /api/notifications/unread-count
  * Returns the unread notification count for the authenticated user
  * Used by React Query for real-time polling
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Verify authentication
     const authResult = await getAuthSession();

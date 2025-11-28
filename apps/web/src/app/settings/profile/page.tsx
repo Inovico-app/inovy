@@ -1,4 +1,5 @@
 import { ProtectedPage } from "@/components/protected-page";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,13 +12,14 @@ import { AutoProcessToggle } from "@/features/recordings/components/auto-process
 import { DataDeletion } from "@/features/settings/components/data-deletion";
 import { DataExport } from "@/features/settings/components/data-export";
 import { getDeletionStatus } from "@/features/settings/lib/get-deletion-status";
-import { getAuthSession } from "@/lib/auth";
-import { getCachedUserTeams } from "@/server/cache/team.cache";
-import { getCachedTeamsByOrganization } from "@/server/cache/team.cache";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
+import {
+  getCachedTeamsByOrganization,
+  getCachedUserTeams,
+} from "@/server/cache/team.cache";
 import { Building2Icon, MailIcon, UserIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Badge } from "@/components/ui/badge";
 
 async function ProfileContent() {
   const authResult = await getAuthSession();

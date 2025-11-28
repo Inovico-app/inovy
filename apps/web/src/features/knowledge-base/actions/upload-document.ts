@@ -1,12 +1,12 @@
 "use server";
 
+import { CacheInvalidation } from "@/lib/cache-utils";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
-import { ActionErrors } from "@/lib/action-errors";
-import { CacheInvalidation } from "@/lib/cache-utils";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { DocumentProcessingService } from "@/server/services/document-processing.service";
 import { uploadKnowledgeDocumentSchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";

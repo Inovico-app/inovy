@@ -229,8 +229,43 @@
     {
       "idx": 38,
       "version": "7",
-      "when": 1764245476786,
-      "tag": "0038_add_better_auth_schema",
+      "when": 1764318703522,
+      "tag": "0038_drop_old_teams",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1764318728783,
+      "tag": "0039_add_auth_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1764328395616,
+      "tag": "0040_rename_magic_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1764338299650,
+      "tag": "0041_drop_departments",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1764338400000,
+      "tag": "0042_add_encryption_at_rest_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1764348072574,
+      "tag": "0043_simplify_roles",
       "breakpoints": true
     }
   ]

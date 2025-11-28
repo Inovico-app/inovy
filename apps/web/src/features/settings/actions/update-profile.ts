@@ -1,9 +1,9 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
-import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { UserService } from "@/server/services/user.service";
 import { updateProfileSchema } from "@/server/validation/settings/update-profile";
 

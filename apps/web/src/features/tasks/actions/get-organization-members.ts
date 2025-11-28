@@ -1,9 +1,9 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
-import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { OrganizationService } from "@/server/services/organization.service";
 import { z } from "zod";
 
@@ -29,9 +29,8 @@ export const getOrgMembers = authorizedActionClient
     }
 
     // Fetch organization members via service layer
-    const membersResult = await OrganizationService.getOrganizationMembers(
-      organizationId
-    );
+    const membersResult =
+      await OrganizationService.getOrganizationMembers(organizationId);
 
     if (membersResult.isErr()) {
       logger.error("Failed to fetch organization members", {
@@ -55,7 +54,7 @@ export const getOrgMembers = authorizedActionClient
       displayName:
         member.given_name && member.family_name
           ? `${member.given_name} ${member.family_name}`.trim()
-          : member.email ?? member.id,
+          : (member.email ?? member.id),
     }));
 
     return members;

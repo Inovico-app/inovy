@@ -1,7 +1,7 @@
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
-import { TeamService } from "../services/team.service";
 import type { TeamDto, UserTeamRoleDto } from "../dto/team.dto";
+import { TeamService } from "../services/team.service";
 
 /**
  * Cached team queries
@@ -22,31 +22,22 @@ export async function getCachedTeamsByOrganization(
   const teams = await TeamService.getTeamsByOrganization(organizationId);
 
   if (teams.isOk()) {
-    return teams.value;
+    // Map Better Auth Team[] to TeamDto[]
+    return teams.value.map((team) => ({
+      id: team.id,
+      departmentId: null, // Better Auth doesn't support departments
+      organizationId: team.organizationId,
+      name: team.name,
+      description: null, // Better Auth doesn't support description
+      createdAt: team.createdAt,
+      updatedAt: team.updatedAt ?? team.createdAt,
+    }));
   }
 
   return [];
 }
 
 /**
- * Get teams by department (cached)
- * Calls TeamService which includes business logic and auth checks
- */
-export async function getCachedTeamsByDepartment(
-  departmentId: string
-): Promise<TeamDto[]> {
-  "use cache: private";
-  cacheTag(CacheTags.teamsByDepartment(departmentId));
-
-  const teams = await TeamService.getTeamsByDepartment(departmentId);
-
-  if (teams.isOk()) {
-    return teams.value;
-  }
-
-  return [];
-}
-
 /**
  * Get team by ID (cached)
  * Calls TeamService which includes business logic and auth checks
@@ -57,8 +48,17 @@ export async function getCachedTeamById(id: string): Promise<TeamDto | null> {
 
   const team = await TeamService.getTeamById(id);
 
-  if (team.isOk()) {
-    return team.value;
+  if (team.isOk() && team.value) {
+    // Map Better Auth Team to TeamDto
+    return {
+      id: team.value.id,
+      departmentId: null, // Better Auth doesn't support departments
+      organizationId: team.value.organizationId,
+      name: team.value.name,
+      description: null, // Better Auth doesn't support description
+      createdAt: team.value.createdAt,
+      updatedAt: team.value.updatedAt ?? team.value.createdAt,
+    };
   }
 
   return null;
@@ -78,7 +78,13 @@ export async function getCachedUserTeams(
   const userTeams = await TeamService.getUserTeams(userId);
 
   if (userTeams.isOk()) {
-    return userTeams.value;
+    // Map Better Auth TeamMember[] to UserTeamRoleDto[]
+    return userTeams.value.map((member) => ({
+      userId: member.userId,
+      teamId: member.teamId,
+      role: "member" as const, // Better Auth doesn't support roles for team members
+      joinedAt: member.createdAt ?? new Date(),
+    }));
   }
 
   return [];

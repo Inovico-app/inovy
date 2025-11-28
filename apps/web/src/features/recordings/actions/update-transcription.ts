@@ -1,12 +1,9 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { TranscriptionEditService } from "@/server/services/transcription-edit.service";
-import {
-  updateTranscriptionSchema,
-  type UpdateTranscriptionInput,
-} from "@/server/validation/recordings/update-transcription";
+import { updateTranscriptionSchema } from "@/server/validation/recordings/update-transcription";
 
 /**
  * Server action to update transcription content

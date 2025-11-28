@@ -1,11 +1,11 @@
 "use server";
 
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
-import { policyToPermissions } from "@/lib/permission-helpers";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { EmbeddingCacheQueries } from "@/server/data-access/embedding-cache.queries";
 import { ok } from "neverthrow";
 import { z } from "zod";
@@ -55,9 +55,8 @@ export const invalidateEmbeddingCacheByModel = authorizedActionClient
     const { model } = parsedInput;
 
     try {
-      const deletedCount = await EmbeddingCacheQueries.invalidateCacheByModel(
-        model
-      );
+      const deletedCount =
+        await EmbeddingCacheQueries.invalidateCacheByModel(model);
 
       return resultToActionResponse(
         ok({

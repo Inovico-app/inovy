@@ -1,8 +1,8 @@
 "use server";
 
 import { logger } from "@/lib/logger";
-import { authorizedActionClient } from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { AIInsightService } from "@/server/services/ai-insight.service";
 import { revalidatePath } from "next/cache";
@@ -78,9 +78,8 @@ export const updateSpeakerNames = authorizedActionClient
       }
 
       // Get projectId from the recording to revalidate the correct path
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
 
       if (recording) {
         revalidatePath(

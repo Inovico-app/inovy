@@ -1,7 +1,10 @@
 import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { logger } from "../../lib/logger";
-import { assertOrganizationAccess } from "../../lib/organization-isolation";
+import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "../../lib/server-action-client/action-errors";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { TranscriptionHistoryQueries } from "../data-access/transcription-history.queries";
 import type { UpdateTranscriptionInput } from "../validation/recordings/update-transcription";
@@ -147,9 +150,8 @@ export class TranscriptionEditService {
 
     try {
       // Verify recording belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
           ActionErrors.notFound(
@@ -230,9 +232,8 @@ export class TranscriptionEditService {
 
     try {
       // Verify recording belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
           ActionErrors.notFound(

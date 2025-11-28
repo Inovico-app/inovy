@@ -1,7 +1,10 @@
-import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
+import { err, ok } from "neverthrow";
 import { AIInsightsQueries } from "../data-access/ai-insights.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { SummaryHistoryQueries } from "../data-access/summary-history.queries";
@@ -31,10 +34,7 @@ export class SummaryEditService {
       );
       if (!recording) {
         return err(
-          ActionErrors.notFound(
-            "Recording",
-            "SummaryEditService.updateSummary"
-          )
+          ActionErrors.notFound("Recording", "SummaryEditService.updateSummary")
         );
       }
 
@@ -61,10 +61,7 @@ export class SummaryEditService {
 
       if (!summaryInsight) {
         return err(
-          ActionErrors.notFound(
-            "Summary",
-            "SummaryEditService.updateSummary"
-          )
+          ActionErrors.notFound("Summary", "SummaryEditService.updateSummary")
         );
       }
 
@@ -143,7 +140,8 @@ export class SummaryEditService {
   > {
     try {
       // Verify recording belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
           ActionErrors.notFound(
@@ -190,3 +188,4 @@ export class SummaryEditService {
     }
   }
 }
+

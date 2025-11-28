@@ -1,8 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
 import { DriveWatchesService } from "@/server/services/drive-watches.service";
 import { startDriveWatchSchema } from "@/server/validation/drive-watch";
+import { type NextRequest, NextResponse } from "next/server";
 
 /**
  * POST /api/integrations/google/drive/watch/start
@@ -104,11 +104,7 @@ export async function POST(request: NextRequest) {
       watch: result.value,
     });
   } catch (error) {
-    logger.error(
-      "Error in start Drive watch API route",
-      {},
-      error as Error
-    );
+    logger.error("Error in start Drive watch API route", {}, error as Error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

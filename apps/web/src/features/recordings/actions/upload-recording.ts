@@ -1,6 +1,6 @@
 "use server";
 
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 import { RecordingService } from "@/server/services/recording.service";

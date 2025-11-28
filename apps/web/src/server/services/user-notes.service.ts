@@ -1,6 +1,9 @@
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { err, ok } from "neverthrow";
@@ -24,13 +27,11 @@ export class UserNotesService {
       });
 
       // Verify recording belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
-          ActionErrors.notFound(
-            "Recording",
-            "UserNotesService.updateUserNotes"
-          )
+          ActionErrors.notFound("Recording", "UserNotesService.updateUserNotes")
         );
       }
 
@@ -50,9 +51,8 @@ export class UserNotesService {
       }
 
       // Get the summary insight for this recording
-      const insights = await AIInsightsQueries.getInsightsByRecordingId(
-        recordingId
-      );
+      const insights =
+        await AIInsightsQueries.getInsightsByRecordingId(recordingId);
       const summaryInsight = insights.find((i) => i.insightType === "summary");
 
       if (!summaryInsight) {
@@ -61,10 +61,7 @@ export class UserNotesService {
           recordingId,
         });
         return err(
-          ActionErrors.notFound(
-            "Summary",
-            "UserNotesService.updateUserNotes"
-          )
+          ActionErrors.notFound("Summary", "UserNotesService.updateUserNotes")
         );
       }
 

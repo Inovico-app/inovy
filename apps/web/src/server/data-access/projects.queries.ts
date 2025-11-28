@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db";
-import { user } from "../db/schema/auth";
+import { users } from "../db/schema/auth";
 import { projects } from "../db/schema/projects";
 import { recordings } from "../db/schema/recordings";
 import type {
@@ -65,12 +65,12 @@ export class ProjectQueries {
         createdById: projects.createdById,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
-        creatorName: user.name,
-        creatorEmail: user.email,
-        creatorImage: user.image,
+        creatorName: users.name,
+        creatorEmail: users.email,
+        creatorImage: users.image,
       })
       .from(projects)
-      .leftJoin(user, eq(projects.createdById, user.id))
+      .leftJoin(users, eq(projects.createdById, users.id))
       .where(
         and(
           eq(projects.id, projectId),
@@ -193,12 +193,12 @@ export class ProjectQueries {
         createdById: projects.createdById,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
-        creatorName: user.name,
-        creatorEmail: user.email,
-        creatorImage: user.image,
+        creatorName: users.name,
+        creatorEmail: users.email,
+        creatorImage: users.image,
       })
       .from(projects)
-      .leftJoin(user, eq(projects.createdById, user.id))
+      .leftJoin(users, eq(projects.createdById, users.id))
       .where(and(...whereConditions));
 
     return result.map((project) => ({
@@ -353,15 +353,15 @@ export class ProjectQueries {
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
         recordingCount: sql<number>`cast(count(${recordings.id}) as int)`,
-        creatorName: user.name,
-        creatorEmail: user.email,
-        creatorImage: user.image,
+        creatorName: users.name,
+        creatorEmail: users.email,
+        creatorImage: users.image,
       })
       .from(projects)
       .leftJoin(recordings, eq(projects.id, recordings.projectId))
-      .leftJoin(user, eq(projects.createdById, user.id))
+      .leftJoin(users, eq(projects.createdById, users.id))
       .where(and(...whereConditions))
-      .groupBy(projects.id, user.id, user.name, user.email, user.image);
+      .groupBy(projects.id, users.id, users.name, users.email, users.image);
 
     return result.map((project) => ({
       id: project.id,

@@ -1,6 +1,6 @@
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { ProjectService } from "@/server/services/project.service";
 import { RAGService } from "@/server/services/rag/rag.service";
 import { type NextRequest, NextResponse } from "next/server";
@@ -19,7 +19,12 @@ export async function POST(request: NextRequest) {
   try {
     const authResult = await getAuthSession();
 
-    if (authResult.isErr() || !authResult.value.isAuthenticated || !authResult.value.user || !authResult.value.organization) {
+    if (
+      authResult.isErr() ||
+      !authResult.value.isAuthenticated ||
+      !authResult.value.user ||
+      !authResult.value.organization
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

@@ -1,15 +1,18 @@
 "use server";
 
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { ok } from "neverthrow";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { logger } from "../../../lib/logger";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "../../../lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
-import { ActionErrors, type ActionError } from "../../../lib/action-errors";
-import { logger } from "../../../lib/logger";
+} from "../../../lib/server-action-client/action-client";
+import {
+  ActionErrors,
+  type ActionError,
+} from "../../../lib/server-action-client/action-errors";
 import type { ConsentParticipant } from "../../../server/db/schema/consent";
 import { ConsentService } from "../../../server/services/consent.service";
 import {

@@ -16,7 +16,9 @@
     "db:seed": "tsx --env-file=.env.local src/server/db/seed.ts",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx src --fix --max-warnings 0",
     "typecheck": "tsc",
-    "index-project": "npx tsx --env-file=.env.local src/scripts/index-project-content.ts"
+    "index-project": "npx tsx --env-file=.env.local src/scripts/index-project-content.ts",
+    "auth:generate": "pnpx @better-auth/cli generate && pnpm tsx scripts/add-role-types.ts",
+    "auth:add-role-types": "pnpm tsx scripts/add-role-types.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.60",

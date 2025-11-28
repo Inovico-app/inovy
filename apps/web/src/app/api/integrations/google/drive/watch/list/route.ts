@@ -1,7 +1,7 @@
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
-import { Permissions } from "@/lib/permissions";
-import { checkPermission } from "@/lib/permissions-server";
+import { Permissions } from "@/lib/rbac/permissions";
+import { checkPermission } from "@/lib/rbac/permissions-server";
 import { DriveWatchesService } from "@/server/services/drive-watches.service";
 import { type NextRequest, NextResponse } from "next/server";
 

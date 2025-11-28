@@ -1,13 +1,12 @@
 "use client";
 
-import { useUserRole } from "@/hooks/use-user-role";
-import { signOut, useSession } from "@/lib/better-auth-client";
+import { useActiveMemberRole } from "@/hooks/use-active-member-role";
+import { signOut, useSession } from "@/lib/auth-client";
 import { logger } from "@/lib/logger";
 import { Settings, Shield, User } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -22,38 +21,13 @@ import {
 
 export function HeaderAuthButtons() {
   const { data: session, isPending, error } = useSession();
-  const { data: userRoleData } = useUserRole();
-  const router = useRouter();
-  const [hasLoggedError, setHasLoggedError] = useState(false);
-
   const user = session?.user;
   const isAuthenticated = !!user;
-  const isLoading = isPending;
+  const { data: roleData, isPending: isRolePending } =
+    useActiveMemberRole(isAuthenticated);
+  const router = useRouter();
 
-  // Log auth errors on client side
-  useEffect(() => {
-    if (error && !hasLoggedError) {
-      const errorObj = new Error(
-        `Better Auth error: ${error.message ?? String(error)}`
-      );
-      logger.auth.error("Better Auth client authentication error", errorObj);
-      setHasLoggedError(true);
-    }
-  }, [error, hasLoggedError]);
-
-  // Log successful auth state changes
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
-      logger.auth.sessionCheck(true, {
-        userId: user.id,
-        component: "HeaderAuthButtons",
-      });
-    } else if (!isLoading && !isAuthenticated) {
-      logger.auth.sessionCheck(false, {
-        component: "HeaderAuthButtons",
-      });
-    }
-  }, [isLoading, isAuthenticated, user]);
+  const isLoading = isPending ?? isRolePending;
 
   const handleLoginClick = () => {
     logger.auth.loginAttempt({ component: "HeaderAuthButtons" });
@@ -94,9 +68,6 @@ export function HeaderAuthButtons() {
     );
   }
 
-  const { isAdmin, isSuperAdmin, roles } = userRoleData ?? {};
-  const firstRole = roles?.[0];
-
   if (isAuthenticated && user) {
     // Get user initials for avatar fallback
     const userName = user.name ?? user.email ?? "User";
@@ -106,8 +77,15 @@ export function HeaderAuthButtons() {
         .map((n) => n[0])
         .join("")
         .toUpperCase()
-        .slice(0, 2) ||
-      (user.email?.[0]?.toUpperCase() ?? "U");
+        .slice(0, 2) ??
+      user.email?.[0]?.toUpperCase() ??
+      "U";
+
+    // Get roles from Better Auth API via useActiveMemberRole hook
+    const userRoles = roleData?.roles ?? ["user"];
+    const firstRole = userRoles[0] ?? "user";
+    const isSuperAdmin = roleData?.roles.includes("superadmin") ?? false;
+    const isAdmin = roleData?.roles.includes("admin") ?? false;
 
     return (
       <DropdownMenu>
@@ -132,12 +110,7 @@ export function HeaderAuthButtons() {
                 </p>
               </div>
               <Badge className="capitalize">
-                +{" "}
-                {isSuperAdmin
-                  ? "Superadmin"
-                  : isAdmin
-                    ? "Admin"
-                    : (firstRole ?? "User")}
+                {isSuperAdmin ? "Superadmin" : isAdmin ? "Admin" : firstRole}
               </Badge>
             </div>
           </DropdownMenuLabel>

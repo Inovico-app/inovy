@@ -1,6 +1,9 @@
 import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { logger } from "../../lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "../../lib/server-action-client/action-errors";
 import { UserQueries } from "../data-access/user.queries";
 
 export interface UserDto {
@@ -264,6 +267,60 @@ export class UserService {
           "Failed to update user",
           error as Error,
           "UserService.updateUser"
+        )
+      );
+    }
+  }
+
+  /**
+   * Get organizationId for a user
+   * @param userId - Better Auth user ID
+   * @returns Organization ID or error if user is not a member of any organization
+   */
+  static async getOrganizationIdByUserId(
+    userId: string
+  ): Promise<ActionResult<string>> {
+    logger.info("Fetching organization ID for user", {
+      component: "UserService.getOrganizationIdByUserId",
+      userId,
+    });
+
+    try {
+      const organizationId =
+        await UserQueries.getOrganizationIdByUserId(userId);
+
+      if (!organizationId) {
+        logger.warn("User is not a member of any organization", {
+          component: "UserService.getOrganizationIdByUserId",
+          userId,
+        });
+        return err(
+          ActionErrors.notFound(
+            "User organization membership",
+            "UserService.getOrganizationIdByUserId"
+          )
+        );
+      }
+
+      logger.info("Successfully fetched organization ID for user", {
+        component: "UserService.getOrganizationIdByUserId",
+        userId,
+        organizationId,
+      });
+
+      return ok(organizationId);
+    } catch (error) {
+      logger.error("Failed to get organization ID for user", {
+        component: "UserService.getOrganizationIdByUserId",
+        error,
+        userId,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to get organization ID for user",
+          error as Error,
+          "UserService.getOrganizationIdByUserId"
         )
       );
     }

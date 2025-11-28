@@ -1,12 +1,12 @@
 "use server";
 
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
-import { ActionErrors } from "@/lib/action-errors";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { RecordingService } from "@/server/services/recording.service";
 import { z } from "zod";
 
@@ -26,9 +26,8 @@ export const getRecordingStatusAction = authorizedActionClient
     }
 
     // Get recording
-    const recordingResult = await RecordingService.getRecordingById(
-      recordingId
-    );
+    const recordingResult =
+      await RecordingService.getRecordingById(recordingId);
     const recording = resultToActionResponse(recordingResult);
 
     if (!recording) {

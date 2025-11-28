@@ -1,16 +1,19 @@
 "use cache";
 
-import { err, ok } from "neverthrow";
 import { CacheTags } from "@/lib/cache-utils";
-import { cacheTag } from "next/cache";
-import { db } from "@/server/db";
-import { member, user } from "@/server/db/schema/auth";
-import { eq } from "drizzle-orm";
 import { logger } from "@/lib/logger";
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
-import type { OrganizationMemberDto } from "../services/organization.service";
-import type { OrganizationSettingsDto } from "../dto/organization-settings.dto";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
+import { db } from "@/server/db";
+import { members, users } from "@/server/db/schema/auth";
+import { eq } from "drizzle-orm";
+import { err, ok } from "neverthrow";
+import { cacheTag } from "next/cache";
 import { OrganizationSettingsQueries } from "../data-access/organization-settings.queries";
+import type { OrganizationSettingsDto } from "../dto/organization-settings.dto";
+import type { OrganizationMemberDto } from "../services/organization.service";
 
 /**
  * Cached organization queries
@@ -30,23 +33,23 @@ export async function getCachedOrganizationMembers(
 
   try {
     // Query organization members directly from Better Auth tables
-    const members = await db
+    const membersResult = await db
       .select({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: member.role,
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: members.role,
       })
-      .from(member)
-      .innerJoin(user, eq(member.userId, user.id))
-      .where(eq(member.organizationId, organizationId));
+      .from(members)
+      .innerJoin(users, eq(members.userId, users.id))
+      .where(eq(members.organizationId, organizationId));
 
-    if (members.length === 0) {
+    if (membersResult.length === 0) {
       return ok([]);
     }
 
     // Map Better Auth member format to our expected format
-    const mappedMembers: OrganizationMemberDto[] = members.map((m) => {
+    const mappedMembers: OrganizationMemberDto[] = membersResult.map((m) => {
       const roles = m.role ? [m.role] : [];
       const nameParts = m.name?.split(" ") ?? [];
       const given_name = nameParts[0] ?? null;

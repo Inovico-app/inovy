@@ -7,9 +7,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer";
-import { getAuthSession } from "@/lib/auth";
-import { Permissions } from "@/lib/permissions";
-import { checkPermission } from "@/lib/permissions-server";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { Permissions } from "@/lib/rbac/permissions";
+import { checkPermission } from "@/lib/rbac/permissions-server";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";

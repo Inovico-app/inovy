@@ -12,8 +12,11 @@
  * - LLM-optimized result formatting
  */
 
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
 import { z } from "zod";
 import { RAGService } from "../rag/rag.service";

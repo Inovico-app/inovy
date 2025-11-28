@@ -1,7 +1,10 @@
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
-import type { AuthUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/auth/auth-helpers";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
 import { OrganizationSettingsQueries } from "../data-access/organization-settings.queries";
 import type { OrganizationSettingsDto } from "../dto/organization-settings.dto";
@@ -19,9 +22,8 @@ export class OrganizationSettingsService {
     organizationId: string
   ): Promise<ActionResult<OrganizationSettingsDto | null>> {
     try {
-      const settings = await OrganizationSettingsQueries.findByOrganizationId(
-        organizationId
-      );
+      const settings =
+        await OrganizationSettingsQueries.findByOrganizationId(organizationId);
 
       if (!settings) {
         return ok(null);
@@ -105,7 +107,11 @@ export class OrganizationSettingsService {
     organizationId: string,
     user: AuthUser
   ): Promise<ActionResult<OrganizationSettingsDto>> {
-    return this.updateOrganizationSettings(organizationId, instructions, user.id);
+    return this.updateOrganizationSettings(
+      organizationId,
+      instructions,
+      user.id
+    );
   }
 
   /**
@@ -120,9 +126,8 @@ export class OrganizationSettingsService {
     // Note: We need a userId but the caller doesn't provide one.
     // For updates, we'll use the existing createdById from the DB
     try {
-      const existing = await OrganizationSettingsQueries.findByOrganizationId(
-        organizationId
-      );
+      const existing =
+        await OrganizationSettingsQueries.findByOrganizationId(organizationId);
 
       if (!existing) {
         return err(

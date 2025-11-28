@@ -7,20 +7,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DepartmentManagement } from "@/features/admin/components/department-management";
 import { TeamManagement } from "@/features/admin/components/team-management";
 import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/components/organization-knowledge-base-section";
 import { getOrganizationSettings } from "@/features/settings/actions/organization-settings";
 import { OrganizationInstructionsSection } from "@/features/settings/components/organization-instructions-section";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
-import { isOrganizationAdmin } from "@/lib/rbac";
+import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import {
   getCachedKnowledgeDocuments,
   getCachedKnowledgeEntries,
 } from "@/server/cache/knowledge-base.cache";
 import { OrganizationService } from "@/server/services/organization.service";
-import type { BetterAuthOrganization } from "@/lib/better-auth-session";
 import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -63,9 +61,8 @@ async function OrganizationContent() {
   }> = [];
 
   if (organizationId) {
-    const membersResult = await OrganizationService.getOrganizationMembers(
-      organizationId
-    );
+    const membersResult =
+      await OrganizationService.getOrganizationMembers(organizationId);
     if (membersResult.isOk()) {
       members = membersResult.value;
     }
@@ -169,9 +166,6 @@ async function OrganizationContent() {
         />
       )}
 
-      {/* Departments */}
-      {organizationId && <DepartmentManagement />}
-
       {/* Teams */}
       {organizationId && <TeamManagement />}
 
@@ -198,7 +192,7 @@ async function OrganizationContent() {
                       <p className="font-medium">
                         {member.given_name && member.family_name
                           ? `${member.given_name} ${member.family_name}`
-                          : member.given_name ?? member.email ?? "Unknown"}
+                          : (member.given_name ?? member.email ?? "Unknown")}
                       </p>
                       {member.roles && member.roles.length > 0 && (
                         <div className="flex gap-1">

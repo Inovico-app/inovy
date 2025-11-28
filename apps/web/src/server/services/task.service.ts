@@ -1,8 +1,8 @@
-import { ActionErrors } from "@/lib/action-errors";
-import type { ActionResult } from "@/lib/action-client";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import type { ActionResult } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
-import { getAuthSession } from "../../lib/auth";
+import { getAuthSession } from "../../lib/auth/auth-helpers";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { getCachedTaskStats } from "../cache/task.cache";
@@ -11,9 +11,9 @@ import {
   TasksQueries,
   type TaskWithContext,
 } from "../data-access/tasks.queries";
-import type { Task } from "../db/schema/tasks";
 import type { TaskHistory } from "../db/schema/task-history";
 import type { TaskTag } from "../db/schema/task-tags";
+import type { Task } from "../db/schema/tasks";
 import type {
   TaskDto,
   TaskFiltersDto,
@@ -162,13 +162,10 @@ export class TaskService {
         );
       }
 
-      const tasks = await TasksQueries.getTasksWithContext(
-        organization.id,
-        {
-          ...filters,
-          assigneeId: authUser.id,
-        }
-      );
+      const tasks = await TasksQueries.getTasksWithContext(organization.id, {
+        ...filters,
+        assigneeId: authUser.id,
+      });
 
       return ok(tasks.map((task) => this.toContextDto(task)));
     } catch (error) {
@@ -470,10 +467,7 @@ export class TaskService {
         );
       } catch (error) {
         return err(
-          ActionErrors.notFound(
-            "Task not found",
-            "TaskService.getTaskHistory"
-          )
+          ActionErrors.notFound("Task not found", "TaskService.getTaskHistory")
         );
       }
 

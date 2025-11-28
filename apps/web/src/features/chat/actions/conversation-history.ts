@@ -1,7 +1,7 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ChatService } from "@/server/services/chat.service";
 import {
   conversationIdSchema,
@@ -73,7 +73,10 @@ export const softDeleteConversationAction = authorizedActionClient
   .metadata({ permissions: policyToPermissions("chat:project") })
   .schema(conversationIdSchema)
   .action(
-    async ({ parsedInput: { conversationId }, ctx: { user, organizationId } }) => {
+    async ({
+      parsedInput: { conversationId },
+      ctx: { user, organizationId },
+    }) => {
       if (!user) {
         throw new Error("User not authenticated");
       }
@@ -101,7 +104,10 @@ export const restoreConversationAction = authorizedActionClient
   .metadata({ permissions: policyToPermissions("chat:project") })
   .schema(conversationIdSchema)
   .action(
-    async ({ parsedInput: { conversationId }, ctx: { user, organizationId } }) => {
+    async ({
+      parsedInput: { conversationId },
+      ctx: { user, organizationId },
+    }) => {
       if (!user) {
         throw new Error("User not authenticated");
       }
@@ -135,7 +141,10 @@ export const archiveConversationAction = authorizedActionClient
   .metadata({ permissions: policyToPermissions("chat:project") })
   .schema(conversationIdSchema)
   .action(
-    async ({ parsedInput: { conversationId }, ctx: { user, organizationId } }) => {
+    async ({
+      parsedInput: { conversationId },
+      ctx: { user, organizationId },
+    }) => {
       if (!user) {
         throw new Error("User not authenticated");
       }
@@ -163,7 +172,10 @@ export const unarchiveConversationAction = authorizedActionClient
   .metadata({ permissions: policyToPermissions("chat:project") })
   .schema(conversationIdSchema)
   .action(
-    async ({ parsedInput: { conversationId }, ctx: { user, organizationId } }) => {
+    async ({
+      parsedInput: { conversationId },
+      ctx: { user, organizationId },
+    }) => {
       if (!user) {
         throw new Error("User not authenticated");
       }

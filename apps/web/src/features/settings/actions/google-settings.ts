@@ -1,16 +1,13 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
-import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { IntegrationSettingsService } from "@/server/services/integration-settings.service";
-import {
-  updateGoogleSettingsSchema,
-  type UpdateGoogleSettingsInput,
-} from "@/server/validation/integrations/google-settings";
-import { revalidatePath } from "next/cache";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import type { IntegrationSettings } from "@/server/db/schema/integration-settings";
+import { IntegrationSettingsService } from "@/server/services/integration-settings.service";
+import { updateGoogleSettingsSchema } from "@/server/validation/integrations/google-settings";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 const getGoogleSettingsSchema = z.object({
@@ -152,3 +149,4 @@ export const resetGoogleSettings = authorizedActionClient
 
     return { success: true };
   });
+

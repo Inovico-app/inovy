@@ -1,21 +1,21 @@
+import type { Team, TeamInput, TeamMember } from "better-auth/plugins";
 import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
-import { getAuthSession } from "../../lib/auth";
+import { getAuthSession } from "../../lib/auth/auth-helpers";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
-import { assertOrganizationAccess } from "../../lib/organization-isolation";
-import { DepartmentQueries } from "../data-access/departments.queries";
-import { TeamQueries } from "../data-access/teams.queries";
+import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
 import {
-  UserTeamQueries,
-  type UserTeamRole,
-} from "../data-access/user-teams.queries";
+  ActionErrors,
+  type ActionResult,
+} from "../../lib/server-action-client/action-errors";
+import { TeamQueries, UserTeamQueries } from "../data-access/teams.queries";
 import type {
   CreateTeamDto,
   TeamDto,
   UpdateTeamDto,
   UserTeamRoleDto,
 } from "../dto/team.dto";
+type UserTeamRole = "member" | "lead" | "admin";
 
 /**
  * Business logic layer for Team operations
@@ -27,7 +27,7 @@ export class TeamService {
    */
   static async getTeamsByOrganization(
     organizationId: string
-  ): Promise<ActionResult<TeamDto[]>> {
+  ): Promise<ActionResult<Team[]>> {
     try {
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
@@ -60,17 +60,7 @@ export class TeamService {
 
       const teams = await TeamQueries.selectTeamsByOrganization(organizationId);
 
-      const teamDtos: TeamDto[] = teams.map((team) => ({
-        id: team.id,
-        departmentId: team.departmentId,
-        organizationId: team.organizationId,
-        name: team.name,
-        description: team.description,
-        createdAt: team.createdAt,
-        updatedAt: team.updatedAt,
-      }));
-
-      return ok(teamDtos);
+      return ok(teams);
     } catch (error) {
       logger.error("Failed to get teams", { organizationId }, error as Error);
       return err(
@@ -84,87 +74,9 @@ export class TeamService {
   }
 
   /**
-   * Get teams by department
-   */
-  static async getTeamsByDepartment(
-    departmentId: string
-  ): Promise<ActionResult<TeamDto[]>> {
-    try {
-      const authResult = await getAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TeamService.getTeamsByDepartment"
-          )
-        );
-      }
-
-      const { organization } = authResult.value;
-      if (!organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TeamService.getTeamsByDepartment"
-          )
-        );
-      }
-
-      // Validate department exists and user has access
-      const department = await DepartmentQueries.selectDepartmentById(
-        departmentId
-      );
-      if (!department) {
-        return err(
-          ActionErrors.notFound(
-            "Department",
-            "TeamService.getTeamsByDepartment"
-          )
-        );
-      }
-
-      // Verify organization access
-      assertOrganizationAccess(
-        department.organizationId,
-        organization.id,
-        "TeamService.getTeamsByDepartment"
-      );
-
-      const teams = await TeamQueries.selectTeamsByDepartment(departmentId);
-
-      const teamDtos: TeamDto[] = teams.map((team) => ({
-        id: team.id,
-        departmentId: team.departmentId,
-        organizationId: team.organizationId,
-        name: team.name,
-        description: team.description,
-        createdAt: team.createdAt,
-        updatedAt: team.updatedAt,
-      }));
-
-      return ok(teamDtos);
-    } catch (error) {
-      logger.error(
-        "Failed to get teams by department",
-        { departmentId },
-        error as Error
-      );
-      return err(
-        ActionErrors.internal(
-          "Failed to get teams by department",
-          error as Error,
-          "TeamService.getTeamsByDepartment"
-        )
-      );
-    }
-  }
-
-  /**
    * Get a team by ID
    */
-  static async getTeamById(id: string): Promise<ActionResult<TeamDto | null>> {
+  static async getTeamById(id: string): Promise<ActionResult<Team | null>> {
     try {
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
@@ -188,7 +100,7 @@ export class TeamService {
         );
       }
 
-      const team = await TeamQueries.selectTeamById(id);
+      const team = await TeamQueries.selectTeamById(id, organization.id);
 
       if (!team) {
         return ok(null);
@@ -201,17 +113,7 @@ export class TeamService {
         "TeamService.getTeamById"
       );
 
-      const teamDto: TeamDto = {
-        id: team.id,
-        departmentId: team.departmentId,
-        organizationId: team.organizationId,
-        name: team.name,
-        description: team.description,
-        createdAt: team.createdAt,
-        updatedAt: team.updatedAt,
-      };
-
-      return ok(teamDto);
+      return ok(team);
     } catch (error) {
       logger.error("Failed to get team", { id }, error as Error);
       return err(
@@ -229,7 +131,7 @@ export class TeamService {
    */
   static async getUserTeams(
     userId: string
-  ): Promise<ActionResult<UserTeamRoleDto[]>> {
+  ): Promise<ActionResult<TeamMember[]>> {
     try {
       const authResult = await getAuthSession();
       if (authResult.isErr()) {
@@ -253,7 +155,7 @@ export class TeamService {
         );
       }
 
-      const userTeams = await UserTeamQueries.selectUserTeams(userId);
+      const userTeams = await TeamQueries.selectTeamMembers(userId);
 
       // Filter to only teams in the user's organization
       const teamIds = userTeams.map((ut) => ut.teamId);
@@ -267,14 +169,7 @@ export class TeamService {
         validTeamIds.has(ut.teamId)
       );
 
-      const userTeamDtos: UserTeamRoleDto[] = filteredUserTeams.map((ut) => ({
-        userId: ut.userId,
-        teamId: ut.teamId,
-        role: ut.role,
-        joinedAt: ut.joinedAt,
-      }));
-
-      return ok(userTeamDtos);
+      return ok(filteredUserTeams);
     } catch (error) {
       logger.error("Failed to get user teams", { userId }, error as Error);
       return err(
@@ -330,12 +225,17 @@ export class TeamService {
       }
 
       // Fetch all user teams in one query
-      const allUserTeams = await UserTeamQueries.selectUserTeamsByUserIds(
-        userIds
+      const allUserTeamsArrays = await Promise.all(
+        userIds.map((userId) => UserTeamQueries.selectTeamMembers(userId))
       );
 
+      // Flatten the array of arrays
+      const allUserTeams = allUserTeamsArrays.flat();
+
       // Get all team IDs and fetch teams to filter by organization
-      const teamIds = Array.from(new Set(allUserTeams.map((ut) => ut.teamId)));
+      const teamIds = Array.from(
+        new Set(allUserTeams.map((ut: TeamMember) => ut.teamId))
+      );
       const teams =
         teamIds.length > 0
           ? await TeamQueries.selectTeamsByOrganization(organizationId)
@@ -354,8 +254,8 @@ export class TeamService {
           userTeamsMap.get(ut.userId)!.push({
             userId: ut.userId,
             teamId: ut.teamId,
-            role: ut.role,
-            joinedAt: ut.joinedAt,
+            role: "member", // Better Auth doesn't support roles for team members
+            joinedAt: ut.createdAt ?? new Date(),
           });
         }
       }
@@ -411,42 +311,25 @@ export class TeamService {
         "TeamService.createTeam"
       );
 
-      // Validate department if provided
-      if (data.departmentId) {
-        const department = await DepartmentQueries.selectDepartmentById(
-          data.departmentId
-        );
-        if (!department) {
-          return err(
-            ActionErrors.badRequest(
-              "Department not found",
-              "TeamService.createTeam"
-            )
-          );
-        }
-        if (department.organizationId !== data.organizationId) {
-          return err(
-            ActionErrors.badRequest(
-              "Department must be in the same organization",
-              "TeamService.createTeam"
-            )
-          );
-        }
-      }
+      // Convert CreateTeamDto to TeamInput for Better Auth
+      const teamInput = {
+        name: data.name,
+        organizationId: data.organizationId,
+      };
 
-      const team = await TeamQueries.insertTeam(data);
+      const team = await TeamQueries.insertTeam(teamInput as TeamInput);
 
       // Invalidate cache
       CacheInvalidation.invalidateTeamCache(data.organizationId);
 
       const teamDto: TeamDto = {
         id: team.id,
-        departmentId: team.departmentId,
+        departmentId: data.departmentId ?? null,
         organizationId: team.organizationId,
         name: team.name,
-        description: team.description,
+        description: data.description ?? null,
         createdAt: team.createdAt,
-        updatedAt: team.updatedAt,
+        updatedAt: team.updatedAt ?? team.createdAt,
       };
 
       return ok(teamDto);
@@ -492,7 +375,7 @@ export class TeamService {
         );
       }
 
-      const existing = await TeamQueries.selectTeamById(id);
+      const existing = await TeamQueries.selectTeamById(id, organization.id);
       if (!existing) {
         return err(ActionErrors.notFound("Team", "TeamService.updateTeam"));
       }
@@ -504,61 +387,37 @@ export class TeamService {
         "TeamService.updateTeam"
       );
 
-      // Validate department if provided
-      if (data.departmentId !== undefined && data.departmentId !== null) {
-        const department = await DepartmentQueries.selectDepartmentById(
-          data.departmentId
-        );
-        if (!department) {
-          return err(
-            ActionErrors.badRequest(
-              "Department not found",
-              "TeamService.updateTeam"
-            )
-          );
-        }
-        if (department.organizationId !== existing.organizationId) {
-          return err(
-            ActionErrors.badRequest(
-              "Department must be in the same organization",
-              "TeamService.updateTeam"
-            )
-          );
-        }
+      // Convert UpdateTeamDto to Better Auth format (only name is supported)
+      const updateData: Partial<
+        Omit<TeamInput, "id" | "organizationId" | "createdAt">
+      > = {};
+      if (data.name !== undefined) {
+        updateData.name = data.name;
       }
 
-      const team = await TeamQueries.updateTeam(id, data);
+      const team = await TeamQueries.updateTeam(id, updateData);
 
       if (!team) {
         return err(ActionErrors.notFound("Team", "TeamService.updateTeam"));
       }
 
-      // Invalidate cache - include department-scoped tags
-      CacheInvalidation.invalidateTeamCache(
-        existing.organizationId,
-        id,
-        existing.departmentId ?? undefined
-      );
-      // If department changed, also invalidate the new department's cache
-      if (
-        data.departmentId !== undefined &&
-        data.departmentId !== existing.departmentId
-      ) {
-        CacheInvalidation.invalidateTeamCache(
-          existing.organizationId,
-          undefined,
-          data.departmentId ?? undefined
-        );
-      }
+      // Note: Better Auth doesn't support departmentId or description in teams
+      // These would need to be stored separately if required
+      const finalDepartmentId =
+        data.departmentId !== undefined ? data.departmentId : null;
+      const finalDescription =
+        data.description !== undefined ? data.description : null;
+
+      CacheInvalidation.invalidateTeamCache(existing.organizationId, id);
 
       const teamDto: TeamDto = {
         id: team.id,
-        departmentId: team.departmentId,
+        departmentId: finalDepartmentId,
         organizationId: team.organizationId,
         name: team.name,
-        description: team.description,
+        description: finalDescription,
         createdAt: team.createdAt,
-        updatedAt: team.updatedAt,
+        updatedAt: team.updatedAt ?? team.createdAt,
       };
 
       return ok(teamDto);
@@ -601,7 +460,7 @@ export class TeamService {
         );
       }
 
-      const existing = await TeamQueries.selectTeamById(id);
+      const existing = await TeamQueries.selectTeamById(id, organization.id);
       if (!existing) {
         return err(ActionErrors.notFound("Team", "TeamService.deleteTeam"));
       }
@@ -616,14 +475,10 @@ export class TeamService {
       // Delete all user-team relationships first
       await UserTeamQueries.deleteAllTeamMembers(id);
 
-      await TeamQueries.deleteTeam(id);
+      await TeamQueries.deleteTeam(id, existing.organizationId);
 
-      // Invalidate cache - include department-scoped tag
-      CacheInvalidation.invalidateTeamCache(
-        existing.organizationId,
-        id,
-        existing.departmentId ?? undefined
-      );
+      // Invalidate cache
+      CacheInvalidation.invalidateTeamCache(existing.organizationId, id);
 
       return ok(undefined);
     } catch (error) {
@@ -669,7 +524,7 @@ export class TeamService {
         );
       }
 
-      const team = await TeamQueries.selectTeamById(teamId);
+      const team = await TeamQueries.selectTeamById(teamId, organization.id);
       if (!team) {
         return err(
           ActionErrors.notFound("Team", "TeamService.assignUserToTeam")
@@ -706,8 +561,8 @@ export class TeamService {
       const userTeamDto: UserTeamRoleDto = {
         userId: userTeam.userId,
         teamId: userTeam.teamId,
-        role: userTeam.role,
-        joinedAt: userTeam.joinedAt,
+        role: "member", // Better Auth doesn't support roles for team members
+        joinedAt: userTeam.createdAt ?? new Date(),
       };
 
       return ok(userTeamDto);
@@ -757,7 +612,7 @@ export class TeamService {
         );
       }
 
-      const team = await TeamQueries.selectTeamById(teamId);
+      const team = await TeamQueries.selectTeamById(teamId, organization.id);
       if (!team) {
         return err(
           ActionErrors.notFound("Team", "TeamService.removeUserFromTeam")
@@ -824,7 +679,7 @@ export class TeamService {
         );
       }
 
-      const team = await TeamQueries.selectTeamById(teamId);
+      const team = await TeamQueries.selectTeamById(teamId, organization.id);
       if (!team) {
         return err(
           ActionErrors.notFound("Team", "TeamService.updateUserTeamRole")
@@ -856,8 +711,8 @@ export class TeamService {
       const userTeamDto: UserTeamRoleDto = {
         userId: userTeam.userId,
         teamId: userTeam.teamId,
-        role: userTeam.role,
-        joinedAt: userTeam.joinedAt,
+        role: "member", // Better Auth doesn't support roles for team members
+        joinedAt: userTeam.createdAt ?? new Date(),
       };
 
       return ok(userTeamDto);

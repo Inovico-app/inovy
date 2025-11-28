@@ -4,7 +4,7 @@ import {
   type UserTier,
 } from "@/server/services/rate-limiter.service";
 import { type NextRequest, NextResponse } from "next/server";
-import { getAuthSession } from "./auth";
+import { getAuthSession } from "./auth/auth-helpers";
 
 /**
  * Convert a timestamp in milliseconds to Unix timestamp in seconds
@@ -72,7 +72,7 @@ export async function checkRateLimit(
   const effectiveMaxRequests =
     typeof maxRequests === "function"
       ? await maxRequests(userId)
-      : maxRequests ?? tierLimits.maxRequests;
+      : (maxRequests ?? tierLimits.maxRequests);
   const effectiveMaxCost = maxCost ?? tierLimits.maxCost;
 
   // Check request-based limit

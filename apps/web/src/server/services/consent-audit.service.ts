@@ -1,5 +1,5 @@
 import { logger } from "../../lib/logger";
-import { assertOrganizationAccess } from "../../lib/organization-isolation";
+import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
 import { ConsentAuditQueries } from "../data-access/consent-audit.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import type {
@@ -45,9 +45,8 @@ export class ConsentAuditService {
       // This is non-throwing to prevent audit failures from breaking consent operations
       if (organizationId) {
         try {
-          const recording = await RecordingsQueries.selectRecordingById(
-            recordingId
-          );
+          const recording =
+            await RecordingsQueries.selectRecordingById(recordingId);
           if (recording) {
             assertOrganizationAccess(
               recording.organizationId,
@@ -111,9 +110,8 @@ export class ConsentAuditService {
   ): Promise<ConsentAuditLogRecord[]> {
     try {
       // Verify recording exists and belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         logger.warn("Recording not found when fetching audit logs", {
           component: "ConsentAuditService.getAuditLogsByRecordingId",
@@ -155,9 +153,8 @@ export class ConsentAuditService {
   ): Promise<ConsentAuditLogRecord[]> {
     try {
       // Verify recording exists and belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         logger.warn("Recording not found when fetching audit logs", {
           component: "ConsentAuditService.getAuditLogsByParticipant",

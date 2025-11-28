@@ -1,8 +1,11 @@
 "use server";
 
-import { publicActionClient } from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
-import { betterAuthInstance } from "@/lib/better-auth-server";
+import { auth } from "@/lib/auth";
+import {
+  createErrorForNextSafeAction,
+  publicActionClient,
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { headers } from "next/headers";
 import { magicLinkSchema } from "../validation/auth.schema";
 
@@ -15,7 +18,7 @@ export const sendMagicLinkAction = publicActionClient
     const { email } = parsedInput;
 
     try {
-      await betterAuthInstance.api.signInMagicLink({
+      await auth.api.signInMagicLink({
         body: {
           email,
           callbackURL: "/",
@@ -27,7 +30,9 @@ export const sendMagicLinkAction = publicActionClient
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to send magic link";
-      throw ActionErrors.validation(message, { email });
+      throw createErrorForNextSafeAction(
+        ActionErrors.validation(message, { email })
+      );
     }
   });
 

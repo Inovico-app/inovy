@@ -1,13 +1,13 @@
 "use server";
 
+import { CacheInvalidation } from "@/lib/cache-utils";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
-import { ActionErrors } from "@/lib/action-errors";
-import { getUserOrganizationCode } from "@/lib/action-helpers";
-import { CacheInvalidation } from "@/lib/cache-utils";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { getUserOrganizationCode } from "@/lib/server-action-client/action-helpers";
 import { ProjectTemplateService } from "@/server/services/project-template.service";
 import { updateProjectTemplateSchema } from "@/server/validation/project-templates/update-project-template";
 

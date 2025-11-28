@@ -1,5 +1,8 @@
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
 import { createHash, randomUUID } from "crypto";
 import mammoth from "mammoth";
 import { err, ok } from "neverthrow";

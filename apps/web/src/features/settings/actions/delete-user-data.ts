@@ -1,9 +1,9 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
-import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { GdprDeletionService } from "@/server/services/gdpr-deletion.service";
 import {
   cancelDeletionSchema,
@@ -65,7 +65,7 @@ export const requestDeletionAction = authorizedActionClient
     const displayName =
       user.given_name && user.family_name
         ? `${user.given_name} ${user.family_name}`
-        : user.given_name ?? user.family_name ?? null;
+        : (user.given_name ?? user.family_name ?? null);
 
     const processResult = await GdprDeletionService.processDeletionRequest(
       result.value,

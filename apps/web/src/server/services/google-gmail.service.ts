@@ -1,9 +1,12 @@
 import { google } from "googleapis";
 import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
-import { assertOrganizationAccess } from "../../lib/organization-isolation";
-import { createGoogleOAuthClient } from "../../lib/google-oauth";
+import { createGoogleOAuthClient } from "../../features/integrations/google/lib/google-oauth";
 import { logger } from "../../lib/logger";
+import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "../../lib/server-action-client/action-errors";
 import { AutoActionsQueries } from "../data-access/auto-actions.queries";
 import type { Recording } from "../db/schema/recordings";
 import { GoogleOAuthService } from "./google-oauth.service";

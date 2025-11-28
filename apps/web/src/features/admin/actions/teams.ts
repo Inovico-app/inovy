@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { policyToPermissions } from "../../../lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
-import { policyToPermissions } from "../../../lib/permission-helpers";
+} from "../../../lib/server-action-client/action-client";
+import { ActionErrors } from "../../../lib/server-action-client/action-errors";
 import type { UpdateTeamDto } from "../../../server/dto/team.dto";
 import { TeamService } from "../../../server/services/team.service";
 import {

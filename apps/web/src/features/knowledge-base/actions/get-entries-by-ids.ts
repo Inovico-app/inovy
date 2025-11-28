@@ -1,14 +1,14 @@
 "use server";
 
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { ok } from "neverthrow";
+import { z } from "zod";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "../../../lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
-import { ActionErrors } from "../../../lib/action-errors";
+} from "../../../lib/server-action-client/action-client";
+import { ActionErrors } from "../../../lib/server-action-client/action-errors";
 import { KnowledgeBaseEntriesQueries } from "../../../server/data-access/knowledge-base-entries.queries";
-import { ok } from "neverthrow";
-import { z } from "zod";
 
 const getEntriesByIdsInputSchema = z.object({
   ids: z.array(z.string().uuid()).min(1),

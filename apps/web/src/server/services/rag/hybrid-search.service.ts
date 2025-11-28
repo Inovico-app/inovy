@@ -4,8 +4,11 @@
  * Combines vector similarity search with keyword-based search using Qdrant
  */
 
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
 import { QdrantClientService } from "@/server/services/rag/qdrant.service";
 import { err, ok } from "neverthrow";
 import type {
@@ -134,7 +137,7 @@ export class HybridSearchEngine {
             contentText: result.contentText,
             similarity: result.similarity,
             metadata: (result.metadata as SearchResult["metadata"]) || {},
-          } satisfies SearchResult)
+          }) satisfies SearchResult
       );
 
       logger.debug("Hybrid search completed", {

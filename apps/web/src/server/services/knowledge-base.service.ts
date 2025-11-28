@@ -1,9 +1,9 @@
-import type { ActionResult } from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
-import { Permissions } from "@/lib/permissions";
-import { checkPermission } from "@/lib/permissions-server";
+import { Permissions } from "@/lib/rbac/permissions";
+import { checkPermission } from "@/lib/rbac/permissions-server";
+import type { ActionResult } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
 import { KnowledgeBaseDocumentsQueries } from "../data-access/knowledge-base-documents.queries";
 import { KnowledgeBaseEntriesQueries } from "../data-access/knowledge-base-entries.queries";

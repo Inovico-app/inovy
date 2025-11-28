@@ -1,11 +1,11 @@
 "use server";
 
-import { ActionErrors } from "@/lib/action-errors";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { RecordingService } from "@/server/services/recording.service";
 import { moveRecordingSchema } from "@/server/validation/recordings/move-recording";
 import { revalidatePath } from "next/cache";

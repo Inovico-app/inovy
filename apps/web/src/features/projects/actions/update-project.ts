@@ -1,14 +1,14 @@
 "use server";
 
+import { logger } from "@/lib/logger";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
-import { ActionErrors } from "@/lib/action-errors";
-import { logger } from "@/lib/logger";
-import { ProjectService } from "@/server/services/project.service";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { AuditLogService } from "@/server/services/audit-log.service";
+import { ProjectService } from "@/server/services/project.service";
 import { updateProjectSchema } from "@/server/validation/projects/update-project";
 
 /**

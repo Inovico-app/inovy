@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAuthSession } from "../../../../../lib/auth";
-import { getAuthorizationUrl } from "../../../../../lib/google-oauth";
+import { getAuthorizationUrl } from "../../../../../features/integrations/google/lib/google-oauth";
+import { getAuthSession } from "../../../../../lib/auth/auth-helpers";
 import { logger } from "../../../../../lib/logger";
 
 /**
@@ -49,11 +49,7 @@ export async function GET() {
     // Redirect to Google OAuth consent screen
     return NextResponse.redirect(authUrl);
   } catch (error) {
-    logger.error(
-      "Error initiating Google OAuth flow",
-      {},
-      error as Error
-    );
+    logger.error("Error initiating Google OAuth flow", {}, error as Error);
     return NextResponse.json(
       { error: "Failed to initiate authorization" },
       { status: 500 }

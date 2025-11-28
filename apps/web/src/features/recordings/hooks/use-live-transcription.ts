@@ -1,7 +1,7 @@
 import {
   getLiveTranscriptionPreferenceClient,
   setLiveTranscriptionPreferenceClient,
-} from "@/lib/live-transcription-preferences";
+} from "@/features/recordings/lib/live-transcription-preferences";
 import {
   LiveConnectionState,
   type LiveTranscriptionEvent,

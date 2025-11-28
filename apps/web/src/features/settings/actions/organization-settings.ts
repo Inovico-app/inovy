@@ -1,13 +1,13 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
-import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
-import { isOrganizationAdmin } from "@/lib/rbac";
-import { RAGService } from "@/server/services/rag/rag.service";
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { isOrganizationAdmin } from "@/lib/rbac/rbac";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { OrganizationSettingsService } from "@/server/services/organization-settings.service";
+import { RAGService } from "@/server/services/rag/rag.service";
 import { updateOrganizationSettingsSchema } from "@/server/validation/organization-settings.validation";
 import { z } from "zod";
 
@@ -24,9 +24,8 @@ export const getOrganizationSettings = authorizedActionClient
       throw ActionErrors.forbidden("Organization context required");
     }
 
-    const result = await OrganizationSettingsService.getOrganizationSettings(
-      organizationId
-    );
+    const result =
+      await OrganizationSettingsService.getOrganizationSettings(organizationId);
 
     if (result.isErr()) {
       throw ActionErrors.internal(
@@ -91,23 +90,25 @@ export const updateOrganizationSettings = authorizedActionClient
     // Trigger embedding reindex in background
     // Using void to fire and forget - errors will be logged by the service
     const ragService = new RAGService();
-    ragService.reindexOrganizationInstructions(
-      organizationId,
-      parsedInput.instructions,
-      result.value.id
-    ).then((indexResult) => {
-      if (indexResult.isErr()) {
-        logger.error(
-          "Failed to reindex organization instructions after update",
-          { orgCode: organizationId },
-          indexResult.error as unknown as Error
-        );
-      } else {
-        logger.info("Successfully reindexed organization instructions", {
-          orgCode: organizationId,
-        });
-      }
-    });
+    ragService
+      .reindexOrganizationInstructions(
+        organizationId,
+        parsedInput.instructions,
+        result.value.id
+      )
+      .then((indexResult) => {
+        if (indexResult.isErr()) {
+          logger.error(
+            "Failed to reindex organization instructions after update",
+            { orgCode: organizationId },
+            indexResult.error as unknown as Error
+          );
+        } else {
+          logger.info("Successfully reindexed organization instructions", {
+            orgCode: organizationId,
+          });
+        }
+      });
 
     return result.value;
   });

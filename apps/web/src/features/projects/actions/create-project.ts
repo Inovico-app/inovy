@@ -2,15 +2,15 @@
 
 import { redirect } from "next/navigation";
 
+import { logger } from "@/lib/logger";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
-import { ActionErrors } from "@/lib/action-errors";
-import { logger } from "@/lib/logger";
-import { ProjectService } from "@/server/services/project.service";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { AuditLogService } from "@/server/services/audit-log.service";
+import { ProjectService } from "@/server/services/project.service";
 import { createProjectSchema } from "@/server/validation/create-project";
 
 /**
@@ -109,8 +109,6 @@ export async function createProjectFormAction(
       : firstFieldErrors?._errors?.[0];
     throw new Error(firstError ?? "Validation failed");
   }
-
-  console.log("RESULT DO WE GET FSDFJSDAKJHKHASDHFASHDFHKASD", result);
 
   if (result?.data?.id) {
     redirect(`/projects/${result.data.id}`);

@@ -1,7 +1,7 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { SummaryEditService } from "@/server/services/summary-edit.service";
 import { z } from "zod";
 
@@ -22,11 +22,11 @@ export const getSummaryHistory = authorizedActionClient
       parsedInput.recordingId,
       organizationId
     );
-    
+
     if (result.isErr()) {
       throw new Error(result.error.message);
     }
-    
+
     return result.value;
   });
 

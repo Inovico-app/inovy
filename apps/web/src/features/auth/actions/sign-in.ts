@@ -1,8 +1,11 @@
 "use server";
 
-import { publicActionClient } from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
-import { betterAuthInstance } from "@/lib/better-auth-server";
+import { auth } from "@/lib/auth";
+import {
+  createErrorForNextSafeAction,
+  publicActionClient,
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
@@ -20,7 +23,7 @@ export const signInEmailAction = publicActionClient
     const { email, password } = parsedInput;
 
     try {
-      await betterAuthInstance.api.signInEmail({
+      await auth.api.signInEmail({
         body: {
           email,
           password,
@@ -28,19 +31,22 @@ export const signInEmailAction = publicActionClient
         headers: await headers(),
       });
     } catch (error) {
-      console.error("SIGIN INERROR:", error);
       const message =
         error instanceof Error ? error.message : "Failed to sign in";
 
       // Check if it's an email verification error
       if (message.includes("email") && message.includes("verify")) {
-        throw ActionErrors.forbidden(
-          "Please verify your email address before signing in",
-          { email }
+        throw createErrorForNextSafeAction(
+          ActionErrors.forbidden(
+            "Please verify your email address before signing in",
+            { email }
+          )
         );
       }
 
-      throw ActionErrors.validation(message, { email });
+      throw createErrorForNextSafeAction(
+        ActionErrors.validation(message, { email })
+      );
     }
 
     // Always redirect to home page after successful sign-in
@@ -56,7 +62,7 @@ export const getSocialSignInUrlAction = publicActionClient
     const { provider } = parsedInput;
 
     try {
-      const result = await betterAuthInstance.api.signInSocial({
+      const result = await auth.api.signInSocial({
         body: {
           provider,
           callbackURL: "/",
@@ -65,13 +71,13 @@ export const getSocialSignInUrlAction = publicActionClient
       });
 
       // Return the redirect URL for the client to navigate to
-      return { url: result.url || result.redirect || "/" };
+      return { url: result.url ?? result.redirect ?? "/" };
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
           : `Failed to initiate ${provider} sign-in`;
-      throw ActionErrors.internal(message, error);
+      throw createErrorForNextSafeAction(ActionErrors.internal(message, error));
     }
   });
 

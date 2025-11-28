@@ -1,9 +1,9 @@
 import { PageLayout } from "@/components/page-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserManagementTable } from "@/features/admin/components/user-management-table";
-import { getAuthSession } from "@/lib/auth";
-import { Permissions } from "@/lib/permissions";
-import { checkPermission } from "@/lib/permissions-server";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { Permissions } from "@/lib/rbac/permissions";
+import { checkPermission } from "@/lib/rbac/permissions-server";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 

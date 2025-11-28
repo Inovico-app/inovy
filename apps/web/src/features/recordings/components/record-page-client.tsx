@@ -17,8 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LiveRecorder } from "@/features/recordings/components/live-recorder/live-recorder";
-import { convertBlobToMp3 } from "@/lib/audio-utils";
-import { getAutoProcessPreferenceClient } from "@/lib/recording-preferences";
+import { convertBlobToMp3 } from "@/features/recordings/lib/audio-utils";
+import { getAutoProcessPreferenceClient } from "@/features/recordings/lib/recording-preferences";
 import { uploadRecordingToBlob } from "@/lib/vercel-blob";
 import type { ProjectWithCreatorDto } from "@/server/dto/project.dto";
 import { FolderIcon, InfoIcon } from "lucide-react";

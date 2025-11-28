@@ -1,11 +1,15 @@
 import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { logger } from "../../lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "../../lib/server-action-client/action-errors";
 import {
   getDashboardStats,
   getRecentProjectsForDashboard,
   getRecentRecordingsForDashboard,
 } from "../data-access/dashboard.queries";
+import { UserService } from "./user.service";
 
 interface DashboardOverview {
   stats: {
@@ -38,10 +42,20 @@ export class DashboardService {
    * Get complete dashboard overview for a user's organization
    */
   static async getDashboardOverview(
-    organizationId: string
+    userId: string
   ): Promise<ActionResult<DashboardOverview>> {
     try {
-      logger.info("Fetching dashboard overview", { organizationId });
+      // Get organizationId from userId using UserService
+      const organizationIdResult =
+        await UserService.getOrganizationIdByUserId(userId);
+
+      if (organizationIdResult.isErr()) {
+        return err(organizationIdResult.error);
+      }
+
+      const organizationId = organizationIdResult.value;
+
+      logger.info("Fetching dashboard overview", { userId, organizationId });
 
       // Fetch all data in parallel using DAL
       const [stats, recentProjects, recentRecordings] = await Promise.all([
@@ -57,6 +71,7 @@ export class DashboardService {
       };
 
       logger.info("Successfully fetched dashboard overview", {
+        userId,
         organizationId,
         projectCount: overview.stats.totalProjects,
         recordingCount: overview.stats.totalRecordings,
@@ -66,7 +81,7 @@ export class DashboardService {
     } catch (error) {
       logger.error(
         "Error fetching dashboard overview",
-        { organizationId },
+        { userId },
         error as Error
       );
 

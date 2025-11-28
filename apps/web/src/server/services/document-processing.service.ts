@@ -1,8 +1,11 @@
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
-import { Permissions } from "@/lib/permissions";
-import { checkPermission } from "@/lib/permissions-server";
+import { Permissions } from "@/lib/rbac/permissions";
+import { checkPermission } from "@/lib/rbac/permissions-server";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
 import { put as putBlob } from "@vercel/blob";
 import { err, ok } from "neverthrow";
 import { KnowledgeBaseDocumentsQueries } from "../data-access/knowledge-base-documents.queries";

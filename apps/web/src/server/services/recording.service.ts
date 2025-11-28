@@ -1,16 +1,16 @@
 import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger, serializeError } from "../../lib/logger";
-import { assertOrganizationAccess } from "../../lib/organization-isolation";
-import { RAGService } from "./rag/rag.service";
+import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "../../lib/server-action-client/action-errors";
 import { ProjectQueries } from "../data-access/projects.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
-import {
-  type NewRecording,
-  type Recording,
-} from "../db/schema/recordings";
+import { type NewRecording, type Recording } from "../db/schema/recordings";
 import { type RecordingDto } from "../dto/recording.dto";
+import { RAGService } from "./rag/rag.service";
 
 /**
  * Recording Service
@@ -391,9 +391,8 @@ export class RecordingService {
 
     try {
       // Get recording first to know its projectId
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
           ActionErrors.notFound(
@@ -453,9 +452,8 @@ export class RecordingService {
 
     try {
       // Get recording first to know its projectId
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
           ActionErrors.notFound(
@@ -514,9 +512,8 @@ export class RecordingService {
     });
 
     try {
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
 
       if (!recording) {
         return err(
@@ -602,9 +599,8 @@ export class RecordingService {
 
     try {
       // Get the recording and verify it belongs to the organization
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
 
       if (!recording) {
         logger.warn("Recording not found", {

@@ -1,6 +1,6 @@
 "use server";
 
-import { getAuthSession } from "@/lib/auth";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -8,12 +8,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
-import { getOrganizationMembers } from "@/server/data-access/organization.queries";
-import { getCachedUserTeams } from "@/server/cache/team.cache";
 import { getCachedTeamsByOrganization } from "@/server/cache/team.cache";
+import { OrganizationService } from "@/server/services/organization.service";
+import { TeamService } from "@/server/services/team.service";
 import { UserRoleBadge } from "./user-role-badge";
-import { Badge } from "@/components/ui/badge";
 
 export async function UserManagementTable() {
   try {
@@ -36,20 +36,24 @@ export async function UserManagementTable() {
     }
 
     const { organization } = authResult.value;
-    const members = await getOrganizationMembers(organization.id);
+    const membersResult = await OrganizationService.getOrganizationMembers(
+      organization.id
+    );
 
     // Fetch teams for all users in a single batch query
     const allTeams = await getCachedTeamsByOrganization(organization.id);
     const teamMap = new Map(allTeams.map((t) => [t.id, t]));
-    
+
     // Batch fetch all user teams
-    const { TeamService } = await import("@/server/services/team.service");
     const userTeamsResult = await TeamService.getUserTeamsByUserIds(
-      members.map((m) => m.id),
+      membersResult.isOk() ? membersResult.value.map((m) => m.id) : [],
       organization.id
     );
 
-    const userTeamsMap = new Map<string, Array<{ teamId: string; role: string }>>();
+    const userTeamsMap = new Map<
+      string,
+      Array<{ teamId: string; role: string }>
+    >();
     if (userTeamsResult.isOk()) {
       const batchUserTeamsMap = userTeamsResult.value;
       for (const [userId, userTeams] of batchUserTeamsMap.entries()) {
@@ -60,7 +64,9 @@ export async function UserManagementTable() {
       }
     }
 
-    if (!members || members.length === 0) {
+    const members = membersResult.isOk() ? membersResult.value : [];
+
+    if (!members.length) {
       return (
         <Card>
           <CardContent className="text-center py-8">
@@ -77,7 +83,8 @@ export async function UserManagementTable() {
         <CardHeader>
           <CardTitle>Organization Members</CardTitle>
           <CardDescription>
-            {members.length} member{members.length !== 1 ? "s" : ""} in your organization
+            {members.length} member{members.length !== 1 ? "s" : ""} in your
+            organization
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -101,7 +108,9 @@ export async function UserManagementTable() {
                       <div className="font-medium">
                         {member.given_name && member.family_name
                           ? `${member.given_name} ${member.family_name}`
-                          : member.given_name || member.family_name || "Unknown"}
+                          : member.given_name ||
+                            member.family_name ||
+                            "Unknown"}
                       </div>
                     </td>
                     <td className="py-3 px-4 text-muted-foreground">
@@ -160,11 +169,7 @@ export async function UserManagementTable() {
       </Card>
     );
   } catch (error) {
-    logger.error(
-      "Failed to fetch organization members",
-      {},
-      error as Error
-    );
+    logger.error("Failed to fetch organization members", {}, error as Error);
     return (
       <Card>
         <CardContent className="text-center py-8">

@@ -1,9 +1,9 @@
 "use server";
 
-import { z } from "zod";
-import { authorizedActionClient } from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { TranscriptionEditService } from "@/server/services/transcription-edit.service";
+import { z } from "zod";
 
 const getTranscriptionHistorySchema = z.object({
   recordingId: z.string().uuid(),

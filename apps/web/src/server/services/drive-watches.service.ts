@@ -1,8 +1,14 @@
 import { err, ok } from "neverthrow";
 import { start } from "workflow/api";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
-import { isAudioOrVideoFile, uploadToBlob } from "../../lib/google-drive-utils";
+import {
+  isAudioOrVideoFile,
+  uploadToBlob,
+} from "../../features/integrations/google/lib/google-drive-utils";
 import { logger } from "../../lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "../../lib/server-action-client/action-errors";
 import { convertRecordingIntoAiInsights } from "../../workflows/convert-recording";
 import { DriveWatchesQueries } from "../data-access/drive-watches.queries";
 import { ProjectQueries } from "../data-access/projects.queries";

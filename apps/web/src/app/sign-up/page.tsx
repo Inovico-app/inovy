@@ -1,8 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import type { Route } from "next";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,6 +11,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSignUp } from "@/features/auth/hooks/use-sign-up";
+import type { Route } from "next";
+import Link from "next/link";
+import { useState } from "react";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -21,12 +21,7 @@ export default function SignUpPage() {
   const [password, setPassword] = useState("");
   const [magicLinkEmail, setMagicLinkEmail] = useState("");
 
-  const {
-    signUpEmail,
-    signUpSocial,
-    sendMagicLink,
-    isLoading,
-  } = useSignUp();
+  const { signUpEmail, signUpSocial, sendMagicLink, isLoading } = useSignUp();
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,3 +192,4 @@ export default function SignUpPage() {
     </div>
   );
 }
+

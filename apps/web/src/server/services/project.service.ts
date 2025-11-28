@@ -1,8 +1,8 @@
-import type { ActionResult } from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
+import type { ActionResult } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { del } from "@vercel/blob";
 import { err, ok } from "neverthrow";
-import { getAuthSession, type AuthUser } from "../../lib/auth";
+import { getAuthSession, type AuthUser } from "../../lib/auth/auth-helpers";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { getCachedProjectByIdWithCreator } from "../cache/project.cache";
@@ -134,9 +134,8 @@ export class ProjectService {
         status: "active",
       };
 
-      const projects = await ProjectQueries.findByOrganizationWithCreator(
-        projectFilters
-      );
+      const projects =
+        await ProjectQueries.findByOrganizationWithCreator(projectFilters);
 
       return ok(projects);
     } catch (error) {

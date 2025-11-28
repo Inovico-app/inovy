@@ -1,8 +1,13 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [".env", ".env.local"],
+  "globalDependencies": [".env*"],
   "ui": "tui",
   "tasks": {
+    "web#db:migrate": {
+      "dependsOn": ["^web#db:migrate"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "env": ["DATABASE_URL"]
+    },
     "web#build": {
       "dependsOn": ["^web#build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],

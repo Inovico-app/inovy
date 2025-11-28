@@ -1,7 +1,10 @@
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
-import type { AuthUser } from "@/lib/auth";
-import { betterAuthInstance } from "@/lib/better-auth-server";
+import { auth } from "@/lib/auth";
+import type { AuthUser } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
 import { headers } from "next/headers";
 
@@ -42,10 +45,9 @@ export class OrganizationAssignmentService {
 
       // User already has an organization, fetch it to verify
       try {
-        const organizationsResponse =
-          await betterAuthInstance.api.listOrganizations({
-            headers: await headers(),
-          });
+        const organizationsResponse = await auth.api.listOrganizations({
+          headers: await headers(),
+        });
 
         // Better Auth API returns array directly
         const organizations = Array.isArray(organizationsResponse)
@@ -134,15 +136,14 @@ export class OrganizationAssignmentService {
 
       // Create organization using Better Auth API
       try {
-        const createOrgResponse =
-          await betterAuthInstance.api.createOrganization({
-            headers: await headers(),
-            body: {
-              name: orgName,
-              slug: orgSlug,
-              userId: user.id, // Set creator as the user
-            },
-          });
+        const createOrgResponse = await auth.api.createOrganization({
+          headers: await headers(),
+          body: {
+            name: orgName,
+            slug: orgSlug,
+            userId: user.id, // Set creator as the user
+          },
+        });
 
         // Better Auth API returns organization data
         // The response structure may vary, so handle both cases

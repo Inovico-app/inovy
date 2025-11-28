@@ -1,5 +1,8 @@
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { createClient } from "@deepgram/sdk";
@@ -66,9 +69,8 @@ export class TranscriptionService {
       });
 
       // Get recording to fetch project/organization context
-      const existingRecording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const existingRecording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!existingRecording) {
         return err(
           ActionErrors.notFound(
@@ -462,7 +464,6 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
           { role: "user", content: userPrompt },
         ],
         response_format: { type: "json_object" },
-        temperature: 0.3,
       });
 
       const responseContent = completion.choices[0]?.message?.content;
@@ -500,9 +501,8 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
       }
 
       // Get existing transcription insight
-      const insights = await AIInsightsQueries.getInsightsByRecordingId(
-        recordingId
-      );
+      const insights =
+        await AIInsightsQueries.getInsightsByRecordingId(recordingId);
       const transcriptionInsight = insights.find(
         (i) => i.insightType === "transcription"
       );

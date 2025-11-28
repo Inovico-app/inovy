@@ -1,9 +1,12 @@
 import { google } from "googleapis";
 import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
-import { assertOrganizationAccess } from "../../lib/organization-isolation";
-import { createGoogleOAuthClient } from "../../lib/google-oauth";
+import { createGoogleOAuthClient } from "../../features/integrations/google/lib/google-oauth";
 import { logger } from "../../lib/logger";
+import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "../../lib/server-action-client/action-errors";
 import { AutoActionsQueries } from "../data-access/auto-actions.queries";
 import type { Task } from "../db/schema/tasks";
 import { GoogleOAuthService } from "./google-oauth.service";
@@ -98,8 +101,8 @@ export class GoogleCalendarService {
           task.priority === "urgent"
             ? "11"
             : task.priority === "high"
-            ? "9"
-            : undefined, // Red for urgent, blue for high
+              ? "9"
+              : undefined, // Red for urgent, blue for high
       };
 
       const response = await calendar.events.insert({
@@ -221,7 +224,12 @@ export class GoogleCalendarService {
       };
 
       for (const task of tasks) {
-        const result = await this.createEventFromTask(userId, organizationId, task, options);
+        const result = await this.createEventFromTask(
+          userId,
+          organizationId,
+          task,
+          options
+        );
 
         if (result.isOk()) {
           results.successful.push({

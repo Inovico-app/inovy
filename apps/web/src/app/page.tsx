@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TaskCard } from "@/features/tasks/components/task-card";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
 import { getCachedTaskStats } from "@/server/cache/task.cache";
 import { DashboardService } from "@/server/services/dashboard.service";
@@ -51,7 +51,7 @@ async function DashboardContent() {
   }
 
   const { user, organization } = authResult.value;
-  if (!user || !organization) {
+  if (!user) {
     logger.warn("User session returned null in Dashboard", {
       component: "DashboardContent",
     });
@@ -69,15 +69,38 @@ async function DashboardContent() {
     );
   }
 
+  if (!organization) {
+    logger.warn("User has no organization in Dashboard", {
+      component: "DashboardContent",
+      userId: user.id,
+    });
+
+    return (
+      <div className="container mx-auto max-w-6xl px-4 py-8">
+        <div className="text-center space-y-4">
+          <h1 className="text-3xl font-bold">Organization Required</h1>
+          <p className="text-muted-foreground">
+            You need to be part of an organization to access the dashboard.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const organizationId = organization.id;
 
-  const dashboardOverview = await DashboardService.getDashboardOverview(
-    organizationId
+  const dashboardOverviewResult = await DashboardService.getDashboardOverview(
+    user.id
   );
-  if (dashboardOverview.isErr()) {
+
+  const dashboardOverview = dashboardOverviewResult.isOk()
+    ? dashboardOverviewResult.value
+    : null;
+
+  if (dashboardOverviewResult.isErr()) {
     logger.error("Failed to get dashboard overview in Dashboard", {
       component: "DashboardContent",
-      error: dashboardOverview.error,
+      error: dashboardOverviewResult.error,
     });
   }
 
@@ -133,9 +156,7 @@ async function DashboardContent() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {dashboardOverview.isOk()
-                    ? dashboardOverview.value.stats.totalProjects
-                    : 0}
+                  {dashboardOverview?.stats.totalProjects ?? 0}
                 </div>
                 <p className="text-xs text-muted-foreground">Active projects</p>
               </CardContent>
@@ -152,9 +173,7 @@ async function DashboardContent() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {dashboardOverview.isOk()
-                    ? dashboardOverview.value.stats.totalRecordings
-                    : 0}
+                  {dashboardOverview?.stats.totalRecordings ?? 0}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Total recordings

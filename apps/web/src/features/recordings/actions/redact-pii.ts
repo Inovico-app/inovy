@@ -1,12 +1,12 @@
 "use server";
 
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   createErrorForNextSafeAction,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
-import { ActionErrors } from "@/lib/action-errors";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { RedactionService } from "@/server/services/redaction.service";
 import {
   applyAutomaticRedactionsSchema,
@@ -30,10 +30,7 @@ export const detectPIIAction = authorizedActionClient
     const { user, organizationId } = ctx;
 
     if (!user) {
-      throw ActionErrors.unauthenticated(
-        "User not found",
-        "detect-pii"
-      );
+      throw ActionErrors.unauthenticated("User not found", "detect-pii");
     }
 
     if (!organizationId) {
@@ -70,10 +67,7 @@ export const createRedactionAction = authorizedActionClient
     const { user, organizationId } = ctx;
 
     if (!user) {
-      throw ActionErrors.unauthenticated(
-        "User not found",
-        "create-redaction"
-      );
+      throw ActionErrors.unauthenticated("User not found", "create-redaction");
     }
 
     if (!organizationId) {

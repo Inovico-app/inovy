@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { getCachedRecordingsByOrganization } from "@/server/cache/recording.cache";
 import { ProjectService } from "@/server/services/project.service";
 import { RecordingsOverviewClient } from "./recordings-overview-client";
@@ -35,8 +35,7 @@ export async function RecordingsOverview() {
     }),
   ]);
 
-  const projects =
-    projectsResult.isOk() ? projectsResult.value : [];
+  const projects = projectsResult.isOk() ? projectsResult.value : [];
 
   return (
     <RecordingsOverviewClient

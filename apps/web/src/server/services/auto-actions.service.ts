@@ -1,5 +1,5 @@
-import { ActionErrors } from "@/lib/action-errors";
-import type { ActionResult } from "@/lib/action-client";
+import type { ActionResult } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
 import { AutoActionsQueries } from "../data-access/auto-actions.queries";
 import type { AutoAction, NewAutoAction } from "../db/schema/auto-actions";

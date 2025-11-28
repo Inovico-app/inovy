@@ -3,7 +3,7 @@
  * Provides user-friendly error messages based on error codes
  */
 
-import type { ErrorCode } from "./action-errors";
+import type { ErrorCode } from "./server-action-client/action-errors";
 
 /**
  * Generate application error messages in English

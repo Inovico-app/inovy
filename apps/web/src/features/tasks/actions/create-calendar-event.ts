@@ -1,16 +1,16 @@
 "use server";
 
-import { z } from "zod";
-import { authorizedActionClient } from "@/lib/action-client";
-import { policyToPermissions } from "@/lib/permission-helpers";
-import { ActionErrors } from "@/lib/action-errors";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { logger } from "@/lib/logger";
-import { GoogleCalendarService } from "@/server/services/google-calendar.service";
-import { GoogleOAuthService } from "@/server/services/google-oauth.service";
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { db } from "@/server/db";
 import { tasks } from "@/server/db/schema/tasks";
+import { GoogleCalendarService } from "@/server/services/google-calendar.service";
+import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 const createCalendarEventSchema = z.object({
   taskId: z.string().uuid(),

@@ -1,6 +1,6 @@
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { decrypt } from "@/lib/encryption";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { RecordingService } from "@/server/services/recording.service";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -27,9 +27,8 @@ export async function GET(
     }
 
     // Get recording
-    const recordingResult = await RecordingService.getRecordingById(
-      recordingId
-    );
+    const recordingResult =
+      await RecordingService.getRecordingById(recordingId);
     if (recordingResult.isErr() || !recordingResult.value) {
       return NextResponse.json(
         { error: "Recording not found" },
