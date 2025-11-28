@@ -90,3 +90,36 @@ export async function getCachedUserTeams(
   return [];
 }
 
+/**
+ * Team with member count for display
+ */
+export interface TeamWithMemberCount extends TeamDto {
+  memberCount: number;
+}
+
+/**
+ * Get teams with member counts (cached)
+ * Useful for displaying teams with member information
+ */
+export async function getCachedTeamsWithMemberCounts(
+  organizationId: string
+): Promise<TeamWithMemberCount[]> {
+  "use cache: private";
+  cacheTag(CacheTags.teamsByOrg(organizationId));
+
+  const teams = await getCachedTeamsByOrganization(organizationId);
+
+  // Fetch member counts for all teams in parallel
+  const teamsWithCounts = await Promise.all(
+    teams.map(async (team) => {
+      const members = await TeamService.getTeamMembers(team.id);
+      return {
+        ...team,
+        memberCount: members.isOk() ? members.value.length : 0,
+      };
+    })
+  );
+
+  return teamsWithCounts;
+}
+

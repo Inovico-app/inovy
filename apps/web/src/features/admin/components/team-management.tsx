@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { isOrganizationAdmin } from "@/lib/rbac/rbac";
-import { getCachedTeamsByOrganization } from "@/server/cache/team.cache";
+import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
 import { TeamManagementClient } from "./team-management-client";
 
 export async function TeamManagement() {
@@ -33,7 +33,7 @@ export async function TeamManagement() {
   } = authResult.value;
 
   const canEdit = user ? isOrganizationAdmin(user) : false;
-  const teams = await getCachedTeamsByOrganization(organizationId);
+  const teams = await getCachedTeamsWithMemberCounts(organizationId);
 
   return (
     <Card>
