@@ -94,6 +94,9 @@ Before responding to any request, follow these steps:
 
 - Use Shadcn UI, Radix, and Tailwind CSS 4 for components and styling.
 - Implement responsive design with Tailwind CSS 4; use a mobile-first approach.
+- Create components with clear separation of concerns for their functionality, e.g. a component for a form should have a form.tsx file, a component for a table should have a table.tsx file, a component for a modal should have a modal.tsx file, etc.
+- Create components with accessibility and semantic HTML markup, e.g. use <button> instead of <div> for buttons, use <input> instead of <div> for inputs, etc. We should make sure we aim for 100% accessibility compliance with WCAG AA standards.
+-
 
 ### Performance Optimization
 
@@ -110,6 +113,7 @@ Before responding to any request, follow these steps:
 - Favor server components and Next.js SSR.
 - Use only for Web API access in small components.
 - Avoid for data fetching or state management.
+- Separate concerns by extracting intensive hooks to separate files, e.g. use-project-list.ts, use-project-detail.ts, use-project-form.ts, etc.
 
 ### Error Handling
 

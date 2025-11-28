@@ -125,6 +125,18 @@ export interface OrganizationListDto {
 }
 
 /**
+ * Organization detail DTO
+ */
+export interface OrganizationDetailDto {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  createdAt: Date;
+  metadata: string | null;
+}
+
+/**
  * Get all organizations (cached)
  * For superadmin use only
  */
@@ -169,6 +181,51 @@ export async function getCachedAllOrganizations(): Promise<
         "Failed to get all organizations",
         error as Error,
         "getCachedAllOrganizations"
+      )
+    );
+  }
+}
+
+/**
+ * Get organization by ID (cached)
+ * For superadmin use only
+ */
+export async function getCachedOrganizationById(
+  organizationId: string
+): Promise<ActionResult<OrganizationDetailDto | null>> {
+  "use cache";
+  cacheTag(CacheTags.organization(organizationId));
+
+  try {
+    const orgResult = await db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        slug: organizations.slug,
+        logo: organizations.logo,
+        createdAt: organizations.createdAt,
+        metadata: organizations.metadata,
+      })
+      .from(organizations)
+      .where(eq(organizations.id, organizationId))
+      .limit(1);
+
+    if (orgResult.length === 0) {
+      return ok(null);
+    }
+
+    return ok(orgResult[0]);
+  } catch (error) {
+    logger.error(
+      "Failed to get organization by ID",
+      { organizationId },
+      error as Error
+    );
+    return err(
+      ActionErrors.internal(
+        "Failed to get organization by ID",
+        error as Error,
+        "getCachedOrganizationById"
       )
     );
   }
