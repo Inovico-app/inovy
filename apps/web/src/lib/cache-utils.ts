@@ -115,8 +115,13 @@ export const CacheTags = {
   // Team tags
   team: (teamId: string) => `team:${teamId}`,
   teamsByOrg: (orgCode: string) => `teams:org:${orgCode}`,
+  teamMembers: (teamId: string) => `team-members:${teamId}`,
+  teamsByDepartment: (departmentId: string) => `teams:department:${departmentId}`,
   userTeams: (userId: string, orgCode: string) =>
     `user-teams:user:${userId}:org:${orgCode}`,
+
+  // Organization list tags (for superadmin)
+  organizations: () => `organizations:all`,
 } as const;
 
 /**
@@ -398,7 +403,7 @@ export const CacheInvalidation = {
   invalidateTeamCache(
     orgCode: string,
     teamId?: string,
-    departmentId?: string
+    _departmentId?: string
   ): void {
     const tags = [CacheTags.teamsByOrg(orgCode)];
     if (teamId) {
@@ -413,6 +418,27 @@ export const CacheInvalidation = {
    */
   invalidateUserTeamsCache(userId: string, orgCode: string): void {
     invalidateCache(CacheTags.userTeams(userId, orgCode));
+  },
+
+  /**
+   * Invalidate all organizations cache (for superadmin)
+   */
+  invalidateOrganizations(): void {
+    invalidateCache(CacheTags.organizations());
+  },
+
+  /**
+   * Invalidate organization members cache
+   */
+  invalidateOrganizationMembers(orgCode: string): void {
+    invalidateCache(CacheTags.orgMembers(orgCode));
+  },
+
+  /**
+   * Invalidate team members cache
+   */
+  invalidateTeamMembers(teamId: string): void {
+    invalidateCache(CacheTags.teamMembers(teamId));
   },
 } as const;
 

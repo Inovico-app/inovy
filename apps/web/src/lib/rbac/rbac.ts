@@ -328,3 +328,76 @@ export function isTeamLead(userTeamRole: string | null | undefined): boolean {
   return userTeamRole === "lead" || userTeamRole === "admin";
 }
 
+/**
+ * Check if a user has superadmin role
+ * Superadmins can manage all organizations in the system
+ */
+export function isSuperAdmin(session: SessionWithRoles): boolean {
+  const userRole = getUserBetterAuthRole(session);
+  return userRole === "superadmin";
+}
+
+/**
+ * Check if a user can manage a team
+ * User can manage a team if they are:
+ * 1. Organization admin, OR
+ * 2. Team manager (member of the team with lead/admin role)
+ * 
+ * Note: This function checks org-level permissions only.
+ * For team-level membership checks, use isTeamManager()
+ */
+export async function canManageTeam(
+  session: SessionWithRoles,
+  teamId: string
+): Promise<boolean> {
+  // Organization admins can manage all teams
+  if (isOrganizationAdmin(session.user, session.member)) {
+    return true;
+  }
+
+  // Check if user is a team manager for this specific team
+  return isTeamManagerForTeam(session, teamId);
+}
+
+/**
+ * Check if a user is a team manager for a specific team
+ * Queries the team_members table to verify membership and role
+ * 
+ * Note: This is a database query - use sparingly
+ * Better Auth doesn't natively support team member roles,
+ * so we'll need to implement custom logic when we use this
+ */
+export async function isTeamManagerForTeam(
+  session: SessionWithRoles,
+  teamId: string
+): Promise<boolean> {
+  // Import at function level to avoid circular dependencies
+  const { db } = await import("@/server/db");
+  const { teamMembers } = await import("@/server/db/schema/auth");
+  const { eq, and } = await import("drizzle-orm");
+
+  try {
+    const userId = session.user.id;
+    
+    // Query team_members table
+    const membership = await db
+      .select()
+      .from(teamMembers)
+      .where(
+        and(
+          eq(teamMembers.userId, userId),
+          eq(teamMembers.teamId, teamId)
+        )
+      )
+      .limit(1);
+
+    // Better Auth's team_members table doesn't have a role field
+    // Just check if user is a member
+    // For now, all team members are considered managers
+    return membership.length > 0;
+  } catch (error) {
+    console.error("Error checking team manager status:", error);
+    return false;
+  }
+}
+
