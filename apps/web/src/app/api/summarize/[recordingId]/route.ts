@@ -1,10 +1,10 @@
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { withRateLimit } from "@/lib/rate-limit";
-import { RecordingService } from "@/server/services/recording.service";
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { AIInsightService } from "@/server/services/ai-insight.service";
 import { rateLimiter } from "@/server/services/rate-limiter.service";
+import { RecordingService } from "@/server/services/recording.service";
 import { SummaryService } from "@/server/services/summary.service";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -29,9 +29,8 @@ export const POST = withRateLimit(
       const user = authResult.value.user;
 
       // Get recording
-      const recordingResult = await RecordingService.getRecordingById(
-        recordingId
-      );
+      const recordingResult =
+        await RecordingService.getRecordingById(recordingId);
 
       if (recordingResult.isErr() || !recordingResult.value) {
         return NextResponse.json(
@@ -156,9 +155,8 @@ export async function GET(
     }
 
     // Get recording
-    const recordingResult = await RecordingService.getRecordingById(
-      recordingId
-    );
+    const recordingResult =
+      await RecordingService.getRecordingById(recordingId);
 
     if (recordingResult.isErr() || !recordingResult.value) {
       return NextResponse.json(

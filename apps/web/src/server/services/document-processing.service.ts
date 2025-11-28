@@ -1,7 +1,11 @@
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
-import { ROLES } from "@/lib/rbac";
+import { Permissions } from "@/lib/rbac/permissions";
+import { checkPermission } from "@/lib/rbac/permissions-server";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
 import { put as putBlob } from "@vercel/blob";
 import { err, ok } from "neverthrow";
 import { KnowledgeBaseDocumentsQueries } from "../data-access/knowledge-base-documents.queries";
@@ -251,18 +255,16 @@ export class DocumentProcessingService {
           );
         }
 
-        // For write operations, require admin or manager role
+        // For write operations, check permissions using type-safe helper
         if (operation === "write") {
-          const userRoles = user.roles ?? [];
-          const hasPermission =
-            userRoles.includes(ROLES.ADMIN) ||
-            userRoles.includes(ROLES.MANAGER) ||
-            userRoles.includes(ROLES.SUPER_ADMIN);
+          const hasPermission = await checkPermission(
+            Permissions.orgInstruction.write
+          );
 
           if (!hasPermission) {
             return err(
               ActionErrors.forbidden(
-                "Organization knowledge base requires admin or manager role",
+                "Organization knowledge base requires admin or manager permissions",
                 {
                   scope,
                   scopeId,
@@ -284,13 +286,14 @@ export class DocumentProcessingService {
           );
         }
 
-        // For write operations, require super admin role
+        // For write operations, check super admin permissions using type-safe helper
         if (operation === "write") {
-          const userRoles = user.roles ?? [];
-          if (!userRoles.includes(ROLES.SUPER_ADMIN)) {
+          const hasPermission = await checkPermission(Permissions.admin.all);
+
+          if (!hasPermission) {
             return err(
               ActionErrors.forbidden(
-                "Global knowledge base requires super admin role",
+                "Global knowledge base requires super admin permissions",
                 {
                   scope,
                   scopeId,
@@ -406,9 +409,8 @@ export class DocumentProcessingService {
         createdById: userId,
       };
 
-      const document = await KnowledgeBaseDocumentsQueries.createDocument(
-        createDto
-      );
+      const document =
+        await KnowledgeBaseDocumentsQueries.createDocument(createDto);
 
       logger.info("Document uploaded to knowledge base", {
         documentId: document.id,
@@ -459,9 +461,8 @@ export class DocumentProcessingService {
       );
 
       // Get document
-      const document = await KnowledgeBaseDocumentsQueries.getDocumentById(
-        documentId
-      );
+      const document =
+        await KnowledgeBaseDocumentsQueries.getDocumentById(documentId);
       if (!document) {
         return err(
           ActionErrors.notFound(
@@ -508,7 +509,7 @@ export class DocumentProcessingService {
             organizationId,
             projectId:
               document.scope === "project"
-                ? document.scopeId ?? undefined
+                ? (document.scopeId ?? undefined)
                 : undefined,
             userId: document.createdById,
           }
@@ -652,9 +653,8 @@ export class DocumentProcessingService {
     documentId: string
   ): Promise<ActionResult<string>> {
     try {
-      const document = await KnowledgeBaseDocumentsQueries.getDocumentById(
-        documentId
-      );
+      const document =
+        await KnowledgeBaseDocumentsQueries.getDocumentById(documentId);
       if (!document) {
         return err(
           ActionErrors.notFound(
@@ -708,9 +708,8 @@ export class DocumentProcessingService {
   ): Promise<ActionResult<void>> {
     try {
       // Get document to get file URL
-      const document = await KnowledgeBaseDocumentsQueries.getDocumentById(
-        documentId
-      );
+      const document =
+        await KnowledgeBaseDocumentsQueries.getDocumentById(documentId);
       if (!document) {
         return err(
           ActionErrors.notFound(
@@ -800,9 +799,8 @@ export class DocumentProcessingService {
       }
 
       // Delete from database
-      const deleted = await KnowledgeBaseDocumentsQueries.deleteDocument(
-        documentId
-      );
+      const deleted =
+        await KnowledgeBaseDocumentsQueries.deleteDocument(documentId);
       if (!deleted) {
         return err(
           ActionErrors.notFound(

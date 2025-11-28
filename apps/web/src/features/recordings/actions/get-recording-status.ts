@@ -1,11 +1,12 @@
 "use server";
 
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { RecordingService } from "@/server/services/recording.service";
 import { z } from "zod";
 
@@ -14,7 +15,7 @@ const getRecordingStatusSchema = z.object({
 });
 
 export const getRecordingStatusAction = authorizedActionClient
-  .metadata({ policy: "recordings:read" })
+  .metadata({ permissions: policyToPermissions("recordings:read") })
   .schema(getRecordingStatusSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
@@ -25,9 +26,8 @@ export const getRecordingStatusAction = authorizedActionClient
     }
 
     // Get recording
-    const recordingResult = await RecordingService.getRecordingById(
-      recordingId
-    );
+    const recordingResult =
+      await RecordingService.getRecordingById(recordingId);
     const recording = resultToActionResponse(recordingResult);
 
     if (!recording) {

@@ -1,11 +1,7 @@
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
-import {
-  addRateLimitHeaders,
-  checkRateLimit,
-  createRateLimitResponse,
-} from "@/lib/rate-limit";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
+import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { ChatService } from "@/server/services/chat.service";
 import { ProjectService } from "@/server/services/project.service";
 import { type NextRequest, NextResponse } from "next/server";
@@ -24,7 +20,12 @@ export async function POST(
     const { projectId } = await params;
     const authResult = await getAuthSession();
 
-    if (authResult.isErr() || !authResult.value.isAuthenticated || !authResult.value.user || !authResult.value.organization) {
+    if (
+      authResult.isErr() ||
+      !authResult.value.isAuthenticated ||
+      !authResult.value.user ||
+      !authResult.value.organization
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -47,7 +48,7 @@ export async function POST(
     }
 
     const project = projectResult.value;
-    
+
     try {
       assertOrganizationAccess(
         project.organizationId,
@@ -147,7 +148,12 @@ export async function GET(
     const { projectId } = await params;
     const authResult = await getAuthSession();
 
-    if (authResult.isErr() || !authResult.value.isAuthenticated || !authResult.value.user || !authResult.value.organization) {
+    if (
+      authResult.isErr() ||
+      !authResult.value.isAuthenticated ||
+      !authResult.value.user ||
+      !authResult.value.organization
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -160,7 +166,7 @@ export async function GET(
     }
 
     const project = projectResult.value;
-    
+
     try {
       assertOrganizationAccess(
         project.organizationId,
@@ -184,9 +190,8 @@ export async function GET(
     }
 
     // Get conversation history
-    const historyResult = await ChatService.getConversationHistory(
-      conversationId
-    );
+    const historyResult =
+      await ChatService.getConversationHistory(conversationId);
 
     if (historyResult.isErr()) {
       logger.error("Failed to get conversation history", {

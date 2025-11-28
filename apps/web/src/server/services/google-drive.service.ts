@@ -1,9 +1,12 @@
+import { randomUUID } from "crypto";
 import { google } from "googleapis";
 import { err, ok } from "neverthrow";
-import { randomUUID } from "crypto";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
-import { createGoogleOAuthClient } from "../../lib/google-oauth";
+import { createGoogleOAuthClient } from "../../features/integrations/google/lib/google-oauth";
 import { logger } from "../../lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "../../lib/server-action-client/action-errors";
 import { GoogleOAuthService } from "./google-oauth.service";
 
 /**
@@ -39,11 +42,7 @@ export class GoogleDriveService {
       const drive = google.drive({ version: "v3", auth: oauth2Client });
       return ok(drive);
     } catch (error) {
-      logger.error(
-        "Failed to create Drive client",
-        { userId },
-        error as Error
-      );
+      logger.error("Failed to create Drive client", { userId }, error as Error);
       return err(
         ActionErrors.internal(
           "Failed to create Drive client",
@@ -207,7 +206,9 @@ export class GoogleDriveService {
 
       const response = await drive.files.list({
         q: `'${folderId}' in parents and trashed = false`,
-        fields: options?.fields ?? "files(id, name, mimeType, createdTime, modifiedTime, size)",
+        fields:
+          options?.fields ??
+          "files(id, name, mimeType, createdTime, modifiedTime, size)",
         orderBy: options?.orderBy ?? "modifiedTime desc",
         pageSize: options?.pageSize ?? 100,
       });
@@ -274,7 +275,11 @@ export class GoogleDriveService {
 
       const buffer = Buffer.from(response.data as ArrayBuffer);
 
-      logger.info("Downloaded Drive file", { userId, fileId, size: buffer.length });
+      logger.info("Downloaded Drive file", {
+        userId,
+        fileId,
+        size: buffer.length,
+      });
       return ok(buffer);
     } catch (error) {
       logger.error(

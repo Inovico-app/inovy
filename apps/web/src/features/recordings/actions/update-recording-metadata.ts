@@ -1,11 +1,12 @@
 "use server";
 
+import { logger } from "@/lib/logger";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
-import { logger } from "@/lib/logger";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { RecordingService } from "@/server/services/recording.service";
 import { updateRecordingMetadataSchema } from "@/server/validation/recordings/update-recording-metadata";
 import { revalidatePath } from "next/cache";
@@ -14,7 +15,7 @@ import { revalidatePath } from "next/cache";
  * Update recording metadata using authorized action client
  */
 export const updateRecordingMetadataAction = authorizedActionClient
-  .metadata({ policy: "recordings:update" })
+  .metadata({ permissions: policyToPermissions("recordings:update") })
   .schema(updateRecordingMetadataSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;

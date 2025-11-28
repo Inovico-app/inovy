@@ -1,6 +1,9 @@
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
 import { getCachedOrganizationSettings } from "@/server/cache/organization-settings.cache";
 import { ChatQueries } from "@/server/data-access/chat.queries";
 import type {
@@ -253,9 +256,8 @@ export class ChatService {
    */
   static async getConversationHistory(conversationId: string) {
     try {
-      const messages = await ChatQueries.getMessagesByConversationId(
-        conversationId
-      );
+      const messages =
+        await ChatQueries.getMessagesByConversationId(conversationId);
 
       return ok(messages);
     } catch (error) {
@@ -383,9 +385,8 @@ General Guidelines:
       logger.info("Generating chat response", { conversationId, projectId });
 
       // Get conversation to verify access
-      const conversation = await ChatQueries.getConversationById(
-        conversationId
-      );
+      const conversation =
+        await ChatQueries.getConversationById(conversationId);
       if (!conversation) {
         throw new Error("Conversation not found");
       }
@@ -442,9 +443,8 @@ General Guidelines:
       }
 
       // Get conversation history
-      const messages = await ChatQueries.getMessagesByConversationId(
-        conversationId
-      );
+      const messages =
+        await ChatQueries.getMessagesByConversationId(conversationId);
 
       // Build conversation history for context (last 10 messages)
       const conversationHistory: CoreMessage[] = messages
@@ -504,7 +504,6 @@ Please answer the user's question based on this information.`
                   content: completePrompt,
                 },
               ],
-              temperature: 0.7,
               onError: (error) => {
                 // Capture streaming errors
                 streamError =
@@ -595,9 +594,8 @@ Please answer the user's question based on this information.`
       logger.info("Streaming chat response", { conversationId, projectId });
 
       // Get conversation to verify access
-      const conversation = await ChatQueries.getConversationById(
-        conversationId
-      );
+      const conversation =
+        await ChatQueries.getConversationById(conversationId);
       if (!conversation) {
         throw new Error("Conversation not found");
       }
@@ -654,9 +652,8 @@ Please answer the user's question based on this information.`
       }
 
       // Get conversation history
-      const messages = await ChatQueries.getMessagesByConversationId(
-        conversationId
-      );
+      const messages =
+        await ChatQueries.getMessagesByConversationId(conversationId);
 
       // Build conversation history for context (last 10 messages)
       const conversationHistory: CoreMessage[] = messages
@@ -719,7 +716,6 @@ Please answer the user's question based on this information.`
             content: completePrompt,
           },
         ],
-        temperature: 0.7,
         onError: (error) => {
           // Decrement active requests on error
           pooled.activeRequests--;
@@ -808,9 +804,8 @@ Please answer the user's question based on this information.`
       });
 
       // Get conversation to verify access
-      const conversation = await ChatQueries.getConversationById(
-        conversationId
-      );
+      const conversation =
+        await ChatQueries.getConversationById(conversationId);
       if (!conversation) {
         throw new Error("Conversation not found");
       }
@@ -872,9 +867,8 @@ Please answer the user's question based on this information.`
       }
 
       // Get conversation history
-      const messages = await ChatQueries.getMessagesByConversationId(
-        conversationId
-      );
+      const messages =
+        await ChatQueries.getMessagesByConversationId(conversationId);
 
       // Build conversation history for context (last 10 messages)
       const conversationHistory: CoreMessage[] = messages
@@ -885,9 +879,8 @@ Please answer the user's question based on this information.`
         }));
 
       // Build system prompt for organization
-      const systemPrompt = await this.buildOrganizationSystemPrompt(
-        organizationId
-      );
+      const systemPrompt =
+        await this.buildOrganizationSystemPrompt(organizationId);
 
       // Get organization settings for instructions
       const orgSettings = await getCachedOrganizationSettings(organizationId);
@@ -930,7 +923,6 @@ Please answer the user's question based on this information. When referencing in
             content: completePrompt,
           },
         ],
-        temperature: 0.7,
         onError: (error) => {
           // Decrement active requests on error
           pooled.activeRequests--;
@@ -1094,9 +1086,8 @@ Please answer the user's question based on this information. When referencing in
     organizationId: string
   ): Promise<ActionResult<void>> {
     try {
-      const conversation = await ChatQueries.getConversationById(
-        conversationId
-      );
+      const conversation =
+        await ChatQueries.getConversationById(conversationId);
       if (!conversation) {
         return err(
           ActionErrors.notFound(
@@ -1157,9 +1148,8 @@ Please answer the user's question based on this information. When referencing in
     organizationId: string
   ): Promise<ActionResult<boolean>> {
     try {
-      const conversation = await ChatQueries.getConversationById(
-        conversationId
-      );
+      const conversation =
+        await ChatQueries.getConversationById(conversationId);
       if (!conversation) {
         return err(
           ActionErrors.notFound(
@@ -1217,9 +1207,8 @@ Please answer the user's question based on this information. When referencing in
     organizationId: string
   ): Promise<ActionResult<void>> {
     try {
-      const conversation = await ChatQueries.getConversationById(
-        conversationId
-      );
+      const conversation =
+        await ChatQueries.getConversationById(conversationId);
       if (!conversation) {
         return err(
           ActionErrors.notFound(
@@ -1277,9 +1266,8 @@ Please answer the user's question based on this information. When referencing in
     organizationId: string
   ): Promise<ActionResult<void>> {
     try {
-      const conversation = await ChatQueries.getConversationById(
-        conversationId
-      );
+      const conversation =
+        await ChatQueries.getConversationById(conversationId);
       if (!conversation) {
         return err(
           ActionErrors.notFound(
@@ -1371,9 +1359,8 @@ Please answer the user's question based on this information. When referencing in
     userId: string
   ): Promise<ActionResult<string>> {
     try {
-      const conversation = await ChatQueries.getConversationById(
-        conversationId
-      );
+      const conversation =
+        await ChatQueries.getConversationById(conversationId);
       if (!conversation) {
         return err(
           ActionErrors.notFound(
@@ -1392,9 +1379,8 @@ Please answer the user's question based on this information. When referencing in
         );
       }
 
-      const messages = await ChatQueries.getMessagesByConversationId(
-        conversationId
-      );
+      const messages =
+        await ChatQueries.getMessagesByConversationId(conversationId);
 
       const { formatConversationAsText } = await import("@/lib/export-utils");
       const text = formatConversationAsText(conversation, messages);
@@ -1423,9 +1409,8 @@ Please answer the user's question based on this information. When referencing in
     userId: string
   ): Promise<ActionResult<Blob>> {
     try {
-      const conversation = await ChatQueries.getConversationById(
-        conversationId
-      );
+      const conversation =
+        await ChatQueries.getConversationById(conversationId);
       if (!conversation) {
         return err(
           ActionErrors.notFound(
@@ -1444,9 +1429,8 @@ Please answer the user's question based on this information. When referencing in
         );
       }
 
-      const messages = await ChatQueries.getMessagesByConversationId(
-        conversationId
-      );
+      const messages =
+        await ChatQueries.getMessagesByConversationId(conversationId);
 
       const { generateConversationPDF } = await import("@/lib/export-utils");
       const pdf = await generateConversationPDF(conversation, messages);

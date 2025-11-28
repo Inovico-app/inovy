@@ -1,8 +1,9 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { getOrganizationMembers } from "@/server/data-access/organization.queries";
 import type { AuthOrganizationUserDto } from "@/server/dto/auth.dto";
 import { z } from "zod";
@@ -13,7 +14,7 @@ import { z } from "zod";
  * Uses Better Auth organization member queries
  */
 export const getOrganizationUsers = authorizedActionClient
-  .metadata({ policy: "users:read" })
+  .metadata({ permissions: policyToPermissions("users:read") })
   .schema(z.object({})) // No input needed
   .action(async ({ ctx }): Promise<AuthOrganizationUserDto[]> => {
     const { organizationId } = ctx;

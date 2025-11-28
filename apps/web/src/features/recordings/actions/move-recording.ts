@@ -1,10 +1,11 @@
 "use server";
 
-import { ActionErrors } from "@/lib/action-errors";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "@/lib/action-client";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { RecordingService } from "@/server/services/recording.service";
 import { moveRecordingSchema } from "@/server/validation/recordings/move-recording";
 import { revalidatePath } from "next/cache";
@@ -14,7 +15,7 @@ import { revalidatePath } from "next/cache";
  * Requires recordings:update permission (available to Manager role and above)
  */
 export const moveRecordingAction = authorizedActionClient
-  .metadata({ policy: "recordings:update" })
+  .metadata({ permissions: policyToPermissions("recordings:update") })
   .schema(moveRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId, targetProjectId } = parsedInput;

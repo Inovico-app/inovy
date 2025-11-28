@@ -5,8 +5,11 @@
  * for improved relevance
  */
 
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
 import type { SearchResult } from "./types";
 
@@ -38,13 +41,13 @@ export class RerankerService {
       if (!apiKey) {
         // Only log warning once to reduce noise
         if (!RerankerService.apiKeyWarningLogged) {
-        logger.warn(
-          "HUGGINGFACE_API_KEY not configured, returning original results",
-          {
-            component: "RerankerService",
-            action: "rerank",
-          }
-        );
+          logger.warn(
+            "HUGGINGFACE_API_KEY not configured, returning original results",
+            {
+              component: "RerankerService",
+              action: "rerank",
+            }
+          );
           RerankerService.apiKeyWarningLogged = true;
         }
         // Return original results sorted by similarity

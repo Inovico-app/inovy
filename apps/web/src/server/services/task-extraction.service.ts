@@ -1,5 +1,8 @@
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { TasksQueries } from "@/server/data-access/tasks.queries";
 import { connectionPool } from "@/server/services/connection-pool.service";
@@ -143,9 +146,8 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
         });
 
         // Create failure notification
-        const recording = await RecordingsQueries.selectRecordingById(
-          recordingId
-        );
+        const recording =
+          await RecordingsQueries.selectRecordingById(recordingId);
         if (recording) {
           await NotificationService.createNotification({
             recordingId,
@@ -241,9 +243,8 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
       });
 
       // Create success notification
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (recording) {
         await NotificationService.createNotification({
           recordingId,

@@ -1,11 +1,12 @@
 "use server";
 
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { RecordingService } from "@/server/services/recording.service";
 import { ReprocessingService } from "@/server/services/reprocessing.service";
 import { revalidatePath } from "next/cache";
@@ -19,7 +20,7 @@ const reprocessRecordingSchema = z.object({
  * Reprocess AI insights for a recording
  */
 export const reprocessRecordingAction = authorizedActionClient
-  .metadata({ policy: "recordings:update" })
+  .metadata({ permissions: policyToPermissions("recordings:update") })
   .schema(reprocessRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
@@ -34,9 +35,8 @@ export const reprocessRecordingAction = authorizedActionClient
     }
 
     // Get recording to verify ownership and get project ID
-    const recordingResult = await RecordingService.getRecordingById(
-      recordingId
-    );
+    const recordingResult =
+      await RecordingService.getRecordingById(recordingId);
     const recording = resultToActionResponse(recordingResult);
 
     if (!recording) {
@@ -84,7 +84,7 @@ const getReprocessingStatusSchema = z.object({
  * Get reprocessing status for a recording
  */
 export const getReprocessingStatusAction = authorizedActionClient
-  .metadata({ policy: "recordings:read" })
+  .metadata({ permissions: policyToPermissions("recordings:read") })
   .schema(getReprocessingStatusSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
@@ -95,9 +95,8 @@ export const getReprocessingStatusAction = authorizedActionClient
     }
 
     // Get recording to verify ownership
-    const recordingResult = await RecordingService.getRecordingById(
-      recordingId
-    );
+    const recordingResult =
+      await RecordingService.getRecordingById(recordingId);
     const recording = resultToActionResponse(recordingResult);
 
     if (!recording) {

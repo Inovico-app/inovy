@@ -1,8 +1,8 @@
 "use server";
 
-import { OrganizationAssignmentService } from "@/server/services/organization-assignment.service";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
+import { OrganizationAssignmentService } from "@/server/services/organization-assignment.service";
 
 /**
  * Server action to ensure user has an organization assigned
@@ -56,7 +56,8 @@ export async function ensureUserOrganization(): Promise<{
       userId: user.id,
     });
 
-    const assignmentResult = await OrganizationAssignmentService.ensureUserOrganization(user);
+    const assignmentResult =
+      await OrganizationAssignmentService.ensureUserOrganization(user);
 
     if (assignmentResult.isErr()) {
       logger.error("Failed to ensure user organization", {
@@ -66,7 +67,8 @@ export async function ensureUserOrganization(): Promise<{
 
       return {
         success: false,
-        error: assignmentResult.error.message || "Failed to assign organization",
+        error:
+          assignmentResult.error.message || "Failed to assign organization",
       };
     }
 
@@ -82,7 +84,11 @@ export async function ensureUserOrganization(): Promise<{
       organizationCode: organization.id, // organizationCode is the Better Auth organization ID
     };
   } catch (error) {
-    logger.error("Unexpected error in ensureUserOrganization", {}, error as Error);
+    logger.error(
+      "Unexpected error in ensureUserOrganization",
+      {},
+      error as Error
+    );
 
     return {
       success: false,
@@ -90,3 +96,4 @@ export async function ensureUserOrganization(): Promise<{
     };
   }
 }
+

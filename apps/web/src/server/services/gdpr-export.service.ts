@@ -1,9 +1,9 @@
+import { logger } from "@/lib/logger";
 import {
   ActionErrors,
   createActionError,
   type ActionResult,
-} from "@/lib/action-errors";
-import { logger } from "@/lib/logger";
+} from "@/lib/server-action-client/action-errors";
 import * as archiver from "archiver";
 import { addDays } from "date-fns";
 import { err, ok } from "neverthrow";
@@ -336,9 +336,8 @@ export class GdprExportService {
       const summaries: UserExportData["summaries"] = [];
 
       if (recordingIds.length > 0) {
-        const allInsights = await AIInsightsQueries.getInsightsByRecordingIds(
-          recordingIds
-        );
+        const allInsights =
+          await AIInsightsQueries.getInsightsByRecordingIds(recordingIds);
 
         // Group insights by recording ID
         const insightsByRecording = new Map<string, typeof allInsights>();
@@ -406,9 +405,8 @@ export class GdprExportService {
         // Process batches sequentially to avoid overwhelming the database
         for (let i = 0; i < conversationIds.length; i += BATCH_SIZE) {
           const batch = conversationIds.slice(i, i + BATCH_SIZE);
-          const batchMessages = await ChatQueries.getMessagesByConversationIds(
-            batch
-          );
+          const batchMessages =
+            await ChatQueries.getMessagesByConversationIds(batch);
           allMessages.push(...batchMessages);
         }
 

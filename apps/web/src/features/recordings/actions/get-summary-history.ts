@@ -1,6 +1,7 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { SummaryEditService } from "@/server/services/summary-edit.service";
 import { z } from "zod";
 
@@ -8,7 +9,7 @@ import { z } from "zod";
  * Server action to get summary version history
  */
 export const getSummaryHistory = authorizedActionClient
-  .metadata({ policy: "recordings:read" })
+  .metadata({ permissions: policyToPermissions("recordings:read") })
   .schema(z.object({ recordingId: z.string().uuid() }))
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId } = ctx;
@@ -21,11 +22,11 @@ export const getSummaryHistory = authorizedActionClient
       parsedInput.recordingId,
       organizationId
     );
-    
+
     if (result.isErr()) {
       throw new Error(result.error.message);
     }
-    
+
     return result.value;
   });
 

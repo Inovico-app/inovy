@@ -1,5 +1,4 @@
 import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import {
   decryptToken,
   encryptToken,
@@ -7,8 +6,12 @@ import {
   getUserEmail,
   refreshAccessToken,
   revokeToken,
-} from "../../lib/google-oauth";
+} from "../../features/integrations/google/lib/google-oauth";
 import { logger } from "../../lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "../../lib/server-action-client/action-errors";
 import { OAuthConnectionsQueries } from "../data-access/oauth-connections.queries";
 import type { OAuthConnection } from "../db/schema/oauth-connections";
 

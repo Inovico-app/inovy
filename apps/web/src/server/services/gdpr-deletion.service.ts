@@ -1,9 +1,12 @@
 import { del } from "@vercel/blob";
 import { createHash } from "crypto";
 import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
-import { getAuthSession } from "../../lib/auth";
+import { getAuthSession } from "../../lib/auth/auth-helpers";
 import { logger } from "../../lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "../../lib/server-action-client/action-errors";
 import { AIInsightsQueries } from "../data-access/ai-insights.queries";
 import { AuditLogsQueries } from "../data-access/audit-logs.queries";
 import { ChatQueries } from "../data-access/chat.queries";
@@ -315,9 +318,8 @@ export class GdprDeletionService {
 
     // Anonymize transcription text
     for (const recordingId of recordingIds) {
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (recording && recording.transcriptionText) {
         const anonymizedText = this.anonymizeText(
           recording.transcriptionText,
@@ -332,9 +334,8 @@ export class GdprDeletionService {
       }
 
       // Anonymize AI insights (speaker names)
-      const insights = await AIInsightsQueries.getInsightsByRecordingId(
-        recordingId
-      );
+      const insights =
+        await AIInsightsQueries.getInsightsByRecordingId(recordingId);
 
       for (const insight of insights) {
         if (insight.speakerNames) {

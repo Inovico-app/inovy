@@ -1,9 +1,12 @@
 import { err, ok } from "neverthrow";
 import { revalidateTag } from "next/cache";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
-import { getAuthSession } from "../../lib/auth";
+import { getAuthSession } from "../../lib/auth/auth-helpers";
 import { CacheInvalidation, CacheTags } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "../../lib/server-action-client/action-errors";
 import {
   getCachedNotifications,
   getCachedUnreadCount,
@@ -140,10 +143,7 @@ export class NotificationService {
         );
       }
 
-      const count = await getCachedUnreadCount(
-        authUser.id,
-        organization.id
-      );
+      const count = await getCachedUnreadCount(authUser.id, organization.id);
 
       return ok(count);
     } catch (error) {

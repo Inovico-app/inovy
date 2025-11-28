@@ -1,10 +1,11 @@
 "use server";
 
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { EmbeddingCacheQueries } from "@/server/data-access/embedding-cache.queries";
 import { ok } from "neverthrow";
 import { z } from "zod";
@@ -19,7 +20,7 @@ const invalidateCacheByModelSchema = z.object({
  */
 export const invalidateEmbeddingCache = authorizedActionClient
   .metadata({
-    policy: "admin:all",
+    permissions: policyToPermissions("admin:all"),
   })
   .action(async () => {
     try {
@@ -47,16 +48,15 @@ export const invalidateEmbeddingCache = authorizedActionClient
  */
 export const invalidateEmbeddingCacheByModel = authorizedActionClient
   .metadata({
-    policy: "admin:all",
+    permissions: policyToPermissions("admin:all"),
   })
   .inputSchema(invalidateCacheByModelSchema)
   .action(async ({ parsedInput }) => {
     const { model } = parsedInput;
 
     try {
-      const deletedCount = await EmbeddingCacheQueries.invalidateCacheByModel(
-        model
-      );
+      const deletedCount =
+        await EmbeddingCacheQueries.invalidateCacheByModel(model);
 
       return resultToActionResponse(
         ok({
@@ -81,7 +81,7 @@ export const invalidateEmbeddingCacheByModel = authorizedActionClient
  */
 export const getEmbeddingCacheStats = authorizedActionClient
   .metadata({
-    policy: "admin:all",
+    permissions: policyToPermissions("admin:all"),
   })
   .action(async () => {
     try {

@@ -1,8 +1,9 @@
 "use server";
 
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { revalidatePath } from "next/cache";
-import { authorizedActionClient } from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
+import { authorizedActionClient } from "../../../lib/server-action-client/action-client";
+import { ActionErrors } from "../../../lib/server-action-client/action-errors";
 import { RecordingService } from "../../../server/services/recording.service";
 import { archiveRecordingSchema } from "../../../server/validation/recordings/archive-recording";
 
@@ -11,7 +12,7 @@ import { archiveRecordingSchema } from "../../../server/validation/recordings/ar
  */
 export const unarchiveRecordingAction = authorizedActionClient
   .metadata({
-    policy: "recordings:update",
+    permissions: policyToPermissions("recordings:update"),
   })
   .inputSchema(archiveRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -27,9 +28,8 @@ export const unarchiveRecordingAction = authorizedActionClient
     }
 
     // Get recording to find project ID for cache invalidation
-    const recordingResult = await RecordingService.getRecordingById(
-      recordingId
-    );
+    const recordingResult =
+      await RecordingService.getRecordingById(recordingId);
     if (recordingResult.isErr() || !recordingResult.value) {
       throw ActionErrors.notFound("Recording", "unarchive-recording");
     }

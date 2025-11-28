@@ -1,14 +1,18 @@
 "use server";
 
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { ok } from "neverthrow";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { logger } from "../../../lib/logger";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "../../../lib/action-client";
-import { ActionErrors, type ActionError } from "../../../lib/action-errors";
-import { logger } from "../../../lib/logger";
+} from "../../../lib/server-action-client/action-client";
+import {
+  ActionErrors,
+  type ActionError,
+} from "../../../lib/server-action-client/action-errors";
 import type { ConsentParticipant } from "../../../server/db/schema/consent";
 import { ConsentService } from "../../../server/services/consent.service";
 import {
@@ -22,7 +26,7 @@ import {
  */
 export const grantConsentAction = authorizedActionClient
   .metadata({
-    policy: "recordings:update",
+    permissions: policyToPermissions("recordings:update"),
   })
   .inputSchema(grantConsentSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -72,7 +76,7 @@ export const grantConsentAction = authorizedActionClient
  */
 export const revokeConsentAction = authorizedActionClient
   .metadata({
-    policy: "recordings:update",
+    permissions: policyToPermissions("recordings:update"),
   })
   .inputSchema(revokeConsentSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -109,7 +113,7 @@ export const revokeConsentAction = authorizedActionClient
  */
 export const bulkGrantConsentAction = authorizedActionClient
   .metadata({
-    policy: "recordings:update",
+    permissions: policyToPermissions("recordings:update"),
   })
   .inputSchema(bulkGrantConsentSchema)
   .action(async ({ parsedInput, ctx }) => {

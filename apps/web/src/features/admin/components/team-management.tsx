@@ -7,9 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getAuthSession } from "@/lib/auth";
-import { isOrganizationAdmin } from "@/lib/rbac";
-import { getCachedDepartmentsByOrganization } from "@/server/cache/department.cache";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { getCachedTeamsByOrganization } from "@/server/cache/team.cache";
 import { TeamManagementClient } from "./team-management-client";
 
@@ -35,7 +34,6 @@ export async function TeamManagement() {
 
   const canEdit = user ? isOrganizationAdmin(user) : false;
   const teams = await getCachedTeamsByOrganization(organizationId);
-  const departments = await getCachedDepartmentsByOrganization(organizationId);
 
   return (
     <Card>
@@ -48,7 +46,6 @@ export async function TeamManagement() {
       <CardContent>
         <TeamManagementClient
           teams={teams}
-          departments={departments}
           canEdit={canEdit}
           organizationId={organizationId}
         />

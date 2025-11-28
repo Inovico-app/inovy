@@ -1,7 +1,9 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
+import { Permissions } from "@/lib/rbac/permissions";
+import { checkPermission } from "@/lib/rbac/permissions-server";
 import { DriveWatchesService } from "@/server/services/drive-watches.service";
+import { type NextRequest, NextResponse } from "next/server";
 
 /**
  * GET /api/integrations/google/drive/watch/list
@@ -28,10 +30,15 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const requestedUserId = searchParams.get("userId");
 
-    // Use requested userId if provided and user is admin, otherwise use authenticated user's ID
-    const userId = requestedUserId && user.roles?.includes("admin")
-      ? requestedUserId
-      : user.id;
+    // Use requested userId if provided and user has admin permissions, otherwise use authenticated user's ID
+    let userId = user.id;
+    if (requestedUserId) {
+      const hasAdminPermission = await checkPermission(Permissions.admin.all);
+
+      if (hasAdminPermission) {
+        userId = requestedUserId;
+      }
+    }
 
     // List watches
     const result = await DriveWatchesService.listWatches(userId);
@@ -71,11 +78,7 @@ export async function GET(request: NextRequest) {
       watches: result.value,
     });
   } catch (error) {
-    logger.error(
-      "Error in list Drive watches API route",
-      {},
-      error as Error
-    );
+    logger.error("Error in list Drive watches API route", {}, error as Error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

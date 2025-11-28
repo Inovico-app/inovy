@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
 import { DataExportsQueries } from "@/server/data-access/data-exports.queries";
 import { GdprExportService } from "@/server/services/gdpr-export.service";

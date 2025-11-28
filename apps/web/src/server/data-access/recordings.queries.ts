@@ -17,7 +17,6 @@ import {
   type Recording,
 } from "../db/schema/recordings";
 import { TeamQueries } from "./teams.queries";
-import { UserTeamQueries } from "./user-teams.queries";
 
 export class RecordingsQueries {
   static async insertRecording(data: NewRecording): Promise<Recording> {
@@ -385,36 +384,14 @@ export class RecordingsQueries {
 
     // Filter by team: get user IDs in the specified teams
     if (options?.teamIds && options.teamIds.length > 0) {
-      const usersByTeams = await UserTeamQueries.selectUsersByTeamIds(
-        options.teamIds
+      const teamMembers = await TeamQueries.selectTeamMembers(
+        options.teamIds[0]
       );
-      const userIds = Array.from(new Set(usersByTeams.map((u) => u.userId)));
-      if (userIds.length > 0) {
-        conditions.push(inArray(recordings.createdById, userIds));
-      } else {
-        // No users in these teams, return empty result by using impossible condition
-        conditions.push(sql`1 = 0`);
-      }
-    }
-
-    // Filter by department: get teams in department, then users in those teams
-    if (options?.departmentId) {
-      const departmentTeams = await TeamQueries.selectTeamsByDepartment(
-        options.departmentId
-      );
-      const teamIds = departmentTeams.map((t) => t.id);
-      if (teamIds.length > 0) {
-        const usersByTeams = await UserTeamQueries.selectUsersByTeamIds(teamIds);
-        const userIds = Array.from(new Set(usersByTeams.map((u) => u.userId)));
+      if (teamMembers.length) {
+        const userIds = Array.from(new Set(teamMembers.map((u) => u.userId)));
         if (userIds.length > 0) {
           conditions.push(inArray(recordings.createdById, userIds));
-        } else {
-          // No users in department teams, return empty result
-          conditions.push(sql`1 = 0`);
         }
-      } else {
-        // No teams in department, return empty result
-        conditions.push(sql`1 = 0`);
       }
     }
 

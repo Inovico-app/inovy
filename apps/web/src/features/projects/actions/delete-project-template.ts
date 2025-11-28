@@ -1,12 +1,13 @@
 "use server";
 
-import { getUserOrganizationCode } from "@/lib/action-helpers";
 import { CacheInvalidation } from "@/lib/cache-utils";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { getUserOrganizationCode } from "@/lib/server-action-client/action-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
+} from "../../../lib/server-action-client/action-client";
+import { ActionErrors } from "../../../lib/server-action-client/action-errors";
 import { ProjectTemplateQueries } from "../../../server/data-access/project-templates.queries";
 import { ProjectTemplateService } from "../../../server/services/project-template.service";
 import { deleteProjectTemplateSchema } from "../../../server/validation/project-templates/delete-project-template";
@@ -16,7 +17,7 @@ import { deleteProjectTemplateSchema } from "../../../server/validation/project-
  */
 export const deleteProjectTemplateAction = authorizedActionClient
   .metadata({
-    policy: "projects:update",
+    permissions: policyToPermissions("projects:update"),
   })
   .inputSchema(deleteProjectTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {

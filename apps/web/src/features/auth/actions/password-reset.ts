@@ -1,8 +1,8 @@
 "use server";
 
-import { publicActionClient } from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
-import { betterAuthInstance } from "@/lib/better-auth-server";
+import { auth } from "@/lib/auth";
+import { publicActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { headers } from "next/headers";
 import {
   requestPasswordResetSchema,
@@ -18,7 +18,7 @@ export const requestPasswordResetAction = publicActionClient
     const { email } = parsedInput;
 
     try {
-      await betterAuthInstance.api.requestPasswordReset({
+      await auth.api.requestPasswordReset({
         body: {
           email,
           redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000"}/reset-password`,
@@ -45,7 +45,7 @@ export const resetPasswordAction = publicActionClient
     const { token, password } = parsedInput;
 
     try {
-      await betterAuthInstance.api.resetPassword({
+      await auth.api.resetPassword({
         body: {
           token,
           newPassword: password,

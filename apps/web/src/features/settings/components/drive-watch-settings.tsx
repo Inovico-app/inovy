@@ -1,9 +1,15 @@
-import { Suspense } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { getCachedDriveWatches } from "@/server/cache/drive-watch.cache";
 import { getCachedUserProjects } from "@/server/cache/project.cache";
-import { getAuthSession } from "@/lib/auth";
+import { Suspense } from "react";
 import { DriveWatchSettingsClient } from "./drive-watch-settings-client";
 
 /**
@@ -13,7 +19,7 @@ import { DriveWatchSettingsClient } from "./drive-watch-settings-client";
 export async function DriveWatchSettings() {
   // Get auth session (outside cache)
   const authResult = await getAuthSession();
-  
+
   if (
     authResult.isErr() ||
     !authResult.value.isAuthenticated ||

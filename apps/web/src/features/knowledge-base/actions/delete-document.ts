@@ -1,11 +1,12 @@
 "use server";
 
+import { CacheInvalidation } from "@/lib/cache-utils";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
-import { CacheInvalidation } from "@/lib/cache-utils";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { DocumentProcessingService } from "@/server/services/document-processing.service";
 import { deleteKnowledgeDocumentSchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
@@ -15,7 +16,7 @@ import { revalidatePath } from "next/cache";
  */
 export const deleteKnowledgeDocumentAction = authorizedActionClient
   .metadata({
-    policy: "projects:update", // Project knowledge requires project access
+    permissions: policyToPermissions("projects:update"), // Project knowledge requires project access
   })
   .inputSchema(deleteKnowledgeDocumentSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -30,9 +31,8 @@ export const deleteKnowledgeDocumentAction = authorizedActionClient
     }
 
     // Get document first to know its scope for cache invalidation
-    const { KnowledgeBaseDocumentsQueries } = await import(
-      "../../../server/data-access/knowledge-base-documents.queries"
-    );
+    const { KnowledgeBaseDocumentsQueries } =
+      await import("../../../server/data-access/knowledge-base-documents.queries");
     const document = await KnowledgeBaseDocumentsQueries.getDocumentById(id);
 
     // Delete document

@@ -1,11 +1,9 @@
-import "server-only";
-
 import { type Result, err, ok } from "neverthrow";
 import { headers } from "next/headers";
 import { cache } from "react";
-import { betterAuthInstance } from "./better-auth-server";
+import { auth } from "./auth";
+import type { RoleName } from "./auth/access-control";
 import { logger } from "./logger";
-import type { Role } from "./rbac";
 
 /**
  * Better Auth session types
@@ -36,7 +34,7 @@ export interface BetterAuthSessionData {
   user: BetterAuthUser | null;
   organization: BetterAuthOrganization | null;
   member: BetterAuthMember | null;
-  roles: Role[] | null;
+  roles: RoleName[] | null;
 }
 
 /**
@@ -87,8 +85,8 @@ function mapMemberRoles(
   } | null,
   userId: string,
   actionContext: string
-): Role[] {
-  const roles: Role[] = [];
+): RoleName[] {
+  const roles: RoleName[] = [];
 
   if (activeMember) {
     const memberRole = activeMember.role?.toLowerCase();
@@ -127,7 +125,7 @@ async function fetchAndBuildSession(
   actionContext: string
 ): Promise<Result<BetterAuthSessionData, string>> {
   try {
-    const session = await betterAuthInstance.api.getSession({
+    const session = await auth.api.getSession({
       headers: await headers(),
     });
 
@@ -144,12 +142,12 @@ async function fetchAndBuildSession(
 
     // Get active organization and member
     const [organizationsResult, activeMemberResult] = await Promise.all([
-      betterAuthInstance.api
+      auth.api
         .listOrganizations({
           headers: await headers(),
         })
         .catch(() => null),
-      betterAuthInstance.api
+      auth.api
         .getActiveMember({
           headers: await headers(),
         })

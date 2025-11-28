@@ -1,8 +1,9 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -11,7 +12,7 @@ import { z } from "zod";
  * Get Google connection status for current user
  */
 export const getGoogleConnectionStatus = authorizedActionClient
-  .metadata({ policy: "settings:read" })
+  .metadata({ permissions: policyToPermissions("settings:read") })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { user } = ctx;
@@ -42,7 +43,7 @@ export const getGoogleConnectionStatus = authorizedActionClient
  * Disconnect Google account
  */
 export const disconnectGoogleAccount = authorizedActionClient
-  .metadata({ policy: "settings:update" })
+  .metadata({ permissions: policyToPermissions("settings:update") })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { user } = ctx;
@@ -78,3 +79,4 @@ export const disconnectGoogleAccount = authorizedActionClient
 
     return { success: true };
   });
+

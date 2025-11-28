@@ -1,8 +1,9 @@
 "use server";
 
-import { z } from "zod";
-import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { TranscriptionEditService } from "@/server/services/transcription-edit.service";
+import { z } from "zod";
 
 const restoreTranscriptionVersionSchema = z.object({
   recordingId: z.string().uuid(),
@@ -13,7 +14,7 @@ const restoreTranscriptionVersionSchema = z.object({
  * Server action to restore a previous transcription version
  */
 export const restoreTranscriptionVersion = authorizedActionClient
-  .metadata({ policy: "recordings:update" })
+  .metadata({ permissions: policyToPermissions("recordings:update") })
   .schema(restoreTranscriptionVersionSchema)
   .action(async ({ parsedInput, ctx }) => {
     if (!ctx.user || !ctx.organizationId) {

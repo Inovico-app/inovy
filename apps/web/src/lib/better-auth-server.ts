@@ -1,15 +1,16 @@
+import { sendEmailFromTemplate } from "@/features/email/client";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema/auth";
 import { passkey } from "@better-auth/passkey";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
-import { magicLink, organization } from "better-auth/plugins";
-import { sendEmailFromTemplate } from "./email";
-import { MagicLinkEmail } from "./email-templates/magic-link-email";
-import { OrganizationInvitationEmail } from "./email-templates/organization-invitation-email";
-import { PasswordResetEmail } from "./email-templates/password-reset-email";
-import { VerificationEmail } from "./email-templates/verification-email";
+import { customSession, magicLink, organization } from "better-auth/plugins";
+import { MagicLinkEmail } from "../features/email/templates/magic-link-email";
+import { OrganizationInvitationEmail } from "../features/email/templates/organization-invitation-email";
+import { PasswordResetEmail } from "../features/email/templates/password-reset-email";
+import { VerificationEmail } from "../features/email/templates/verification-email";
+import { ac, roleMapping, roles, type RoleName } from "./auth/access-control";
 
 /**
  * Better Auth instance configuration
@@ -26,17 +27,15 @@ export const betterAuthInstance = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
-      user: schema.user,
-      session: schema.session,
-      account: schema.account,
-      verification: schema.verification,
-      organization: schema.organization,
-      member: schema.member,
-      invitation: schema.invitation,
-      passkey: schema.passkey,
-      magicLink: schema.magicLink,
-      customer: schema.customer,
-      subscription: schema.subscription,
+      user: schema.users,
+      session: schema.sessions,
+      account: schema.accounts,
+      verification: schema.verifications,
+      organization: schema.organizations,
+      member: schema.members,
+      invitation: schema.invitations,
+      passkey: schema.passkeys,
+      magicLink: schema.magicLinks,
     },
   }),
   baseURL:
@@ -107,6 +106,19 @@ export const betterAuthInstance = betterAuth({
 
   plugins: [
     organization({
+      // Access control configuration
+      ac,
+      roles: {
+        // Map Better Auth organization roles to application roles
+        owner: roleMapping.owner,
+        admin: roleMapping.admin,
+        member: roleMapping.member,
+        // Also include application-specific roles
+        superadmin: roles.superadmin,
+        manager: roles.manager,
+        user: roles.user,
+        viewer: roles.viewer,
+      },
       async sendInvitationEmail(data: {
         id: string;
         email: string;
@@ -158,6 +170,54 @@ export const betterAuthInstance = betterAuth({
         "localhost",
       rpName: "Inovy",
     }),
+    customSession(async ({ user, session }, ctx) => {
+      if (!user) {
+        return {
+          user,
+          session,
+        };
+      }
+
+      // Get active member to determine roles
+      // Use headers from context if available, otherwise create empty headers
+      const headers = ctx.headers ?? new Headers();
+      const activeMember = await betterAuthInstance.api
+        .getActiveMember({
+          headers,
+        })
+        .catch(() => null);
+
+      // Map Better Auth member role to application roles
+      const roles: RoleName[] = [];
+      if (
+        activeMember &&
+        typeof activeMember === "object" &&
+        "role" in activeMember
+      ) {
+        const memberRole = (activeMember.role as string)?.toLowerCase();
+        if (memberRole === "owner" || memberRole === "admin") {
+          roles.push("admin");
+        } else if (memberRole === "manager") {
+          roles.push("manager");
+        } else if (memberRole === "member") {
+          roles.push("user");
+        } else {
+          // Default role for unrecognized roles
+          roles.push("user");
+        }
+      } else {
+        // No active member - assign default role for authenticated users
+        roles.push("user");
+      }
+
+      return {
+        roles: roles.length > 0 ? roles : ["user"],
+        user: {
+          ...user,
+        },
+        session,
+      };
+    }),
     nextCookies(), // Must be last plugin
   ],
 });
@@ -165,4 +225,9 @@ export const betterAuthInstance = betterAuth({
 // Export types for use throughout the application
 export type BetterAuthSession = typeof betterAuthInstance.$Infer.Session;
 export type BetterAuthUser = typeof betterAuthInstance.$Infer.Session.user;
+
+// Export for Better Auth CLI compatibility
+// The CLI expects either a default export or an export named "auth"
+export const auth = betterAuthInstance;
+export default betterAuthInstance;
 

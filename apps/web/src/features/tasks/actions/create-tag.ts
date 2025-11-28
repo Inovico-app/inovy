@@ -1,12 +1,16 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { TaskService } from "@/server/services/task.service";
 import { z } from "zod";
 
 const createTagSchema = z.object({
-  name: z.string().min(1, "Tag name is required").max(50, "Tag name is too long"),
+  name: z
+    .string()
+    .min(1, "Tag name is required")
+    .max(50, "Tag name is too long"),
   color: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid color format"),
 });
 
@@ -14,7 +18,7 @@ const createTagSchema = z.object({
  * Server action to create a new tag
  */
 export const createTag = authorizedActionClient
-  .metadata({ policy: "tasks:create" })
+  .metadata({ permissions: policyToPermissions("tasks:create") })
   .schema(createTagSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId } = ctx;

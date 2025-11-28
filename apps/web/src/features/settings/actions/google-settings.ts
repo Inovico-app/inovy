@@ -1,15 +1,13 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
-import { IntegrationSettingsService } from "@/server/services/integration-settings.service";
-import {
-  updateGoogleSettingsSchema,
-  type UpdateGoogleSettingsInput,
-} from "@/server/validation/integrations/google-settings";
-import { revalidatePath } from "next/cache";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import type { IntegrationSettings } from "@/server/db/schema/integration-settings";
+import { IntegrationSettingsService } from "@/server/services/integration-settings.service";
+import { updateGoogleSettingsSchema } from "@/server/validation/integrations/google-settings";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 const getGoogleSettingsSchema = z.object({
@@ -20,7 +18,7 @@ const getGoogleSettingsSchema = z.object({
  * Get Google integration settings
  */
 export const getGoogleSettings = authorizedActionClient
-  .metadata({ policy: "settings:read" })
+  .metadata({ permissions: policyToPermissions("settings:read") })
   .schema(getGoogleSettingsSchema.optional())
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -66,7 +64,7 @@ export const getGoogleSettings = authorizedActionClient
  * Update Google integration settings
  */
 export const updateGoogleSettings = authorizedActionClient
-  .metadata({ policy: "settings:update" })
+  .metadata({ permissions: policyToPermissions("settings:update") })
   .schema(updateGoogleSettingsSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -121,7 +119,7 @@ const resetGoogleSettingsSchema = z.object({
  * Reset Google integration settings to defaults
  */
 export const resetGoogleSettings = authorizedActionClient
-  .metadata({ policy: "settings:update" })
+  .metadata({ permissions: policyToPermissions("settings:update") })
   .schema(resetGoogleSettingsSchema.optional())
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -151,3 +149,4 @@ export const resetGoogleSettings = authorizedActionClient
 
     return { success: true };
   });
+

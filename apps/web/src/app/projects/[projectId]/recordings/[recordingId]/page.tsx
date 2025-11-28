@@ -1,4 +1,4 @@
-import type { ActionResult } from "@/lib/action-errors";
+import type { ActionResult } from "@/lib/server-action-client/action-errors";
 import type { ConsentParticipant } from "@/server/db/schema/consent";
 import { AIInsightService } from "@/server/services/ai-insight.service";
 import { ConsentService } from "@/server/services/consent.service";
@@ -25,7 +25,7 @@ import { ReprocessButton } from "../../../../../features/recordings/components/r
 import { ReprocessingStatusIndicator } from "../../../../../features/recordings/components/reprocessing-status-indicator";
 import { TranscriptionSection } from "../../../../../features/recordings/components/transcription/transcription-section";
 import { TaskCard } from "../../../../../features/tasks/components/task-card-with-edit";
-import { getAuthSession } from "../../../../../lib/auth";
+import { getAuthSession } from "../../../../../lib/auth/auth-helpers";
 import { getCachedSummary } from "../../../../../server/cache/summary.cache";
 import { ProjectService } from "../../../../../server/services/project.service";
 import { RecordingService } from "../../../../../server/services/recording.service";

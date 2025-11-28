@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import { cache } from "react";
@@ -23,9 +23,8 @@ export const getCachedProjectTemplate = cache(
 
     cacheTag(CacheTags.projectTemplate(projectId));
     // Fetch template for the project using service
-    const result = await ProjectTemplateService.getProjectTemplateByProjectId(
-      projectId
-    );
+    const result =
+      await ProjectTemplateService.getProjectTemplateByProjectId(projectId);
 
     // Return null on error, or the template data if found
     if (result.isErr()) {

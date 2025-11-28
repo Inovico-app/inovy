@@ -10,9 +10,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getAutoProcessPreferenceClient } from "@/lib/recording-preferences";
-import { put } from "@vercel/blob";
 import { uploadRecordingFormAction } from "@/features/recordings/actions/upload-recording";
+import { getAutoProcessPreferenceClient } from "@/features/recordings/lib/recording-preferences";
+import { put } from "@vercel/blob";
 import { InfoIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

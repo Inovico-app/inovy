@@ -7,8 +7,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer";
-import { ROLES } from "@/lib/rbac";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { Permissions } from "@/lib/rbac/permissions";
+import { checkPermission } from "@/lib/rbac/permissions-server";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -34,13 +35,10 @@ async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
     redirect("/");
   }
 
-  const userRoles =
-    authResult.value.user?.roles?.map((role) => role.toLowerCase()) ?? [];
+  // Check admin permissions using type-safe helper
+  const hasAdminPermission = await checkPermission(Permissions.admin.all);
 
-  if (
-    !userRoles.includes(ROLES.ADMIN) &&
-    !userRoles.includes(ROLES.SUPER_ADMIN)
-  ) {
+  if (!hasAdminPermission) {
     redirect("/");
   }
 
@@ -65,10 +63,7 @@ async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
     offset: params.offset ? parseInt(params.offset, 10) : 0,
   };
 
-  const result = await AuditLogService.getAuditLogs(
-    organization.id,
-    filters
-  );
+  const result = await AuditLogService.getAuditLogs(organization.id, filters);
 
   const auditLogs = result.isOk() ? result.value : { logs: [], total: 0 };
 

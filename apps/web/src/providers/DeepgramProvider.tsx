@@ -1,8 +1,8 @@
 "use client";
 
 import { getDeepgramClientTokenAction } from "@/actions/deepgram";
-import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import {
   createClient,
   type LiveClient,

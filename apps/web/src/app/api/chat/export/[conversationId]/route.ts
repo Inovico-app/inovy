@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { ChatService } from "@/server/services/chat.service";
 import { NextResponse } from "next/server";
 
@@ -30,7 +30,10 @@ export async function GET(
       );
 
       if (result.isErr()) {
-        return NextResponse.json({ error: result.error.message }, { status: 400 });
+        return NextResponse.json(
+          { error: result.error.message },
+          { status: 400 }
+        );
       }
 
       const blob = result.value;
@@ -49,7 +52,10 @@ export async function GET(
       );
 
       if (result.isErr()) {
-        return NextResponse.json({ error: result.error.message }, { status: 400 });
+        return NextResponse.json(
+          { error: result.error.message },
+          { status: 400 }
+        );
       }
 
       return new NextResponse(result.value, {

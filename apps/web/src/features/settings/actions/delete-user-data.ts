@@ -1,8 +1,9 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { GdprDeletionService } from "@/server/services/gdpr-deletion.service";
 import {
   cancelDeletionSchema,
@@ -16,7 +17,7 @@ import { revalidatePath } from "next/cache";
  */
 export const requestDeletionAction = authorizedActionClient
   .metadata({
-    policy: "settings:update", // User can manage their own settings
+    permissions: policyToPermissions("settings:update"), // User can manage their own settings
   })
   .inputSchema(requestDeletionSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -64,7 +65,7 @@ export const requestDeletionAction = authorizedActionClient
     const displayName =
       user.given_name && user.family_name
         ? `${user.given_name} ${user.family_name}`
-        : user.given_name ?? user.family_name ?? null;
+        : (user.given_name ?? user.family_name ?? null);
 
     const processResult = await GdprDeletionService.processDeletionRequest(
       result.value,
@@ -94,7 +95,7 @@ export const requestDeletionAction = authorizedActionClient
  */
 export const cancelDeletionAction = authorizedActionClient
   .metadata({
-    policy: "settings:update",
+    permissions: policyToPermissions("settings:update"),
   })
   .inputSchema(cancelDeletionSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -134,7 +135,7 @@ export const cancelDeletionAction = authorizedActionClient
  */
 export const getDeletionStatusAction = authorizedActionClient
   .metadata({
-    policy: "settings:read",
+    permissions: policyToPermissions("settings:read"),
   })
   .action(async () => {
     const result = await GdprDeletionService.getDeletionRequestStatus();

@@ -1,16 +1,17 @@
 "use server";
 
-import { z } from "zod";
-import { authorizedActionClient } from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { logger } from "@/lib/logger";
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { db } from "@/server/db";
+import { aiInsights } from "@/server/db/schema/ai-insights";
+import { recordings } from "@/server/db/schema/recordings";
 import { GoogleGmailService } from "@/server/services/google-gmail.service";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
-import { db } from "@/server/db";
-import { recordings } from "@/server/db/schema/recordings";
-import { aiInsights } from "@/server/db/schema/ai-insights";
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
 const createGmailDraftSchema = z.object({
   recordingId: z.string().uuid(),
@@ -22,7 +23,7 @@ const createGmailDraftSchema = z.object({
  * Server action to create a Gmail draft from a recording summary
  */
 export const createGmailDraft = authorizedActionClient
-  .metadata({ policy: "recordings:update" })
+  .metadata({ permissions: policyToPermissions("recordings:update") })
   .schema(createGmailDraftSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId, user } = ctx;
@@ -82,9 +83,10 @@ export const createGmailDraft = authorizedActionClient
       throw ActionErrors.badRequest("Recording does not have a summary yet");
     }
 
-    const summaryText = typeof summaryInsight.content === 'string' 
-      ? summaryInsight.content 
-      : JSON.stringify(summaryInsight.content);
+    const summaryText =
+      typeof summaryInsight.content === "string"
+        ? summaryInsight.content
+        : JSON.stringify(summaryInsight.content);
 
     logger.info("Creating Gmail draft from recording", {
       userId: user.id,

@@ -1,8 +1,9 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
 import { CacheInvalidation } from "@/lib/cache-utils";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { SummaryEditService } from "@/server/services/summary-edit.service";
 import { z } from "zod";
 
@@ -18,7 +19,7 @@ export type UpdateSummaryInput = z.infer<typeof updateSummarySchema>;
  * Server action to update summary content
  */
 export const updateSummary = authorizedActionClient
-  .metadata({ policy: "recordings:update" })
+  .metadata({ permissions: policyToPermissions("recordings:update") })
   .schema(updateSummarySchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;

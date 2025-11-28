@@ -1,7 +1,7 @@
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
 import { withRateLimit } from "@/lib/rate-limit";
-import { canAccessOrganizationChat } from "@/lib/rbac";
+import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
 import { ChatService } from "@/server/services/chat.service";
 import { type NextRequest, NextResponse } from "next/server";
@@ -244,9 +244,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Get conversation history
-    const historyResult = await ChatService.getConversationHistory(
-      conversationId
-    );
+    const historyResult =
+      await ChatService.getConversationHistory(conversationId);
 
     if (historyResult.isErr()) {
       logger.error("Failed to get conversation history", {

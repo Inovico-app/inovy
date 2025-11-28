@@ -4,8 +4,11 @@
  * Main RAG client combining all retrieval strategies
  */
 
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { ProjectTemplateQueries } from "@/server/data-access/project-templates.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
@@ -258,9 +261,8 @@ export class RAGService {
   ): Promise<ActionResult<void>> {
     try {
       // Generate embedding
-      const embeddingResult = await this.embeddingService.generateEmbedding(
-        content
-      );
+      const embeddingResult =
+        await this.embeddingService.generateEmbedding(content);
 
       if (embeddingResult.isErr()) {
         return err(embeddingResult.error);
@@ -777,9 +779,8 @@ export class RAGService {
     try {
       logger.info("Indexing recording transcription", { recordingId });
 
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
 
       if (!recording || !recording.transcriptionText) {
         return err(
@@ -852,9 +853,8 @@ export class RAGService {
     try {
       logger.info("Indexing recording summary", { recordingId });
 
-      const summaries = await AIInsightsQueries.getInsightsByRecordingId(
-        recordingId
-      );
+      const summaries =
+        await AIInsightsQueries.getInsightsByRecordingId(recordingId);
       const summary = summaries.find(
         (s: { insightType: string }) => s.insightType === "summary"
       );
@@ -869,9 +869,8 @@ export class RAGService {
       const summaryText = JSON.stringify(summary.content);
 
       // Get recording details for metadata
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
 
       // Index to Qdrant
       const indexResult = await this.addDocument(
@@ -928,9 +927,8 @@ export class RAGService {
       }
 
       // Get recording details for metadata
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
 
       // Prepare documents for Qdrant batch indexing
       const documents = tasks.map((task) => ({

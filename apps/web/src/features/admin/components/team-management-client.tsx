@@ -11,37 +11,22 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  createTeam,
-  updateTeam,
-  deleteTeam,
-} from "../actions/teams";
-import { Plus, Edit, Trash2 } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import type { TeamDto } from "@/server/dto/team.dto";
-import type { DepartmentDto } from "@/server/dto/department.dto";
+import { Edit, Plus, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { createTeam, deleteTeam, updateTeam } from "../actions/teams";
 
 interface TeamManagementClientProps {
   teams: TeamDto[];
-  departments: DepartmentDto[];
   canEdit: boolean;
   organizationId: string;
 }
 
 export function TeamManagementClient({
   teams,
-  departments,
   canEdit,
-  organizationId,
 }: TeamManagementClientProps) {
   const router = useRouter();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -62,7 +47,10 @@ export function TeamManagementClient({
       const result = await createTeam({
         name: formData.get("name") as string,
         description: (formData.get("description") as string) || null,
-        departmentId: createDepartmentId && createDepartmentId !== "none" ? createDepartmentId : null,
+        departmentId:
+          createDepartmentId && createDepartmentId !== "none"
+            ? createDepartmentId
+            : null,
       });
       if (result?.data) {
         setIsCreateOpen(false);
@@ -82,7 +70,10 @@ export function TeamManagementClient({
         id: editingTeam.id,
         name: formData.get("name") as string,
         description: (formData.get("description") as string) || null,
-        departmentId: editDepartmentId && editDepartmentId !== "none" ? editDepartmentId : null,
+        departmentId:
+          editDepartmentId && editDepartmentId !== "none"
+            ? editDepartmentId
+            : null,
       });
       if (result?.data) {
         setEditingTeam(null);
@@ -102,12 +93,6 @@ export function TeamManagementClient({
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const getDepartmentName = (departmentId: string | null) => {
-    if (!departmentId) return "No Department";
-    const dept = departments.find((d) => d.id === departmentId);
-    return dept?.name || "Unknown";
   };
 
   return (
@@ -135,25 +120,6 @@ export function TeamManagementClient({
               <div>
                 <Label htmlFor="description">Description</Label>
                 <Textarea id="description" name="description" />
-              </div>
-              <div>
-                <Label htmlFor="departmentId">Department</Label>
-                <Select
-                  value={createDepartmentId}
-                  onValueChange={setCreateDepartmentId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="None (Standalone Team)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None (Standalone Team)</SelectItem>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>
-                        {dept.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
               <div className="flex justify-end gap-2">
                 <Button
@@ -203,25 +169,6 @@ export function TeamManagementClient({
                   defaultValue={editingTeam.description || ""}
                 />
               </div>
-              <div>
-                <Label htmlFor="edit-departmentId">Department</Label>
-                <Select
-                  value={editDepartmentId}
-                  onValueChange={setEditDepartmentId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="None (Standalone Team)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None (Standalone Team)</SelectItem>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>
-                        {dept.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="flex justify-end gap-2">
                 <Button
                   type="button"
@@ -257,9 +204,6 @@ export function TeamManagementClient({
                     {team.description}
                   </div>
                 )}
-                <div className="text-xs text-muted-foreground mt-1">
-                  Department: {getDepartmentName(team.departmentId)}
-                </div>
               </div>
               {canEdit && (
                 <div className="flex gap-2">

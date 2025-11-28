@@ -1,11 +1,12 @@
 "use server";
 
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   createErrorForNextSafeAction,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { RedactionService } from "@/server/services/redaction.service";
 import {
   applyAutomaticRedactionsSchema,
@@ -21,7 +22,7 @@ import { z } from "zod";
  */
 export const detectPIIAction = authorizedActionClient
   .metadata({
-    policy: "recordings:read",
+    permissions: policyToPermissions("recordings:read"),
   })
   .inputSchema(detectPIISchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -29,10 +30,7 @@ export const detectPIIAction = authorizedActionClient
     const { user, organizationId } = ctx;
 
     if (!user) {
-      throw ActionErrors.unauthenticated(
-        "User not found",
-        "detect-pii"
-      );
+      throw ActionErrors.unauthenticated("User not found", "detect-pii");
     }
 
     if (!organizationId) {
@@ -61,7 +59,7 @@ export const detectPIIAction = authorizedActionClient
  */
 export const createRedactionAction = authorizedActionClient
   .metadata({
-    policy: "recordings:update",
+    permissions: policyToPermissions("recordings:update"),
   })
   .inputSchema(createRedactionSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -69,10 +67,7 @@ export const createRedactionAction = authorizedActionClient
     const { user, organizationId } = ctx;
 
     if (!user) {
-      throw ActionErrors.unauthenticated(
-        "User not found",
-        "create-redaction"
-      );
+      throw ActionErrors.unauthenticated("User not found", "create-redaction");
     }
 
     if (!organizationId) {
@@ -107,7 +102,7 @@ export const createRedactionAction = authorizedActionClient
  */
 export const createBulkRedactionsAction = authorizedActionClient
   .metadata({
-    policy: "recordings:update",
+    permissions: policyToPermissions("recordings:update"),
   })
   .inputSchema(bulkRedactionSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -153,7 +148,7 @@ export const createBulkRedactionsAction = authorizedActionClient
  */
 export const getRedactionsAction = authorizedActionClient
   .metadata({
-    policy: "recordings:read",
+    permissions: policyToPermissions("recordings:read"),
   })
   .inputSchema(z.object({ recordingId: z.string().uuid() }))
   .action(async ({ parsedInput, ctx }) => {
@@ -185,7 +180,7 @@ export const getRedactionsAction = authorizedActionClient
  */
 export const deleteRedactionAction = authorizedActionClient
   .metadata({
-    policy: "recordings:update",
+    permissions: policyToPermissions("recordings:update"),
   })
   .inputSchema(z.object({ redactionId: z.string().uuid() }))
   .action(async ({ parsedInput, ctx }) => {
@@ -220,7 +215,7 @@ export const deleteRedactionAction = authorizedActionClient
  */
 export const applyAutomaticRedactionsAction = authorizedActionClient
   .metadata({
-    policy: "recordings:update",
+    permissions: policyToPermissions("recordings:update"),
   })
   .inputSchema(applyAutomaticRedactionsSchema)
   .action(async ({ parsedInput, ctx }) => {

@@ -1,13 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { getAutoProcessPreferenceClient } from "@/features/recordings/lib/recording-preferences";
+import { setAutoProcessPreference } from "@/features/recordings/lib/recording-preferences-server";
 import { Loader2 } from "lucide-react";
-import { getAutoProcessPreferenceClient } from "@/lib/recording-preferences";
-import { setAutoProcessPreference } from "@/lib/recording-preferences-server";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export function AutoProcessToggle() {
   const [isEnabled, setIsEnabled] = useState(false);
@@ -33,7 +39,7 @@ export function AutoProcessToggle() {
     try {
       await setAutoProcessPreference(newValue);
       setIsEnabled(newValue);
-      
+
       toast.success(
         newValue
           ? "Auto-verwerking ingeschakeld"
@@ -87,7 +93,8 @@ export function AutoProcessToggle() {
               Auto-verwerking
             </Label>
             <p className="text-sm text-muted-foreground">
-              Start automatisch AI verwerking (transcriptie, samenvatting, taken) na het opslaan van een live opname
+              Start automatisch AI verwerking (transcriptie, samenvatting,
+              taken) na het opslaan van een live opname
             </p>
           </div>
           <Button
@@ -114,13 +121,13 @@ export function AutoProcessToggle() {
           <p className="font-medium mb-2">Let op:</p>
           <ul className="list-disc list-inside space-y-1 text-muted-foreground">
             <li>
-              Deze instelling is alleen van toepassing op <strong>live opnames</strong>
+              Deze instelling is alleen van toepassing op{" "}
+              <strong>live opnames</strong>
             </li>
+            <li>Geüploade bestanden worden altijd automatisch verwerkt</li>
             <li>
-              Geüploade bestanden worden altijd automatisch verwerkt
-            </li>
-            <li>
-              Je kunt verwerking altijd handmatig starten als auto-verwerking is uitgeschakeld
+              Je kunt verwerking altijd handmatig starten als auto-verwerking is
+              uitgeschakeld
             </li>
           </ul>
         </div>

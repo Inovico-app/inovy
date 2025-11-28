@@ -2,8 +2,8 @@ import { ProtectedPage } from "@/components/protected-page";
 import { Card } from "@/components/ui/card";
 import { UnifiedChatInterface } from "@/features/chat/components/unified-chat-interface";
 import { getUserProjects } from "@/features/projects/actions/get-user-projects";
-import { getAuthSession } from "@/lib/auth";
-import { canAccessOrganizationChat } from "@/lib/rbac";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -27,7 +27,7 @@ async function ChatPageContent() {
 
   // Get user's projects
   const projectsResult = await getUserProjects();
-  const projects = projectsResult.success ? projectsResult.data ?? [] : [];
+  const projects = projectsResult.success ? (projectsResult.data ?? []) : [];
 
   // If no projects and not admin, show error
   if (projects.length === 0 && !isAdmin) {

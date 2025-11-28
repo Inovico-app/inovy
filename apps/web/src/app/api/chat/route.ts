@@ -1,8 +1,8 @@
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
-import { canAccessOrganizationChat } from "@/lib/rbac";
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
 import { ChatService } from "@/server/services/chat.service";
 import { ProjectService } from "@/server/services/project.service";

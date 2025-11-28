@@ -112,15 +112,9 @@ export const CacheTags = {
       ? `knowledge-hierarchy:project:${projectId}:org:${orgId}`
       : undefined,
 
-  // Department tags
-  department: (departmentId: string) => `department:${departmentId}`,
-  departmentsByOrg: (orgCode: string) => `departments:org:${orgCode}`,
-
   // Team tags
   team: (teamId: string) => `team:${teamId}`,
   teamsByOrg: (orgCode: string) => `teams:org:${orgCode}`,
-  teamsByDepartment: (departmentId: string) =>
-    `teams:department:${departmentId}`,
   userTeams: (userId: string, orgCode: string) =>
     `user-teams:user:${userId}:org:${orgCode}`,
 } as const;
@@ -399,17 +393,6 @@ export const CacheInvalidation = {
   },
 
   /**
-   * Invalidate department cache
-   */
-  invalidateDepartmentCache(orgCode: string, departmentId?: string): void {
-    const tags = [CacheTags.departmentsByOrg(orgCode)];
-    if (departmentId) {
-      tags.push(CacheTags.department(departmentId));
-    }
-    invalidateCache(...tags);
-  },
-
-  /**
    * Invalidate team cache
    */
   invalidateTeamCache(
@@ -421,9 +404,7 @@ export const CacheInvalidation = {
     if (teamId) {
       tags.push(CacheTags.team(teamId));
     }
-    if (departmentId) {
-      tags.push(CacheTags.teamsByDepartment(departmentId));
-    }
+    // Note: teamsByDepartment cache tag not implemented as Better Auth doesn't support departments
     invalidateCache(...tags);
   },
 

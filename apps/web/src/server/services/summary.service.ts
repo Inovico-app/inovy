@@ -1,6 +1,9 @@
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { connectionPool } from "@/server/services/connection-pool.service";
@@ -41,9 +44,8 @@ export class SummaryService {
       }
 
       // Get recording to fetch project/organization context for knowledge base
-      const existingRecording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const existingRecording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!existingRecording) {
         return err(
           ActionErrors.notFound("Recording", "SummaryService.generateSummary")

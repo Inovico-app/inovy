@@ -1,4 +1,4 @@
-import { betterAuthInstance } from "@/lib/better-auth-server";
+import { auth } from "@/lib/auth";
 import { toNextJsHandler } from "better-auth/next-js";
 
 /**
@@ -17,5 +17,5 @@ import { toNextJsHandler } from "better-auth/next-js";
  *
  * Note: Kinde auth route remains at /api/auth/[kindeAuth] until Phase 7
  */
-export const { GET, POST } = toNextJsHandler(betterAuthInstance);
+export const { GET, POST } = toNextJsHandler(auth);
 

@@ -1,11 +1,12 @@
 "use server";
 
-import { publicActionClient } from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
-import { betterAuthInstance } from "@/lib/better-auth-server";
-import type { Route } from "next";
+import { auth } from "@/lib/auth";
+import {
+  createErrorForNextSafeAction,
+  publicActionClient,
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { signUpEmailSchema } from "../validation/auth.schema";
 
 /**
@@ -17,7 +18,7 @@ export const signUpEmailAction = publicActionClient
     const { email, password, name } = parsedInput;
 
     try {
-      const result = await betterAuthInstance.api.signUpEmail({
+      await auth.api.signUpEmail({
         body: {
           email,
           password,
@@ -25,15 +26,34 @@ export const signUpEmailAction = publicActionClient
         },
         headers: await headers(),
       });
-
-      // If sign-up is successful, redirect to sign-in page
-      // Better Auth will send verification email automatically
-      redirect("/sign-in" as Route);
     } catch (error) {
       // Better Auth throws APIError for validation/authentication errors
       const message =
         error instanceof Error ? error.message : "Failed to create account";
-      throw ActionErrors.validation(message, { email });
+
+      // Check for specific error types
+      if (
+        message.includes("email") &&
+        (message.includes("already") || message.includes("exists"))
+      ) {
+        throw createErrorForNextSafeAction(
+          ActionErrors.conflict("An account with this email already exists")
+        );
+      }
+
+      if (message.includes("password")) {
+        throw createErrorForNextSafeAction(
+          ActionErrors.validation(message, { email, password })
+        );
+      }
+
+      // Default to validation error
+      throw createErrorForNextSafeAction(
+        ActionErrors.validation(message, { email })
+      );
     }
+
+    // Return success - the hook will handle navigation
+    return { success: true };
   });
 

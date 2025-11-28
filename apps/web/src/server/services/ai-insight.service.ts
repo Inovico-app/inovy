@@ -1,7 +1,10 @@
 import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { logger } from "../../lib/logger";
-import { assertOrganizationAccess } from "../../lib/organization-isolation";
+import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "../../lib/server-action-client/action-errors";
 import { AIInsightsQueries } from "../data-access/ai-insights.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import type { AIInsight, NewAIInsight } from "../db/schema/ai-insights";
@@ -49,9 +52,8 @@ export class AIInsightService {
   ): Promise<ActionResult<AIInsightDto[]>> {
     try {
       // Verify recording belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
           ActionErrors.notFound(
@@ -76,9 +78,8 @@ export class AIInsightService {
         );
       }
 
-      const insights = await AIInsightsQueries.getInsightsByRecordingId(
-        recordingId
-      );
+      const insights =
+        await AIInsightsQueries.getInsightsByRecordingId(recordingId);
 
       return ok(insights.map((insight) => this.toDto(insight)));
     } catch (error) {
@@ -101,9 +102,8 @@ export class AIInsightService {
     recordingId: string
   ): Promise<ActionResult<AIInsightDto[]>> {
     try {
-      const insights = await AIInsightsQueries.getInsightsByRecordingId(
-        recordingId
-      );
+      const insights =
+        await AIInsightsQueries.getInsightsByRecordingId(recordingId);
 
       return ok(insights.map((insight) => this.toDto(insight)));
     } catch (error) {
@@ -128,9 +128,8 @@ export class AIInsightService {
   ): Promise<ActionResult<AIInsightDto | null>> {
     try {
       // Verify recording belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
           ActionErrors.notFound(
@@ -365,9 +364,8 @@ export class AIInsightService {
   ): Promise<ActionResult<AIInsightDto>> {
     try {
       // Verify recording belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
           ActionErrors.notFound(

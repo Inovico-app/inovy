@@ -1,10 +1,11 @@
 "use server";
 
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { OrganizationSettingsService } from "@/server/services/organization-settings.service";
 import {
   createOrganizationInstructionsSchema,
@@ -17,7 +18,7 @@ import {
  */
 export const createOrganizationInstructionsAction = authorizedActionClient
   .metadata({
-    policy: "org:instructions:write",
+    permissions: policyToPermissions("org:instructions:write"),
   })
   .inputSchema(createOrganizationInstructionsSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -47,7 +48,7 @@ export const createOrganizationInstructionsAction = authorizedActionClient
  */
 export const updateOrganizationInstructionsAction = authorizedActionClient
   .metadata({
-    policy: "org:instructions:write",
+    permissions: policyToPermissions("org:instructions:write"),
   })
   .inputSchema(updateOrganizationInstructionsSchema)
   .action(async ({ parsedInput, ctx }) => {

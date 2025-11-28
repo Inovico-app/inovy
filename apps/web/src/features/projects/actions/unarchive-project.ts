@@ -1,9 +1,8 @@
 "use server";
 
-import {
-  authorizedActionClient,
-} from "../../../lib/action-client";
-import { ActionErrors } from "../../../lib/action-errors";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "../../../lib/server-action-client/action-client";
+import { ActionErrors } from "../../../lib/server-action-client/action-errors";
 import { ProjectService } from "../../../server/services/project.service";
 import { archiveProjectSchema } from "../../../server/validation/projects/archive-project";
 
@@ -12,7 +11,7 @@ import { archiveProjectSchema } from "../../../server/validation/projects/archiv
  */
 export const unarchiveProjectAction = authorizedActionClient
   .metadata({
-    policy: "projects:update",
+    permissions: policyToPermissions("projects:update"),
   })
   .inputSchema(archiveProjectSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -28,7 +27,10 @@ export const unarchiveProjectAction = authorizedActionClient
     }
 
     // Unarchive project
-    const result = await ProjectService.unarchiveProject(projectId, organizationId);
+    const result = await ProjectService.unarchiveProject(
+      projectId,
+      organizationId
+    );
 
     if (result.isErr()) {
       throw ActionErrors.internal(

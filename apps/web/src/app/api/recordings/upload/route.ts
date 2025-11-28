@@ -1,8 +1,8 @@
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger, serializeError } from "@/lib/logger";
 import { withRateLimit } from "@/lib/rate-limit";
-import { RecordingService } from "@/server/services/recording.service";
 import { rateLimiter } from "@/server/services/rate-limiter.service";
+import { RecordingService } from "@/server/services/recording.service";
 import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE,
@@ -51,7 +51,12 @@ export const POST = withRateLimit(
           // Authenticate user
           const authResult = await getAuthSession();
 
-          if (authResult.isErr() || !authResult.value.isAuthenticated || !authResult.value.user || !authResult.value.organization) {
+          if (
+            authResult.isErr() ||
+            !authResult.value.isAuthenticated ||
+            !authResult.value.user ||
+            !authResult.value.organization
+          ) {
             throw new Error("Unauthorized");
           }
 
@@ -129,7 +134,10 @@ export const POST = withRateLimit(
           // Get user info for consent tracking
           // Note: user is not currently used but may be needed for future consent tracking
           const authResult = await getAuthSession();
-          const _user = authResult.isOk() && authResult.value.isAuthenticated ? authResult.value.user : null;
+          const _user =
+            authResult.isOk() && authResult.value.isAuthenticated
+              ? authResult.value.user
+              : null;
 
           const result = await RecordingService.createRecording(
             {
@@ -228,7 +236,11 @@ export const POST = withRateLimit(
   async (_request) => {
     // Custom user ID extraction for rate limiting
     const authResult = await getAuthSession();
-    return authResult.isOk() && authResult.value.isAuthenticated && authResult.value.user ? authResult.value.user.id : null;
+    return authResult.isOk() &&
+      authResult.value.isAuthenticated &&
+      authResult.value.user
+      ? authResult.value.user.id
+      : null;
   }
 );
 

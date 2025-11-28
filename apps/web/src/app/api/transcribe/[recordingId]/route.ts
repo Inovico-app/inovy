@@ -1,9 +1,9 @@
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
-import { assertOrganizationAccess } from "@/lib/organization-isolation";
 import { withRateLimit } from "@/lib/rate-limit";
-import { RecordingService } from "@/server/services/recording.service";
+import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { rateLimiter } from "@/server/services/rate-limiter.service";
+import { RecordingService } from "@/server/services/recording.service";
 import { TranscriptionService } from "@/server/services/transcription.service";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -28,9 +28,8 @@ export const POST = withRateLimit(
       const user = authResult.value.user;
 
       // Get recording
-      const recordingResult = await RecordingService.getRecordingById(
-        recordingId
-      );
+      const recordingResult =
+        await RecordingService.getRecordingById(recordingId);
 
       if (recordingResult.isErr()) {
         logger.error("Recording not found", {

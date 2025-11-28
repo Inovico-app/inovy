@@ -1,13 +1,14 @@
 "use server";
 
+import { logger } from "@/lib/logger";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   createErrorForNextSafeAction,
-} from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
-import { logger } from "@/lib/logger";
-import { ProjectQueries } from "@/server/data-access/projects.queries";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { BotSessionsQueries } from "@/server/data-access/bot-sessions.queries";
+import { ProjectQueries } from "@/server/data-access/projects.queries";
 import { RecallApiService } from "@/server/services/recall-api.service";
 import { startBotSessionSchema } from "@/server/validation/bot/start-bot-session.schema";
 
@@ -17,7 +18,7 @@ import { startBotSessionSchema } from "@/server/validation/bot/start-bot-session
  */
 export const startBotSessionAction = authorizedActionClient
   .metadata({
-    policy: "recordings:create", // Bot sessions create recordings
+    permissions: policyToPermissions("recordings:create"), // Bot sessions create recordings
   })
   .inputSchema(startBotSessionSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -25,10 +26,7 @@ export const startBotSessionAction = authorizedActionClient
     const { user, organizationId } = ctx;
 
     if (!user) {
-      throw ActionErrors.unauthenticated(
-        "User not found",
-        "start-bot-session"
-      );
+      throw ActionErrors.unauthenticated("User not found", "start-bot-session");
     }
 
     if (!organizationId) {
@@ -50,10 +48,7 @@ export const startBotSessionAction = authorizedActionClient
     // Verify project access
     const project = await ProjectQueries.findById(projectId, organizationId);
     if (!project) {
-      throw ActionErrors.notFound(
-        "Project not found",
-        "start-bot-session"
-      );
+      throw ActionErrors.notFound("Project not found", "start-bot-session");
     }
 
     // Create bot session via Recall.ai API

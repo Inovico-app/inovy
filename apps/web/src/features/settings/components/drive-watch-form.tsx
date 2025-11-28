@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,14 +17,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, X } from "lucide-react";
-import { toast } from "sonner";
-import { useAction } from "next-safe-action/hooks";
 import {
   startDriveWatchAction,
   updateDriveWatchAction,
-} from "@/features/integrations/actions/drive-watch";
-import type { DriveWatchListItemDto } from "@/server/dto/drive-watch.dto";
+} from "@/features/integrations/google/actions/drive-watch";
+import type {
+  DriveWatchDto,
+  DriveWatchListItemDto,
+} from "@/server/dto/drive-watch.dto";
+import { Loader2, X } from "lucide-react";
+import { useAction } from "next-safe-action/hooks";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface Project {
   id: string;
@@ -50,32 +53,52 @@ export function DriveWatchForm({
   onCancel,
 }: DriveWatchFormProps) {
   const [folderId, setFolderId] = useState(editingWatch?.folderId || "");
-  const [projectId, setProjectId] = useState(
-    editingWatch?.projectId || ""
-  );
+  const [projectId, setProjectId] = useState(editingWatch?.projectId || "");
 
   const { execute: executeStart, isExecuting: isStarting } = useAction(
     startDriveWatchAction,
     {
       onSuccess: ({ data }) => {
-        if (data) {
+        if (
+          data &&
+          typeof data === "object" &&
+          "id" in data &&
+          "folderId" in data &&
+          "projectId" in data &&
+          "organizationId" in data &&
+          "expiresAt" in data &&
+          "isActive" in data &&
+          "folderName" in data
+        ) {
+          const watchData = data as DriveWatchDto;
           toast.success("Watch started successfully");
           // Convert DriveWatchDto to DriveWatchListItemDto format
           const watch: DriveWatchListItemDto = {
-            id: data.id,
-            folderId: data.folderId,
-            projectId: data.projectId,
-            organizationId: data.organizationId,
-            expiresAt: data.expiresAt,
-            isActive: data.isActive,
-            folderName: data.folderName,
-            isExpired: data.expiresAt < new Date(),
+            id: watchData.id,
+            folderId: watchData.folderId,
+            projectId: watchData.projectId,
+            organizationId: watchData.organizationId,
+            expiresAt:
+              watchData.expiresAt instanceof Date
+                ? watchData.expiresAt
+                : new Date(watchData.expiresAt),
+            isActive: watchData.isActive,
+            folderName: watchData.folderName,
+            isExpired:
+              (watchData.expiresAt instanceof Date
+                ? watchData.expiresAt
+                : new Date(watchData.expiresAt)) < new Date(),
             expiresIn:
-              data.expiresAt < new Date()
+              (watchData.expiresAt instanceof Date
+                ? watchData.expiresAt
+                : new Date(watchData.expiresAt)) < new Date()
                 ? null
-                : data.expiresAt.getTime() - Date.now(),
+                : (watchData.expiresAt instanceof Date
+                    ? watchData.expiresAt
+                    : new Date(watchData.expiresAt)
+                  ).getTime() - Date.now(),
             projectName:
-              projects.find((p) => p.id === data.projectId)?.name ||
+              projects.find((p) => p.id === watchData.projectId)?.name ||
               "Unknown Project",
           };
           onSuccess(watch);
@@ -91,24 +114,46 @@ export function DriveWatchForm({
     updateDriveWatchAction,
     {
       onSuccess: ({ data }) => {
-        if (data && typeof data === "object" && "id" in data) {
+        if (
+          data &&
+          typeof data === "object" &&
+          "id" in data &&
+          "folderId" in data &&
+          "projectId" in data &&
+          "organizationId" in data &&
+          "expiresAt" in data &&
+          "isActive" in data &&
+          "folderName" in data
+        ) {
+          const watchData = data as DriveWatchDto;
           toast.success("Watch updated successfully");
           // Convert DriveWatchDto to DriveWatchListItemDto format
           const watch: DriveWatchListItemDto = {
-            id: data.id,
-            folderId: data.folderId,
-            projectId: data.projectId,
-            organizationId: data.organizationId,
-            expiresAt: data.expiresAt,
-            isActive: data.isActive,
-            folderName: data.folderName,
-            isExpired: data.expiresAt < new Date(),
+            id: watchData.id,
+            folderId: watchData.folderId,
+            projectId: watchData.projectId,
+            organizationId: watchData.organizationId,
+            expiresAt:
+              watchData.expiresAt instanceof Date
+                ? watchData.expiresAt
+                : new Date(watchData.expiresAt),
+            isActive: watchData.isActive,
+            folderName: watchData.folderName,
+            isExpired:
+              (watchData.expiresAt instanceof Date
+                ? watchData.expiresAt
+                : new Date(watchData.expiresAt)) < new Date(),
             expiresIn:
-              data.expiresAt < new Date()
+              (watchData.expiresAt instanceof Date
+                ? watchData.expiresAt
+                : new Date(watchData.expiresAt)) < new Date()
                 ? null
-                : data.expiresAt.getTime() - Date.now(),
+                : (watchData.expiresAt instanceof Date
+                    ? watchData.expiresAt
+                    : new Date(watchData.expiresAt)
+                  ).getTime() - Date.now(),
             projectName:
-              projects.find((p) => p.id === data.projectId)?.name ||
+              projects.find((p) => p.id === watchData.projectId)?.name ||
               "Unknown Project",
           };
           onSuccess(watch);
@@ -184,10 +229,7 @@ export function DriveWatchForm({
               required={!editingWatch}
               aria-describedby="folderId-help"
             />
-            <p
-              id="folderId-help"
-              className="text-sm text-muted-foreground"
-            >
+            <p id="folderId-help" className="text-sm text-muted-foreground">
               You can find the folder ID in the Google Drive URL. The folder ID
               is the long string of characters after{" "}
               <code className="text-xs bg-muted px-1 py-0.5 rounded">

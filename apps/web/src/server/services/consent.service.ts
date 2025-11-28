@@ -1,11 +1,11 @@
 import { err, ok } from "neverthrow";
+import { logger } from "../../lib/logger";
+import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
 import {
   ActionErrors,
   type ActionResult,
   isActionError,
-} from "../../lib/action-errors";
-import { logger } from "../../lib/logger";
-import { assertOrganizationAccess } from "../../lib/organization-isolation";
+} from "../../lib/server-action-client/action-errors";
 import { ConsentQueries } from "../data-access/consent.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import type {
@@ -44,9 +44,8 @@ export class ConsentService {
       }
 
       // Verify recording exists and belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
           ActionErrors.notFound("Recording", "ConsentService.grantConsent")
@@ -100,9 +99,8 @@ export class ConsentService {
           userId: userId ?? null,
         };
 
-        participant = await ConsentQueries.createConsentParticipant(
-          newParticipant
-        );
+        participant =
+          await ConsentQueries.createConsentParticipant(newParticipant);
       }
 
       // Update recording consent if organizer grants consent
@@ -180,9 +178,8 @@ export class ConsentService {
   ): Promise<ActionResult<ConsentParticipant>> {
     try {
       // Verify recording exists and belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
           ActionErrors.notFound("Recording", "ConsentService.revokeConsent")
@@ -272,9 +269,8 @@ export class ConsentService {
   ): Promise<ActionResult<ConsentParticipant[]>> {
     try {
       // Verify recording exists and belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
           ActionErrors.notFound(
@@ -327,9 +323,8 @@ export class ConsentService {
   > {
     try {
       // Verify recording exists and belongs to organization
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
           ActionErrors.notFound(

@@ -1,7 +1,8 @@
 "use server";
 
 import { logger } from "@/lib/logger";
-import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { AIInsightService } from "@/server/services/ai-insight.service";
 import { revalidatePath } from "next/cache";
@@ -21,7 +22,7 @@ const updateSpeakerNamesSchema = z.object({
 });
 
 export const updateSpeakerNames = authorizedActionClient
-  .metadata({ policy: "recordings:update" })
+  .metadata({ permissions: policyToPermissions("recordings:update") })
   .inputSchema(updateSpeakerNamesSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId, speakerNumber, speakerName } = parsedInput;
@@ -77,9 +78,8 @@ export const updateSpeakerNames = authorizedActionClient
       }
 
       // Get projectId from the recording to revalidate the correct path
-      const recording = await RecordingsQueries.selectRecordingById(
-        recordingId
-      );
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
 
       if (recording) {
         revalidatePath(

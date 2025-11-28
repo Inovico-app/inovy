@@ -1,18 +1,16 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { TranscriptionEditService } from "@/server/services/transcription-edit.service";
-import {
-  updateTranscriptionSchema,
-  type UpdateTranscriptionInput,
-} from "@/server/validation/recordings/update-transcription";
+import { updateTranscriptionSchema } from "@/server/validation/recordings/update-transcription";
 
 /**
  * Server action to update transcription content
  * Creates a new version in history and marks as manually edited
  */
 export const updateTranscription = authorizedActionClient
-  .metadata({ policy: "recordings:update" })
+  .metadata({ permissions: policyToPermissions("recordings:update") })
   .schema(updateTranscriptionSchema)
   .action(async ({ parsedInput, ctx }) => {
     if (!ctx.user || !ctx.organizationId) {

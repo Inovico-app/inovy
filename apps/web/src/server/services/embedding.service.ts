@@ -1,5 +1,8 @@
-import { ActionErrors, type ActionResult } from "@/lib/action-errors";
 import { logger } from "@/lib/logger";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
 import { EmbeddingCacheQueries } from "@/server/data-access/embedding-cache.queries";
 import { connectionPool } from "@/server/services/connection-pool.service";
 import { createHash } from "crypto";

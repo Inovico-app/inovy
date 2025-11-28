@@ -1,5 +1,5 @@
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
-import { getAuthSession } from "@/lib/auth";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { type NextRequest, NextResponse } from "next/server";
 

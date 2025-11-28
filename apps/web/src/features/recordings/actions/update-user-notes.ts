@@ -1,8 +1,9 @@
 "use server";
 
-import { authorizedActionClient } from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
 import { CacheInvalidation } from "@/lib/cache-utils";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { UserNotesService } from "@/server/services/user-notes.service";
 import { z } from "zod";
 
@@ -17,13 +18,15 @@ export type UpdateUserNotesInput = z.infer<typeof updateUserNotesSchema>;
  * Server action to update user notes for a recording summary
  */
 export const updateUserNotes = authorizedActionClient
-  .metadata({ policy: "recordings:update" })
+  .metadata({ permissions: policyToPermissions("recordings:update") })
   .schema(updateUserNotesSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;
 
     if (!user || !organizationId) {
-      throw ActionErrors.unauthenticated("User and organization context required");
+      throw ActionErrors.unauthenticated(
+        "User and organization context required"
+      );
     }
 
     const result = await UserNotesService.updateUserNotes(

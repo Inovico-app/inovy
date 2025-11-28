@@ -1,9 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { ExternalLink, Edit, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,10 +11,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { deleteDriveWatchAction } from "@/features/integrations/actions/drive-watch";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { deleteDriveWatchAction } from "@/features/integrations/google/actions/drive-watch";
+import type { DriveWatchListItemDto } from "@/server/dto/drive-watch.dto";
+import { Edit, ExternalLink, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
-import type { DriveWatchListItemDto } from "@/server/dto/drive-watch.dto";
 
 interface DriveWatchListProps {
   watches: DriveWatchListItemDto[];
@@ -82,11 +82,7 @@ export function DriveWatchList({
       );
     }
 
-    return (
-      <Badge variant="destructive">
-        Expires in {minutes}m
-      </Badge>
-    );
+    return <Badge variant="destructive">Expires in {minutes}m</Badge>;
   };
 
   if (watches.length === 0) {

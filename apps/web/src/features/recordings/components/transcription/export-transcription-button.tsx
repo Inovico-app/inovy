@@ -12,7 +12,7 @@ import {
   exportAsJSON,
   exportAsSRT,
   exportAsText,
-} from "@/lib/export-transcription-utils";
+} from "@/features/recordings/lib/export-transcription-utils";
 import type { Utterance } from "@/server/dto/ai-insight.dto";
 import { Download } from "lucide-react";
 import { useCallback } from "react";

@@ -1,12 +1,13 @@
 "use server";
 
+import { CacheInvalidation } from "@/lib/cache-utils";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   createErrorForNextSafeAction,
   resultToActionResponse,
-} from "@/lib/action-client";
-import { ActionErrors } from "@/lib/action-errors";
-import { CacheInvalidation } from "@/lib/cache-utils";
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { KnowledgeBaseService } from "@/server/services/knowledge-base.service";
 import { createKnowledgeEntrySchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
@@ -16,7 +17,7 @@ import { revalidatePath } from "next/cache";
  */
 export const createKnowledgeEntryAction = authorizedActionClient
   .metadata({
-    policy: "projects:update", // Project knowledge requires project access
+    permissions: policyToPermissions("projects:update"), // Project knowledge requires project access
   })
   .inputSchema(createKnowledgeEntrySchema)
   .action(async ({ parsedInput, ctx }) => {

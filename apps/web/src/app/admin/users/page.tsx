@@ -1,8 +1,9 @@
 import { PageLayout } from "@/components/page-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserManagementTable } from "@/features/admin/components/user-management-table";
-import { ROLES } from "@/lib/rbac";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { Permissions } from "@/lib/rbac/permissions";
+import { checkPermission } from "@/lib/rbac/permissions-server";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -20,20 +21,17 @@ function AdminUsersHeader() {
 }
 
 async function AdminUsersContainer() {
-  // Check if user is authenticated and has admin role
+  // Check if user is authenticated and has admin permissions
   const sessionResult = await getAuthSession();
 
   if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
     redirect("/");
   }
 
-  const userRoles =
-    sessionResult.value.user?.roles?.map((role) => role.toLowerCase()) ?? [];
+  // Check admin permissions using type-safe helper
+  const hasAdminPermission = await checkPermission(Permissions.admin.all);
 
-  if (
-    !userRoles.includes(ROLES.ADMIN) ||
-    !userRoles.includes(ROLES.SUPER_ADMIN)
-  ) {
+  if (!hasAdminPermission) {
     redirect("/");
   }
 

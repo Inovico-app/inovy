@@ -1,9 +1,12 @@
 import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { logger, serializeError } from "../../lib/logger";
-import { assertOrganizationAccess } from "../../lib/organization-isolation";
-import { RedactionsQueries } from "../data-access/redactions.queries";
+import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "../../lib/server-action-client/action-errors";
 import { RecordingsQueries } from "../data-access/recordings.queries";
+import { RedactionsQueries } from "../data-access/redactions.queries";
 import type { NewRedaction, Redaction } from "../db/schema/redactions";
 import {
   PIIDetectionService,
@@ -51,13 +54,11 @@ export class RedactionService {
   ): Promise<ActionResult<PIIDetection[]>> {
     try {
       // Verify organization access
-      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
-          ActionErrors.notFound(
-            "Recording",
-            "RedactionService.detectPII"
-          )
+          ActionErrors.notFound("Recording", "RedactionService.detectPII")
         );
       }
 
@@ -115,10 +116,7 @@ export class RedactionService {
       );
       if (!recording) {
         return err(
-          ActionErrors.notFound(
-            "Recording",
-            "RedactionService.createRedaction"
-          )
+          ActionErrors.notFound("Recording", "RedactionService.createRedaction")
         );
       }
 
@@ -216,9 +214,8 @@ export class RedactionService {
         redactedAt: new Date(),
       }));
 
-      const redactions = await RedactionsQueries.createRedactions(
-        newRedactions
-      );
+      const redactions =
+        await RedactionsQueries.createRedactions(newRedactions);
 
       // Update redacted transcript
       await this.updateRedactedTranscript(
@@ -259,13 +256,11 @@ export class RedactionService {
   ): Promise<ActionResult<Redaction[]>> {
     try {
       // Verify organization access
-      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
-          ActionErrors.notFound(
-            "Recording",
-            "RedactionService.getRedactions"
-          )
+          ActionErrors.notFound("Recording", "RedactionService.getRedactions")
         );
       }
 
@@ -275,9 +270,8 @@ export class RedactionService {
         "RedactionService.getRedactions"
       );
 
-      const redactions = await RedactionsQueries.getRedactionsByRecordingId(
-        recordingId
-      );
+      const redactions =
+        await RedactionsQueries.getRedactionsByRecordingId(recordingId);
 
       return ok(redactions);
     } catch (error) {
@@ -308,10 +302,7 @@ export class RedactionService {
       const redaction = await RedactionsQueries.getRedactionById(redactionId);
       if (!redaction) {
         return err(
-          ActionErrors.notFound(
-            "Redaction",
-            "RedactionService.deleteRedaction"
-          )
+          ActionErrors.notFound("Redaction", "RedactionService.deleteRedaction")
         );
       }
 
@@ -321,10 +312,7 @@ export class RedactionService {
       );
       if (!recording) {
         return err(
-          ActionErrors.notFound(
-            "Recording",
-            "RedactionService.deleteRedaction"
-          )
+          ActionErrors.notFound("Recording", "RedactionService.deleteRedaction")
         );
       }
 
@@ -374,9 +362,8 @@ export class RedactionService {
     originalText: string
   ): Promise<void> {
     try {
-      const redactions = await RedactionsQueries.getRedactionsByRecordingId(
-        recordingId
-      );
+      const redactions =
+        await RedactionsQueries.getRedactionsByRecordingId(recordingId);
 
       // Filter redactions that have index information
       const indexedRedactions = redactions.filter(
@@ -445,7 +432,8 @@ export class RedactionService {
         return ok([]);
       }
 
-      const recording = await RecordingsQueries.selectRecordingById(recordingId);
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording || !recording.transcriptionText) {
         return ok([]);
       }

@@ -1,11 +1,14 @@
 import { createHash } from "crypto";
 import { err, ok } from "neverthrow";
-import { ActionErrors, type ActionResult } from "../../lib/action-errors";
 import { logger } from "../../lib/logger";
 import {
   assertOrganizationAccess,
   validateOrganizationContext,
-} from "../../lib/organization-isolation";
+} from "../../lib/rbac/organization-isolation";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "../../lib/server-action-client/action-errors";
 import {
   AuditLogsQueries,
   type AuditLogFilters,
