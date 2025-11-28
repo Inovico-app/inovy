@@ -12,14 +12,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { TeamDto } from "@/server/dto/team.dto";
-import { Edit, Plus, Trash2 } from "lucide-react";
+import type { TeamWithMemberCount } from "@/server/cache/team.cache";
+import { Edit, Plus, Search, Trash2, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createTeam, deleteTeam, updateTeam } from "../actions/teams";
 
 interface TeamManagementClientProps {
-  teams: TeamDto[];
+  teams: TeamWithMemberCount[];
   canEdit: boolean;
   organizationId: string;
 }
@@ -30,10 +30,13 @@ export function TeamManagementClient({
 }: TeamManagementClientProps) {
   const router = useRouter();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingTeam, setEditingTeam] = useState<TeamDto | null>(null);
+  const [editingTeam, setEditingTeam] = useState<TeamWithMemberCount | null>(
+    null
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createDepartmentId, setCreateDepartmentId] = useState<string>("none");
   const [editDepartmentId, setEditDepartmentId] = useState<string>("none");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (editingTeam) {
@@ -95,8 +98,32 @@ export function TeamManagementClient({
     }
   };
 
+  // Filter teams based on search query
+  const filteredTeams = useMemo(() => {
+    if (!searchQuery.trim()) return teams;
+
+    const query = searchQuery.toLowerCase();
+    return teams.filter(
+      (team) =>
+        team.name.toLowerCase().includes(query) ||
+        team.description?.toLowerCase().includes(query)
+    );
+  }, [teams, searchQuery]);
+
   return (
     <div className="space-y-4">
+      {/* Search bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          type="search"
+          placeholder="Search teams..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
       {canEdit && (
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
@@ -190,23 +217,33 @@ export function TeamManagementClient({
         <p className="text-muted-foreground text-center py-8">
           No teams yet. {canEdit && "Create your first team above."}
         </p>
+      ) : filteredTeams.length === 0 ? (
+        <p className="text-muted-foreground text-center py-8">
+          No teams match your search criteria.
+        </p>
       ) : (
         <div className="space-y-2">
-          {teams.map((team) => (
+          {filteredTeams.map((team) => (
             <div
               key={team.id}
-              className="flex items-center justify-between py-2 border-b"
+              className="flex items-center justify-between py-3 px-4 border rounded-lg hover:bg-muted/50 transition-colors"
             >
               <div className="flex-1">
-                <div className="font-medium">{team.name}</div>
+                <div className="flex items-center gap-2">
+                  <div className="font-medium">{team.name}</div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Users className="h-3 w-3" />
+                    <span>{team.memberCount}</span>
+                  </div>
+                </div>
                 {team.description && (
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-muted-foreground mt-1">
                     {team.description}
                   </div>
                 )}
               </div>
               {canEdit && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 ml-4">
                   <Button
                     variant="ghost"
                     size="sm"

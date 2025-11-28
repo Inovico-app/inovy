@@ -103,7 +103,9 @@ export async function UserManagementTable() {
                   <th className="text-left py-3 px-4 font-semibold">Email</th>
                   <th className="text-left py-3 px-4 font-semibold">Roles</th>
                   <th className="text-left py-3 px-4 font-semibold">Teams</th>
-                  <th className="text-right py-3 px-4 font-semibold w-[50px]">Actions</th>
+                  <th className="text-right py-3 px-4 font-semibold w-[50px]">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -164,8 +166,8 @@ export async function UserManagementTable() {
                             <span className="text-xs text-muted-foreground">
                               No teams
                             </span>
-                        );
-                      })()}
+                          );
+                        })()}
                       </div>
                     </td>
                     <td className="py-3 px-4">
