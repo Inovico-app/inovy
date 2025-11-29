@@ -2,6 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useActiveMemberRole } from "@/hooks/use-active-member-role";
 import { cn } from "@/lib/utils";
 import {
@@ -140,7 +145,7 @@ export function Sidebar() {
         <div className="space-y-1">
           {navLinks.map(({ to, label, icon: Icon }) => {
             const active = isActive(pathname, to);
-            return (
+            const linkContent = (
               <Link
                 key={to}
                 href={to as Route}
@@ -150,12 +155,25 @@ export function Sidebar() {
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
-                title={collapsed ? label : undefined}
+                aria-label={collapsed ? label : undefined}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
                 {!collapsed && <span>{label}</span>}
               </Link>
             );
+
+            if (collapsed) {
+              return (
+                <Tooltip key={to}>
+                  <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>{label}</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            }
+
+            return linkContent;
           })}
         </div>
 
@@ -171,7 +189,7 @@ export function Sidebar() {
             <div className="space-y-1">
               {adminLinks.map(({ to, label, icon: Icon }) => {
                 const active = isActive(pathname, to);
-                return (
+                const linkContent = (
                   <Link
                     key={to}
                     href={to as Route}
@@ -181,12 +199,25 @@ export function Sidebar() {
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
-                    title={collapsed ? label : undefined}
+                    aria-label={collapsed ? label : undefined}
                   >
                     <Icon className="h-5 w-5 flex-shrink-0" />
                     {!collapsed && <span>{label}</span>}
                   </Link>
                 );
+
+                if (collapsed) {
+                  return (
+                    <Tooltip key={to}>
+                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                      <TooltipContent side="right">
+                        <p>{label}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
+
+                return linkContent;
               })}
             </div>
           </>
@@ -203,7 +234,7 @@ export function Sidebar() {
             <div className="space-y-1">
               {superAdminLinks.map(({ to, label, icon: Icon }) => {
                 const active = isActive(pathname, to);
-                return (
+                const linkContent = (
                   <Link
                     key={to}
                     href={to as Route}
@@ -213,12 +244,25 @@ export function Sidebar() {
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
-                    title={collapsed ? label : undefined}
+                    aria-label={collapsed ? label : undefined}
                   >
                     <Icon className="h-5 w-5 flex-shrink-0" />
                     {!collapsed && <span>{label}</span>}
                   </Link>
                 );
+
+                if (collapsed) {
+                  return (
+                    <Tooltip key={to}>
+                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                      <TooltipContent side="right">
+                        <p>{label}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
+
+                return linkContent;
               })}
             </div>
           </>
