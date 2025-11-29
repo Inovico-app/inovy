@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { AuditLogService } from "@/server/services/audit-log.service";
@@ -29,21 +29,24 @@ interface AuditLogsPageProps {
 }
 
 async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
-  const authResult = await getAuthSession();
+  const [betterAuthSession, hasAuditLogPermission] = await Promise.all([
+    getBetterAuthSession(),
+    checkPermission({
+      ...Permissions["audit-log"].read,
+    }),
+  ]);
 
-  if (authResult.isErr() || !authResult.value.isAuthenticated) {
+  if (betterAuthSession.isErr()) {
     redirect("/");
   }
 
-  // Check admin permissions using type-safe helper
-  const hasAdminPermission = await checkPermission(Permissions.admin.all);
+  const { organization } = betterAuthSession.value;
 
-  if (!hasAdminPermission) {
-    redirect("/");
-  }
-
-  const { organization } = authResult.value;
   if (!organization) {
+    redirect("/");
+  }
+
+  if (!hasAuditLogPermission) {
     redirect("/");
   }
 
@@ -68,7 +71,7 @@ async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
   const auditLogs = result.isOk() ? result.value : { logs: [], total: 0 };
 
   return (
-    <PageLayout>
+    <>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Audit Logs</h1>
@@ -91,7 +94,7 @@ async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
           </CardContent>
         </Card>
       </div>
-    </PageLayout>
+    </>
   );
 }
 

@@ -68,12 +68,6 @@ export default [
           varsIgnorePattern: "^_",
         },
       ],
-      "@typescript-eslint/prefer-nullish-coalescing": [
-        "warn",
-        {
-          ignoreConditionalTests: true,
-        },
-      ],
       "react/display-name": "off",
       "linebreak-style": "off",
     },

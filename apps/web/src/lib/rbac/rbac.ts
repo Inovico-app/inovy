@@ -75,7 +75,6 @@ export async function userIsAuthorized(
   permissions: Permission
 ): Promise<{ isAuthorized: boolean; requiredRoles: RoleName[] }> {
   try {
-    console.log("CHECKING PERMISSIONS:", permissions);
     // Use Better Auth's built-in API to check permissions for the current user
     const result = await auth.api.hasPermission({
       headers: await headers(),
@@ -342,7 +341,7 @@ export function isSuperAdmin(session: SessionWithRoles): boolean {
  * User can manage a team if they are:
  * 1. Organization admin, OR
  * 2. Team manager (member of the team with lead/admin role)
- * 
+ *
  * Note: This function checks org-level permissions only.
  * For team-level membership checks, use isTeamManager()
  */
@@ -362,7 +361,7 @@ export async function canManageTeam(
 /**
  * Check if a user is a team manager for a specific team
  * Queries the team_members table to verify membership and role
- * 
+ *
  * Note: This is a database query - use sparingly
  * Better Auth doesn't natively support team member roles,
  * so we'll need to implement custom logic when we use this
@@ -378,16 +377,13 @@ export async function isTeamManagerForTeam(
 
   try {
     const userId = session.user.id;
-    
+
     // Query team_members table
     const membership = await db
       .select()
       .from(teamMembers)
       .where(
-        and(
-          eq(teamMembers.userId, userId),
-          eq(teamMembers.teamId, teamId)
-        )
+        and(eq(teamMembers.userId, userId), eq(teamMembers.teamId, teamId))
       )
       .limit(1);
 

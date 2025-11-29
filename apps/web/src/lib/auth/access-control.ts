@@ -20,13 +20,16 @@ const statement = {
   task: ["create", "read", "update", "delete"],
 
   // Organization management
-  organization: ["create", "read", "update", "delete"],
+  organization: ["create", "list", "read", "update", "delete"],
 
   // User management
   user: ["read", "update", "delete"],
 
   // Chat management
   chat: ["project", "organization"],
+
+  // Superadmin actions
+  superadmin: ["all"],
 
   // Admin actions
   admin: ["all"],
@@ -45,6 +48,8 @@ const statement = {
 
   // Team management
   team: ["create", "read", "update", "delete"],
+
+  "audit-log": ["read"],
 } as const;
 
 /**
@@ -62,15 +67,17 @@ export const superAdmin = ac.newRole({
   project: ["create", "read", "update", "delete"],
   recording: ["create", "read", "update", "delete"],
   task: ["create", "read", "update", "delete"],
-  organization: ["create", "read", "update", "delete"],
+  organization: ["create", "list", "read", "update", "delete"],
   user: ["read", "update", "delete"],
   chat: ["project", "organization"],
+  superadmin: ["all"],
   admin: ["all"],
   orgInstruction: ["read", "write"],
   deepgram: ["token"],
   setting: ["read", "update"],
   integration: ["manage"],
   team: ["create", "read", "update", "delete"],
+  "audit-log": ["read"],
 });
 
 // Admin - Full access except super admin features
@@ -87,6 +94,7 @@ export const admin = ac.newRole({
   setting: ["read", "update"],
   integration: ["manage"],
   team: ["create", "read", "update", "delete"],
+  "audit-log": ["read"],
 });
 
 // Manager - Limited admin access

@@ -288,7 +288,9 @@ export class DocumentProcessingService {
 
         // For write operations, check super admin permissions using type-safe helper
         if (operation === "write") {
-          const hasPermission = await checkPermission(Permissions.admin.all);
+          const hasPermission = await checkPermission(
+            Permissions.superadmin.all
+          );
 
           if (!hasPermission) {
             return err(

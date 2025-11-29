@@ -60,7 +60,9 @@ async function AdminContainer() {
   }
 
   // Check admin permissions using type-safe helper
-  const hasAdminPermission = await checkPermission(Permissions.admin.all);
+  const hasAdminPermission = await checkPermission(
+    Permissions.organization.read
+  );
 
   if (!hasAdminPermission) {
     redirect("/");

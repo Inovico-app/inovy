@@ -1,6 +1,6 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -45,8 +45,7 @@ export function EditProjectForm({
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(formSchema as any),
+    resolver: standardSchemaResolver(formSchema),
     defaultValues: {
       name: initialData.name,
       description: initialData.description ?? "",
