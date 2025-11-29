@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -6,10 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { OrganizationDetail } from "@/features/admin/components/organization-detail";
 import { OrganizationEditForm } from "@/features/admin/components/organization-edit-form";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import {
@@ -33,25 +32,10 @@ async function OrganizationContent({
   organizationId: string;
 }) {
   // Fetch organization and members
-  const [orgResult, membersResult] = await Promise.all([
+  const [organization, members] = await Promise.all([
     getCachedOrganizationById(organizationId),
     getCachedOrganizationMembers(organizationId),
   ]);
-
-  if (orgResult.isErr()) {
-    return (
-      <Card>
-        <CardContent className="text-center py-8">
-          <p className="text-red-500">Failed to load organization</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            {orgResult.error.message}
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const organization = orgResult.value;
 
   if (!organization) {
     return (
@@ -62,8 +46,6 @@ async function OrganizationContent({
       </Card>
     );
   }
-
-  const members = membersResult.isOk() ? membersResult.value : [];
 
   return (
     <div className="space-y-6">
@@ -136,21 +118,7 @@ async function OrganizationContent({
   );
 }
 
-export default async function OrganizationPage({
-  params,
-}: OrganizationPageProps) {
-  const authResult = await getAuthSession();
-
-  if (authResult.isErr()) {
-    redirect("/sign-in");
-  }
-
-  const { user } = authResult.value;
-  
-  if (!user) {
-    redirect("/sign-in");
-  }
-
+async function OrganizationPageContent({ params }: OrganizationPageProps) {
   // Check if user has superadmin permissions
   const hasSuperAdminPermission = await checkPermission(
     Permissions.superadmin.all
@@ -187,6 +155,29 @@ export default async function OrganizationPage({
         <OrganizationContent organizationId={organizationId} />
       </Suspense>
     </div>
+  );
+}
+
+export default function OrganizationPage(props: OrganizationPageProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto max-w-4xl py-8 px-4">
+          <div className="mb-6 flex items-center gap-4">
+            <div className="h-10 w-10 bg-muted rounded animate-pulse" />
+            <div>
+              <div className="h-9 bg-muted rounded w-64 animate-pulse mb-2" />
+              <div className="h-5 bg-muted rounded w-80 animate-pulse" />
+            </div>
+          </div>
+          <div className="text-center py-8">
+            <div className="h-6 bg-muted rounded w-48 mx-auto animate-pulse" />
+          </div>
+        </div>
+      }
+    >
+      <OrganizationPageContent {...props} />
+    </Suspense>
   );
 }
 

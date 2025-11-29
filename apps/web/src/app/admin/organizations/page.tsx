@@ -10,7 +10,7 @@ export const metadata = {
   description: "Manage all organizations in the system",
 };
 
-export default async function OrganizationsPage() {
+async function OrganizationsContent() {
   const authResult = await getAuthSession();
 
   if (authResult.isErr()) {
@@ -49,6 +49,26 @@ export default async function OrganizationsPage() {
         <OrganizationList />
       </Suspense>
     </div>
+  );
+}
+
+export default function OrganizationsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto max-w-6xl py-8 px-4">
+          <div className="mb-6">
+            <div className="h-9 bg-muted rounded w-64 animate-pulse mb-2" />
+            <div className="h-5 bg-muted rounded w-96 animate-pulse" />
+          </div>
+          <div className="text-center py-8">
+            <div className="h-6 bg-muted rounded w-48 mx-auto animate-pulse" />
+          </div>
+        </div>
+      }
+    >
+      <OrganizationsContent />
+    </Suspense>
   );
 }
 

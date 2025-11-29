@@ -11,7 +11,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+
 import { Loader2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -53,7 +54,7 @@ export function OrganizationForm({
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
 
   const form = useForm<OrganizationFormValues>({
-    resolver: zodResolver(organizationFormSchema),
+    resolver: standardSchemaResolver(organizationFormSchema),
     defaultValues: {
       name: defaultValues?.name ?? "",
       slug: defaultValues?.slug ?? "",

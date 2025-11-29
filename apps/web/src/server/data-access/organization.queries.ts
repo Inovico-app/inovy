@@ -197,6 +197,115 @@ export class OrganizationQueries {
 
     return member?.organizationId ?? null;
   }
+
+  /**
+   * Get all organizations with member counts
+   * Direct DB query - for use in cached contexts without headers
+   * For superadmin use only
+   */
+  static async findAllWithMemberCounts(): Promise<
+    Array<{
+      id: string;
+      name: string;
+      slug: string;
+      logo: string | null;
+      createdAt: Date;
+      memberCount: number;
+    }>
+  > {
+    const orgsResult = await db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        slug: organizations.slug,
+        logo: organizations.logo,
+        createdAt: organizations.createdAt,
+      })
+      .from(organizations);
+
+    // Get member counts for each organization
+    const orgsWithCounts = await Promise.all(
+      orgsResult.map(async (org) => {
+        const memberCountResult = await db
+          .select()
+          .from(members)
+          .where(eq(members.organizationId, org.id));
+
+        return {
+          ...org,
+          memberCount: memberCountResult.length,
+        };
+      })
+    );
+
+    return orgsWithCounts;
+  }
+
+  /**
+   * Get organization by ID - direct DB query
+   * For use in cached contexts without headers
+   * For superadmin use only
+   */
+  static async findByIdDirect(organizationId: string): Promise<{
+    id: string;
+    name: string;
+    slug: string;
+    logo: string | null;
+    createdAt: Date;
+    metadata: string | null;
+  } | null> {
+    const [dbOrg] = await db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        slug: organizations.slug,
+        logo: organizations.logo,
+        createdAt: organizations.createdAt,
+        metadata: organizations.metadata,
+      })
+      .from(organizations)
+      .where(eq(organizations.id, organizationId))
+      .limit(1);
+
+    if (!dbOrg) {
+      return null;
+    }
+
+    return dbOrg;
+  }
+
+  /**
+   * Get organization members - direct DB query
+   * For use in cached contexts without headers
+   */
+  static async getMembersDirect(
+    organizationId: string
+  ): Promise<
+    Array<{
+      id: string;
+      email: string;
+      name: string | null;
+      role: string;
+    }>
+  > {
+    const dbMembers = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: members.role,
+      })
+      .from(members)
+      .innerJoin(users, eq(members.userId, users.id))
+      .where(eq(members.organizationId, organizationId));
+
+    return dbMembers.map((member) => ({
+      id: member.id,
+      email: member.email,
+      name: member.name,
+      role: member.role,
+    }));
+  }
 }
 
 /**

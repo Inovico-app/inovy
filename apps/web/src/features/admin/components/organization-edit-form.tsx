@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { OrganizationDetailDto } from "@/server/cache/organization.cache";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2Icon, SaveIcon } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -53,8 +53,7 @@ export function OrganizationEditForm({
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
 
   const form = useForm<OrganizationEditFormValues>({
-    // @ts-expect-error - zod resolver plus zod 4 types are not compatible
-    resolver: zodResolver(organizationEditSchema),
+    resolver: standardSchemaResolver(organizationEditSchema),
     defaultValues: {
       name: organization.name,
       slug: organization.slug,

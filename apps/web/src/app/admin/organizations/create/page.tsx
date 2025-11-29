@@ -9,13 +9,14 @@ import { OrganizationForm } from "@/features/admin/components/organization-form"
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 export const metadata = {
   title: "Create Organization",
   description: "Create a new organization",
 };
 
-export default async function CreateOrganizationPage() {
+async function CreateOrganizationContent() {
   const hasCreateOrganizationPermission = await checkPermission(
     Permissions.organization.create
   );
@@ -45,6 +46,36 @@ export default async function CreateOrganizationPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function CreateOrganizationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto max-w-2xl py-8 px-4">
+          <div className="mb-6">
+            <div className="h-9 bg-muted rounded w-64 animate-pulse mb-2" />
+            <div className="h-5 bg-muted rounded w-96 animate-pulse" />
+          </div>
+          <Card>
+            <CardHeader>
+              <div className="h-7 bg-muted rounded w-48 animate-pulse mb-2" />
+              <div className="h-5 bg-muted rounded w-80 animate-pulse" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="h-20 bg-muted rounded animate-pulse" />
+                <div className="h-20 bg-muted rounded animate-pulse" />
+                <div className="h-20 bg-muted rounded animate-pulse" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      <CreateOrganizationContent />
+    </Suspense>
   );
 }
 
