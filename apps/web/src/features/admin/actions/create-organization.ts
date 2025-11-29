@@ -91,7 +91,7 @@ export const createOrganization = authorizedActionClient
           err(
             ActionErrors.validation(
               "This slug is already taken. Please choose a different one.",
-              "createOrganization"
+              { context: "createOrganization" }
             )
           )
         );
@@ -129,7 +129,7 @@ export const checkOrganizationSlug = authorizedActionClient
 
       return resultToActionResponse(
         ok({
-          available: !result?.exists,
+          available: !result?.status,
         })
       );
     } catch (error) {

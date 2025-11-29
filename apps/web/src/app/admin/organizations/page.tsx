@@ -1,6 +1,7 @@
 import { OrganizationList } from "@/features/admin/components/organization-list";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
-import { isSuperAdmin } from "@/lib/rbac/rbac";
+import { Permissions } from "@/lib/rbac/permissions";
+import { checkPermission } from "@/lib/rbac/permissions-server";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -16,11 +17,18 @@ export default async function OrganizationsPage() {
     redirect("/sign-in");
   }
 
-  const { user, member } = authResult.value;
-  const session = { user, member };
+  const { user } = authResult.value;
 
-  // Check if user is superadmin
-  if (!isSuperAdmin(session)) {
+  if (!user) {
+    redirect("/sign-in");
+  }
+
+  // Check if user has superadmin permissions
+  const hasSuperAdminPermission = await checkPermission(
+    Permissions.organization.list
+  );
+
+  if (!hasSuperAdminPermission) {
     redirect("/");
   }
 

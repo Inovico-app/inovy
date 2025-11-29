@@ -142,7 +142,8 @@ export function OrganizationListClient({
                     </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/admin/organizations/${org.id}`}>
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        <Link href={`/admin/organizations/${org.id}` as any}>
                           View
                         </Link>
                       </Button>

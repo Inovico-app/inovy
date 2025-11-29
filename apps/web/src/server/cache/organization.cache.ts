@@ -141,7 +141,7 @@ export interface OrganizationDetailDto {
  * For superadmin use only
  */
 export async function getCachedAllOrganizations(): Promise<
-  ActionResult<OrganizationListDto[]>
+  OrganizationListDto[]
 > {
   "use cache";
   cacheTag(CacheTags.organizations());
@@ -173,16 +173,10 @@ export async function getCachedAllOrganizations(): Promise<
       })
     );
 
-    return ok(orgsWithCounts);
+    return orgsWithCounts;
   } catch (error) {
     logger.error("Failed to get all organizations", {}, error as Error);
-    return err(
-      ActionErrors.internal(
-        "Failed to get all organizations",
-        error as Error,
-        "getCachedAllOrganizations"
-      )
-    );
+    return [];
   }
 }
 

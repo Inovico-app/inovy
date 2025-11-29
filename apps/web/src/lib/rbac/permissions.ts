@@ -25,6 +25,14 @@ export type Permissions = {
  * These are type-safe and match the access control configuration
  */
 export const Permissions = {
+  // Superadmin
+  superadmin: {
+    all: { superadmin: ["all"] } as Permissions,
+  },
+  // Admin
+  admin: {
+    all: { admin: ["all"] } as Permissions,
+  },
   // Project permissions
   project: {
     create: { project: ["create"] } as Permissions,
@@ -52,6 +60,7 @@ export const Permissions = {
   // Organization permissions
   organization: {
     create: { organization: ["create"] } as Permissions,
+    list: { organization: ["list"] } as Permissions,
     read: { organization: ["read"] } as Permissions,
     update: { organization: ["update"] } as Permissions,
     delete: { organization: ["delete"] } as Permissions,
@@ -68,11 +77,6 @@ export const Permissions = {
   chat: {
     project: { chat: ["project"] } as Permissions,
     organization: { chat: ["organization"] } as Permissions,
-  },
-
-  // Admin permissions
-  admin: {
-    all: { admin: ["all"] } as Permissions,
   },
 
   // Organization instruction permissions
@@ -103,6 +107,10 @@ export const Permissions = {
     read: { team: ["read"] } as Permissions,
     update: { team: ["update"] } as Permissions,
     delete: { team: ["delete"] } as Permissions,
+  },
+
+  "audit-log": {
+    read: { "audit-log": ["read"] } as Permissions,
   },
 } as const;
 

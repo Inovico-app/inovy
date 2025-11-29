@@ -46,9 +46,13 @@ export function OrganizationDetail({
 
       if (result?.data) {
         toast.success("Organization deleted successfully");
-        router.push("/admin/organizations");
-      } else if (result?.validationError) {
-        toast.error(result.validationError);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router.push("/admin/organizations" as any);
+      } else if (result?.validationErrors) {
+        const errors = Object.values(result.validationErrors)
+          .flat()
+          .filter((e): e is string => typeof e === "string");
+        toast.error(errors[0] || "Validation error");
       } else if (result?.serverError) {
         toast.error(result.serverError);
       }

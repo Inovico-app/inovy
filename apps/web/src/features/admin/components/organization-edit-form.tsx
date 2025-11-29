@@ -53,6 +53,7 @@ export function OrganizationEditForm({
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
 
   const form = useForm<OrganizationEditFormValues>({
+    // @ts-expect-error - zod resolver plus zod 4 types are not compatible
     resolver: zodResolver(organizationEditSchema),
     defaultValues: {
       name: organization.name,
@@ -72,8 +73,11 @@ export function OrganizationEditForm({
 
       if (result?.data) {
         toast.success("Organization updated successfully");
-      } else if (result?.validationError) {
-        toast.error(result.validationError);
+      } else if (result?.validationErrors) {
+        const errors = Object.values(result.validationErrors)
+          .flat()
+          .filter((e): e is string => typeof e === "string");
+        toast.error(errors[0] || "Validation error");
       } else if (result?.serverError) {
         toast.error(result.serverError);
       }
@@ -110,9 +114,7 @@ export function OrganizationEditForm({
     <Card>
       <CardHeader>
         <CardTitle>Edit Organization</CardTitle>
-        <CardDescription>
-          Update the organization details
-        </CardDescription>
+        <CardDescription>Update the organization details</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>

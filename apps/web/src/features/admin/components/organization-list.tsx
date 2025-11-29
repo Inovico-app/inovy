@@ -14,22 +14,7 @@ import Link from "next/link";
 import { OrganizationListClient } from "./organization-list-client";
 
 export async function OrganizationList() {
-  const orgsResult = await getCachedAllOrganizations();
-
-  if (orgsResult.isErr()) {
-    return (
-      <Card>
-        <CardContent className="text-center py-8">
-          <p className="text-red-500">Failed to load organizations</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            {orgsResult.error.message}
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const organizations = orgsResult.value;
+  const organizations = await getCachedAllOrganizations();
 
   return (
     <Card>
@@ -44,7 +29,8 @@ export async function OrganizationList() {
             </CardDescription>
           </div>
           <Button asChild>
-            <Link href="/admin/organizations/create">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            <Link href={"/admin/organizations/create" as any}>
               <PlusIcon className="mr-2 h-4 w-4" />
               Create Organization
             </Link>

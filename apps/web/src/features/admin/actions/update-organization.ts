@@ -49,9 +49,11 @@ export const updateOrganization = authorizedActionClient
         headers: await headers(),
         body: {
           organizationId: id,
-          name,
-          slug,
-          logo: logo || undefined,
+          data: {
+            name,
+            slug,
+            logo: logo || undefined,
+          },
         },
       });
 
@@ -96,7 +98,7 @@ export const updateOrganization = authorizedActionClient
           err(
             ActionErrors.validation(
               "This slug is already taken. Please choose a different one.",
-              "updateOrganization"
+              { context: "updateOrganization" }
             )
           )
         );

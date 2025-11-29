@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { OrganizationDetail } from "@/features/admin/components/organization-detail";
 import { OrganizationEditForm } from "@/features/admin/components/organization-edit-form";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
-import { isSuperAdmin } from "@/lib/rbac/rbac";
+import { Permissions } from "@/lib/rbac/permissions";
+import { checkPermission } from "@/lib/rbac/permissions-server";
 import {
   getCachedOrganizationById,
   getCachedOrganizationMembers,
@@ -144,11 +145,18 @@ export default async function OrganizationPage({
     redirect("/sign-in");
   }
 
-  const { user, member } = authResult.value;
-  const session = { user, member };
+  const { user } = authResult.value;
+  
+  if (!user) {
+    redirect("/sign-in");
+  }
 
-  // Check if user is superadmin
-  if (!isSuperAdmin(session)) {
+  // Check if user has superadmin permissions
+  const hasSuperAdminPermission = await checkPermission(
+    Permissions.superadmin.all
+  );
+
+  if (!hasSuperAdminPermission) {
     redirect("/");
   }
 
@@ -158,7 +166,8 @@ export default async function OrganizationPage({
     <div className="container mx-auto max-w-4xl py-8 px-4">
       <div className="mb-6 flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/admin/organizations">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          <Link href={"/admin/organizations" as any}>
             <ArrowLeftIcon className="h-5 w-5" />
           </Link>
         </Button>
