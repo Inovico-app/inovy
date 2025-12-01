@@ -15,9 +15,7 @@ import { Suspense } from "react";
 function AdminUsersHeader() {
   return (
     <div className="mb-10">
-      <h1 className="text-3xl font-bold text-foreground">
-        User Management
-      </h1>
+      <h1 className="text-3xl font-bold text-foreground">User Management</h1>
       <p className="text-muted-foreground mt-2">
         View and manage all organization members
       </p>
