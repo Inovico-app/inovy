@@ -1,13 +1,11 @@
-import { PageLayout } from "@/components/page-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TeamMemberAssignment } from "@/features/admin/components/team-member-assignment";
-import { UserManagementTable } from "@/features/admin/components/user-management-table";
+import { TeamMemberAssignment } from "@/features/admin/components/team/team-member-assignment";
+import { UserManagementTable } from "@/features/admin/components/user/user-management-table";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
-import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
-import { getCachedOrganizationMembers } from "@/server/cache/organization.cache";
+import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
 import { OrganizationService } from "@/server/services/organization.service";
 import { TeamService } from "@/server/services/team.service";
@@ -16,11 +14,9 @@ import { Suspense } from "react";
 
 function AdminUsersHeader() {
   return (
-    <div className="mb-8">
-      <h1 className="text-3xl font-bold text-foreground mb-2">
-        User Management
-      </h1>
-      <p className="text-muted-foreground">
+    <div className="mb-10">
+      <h1 className="text-3xl font-bold text-foreground">User Management</h1>
+      <p className="text-muted-foreground mt-2">
         View and manage all organization members
       </p>
     </div>
@@ -99,7 +95,7 @@ async function AdminUsersContainer() {
   }
 
   return (
-    <PageLayout>
+    <div className="container mx-auto max-w-4xl py-12 px-6">
       <AdminUsersHeader />
 
       <Tabs defaultValue="users" className="space-y-6">
@@ -113,10 +109,7 @@ async function AdminUsersContainer() {
             fallback={
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-16 bg-muted rounded-lg animate-pulse"
-                  />
+                  <Skeleton key={i} className="h-16 w-full" />
                 ))}
               </div>
             }
@@ -130,10 +123,7 @@ async function AdminUsersContainer() {
             fallback={
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-16 bg-muted rounded-lg animate-pulse"
-                  />
+                  <Skeleton key={i} className="h-16 w-full" />
                 ))}
               </div>
             }
@@ -142,7 +132,7 @@ async function AdminUsersContainer() {
           </Suspense>
         </TabsContent>
       </Tabs>
-    </PageLayout>
+    </div>
   );
 }
 
@@ -150,10 +140,16 @@ export default function AdminUsersPage() {
   return (
     <Suspense
       fallback={
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-24" />
-          ))}
+        <div className="container mx-auto max-w-4xl py-12 px-6">
+          <div className="mb-10 space-y-2">
+            <Skeleton className="h-9 w-64" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
         </div>
       }
     >

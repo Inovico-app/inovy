@@ -1,4 +1,3 @@
-import { PageLayout } from "@/components/page-layout";
 import {
   Card,
   CardContent,
@@ -6,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer";
+import { AuditLogViewer } from "@/features/admin/components/audit/audit-log-viewer";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
@@ -76,30 +75,28 @@ async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
   const auditLogs = result.isOk() ? result.value : { logs: [], total: 0 };
 
   return (
-    <>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Audit Logs</h1>
-          <p className="text-muted-foreground mt-2">
-            Comprehensive audit trail for all system actions. Supports SOC 2
-            compliance requirements.
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Audit Log Viewer</CardTitle>
-            <CardDescription>
-              View and filter audit logs for compliance and security monitoring.
-              All logs are tamper-proof via hash chain verification.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AuditLogViewer initialData={auditLogs} initialFilters={params} />
-          </CardContent>
-        </Card>
+    <div className="container mx-auto max-w-6xl py-12 px-6">
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold">Audit Logs</h1>
+        <p className="text-muted-foreground mt-2">
+          Comprehensive audit trail for all system actions. Supports SOC 2
+          compliance requirements.
+        </p>
       </div>
-    </>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Audit Log Viewer</CardTitle>
+          <CardDescription>
+            View and filter audit logs for compliance and security monitoring.
+            All logs are tamper-proof via hash chain verification.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AuditLogViewer initialData={auditLogs} initialFilters={params} />
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -107,23 +104,24 @@ export default function AuditLogsPage(props: AuditLogsPageProps) {
   return (
     <Suspense
       fallback={
-        <PageLayout>
-          <div className="space-y-6">
-            <div className="h-8 bg-muted rounded w-1/3 animate-pulse" />
-            <Card>
-              <CardContent className="py-12">
-                <div className="space-y-4">
-                  {[...Array(5)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-16 bg-muted rounded animate-pulse"
-                    />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+        <div className="container mx-auto max-w-6xl py-12 px-6">
+          <div className="mb-10 space-y-2">
+            <div className="h-9 bg-muted rounded w-48 animate-pulse" />
+            <div className="h-5 bg-muted rounded w-96 animate-pulse" />
           </div>
-        </PageLayout>
+          <Card>
+            <CardContent className="py-12">
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-16 bg-muted rounded animate-pulse"
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       }
     >
       <AuditLogsContent {...props} />

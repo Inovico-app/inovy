@@ -34,7 +34,10 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { removeMember, updateMemberRole } from "../actions/member-management";
+import {
+  removeMember,
+  updateMemberRole,
+} from "../../actions/member-management";
 
 interface UserActionsMenuProps {
   memberId: string;

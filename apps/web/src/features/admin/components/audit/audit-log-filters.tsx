@@ -1,12 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,8 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X } from "lucide-react";
 import { useArrayToggle } from "@/hooks/use-array-toggle";
+import { X } from "lucide-react";
 
 interface AuditLogFiltersProps {
   eventTypes: string[];
@@ -144,7 +139,7 @@ export function AuditLogFilters({
               }
             }}
           >
-            <SelectTrigger id="event-type">
+            <SelectTrigger id="event-type" className="w-full">
               <SelectValue placeholder="Select event type" />
             </SelectTrigger>
             <SelectContent>
@@ -184,7 +179,7 @@ export function AuditLogFilters({
               }
             }}
           >
-            <SelectTrigger id="resource-type">
+            <SelectTrigger id="resource-type" className="w-full">
               <SelectValue placeholder="Select resource type" />
             </SelectTrigger>
             <SelectContent>
@@ -224,7 +219,7 @@ export function AuditLogFilters({
               }
             }}
           >
-            <SelectTrigger id="action">
+            <SelectTrigger id="action" className="w-full">
               <SelectValue placeholder="Select action" />
             </SelectTrigger>
             <SelectContent>
@@ -261,6 +256,7 @@ export function AuditLogFilters({
             value={userId ?? ""}
             onChange={(e) => onUserIdChange(e.target.value)}
             placeholder="Filter by user ID"
+            className="w-full"
           />
         </div>
 
@@ -271,6 +267,7 @@ export function AuditLogFilters({
             value={resourceId ?? ""}
             onChange={(e) => onResourceIdChange(e.target.value)}
             placeholder="Filter by resource ID"
+            className="w-full"
           />
         </div>
 
@@ -281,6 +278,7 @@ export function AuditLogFilters({
             type="datetime-local"
             value={startDate ?? ""}
             onChange={(e) => onStartDateChange(e.target.value)}
+            className="w-full"
           />
         </div>
 
@@ -291,6 +289,7 @@ export function AuditLogFilters({
             type="datetime-local"
             value={endDate ?? ""}
             onChange={(e) => onEndDateChange(e.target.value)}
+            className="w-full"
           />
         </div>
       </CardContent>

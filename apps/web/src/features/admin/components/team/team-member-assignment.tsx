@@ -38,7 +38,7 @@ import {
   assignUserToTeam,
   removeUserFromTeam,
   updateUserTeamRole,
-} from "../actions/teams";
+} from "../../actions/teams";
 
 interface TeamMember {
   id: string;
@@ -146,7 +146,9 @@ export function TeamMemberAssignment({
       });
 
       if (result?.data) {
-        toast.success(`${showRemoveDialog.userName} removed from ${showRemoveDialog.teamName}`);
+        toast.success(
+          `${showRemoveDialog.userName} removed from ${showRemoveDialog.teamName}`
+        );
         setShowRemoveDialog(null);
         router.refresh();
       } else if (result?.validationErrors) {
@@ -221,7 +223,10 @@ export function TeamMemberAssignment({
         </div>
 
         {canEdit && (
-          <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+          <Dialog
+            open={isAssignDialogOpen}
+            onOpenChange={setIsAssignDialogOpen}
+          >
             <DialogTrigger asChild>
               <Button>
                 <UserPlusIcon className="mr-2 h-4 w-4" />
@@ -249,7 +254,8 @@ export function TeamMemberAssignment({
                     <SelectContent>
                       {members.map((member) => (
                         <SelectItem key={member.id} value={member.id}>
-                          {getUserName(member)} {member.email && `(${member.email})`}
+                          {getUserName(member)}{" "}
+                          {member.email && `(${member.email})`}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -301,7 +307,9 @@ export function TeamMemberAssignment({
                   </Button>
                   <Button
                     onClick={handleAssign}
-                    disabled={isSubmitting || !selectedUserId || !selectedTeamId}
+                    disabled={
+                      isSubmitting || !selectedUserId || !selectedTeamId
+                    }
                   >
                     {isSubmitting && (
                       <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
@@ -407,13 +415,17 @@ export function TeamMemberAssignment({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isSubmitting}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRemove}
               disabled={isSubmitting}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isSubmitting && <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting && (
+                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Remove
             </AlertDialogAction>
           </AlertDialogFooter>

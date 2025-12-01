@@ -25,8 +25,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { checkOrganizationSlug } from "../actions/create-organization";
-import { updateOrganization } from "../actions/update-organization";
+import { checkOrganizationSlug } from "../../actions/create-organization";
+import { updateOrganization } from "../../actions/update-organization";
 
 const organizationEditSchema = z.object({
   name: z.string().min(1, "Organization name is required").max(100),

@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { OrganizationForm } from "@/features/admin/components/organization-form";
+import { OrganizationForm } from "@/features/admin/components/organization/organization-form";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { redirect } from "next/navigation";

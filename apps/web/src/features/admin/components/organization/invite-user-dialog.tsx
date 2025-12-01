@@ -24,7 +24,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { inviteMember } from "../actions/member-management";
+import { inviteMember } from "../../actions/member-management";
 
 const inviteFormSchema = z.object({
   email: z.string().email("Invalid email address"),

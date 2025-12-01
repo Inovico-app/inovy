@@ -13,7 +13,7 @@ import { logger } from "@/lib/logger";
 import { getCachedTeamsByOrganization } from "@/server/cache/team.cache";
 import { OrganizationService } from "@/server/services/organization.service";
 import { TeamService } from "@/server/services/team.service";
-import { InviteUserDialog } from "./invite-user-dialog";
+import { InviteUserDialog } from "../organization/invite-user-dialog";
 import { UserActionsMenu } from "./user-actions-menu";
 import { UserRoleBadge } from "./user-role-badge";
 
