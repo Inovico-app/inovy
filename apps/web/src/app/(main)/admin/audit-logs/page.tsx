@@ -75,7 +75,7 @@ async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
   const auditLogs = result.isOk() ? result.value : { logs: [], total: 0 };
 
   return (
-    <div className="container mx-auto max-w-5xl py-12 px-6">
+    <div className="container mx-auto max-w-6xl py-12 px-6">
       <div className="mb-10">
         <h1 className="text-3xl font-bold">Audit Logs</h1>
         <p className="text-muted-foreground mt-2">
@@ -104,7 +104,7 @@ export default function AuditLogsPage(props: AuditLogsPageProps) {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto max-w-5xl py-12 px-6">
+        <div className="container mx-auto max-w-6xl py-12 px-6">
           <div className="mb-10 space-y-2">
             <div className="h-9 bg-muted rounded w-48 animate-pulse" />
             <div className="h-5 bg-muted rounded w-96 animate-pulse" />

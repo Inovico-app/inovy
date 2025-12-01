@@ -13,7 +13,7 @@ import { Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { exportAuditLogs } from "../actions/export-audit-logs";
+import { exportAuditLogs } from "../../actions/export-audit-logs";
 import { AuditLogFilters } from "./audit-log-filters";
 
 interface AuditLogViewerProps {
@@ -151,47 +151,6 @@ export function AuditLogViewer({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      <div className="lg:col-span-1">
-        <AuditLogFilters
-          eventTypes={eventTypes}
-          onEventTypesChange={(types) => {
-            setEventTypes(types);
-            handleFilterChange();
-          }}
-          resourceTypes={resourceTypes}
-          onResourceTypesChange={(types) => {
-            setResourceTypes(types);
-            handleFilterChange();
-          }}
-          actions={actions}
-          onActionsChange={(acts) => {
-            setActions(acts);
-            handleFilterChange();
-          }}
-          userId={userId}
-          onUserIdChange={(id) => {
-            setUserId(id);
-            handleFilterChange();
-          }}
-          resourceId={resourceId}
-          onResourceIdChange={(id) => {
-            setResourceId(id);
-            handleFilterChange();
-          }}
-          startDate={startDate}
-          onStartDateChange={(date) => {
-            setStartDate(date);
-            handleFilterChange();
-          }}
-          endDate={endDate}
-          onEndDateChange={(date) => {
-            setEndDate(date);
-            handleFilterChange();
-          }}
-          onClearFilters={handleClearFilters}
-        />
-      </div>
-
       <div className="lg:col-span-3">
         <Card>
           <CardHeader>
@@ -303,6 +262,46 @@ export function AuditLogViewer({
             )}
           </CardContent>
         </Card>
+      </div>
+      <div className="lg:col-span-1">
+        <AuditLogFilters
+          eventTypes={eventTypes}
+          onEventTypesChange={(types) => {
+            setEventTypes(types);
+            handleFilterChange();
+          }}
+          resourceTypes={resourceTypes}
+          onResourceTypesChange={(types) => {
+            setResourceTypes(types);
+            handleFilterChange();
+          }}
+          actions={actions}
+          onActionsChange={(acts) => {
+            setActions(acts);
+            handleFilterChange();
+          }}
+          userId={userId}
+          onUserIdChange={(id) => {
+            setUserId(id);
+            handleFilterChange();
+          }}
+          resourceId={resourceId}
+          onResourceIdChange={(id) => {
+            setResourceId(id);
+            handleFilterChange();
+          }}
+          startDate={startDate}
+          onStartDateChange={(date) => {
+            setStartDate(date);
+            handleFilterChange();
+          }}
+          endDate={endDate}
+          onEndDateChange={(date) => {
+            setEndDate(date);
+            handleFilterChange();
+          }}
+          onClearFilters={handleClearFilters}
+        />
       </div>
     </div>
   );

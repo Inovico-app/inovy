@@ -5,12 +5,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 async function AdminDashboard() {
   // Check if user is authenticated and has admin permissions
@@ -21,25 +23,38 @@ async function AdminDashboard() {
   }
 
   // Check admin permissions using type-safe helper
-  const hasAdminPermission = await checkPermission(
-    Permissions.organization.read
-  );
+  const hasAdminPermission = await checkPermission(Permissions.admin.all);
 
   if (!hasAdminPermission) {
     redirect("/");
   }
 
-  const quickLinks = [
+  // Check if user has superadmin permissions to show Organizations
+  const hasSuperAdminPermission = await checkPermission(
+    Permissions.superadmin.all
+  );
+
+  const baseQuickLinks = [
     {
       title: "User Management",
       description: "View and manage organization members",
       href: "/admin/users",
     },
-    {
-      title: "Organizations",
-      description: "Manage all organizations in the system",
-      href: "/admin/organizations",
-    },
+  ];
+
+  const superAdminLinks = hasSuperAdminPermission
+    ? [
+        {
+          title: "Organizations",
+          description: "Manage all organizations in the system",
+          href: "/admin/organizations",
+        },
+      ]
+    : [];
+
+  const quickLinks = [
+    ...baseQuickLinks,
+    ...superAdminLinks,
     {
       title: "Audit Logs",
       description: "Track user actions and system events",
@@ -48,18 +63,19 @@ async function AdminDashboard() {
   ];
 
   return (
-    <div className="p-12">
+    <div className="container mx-auto max-w-6xl py-12 px-6">
       <div className="max-w-4xl">
         <div className="mb-10">
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
           <p className="text-muted-foreground mt-2">
-            Welcome to the admin panel. Select a section from the sidebar to
-            get started.
+            Welcome to the admin panel. Select a section from the sidebar to get
+            started.
           </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           {quickLinks.map((link) => (
+            // @ts-expect-error - Next.js Link typing issue with dynamic routes
             <Link key={link.href} href={link.href} className="group">
               <Card className="transition-all hover:shadow-md hover:border-primary/50">
                 <CardHeader>
@@ -117,6 +133,31 @@ async function AdminDashboard() {
 }
 
 export default function AdminPage() {
-  return <AdminDashboard />;
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto max-w-6xl py-12 px-6">
+          <div className="max-w-4xl">
+            <div className="mb-10 space-y-4">
+              <Skeleton className="h-9 w-64 animate-pulse" />
+              <Skeleton className="h-5 w-96 animate-pulse" />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Skeleton className="h-24 w-full animate-pulse" />
+              <Skeleton className="h-24 w-full animate-pulse" />
+            </div>
+            <Card className="mt-6">
+              <Skeleton className="h-12 w-full animate-pulse" />
+              <Skeleton className="h-5 w-96 animate-pulse" />
+              <Skeleton className="h-5 w-96 animate-pulse" />
+              <Skeleton className="h-5 w-96 animate-pulse" />
+            </Card>
+          </div>
+        </div>
+      }
+    >
+      <AdminDashboard />;
+    </Suspense>
+  );
 }
 

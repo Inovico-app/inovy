@@ -8,22 +8,41 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import type { TeamWithMemberCount } from "@/server/cache/team.cache";
 import type { OrganizationMemberDto } from "@/server/services/organization.service";
 import { MailIcon, ShieldCheckIcon, UserIcon } from "lucide-react";
+import { InviteMemberToOrganizationDialog } from "./invite-member-to-organization-dialog";
 
 interface OrganizationMembersListProps {
   members: OrganizationMemberDto[];
+  organizationId: string;
+  organizationName: string;
+  teams: TeamWithMemberCount[];
 }
 
 export function OrganizationMembersList({
   members,
+  organizationId,
+  organizationName,
+  teams,
 }: OrganizationMembersListProps) {
   if (members.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Organization Members</CardTitle>
-          <CardDescription>No members in this organization yet</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Organization Members</CardTitle>
+              <CardDescription>
+                No members in this organization yet
+              </CardDescription>
+            </div>
+            <InviteMemberToOrganizationDialog
+              organizationId={organizationId}
+              organizationName={organizationName}
+              teams={teams}
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -34,7 +53,7 @@ export function OrganizationMembersList({
               No members to display
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Members will appear here once they join the organization
+              Invite members to get started
             </p>
           </div>
         </CardContent>
@@ -45,14 +64,23 @@ export function OrganizationMembersList({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <UserIcon className="h-5 w-5" />
-          Organization Members
-        </CardTitle>
-        <CardDescription>
-          {members.length} member{members.length === 1 ? "" : "s"} in this
-          organization
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <UserIcon className="h-5 w-5" />
+              Organization Members
+            </CardTitle>
+            <CardDescription>
+              {members.length} member{members.length === 1 ? "" : "s"} in this
+              organization
+            </CardDescription>
+          </div>
+          <InviteMemberToOrganizationDialog
+            organizationId={organizationId}
+            organizationName={organizationName}
+            teams={teams}
+          />
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3">

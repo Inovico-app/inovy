@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { TeamManagement } from "@/features/admin/components/team-management";
+import { TeamManagement } from "@/features/admin/components/team/team-management";
 import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/components/organization-knowledge-base-section";
 import { getOrganizationSettings } from "@/features/settings/actions/organization-settings";
 import { OrganizationInstructionsSection } from "@/features/settings/components/organization-instructions-section";

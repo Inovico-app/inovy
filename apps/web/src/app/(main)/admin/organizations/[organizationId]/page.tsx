@@ -11,6 +11,7 @@ import {
   getCachedOrganizationById,
   getCachedOrganizationMembers,
 } from "@/server/cache/organization.cache";
+import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -27,10 +28,11 @@ async function OrganizationContent({
 }: {
   organizationId: string;
 }) {
-  // Fetch organization and members
-  const [organization, members] = await Promise.all([
+  // Fetch organization, members, and teams
+  const [organization, members, teams] = await Promise.all([
     getCachedOrganizationById(organizationId),
     getCachedOrganizationMembers(organizationId),
+    getCachedTeamsWithMemberCounts(organizationId),
   ]);
 
   if (!organization) {
@@ -55,7 +57,12 @@ async function OrganizationContent({
       <OrganizationEditForm organization={organization} />
 
       {/* Members List */}
-      <OrganizationMembersList members={members} />
+      <OrganizationMembersList
+        members={members}
+        organizationId={organization.id}
+        organizationName={organization.name}
+        teams={teams}
+      />
 
       {/* Danger Zone */}
       <OrganizationDangerZone

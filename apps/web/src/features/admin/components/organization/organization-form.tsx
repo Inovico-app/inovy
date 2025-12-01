@@ -22,7 +22,7 @@ import { z } from "zod";
 import {
   checkOrganizationSlug,
   createOrganization,
-} from "../actions/create-organization";
+} from "../../actions/create-organization";
 
 const organizationFormSchema = z.object({
   name: z.string().min(1, "Organization name is required").max(100),

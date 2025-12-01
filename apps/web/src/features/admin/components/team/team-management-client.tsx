@@ -12,11 +12,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+
 import type { TeamWithMemberCount } from "@/server/cache/team.cache";
 import { Edit, Plus, Search, Trash2, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { createTeam, deleteTeam, updateTeam } from "../actions/teams";
+import { Activity, useEffect, useMemo, useState } from "react";
+import { createTeam, deleteTeam, updateTeam } from "../../actions/teams";
 
 interface TeamManagementClientProps {
   teams: TeamWithMemberCount[];
@@ -165,7 +166,7 @@ export function TeamManagementClient({
         </Dialog>
       )}
 
-      {editingTeam && (
+      <Activity mode={editingTeam ? "visible" : "hidden"}>
         <Dialog
           open={!!editingTeam}
           onOpenChange={() => {
@@ -184,7 +185,7 @@ export function TeamManagementClient({
                 <Input
                   id="edit-name"
                   name="name"
-                  defaultValue={editingTeam.name}
+                  defaultValue={editingTeam?.name || ""}
                   required
                 />
               </div>
@@ -193,7 +194,7 @@ export function TeamManagementClient({
                 <Textarea
                   id="edit-description"
                   name="description"
-                  defaultValue={editingTeam.description || ""}
+                  defaultValue={editingTeam?.description || ""}
                 />
               </div>
               <div className="flex justify-end gap-2">
@@ -211,7 +212,7 @@ export function TeamManagementClient({
             </form>
           </DialogContent>
         </Dialog>
-      )}
+      </Activity>
 
       {teams.length === 0 ? (
         <p className="text-muted-foreground text-center py-8">

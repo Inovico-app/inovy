@@ -23,7 +23,7 @@ const statement = {
   organization: ["create", "list", "read", "update", "delete"],
 
   // User management
-  user: ["read", "update", "delete"],
+  user: ["create", "read", "update", "delete"],
 
   // Chat management
   chat: ["project", "organization"],
@@ -68,7 +68,7 @@ export const superAdmin = ac.newRole({
   recording: ["create", "read", "update", "delete"],
   task: ["create", "read", "update", "delete"],
   organization: ["create", "list", "read", "update", "delete"],
-  user: ["read", "update", "delete"],
+  user: ["create", "read", "update", "delete"],
   chat: ["project", "organization"],
   superadmin: ["all"],
   admin: ["all"],
@@ -86,7 +86,7 @@ export const admin = ac.newRole({
   recording: ["create", "read", "update", "delete"],
   task: ["create", "read", "update", "delete"],
   organization: ["create", "read", "update", "delete"],
-  user: ["read", "update", "delete"],
+  user: ["create", "read", "update", "delete"],
   chat: ["project", "organization"],
   admin: ["all"],
   orgInstruction: ["read", "write"],
