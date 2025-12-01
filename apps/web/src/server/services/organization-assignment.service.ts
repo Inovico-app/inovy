@@ -52,7 +52,6 @@ export class OrganizationAssignmentService {
         if (organizations.length === 0) {
           logger.warn("User has no organizations, creating default", {
             userId: user.id,
-            email: user.email,
           });
 
           // Try to create a default organization for the user
@@ -119,9 +118,7 @@ export class OrganizationAssignmentService {
       const orgSlug = `org-${emailLocal}-${timestamp}`
         .toLowerCase()
         .replace(/[^a-z0-9-]/g, "-");
-      const orgName = `${
-        user.name ?? user.email ?? "User"
-      }'s Organization`;
+      const orgName = `${user.name ?? user.email ?? "User"}'s Organization`;
 
       logger.info("Creating default organization for user", {
         userId: user.id,

@@ -2,6 +2,7 @@
 
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { ChatService } from "@/server/services/chat.service";
 import {
   conversationIdSchema,
@@ -203,7 +204,19 @@ export const getConversationStatsAction = authorizedActionClient
   .metadata({ permissions: policyToPermissions("chat:project") })
   .action(async ({ ctx: { user, organizationId } }) => {
     if (!user) {
-      throw new Error("User not authenticated");
+      throw ActionErrors.unauthenticated(
+        "User not authenticated",
+        "getConversationStatsAction"
+      );
+    }
+
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required", {
+        context: "getConversationStatsAction",
+        metadata: {
+          organizationId,
+        },
+      });
     }
 
     const result = await ChatService.getConversationStats(

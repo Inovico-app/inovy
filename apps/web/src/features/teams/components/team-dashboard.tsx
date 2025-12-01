@@ -186,7 +186,8 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
           ) : (
             <div className="space-y-2">
               {members.slice(0, 5).map((member: TeamMemberWithUserDto) => {
-                const displayName = member.userName || member.userEmail || "Unknown User";
+                const displayName =
+                  member.userName || member.userEmail || "Unknown User";
                 const initials = member.userName
                   ? member.userName
                       .split(" ")
@@ -214,7 +215,9 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
                         />
                       ) : (
                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-sm font-medium">{initials}</span>
+                          <span className="text-sm font-medium">
+                            {initials}
+                          </span>
                         </div>
                       )}
                       <div>
