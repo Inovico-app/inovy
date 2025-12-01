@@ -1,11 +1,11 @@
 import { ProtectedPage } from "@/components/protected-page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RecordPageClient } from "@/features/recordings/components/record-page-client";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { ProjectService } from "@/server/services/project.service";
 import { InfoIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { RecordPageClient } from "../../features/recordings/components/record-page-client";
 
 async function RecordPageContent() {
   const authResult = await getAuthSession();

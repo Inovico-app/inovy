@@ -15,6 +15,8 @@ import {
 } from "../data-access/audit-logs.queries";
 import { type AuditLog, type NewAuditLog } from "../db/schema/audit-logs";
 
+type AuditResourceType = AuditLog["resourceType"];
+
 /**
  * Comprehensive Audit Log Service
  * Handles audit logging with tamper-proofing via hash chain
@@ -204,7 +206,7 @@ export class AuditLogService {
    * Enforces organization isolation - only returns logs for the specified organization
    */
   static async getAuditLogsByResource(
-    resourceType: string,
+    resourceType: AuditResourceType,
     resourceId: string,
     organizationId: string,
     limit = 100

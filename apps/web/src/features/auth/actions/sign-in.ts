@@ -101,9 +101,6 @@ export const passkeySignInSuccessAction = publicActionClient
           ActionErrors.unauthenticated("Passkey authentication failed")
         );
       }
-
-      // Redirect to home page after successful sign-in
-      redirect("/");
     } catch (error) {
       const message =
         error instanceof Error
@@ -111,5 +108,9 @@ export const passkeySignInSuccessAction = publicActionClient
           : "Failed to verify passkey authentication";
       throw createErrorForNextSafeAction(ActionErrors.internal(message, error));
     }
+
+    // Redirect to home page after successful sign-in
+    // This is outside the try/catch to avoid catching Next.js's NEXT_REDIRECT error
+    redirect("/");
   });
 

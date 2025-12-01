@@ -29,9 +29,9 @@ export default function SignUpPage() {
     isLoading: isSignUpLoading,
   } = useSignUp();
 
-  const { signUpPasskey, isLoading: isPasskeyLoading } = usePasskeySignUp();
+  const { signUpPasskey } = usePasskeySignUp();
 
-  const isLoading = isSignUpLoading || isPasskeyLoading;
+  const isLoading = isSignUpLoading;
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -18,6 +18,12 @@ export interface BetterAuthOrganizationDto {
   slug: string | null;
 }
 
+interface BetterAuthOrganizationResponse {
+  id: string;
+  name: string;
+  slug?: string | null;
+}
+
 /**
  * Service for handling user organization assignment
  * Ensures users are assigned to organizations on first login
@@ -51,10 +57,10 @@ export class OrganizationAssignmentService {
 
         // Better Auth API returns array directly
         const organizations = Array.isArray(organizationsResponse)
-          ? organizationsResponse
+          ? (organizationsResponse as BetterAuthOrganizationResponse[])
           : [];
         const userOrg = organizations.find(
-          (org: any) => org.id === user.organization_code
+          (org) => org.id === user.organization_code
         );
 
         if (!userOrg) {
@@ -67,9 +73,9 @@ export class OrganizationAssignmentService {
         }
 
         const organization: BetterAuthOrganizationDto = {
-          id: (userOrg as any).id,
-          name: (userOrg as any).name,
-          slug: (userOrg as any).slug ?? null,
+          id: userOrg.id,
+          name: userOrg.name,
+          slug: userOrg.slug ?? null,
         };
 
         logger.info("User organization verified", {
@@ -147,8 +153,13 @@ export class OrganizationAssignmentService {
 
         // Better Auth API returns organization data
         // The response structure may vary, so handle both cases
+        const response = createOrgResponse as
+          | { data?: BetterAuthOrganizationResponse }
+          | BetterAuthOrganizationResponse;
         const orgData =
-          (createOrgResponse as any)?.data ?? (createOrgResponse as any);
+          "data" in response && response.data
+            ? response.data
+            : (response as BetterAuthOrganizationResponse);
         if (!orgData?.id) {
           logger.error(
             "Failed to create default organization - no ID returned",

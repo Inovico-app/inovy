@@ -1,7 +1,23 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConsentManager } from "@/features/recordings/components/consent-manager";
+import { EnhancedSummarySection } from "@/features/recordings/components/enhanced-summary-section";
+import { RecordingDetailActionsDropdown } from "@/features/recordings/components/recording-detail-actions-dropdown";
+import { RecordingDetailStatus } from "@/features/recordings/components/recording-detail-status";
+import { RecordingPlayerWrapper } from "@/features/recordings/components/recording-player-wrapper";
+import { ReprocessButton } from "@/features/recordings/components/reprocess-button";
+import { ReprocessingStatusIndicator } from "@/features/recordings/components/reprocessing-status-indicator";
+import { TranscriptionSection } from "@/features/recordings/components/transcription/transcription-section";
+import { TaskCard } from "@/features/tasks/components/task-card-with-edit";
+import { getAuthSession } from "@/lib/auth/auth-helpers";
 import type { ActionResult } from "@/lib/server-action-client/action-errors";
+import { getCachedSummary } from "@/server/cache/summary.cache";
 import type { ConsentParticipant } from "@/server/db/schema/consent";
+import type { TaskDto } from "@/server/dto/task.dto";
 import { AIInsightService } from "@/server/services/ai-insight.service";
 import { ConsentService } from "@/server/services/consent.service";
+import { ProjectService } from "@/server/services/project.service";
+import { RecordingService } from "@/server/services/recording.service";
 import { TaskService } from "@/server/services/task.service";
 import { ArrowLeftIcon, CalendarIcon, ClockIcon, FileIcon } from "lucide-react";
 import { ok } from "neverthrow";
@@ -9,26 +25,6 @@ import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { Button } from "../../../../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../../../../components/ui/card";
-import { ConsentManager } from "../../../../../features/recordings/components/consent-manager";
-import { EnhancedSummarySection } from "../../../../../features/recordings/components/enhanced-summary-section";
-import { RecordingDetailActionsDropdown } from "../../../../../features/recordings/components/recording-detail-actions-dropdown";
-import { RecordingDetailStatus } from "../../../../../features/recordings/components/recording-detail-status";
-import { RecordingPlayerWrapper } from "../../../../../features/recordings/components/recording-player-wrapper";
-import { ReprocessButton } from "../../../../../features/recordings/components/reprocess-button";
-import { ReprocessingStatusIndicator } from "../../../../../features/recordings/components/reprocessing-status-indicator";
-import { TranscriptionSection } from "../../../../../features/recordings/components/transcription/transcription-section";
-import { TaskCard } from "../../../../../features/tasks/components/task-card-with-edit";
-import { getAuthSession } from "../../../../../lib/auth/auth-helpers";
-import { getCachedSummary } from "../../../../../server/cache/summary.cache";
-import { ProjectService } from "../../../../../server/services/project.service";
-import { RecordingService } from "../../../../../server/services/recording.service";
 
 interface RecordingDetailPageProps {
   params: Promise<{ projectId: string; recordingId: string }>;
@@ -297,7 +293,7 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
           <CardContent>
             {tasks.length > 0 ? (
               <div className="space-y-4">
-                {tasks.map((task) => (
+                {tasks.map((task: TaskDto) => (
                   <TaskCard key={task.id} task={task} />
                 ))}
               </div>

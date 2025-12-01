@@ -35,7 +35,7 @@ export function SpeakerLabel({
 
   // Validate textColor against whitelist
   const safeTextColor =
-    textColor && ALLOWED_TEXT_COLORS.includes(textColor as any)
+    textColor && (ALLOWED_TEXT_COLORS as readonly string[]).includes(textColor)
       ? textColor
       : "";
 

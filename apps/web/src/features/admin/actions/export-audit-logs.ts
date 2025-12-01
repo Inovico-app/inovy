@@ -4,6 +4,7 @@ import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import type { AuditLogFilters } from "@/server/data-access/audit-logs.queries";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { z } from "zod";
 
@@ -40,8 +41,13 @@ export const exportAuditLogs = authorizedActionClient
 
       const { organization } = authResult.value;
 
-      const filters = {
-        ...parsedInput,
+      const filters: AuditLogFilters = {
+        userId: parsedInput.userId,
+        eventType: parsedInput.eventType as AuditLogFilters["eventType"],
+        resourceType:
+          parsedInput.resourceType as AuditLogFilters["resourceType"],
+        action: parsedInput.action as AuditLogFilters["action"],
+        resourceId: parsedInput.resourceId,
         startDate: parsedInput.startDate
           ? new Date(parsedInput.startDate)
           : undefined,

@@ -1,5 +1,5 @@
+import { CreateProjectForm } from "@/features/projects/components/create-project-form";
 import { Suspense } from "react";
-import { CreateProjectForm } from "../../../features/projects/components/create-project-form";
 
 export default function CreateProjectPage() {
   // CACHE COMPONENTS: Wrap form in Suspense for static shell generation

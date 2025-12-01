@@ -1,17 +1,13 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProjectSearch } from "@/features/projects/components/project-search";
+import { ProjectTabs } from "@/features/projects/components/project-tabs";
+import type { AllowedStatus } from "@/server/data-access/projects.queries";
+import type { ProjectWithRecordingCountDto } from "@/server/dto/project.dto";
+import { ProjectService } from "@/server/services/project.service";
 import { CalendarIcon, FileTextIcon, FolderIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Button } from "../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
-import { ProjectSearch } from "../../features/projects/components/project-search";
-import { ProjectTabs } from "../../features/projects/components/project-tabs";
-import type { AllowedStatus } from "../../server/data-access/projects.queries";
-import { ProjectService } from "../../server/services/project.service";
 
 interface ProjectsListProps {
   searchQuery?: string;
@@ -84,53 +80,55 @@ async function ProjectsList({
       {/* Projects Grid */}
       {projectsWithCreators.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {projectsWithCreators.map((project) => (
-            <Card
-              key={project.id}
-              className="hover:shadow-lg transition-shadow cursor-pointer"
-            >
-              <Link href={`/projects/${project.id}`}>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="truncate">{project.name}</span>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full capitalize ${
-                        project.status === "active"
-                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                          : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
-                      }`}
-                    >
-                      {project.status}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {project.description && (
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                      {project.description}
-                    </p>
-                  )}
-                  <div className="space-y-2">
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <FolderIcon className="h-3 w-3 mr-1" />
-                      {project.recordingCount}{" "}
-                      {project.recordingCount === 1
-                        ? "recording"
-                        : "recordings"}
+          {projectsWithCreators.map(
+            (project: ProjectWithRecordingCountDto & { createdBy: string }) => (
+              <Card
+                key={project.id}
+                className="hover:shadow-lg transition-shadow cursor-pointer"
+              >
+                <Link href={`/projects/${project.id}`}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="truncate">{project.name}</span>
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full capitalize ${
+                          project.status === "active"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+                        }`}
+                      >
+                        {project.status}
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {project.description && (
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                        {project.description}
+                      </p>
+                    )}
+                    <div className="space-y-2">
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <FolderIcon className="h-3 w-3 mr-1" />
+                        {project.recordingCount}{" "}
+                        {project.recordingCount === 1
+                          ? "recording"
+                          : "recordings"}
+                      </div>
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <CalendarIcon className="h-3 w-3 mr-1" />
+                        Created {formatDate(project.createdAt)}
+                      </div>
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <FileTextIcon className="h-3 w-3 mr-1" />
+                        By {project.createdBy}
+                      </div>
                     </div>
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <CalendarIcon className="h-3 w-3 mr-1" />
-                      Created {formatDate(project.createdAt)}
-                    </div>
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <FileTextIcon className="h-3 w-3 mr-1" />
-                      By {project.createdBy}
-                    </div>
-                  </div>
-                </CardContent>
-              </Link>
-            </Card>
-          ))}
+                  </CardContent>
+                </Link>
+              </Card>
+            )
+          )}
         </div>
       ) : (
         <Card>
@@ -139,15 +137,15 @@ async function ProjectsList({
               {searchQuery
                 ? "No projects found"
                 : status === "archived"
-                ? "No archived projects"
-                : "No projects yet"}
+                  ? "No archived projects"
+                  : "No projects yet"}
             </h3>
             <p className="text-muted-foreground mb-6">
               {searchQuery
                 ? "Try adjusting your search criteria."
                 : status === "archived"
-                ? "Projects you archive will appear here."
-                : "Create your first project to start organizing your meeting recordings."}
+                  ? "Projects you archive will appear here."
+                  : "Create your first project to start organizing your meeting recordings."}
             </p>
             {!searchQuery && status === "active" && (
               <Button asChild>

@@ -10,6 +10,7 @@ import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
+import type { AuditLogFilters } from "@/server/data-access/audit-logs.queries";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -52,13 +53,17 @@ async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
 
   const params = await searchParams;
 
-  const filters = {
+  const filters: AuditLogFilters = {
     userId: params.userId ?? undefined,
-    eventType: params.eventType ? params.eventType.split(",") : undefined,
-    resourceType: params.resourceType
-      ? params.resourceType.split(",")
+    eventType: params.eventType
+      ? (params.eventType.split(",") as AuditLogFilters["eventType"])
       : undefined,
-    action: params.action ? params.action.split(",") : undefined,
+    resourceType: params.resourceType
+      ? (params.resourceType.split(",") as AuditLogFilters["resourceType"])
+      : undefined,
+    action: params.action
+      ? (params.action.split(",") as AuditLogFilters["action"])
+      : undefined,
     resourceId: params.resourceId ?? undefined,
     startDate: params.startDate ? new Date(params.startDate) : undefined,
     endDate: params.endDate ? new Date(params.endDate) : undefined,

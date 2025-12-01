@@ -1,6 +1,7 @@
 "use client";
 
 import { authClient } from "@/lib/auth-client";
+import { logger } from "@/lib/logger";
 import { useAction } from "next-safe-action/hooks";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -48,7 +49,11 @@ export function usePasskeySignIn() {
       }
     } catch (error) {
       toast.error("An unexpected error occurred during passkey sign-in");
-      console.error("Passkey sign-in error:", error);
+      logger.error("Passkey sign-in error", {
+        error,
+        component: "usePasskeySignIn",
+        action: "signInPasskey",
+      });
       setIsPasskeyLoading(false);
     }
   };

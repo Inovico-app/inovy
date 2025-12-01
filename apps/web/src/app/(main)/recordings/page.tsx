@@ -1,6 +1,6 @@
 import { ProtectedPage } from "@/components/protected-page";
+import { RecordingsOverview } from "@/features/recordings/components/recordings-overview";
 import { Suspense } from "react";
-import { RecordingsOverview } from "../../features/recordings/components/recordings-overview";
 
 export default async function RecordingsPage() {
   // CACHE COMPONENTS: Wrap dynamic content in Suspense to enable static shell generation
