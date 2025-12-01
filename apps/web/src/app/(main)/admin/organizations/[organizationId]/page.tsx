@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { OrganizationDetail } from "@/features/admin/components/organization-detail";
-import { OrganizationEditForm } from "@/features/admin/components/organization-edit-form";
-import { OrganizationMembersList } from "@/features/admin/components/organization-members-list";
+import { OrganizationDangerZone } from "@/features/admin/components/organization/organization-danger-zone";
+import { OrganizationDetail } from "@/features/admin/components/organization/organization-detail";
+import { OrganizationEditForm } from "@/features/admin/components/organization/organization-edit-form";
+import { OrganizationMembersList } from "@/features/admin/components/organization/organization-members-list";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import {
@@ -55,6 +56,13 @@ async function OrganizationContent({
 
       {/* Members List */}
       <OrganizationMembersList members={members} />
+
+      {/* Danger Zone */}
+      <OrganizationDangerZone
+        organizationId={organization.id}
+        organizationName={organization.name}
+        memberCount={members.length}
+      />
     </div>
   );
 }
@@ -80,9 +88,9 @@ async function OrganizationPageContent({ params }: OrganizationPageProps) {
             View and manage organization settings
           </p>
         </div>
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" className="w-fit px-4" asChild>
           <Link href="/admin/organizations">
-            <ArrowLeftIcon className="h-5 w-5" />
+            <ArrowLeftIcon className="h-5 w-5 mr-2" />
             Back to organizations
           </Link>
         </Button>

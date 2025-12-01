@@ -34,8 +34,8 @@ async function OrganizationsContent() {
   }
 
   return (
-    <div className="container mx-auto max-w-6xl py-8 px-4">
-      <div className="mb-8">
+    <div className="container mx-auto max-w-4xl py-12 px-6">
+      <div className="mb-10">
         <h1 className="text-3xl font-bold">Organizations</h1>
         <p className="text-muted-foreground mt-2">
           Manage all organizations in the system
@@ -61,8 +61,8 @@ export default function OrganizationsPage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto max-w-6xl py-8 px-4">
-          <div className="mb-8 space-y-2">
+        <div className="container mx-auto max-w-4xl py-12 px-6">
+          <div className="mb-10 space-y-2">
             <Skeleton className="h-9 w-64" />
             <Skeleton className="h-5 w-96" />
           </div>
