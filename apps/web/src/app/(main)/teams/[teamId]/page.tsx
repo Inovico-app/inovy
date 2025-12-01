@@ -1,4 +1,3 @@
-import { PageLayout } from "@/components/page-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamDashboard } from "@/features/teams/components/team-dashboard";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
@@ -12,7 +11,12 @@ interface TeamPageProps {
   }>;
 }
 
-async function TeamDashboardContainer({ teamId }: { teamId: string }) {
+async function TeamDashboardContainer({
+  params,
+}: {
+  params: Promise<{ teamId: string }>;
+}) {
+  const { teamId } = await params;
   const authResult = await getAuthSession();
 
   if (
@@ -40,25 +44,21 @@ async function TeamDashboardContainer({ teamId }: { teamId: string }) {
 }
 
 export default async function TeamPage({ params }: TeamPageProps) {
-  const { teamId } = await params;
-
   return (
-    <PageLayout>
-      <Suspense
-        fallback={
-          <div className="space-y-6">
-            <Skeleton className="h-32" />
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} className="h-32" />
-              ))}
-            </div>
+    <Suspense
+      fallback={
+        <div className="space-y-6">
+          <Skeleton className="h-32" />
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-32" />
+            ))}
           </div>
-        }
-      >
-        <TeamDashboardContainer teamId={teamId} />
-      </Suspense>
-    </PageLayout>
+        </div>
+      }
+    >
+      <TeamDashboardContainer params={params} />
+    </Suspense>
   );
 }
 

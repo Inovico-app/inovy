@@ -1,6 +1,5 @@
-import { PageLayout } from "@/components/page-layout";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TeamSettings } from "@/features/teams/components/team-settings";
+import { TeamMemberManagement } from "@/features/teams/components/team-member-management";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
 import {
   canAccessTeam,
@@ -10,13 +9,18 @@ import {
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-interface TeamSettingsPageProps {
+interface TeamMembersPageProps {
   params: Promise<{
     teamId: string;
   }>;
 }
 
-async function TeamSettingsContainer({ teamId }: { teamId: string }) {
+async function TeamMembersContainer({
+  params,
+}: {
+  params: Promise<{ teamId: string }>;
+}) {
+  const { teamId } = await params;
   const authResult = await getAuthSession();
 
   if (
@@ -49,20 +53,24 @@ async function TeamSettingsContainer({ teamId }: { teamId: string }) {
     redirect(`/teams/${teamId}`);
   }
 
-  return <TeamSettings teamId={teamId} />;
+  return <TeamMemberManagement teamId={teamId} />;
 }
 
-export default async function TeamSettingsPage({
+export default async function TeamMembersPage({
   params,
-}: TeamSettingsPageProps) {
-  const { teamId } = await params;
-
+}: TeamMembersPageProps) {
   return (
-    <PageLayout>
-      <Suspense fallback={<Skeleton className="h-96" />}>
-        <TeamSettingsContainer teamId={teamId} />
-      </Suspense>
-    </PageLayout>
+    <Suspense
+      fallback={
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-20" />
+          ))}
+        </div>
+      }
+    >
+      <TeamMembersContainer params={params} />
+    </Suspense>
   );
 }
 
