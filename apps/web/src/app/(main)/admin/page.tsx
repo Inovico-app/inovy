@@ -1,10 +1,3 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { Permissions } from "@/lib/rbac/permissions";
@@ -12,6 +5,7 @@ import { checkPermission } from "@/lib/rbac/permissions-server";
 import {
   BarChart3Icon,
   Building2Icon,
+  ChevronRightIcon,
   FileTextIcon,
   SettingsIcon,
   UsersIcon,
@@ -20,75 +14,85 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-function AdminMenuGrid() {
+function AdminVerticalTabs() {
   const menuItems = [
     {
       href: "/admin/users",
       icon: UsersIcon,
       title: "User Management",
-      description: "View and manage organization members",
-      details: "Manage roles, permissions, and user activity",
+      description: "Manage roles, permissions, and user activity",
     },
     {
       href: "/admin/organizations",
       icon: Building2Icon,
       title: "Organizations",
-      description: "Manage all organizations in the system",
-      details: "View, create, and edit organizations",
+      description: "View, create, and edit organizations",
     },
     {
       href: "/admin/audit-logs",
       icon: FileTextIcon,
       title: "Audit Logs",
-      description: "View system activity and changes",
-      details: "Track user actions and system events",
+      description: "Track user actions and system events",
     },
     {
       href: "#",
       icon: BarChart3Icon,
       title: "System Analytics",
       description: "View system-wide statistics",
-      details: "Coming soon",
       disabled: true,
+      badge: "Coming Soon",
     },
     {
       href: "#",
       icon: SettingsIcon,
       title: "System Settings",
       description: "Configure system preferences",
-      details: "Coming soon",
       disabled: true,
+      badge: "Coming Soon",
     },
   ];
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-1">
       {menuItems.map((item) => (
         <Link
           key={item.title}
           href={item.disabled ? "#" : item.href}
-          className={
-            item.disabled ? "pointer-events-none opacity-60" : "group"
-          }
+          className={`group flex items-center justify-between px-4 py-3 rounded-lg transition-all ${
+            item.disabled
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:bg-muted/50"
+          }`}
         >
-          <Card className="h-full transition-all hover:shadow-lg hover:border-primary/50">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <div className="rounded-lg bg-primary/10 p-2.5 ring-1 ring-primary/20 group-hover:bg-primary/20 transition-colors">
-                    <item.icon className="h-5 w-5 text-primary" />
-                  </div>
-                  {item.title}
-                </CardTitle>
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div
+              className={`mt-0.5 rounded-md p-1.5 ${
+                item.disabled
+                  ? "bg-muted"
+                  : "bg-primary/10 group-hover:bg-primary/15 transition-colors"
+              }`}
+            >
+              <item.icon
+                className={`h-4 w-4 ${item.disabled ? "text-muted-foreground" : "text-primary"}`}
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-sm">{item.title}</p>
+                {item.badge && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                    {item.badge}
+                  </span>
+                )}
               </div>
-              <CardDescription className="mt-2">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {item.description}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">{item.details}</p>
-            </CardContent>
-          </Card>
+              </p>
+            </div>
+          </div>
+          {!item.disabled && (
+            <ChevronRightIcon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
+          )}
         </Link>
       ))}
     </div>
@@ -113,7 +117,7 @@ async function AdminContainer() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl py-12 px-6">
+    <div className="container mx-auto max-w-3xl py-12 px-6">
       <div className="mb-10">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <p className="text-muted-foreground mt-2">
@@ -121,7 +125,9 @@ async function AdminContainer() {
         </p>
       </div>
 
-      <AdminMenuGrid />
+      <div className="border rounded-lg overflow-hidden bg-card">
+        <AdminVerticalTabs />
+      </div>
     </div>
   );
 }
@@ -130,14 +136,14 @@ export default function AdminPage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto max-w-4xl py-12 px-6">
+        <div className="container mx-auto max-w-3xl py-12 px-6">
           <div className="mb-10 space-y-2">
             <Skeleton className="h-9 w-64" />
             <Skeleton className="h-5 w-96" />
           </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="border rounded-lg overflow-hidden bg-card p-2 space-y-1">
             {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-40" />
+              <Skeleton key={i} className="h-16 w-full" />
             ))}
           </div>
         </div>
