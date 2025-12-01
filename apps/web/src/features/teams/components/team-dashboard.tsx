@@ -12,9 +12,10 @@ import {
 import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { isOrganizationAdmin, isTeamManager } from "@/lib/rbac/rbac";
 import { getCachedTeamById } from "@/server/cache/team.cache";
+import type { TeamMemberWithUserDto } from "@/server/dto/team.dto";
 import { TeamService } from "@/server/services/team.service";
-import type { TeamMember } from "better-auth/plugins";
 import { SettingsIcon, UsersIcon } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 interface TeamDashboardProps {
@@ -72,8 +73,8 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
   const isLead = await isTeamManager(user, teamId);
   const canManage = isAdmin || isLead;
 
-  // Fetch team members
-  const membersResult = await TeamService.getTeamMembers(teamId);
+  // Fetch team members with user details
+  const membersResult = await TeamService.getTeamMembersWithUserDetails(teamId);
   const members = membersResult.isOk() ? membersResult.value : [];
 
   return (
@@ -184,31 +185,56 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
             </p>
           ) : (
             <div className="space-y-2">
-              {members.slice(0, 5).map((member: TeamMember) => (
-                <div
-                  key={member.id}
-                  className="flex items-center justify-between py-2 border-b last:border-0"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-sm font-medium">
-                        {member.userId.substring(0, 2).toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="font-medium">
-                        User {member.userId.substring(0, 8)}...
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Joined{" "}
-                        {new Date(
-                          member.createdAt ?? new Date()
-                        ).toLocaleDateString()}
+              {members.slice(0, 5).map((member: TeamMemberWithUserDto) => {
+                const displayName = member.userName || member.userEmail || "Unknown User";
+                const initials = member.userName
+                  ? member.userName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2)
+                  : member.userEmail
+                    ? member.userEmail.substring(0, 2).toUpperCase()
+                    : "??";
+
+                return (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between py-2 border-b last:border-0"
+                  >
+                    <div className="flex items-center gap-3">
+                      {member.userImage ? (
+                        <Image
+                          src={member.userImage}
+                          alt={displayName}
+                          width={32}
+                          height={32}
+                          className="h-8 w-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-medium">{initials}</span>
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-medium">{displayName}</div>
+                        {member.userEmail && member.userName && (
+                          <div className="text-xs text-muted-foreground">
+                            {member.userEmail}
+                          </div>
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          Joined{" "}
+                          {new Date(
+                            member.createdAt ?? new Date()
+                          ).toLocaleDateString()}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {members.length > 5 && (
                 <div className="text-center pt-4">
                   <Link href={`/teams/${teamId}/members`}>

@@ -12,9 +12,11 @@ import { TeamQueries, UserTeamQueries } from "../data-access/teams.queries";
 import type {
   CreateTeamDto,
   TeamDto,
+  TeamMemberWithUserDto,
   UpdateTeamDto,
   UserTeamRoleDto,
 } from "../dto/team.dto";
+import { UserQueries } from "../data-access/user.queries";
 type UserTeamRole = "member" | "lead" | "admin";
 
 /**
@@ -235,6 +237,109 @@ export class TeamService {
           "Failed to get team members",
           error as Error,
           "TeamService.getTeamMembers"
+        )
+      );
+    }
+  }
+
+  /**
+   * Get team members with user details
+   * Returns team members enriched with user information (name, email, image)
+   */
+  static async getTeamMembersWithUserDetails(
+    teamId: string
+  ): Promise<ActionResult<TeamMemberWithUserDto[]>> {
+    try {
+      const authResult = await getAuthSession();
+      if (authResult.isErr()) {
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "TeamService.getTeamMembersWithUserDetails"
+          )
+        );
+      }
+
+      const { organization } = authResult.value;
+      if (!organization) {
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "TeamService.getTeamMembersWithUserDetails"
+          )
+        );
+      }
+
+      // Verify team exists and belongs to organization
+      const team = await TeamQueries.selectTeamById(teamId, organization.id);
+      if (!team) {
+        return err(
+          ActionErrors.notFound("Team", "TeamService.getTeamMembersWithUserDetails")
+        );
+      }
+
+      // Verify organization access
+      assertOrganizationAccess(
+        team.organizationId,
+        organization.id,
+        "TeamService.getTeamMembersWithUserDetails"
+      );
+
+      // Get team members
+      const members = await TeamQueries.selectTeamMembers(teamId);
+
+      if (!members || members.length === 0) {
+        return ok([]);
+      }
+
+      // Get unique user IDs
+      const userIds = Array.from(new Set(members.map((m) => m.userId)));
+
+      // Fetch user details
+      const usersData = await UserQueries.findByIds(userIds);
+
+      // Create a map for quick lookup
+      const usersMap = new Map(
+        usersData.map((user) => [
+          user.id,
+          {
+            name: user.name,
+            email: user.email,
+            image: user.image,
+          },
+        ])
+      );
+
+      // Combine member data with user details
+      const membersWithUserDetails: TeamMemberWithUserDto[] = members.map(
+        (member) => {
+          const userDetails = usersMap.get(member.userId);
+          return {
+            id: member.id,
+            userId: member.userId,
+            teamId: member.teamId,
+            userName: userDetails?.name ?? null,
+            userEmail: userDetails?.email ?? null,
+            userImage: userDetails?.image ?? null,
+            createdAt: member.createdAt ?? null,
+          };
+        }
+      );
+
+      return ok(membersWithUserDetails);
+    } catch (error) {
+      logger.error(
+        "Failed to get team members with user details",
+        { teamId },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to get team members with user details",
+          error as Error,
+          "TeamService.getTeamMembersWithUserDetails"
         )
       );
     }

@@ -40,3 +40,13 @@ export interface TeamWithMembersDto extends TeamDto {
   }>;
 }
 
+export interface TeamMemberWithUserDto {
+  id: string;
+  userId: string;
+  teamId: string;
+  userName: string | null;
+  userEmail: string | null;
+  userImage: string | null;
+  createdAt: Date | null;
+}
+
