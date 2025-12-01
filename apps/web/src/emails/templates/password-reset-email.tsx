@@ -4,14 +4,14 @@
  */
 
 import { Button, Section, Text } from "@react-email/components";
-import { BaseTemplate } from "./base-template";
+import BaseTemplate from "./base-template";
 
 interface PasswordResetEmailProps {
   resetUrl: string;
   userName?: string | null;
 }
 
-export function PasswordResetEmail({
+export default function PasswordResetEmail({
   resetUrl,
   userName,
 }: PasswordResetEmailProps) {

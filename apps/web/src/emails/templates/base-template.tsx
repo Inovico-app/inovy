@@ -22,7 +22,7 @@ interface BaseTemplateProps {
   children: React.ReactNode;
 }
 
-export function BaseTemplate({ preview, children }: BaseTemplateProps) {
+export default function BaseTemplate({ preview, children }: BaseTemplateProps) {
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL ??
     process.env.BETTER_AUTH_URL ??
@@ -50,7 +50,10 @@ export function BaseTemplate({ preview, children }: BaseTemplateProps) {
                   Visit Inovy
                 </Link>
                 {" • "}
-                <Link href={`${appUrl}/settings`} className="text-[#0066cc] underline">
+                <Link
+                  href={`${appUrl}/settings`}
+                  className="text-[#0066cc] underline"
+                >
                   Manage Settings
                 </Link>
               </Text>
@@ -61,3 +64,4 @@ export function BaseTemplate({ preview, children }: BaseTemplateProps) {
     </Tailwind>
   );
 }
+

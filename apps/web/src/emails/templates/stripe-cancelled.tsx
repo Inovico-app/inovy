@@ -4,7 +4,7 @@
  */
 
 import { Button, Section, Text } from "@react-email/components";
-import { BaseTemplate } from "./base-template";
+import BaseTemplate from "./base-template";
 
 interface StripeCancelledEmailProps {
   userName?: string | null;
@@ -13,7 +13,7 @@ interface StripeCancelledEmailProps {
   dashboardUrl: string;
 }
 
-export function StripeCancelledEmail({
+export default function StripeCancelledEmail({
   userName,
   planName,
   accessEndDate,

@@ -1,7 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
+import { useQuery } from "@tanstack/react-query";
 import { getNotifications } from "../actions/get-notifications";
 import type { NotificationFilters, NotificationListResponse } from "../types";
 
@@ -11,7 +11,8 @@ import type { NotificationFilters, NotificationListResponse } from "../types";
  */
 export function useNotificationsQuery(
   filters?: NotificationFilters,
-  initialData?: NotificationListResponse
+  initialData?: NotificationListResponse,
+  enabled = true
 ) {
   return useQuery({
     queryKey: queryKeys.notifications.list(filters as Record<string, unknown>),
@@ -26,6 +27,7 @@ export function useNotificationsQuery(
     },
     initialData,
     staleTime: 30000, // 30 seconds
+    enabled,
   });
 }
 

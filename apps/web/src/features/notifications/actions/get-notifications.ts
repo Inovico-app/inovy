@@ -1,11 +1,11 @@
 "use server";
 
 import { logger } from "@/lib/logger";
-import { NotificationService } from "@/server/services/notification.service";
 import type {
-  NotificationListDto,
   NotificationFiltersDto,
+  NotificationListDto,
 } from "@/server/dto/notification.dto";
+import { NotificationService } from "@/server/services/notification.service";
 
 export async function getNotifications(
   filters?: NotificationFiltersDto

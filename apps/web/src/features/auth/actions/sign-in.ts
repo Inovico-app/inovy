@@ -9,6 +9,7 @@ import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
+  passkeySignInSchema,
   signInEmailSchema,
   socialSignInSchema,
 } from "../validation/auth.schema";
@@ -77,6 +78,37 @@ export const getSocialSignInUrlAction = publicActionClient
         error instanceof Error
           ? error.message
           : `Failed to initiate ${provider} sign-in`;
+      throw createErrorForNextSafeAction(ActionErrors.internal(message, error));
+    }
+  });
+
+/**
+ * Passkey sign-in success handler
+ * This action is called after successful client-side passkey authentication
+ * to handle server-side redirect logic
+ */
+export const passkeySignInSuccessAction = publicActionClient
+  .inputSchema(passkeySignInSchema)
+  .action(async () => {
+    // Verify the user is authenticated after passkey sign-in
+    try {
+      const session = await auth.api.getSession({
+        headers: await headers(),
+      });
+
+      if (!session?.user) {
+        throw createErrorForNextSafeAction(
+          ActionErrors.unauthenticated("Passkey authentication failed")
+        );
+      }
+
+      // Redirect to home page after successful sign-in
+      redirect("/");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to verify passkey authentication";
       throw createErrorForNextSafeAction(ActionErrors.internal(message, error));
     }
   });

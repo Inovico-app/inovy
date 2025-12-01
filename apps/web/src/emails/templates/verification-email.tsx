@@ -1,35 +1,38 @@
 /**
- * Magic link email template
- * Sent when a user requests a magic link for passwordless authentication
+ * Email verification template
+ * Sent when a user signs up and needs to verify their email address
  */
 
 import { Button, Section, Text } from "@react-email/components";
-import { BaseTemplate } from "./base-template";
+import BaseTemplate from "./base-template";
 
-interface MagicLinkEmailProps {
-  magicLinkUrl: string;
-  email: string;
+interface VerificationEmailProps {
+  verificationUrl: string;
+  userName?: string | null;
 }
 
-export function MagicLinkEmail({
-  magicLinkUrl,
-  email,
-}: MagicLinkEmailProps) {
+export default function VerificationEmail({
+  verificationUrl,
+  userName,
+}: VerificationEmailProps) {
+  const greeting = userName ? `Hi ${userName},` : "Hi there,";
+
   return (
-    <BaseTemplate preview="Sign in to Inovy">
+    <BaseTemplate preview="Verify your email address to get started with Inovy">
       <Section className="px-6">
         <Text className="text-[#1a1a1a] text-base leading-normal my-4">
-          Hi there,
+          {greeting}
         </Text>
         <Text className="text-[#1a1a1a] text-base leading-normal my-4">
-          Click the button below to sign in to your Inovy account:
+          Welcome to Inovy! Please verify your email address to complete your
+          account setup.
         </Text>
         <Section className="py-6 text-center">
           <Button
             className="bg-[#0066cc] rounded-md text-white text-base font-semibold no-underline text-center inline-block px-6 py-3"
-            href={magicLinkUrl}
+            href={verificationUrl}
           >
-            Sign In to Inovy
+            Verify Email Address
           </Button>
         </Section>
         <Text className="text-[#1a1a1a] text-base leading-normal my-4">
@@ -37,14 +40,11 @@ export function MagicLinkEmail({
           browser:
         </Text>
         <Text className="text-[#0066cc] text-sm break-all my-2">
-          {magicLinkUrl}
+          {verificationUrl}
         </Text>
         <Text className="text-[#1a1a1a] text-base leading-normal my-4">
-          This magic link will expire in 15 minutes. If you didn't request this
-          link, you can safely ignore this email.
-        </Text>
-        <Text className="text-[#1a1a1a] text-base leading-normal my-4">
-          This link was requested for: <strong>{email}</strong>
+          This verification link will expire in 24 hours. If you didn't create
+          an account with Inovy, you can safely ignore this email.
         </Text>
       </Section>
     </BaseTemplate>

@@ -30,13 +30,16 @@ function addRoleTypes() {
       );
     }
 
-    // 2. Add enum definition before organizations table (Better Auth uses plural)
+    // 2. Add enum definition after imports (Better Auth uses plural)
     if (!content.includes("organizationMemberRoleEnum")) {
-      const orgTableIndex = content.indexOf(
-        'export const organizations = pgTable("organizations"'
-      );
-      if (orgTableIndex !== -1) {
-        const enumDefinition = `export const organizationMemberRoleEnum = pgEnum("organization_member_role", [
+      // Find the last import statement
+      const importMatches = content.matchAll(/^import .+;$/gm);
+      const allImports = Array.from(importMatches);
+      if (allImports.length > 0) {
+        const lastImport = allImports[allImports.length - 1];
+        const insertIndex = lastImport.index! + lastImport[0].length + 1; // +1 for newline
+        const enumDefinition = `
+export const organizationMemberRoleEnum = pgEnum("organization_member_role", [
   "owner",
   "admin",
   "superadmin",
@@ -44,12 +47,11 @@ function addRoleTypes() {
   "user",
   "viewer",
 ]);
-
 `;
         content =
-          content.slice(0, orgTableIndex) +
+          content.slice(0, insertIndex) +
           enumDefinition +
-          content.slice(orgTableIndex);
+          content.slice(insertIndex);
       }
     }
 
@@ -60,9 +62,10 @@ function addRoleTypes() {
     );
 
     // 4. Update invitations table to use enum (Better Auth uses plural)
+    // Match the invitations table role field more specifically
     content = content.replace(
-      'role: text("role")',
-      'role: organizationMemberRoleEnum("role").default("user").notNull()'
+      /(\n\s+email: text\("email"\)\.notNull\(\),\n\s+)role: text\("role"\)/,
+      '$1role: organizationMemberRoleEnum("role").default("user").notNull()'
     );
 
     // 5. Add magic link table if not present

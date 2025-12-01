@@ -9,6 +9,15 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
+export const organizationMemberRoleEnum = pgEnum("organization_member_role", [
+  "owner",
+  "admin",
+  "superadmin",
+  "manager",
+  "user",
+  "viewer",
+]);
+
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -20,6 +29,7 @@ export const users = pgTable("users", {
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
+  role: organizationMemberRoleEnum("role").default("user").notNull(),
 });
 
 export const sessions = pgTable(
@@ -82,15 +92,6 @@ export const verifications = pgTable(
   },
   (table) => [index("verifications_identifier_idx").on(table.identifier)]
 );
-
-export const organizationMemberRoleEnum = pgEnum("organization_member_role", [
-  "owner",
-  "admin",
-  "superadmin",
-  "manager",
-  "user",
-  "viewer",
-]);
 
 export const organizations = pgTable("organizations", {
   id: text("id").primaryKey(),

@@ -1,4 +1,4 @@
-import { sendEmailFromTemplate } from "@/features/email/client";
+import { sendEmailFromTemplate } from "@/emails/client";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema/auth";
 import { passkey } from "@better-auth/passkey";
@@ -6,10 +6,10 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
 import { customSession, magicLink, organization } from "better-auth/plugins";
-import { MagicLinkEmail } from "../features/email/templates/magic-link-email";
-import { OrganizationInvitationEmail } from "../features/email/templates/organization-invitation-email";
-import { PasswordResetEmail } from "../features/email/templates/password-reset-email";
-import { VerificationEmail } from "../features/email/templates/verification-email";
+import MagicLinkEmail from "@/emails/templates/magic-link-email";
+import OrganizationInvitationEmail from "@/emails/templates/organization-invitation-email";
+import PasswordResetEmail from "@/emails/templates/password-reset-email";
+import VerificationEmail from "@/emails/templates/verification-email";
 import { ac, roleMapping, roles, type RoleName } from "./auth/access-control";
 
 /**

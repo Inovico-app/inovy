@@ -4,7 +4,7 @@
  */
 
 import { Button, Section, Text } from "@react-email/components";
-import { BaseTemplate } from "./base-template";
+import BaseTemplate from "./base-template";
 
 interface OrganizationInvitationEmailProps {
   invitationUrl: string;
@@ -13,7 +13,7 @@ interface OrganizationInvitationEmailProps {
   inviterEmail: string;
 }
 
-export function OrganizationInvitationEmail({
+export default function OrganizationInvitationEmail({
   invitationUrl,
   organizationName,
   inviterName,

@@ -10,26 +10,38 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSignUp } from "@/features/auth/hooks/use-sign-up";
+import { usePasskeySignIn } from "@/features/auth/hooks/use-passkey-sign-in";
+import { useSignIn } from "@/features/auth/hooks/use-sign-in";
 import type { Route } from "next";
 import Link from "next/link";
 import { useState } from "react";
+import { toast } from "sonner";
 
-export default function SignUpPage() {
+export default function SignInPage() {
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [magicLinkEmail, setMagicLinkEmail] = useState("");
 
-  const { signUpEmail, signUpSocial, sendMagicLink, isLoading } = useSignUp();
+  const {
+    signInEmail,
+    signInSocial,
+    sendMagicLink,
+    requestPasswordReset,
+    isLoading: isSignInLoading,
+    isSigningIn,
+  } = useSignIn();
 
-  const handleEmailSignUp = async (e: React.FormEvent) => {
+  const { signInPasskey, isLoading: isPasskeyLoading } = usePasskeySignIn();
+
+  const isLoading = isSignInLoading || isPasskeyLoading;
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    signUpEmail({ email, password, name });
+    signInEmail({ email, password });
   };
 
-  const handleSocialSignUp = (provider: "google" | "microsoft") => {
-    signUpSocial({ provider });
+  const handleSocialSignIn = (provider: "google" | "microsoft") => {
+    signInSocial({ provider });
   };
 
   const handleMagicLink = async (e: React.FormEvent) => {
@@ -38,28 +50,25 @@ export default function SignUpPage() {
     setMagicLinkEmail("");
   };
 
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error("Please enter your email address first");
+      return;
+    }
+    requestPasswordReset({ email });
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Create an account</CardTitle>
-          <CardDescription>Sign up to get started with Inovy</CardDescription>
+          <CardTitle>Sign in</CardTitle>
+          <CardDescription>Sign in to your Inovy account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Email/Password Sign Up */}
-          <form onSubmit={handleEmailSignUp} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="John Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
+          {/* Email/Password Sign In */}
+          <form onSubmit={handleEmailSignIn} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -73,7 +82,17 @@ export default function SignUpPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <button
+                  type="button"
+                  onClick={handlePasswordReset}
+                  className="text-xs text-primary hover:underline"
+                  disabled={isLoading}
+                >
+                  Forgot password?
+                </button>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -81,15 +100,11 @@ export default function SignUpPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={8}
                 disabled={isLoading}
               />
-              <p className="text-xs text-muted-foreground">
-                Must be at least 8 characters
-              </p>
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating account..." : "Sign up"}
+              {isSigningIn ? "Signing in..." : "Sign in"}
             </Button>
           </form>
 
@@ -104,12 +119,12 @@ export default function SignUpPage() {
             </div>
           </div>
 
-          {/* Social Sign Up */}
+          {/* Social Sign In */}
           <div className="grid grid-cols-2 gap-4">
             <Button
               type="button"
               variant="outline"
-              onClick={() => handleSocialSignUp("google")}
+              onClick={() => handleSocialSignIn("google")}
               disabled={isLoading}
             >
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -135,7 +150,7 @@ export default function SignUpPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => handleSocialSignUp("microsoft")}
+              onClick={() => handleSocialSignIn("microsoft")}
               disabled={isLoading}
             >
               <svg
@@ -148,6 +163,30 @@ export default function SignUpPage() {
               Microsoft
             </Button>
           </div>
+
+          {/* Passkey Sign In */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={signInPasskey}
+            disabled={isLoading}
+            className="w-full"
+          >
+            <svg
+              className="mr-2 h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+            Sign in with Passkey
+          </Button>
 
           {/* Magic Link */}
           <div className="relative">
@@ -179,12 +218,12 @@ export default function SignUpPage() {
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
-              href={"/sign-in" as Route}
+              href={"/sign-up" as Route}
               className="text-primary hover:underline"
             >
-              Sign in
+              Sign up
             </Link>
           </p>
         </CardContent>

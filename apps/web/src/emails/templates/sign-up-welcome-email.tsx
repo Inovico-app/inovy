@@ -4,14 +4,14 @@
  */
 
 import { Button, Section, Text } from "@react-email/components";
-import { BaseTemplate } from "./base-template";
+import BaseTemplate from "./base-template";
 
 interface SignUpWelcomeEmailProps {
   userName?: string | null;
   dashboardUrl: string;
 }
 
-export function SignUpWelcomeEmail({
+export default function SignUpWelcomeEmail({
   userName,
   dashboardUrl,
 }: SignUpWelcomeEmailProps) {

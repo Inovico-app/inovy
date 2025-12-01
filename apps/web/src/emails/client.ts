@@ -5,6 +5,7 @@
 
 import { logger } from "@/lib/logger";
 import { Resend } from "resend";
+const { render } = await import("@react-email/render");
 
 // Lazy initialization of Resend client
 // Only create the client when actually needed and API key is available
@@ -135,9 +136,6 @@ export async function sendEmailFromTemplate(
     react: React.ReactElement;
   }
 ): Promise<EmailResult> {
-  // Import render dynamically to avoid bundling issues
-  const { render } = await import("@react-email/render");
-
   try {
     const html = await render(options.react);
     const text = await render(options.react, { plainText: true });

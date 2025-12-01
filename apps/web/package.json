@@ -18,7 +18,8 @@
     "typecheck": "tsc",
     "index-project": "npx tsx --env-file=.env.local src/scripts/index-project-content.ts",
     "auth:generate": "pnpx @better-auth/cli generate && pnpm tsx scripts/add-role-types.ts",
-    "auth:add-role-types": "pnpm tsx scripts/add-role-types.ts"
+    "auth:add-role-types": "pnpm tsx scripts/add-role-types.ts",
+    "email": "email dev --dir src/emails --port 3001"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.60",
@@ -75,7 +76,7 @@
     "motion": "^12.23.24",
     "nanoid": "^5.1.6",
     "neverthrow": "^8.2.0",
-    "next": "16.0.3",
+    "next": "16.0.6",
     "next-safe-action": "^8.0.11",
     "next-themes": "^0.4.6",
     "nuqs": "^2.7.2",
@@ -86,6 +87,7 @@
     "react": "19.2.0",
     "react-day-picker": "^9.11.1",
     "react-dom": "19.2.0",
+    "react-email": "^5.0.5",
     "react-hook-form": "^7.65.0",
     "resend": "^6.5.2",
     "shiki": "^3.14.0",
@@ -103,6 +105,7 @@
   "devDependencies": {
     "@eslint/js": "^9.38.0",
     "@next/eslint-plugin-next": "^16.0.1",
+    "@react-email/preview-server": "5.0.5",
     "@tailwindcss/postcss": "^4.1.13",
     "@tanstack/react-query-devtools": "^5.89.0",
     "@types/archiver": "^7.0.0",
@@ -129,4 +132,3 @@
     "typescript-eslint": "^8.44.0"
   }
 }
-

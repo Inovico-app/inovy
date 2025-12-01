@@ -6,7 +6,7 @@ import {
   publicActionClient,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { headers } from "next/headers";
+import { headers as nextHeaders } from "next/headers";
 import { signUpEmailSchema } from "../validation/auth.schema";
 
 /**
@@ -17,14 +17,17 @@ export const signUpEmailAction = publicActionClient
   .action(async ({ parsedInput }) => {
     const { email, password, name } = parsedInput;
 
+    const headers = await nextHeaders();
+
     try {
       await auth.api.signUpEmail({
         body: {
           email,
           password,
           name,
+          callbackURL: "/sign-in",
         },
-        headers: await headers(),
+        headers,
       });
     } catch (error) {
       // Better Auth throws APIError for validation/authentication errors
@@ -43,7 +46,7 @@ export const signUpEmailAction = publicActionClient
 
       if (message.includes("password")) {
         throw createErrorForNextSafeAction(
-          ActionErrors.validation(message, { email, password })
+          ActionErrors.validation(message, { email })
         );
       }
 
