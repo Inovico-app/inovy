@@ -2,6 +2,7 @@
 
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { ChatService } from "@/server/services/chat.service";
 import {
   conversationIdSchema,
@@ -16,7 +17,7 @@ export const listConversationsAction = authorizedActionClient
   .action(
     async ({
       parsedInput: { context, projectId, filter, page, limit },
-      ctx: { user },
+      ctx: { user, organizationId },
     }) => {
       if (!user) {
         throw new Error("User not authenticated");
@@ -24,7 +25,7 @@ export const listConversationsAction = authorizedActionClient
 
       const result = await ChatService.listConversations({
         userId: user.id,
-        organizationId: user.organization_code,
+        organizationId,
         projectId,
         context,
         filter,
@@ -46,7 +47,7 @@ export const searchConversationsAction = authorizedActionClient
   .action(
     async ({
       parsedInput: { query, context, projectId, limit },
-      ctx: { user },
+      ctx: { user, organizationId },
     }) => {
       if (!user) {
         throw new Error("User not authenticated");
@@ -55,7 +56,7 @@ export const searchConversationsAction = authorizedActionClient
       const result = await ChatService.searchConversations({
         userId: user.id,
         query,
-        organizationId: user.organization_code,
+        organizationId,
         projectId,
         context,
         limit,
@@ -201,14 +202,26 @@ export const unarchiveConversationAction = authorizedActionClient
 
 export const getConversationStatsAction = authorizedActionClient
   .metadata({ permissions: policyToPermissions("chat:project") })
-  .action(async ({ ctx: { user } }) => {
+  .action(async ({ ctx: { user, organizationId } }) => {
     if (!user) {
-      throw new Error("User not authenticated");
+      throw ActionErrors.unauthenticated(
+        "User not authenticated",
+        "getConversationStatsAction"
+      );
+    }
+
+    if (!organizationId) {
+      throw ActionErrors.forbidden("Organization context required", {
+        context: "getConversationStatsAction",
+        metadata: {
+          organizationId,
+        },
+      });
     }
 
     const result = await ChatService.getConversationStats(
       user.id,
-      user.organization_code
+      organizationId
     );
 
     if (result.isErr()) {

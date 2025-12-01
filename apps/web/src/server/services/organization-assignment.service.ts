@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import type { AuthUser } from "@/lib/auth/auth-helpers";
+import type { BetterAuthUser } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import {
   ActionErrors,
@@ -35,21 +35,10 @@ export class OrganizationAssignmentService {
    * Creates a new organization if none exists, assigns user to it
    */
   static async ensureUserOrganization(
-    user: AuthUser
+    user: BetterAuthUser
   ): Promise<ActionResult<BetterAuthOrganizationDto>> {
     try {
-      // First, get all organizations for the user
-      if (!user.organization_code) {
-        logger.warn("User has no organization_id in auth session", {
-          userId: user.id,
-          email: user.email,
-        });
-
-        // Try to create a default organization for the user
-        return await this.createDefaultOrganizationForUser(user);
-      }
-
-      // User already has an organization, fetch it to verify
+      // Fetch user's organizations
       try {
         const organizationsResponse = await auth.api.listOrganizations({
           headers: await headers(),
@@ -59,18 +48,18 @@ export class OrganizationAssignmentService {
         const organizations = Array.isArray(organizationsResponse)
           ? (organizationsResponse as BetterAuthOrganizationResponse[])
           : [];
-        const userOrg = organizations.find(
-          (org) => org.id === user.organization_code
-        );
 
-        if (!userOrg) {
-          logger.warn("Organization not found, creating default", {
+        if (organizations.length === 0) {
+          logger.warn("User has no organizations, creating default", {
             userId: user.id,
-            organizationId: user.organization_code,
           });
 
+          // Try to create a default organization for the user
           return await this.createDefaultOrganizationForUser(user);
         }
+
+        // Return first organization (or active organization if available)
+        const userOrg = organizations[0];
 
         const organization: BetterAuthOrganizationDto = {
           id: userOrg.id,
@@ -80,14 +69,13 @@ export class OrganizationAssignmentService {
 
         logger.info("User organization verified", {
           userId: user.id,
-          organizationId: user.organization_code,
+          organizationId: userOrg.id,
         });
 
         return ok(organization);
       } catch (error) {
         logger.error("Failed to fetch user organization", {
           userId: user.id,
-          organizationId: user.organization_code,
           error,
         });
 
@@ -121,7 +109,7 @@ export class OrganizationAssignmentService {
    * Uses Better Auth organization plugin
    */
   private static async createDefaultOrganizationForUser(
-    user: AuthUser
+    user: BetterAuthUser
   ): Promise<ActionResult<BetterAuthOrganizationDto>> {
     try {
       // Generate organization slug and name from user email
@@ -130,9 +118,7 @@ export class OrganizationAssignmentService {
       const orgSlug = `org-${emailLocal}-${timestamp}`
         .toLowerCase()
         .replace(/[^a-z0-9-]/g, "-");
-      const orgName = `${
-        user.given_name ?? user.email ?? "User"
-      }'s Organization`;
+      const orgName = `${user.name ?? user.email ?? "User"}'s Organization`;
 
       logger.info("Creating default organization for user", {
         userId: user.id,

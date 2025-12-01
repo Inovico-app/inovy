@@ -2,7 +2,6 @@ import { type Result, err, ok } from "neverthrow";
 import { headers } from "next/headers";
 import { cache } from "react";
 import { auth } from "./auth";
-import type { RoleName } from "./auth/access-control";
 import { logger } from "./logger";
 
 /**
@@ -11,9 +10,12 @@ import { logger } from "./logger";
 export interface BetterAuthUser {
   id: string;
   email: string;
-  name: string | null;
-  image: string | null;
+  name: string;
+  image?: string | null;
   emailVerified: boolean;
+  role: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface BetterAuthOrganization {
@@ -34,7 +36,6 @@ export interface BetterAuthSessionData {
   user: BetterAuthUser | null;
   organization: BetterAuthOrganization | null;
   member: BetterAuthMember | null;
-  roles: RoleName[] | null;
 }
 
 /**
@@ -73,51 +74,6 @@ function resolveActiveOrganization(
 }
 
 /**
- * Map Better Auth member role to application roles
- * Always assigns at least a default role to ensure authorization works downstream
- */
-function mapMemberRoles(
-  activeMember: {
-    id: string;
-    organizationId: string;
-    role: string;
-    userId: string;
-  } | null,
-  userId: string,
-  actionContext: string
-): RoleName[] {
-  const roles: RoleName[] = [];
-
-  if (activeMember) {
-    const memberRole = activeMember.role?.toLowerCase();
-    if (memberRole === "owner" || memberRole === "admin") {
-      roles.push("admin");
-    } else if (memberRole === "manager") {
-      roles.push("manager");
-    } else if (memberRole === "member") {
-      roles.push("user");
-    } else {
-      // Unexpected or missing role - log warning and assign default role
-      const rawRole = activeMember.role ?? "missing";
-      logger.warn("Unexpected Better Auth member role encountered", {
-        component: "better-auth-session",
-        userId,
-        organizationId: activeMember.organizationId,
-        rawRole,
-        action: actionContext,
-      });
-      // Assign default "user" role for unrecognized roles
-      roles.push("user");
-    }
-  } else {
-    // No active member - assign default role for authenticated users
-    roles.push("user");
-  }
-
-  return roles;
-}
-
-/**
  * Fetch and build Better Auth session data
  * Shared logic for both cached and uncached versions
  */
@@ -136,7 +92,6 @@ async function fetchAndBuildSession(
         user: null,
         organization: null,
         member: null,
-        roles: null,
       });
     }
 
@@ -161,7 +116,6 @@ async function fetchAndBuildSession(
       organizations,
       activeMember
     );
-    const roles = mapMemberRoles(activeMember, session.user.id, actionContext);
 
     logger.auth.sessionCheck(true, {
       userId: session.user.id,
@@ -172,11 +126,13 @@ async function fetchAndBuildSession(
     return ok({
       isAuthenticated: true,
       user: {
-        id: session.user.id,
-        email: session.user.email,
-        name: session.user.name ?? null,
-        image: session.user.image ?? null,
-        emailVerified: session.user.emailVerified ?? false,
+        ...session.user,
+        // Ensure name is not null (use email or "User" as fallback)
+        name: session.user.name ?? session.user.email ?? "User",
+        // Add createdAt and updatedAt from session or use defaults
+        // Better Auth session doesn't include these, so we use session timestamp
+        createdAt: session.user.createdAt ?? new Date(0),
+        updatedAt: session.user.updatedAt ?? new Date(),
       },
       organization: activeOrganization,
       member: activeMember
@@ -187,7 +143,6 @@ async function fetchAndBuildSession(
             role: activeMember.role,
           }
         : null,
-      roles: roles.length > 0 ? roles : ["user"], // Ensure roles is never empty for authenticated users
     });
   } catch (error) {
     const errorMessage = `Critical error in ${actionContext}`;

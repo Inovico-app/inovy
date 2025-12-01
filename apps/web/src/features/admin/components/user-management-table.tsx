@@ -13,6 +13,8 @@ import { logger } from "@/lib/logger";
 import { getCachedTeamsByOrganization } from "@/server/cache/team.cache";
 import { OrganizationService } from "@/server/services/organization.service";
 import { TeamService } from "@/server/services/team.service";
+import { InviteUserDialog } from "./invite-user-dialog";
+import { UserActionsMenu } from "./user-actions-menu";
 import { UserRoleBadge } from "./user-role-badge";
 
 export async function UserManagementTable() {
@@ -81,11 +83,16 @@ export async function UserManagementTable() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Organization Members</CardTitle>
-          <CardDescription>
-            {members.length} member{members.length !== 1 ? "s" : ""} in your
-            organization
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Organization Members</CardTitle>
+              <CardDescription>
+                {members.length} member{members.length !== 1 ? "s" : ""} in your
+                organization
+              </CardDescription>
+            </div>
+            <InviteUserDialog />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -96,6 +103,9 @@ export async function UserManagementTable() {
                   <th className="text-left py-3 px-4 font-semibold">Email</th>
                   <th className="text-left py-3 px-4 font-semibold">Roles</th>
                   <th className="text-left py-3 px-4 font-semibold">Teams</th>
+                  <th className="text-right py-3 px-4 font-semibold w-[50px]">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -158,6 +168,23 @@ export async function UserManagementTable() {
                             </span>
                           );
                         })()}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex justify-end">
+                        <UserActionsMenu
+                          memberId={member.id}
+                          memberEmail={member.email || ""}
+                          memberName={
+                            member.given_name && member.family_name
+                              ? `${member.given_name} ${member.family_name}`
+                              : member.given_name ||
+                                member.family_name ||
+                                member.email ||
+                                "Unknown"
+                          }
+                          currentRole={member.roles?.[0]}
+                        />
                       </div>
                     </td>
                   </tr>

@@ -1,4 +1,4 @@
-import type { AuthUser } from "@/lib/auth/auth-helpers";
+import type { BetterAuthUser } from "@/lib/better-auth-session";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import {
@@ -105,7 +105,7 @@ export class OrganizationSettingsService {
   static async createInstructions(
     instructions: string,
     organizationId: string,
-    user: AuthUser
+    user: BetterAuthUser
   ): Promise<ActionResult<OrganizationSettingsDto>> {
     return this.updateOrganizationSettings(
       organizationId,

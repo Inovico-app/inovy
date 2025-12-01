@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
-    "check-types": "turbo check-types",
+    "typecheck": "turbo typecheck",
     "dev:web": "turbo -F web dev",
     "db:push": "turbo -F web db:push",
     "db:studio": "turbo -F web db:studio",
@@ -21,3 +21,4 @@
     "turbo": "^2.6.1"
   }
 }
+

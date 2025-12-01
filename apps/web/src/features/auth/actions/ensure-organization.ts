@@ -28,7 +28,7 @@ export async function ensureUserOrganization(): Promise<{
       };
     }
 
-    const { isAuthenticated, user } = authResult.value;
+    const { isAuthenticated, user, organization } = authResult.value;
 
     if (!isAuthenticated || !user) {
       logger.warn("User not authenticated in ensureUserOrganization");
@@ -39,15 +39,15 @@ export async function ensureUserOrganization(): Promise<{
     }
 
     // Check if user already has an organization
-    if (user.organization_code) {
+    if (organization) {
       logger.info("User already has organization", {
         userId: user.id,
-        organizationCode: user.organization_code,
+        organizationId: organization.id,
       });
 
       return {
         success: true,
-        organizationCode: user.organization_code,
+        organizationCode: organization.id,
       };
     }
 
@@ -72,16 +72,16 @@ export async function ensureUserOrganization(): Promise<{
       };
     }
 
-    const organization = assignmentResult.value;
+    const assignedOrganization = assignmentResult.value;
 
     logger.info("Successfully ensured user organization", {
       userId: user.id,
-      organizationId: organization.id,
+      organizationId: assignedOrganization.id,
     });
 
     return {
       success: true,
-      organizationCode: organization.id, // organizationCode is the Better Auth organization ID
+      organizationCode: assignedOrganization.id, // organizationCode is the Better Auth organization ID
     };
   } catch (error) {
     logger.error(

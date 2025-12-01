@@ -43,7 +43,7 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
   const authResult = await getAuthSession();
   const canEdit =
     authResult.isOk() && authResult.value.user
-      ? isProjectManager(authResult.value.user)
+      ? await isProjectManager(authResult.value.user, projectId)
       : false;
 
   // Fetch knowledge base data
