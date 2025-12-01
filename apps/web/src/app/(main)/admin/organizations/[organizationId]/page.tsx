@@ -1,21 +1,16 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { OrganizationDetail } from "@/features/admin/components/organization-detail";
 import { OrganizationEditForm } from "@/features/admin/components/organization-edit-form";
+import { OrganizationMembersList } from "@/features/admin/components/organization-members-list";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import {
   getCachedOrganizationById,
   getCachedOrganizationMembers,
 } from "@/server/cache/organization.cache";
-import { ArrowLeftIcon, MailIcon } from "lucide-react";
+import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -59,61 +54,7 @@ async function OrganizationContent({
       <OrganizationEditForm organization={organization} />
 
       {/* Members List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Organization Members</CardTitle>
-          <CardDescription>
-            {members.length > 0
-              ? `${members.length} member${members.length === 1 ? "" : "s"} in this organization`
-              : "No members in this organization yet"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {members.length > 0 ? (
-            <div className="space-y-3">
-              {members.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">
-                        {member.given_name && member.family_name
-                          ? `${member.given_name} ${member.family_name}`
-                          : (member.given_name ?? member.email ?? "Unknown")}
-                      </p>
-                      {member.roles && member.roles.length > 0 && (
-                        <div className="flex gap-1">
-                          {member.roles.map((role) => (
-                            <Badge
-                              key={role}
-                              variant="outline"
-                              className="text-xs"
-                            >
-                              {role}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {member.email && (
-                      <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                        <MailIcon className="h-3 w-3" />
-                        {member.email}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-6">
-              <p className="text-muted-foreground">No members to display</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <OrganizationMembersList members={members} />
     </div>
   );
 }
@@ -131,25 +72,29 @@ async function OrganizationPageContent({ params }: OrganizationPageProps) {
   const { organizationId } = await params;
 
   return (
-    <div className="container mx-auto max-w-4xl py-8 px-4">
-      <div className="mb-6 flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          <Link href={"/admin/organizations" as any}>
-            <ArrowLeftIcon className="h-5 w-5" />
-          </Link>
-        </Button>
+    <div className="container mx-auto max-w-5xl py-8 px-4">
+      <div className="mb-8 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Organization Details</h1>
           <p className="text-muted-foreground">
             View and manage organization settings
           </p>
         </div>
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/admin/organizations">
+            <ArrowLeftIcon className="h-5 w-5" />
+            Back to organizations
+          </Link>
+        </Button>
       </div>
 
       <Suspense
         fallback={
-          <div className="text-center py-8">Loading organization...</div>
+          <div className="space-y-6">
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
         }
       >
         <OrganizationContent organizationId={organizationId} />
@@ -162,16 +107,18 @@ export default function OrganizationPage(props: OrganizationPageProps) {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto max-w-4xl py-8 px-4">
-          <div className="mb-6 flex items-center gap-4">
-            <div className="h-10 w-10 bg-muted rounded animate-pulse" />
-            <div>
-              <div className="h-9 bg-muted rounded w-64 animate-pulse mb-2" />
-              <div className="h-5 bg-muted rounded w-80 animate-pulse" />
+        <div className="container mx-auto max-w-5xl py-8 px-4">
+          <div className="mb-8 flex items-center gap-4">
+            <Skeleton className="h-10 w-10 rounded" />
+            <div className="space-y-2">
+              <Skeleton className="h-9 w-64" />
+              <Skeleton className="h-5 w-80" />
             </div>
           </div>
-          <div className="text-center py-8">
-            <div className="h-6 bg-muted rounded w-48 mx-auto animate-pulse" />
+          <div className="space-y-6">
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-32 w-full" />
           </div>
         </div>
       }

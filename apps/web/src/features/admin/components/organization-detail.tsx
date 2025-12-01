@@ -22,6 +22,7 @@ import {
 import type { OrganizationDetailDto } from "@/server/cache/organization.cache";
 import { format } from "date-fns";
 import { Building2Icon, CalendarIcon, Loader2Icon, TrashIcon } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -77,11 +78,14 @@ export function OrganizationDetail({
         <CardContent className="space-y-4">
           <div className="flex items-center gap-4">
             {organization.logo ? (
-              <img
-                src={organization.logo}
-                alt={organization.name}
-                className="h-16 w-16 rounded-lg object-cover"
-              />
+              <div className="relative h-16 w-16 rounded-lg overflow-hidden">
+                <Image
+                  src={organization.logo}
+                  alt={organization.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
             ) : (
               <div className="h-16 w-16 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Building2Icon className="h-8 w-8 text-primary" />
@@ -95,30 +99,59 @@ export function OrganizationDetail({
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="flex items-center gap-3 p-4 border rounded-lg">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                <Building2Icon className="h-5 w-5 text-blue-600 dark:text-blue-300" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Members
-                </p>
-                <p className="text-2xl font-bold">{memberCount}</p>
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-br from-background to-muted/20 p-6 transition-all hover:shadow-md">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Total Members
+                  </p>
+                  <p className="text-3xl font-bold tracking-tight">{memberCount}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Active users
+                  </p>
+                </div>
+                <div className="rounded-lg bg-primary/10 p-3 ring-1 ring-primary/20">
+                  <Building2Icon className="h-5 w-5 text-primary" />
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-4 border rounded-lg">
-              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                <CalendarIcon className="h-5 w-5 text-green-600 dark:text-green-300" />
+            <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-br from-background to-muted/20 p-6 transition-all hover:shadow-md">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Created Date
+                  </p>
+                  <p className="text-xl font-semibold">
+                    {format(new Date(organization.createdAt), "MMM d, yyyy")}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(organization.createdAt), "h:mm a")}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-secondary/50 p-3 ring-1 ring-border">
+                  <CalendarIcon className="h-5 w-5 text-secondary-foreground" />
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Created
-                </p>
-                <p className="text-lg font-semibold">
-                  {format(new Date(organization.createdAt), "MMM d, yyyy")}
-                </p>
+            </div>
+
+            <div className="group relative overflow-hidden rounded-xl border bg-gradient-to-br from-background to-muted/20 p-6 transition-all hover:shadow-md">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Organization ID
+                  </p>
+                  <p className="text-sm font-mono break-all">
+                    {organization.id.slice(0, 8)}...
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Unique identifier
+                  </p>
+                </div>
+                <div className="rounded-lg bg-accent p-3 ring-1 ring-border">
+                  <Building2Icon className="h-5 w-5 text-accent-foreground" />
+                </div>
               </div>
             </div>
           </div>
@@ -148,13 +181,14 @@ export function OrganizationDetail({
       </Card>
 
       {/* Danger Zone */}
-      <Card className="border-red-200 dark:border-red-900">
+      <Card className="border-destructive/50 bg-destructive/5">
         <CardHeader>
-          <CardTitle className="text-red-600 dark:text-red-400">
+          <CardTitle className="text-destructive flex items-center gap-2">
+            <TrashIcon className="h-5 w-5" />
             Danger Zone
           </CardTitle>
           <CardDescription>
-            Permanently delete this organization and all associated data
+            Permanently delete this organization and all associated data. This action cannot be undone.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -163,13 +197,19 @@ export function OrganizationDetail({
               <Button
                 variant="destructive"
                 disabled={isDeleting}
+                className="gap-2"
               >
                 {isDeleting ? (
-                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                  <>
+                    <Loader2Icon className="h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
                 ) : (
-                  <TrashIcon className="mr-2 h-4 w-4" />
+                  <>
+                    <TrashIcon className="h-4 w-4" />
+                    Delete Organization
+                  </>
                 )}
-                Delete Organization
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -186,7 +226,7 @@ export function OrganizationDetail({
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDelete}
-                  className="bg-red-600 hover:bg-red-700"
+                  className="bg-destructive hover:bg-destructive/90"
                 >
                   Delete Organization
                 </AlertDialogAction>
