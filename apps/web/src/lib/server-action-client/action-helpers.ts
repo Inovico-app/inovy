@@ -1,21 +1,21 @@
-import type { AuthUser } from "../auth/auth-helpers";
+import type { BetterAuthUser } from "../better-auth-session";
 import { ActionErrors } from "./action-errors";
 
-export function getUserOrganizationCode(user: NonNullable<AuthUser>) {
-  if (!user?.organization_code) {
+export function getUserOrganizationId(user: NonNullable<BetterAuthUser>, organizationId?: string) {
+  if (!organizationId) {
     throw ActionErrors.internal(
-      "Failed to get user's organization code from context",
+      "Failed to get user's organization ID from context",
       { userId: user.id },
-      "get-user-organization-code"
+      "get-user-organization-id"
     );
   }
-  return user.organization_code;
+  return organizationId;
 }
 
-export function checkUserAuthentication(user: NonNullable<AuthUser>) {
+export function checkUserAuthentication(user: NonNullable<BetterAuthUser>) {
   if (!user) {
     throw ActionErrors.unauthenticated(
-      "User or organization code not found",
+      "User not authenticated",
       "check-user-authentication"
     );
   }

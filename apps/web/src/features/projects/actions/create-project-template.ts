@@ -3,7 +3,7 @@
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { getUserOrganizationCode } from "@/lib/server-action-client/action-helpers";
+import { getUserOrganizationId } from "@/lib/server-action-client/action-helpers";
 import { revalidatePath } from "next/cache";
 import {
   authorizedActionClient,
@@ -22,7 +22,7 @@ export const createProjectTemplateAction = authorizedActionClient
   .inputSchema(createProjectTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { projectId, instructions } = parsedInput;
-    const { user } = ctx;
+    const { user, organizationId } = ctx;
 
     if (!user) {
       throw ActionErrors.unauthenticated(
@@ -31,8 +31,8 @@ export const createProjectTemplateAction = authorizedActionClient
       );
     }
 
-    // Get user's organization code
-    const orgCode = getUserOrganizationCode(user);
+    // Get user's organization ID
+    const orgCode = getUserOrganizationId(user, organizationId);
 
     // Create template using service
     const result = await ProjectTemplateService.createProjectTemplate(

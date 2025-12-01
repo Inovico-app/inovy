@@ -8,9 +8,9 @@ import {
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { headers } from "next/headers";
 import { err, ok } from "neverthrow";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 
 /**
@@ -23,8 +23,10 @@ export const inviteMember = authorizedActionClient
   })
   .inputSchema(
     z.object({
-      email: z.string().email("Invalid email address"),
-      role: z.enum(["owner", "admin", "member"]).default("member"),
+      email: z.email("Invalid email address"),
+      role: z
+        .enum(["owner", "admin", "user", "viewer", "manager"])
+        .default("user"),
     })
   )
   .action(async ({ parsedInput, ctx }) => {
@@ -40,13 +42,13 @@ export const inviteMember = authorizedActionClient
     }
 
     try {
-      const result = await auth.api.inviteMember({
-        headers: await headers(),
+      const result = await auth.api.createInvitation({
         body: {
           email,
           role,
           organizationId,
         },
+        headers: await headers(),
       });
 
       if (!result) {
@@ -79,7 +81,7 @@ export const inviteMember = authorizedActionClient
           err(
             ActionErrors.validation(
               "This user is already a member of the organization",
-              "inviteMember"
+              { context: "inviteMember" }
             )
           )
         );
@@ -124,11 +126,11 @@ export const removeMember = authorizedActionClient
 
     try {
       const result = await auth.api.removeMember({
-        headers: await headers(),
         body: {
           memberIdOrEmail,
           organizationId,
         },
+        headers: await headers(),
       });
 
       if (!result) {
@@ -192,12 +194,12 @@ export const updateMemberRole = authorizedActionClient
 
     try {
       const result = await auth.api.updateMemberRole({
-        headers: await headers(),
         body: {
           memberId,
           role,
           organizationId,
         },
+        headers: await headers(),
       });
 
       if (!result) {

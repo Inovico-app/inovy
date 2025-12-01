@@ -1,7 +1,8 @@
 import type { ActionResult } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
-import { getAuthSession, type AuthUser } from "../../lib/auth/auth-helpers";
+import { getAuthSession } from "../../lib/auth/auth-helpers";
+import type { BetterAuthUser } from "../../lib/better-auth-session";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { ProjectTemplateQueries } from "../data-access/project-templates.queries";
@@ -76,7 +77,7 @@ export class ProjectTemplateService {
    */
   static async createProjectTemplate(
     input: { projectId: string; instructions: string },
-    user: NonNullable<AuthUser>,
+    user: NonNullable<BetterAuthUser>,
     orgCode: string
   ): Promise<ActionResult<ProjectTemplateDto>> {
     try {

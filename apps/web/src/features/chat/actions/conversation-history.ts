@@ -16,7 +16,7 @@ export const listConversationsAction = authorizedActionClient
   .action(
     async ({
       parsedInput: { context, projectId, filter, page, limit },
-      ctx: { user },
+      ctx: { user, organizationId },
     }) => {
       if (!user) {
         throw new Error("User not authenticated");
@@ -24,7 +24,7 @@ export const listConversationsAction = authorizedActionClient
 
       const result = await ChatService.listConversations({
         userId: user.id,
-        organizationId: user.organization_code,
+        organizationId,
         projectId,
         context,
         filter,
@@ -46,7 +46,7 @@ export const searchConversationsAction = authorizedActionClient
   .action(
     async ({
       parsedInput: { query, context, projectId, limit },
-      ctx: { user },
+      ctx: { user, organizationId },
     }) => {
       if (!user) {
         throw new Error("User not authenticated");
@@ -55,7 +55,7 @@ export const searchConversationsAction = authorizedActionClient
       const result = await ChatService.searchConversations({
         userId: user.id,
         query,
-        organizationId: user.organization_code,
+        organizationId,
         projectId,
         context,
         limit,
@@ -201,14 +201,14 @@ export const unarchiveConversationAction = authorizedActionClient
 
 export const getConversationStatsAction = authorizedActionClient
   .metadata({ permissions: policyToPermissions("chat:project") })
-  .action(async ({ ctx: { user } }) => {
+  .action(async ({ ctx: { user, organizationId } }) => {
     if (!user) {
       throw new Error("User not authenticated");
     }
 
     const result = await ChatService.getConversationStats(
       user.id,
-      user.organization_code
+      organizationId
     );
 
     if (result.isErr()) {

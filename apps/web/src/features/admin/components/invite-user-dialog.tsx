@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2Icon, UserPlusIcon } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -28,7 +28,7 @@ import { inviteMember } from "../actions/member-management";
 
 const inviteFormSchema = z.object({
   email: z.string().email("Invalid email address"),
-  role: z.enum(["owner", "admin", "member"]),
+  role: z.enum(["owner", "admin", "user", "viewer", "manager"]),
 });
 
 type InviteFormValues = z.infer<typeof inviteFormSchema>;
@@ -44,11 +44,10 @@ export function InviteUserDialog() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<InviteFormValues>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(inviteFormSchema as any),
+    resolver: standardSchemaResolver(inviteFormSchema),
     defaultValues: {
       email: "",
-      role: "member",
+      role: "user",
     },
   });
 
@@ -116,16 +115,21 @@ export function InviteUserDialog() {
             <Select
               value={role}
               onValueChange={(value) =>
-                setValue("role", value as "owner" | "admin" | "member")
+                setValue(
+                  "role",
+                  value as "owner" | "admin" | "user" | "viewer" | "manager"
+                )
               }
             >
               <SelectTrigger id="role">
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="member">Member</SelectItem>
+                <SelectItem value="user">User</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="owner">Owner</SelectItem>
+                <SelectItem value="viewer">Viewer</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
               </SelectContent>
             </Select>
             {errors.role && (
@@ -157,3 +161,4 @@ export function InviteUserDialog() {
     </Dialog>
   );
 }
+

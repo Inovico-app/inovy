@@ -2,27 +2,13 @@ import { err, ok, type Result } from "neverthrow";
 import {
   getBetterAuthSession,
   type BetterAuthOrganization,
+  type BetterAuthUser,
 } from "../better-auth-session";
 import { logger } from "../logger";
-import type { RoleName } from "./access-control";
-
-/**
- * Server-side authentication utilities with proper error handling
- */
-
-export interface AuthUser {
-  id: string;
-  email: string | null;
-  given_name: string | null;
-  family_name: string | null;
-  picture: string | null;
-  organization_code?: string;
-  roles?: RoleName[] | null;
-}
 
 interface AuthSession {
   isAuthenticated: boolean;
-  user: AuthUser | null;
+  user: BetterAuthUser | null;
   organization: BetterAuthOrganization | null;
 }
 
@@ -40,9 +26,9 @@ export async function getAuthSession(): Promise<Result<AuthSession, string>> {
       return err(betterAuthResult.error);
     }
 
-    const betterAuth = betterAuthResult.value;
+    const { user, isAuthenticated, organization } = betterAuthResult.value;
 
-    if (!betterAuth.isAuthenticated || !betterAuth.user) {
+    if (!isAuthenticated || !user) {
       logger.auth.sessionCheck(false, { action: "getAuthSession" });
       return ok({
         isAuthenticated: false,
@@ -51,27 +37,16 @@ export async function getAuthSession(): Promise<Result<AuthSession, string>> {
       });
     }
 
-    // Map Better Auth session to AuthSession interface
-    const user: AuthUser = {
-      id: betterAuth.user.id,
-      email: betterAuth.user.email ?? null,
-      given_name: betterAuth.user.name?.split(" ")[0] ?? null,
-      family_name: betterAuth.user.name?.split(" ").slice(1).join(" ") ?? null,
-      picture: betterAuth.user.image ?? null,
-      organization_code: betterAuth.organization?.id ?? undefined,
-      roles: betterAuth.roles,
-    };
-
     logger.auth.sessionCheck(true, {
       userId: user.id,
-      hasOrganization: !!betterAuth.organization,
+      organization,
       action: "getAuthSession",
     });
 
     return ok({
       isAuthenticated: true,
       user,
-      organization: betterAuth.organization,
+      organization,
     });
   } catch (error) {
     const errorMessage = "Critical error in getAuthSession";

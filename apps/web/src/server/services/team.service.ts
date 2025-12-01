@@ -183,6 +183,64 @@ export class TeamService {
   }
 
   /**
+   * Get team members
+   * Returns all members of a specific team
+   */
+  static async getTeamMembers(
+    teamId: string
+  ): Promise<ActionResult<TeamMember[]>> {
+    try {
+      const authResult = await getAuthSession();
+      if (authResult.isErr()) {
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            undefined,
+            "TeamService.getTeamMembers"
+          )
+        );
+      }
+
+      const { organization } = authResult.value;
+      if (!organization) {
+        return err(
+          ActionErrors.forbidden(
+            "Authentication required",
+            undefined,
+            "TeamService.getTeamMembers"
+          )
+        );
+      }
+
+      // Verify team exists and belongs to organization
+      const team = await TeamQueries.selectTeamById(teamId, organization.id);
+      if (!team) {
+        return err(ActionErrors.notFound("Team", "TeamService.getTeamMembers"));
+      }
+
+      // Verify organization access
+      assertOrganizationAccess(
+        team.organizationId,
+        organization.id,
+        "TeamService.getTeamMembers"
+      );
+
+      const members = await TeamQueries.selectTeamMembers(teamId);
+
+      return ok(members ?? []);
+    } catch (error) {
+      logger.error("Failed to get team members", { teamId }, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to get team members",
+          error as Error,
+          "TeamService.getTeamMembers"
+        )
+      );
+    }
+  }
+
+  /**
    * Get user teams for multiple users (batch query)
    * Returns a map of userId -> UserTeamRoleDto[]
    */

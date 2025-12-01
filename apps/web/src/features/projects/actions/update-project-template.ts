@@ -7,7 +7,7 @@ import {
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { getUserOrganizationCode } from "@/lib/server-action-client/action-helpers";
+import { getUserOrganizationId } from "@/lib/server-action-client/action-helpers";
 import { ProjectTemplateService } from "@/server/services/project-template.service";
 import { updateProjectTemplateSchema } from "@/server/validation/project-templates/update-project-template";
 
@@ -21,7 +21,7 @@ export const updateProjectTemplateAction = authorizedActionClient
   .inputSchema(updateProjectTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { id, instructions } = parsedInput;
-    const { user } = ctx;
+    const { user, organizationId } = ctx;
 
     if (!user) {
       throw ActionErrors.unauthenticated(
@@ -30,8 +30,8 @@ export const updateProjectTemplateAction = authorizedActionClient
       );
     }
 
-    // Get user's organization code
-    const orgCode = getUserOrganizationCode(user);
+    // Get user's organization ID
+    const orgCode = getUserOrganizationId(user, organizationId);
 
     // Update template using service
     const result = await ProjectTemplateService.updateProjectTemplate(

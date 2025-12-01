@@ -10,9 +10,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
-import { isOrganizationAdmin, isTeamLead } from "@/lib/rbac/rbac";
+import { isOrganizationAdmin, isTeamManager } from "@/lib/rbac/rbac";
 import { getCachedTeamById } from "@/server/cache/team.cache";
 import { TeamService } from "@/server/services/team.service";
+import type { TeamMember } from "better-auth/plugins";
 import { SettingsIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 
@@ -40,6 +41,20 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
   }
 
   const { user } = authResult.value;
+
+  // user is guaranteed to be non-null after authentication check
+  if (!user) {
+    return (
+      <Card>
+        <CardContent className="text-center py-8">
+          <p className="text-muted-foreground">
+            Unable to load team dashboard. Please refresh and try again.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const team = await getCachedTeamById(teamId);
 
   if (!team) {
@@ -54,7 +69,7 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
 
   // Check permissions
   const isAdmin = isOrganizationAdmin(user);
-  const isLead = await isTeamLead(user, teamId);
+  const isLead = await isTeamManager(user, teamId);
   const canManage = isAdmin || isLead;
 
   // Fetch team members
@@ -100,9 +115,7 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{members.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Active team members
-            </p>
+            <p className="text-xs text-muted-foreground">Active team members</p>
           </CardContent>
         </Card>
 
@@ -171,7 +184,7 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
             </p>
           ) : (
             <div className="space-y-2">
-              {members.slice(0, 5).map((member) => (
+              {members.slice(0, 5).map((member: TeamMember) => (
                 <div
                   key={member.id}
                   className="flex items-center justify-between py-2 border-b last:border-0"
@@ -183,9 +196,14 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
                       </span>
                     </div>
                     <div>
-                      <div className="font-medium">User {member.userId.substring(0, 8)}...</div>
+                      <div className="font-medium">
+                        User {member.userId.substring(0, 8)}...
+                      </div>
                       <div className="text-xs text-muted-foreground">
-                        Joined {new Date(member.createdAt ?? new Date()).toLocaleDateString()}
+                        Joined{" "}
+                        {new Date(
+                          member.createdAt ?? new Date()
+                        ).toLocaleDateString()}
                       </div>
                     </div>
                   </div>

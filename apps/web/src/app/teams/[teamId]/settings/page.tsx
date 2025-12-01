@@ -2,7 +2,11 @@ import { PageLayout } from "@/components/page-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamSettings } from "@/features/teams/components/team-settings";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
-import { canAccessTeam, isOrganizationAdmin, isTeamLead } from "@/lib/rbac/rbac";
+import {
+  canAccessTeam,
+  isOrganizationAdmin,
+  isTeamManager,
+} from "@/lib/rbac/rbac";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -25,6 +29,11 @@ async function TeamSettingsContainer({ teamId }: { teamId: string }) {
 
   const { user } = authResult.value;
 
+  // user is guaranteed to be non-null after authentication check
+  if (!user) {
+    redirect("/");
+  }
+
   // Check if user can access this team
   const hasAccess = await canAccessTeam(user, teamId);
   if (!hasAccess) {
@@ -33,7 +42,7 @@ async function TeamSettingsContainer({ teamId }: { teamId: string }) {
 
   // Check permissions
   const isAdmin = isOrganizationAdmin(user);
-  const isLead = await isTeamLead(user, teamId);
+  const isLead = await isTeamManager(user, teamId);
   const canManage = isAdmin || isLead;
 
   if (!canManage) {

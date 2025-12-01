@@ -84,9 +84,7 @@ async function ProfileContent() {
                 Full Name
               </p>
               <p className="text-lg font-semibold">
-                {user.given_name && user.family_name
-                  ? `${user.given_name} ${user.family_name}`
-                  : user.given_name || user.email || "Not specified"}
+                {user.name || user.email || "Not specified"}
               </p>
             </div>
           </div>

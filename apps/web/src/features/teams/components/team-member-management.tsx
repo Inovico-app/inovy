@@ -65,7 +65,7 @@ export async function TeamMemberManagement({
   const allMembers = orgMembersResult.isOk() ? orgMembersResult.value : [];
 
   // Get team member IDs for filtering
-  const teamMemberIds = new Set(teamMembers.map((m) => m.userId));
+  const teamMemberIds = new Set(teamMembers.map((m: { userId: string }) => m.userId));
 
   return (
     <div className="space-y-6">

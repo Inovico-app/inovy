@@ -1,11 +1,4 @@
 import { PageLayout } from "@/components/page-layout";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamDashboard } from "@/features/teams/components/team-dashboard";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
@@ -31,6 +24,11 @@ async function TeamDashboardContainer({ teamId }: { teamId: string }) {
   }
 
   const { user } = authResult.value;
+
+  // user is guaranteed to be non-null after authentication check
+  if (!user) {
+    redirect("/");
+  }
 
   // Check if user can access this team
   const hasAccess = await canAccessTeam(user, teamId);

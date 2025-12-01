@@ -23,18 +23,18 @@ export const createOrganizationInstructionsAction = authorizedActionClient
   .inputSchema(createOrganizationInstructionsSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { instructions } = parsedInput;
-    const { user } = ctx;
+    const { user, organizationId } = ctx;
 
-    if (!user || !user.organization_code) {
+    if (!user || !organizationId) {
       throw ActionErrors.unauthenticated(
-        "User or organization code not found in context",
+        "User or organization not found in context",
         "create-organization-instructions"
       );
     }
     // Create instructions
     const result = await OrganizationSettingsService.createInstructions(
       instructions,
-      user.organization_code,
+      organizationId,
       user
     );
 
@@ -53,11 +53,11 @@ export const updateOrganizationInstructionsAction = authorizedActionClient
   .inputSchema(updateOrganizationInstructionsSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { instructions } = parsedInput;
-    const { user } = ctx;
+    const { user, organizationId } = ctx;
 
-    if (!user || !user.organization_code) {
+    if (!user || !organizationId) {
       throw ActionErrors.unauthenticated(
-        "User or organization code not found in context",
+        "User or organization not found in context",
         "update-organization-instructions"
       );
     }
@@ -65,7 +65,7 @@ export const updateOrganizationInstructionsAction = authorizedActionClient
     // Update instructions
     const result = await OrganizationSettingsService.updateInstructions(
       instructions,
-      user.organization_code
+      organizationId
     );
 
     // Convert Result to action response (throws if error)

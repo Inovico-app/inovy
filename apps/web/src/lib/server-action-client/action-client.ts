@@ -12,8 +12,10 @@ import {
 } from "next-safe-action";
 import { z } from "zod";
 
-import { type AuthUser } from "../auth/auth-helpers";
-import { getBetterAuthSession } from "../better-auth-session";
+import {
+  getBetterAuthSession,
+  type BetterAuthUser,
+} from "../better-auth-session";
 import { generateApplicationErrorMessage } from "../error-messages";
 import { logger } from "../logger";
 import { checkPermission } from "../rbac/permissions-server";
@@ -40,7 +42,7 @@ export type Metadata = z.infer<typeof schemaMetadata>;
 export interface ActionContext {
   logger: typeof logger;
   session?: SessionWithRoles;
-  user?: AuthUser;
+  user?: BetterAuthUser;
   organizationId?: string; // Organization ID from Better Auth
 }
 

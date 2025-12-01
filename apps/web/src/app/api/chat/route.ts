@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
         ipAddress: metadata.ipAddress,
         userAgent: metadata.userAgent,
         metadata: {
-          userRoles: user.roles,
+          userRole: user.role,
           endpoint: "POST /api/chat (organization)",
         },
       });
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
         logger.warn("Organization chat access denied", {
           userId: user.id,
           organizationId: organizationId,
-          userRoles: user.roles,
+          userRole: user.role,
         });
 
         return NextResponse.json(

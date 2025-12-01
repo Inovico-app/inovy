@@ -61,7 +61,7 @@ export const POST = withRateLimit(
         ipAddress: metadata.ipAddress,
         userAgent: metadata.userAgent,
         metadata: {
-          userRoles: user.roles,
+          userRole: user.role,
           endpoint: "POST /api/chat/organization",
         },
       });
@@ -70,7 +70,7 @@ export const POST = withRateLimit(
         logger.warn("Organization chat access denied", {
           organizationId,
           userId: user.id,
-          userRoles: user.roles,
+          userRole: user.role,
         });
 
         return NextResponse.json(
@@ -210,7 +210,7 @@ export async function GET(request: NextRequest) {
       ipAddress: metadata.ipAddress,
       userAgent: metadata.userAgent,
       metadata: {
-        userRoles: user.roles,
+        userRole: user.role,
         endpoint: "GET /api/chat/organization",
       },
     });
@@ -219,7 +219,7 @@ export async function GET(request: NextRequest) {
       logger.warn("Organization chat access denied", {
         organizationId,
         userId: user.id,
-        userRoles: user.roles,
+        userRole: user.role,
       });
 
       return NextResponse.json(

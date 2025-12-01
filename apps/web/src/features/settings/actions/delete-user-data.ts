@@ -62,10 +62,7 @@ export const requestDeletionAction = authorizedActionClient
     }
 
     // Process deletion immediately (soft delete with anonymization)
-    const displayName =
-      user.given_name && user.family_name
-        ? `${user.given_name} ${user.family_name}`
-        : (user.given_name ?? user.family_name ?? null);
+    const displayName = user.name;
 
     const processResult = await GdprDeletionService.processDeletionRequest(
       result.value,
