@@ -8,6 +8,7 @@ import {
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { APIError } from "better-auth/api";
 import { err, ok } from "neverthrow";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -72,11 +73,11 @@ export const inviteMember = authorizedActionClient
 
       return resultToActionResponse(ok({ success: true, data: result }));
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-
-      // Check for specific error types
-      if (errorMessage.toLowerCase().includes("already")) {
+      // Check for specific Better Auth APIError codes
+      if (
+        error instanceof APIError &&
+        error.body?.code === "USER_IS_ALREADY_A_MEMBER_OF_THIS_ORGANIZATION"
+      ) {
         return resultToActionResponse(
           err(
             ActionErrors.validation(
