@@ -1,4 +1,8 @@
-import { sendEmailFromTemplate } from "@/features/email/client";
+import { sendEmailFromTemplate } from "@/emails/client";
+import MagicLinkEmail from "@/emails/templates/magic-link-email";
+import OrganizationInvitationEmail from "@/emails/templates/organization-invitation-email";
+import PasswordResetEmail from "@/emails/templates/password-reset-email";
+import VerificationEmail from "@/emails/templates/verification-email";
 import { logger } from "@/lib/logger";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
 import { db } from "@/server/db";
@@ -11,10 +15,6 @@ import { nextCookies } from "better-auth/next-js";
 import { magicLink, organization } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { MagicLinkEmail } from "../features/email/templates/magic-link-email";
-import { OrganizationInvitationEmail } from "../features/email/templates/organization-invitation-email";
-import { PasswordResetEmail } from "../features/email/templates/password-reset-email";
-import { VerificationEmail } from "../features/email/templates/verification-email";
 import { ac, roles } from "./auth/access-control";
 
 /**
@@ -53,19 +53,16 @@ export const auth = betterAuth({
       : (process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL),
   basePath: "/api/auth",
   secret: process.env.BETTER_AUTH_SECRET ?? "change-me-in-production",
-  emailAndPassword: {
-    enabled: true,
-    requireEmailVerification: true,
+  emailVerification: {
+    autoSignInAfterVerification: true,
     async sendVerificationEmail({
       user,
       url,
-      token: _token,
     }: {
-      user: { email: string; name: string | null };
+      user: { email: string; name: string | null; id: string };
       url: string;
-      token: string;
     }) {
-      await sendEmailFromTemplate({
+      void sendEmailFromTemplate({
         to: user.email,
         subject: "Verify your email address",
         react: VerificationEmail({
@@ -74,6 +71,17 @@ export const auth = betterAuth({
         }),
       });
     },
+  },
+  account: {
+    accountLinking: {
+      trustedProviders: ["google", "microsoft"],
+    },
+  },
+  emailAndPassword: {
+    enabled: true,
+    autoSignIn: true,
+    revokeSessionsOnPasswordReset: true,
+    requireEmailVerification: true,
     async sendResetPassword({
       user,
       url,
@@ -307,7 +315,18 @@ export const auth = betterAuth({
       }
     }),
   },
-
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        enum: ["owner", "admin", "superadmin", "manager", "user", "viewer"],
+        defaultValue: "user",
+        required: true,
+        description: "The role of the user in the organization",
+        input: false, // don't allow user to change their role
+      },
+    },
+  },
   plugins: [
     organization({
       // Access control configuration

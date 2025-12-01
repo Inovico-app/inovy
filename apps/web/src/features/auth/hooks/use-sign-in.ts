@@ -1,7 +1,6 @@
 "use client";
 
 import { useAction } from "next-safe-action/hooks";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { sendMagicLinkAction } from "../actions/magic-link";
 import { requestPasswordResetAction } from "../actions/password-reset";
@@ -11,15 +10,11 @@ import {
 } from "../actions/sign-in";
 
 export function useSignIn() {
-  const router = useRouter();
-
   const { execute: executeSignIn, isExecuting: isSigningIn } = useAction(
     signInEmailAction,
     {
       onSuccess: () => {
         toast.success("Signed in successfully");
-        router.push("/");
-        router.refresh();
       },
       onError: ({ error }) => {
         const errorMessage = error.serverError ?? "Failed to sign in";
@@ -65,16 +60,6 @@ export function useSignIn() {
       },
     });
 
-  const handlePasskeySignIn = async () => {
-    try {
-      // TODO: Implement passkey sign-in once Better Auth passkey client API is confirmed
-      // For now, redirect to a dedicated passkey sign-in page or use API route
-      toast.error("Passkey sign-in will be available soon");
-    } catch {
-      toast.error("An unexpected error occurred");
-    }
-  };
-
   const isLoading =
     isSigningIn ||
     isSocialSigningIn ||
@@ -86,7 +71,6 @@ export function useSignIn() {
     signInSocial: executeSocialSignIn,
     sendMagicLink: executeMagicLink,
     requestPasswordReset: executePasswordReset,
-    signInPasskey: handlePasskeySignIn,
     isLoading,
     isSigningIn,
     isSocialSigningIn,

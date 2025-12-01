@@ -1,12 +1,4 @@
-import {
-  and,
-  desc,
-  eq,
-  gte,
-  inArray,
-  lte,
-  sql,
-} from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
   auditLogs,
@@ -14,12 +6,16 @@ import {
   type NewAuditLog,
 } from "../db/schema/audit-logs";
 
+type AuditEventType = AuditLog["eventType"];
+type AuditResourceType = AuditLog["resourceType"];
+type AuditAction = AuditLog["action"];
+
 export interface AuditLogFilters {
   userId?: string;
   organizationId?: string;
-  eventType?: string[];
-  resourceType?: string[];
-  action?: string[];
+  eventType?: AuditEventType[];
+  resourceType?: AuditResourceType[];
+  action?: AuditAction[];
   resourceId?: string;
   startDate?: Date;
   endDate?: Date;
@@ -40,9 +36,7 @@ export class AuditLogsQueries {
   /**
    * Get the most recent audit log entry (for hash chain)
    */
-  static async getLatestLog(
-    organizationId: string
-  ): Promise<AuditLog | null> {
+  static async getLatestLog(organizationId: string): Promise<AuditLog | null> {
     const [log] = await db
       .select()
       .from(auditLogs)
@@ -66,17 +60,15 @@ export class AuditLogsQueries {
     }
 
     if (filters?.eventType && filters.eventType.length > 0) {
-      conditions.push(inArray(auditLogs.eventType, filters.eventType as any));
+      conditions.push(inArray(auditLogs.eventType, filters.eventType));
     }
 
     if (filters?.resourceType && filters.resourceType.length > 0) {
-      conditions.push(
-        inArray(auditLogs.resourceType, filters.resourceType as any)
-      );
+      conditions.push(inArray(auditLogs.resourceType, filters.resourceType));
     }
 
     if (filters?.action && filters.action.length > 0) {
-      conditions.push(inArray(auditLogs.action, filters.action as any));
+      conditions.push(inArray(auditLogs.action, filters.action));
     }
 
     if (filters?.resourceId) {
@@ -122,17 +114,15 @@ export class AuditLogsQueries {
     }
 
     if (filters?.eventType && filters.eventType.length > 0) {
-      conditions.push(inArray(auditLogs.eventType, filters.eventType as any));
+      conditions.push(inArray(auditLogs.eventType, filters.eventType));
     }
 
     if (filters?.resourceType && filters.resourceType.length > 0) {
-      conditions.push(
-        inArray(auditLogs.resourceType, filters.resourceType as any)
-      );
+      conditions.push(inArray(auditLogs.resourceType, filters.resourceType));
     }
 
     if (filters?.action && filters.action.length > 0) {
-      conditions.push(inArray(auditLogs.action, filters.action as any));
+      conditions.push(inArray(auditLogs.action, filters.action));
     }
 
     if (filters?.resourceId) {
@@ -159,7 +149,7 @@ export class AuditLogsQueries {
    * Find audit logs by resource
    */
   static async findByResource(
-    resourceType: string,
+    resourceType: AuditResourceType,
     resourceId: string,
     organizationId: string,
     limit = 100
@@ -169,7 +159,7 @@ export class AuditLogsQueries {
       .from(auditLogs)
       .where(
         and(
-          eq(auditLogs.resourceType, resourceType as any),
+          eq(auditLogs.resourceType, resourceType),
           eq(auditLogs.resourceId, resourceId),
           eq(auditLogs.organizationId, organizationId)
         )
@@ -203,7 +193,7 @@ export class AuditLogsQueries {
    * Find audit logs by event type
    */
   static async findByEventType(
-    eventType: string,
+    eventType: AuditEventType,
     organizationId: string,
     limit = 100
   ): Promise<AuditLog[]> {
@@ -212,7 +202,7 @@ export class AuditLogsQueries {
       .from(auditLogs)
       .where(
         and(
-          eq(auditLogs.eventType, eventType as any),
+          eq(auditLogs.eventType, eventType),
           eq(auditLogs.organizationId, organizationId)
         )
       )

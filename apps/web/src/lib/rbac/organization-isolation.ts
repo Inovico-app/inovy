@@ -4,6 +4,7 @@
  * to prevent cross-organization data access
  */
 
+import type { Column } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 import type { Result } from "neverthrow";
 import { err, ok } from "neverthrow";
@@ -78,7 +79,7 @@ export function assertOrganizationAccess(
  * ```
  */
 export function filterByOrganization(
-  organizationIdColumn: any,
+  organizationIdColumn: Column,
   organizationId: string
 ) {
   return eq(organizationIdColumn, organizationId);

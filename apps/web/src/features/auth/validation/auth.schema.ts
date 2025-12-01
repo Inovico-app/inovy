@@ -28,3 +28,8 @@ export const socialSignInSchema = z.object({
   provider: z.enum(["google", "microsoft"]),
 });
 
+export const passkeySignInSchema = z.object({
+  // Passkey sign-in doesn't require input parameters
+  // The browser handles the credential selection
+});
+

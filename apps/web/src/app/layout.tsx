@@ -1,4 +1,3 @@
-import { PageLayout } from "@/components/page-layout";
 import { BetterAuthProvider } from "@/providers/AuthProvider";
 import { DeepgramContextProvider } from "@/providers/DeepgramProvider";
 import { MicrophoneContextProvider } from "@/providers/MicrophoneProvider";
@@ -43,11 +42,9 @@ export default function RootLayout({
               <QueryProvider>
                 <NuqsAdapter>
                   <ThemeProvider>
-                    <PageLayout>
-                      <VercelAnalytics />
-                      <VercelSpeedInsights />
-                      {children}
-                    </PageLayout>
+                    <VercelAnalytics />
+                    <VercelSpeedInsights />
+                    {children}
                     <Toaster richColors />
                   </ThemeProvider>
                 </NuqsAdapter>

@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { BookIcon, CalendarIcon, ClockIcon, FolderIcon } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { forwardRef } from "react";
 import { ConfidenceBadge } from "./confidence-indicator";
@@ -148,7 +149,7 @@ export const EnhancedSourceCard = forwardRef<
   }
 
   return (
-    <Link href={url as any} target="_blank" rel="noopener noreferrer">
+    <Link href={url as Route} target="_blank" rel="noopener noreferrer">
       {content}
     </Link>
   );

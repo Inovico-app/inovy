@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useNotificationsQuery } from "../hooks/use-notifications-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSession } from "@/lib/auth-client";
+import { Bell } from "lucide-react";
+import { useState } from "react";
 import { useMarkAllReadMutation } from "../hooks/use-mark-all-read-mutation";
-import { NotificationItem } from "./notification-item";
+import { useNotificationsQuery } from "../hooks/use-notifications-query";
 import type { NotificationListResponse } from "../types";
+import { NotificationItem } from "./notification-item";
 
 interface NotificationListProps {
   initialData?: NotificationListResponse;
@@ -20,13 +21,19 @@ interface NotificationListProps {
  * Shows all notifications with filter tabs and "mark all as read" button
  */
 export function NotificationList({ initialData }: NotificationListProps) {
+  const session = useSession();
+
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
   const { data: allNotificationsData, isLoading: isLoadingAll } =
-    useNotificationsQuery({}, initialData);
+    useNotificationsQuery({}, initialData, !!session.data?.user);
 
   const { data: unreadNotificationsData, isLoading: isLoadingUnread } =
-    useNotificationsQuery({ unreadOnly: true });
+    useNotificationsQuery(
+      { unreadOnly: true },
+      undefined,
+      !!session.data?.user
+    );
 
   const markAllReadMutation = useMarkAllReadMutation();
 
@@ -59,14 +66,15 @@ export function NotificationList({ initialData }: NotificationListProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+        <Tabs
+          value={filter}
+          onValueChange={(v) => setFilter(v as typeof filter)}
+        >
           <TabsList className="mb-4">
             <TabsTrigger value="all">
               Alle ({currentData?.total ?? 0})
             </TabsTrigger>
-            <TabsTrigger value="unread">
-              Ongelezen ({unreadCount})
-            </TabsTrigger>
+            <TabsTrigger value="unread">Ongelezen ({unreadCount})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="m-0">
