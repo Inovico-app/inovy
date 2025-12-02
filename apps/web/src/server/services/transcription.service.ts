@@ -8,6 +8,7 @@ import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { createClient } from "@deepgram/sdk";
 import { err, ok } from "neverthrow";
 import OpenAI from "openai";
+import { PromptBuilder } from "./prompt-builder.service";
 import { KnowledgeBaseService } from "./knowledge-base.service";
 import { NotificationService } from "./notification.service";
 
@@ -429,39 +430,18 @@ export class TranscriptionService {
       const knowledgeContext = knowledgeEntries
         .map((entry) => `${entry.id} | ${entry.term}: ${entry.definition}`)
         .join("\n");
-      const systemPrompt = `Je bent een AI-assistent die transcripties corrigeert op basis van een kennisbank.
 
-Kennisbank:
-${knowledgeContext}
-
-Je taak:
-1. Identificeer termen in de transcriptie die mogelijk verkeerd zijn getranscribeerd
-2. Vergelijk met de kennisbank om te zien of er termen zijn die mogelijk verkeerd zijn gehoord
-3. Geef alleen correcties terug als je zeker bent dat een term verkeerd is getranscribeerd
-4. Gebruik de kennisbank om de correcte term te vinden en gebruik deze in de corrected veld.
-5. Zorg ervoor dat de transcriptie in correct Nederlands is geschreven en maak complete zinnen.
-6. Als je geen term kan vinden in de kennisbank, doe dan niks zodat de gebruiker zelf de correctie kan maken.
-
-Belangrijk: Gebruik de juiste uitbreidingen voor afkortingen en houd terminologie consistent met de kennisbank.
-Antwoord ALLEEN met valid JSON in het volgende formaat:
-{
-  "corrections": [
-    {
-      "original": "verkeerd getranscribeerde tekst",
-      "corrected": "correcte tekst volgens kennisbank",
-      "knowledgeEntryId": "id van kennisbank entry",
-      "confidence": 0.0 tot 1.0
-    }
-  ]
-}`;
-
-      const userPrompt = `Analyseer deze transcriptie en identificeer mogelijke fouten op basis van de kennisbank:\n\n${transcriptionText}`;
+      // Build prompt using PromptBuilder
+      const promptResult = PromptBuilder.Transcription.buildPrompt({
+        transcriptionText,
+        knowledgeContext: knowledgeContext || undefined,
+      });
 
       const completion = await openai.chat.completions.create({
         model: "gpt-5-nano",
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          { role: "system", content: promptResult.systemPrompt },
+          { role: "user", content: promptResult.userPrompt },
         ],
         response_format: { type: "json_object" },
       });

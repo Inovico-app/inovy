@@ -7,6 +7,7 @@ import {
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { connectionPool } from "@/server/services/connection-pool.service";
+import { PromptBuilder } from "@/server/services/prompt-builder.service";
 import { err, ok } from "neverthrow";
 import {
   getCachedSummary,
@@ -88,57 +89,12 @@ export class SummaryService {
         .map((entry) => `${entry.term}: ${entry.definition}`)
         .join("\n");
 
-      // Prepare speaker context if available
-      let speakerContext = "";
-      if (utterances && utterances.length > 0) {
-        const uniqueSpeakers = [
-          ...new Set(utterances.map((u) => u.speaker)),
-        ].sort();
-        speakerContext = `\n\nDe transcriptie bevat ${
-          uniqueSpeakers.length
-        } verschillende spreker${uniqueSpeakers.length > 1 ? "s" : ""}.`;
-      }
-
-      // Build knowledge context section for prompt
-      let knowledgeSection = "";
-      if (knowledgeContext) {
-        knowledgeSection = `\n\nKennisbank (gebruik deze termen correct in de samenvatting):\n${knowledgeContext}\n\nBelangrijk: Gebruik de juiste uitbreidingen voor afkortingen en houd terminologie consistent met de kennisbank.`;
-      }
-
-      // Create prompt for Dutch meeting summary
-      const systemPrompt = `Je bent een AI-assistent die Nederlandse vergadernotulen analyseert en samenvat.
-
-Je taak is om een gestructureerde samenvatting te maken van de vergadertranscriptie.
-
-Analyseer de transcriptie en maak een samenvatting met de volgende structuur:
-1. Overview: Een beknopt overzicht (1-2 paragrafen) die de essentie van de vergadering samenvat
-2. Topics: Een lijst van de belangrijkste onderwerpen die zijn besproken
-3. Decisions: Een lijst van beslissingen die tijdens de vergadering zijn genomen
-4. Speaker Contributions: Voor elke geïdentificeerde spreker, een lijst van hun belangrijkste bijdragen
-5. Important Quotes: Memorabele of belangrijke uitspraken van sprekers
-
-Houd de samenvatting beknopt maar informatief. Focus op actie items en beslissingen.${speakerContext}${knowledgeSection}
-
-Antwoord ALLEEN met valid JSON in het volgende formaat (gebruik Engels voor de veldnamen):
-{
-  "overview": "Een beknopt overzicht die de vergadering samenvat...",
-  "topics": ["onderwerp 1", "onderwerp 2"],
-  "decisions": ["beslissing 1", "beslissing 2"],
-  "speakerContributions": [
-    {
-      "speaker": "Spreker 1",
-      "contributions": ["bijdrage 1", "bijdrage 2"]
-    }
-  ],
-  "importantQuotes": [
-    {
-      "speaker": "Spreker 1",
-      "quote": "exacte quote"
-    }
-  ]
-}`;
-
-      const userPrompt = `Maak een gestructureerde samenvatting van deze vergadertranscriptie:\n\n${transcriptionText}`;
+      // Build prompt using PromptBuilder
+      const promptResult = PromptBuilder.Summaries.buildPrompt({
+        transcriptionText,
+        utterances,
+        knowledgeContext: knowledgeContext || undefined,
+      });
 
       // Call OpenAI API with retry logic
       // Each retry attempt gets a fresh client from the pool for better round-robin and recovery
@@ -147,8 +103,8 @@ Antwoord ALLEEN met valid JSON in het volgende formaat (gebruik Engels voor de v
           connectionPool.getRawOpenAIClient().chat.completions.create({
             model: "gpt-5-nano",
             messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
+              { role: "system", content: promptResult.systemPrompt },
+              { role: "user", content: promptResult.userPrompt },
             ],
             response_format: { type: "json_object" },
           }),

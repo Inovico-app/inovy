@@ -20,11 +20,7 @@ import { getCachedProjectTemplate } from "../cache/project-template.cache";
 import { connectionPool } from "./connection-pool.service";
 import { KnowledgeBaseService } from "./knowledge-base.service";
 import { ProjectService } from "./project.service";
-import {
-  buildCompletePrompt,
-  buildSystemPromptWithGuardRails,
-  validatePromptSafety,
-} from "./prompt-builder.service";
+import { PromptBuilder } from "./prompt-builder.service";
 import { RAGService } from "./rag/rag.service";
 import type { SearchResult } from "./rag/types";
 
@@ -269,108 +265,6 @@ export class ChatService {
     }
   }
 
-  /**
-   * Build system prompt with project context
-   */
-  private static async buildSystemPrompt(projectId: string): Promise<string> {
-    const projectResult = await ProjectService.getProjectById(projectId);
-
-    if (projectResult.isErr()) {
-      return "You are an AI assistant helping users find information in their project recordings.";
-    }
-
-    const project = projectResult.value;
-
-    // Fetch knowledge base context for this project
-    const knowledgeResult = await KnowledgeBaseService.buildKnowledgeContext(
-      projectId,
-      project.organizationId
-    );
-    const knowledgeContext = knowledgeResult.isOk()
-      ? knowledgeResult.value
-      : "";
-
-    // Build knowledge glossary section
-    let knowledgeSection = "";
-    if (knowledgeContext) {
-      knowledgeSection = `\n\nKnowledge Base (use these terms correctly in your responses):\n${knowledgeContext}\n\nImportant: Use proper expansions for abbreviations and maintain consistent terminology based on the knowledge base.`;
-    }
-
-    return `You are an AI assistant helping users find information in their project recordings and meetings.
-
-Project: ${project.name}
-${
-  project.description ? `Description: ${project.description}` : ""
-}${knowledgeSection}
-
-Your role:
-- Answer questions based on the provided context from project recordings, transcriptions, summaries, and tasks
-- When referencing information from sources, include inline citation numbers like [1], [2], etc. that correspond to the source documents provided
-- Cite sources by mentioning the recording title and date when referencing specific information
-- Be concise and accurate in your responses
-- If information is not found in the context, clearly state that you don't have that information in the available recordings
-- Use Dutch language when the user asks questions in Dutch, otherwise use English
-
-Citation Guidelines:
-- Use numbered citations [1], [2], [3] etc. immediately after statements that reference source material
-- The citation numbers correspond to the order of sources provided in the context
-- Multiple citations can be used like [1][2] if information comes from multiple sources
-- Always cite your sources to help users verify information
-
-General Guidelines:
-- Focus on factual information from the recordings
-- When discussing tasks, mention their priority and status
-- Provide timestamps when available for transcription references
-- If asked about specific topics across multiple recordings, synthesize the information clearly`;
-  }
-
-  /**
-   * Build system prompt for organization-level context
-   */
-  private static async buildOrganizationSystemPrompt(
-    organizationId: string
-  ): Promise<string> {
-    // Fetch knowledge base context for organization (org + global)
-    const knowledgeResult = await KnowledgeBaseService.buildKnowledgeContext(
-      null, // No project ID for org-level
-      organizationId
-    );
-    const knowledgeContext = knowledgeResult.isOk()
-      ? knowledgeResult.value
-      : "";
-
-    // Build knowledge glossary section
-    let knowledgeSection = "";
-    if (knowledgeContext) {
-      knowledgeSection = `\n\nKnowledge Base (use these terms correctly in your responses):\n${knowledgeContext}\n\nImportant: Use proper expansions for abbreviations and maintain consistent terminology based on the knowledge base.`;
-    }
-
-    return `You are an AI assistant helping users find information across all their organization's recordings and meetings.${knowledgeSection}
-
-Your role:
-- Answer questions based on the provided context from all organization recordings, transcriptions, summaries, and tasks
-- Follow organization-wide instructions provided in the prompt - these have HIGHEST priority and apply to ALL queries
-- When referencing information from sources, include inline citation numbers like [1], [2], etc. that correspond to the source documents provided
-- Cite sources by mentioning the project name, recording title, and date when referencing specific information
-- Be concise and accurate in your responses
-- When discussing cross-project topics, clearly indicate which projects the information comes from
-- If information is not found in the context, clearly state that you don't have that information in the available recordings
-- Use Dutch language when the user asks questions in Dutch, otherwise use English
-
-Citation Guidelines:
-- Use numbered citations [1], [2], [3] etc. immediately after statements that reference source material
-- The citation numbers correspond to the order of sources provided in the context
-- Multiple citations can be used like [1][2] if information comes from multiple sources
-- Always cite your sources to help users verify information
-
-General Guidelines:
-- Focus on factual information from the recordings across all projects
-- When discussing tasks, mention their priority, status, and which project they belong to
-- Provide timestamps when available for transcription references
-- Synthesize information across multiple projects and recordings when relevant
-- Help identify patterns, trends, and insights across the organization's data
-- When asked about specific topics, search across all projects to provide comprehensive answers`;
-  }
 
   /**
    * Generate chat response using GPT-5-nano with streaming
@@ -454,16 +348,29 @@ General Guidelines:
           content: msg.content,
         }));
 
-      // Build system prompt with guard rails
-      const baseSystemPrompt = await this.buildSystemPrompt(projectId);
-      const systemPromptWithGuardRails =
-        buildSystemPromptWithGuardRails(baseSystemPrompt);
+      // Get project and knowledge context for prompt building
+      const projectResult = await ProjectService.getProjectById(projectId);
+      const project = projectResult.isOk() ? projectResult.value : null;
+
+      let knowledgeContext = "";
+      if (project) {
+        const knowledgeResult = await KnowledgeBaseService.buildKnowledgeContext(
+          projectId,
+          project.organizationId
+        );
+        if (knowledgeResult.isOk()) {
+          knowledgeContext = knowledgeResult.value;
+        }
+      }
 
       // Get project template for RAG context
       const projectTemplate = await getCachedProjectTemplate(projectId);
 
       // Validate prompt safety (check for injection attempts)
-      const safetyCheck = validatePromptSafety(userMessage, projectTemplate);
+      const safetyCheck = PromptBuilder.Base.validatePromptSafety(
+        userMessage,
+        projectTemplate
+      );
       if (!safetyCheck.safe) {
         logger.warn("Potential prompt injection detected", {
           conversationId,
@@ -481,11 +388,16 @@ ${context}
 Please answer the user's question based on this information.`
         : "No relevant information was found in the project recordings. Let the user know you don't have specific information to answer their question.";
 
-      const completePrompt = buildCompletePrompt({
-        systemInstructions: baseSystemPrompt,
-        projectTemplate,
+      const promptResult = PromptBuilder.Chat.buildPrompt({
+        projectId,
+        organizationId: project?.organizationId ?? null,
+        projectName: project?.name,
+        projectDescription: project?.description ?? null,
+        knowledgeContext,
         ragContent: ragContext,
         userQuery: userMessage,
+        projectTemplate,
+        isOrganizationLevel: false,
       });
 
       // Stream response from GPT-5-nano with retry logic and request tracking
@@ -496,12 +408,12 @@ Please answer the user's question based on this information.`
           connectionPool.withOpenAIClient(async (openai) => {
             return streamText({
               model: openai("gpt-5-nano"),
-              system: systemPromptWithGuardRails,
+              system: promptResult.systemPrompt,
               messages: [
                 ...conversationHistory,
                 {
                   role: "user",
-                  content: completePrompt,
+                  content: promptResult.userPrompt,
                 },
               ],
               onError: (error) => {
@@ -663,18 +575,29 @@ Please answer the user's question based on this information.`
           content: msg.content,
         }));
 
-      // Build system prompt
-      const systemPrompt = await this.buildSystemPrompt(projectId);
+      // Get project and knowledge context for prompt building
+      const projectResult = await ProjectService.getProjectById(projectId);
+      const project = projectResult.isOk() ? projectResult.value : null;
+
+      let knowledgeContext = "";
+      if (project) {
+        const knowledgeResult = await KnowledgeBaseService.buildKnowledgeContext(
+          projectId,
+          project.organizationId
+        );
+        if (knowledgeResult.isOk()) {
+          knowledgeContext = knowledgeResult.value;
+        }
+      }
 
       // Get project template for RAG context
       const projectTemplate = await getCachedProjectTemplate(projectId);
 
       // Get organization settings for instructions
-      const projectResult = await ProjectService.getProjectById(projectId);
       let orgInstructions: string | null = null;
-      if (projectResult.isOk()) {
+      if (project) {
         const orgSettings = await getCachedOrganizationSettings(
-          projectResult.value.organizationId
+          project.organizationId
         );
         orgInstructions = orgSettings?.instructions ?? null;
       }
@@ -689,12 +612,17 @@ Please answer the user's question based on this information.`
         : "No relevant information was found in the project recordings. Let the user know you don't have specific information to answer their question.";
 
       // Build complete prompt with priority hierarchy
-      const completePrompt = buildCompletePrompt({
-        systemInstructions: systemPrompt,
-        organizationInstructions: orgInstructions,
-        projectTemplate,
+      const promptResult = PromptBuilder.Chat.buildPrompt({
+        projectId,
+        organizationId: project?.organizationId ?? null,
+        projectName: project?.name,
+        projectDescription: project?.description ?? null,
+        knowledgeContext,
         ragContent: ragContext,
         userQuery: userMessage,
+        organizationInstructions: orgInstructions,
+        projectTemplate,
+        isOrganizationLevel: false,
       });
 
       // Stream response from GPT-5-nano with error handling and request tracking
@@ -708,12 +636,12 @@ Please answer the user's question based on this information.`
 
       const result = streamText({
         model: openai("gpt-5-nano"),
-        system: systemPrompt,
+        system: promptResult.systemPrompt,
         messages: [
           ...conversationHistory,
           {
             role: "user",
-            content: completePrompt,
+            content: promptResult.userPrompt,
           },
         ],
         onError: (error) => {
@@ -878,13 +806,18 @@ Please answer the user's question based on this information.`
           content: msg.content,
         }));
 
-      // Build system prompt for organization
-      const systemPrompt =
-        await this.buildOrganizationSystemPrompt(organizationId);
-
       // Get organization settings for instructions
       const orgSettings = await getCachedOrganizationSettings(organizationId);
       const orgInstructions = orgSettings?.instructions ?? null;
+
+      // Fetch knowledge base context for organization (org + global)
+      const knowledgeResult = await KnowledgeBaseService.buildKnowledgeContext(
+        null, // No project ID for org-level
+        organizationId
+      );
+      const knowledgeContext = knowledgeResult.isOk()
+        ? knowledgeResult.value
+        : "";
 
       // Create the full prompt with context
       const ragContext = context
@@ -896,12 +829,14 @@ Please answer the user's question based on this information. When referencing in
         : "No relevant information was found in the organization's recordings. Let the user know you don't have specific information to answer their question.";
 
       // Build complete prompt with priority hierarchy
-      const completePrompt = buildCompletePrompt({
-        systemInstructions: systemPrompt,
-        organizationInstructions: orgInstructions,
-        projectTemplate: null, // No project template for org-level chat
+      const promptResult = PromptBuilder.Chat.buildPrompt({
+        organizationId,
+        knowledgeContext,
         ragContent: ragContext,
         userQuery: userMessage,
+        organizationInstructions: orgInstructions,
+        projectTemplate: null, // No project template for org-level chat
+        isOrganizationLevel: true,
       });
 
       // Stream response from GPT-5-nano with error handling and request tracking
@@ -915,12 +850,12 @@ Please answer the user's question based on this information. When referencing in
 
       const result = streamText({
         model: openai("gpt-5-nano"),
-        system: systemPrompt,
+        system: promptResult.systemPrompt,
         messages: [
           ...conversationHistory,
           {
             role: "user",
-            content: completePrompt,
+            content: promptResult.userPrompt,
           },
         ],
         onError: (error) => {
