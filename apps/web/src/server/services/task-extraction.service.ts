@@ -6,7 +6,9 @@ import {
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { TasksQueries } from "@/server/data-access/tasks.queries";
 import { connectionPool } from "@/server/services/connection-pool.service";
+import { PromptBuilder } from "@/server/services/prompt-builder.service";
 import { err, ok } from "neverthrow";
+import { KnowledgeBaseService } from "./knowledge-base.service";
 import { NotificationService } from "./notification.service";
 
 interface ExtractedTask {
@@ -82,46 +84,25 @@ export class TaskExtractionService {
         transcriptionLength: transcriptionText.length,
       });
 
-      // Prepare speaker context if available
-      let speakerContext = "";
-      if (utterances && utterances.length > 0) {
-        speakerContext = `\n\nDe transcriptie bevat meerdere sprekers. Gebruik deze informatie om taken toe te wijzen aan de genoemde personen.`;
-      }
+      // Get knowledge context for prompt building
+      const knowledgeResult = await KnowledgeBaseService.getApplicableKnowledge(
+        projectId,
+        organizationId
+      );
+      const knowledgeEntries = knowledgeResult.isOk()
+        ? knowledgeResult.value
+        : [];
+      const knowledgeContext = knowledgeEntries
+        .map((entry) => `${entry.term}: ${entry.definition}`)
+        .join("\n");
 
-      // Create Dutch prompt for task extraction with priority assignment
-      const systemPrompt = `Je bent een AI-assistent die Nederlandse vergadernotulen analyseert om actiepunten (taken) te extraheren.
-
-Jouw taak:
-1. Identificeer alle actiepunten en taken uit de transcriptie
-2. Bepaal de prioriteit op basis van urgentie-indicatoren in de tekst
-3. Zoek naar personen die verantwoordelijk worden gesteld
-4. Schat indien mogelijk een deadline in
-
-Prioriteit niveaus en indicatoren:
-- **urgent**: ${this.PRIORITY_KEYWORDS.urgent.join(", ")}
-- **high**: ${this.PRIORITY_KEYWORDS.high.join(", ")}
-- **medium**: ${this.PRIORITY_KEYWORDS.medium.join(", ")}
-- **low**: ${this.PRIORITY_KEYWORDS.low.join(", ")}
-
-Let op urgentie-woorden in de context. Als iemand zegt "dit moet vandaag nog", is dat urgent.
-Als er geen urgentie wordt genoemd, gebruik dan 'medium' als standaard.${speakerContext}
-
-Antwoord ALLEEN met valid JSON in het volgende formaat:
-{
-  "tasks": [
-    {
-      "title": "Korte titel van de taak",
-      "description": "Gedetailleerde beschrijving van wat er moet gebeuren",
-      "priority": "low" | "medium" | "high" | "urgent",
-      "assigneeName": "Naam van persoon (optioneel)",
-      "dueDate": "ISO datum string (optioneel)",
-      "confidenceScore": 0.0 tot 1.0,
-      "meetingTimestamp": seconden in opname waar taak werd genoemd (optioneel)
-    }
-  ]
-}`;
-
-      const userPrompt = `Analyseer deze vergadertranscriptie en extraheer alle actiepunten met hun prioriteit:\n\n${transcriptionText}`;
+      // Build prompt using PromptBuilder
+      const promptResult = PromptBuilder.Tasks.buildPrompt({
+        transcriptionText,
+        utterances,
+        priorityKeywords: this.PRIORITY_KEYWORDS,
+        knowledgeContext: knowledgeContext || undefined,
+      });
 
       // Call OpenAI API with structured JSON output and retry logic
       // Each retry attempt gets a fresh client from the pool for better round-robin and recovery
@@ -130,8 +111,8 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
           connectionPool.getRawOpenAIClient().chat.completions.create({
             model: "gpt-5-nano",
             messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
+              { role: "system", content: promptResult.systemPrompt },
+              { role: "user", content: promptResult.userPrompt },
             ],
             response_format: { type: "json_object" },
           }),
