@@ -12,6 +12,7 @@ import type {
   ListDocumentsFilters,
   ListDocumentsResponse,
 } from "@/server/dto/knowledge-base-browser.dto";
+import type { KnowledgeDocumentDto } from "@/server/dto/knowledge-base.dto";
 import { err, ok } from "neverthrow";
 import { DocumentProcessingService } from "./document-processing.service";
 import { QdrantClientService } from "./rag/qdrant.service";
@@ -23,6 +24,42 @@ import type { QdrantFilter } from "./rag/types";
  */
 export class KnowledgeBaseBrowserService {
   private static qdrantService = QdrantClientService.getInstance();
+
+  /**
+   * Build IndexedDocumentDto from Qdrant document with optional database fallbacks
+   */
+  private static buildIndexedDocumentDto(
+    qdrantDoc: {
+      documentId: string;
+      contentId: string;
+      contentType: string;
+      organizationId: string;
+      projectId?: string;
+      filename?: string;
+      fileType?: string;
+      fileSize?: number;
+      title?: string;
+      chunksCount: number;
+      uploadDate?: Date;
+    },
+    dbDocument?: KnowledgeDocumentDto | null
+  ): IndexedDocumentDto {
+    return {
+      documentId: qdrantDoc.documentId,
+      contentId: qdrantDoc.contentId,
+      contentType: qdrantDoc.contentType,
+      title: qdrantDoc.title ?? dbDocument?.title,
+      filename: qdrantDoc.filename ?? dbDocument?.fileName,
+      organizationId: qdrantDoc.organizationId,
+      projectId: qdrantDoc.projectId,
+      chunksCount: qdrantDoc.chunksCount,
+      uploadDate: qdrantDoc.uploadDate ?? dbDocument?.createdAt,
+      fileSize: qdrantDoc.fileSize ?? dbDocument?.fileSize,
+      fileType: qdrantDoc.fileType ?? dbDocument?.fileType,
+      processingStatus: dbDocument?.processingStatus,
+      processingError: dbDocument?.processingError,
+    };
+  }
 
   /**
    * List unique documents from Qdrant with filtering
@@ -79,64 +116,138 @@ export class KnowledgeBaseBrowserService {
         });
       }
 
-      // Query Qdrant for unique documents with pagination
-      const documentsResult = await this.qdrantService.listUniqueDocuments(
-        qdrantFilter,
-        {
-          limit: filters.limit ?? 100,
-          offset: filters.offset ?? null,
+      const requestedLimit = filters.limit ?? 100;
+      const requestedOffset = filters.offset ?? null;
+      const hasSearchFilter = !!filters.search;
+
+      let documents: Array<{
+        documentId: string;
+        contentId: string;
+        contentType: string;
+        organizationId: string;
+        projectId?: string;
+        filename?: string;
+        fileType?: string;
+        fileSize?: number;
+        title?: string;
+        chunksCount: number;
+        uploadDate?: Date;
+        metadata?: Record<string, unknown>;
+      }> = [];
+      let hasMoreFromQdrant = false;
+      let nextOffset: string | number | null = null;
+
+      if (hasSearchFilter) {
+        // When search is active, we need to fetch larger batches and filter client-side
+        // because Qdrant keyword fields don't support substring matching.
+        // We'll fetch batches until we have enough filtered results.
+        //
+        // Note: When offset is provided with search, it's used as a Qdrant offset.
+        // This may cause some filtered results to be skipped, as Qdrant pagination
+        // doesn't align with filtered result pagination. For perfect pagination with
+        // search, consider implementing cursor-based pagination using documentId.
+        const qdrantBatchSize = Math.max(requestedLimit * 5, 500);
+        let currentOffset: string | number | null = requestedOffset;
+        let hasMoreFromQdrant = true;
+        const maxScrollBatches = 10; // Limit batches to prevent infinite loops
+        let scrollBatchCount = 0;
+        let filteredCount = 0;
+        const searchLower = filters.search!.toLowerCase();
+
+        // Fetch batches until we have enough filtered results
+        while (
+          filteredCount < requestedLimit &&
+          hasMoreFromQdrant &&
+          scrollBatchCount < maxScrollBatches
+        ) {
+          const documentsResult = await this.qdrantService.listUniqueDocuments(
+            qdrantFilter,
+            {
+              limit: qdrantBatchSize,
+              offset: currentOffset,
+            }
+          );
+
+          if (documentsResult.isErr()) {
+            return err(documentsResult.error);
+          }
+
+          const batchDocuments = documentsResult.value.documents;
+
+          // Apply client-side search filter
+          const filteredBatch = batchDocuments.filter(
+            (doc) =>
+              doc.filename?.toLowerCase().includes(searchLower) ||
+              doc.title?.toLowerCase().includes(searchLower) ||
+              doc.documentId.toLowerCase().includes(searchLower)
+          );
+
+          // Add filtered documents up to the requested limit
+          const remainingNeeded = requestedLimit - filteredCount;
+          documents.push(...filteredBatch.slice(0, remainingNeeded));
+          filteredCount += Math.min(filteredBatch.length, remainingNeeded);
+
+          // Update pagination state
+          hasMoreFromQdrant = documentsResult.value.hasMore;
+          currentOffset = documentsResult.value.nextOffset;
+          scrollBatchCount++;
+
+          // If we have enough filtered results, stop fetching
+          if (filteredCount >= requestedLimit) {
+            break;
+          }
+
+          // If we got fewer documents than the batch size, we've reached the end
+          if (batchDocuments.length < qdrantBatchSize) {
+            hasMoreFromQdrant = false;
+            break;
+          }
         }
-      );
 
-      if (documentsResult.isErr()) {
-        return err(documentsResult.error);
-      }
-
-      let documents = documentsResult.value.documents;
-
-      // Apply client-side search filter if provided
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        documents = documents.filter(
-          (doc) =>
-            doc.filename?.toLowerCase().includes(searchLower) ||
-            doc.title?.toLowerCase().includes(searchLower) ||
-            doc.documentId.toLowerCase().includes(searchLower)
+        // Store Qdrant pagination state for later use
+        hasMoreFromQdrant =
+          hasMoreFromQdrant && scrollBatchCount < maxScrollBatches;
+        nextOffset = hasMoreFromQdrant ? currentOffset : null;
+      } else {
+        // No search filter - use Qdrant's pagination directly
+        const documentsResult = await this.qdrantService.listUniqueDocuments(
+          qdrantFilter,
+          {
+            limit: requestedLimit,
+            offset: requestedOffset,
+          }
         );
+
+        if (documentsResult.isErr()) {
+          return err(documentsResult.error);
+        }
+
+        documents = documentsResult.value.documents;
+        hasMoreFromQdrant = documentsResult.value.hasMore;
+        nextOffset = documentsResult.value.nextOffset;
       }
+
+      // Batch fetch database documents for enrichment
+      const documentIds = documents.map((doc) => doc.documentId);
+      const dbDocumentsMap =
+        await KnowledgeBaseDocumentsQueries.getDocumentsByIds(documentIds);
 
       // Enrich with database information if available
-      const enrichedDocuments = await Promise.all(
-        documents.map(async (doc) => {
-          // Try to find document in database to get processing status
-          const dbDocument =
-            await KnowledgeBaseDocumentsQueries.getDocumentById(doc.documentId);
+      const enrichedDocuments = documents.map((doc) => {
+        const dbDocument = dbDocumentsMap.get(doc.documentId);
+        return this.buildIndexedDocumentDto(doc, dbDocument);
+      });
 
-          const indexedDoc: IndexedDocumentDto = {
-            documentId: doc.documentId,
-            contentId: doc.contentId,
-            contentType: doc.contentType,
-            title: doc.title ?? dbDocument?.title,
-            filename: doc.filename ?? dbDocument?.fileName,
-            organizationId: doc.organizationId,
-            projectId: doc.projectId,
-            chunksCount: doc.chunksCount,
-            uploadDate: doc.uploadDate ?? dbDocument?.createdAt,
-            fileSize: doc.fileSize ?? dbDocument?.fileSize,
-            fileType: doc.fileType ?? dbDocument?.fileType,
-            processingStatus: dbDocument?.processingStatus,
-            processingError: dbDocument?.processingError,
-          };
-
-          return indexedDoc;
-        })
-      );
+      // Calculate pagination metadata based on post-filtered results
+      // hasMore is true if we got a full page AND there might be more results
+      const hasMore =
+        enrichedDocuments.length === requestedLimit && hasMoreFromQdrant;
 
       return ok({
         documents: enrichedDocuments,
         total: enrichedDocuments.length,
-        hasMore: documentsResult.value.hasMore,
-        nextOffset: documentsResult.value.nextOffset,
+        hasMore,
+        nextOffset: hasMore ? nextOffset : null,
       });
     } catch (error) {
       logger.error("Error listing documents", {
@@ -230,19 +341,10 @@ export class KnowledgeBaseBrowserService {
         metadata: point.payload,
       }));
 
-      const indexedDoc: IndexedDocumentDto = {
-        documentId: docInfo.documentId,
-        contentId: docInfo.contentId,
-        contentType: docInfo.contentType,
-        title: docInfo.title,
-        filename: docInfo.filename,
-        organizationId: docInfo.organizationId,
-        projectId: docInfo.projectId,
-        chunksCount: docInfo.chunksCount,
-        uploadDate: docInfo.uploadDate,
-        fileSize: docInfo.fileSize,
-        fileType: docInfo.fileType,
-      };
+      // Try to get database document for enrichment
+      const dbDocument =
+        await KnowledgeBaseDocumentsQueries.getDocumentById(documentId);
+      const indexedDoc = this.buildIndexedDocumentDto(docInfo, dbDocument);
 
       return ok({
         document: indexedDoc,

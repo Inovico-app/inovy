@@ -24,7 +24,25 @@ export async function GET(request: NextRequest) {
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
     const documentId = searchParams.get("documentId");
-    const sampleSize = parseInt(searchParams.get("sampleSize") || "5", 10);
+    const sampleSizeParam = searchParams.get("sampleSize");
+    
+    // Validate and parse sampleSize with safe defaults
+    const DEFAULT_SAMPLE_SIZE = 5;
+    const MIN_SAMPLE_SIZE = 1;
+    const MAX_SAMPLE_SIZE = 100;
+    
+    let sampleSize = DEFAULT_SAMPLE_SIZE;
+    if (sampleSizeParam) {
+      const parsed = parseInt(sampleSizeParam, 10);
+      if (
+        Number.isFinite(parsed) &&
+        Number.isInteger(parsed) &&
+        parsed >= MIN_SAMPLE_SIZE &&
+        parsed <= MAX_SAMPLE_SIZE
+      ) {
+        sampleSize = parsed;
+      }
+    }
 
     if (!documentId) {
       return Response.json(

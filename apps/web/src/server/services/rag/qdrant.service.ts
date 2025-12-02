@@ -762,6 +762,23 @@ export class QdrantClientService {
           const payload = point.payload as QdrantPayload | undefined;
           if (!payload) continue;
 
+          // Skip points without organizationId and log warning
+          if (!payload.organizationId) {
+            logger.warn("Skipping point with missing organizationId", {
+              component: "QdrantClientService",
+              pointId: point.id,
+              payload: {
+                documentId: payload.documentId,
+                contentId: payload.contentId,
+                contentType: payload.contentType,
+                filename: payload.filename,
+                projectId: payload.projectId,
+                timestamp: payload.timestamp,
+              },
+            });
+            continue;
+          }
+
           // Use documentId if available, otherwise fall back to contentId
           const docId =
             (payload.documentId as string) ??
@@ -781,7 +798,7 @@ export class QdrantClientService {
               documentId: docId,
               contentId: (payload.contentId as string) ?? docId,
               contentType: (payload.contentType as string) ?? "unknown",
-              organizationId: payload.organizationId ?? "",
+              organizationId: payload.organizationId as string,
               projectId: payload.projectId as string | undefined,
               filename: payload.filename as string | undefined,
               fileType: payload.fileType as string | undefined,

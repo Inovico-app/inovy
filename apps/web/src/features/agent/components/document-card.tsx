@@ -89,7 +89,8 @@ export function DocumentCard({
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+    const idx = Math.min(i, sizes.length - 1);
+    return Math.round((bytes / Math.pow(k, idx)) * 100) / 100 + " " + sizes[idx];
   };
 
   const formatDate = (date?: Date): string => {
