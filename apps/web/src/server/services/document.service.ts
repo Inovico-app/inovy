@@ -11,6 +11,7 @@ import pdfParse from "pdf-parse";
 import { QdrantClientService } from "./rag/qdrant.service";
 import type { QdrantPayload, QdrantPoint } from "./rag/types";
 import { RedisService } from "./redis.service";
+import { MetadataExtractor } from "./metadata-extractor.service";
 import type {
   ChunkingOptions,
   DocumentChunk,
@@ -409,11 +410,7 @@ export class DocumentService {
       text: string,
       existingMetadata: DocumentMetadata
     ): Promise<DocumentMetadata> {
-      return {
-        filename: file.name,
-        fileType: file.type,
-        ...existingMetadata,
-      };
+      return MetadataExtractor.extract(file, text, existingMetadata);
     }
 
     /**
@@ -796,6 +793,16 @@ export class DocumentService {
               timestamp: processedDocument.processedAt.toISOString(),
               title: metadata.title,
               description: metadata.description,
+              // Enhanced metadata fields
+              fileSize: metadata.fileSize,
+              uploadDate: metadata.uploadDate,
+              author: metadata.author,
+              date: metadata.date,
+              language: metadata.language,
+              headings: metadata.headings,
+              sections: metadata.sections,
+              pageCount: metadata.pageCount,
+              wordCount: metadata.wordCount,
             };
 
             return {
