@@ -25,10 +25,9 @@ import {
   SourcesTrigger,
 } from "@/components/ai-elements/sources";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { Building2, FolderOpen, History, Plus } from "lucide-react";
+import { Building2, FolderOpen } from "lucide-react";
 import { useQueryState } from "nuqs";
 import { useEffect, useRef, useState } from "react";
 import { getConversationMessagesAction } from "../actions/conversation-history";
@@ -101,9 +100,6 @@ export function UnifiedChatInterface({
     context: "organization" | "project";
     projectId?: string;
   } | null>(null);
-
-  // Sidebar state
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Get current project name
   const currentProjectName = projectId
@@ -370,28 +366,20 @@ export function UnifiedChatInterface({
   };
 
   return (
-    <>
+    <div className="flex h-full">
       <ConversationHistorySidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
         context={context}
         projectId={projectId ?? undefined}
         currentConversationId={conversationId ?? undefined}
         onSelectConversation={handleResumeConversation}
+        onNewConversation={handleNewConversation}
       />
 
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-w-0 h-full">
         {/* Header */}
-        <div className="border-b p-4 bg-background">
+        <div className="border-b p-4 bg-background shrink-0">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsSidebarOpen(true)}
-              >
-                <History className="h-4 w-4" />
-              </Button>
               <ChatContextSelector
                 currentContext={context}
                 currentProjectId={projectId ?? undefined}
@@ -401,16 +389,6 @@ export function UnifiedChatInterface({
               />
               {getContextBadge()}
             </div>
-            {messages.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNewConversation}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                New
-              </Button>
-            )}
           </div>
           <p className="text-sm text-muted-foreground mt-2">
             {context === "organization"
@@ -483,7 +461,7 @@ export function UnifiedChatInterface({
                                       projectId:
                                         context === "organization"
                                           ? source.projectId
-                                          : projectId ?? undefined,
+                                          : (projectId ?? undefined),
                                     };
 
                                     return (
@@ -587,7 +565,7 @@ export function UnifiedChatInterface({
         onConfirm={handleConfirmContextSwitch}
         targetContextName={getTargetContextName()}
       />
-    </>
+    </div>
   );
 }
 

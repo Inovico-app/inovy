@@ -2,13 +2,13 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { ChatConversation } from "@/server/db/schema/chat-conversations";
 import { Building2, FolderOpen, MoreVertical } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { ConversationActionsMenu } from "./conversation-actions-menu";
 
 interface ConversationListItemProps {
-  conversation: ChatConversation;
+  conversation: ChatConversation & { lastMessage?: string | null };
   isActive?: boolean;
   onClick?: () => void;
 }
@@ -59,6 +59,13 @@ export function ConversationListItem({
             <FolderOpen className="h-3 w-3 text-muted-foreground flex-shrink-0" />
           )}
         </div>
+        {conversation.lastMessage && (
+          <p className="text-xs text-muted-foreground truncate mb-1">
+            {conversation.lastMessage.length > 100
+              ? `${conversation.lastMessage.substring(0, 100)}...`
+              : conversation.lastMessage}
+          </p>
+        )}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-muted-foreground">
             {formatDate(conversation.updatedAt)}
