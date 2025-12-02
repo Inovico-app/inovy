@@ -408,25 +408,15 @@ const ensureUserHasOrganization = async (
       path: ctx.path,
     });
 
-    // Create organization directly in the database
     const orgId = nanoid();
-    const now = new Date();
-
-    await db.insert(schema.organizations).values({
-      id: orgId,
+    const memberId = nanoid();
+    await OrganizationQueries.createOrganizationWithMember({
+      organizationId: orgId,
       name: orgName,
       slug: orgSlug,
-      createdAt: now,
-    });
-
-    // Create member record with owner role
-    const memberId = nanoid();
-    await db.insert(schema.members).values({
-      id: memberId,
-      organizationId: orgId,
       userId: user.id,
-      role: "owner",
-      createdAt: now,
+      memberId: memberId,
+      memberRole: "owner",
     });
 
     logger.info("Successfully created personal organization for user", {
