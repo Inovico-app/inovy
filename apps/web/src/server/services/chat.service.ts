@@ -688,6 +688,7 @@ Please answer the user's question based on this information.`
       const { client: openai, pooled } =
         connectionPool.getOpenAIClientWithTracking();
       let streamError: Error | null = null;
+      let errorMetricTracked = false;
 
       // Track metrics: record start time and user ID
       const startTime = Date.now();
@@ -727,6 +728,7 @@ Please answer the user's question based on this information.`
             errorMessage: streamError.message,
             query: userMessage,
           });
+          errorMetricTracked = true;
 
           logger.error("Stream error during chat response streaming", {
             component: "ChatService.streamResponse",
@@ -744,17 +746,19 @@ Please answer the user's question based on this information.`
 
           // Only save if stream completed successfully
           if (streamError) {
-            // Track error metric
-            await AgentMetricsService.trackRequest({
-              organizationId,
-              userId,
-              conversationId,
-              requestType: "chat",
-              latencyMs,
-              error: true,
-              errorMessage: streamError.message,
-              query: userMessage,
-            });
+            // Track error metric only if not already tracked in onError
+            if (!errorMetricTracked) {
+              await AgentMetricsService.trackRequest({
+                organizationId,
+                userId,
+                conversationId,
+                requestType: "chat",
+                latencyMs,
+                error: true,
+                errorMessage: streamError.message,
+                query: userMessage,
+              });
+            }
 
             logger.warn("Stream finished with error, not saving message", {
               component: "ChatService.streamResponse",
