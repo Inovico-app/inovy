@@ -24,24 +24,38 @@ import { ProjectService } from "./project.service";
 import { PromptBuilder } from "./prompt-builder.service";
 import { RAGService } from "./rag/rag.service";
 import type { SearchResult } from "./rag/types";
+import { SearchResultFormatter } from "./search-result-formatter.service";
 
 export class ChatService {
   private static ragService = new RAGService();
 
   /**
    * Build context string from search results for LLM
+   *
+   * @param results - Search results to build context from
+   * @param maxTokens - Maximum tokens allowed (default: 4000)
+   * @returns Formatted context string
    */
-  private static buildContextFromResults(results: SearchResult[]): string {
+  private static buildContextFromResults(
+    results: SearchResult[],
+    maxTokens: number = 4000
+  ): string {
     if (results.length === 0) {
       return "No relevant information found in the project.";
     }
+
+    // Limit results by token count while preserving grouping
+    const limitedResults = SearchResultFormatter.limitResultsByTokens(
+      results,
+      maxTokens
+    );
 
     const contextParts: string[] = [];
 
     // Group results by recording
     const recordingGroups = new Map<string, SearchResult[]>();
 
-    for (const result of results) {
+    for (const result of limitedResults) {
       const recordingId = result.metadata.recordingId ?? result.contentId;
       if (!recordingGroups.has(recordingId)) {
         recordingGroups.set(recordingId, []);
@@ -95,7 +109,7 @@ export class ChatService {
     }
 
     // Add knowledge documents separately (if any)
-    const knowledgeDocs = results.filter(
+    const knowledgeDocs = limitedResults.filter(
       (r) => r.contentType === "knowledge_document"
     );
     if (knowledgeDocs.length > 0) {
@@ -115,8 +129,17 @@ export class ChatService {
 
   /**
    * Format search results as source citations
+   *
+   * @param results - Search results to format
+   * @param query - Optional query string for highlighting
+   * @param highlightTerms - Whether to highlight query terms (default: false)
+   * @returns Formatted source citations array
    */
-  private static formatSourceCitations(results: SearchResult[]): Array<{
+  private static formatSourceCitations(
+    results: SearchResult[],
+    query?: string,
+    highlightTerms: boolean = false
+  ): Array<{
     contentId: string;
     contentType:
       | "recording"
@@ -138,6 +161,13 @@ export class ChatService {
     documentTitle?: string; // For knowledge documents
   }> {
     return results.map((result) => {
+      // Format excerpt with intelligent truncation
+      const excerpt = SearchResultFormatter.formatExcerpt(result, {
+        maxExcerptChars: 200,
+        highlightQueryTerms: highlightTerms,
+        query,
+      });
+
       // Handle knowledge documents differently
       if (result.contentType === "knowledge_document") {
         return {
@@ -147,10 +177,7 @@ export class ChatService {
             (result.metadata.documentTitle as string) ||
             (result.metadata.title as string) ||
             "Knowledge Document",
-          excerpt:
-            result.contentText.length > 200
-              ? result.contentText.substring(0, 200) + "..."
-              : result.contentText,
+          excerpt,
           similarityScore: result.similarity,
           documentId: result.metadata.documentId as string,
           documentTitle: result.metadata.documentTitle as string,
@@ -163,10 +190,7 @@ export class ChatService {
         contentType: result.contentType,
         title:
           result.metadata.title ?? result.metadata.recordingTitle ?? "Untitled",
-        excerpt:
-          result.contentText.length > 200
-            ? result.contentText.substring(0, 200) + "..."
-            : result.contentText,
+        excerpt,
         similarityScore: result.similarity,
         // For transcriptions, the contentId IS the recordingId
         recordingId:
@@ -1474,8 +1498,8 @@ Please answer the user's question based on this information. When referencing in
       }
 
       const results = searchResult.value;
-      const context = this.buildContextFromResults(results);
-      const sources = this.formatSourceCitations(results);
+      const context = this.buildContextFromResults(results, 4000);
+      const sources = this.formatSourceCitations(results, query, false);
 
       return ok({ context, sources });
     } catch (error) {
@@ -1539,12 +1563,14 @@ Please answer the user's question based on this information. When referencing in
       }
 
       const results = searchResult.value;
-      const context = this.buildContextFromResults(results);
-      const sources = this.formatSourceCitations(results).map((source) => ({
-        ...source,
-        projectId: results.find((r) => r.contentId === source.contentId)
-          ?.metadata.projectId as string | undefined,
-      }));
+      const context = this.buildContextFromResults(results, 4000);
+      const sources = this.formatSourceCitations(results, query, false).map(
+        (source) => ({
+          ...source,
+          projectId: results.find((r) => r.contentId === source.contentId)
+            ?.metadata.projectId as string | undefined,
+        })
+      );
 
       return ok({ context, sources });
     } catch (error) {

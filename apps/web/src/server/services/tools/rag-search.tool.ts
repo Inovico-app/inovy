@@ -21,6 +21,7 @@ import { err, ok } from "neverthrow";
 import { z } from "zod";
 import { RAGService } from "../rag/rag.service";
 import type { SearchResult } from "../rag/types";
+import { SearchResultFormatter } from "../search-result-formatter.service";
 
 /**
  * Input schema for RAG search tool
@@ -174,8 +175,17 @@ export class RAGSearchTool {
 
       const results = searchResult.value;
 
+      // Limit results by token count (default: 4000 tokens)
+      const limitedResults = SearchResultFormatter.limitResultsByTokens(
+        results,
+        4000
+      );
+
       // Format results for LLM consumption
-      const formattedResults = this.formatResultsForLLM(results);
+      const formattedResults = this.formatResultsForLLM(
+        limitedResults,
+        validatedInput.query
+      );
 
       const response: RAGSearchResponse = {
         results: formattedResults,
@@ -218,13 +228,31 @@ export class RAGSearchTool {
    *
    * Converts internal SearchResult format to a clean, structured format
    * that's easy for LLMs to parse and understand.
+   *
+   * @param results - Search results to format
+   * @param query - Optional query string for highlighting
    */
   private formatResultsForLLM(
-    results: SearchResult[]
+    results: SearchResult[],
+    query?: string
   ): FormattedSearchResult[] {
     return results.map((result) => {
       // Determine the best score to use (reranked if available, otherwise similarity)
       const score = result.rerankedScore ?? result.similarity;
+
+      // Format content with intelligent truncation and optional highlighting
+      // For LLM consumption, we can include more content than excerpts
+      const maxContentChars = 500; // More generous for full content
+      const { text: formattedContent } =
+        SearchResultFormatter.truncateIntelligently(
+          result.contentText,
+          maxContentChars
+        );
+
+      // Optionally highlight query terms
+      const content = query
+        ? SearchResultFormatter.highlightQueryTerms(formattedContent, query)
+        : formattedContent;
 
       // Extract key metadata fields
       const metadata: FormattedSearchResult["metadata"] = {
@@ -253,7 +281,7 @@ export class RAGSearchTool {
       }
 
       return {
-        content: result.contentText,
+        content,
         score,
         metadata,
       };
