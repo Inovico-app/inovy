@@ -46,7 +46,8 @@ export function AgentConfigListClient({
 
   // Pagination
   const totalPages = Math.ceil(filteredOrganizations.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const validCurrentPage = Math.min(currentPage, Math.max(1, totalPages));
+  const startIndex = (validCurrentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedOrganizations = filteredOrganizations.slice(
     startIndex,

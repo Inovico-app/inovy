@@ -403,7 +403,7 @@ export function UnifiedChatInterface({
         </div>
 
         {/* Agent Disabled Banner */}
-        <Activity mode={agentEnabled ? "visible" : "hidden"}>
+        <Activity mode={!agentEnabled ? "visible" : "hidden"}>
           <div className="p-4 shrink-0">
             <AgentDisabledBanner organizationName={organizationName} />
           </div>
