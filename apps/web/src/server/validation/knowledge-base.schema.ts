@@ -152,6 +152,60 @@ export type UploadKnowledgeDocumentInput = z.infer<
 >;
 
 /**
+ * Batch upload knowledge document schema
+ */
+export const uploadKnowledgeDocumentsBatchSchema = z
+  .object({
+    scope: knowledgeBaseScopeSchema,
+    scopeId: z.string().nullable(),
+    files: z
+      .array(
+        z.object({
+          title: z
+            .string()
+            .trim()
+            .min(1, "Title is required")
+            .max(200, "Title must be less than 200 characters"),
+          description: z
+            .string()
+            .max(1000, "Description must be less than 1000 characters")
+            .nullable()
+            .optional(),
+        })
+      )
+      .min(1, "At least one file is required")
+      .max(20, "Maximum 20 files allowed per batch"),
+    sharedDescription: z
+      .string()
+      .max(1000, "Description must be less than 1000 characters")
+      .nullable()
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.scope === "global") {
+      if (data.scopeId !== null && data.scopeId !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "scopeId must be null or undefined when scope is 'global'",
+          path: ["scopeId"],
+        });
+      }
+    } else if (data.scope === "project" || data.scope === "organization") {
+      if (!data.scopeId || data.scopeId.trim() === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `scopeId is required and must be a non-empty string when scope is '${data.scope}'`,
+          path: ["scopeId"],
+        });
+      }
+    }
+  });
+
+export type UploadKnowledgeDocumentsBatchInput = z.infer<
+  typeof uploadKnowledgeDocumentsBatchSchema
+>;
+
+/**
  * Search knowledge schema
  */
 export const searchKnowledgeSchema = z

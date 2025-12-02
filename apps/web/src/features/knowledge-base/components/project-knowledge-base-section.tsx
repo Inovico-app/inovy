@@ -146,7 +146,7 @@ export function ProjectKnowledgeBaseSection({
                 variant="outline"
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
-                Upload Document
+                Batch Upload Documents
               </Button>
             </div>
           )}
@@ -186,6 +186,7 @@ export function ProjectKnowledgeBaseSection({
               canEdit={canEdit}
               onEntryUpdated={handleEntryUpdated}
               onEntryDeleted={handleEntryDeleted}
+              onCreateClick={() => setShowCreateEntryDialog(true)}
             />
           </TabsContent>
           <TabsContent value="documents" className="mt-4">
@@ -195,6 +196,7 @@ export function ProjectKnowledgeBaseSection({
               scopeId={projectId}
               canEdit={canEdit}
               onDocumentDeleted={handleDocumentDeleted}
+              onUploadClick={() => setShowUploadDocumentDialog(true)}
             />
           </TabsContent>
         </Tabs>
