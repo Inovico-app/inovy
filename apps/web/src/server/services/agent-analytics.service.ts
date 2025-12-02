@@ -272,6 +272,7 @@ export class AgentAnalyticsService {
 
   /**
    * Get users list for filters
+   * For non-superadmins, only returns users from their organization
    */
   static async getUsersList(
     organizationId?: string
@@ -284,6 +285,39 @@ export class AgentAnalyticsService {
     }
 
     try {
+      const hasSuperAdminPermission = await checkPermission(
+        Permissions.superadmin.all
+      );
+
+      // For non-superadmins, enforce organization scope
+      if (!hasSuperAdminPermission) {
+        const authResult = await getAuthSession();
+        if (authResult.isErr() || !authResult.value.organization) {
+          logger.error("Failed to get user organization for access control", {
+            error: authResult.isErr()
+              ? authResult.error
+              : "No organization found",
+          });
+          return err(new Error("Unauthorized: Organization access required"));
+        }
+
+        const userOrganizationId = authResult.value.organization.id;
+
+        // If organizationId was provided and doesn't match user's organization, deny access
+        if (organizationId && organizationId !== userOrganizationId) {
+          logger.error("Unauthorized cross-organization access attempt", {
+            requestedOrganizationId: organizationId,
+            userOrganizationId,
+          });
+          return err(
+            new Error("Unauthorized: Cannot access other organization's users")
+          );
+        }
+
+        // Override with user's organizationId to enforce scope
+        organizationId = userOrganizationId;
+      }
+
       const data = await AgentAnalyticsQueries.getUsersList(organizationId);
       return ok(data);
     } catch (error) {
@@ -321,9 +355,7 @@ export class AgentAnalyticsService {
       logger.error(errorMessage, {
         error: error instanceof Error ? error.message : String(error),
       });
-      return err(
-        error instanceof Error ? error : new Error(errorMessage)
-      );
+      return err(error instanceof Error ? error : new Error(errorMessage));
     }
   }
 
