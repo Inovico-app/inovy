@@ -3,6 +3,7 @@
 import { authClient } from "@/lib/auth-client";
 import { Permissions } from "@/lib/rbac/permissions";
 import {
+  ActivityIcon,
   BarChart3Icon,
   BotIcon,
   Building2Icon,
@@ -40,8 +41,14 @@ const BASE_ADMIN_MENU_ITEMS: MenuItem[] = [
   {
     href: "/admin/agent-analytics",
     icon: BarChart3Icon,
-    title: "Agent Analytics",
-    description: "Monitor agent usage and performance",
+    title: "User Analytics",
+    description: "User engagement and feedback metrics",
+  },
+  {
+    href: "/admin/agent-metrics",
+    icon: ActivityIcon,
+    title: "Agent Metrics",
+    description: "System-wide metrics and detailed records",
   },
 ];
 
