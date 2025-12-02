@@ -71,6 +71,15 @@ export class ChatQueries {
       .set({ title, updatedAt: new Date() })
       .where(eq(chatConversations.id, conversationId));
   }
+  static async updateConversationSummary(
+    conversationId: string,
+    summary: string
+  ): Promise<void> {
+    await db
+      .update(chatConversations)
+      .set({ summary, updatedAt: new Date() })
+      .where(eq(chatConversations.id, conversationId));
+  }
   static async createMessage(message: NewChatMessage): Promise<ChatMessage> {
     const [result] = await db.insert(chatMessages).values(message).returning();
     await db

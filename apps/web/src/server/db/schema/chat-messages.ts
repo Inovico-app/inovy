@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, jsonb, index, integer } from "drizzle-orm/pg-core";
 import { chatConversations } from "./chat-conversations";
 
 export const messageRoleEnum = ["user", "assistant"] as const;
@@ -23,6 +23,13 @@ interface SourceReference {
   documentTitle?: string;
 }
 
+export interface ToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+  result?: string | Record<string, unknown>;
+}
+
 export const chatMessages = pgTable(
   "chat_messages",
   {
@@ -33,6 +40,8 @@ export const chatMessages = pgTable(
     role: text("role", { enum: messageRoleEnum }).notNull(),
     content: text("content").notNull(),
     sources: jsonb("sources").$type<SourceReference[]>(), // Source citations for assistant messages
+    toolCalls: jsonb("tool_calls").$type<ToolCall[]>(), // Tool calls made by assistant
+    tokenCount: integer("token_count"), // Cached token count for optimization (optional)
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -47,5 +56,5 @@ export const chatMessages = pgTable(
 
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type NewChatMessage = typeof chatMessages.$inferInsert;
-export type { SourceReference };
+export type { SourceReference, ToolCall };
 

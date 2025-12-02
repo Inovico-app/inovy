@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, index } from "drizzle-orm/pg-core";
+import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
 
 export const chatConversations = pgTable(
@@ -12,6 +12,7 @@ export const chatConversations = pgTable(
     organizationId: text("organization_id").notNull(), // Better Auth organization ID
     context: text("context", { enum: ["project", "organization"] }).notNull(), // Conversation context
     title: text("title"), // Optional title, auto-generated from first message
+    summary: text("summary"), // Conversation summary for long histories
     deletedAt: timestamp("deleted_at", { withTimezone: true }), // Soft delete timestamp
     archivedAt: timestamp("archived_at", { withTimezone: true }), // Archive timestamp
     createdAt: timestamp("created_at", { withTimezone: true })
