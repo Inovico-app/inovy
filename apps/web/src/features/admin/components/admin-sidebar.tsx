@@ -37,33 +37,31 @@ const BASE_ADMIN_MENU_ITEMS: MenuItem[] = [
     title: "Audit Logs",
     description: "Track system events",
   },
+  {
+    href: "/admin/agent-analytics",
+    icon: BarChart3Icon,
+    title: "Agent Analytics",
+    description: "Monitor agent usage and performance",
+  },
 ];
 
 // Only show Organizations for superadmins
 const SUPER_ADMIN_MENU_ITEMS: MenuItem[] = [
-  {
-    href: "/admin/organizations",
-    icon: Building2Icon,
-    title: "Organizations",
-    description: "View and edit organizations",
-  },
   {
     href: "/admin/agent-config",
     icon: BotIcon,
     title: "Agent Configuration",
     description: "Manage agent access per organization",
   },
+  {
+    href: "/admin/organizations",
+    icon: Building2Icon,
+    title: "Organizations",
+    description: "View and edit organizations",
+  },
 ];
 
 const INACTIVE_MENU_ITEMS: MenuItem[] = [
-  {
-    href: "#",
-    icon: BarChart3Icon,
-    title: "System Analytics",
-    description: "View statistics",
-    disabled: true,
-    badge: "Soon",
-  },
   {
     href: "#",
     icon: SettingsIcon,
@@ -93,7 +91,7 @@ export function AdminSidebar() {
   ];
 
   return (
-    <aside className="w-72 border-r bg-card/50 p-6 flex-shrink-0">
+    <aside className="sticky top-0 h-screen w-72 border-r bg-card/50 p-6 flex-shrink-0 overflow-y-auto">
       <div className="mb-8">
         <h2 className="text-lg font-semibold mb-1">Admin</h2>
         <p className="text-sm text-muted-foreground">Manage your system</p>
