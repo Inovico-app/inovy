@@ -538,5 +538,150 @@ export class AgentAnalyticsService {
       );
     }
   }
+
+  /**
+   * Get user-specific engagement metrics
+   */
+  static async getUserEngagementMetrics(
+    userId: string,
+    organizationId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<
+    Result<
+      {
+        totalConversations: number;
+        totalMessages: number;
+        averageMessagesPerConversation: number;
+        filesProcessed: number;
+        filesUsedInResponses: Array<{ contentType: string; count: number }>;
+        projectEngagement: Array<{
+          projectId: string;
+          projectName: string;
+          conversationCount: number;
+          messageCount: number;
+        }>;
+        uniqueProjectsCount: number;
+        queryComplexity: {
+          averageQueryLength: number;
+          averageTokenCount: number;
+          totalTokens: number;
+          averageLatency: number;
+          errorRate: number;
+        };
+        sourcePreference: {
+          knowledgeBaseUsage: number;
+          recordingUsage: number;
+          taskUsage: number;
+          transcriptionUsage: number;
+          summaryUsage: number;
+          totalResponses: number;
+          knowledgeBasePercentage: number;
+        };
+        conversationPatterns: {
+          averageDuration: number;
+          longestConversation: number;
+          singleMessageConversations: number;
+          singleMessagePercentage: number;
+        };
+        qualityIndicators: {
+          averageResponseQuality: number;
+          followUpRate: number;
+          reEngagementRate: number;
+          averageSourcesPerResponse: number;
+        };
+      },
+      Error
+    >
+  > {
+    const permissionResult = await this.checkAdminPermission();
+    if (permissionResult.isErr()) {
+      return err(permissionResult.error);
+    }
+
+    try {
+      const [
+        engagementMetrics,
+        filesUsed,
+        projectEngagement,
+        uniqueProjectsCount,
+        queryComplexity,
+        sourcePreference,
+        conversationPatterns,
+        qualityIndicators,
+      ] = await Promise.all([
+        AgentAnalyticsQueries.getUserEngagementMetrics(
+          userId,
+          organizationId,
+          startDate,
+          endDate
+        ),
+        AgentAnalyticsQueries.getFilesUsedInResponses(
+          userId,
+          organizationId,
+          startDate,
+          endDate
+        ),
+        AgentAnalyticsQueries.getUserProjectEngagement(
+          userId,
+          organizationId,
+          startDate,
+          endDate
+        ),
+        AgentAnalyticsQueries.getUserUniqueProjectsCount(
+          userId,
+          organizationId,
+          startDate,
+          endDate
+        ),
+        AgentAnalyticsQueries.getUserQueryComplexity(
+          userId,
+          organizationId,
+          startDate,
+          endDate
+        ),
+        AgentAnalyticsQueries.getUserSourcePreference(
+          userId,
+          organizationId,
+          startDate,
+          endDate
+        ),
+        AgentAnalyticsQueries.getUserConversationPatterns(
+          userId,
+          organizationId,
+          startDate,
+          endDate
+        ),
+        AgentAnalyticsQueries.getUserQualityIndicators(
+          userId,
+          organizationId,
+          startDate,
+          endDate
+        ),
+      ]);
+
+      return ok({
+        ...engagementMetrics,
+        filesUsedInResponses: filesUsed,
+        projectEngagement,
+        uniqueProjectsCount,
+        queryComplexity,
+        sourcePreference,
+        conversationPatterns,
+        qualityIndicators,
+      });
+    } catch (error) {
+      logger.error("Failed to get user engagement metrics", {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+        organizationId,
+      });
+      return err(
+        error instanceof Error
+          ? error
+          : new Error("Failed to get user engagement metrics")
+      );
+    }
+  }
 }
 
