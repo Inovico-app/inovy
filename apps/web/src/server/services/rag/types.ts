@@ -44,6 +44,70 @@ export interface QdrantSearchOptions {
   limit?: number;
   scoreThreshold?: number;
   filter?: QdrantFilter;
+  efSearch?: number; // HNSW ef_search parameter for query-time tuning
+}
+
+/**
+ * Scalar quantization configuration
+ * Compresses vectors to int8 for ~75% memory reduction
+ */
+export interface ScalarQuantizationConfig {
+  type: "int8";
+  quantile?: number; // Quantile for quantization (0.0-1.0, default: 0.99)
+  always_ram?: boolean; // Keep quantized vectors in RAM (default: true)
+}
+
+/**
+ * Quantization configuration for Qdrant collections
+ */
+export interface QuantizationConfig {
+  scalar?: ScalarQuantizationConfig;
+}
+
+/**
+ * Optimizer configuration for segment management
+ */
+export interface OptimizersConfig {
+  deleted_threshold?: number; // Threshold for deleted points before vacuum
+  vacuum_min_vector_number?: number; // Minimum vectors before vacuum
+  default_segment_number?: number; // Default number of segments
+  max_segment_size?: number; // Maximum segment size
+  memmap_threshold?: number; // Threshold for memory-mapped storage
+  indexing_threshold?: number; // Threshold for indexing
+  flush_interval_sec?: number; // Flush interval in seconds
+  max_optimization_threads?: number; // Max threads for optimization
+}
+
+/**
+ * HNSW index configuration
+ */
+export interface HNSWConfig {
+  m?: number; // Number of connections per node (default: 16)
+  ef_construct?: number; // Construction time accuracy/speed trade-off (default: 100)
+  full_scan_threshold?: number; // Threshold for full scan vs HNSW
+  max_indexing_threads?: number; // Max threads for indexing
+  on_disk?: boolean; // Store index on disk
+}
+
+/**
+ * Options for updating a Qdrant collection
+ */
+export interface CollectionUpdateOptions {
+  optimizers_config?: OptimizersConfig;
+  hnsw_config?: HNSWConfig;
+  quantization_config?: QuantizationConfig;
+  on_disk_payload?: boolean;
+}
+
+/**
+ * Optimization status information
+ */
+export interface OptimizationStatus {
+  optimized: boolean;
+  optimizing: boolean;
+  segments_count?: number;
+  points_count?: number;
+  indexed_points_count?: number;
 }
 
 // RAG Service Types

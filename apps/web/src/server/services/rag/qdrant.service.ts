@@ -6,6 +6,8 @@ import {
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { err, ok } from "neverthrow";
 import type {
+  CollectionUpdateOptions,
+  OptimizationStatus,
   QdrantFilter,
   QdrantPayload,
   QdrantPoint,
@@ -22,7 +24,16 @@ import type {
  * - Collection name: knowledge_base
  * - Vector size: 3072 (OpenAI text-embedding-3-large)
  * - Distance metric: Cosine
- * - HNSW index: m=16, ef_construct=100
+ * - HNSW index: m=16, ef_construct=100, ef_search=100-200
+ * - Quantization: Scalar int8 with original vectors on disk (~75% memory reduction)
+ * - On-disk payload: Enabled for large payloads
+ * - Optimizer: Configured for efficient segment management
+ *
+ * Performance Optimizations:
+ * - Scalar quantization reduces memory usage by ~75% while maintaining search accuracy
+ * - On-disk payload storage frees RAM for vector operations
+ * - Optimizer configuration reduces fragmentation and improves search speed
+ * - ef_search parameter allows query-time tuning of accuracy vs speed
  */
 
 const MAX_RETRIES = 3;
@@ -74,6 +85,15 @@ export class QdrantClientService {
   /**
    * Initialize collection and payload indices
    * Idempotent - safe to call multiple times
+   *
+   * Creates an optimized collection with:
+   * - Scalar quantization (int8) for ~75% memory reduction
+   * - On-disk payload storage for large payloads
+   * - Optimizer configuration for efficient segment management
+   * - HNSW index with optimized parameters
+   *
+   * New collections are automatically created with these optimizations.
+   * Existing collections can be optimized using updateCollection() and optimizeCollection().
    */
   async initialize(collectionName?: string): Promise<ActionResult<void>> {
     const targetCollection = collectionName ?? this.defaultCollectionName;
@@ -90,7 +110,7 @@ export class QdrantClientService {
       );
 
       if (!collectionExists) {
-        logger.info("Creating Qdrant collection", {
+        logger.info("Creating optimized Qdrant collection", {
           component: "QdrantClientService",
           collectionName: targetCollection,
         });
@@ -99,16 +119,35 @@ export class QdrantClientService {
           vectors: {
             size: 3072, // OpenAI text-embedding-3-large dimensions
             distance: "Cosine",
+            on_disk: true, // Store original vectors on disk
           },
           hnsw_config: {
-            m: 16,
-            ef_construct: 100,
+            m: 16, // Number of connections per node (good balance)
+            ef_construct: 100, // Construction time accuracy/speed trade-off
+          },
+          quantization_config: {
+            scalar: {
+              type: "int8",
+              always_ram: true, // Keep quantized vectors in RAM for fast search
+            },
+          },
+          on_disk_payload: true, // Store payloads on disk to free RAM
+          optimizers_config: {
+            default_segment_number: 2,
+            max_segment_size: 100000,
+            memmap_threshold: 50000,
+            indexing_threshold: 20000,
           },
         });
 
-        logger.info("Qdrant collection created", {
+        logger.info("Optimized Qdrant collection created", {
           component: "QdrantClientService",
           collectionName: targetCollection,
+          optimizations: [
+            "scalar_quantization",
+            "on_disk_payload",
+            "optimizer_config",
+          ],
         });
       }
 
@@ -117,6 +156,180 @@ export class QdrantClientService {
 
       this.initializedCollections.add(targetCollection);
       return ok(undefined);
+    });
+  }
+
+  /**
+   * Update collection configuration
+   * Allows updating optimizer settings, HNSW parameters, quantization, and payload storage
+   * Note: Some changes (like enabling quantization) may require reindexing
+   */
+  async updateCollection(
+    options: CollectionUpdateOptions,
+    collectionName?: string
+  ): Promise<ActionResult<void>> {
+    const targetCollection = collectionName ?? this.defaultCollectionName;
+
+    return await this.executeWithRetry(async () => {
+      // Check if collection exists
+      const collections = await this.client.getCollections();
+      const collectionExists = collections.collections.some(
+        (c) => c.name === targetCollection
+      );
+
+      if (!collectionExists) {
+        return err(
+          ActionErrors.notFound(
+            `Collection ${targetCollection} does not exist`,
+            "QdrantClientService.updateCollection"
+          )
+        );
+      }
+
+      logger.info("Updating Qdrant collection configuration", {
+        component: "QdrantClientService",
+        collectionName: targetCollection,
+        updates: Object.keys(options),
+      });
+
+      const updateParams: Record<string, unknown> = {};
+
+      if (options.optimizers_config) {
+        updateParams.optimizers_config = options.optimizers_config;
+      }
+
+      if (options.hnsw_config) {
+        updateParams.hnsw_config = options.hnsw_config;
+      }
+
+      if (options.quantization_config) {
+        updateParams.quantization_config = options.quantization_config;
+      }
+
+      if (options.on_disk_payload !== undefined) {
+        updateParams.on_disk_payload = options.on_disk_payload;
+      }
+
+      await this.client.updateCollection(targetCollection, updateParams);
+
+      logger.info("Qdrant collection configuration updated", {
+        component: "QdrantClientService",
+        collectionName: targetCollection,
+      });
+
+      return ok(undefined);
+    });
+  }
+
+  /**
+   * Optimize collection (vacuum and merge segments)
+   * Triggers Qdrant's built-in optimization to improve search performance
+   * and reduce fragmentation
+   */
+  async optimizeCollection(
+    collectionName?: string,
+    options?: { wait?: boolean }
+  ): Promise<ActionResult<OptimizationStatus>> {
+    const targetCollection = collectionName ?? this.defaultCollectionName;
+
+    return await this.executeWithRetry(async () => {
+      // Check if collection exists
+      const collections = await this.client.getCollections();
+      const collectionExists = collections.collections.some(
+        (c) => c.name === targetCollection
+      );
+
+      if (!collectionExists) {
+        return err(
+          ActionErrors.notFound(
+            `Collection ${targetCollection} does not exist`,
+            "QdrantClientService.optimizeCollection"
+          )
+        );
+      }
+
+      logger.info("Optimizing Qdrant collection", {
+        component: "QdrantClientService",
+        collectionName: targetCollection,
+      });
+
+      // Get collection info before optimization
+      const collectionInfo = await this.client.getCollection(targetCollection);
+      const beforeStatus: OptimizationStatus = {
+        optimized: false,
+        optimizing: false,
+        segments_count: collectionInfo.segments_count ?? undefined,
+        points_count: collectionInfo.points_count ?? undefined,
+        indexed_points_count: collectionInfo.indexed_vectors_count ?? undefined,
+      };
+
+      // Trigger optimization by calling updateCollection with current config
+      // This triggers the optimizer to run
+      const currentParams = collectionInfo.config.params as {
+        optimizers_config?: Record<string, unknown>;
+      };
+      await this.client.updateCollection(targetCollection, {
+        optimizers_config: currentParams.optimizers_config as
+          | Record<string, unknown>
+          | undefined,
+      });
+
+      // Wait for optimization if requested
+      if (options?.wait) {
+        // Poll collection status until optimization completes
+        let attempts = 0;
+        const maxAttempts = 60; // 5 minutes max wait time
+        while (attempts < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
+
+          const updatedInfo = await this.client.getCollection(targetCollection);
+          const optimizerStatus = updatedInfo.optimizer_status;
+
+          // Check if optimization is still running
+          const isOptimizing =
+            optimizerStatus &&
+            typeof optimizerStatus === "object" &&
+            "error" in optimizerStatus &&
+            optimizerStatus.error !== undefined;
+
+          if (!isOptimizing) {
+            const afterStatus: OptimizationStatus = {
+              optimized: true,
+              optimizing: false,
+              segments_count: updatedInfo.segments_count ?? undefined,
+              points_count: updatedInfo.points_count ?? undefined,
+              indexed_points_count:
+                updatedInfo.indexed_vectors_count ?? undefined,
+            };
+
+            logger.info("Qdrant collection optimization completed", {
+              component: "QdrantClientService",
+              collectionName: targetCollection,
+              beforeSegments: beforeStatus.segments_count,
+              afterSegments: afterStatus.segments_count,
+            });
+
+            return ok(afterStatus);
+          }
+
+          attempts++;
+        }
+
+        logger.warn("Qdrant collection optimization timeout", {
+          component: "QdrantClientService",
+          collectionName: targetCollection,
+        });
+      }
+
+      const status: OptimizationStatus = {
+        optimized: false,
+        optimizing: true,
+        segments_count: collectionInfo.segments_count ?? undefined,
+        points_count: collectionInfo.points_count ?? undefined,
+        indexed_points_count: collectionInfo.indexed_vectors_count ?? undefined,
+      };
+
+      return ok(status);
     });
   }
 
@@ -244,6 +457,12 @@ export class QdrantClientService {
 
   /**
    * Search for similar vectors
+   *
+   * @param queryVector - Query vector to search for
+   * @param options - Search options including limit, score threshold, filter, and ef_search
+   * @param options.efSearch - HNSW ef_search parameter for query-time tuning (default: 100)
+   *                          Higher values improve recall at the cost of search speed
+   *                          Recommended range: 100-200 for balanced performance
    */
   async search(
     queryVector: number[],
@@ -259,7 +478,7 @@ export class QdrantClientService {
   > {
     const targetCollection =
       options.collectionName ?? this.defaultCollectionName;
-    const { collectionName: _, ...searchOptions } = options;
+    const { collectionName: _, efSearch, ...searchOptions } = options;
 
     // Ensure collection is initialized
     const initResult = await this.initialize(targetCollection);
@@ -268,12 +487,30 @@ export class QdrantClientService {
     }
 
     return await this.executeWithRetry(async () => {
-      const searchResult = await this.client.search(targetCollection, {
+      const searchParams: {
+        vector: number[];
+        limit?: number;
+        score_threshold?: number | null;
+        filter?: Record<string, unknown>;
+        params?: { ef?: number };
+      } = {
         vector: queryVector,
         limit: searchOptions.limit ?? 10,
-        score_threshold: searchOptions.scoreThreshold,
+        score_threshold: searchOptions.scoreThreshold ?? null,
         filter: searchOptions.filter as Record<string, unknown> | undefined,
-      });
+      };
+
+      // Add ef_search parameter if provided (for HNSW tuning)
+      if (efSearch !== undefined && efSearch !== null) {
+        searchParams.params = {
+          ef: efSearch,
+        };
+      }
+
+      const searchResult = await this.client.search(
+        targetCollection,
+        searchParams
+      );
 
       const results = searchResult.map((result) => ({
         id: result.id,
@@ -285,6 +522,7 @@ export class QdrantClientService {
         component: "QdrantClientService",
         collectionName: targetCollection,
         resultCount: results.length,
+        efSearch: efSearch ?? "default",
       });
 
       return ok(results);
