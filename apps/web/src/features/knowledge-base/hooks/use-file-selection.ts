@@ -21,6 +21,65 @@ export function useFileSelection() {
   const [selectedFiles, setSelectedFiles] = useState<FileWithMetadata[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
 
+  // Shared file processing logic for both input and drag-drop
+  const processFiles = (files: File[], currentFiles: FileWithMetadata[]) => {
+    if (files.length === 0) {
+      return { newFiles: [], errors: [] };
+    }
+
+    // Check batch size limit
+    if (currentFiles.length + files.length > MAX_BATCH_SIZE) {
+      return {
+        newFiles: [],
+        errors: [
+          `Maximum ${MAX_BATCH_SIZE} files allowed. Please select fewer files.`,
+        ],
+      };
+    }
+
+    const newFiles: FileWithMetadata[] = [];
+    const errors: string[] = [];
+
+    for (const file of files) {
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        errors.push(
+          `${file.name}: File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`
+        );
+        continue;
+      }
+
+      // Validate file type
+      if (
+        !ALLOWED_FILE_TYPES.includes(
+          file.type as (typeof ALLOWED_FILE_TYPES)[number]
+        )
+      ) {
+        errors.push(
+          `${file.name}: File type not supported. Please upload PDF, Word, or text files.`
+        );
+        continue;
+      }
+
+      // Check for duplicate filenames
+      if (
+        currentFiles.some((f) => f.file.name === file.name) ||
+        newFiles.some((f) => f.file.name === file.name)
+      ) {
+        errors.push(`${file.name}: File already selected`);
+        continue;
+      }
+
+      newFiles.push({
+        file,
+        title: file.name.replace(/\.[^/.]+$/, ""),
+        id: generateId(),
+      });
+    }
+
+    return { newFiles, errors };
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (files.length === 0) {
@@ -29,54 +88,8 @@ export function useFileSelection() {
 
     setFileError(null);
 
-    // Check batch size limit
     setSelectedFiles((prev) => {
-      if (prev.length + files.length > MAX_BATCH_SIZE) {
-        setFileError(
-          `Maximum ${MAX_BATCH_SIZE} files allowed. Please select fewer files.`
-        );
-        return prev;
-      }
-
-      const newFiles: FileWithMetadata[] = [];
-      const errors: string[] = [];
-
-      for (const file of files) {
-        // Validate file size
-        if (file.size > MAX_FILE_SIZE) {
-          errors.push(
-            `${file.name}: File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`
-          );
-          continue;
-        }
-
-        // Validate file type
-        if (
-          !ALLOWED_FILE_TYPES.includes(
-            file.type as (typeof ALLOWED_FILE_TYPES)[number]
-          )
-        ) {
-          errors.push(
-            `${file.name}: File type not supported. Please upload PDF, Word, or text files.`
-          );
-          continue;
-        }
-
-        // Check for duplicate filenames
-        if (
-          prev.some((f) => f.file.name === file.name) ||
-          newFiles.some((f) => f.file.name === file.name)
-        ) {
-          errors.push(`${file.name}: File already selected`);
-          continue;
-        }
-
-        newFiles.push({
-          file,
-          title: file.name.replace(/\.[^/.]+$/, ""),
-          id: generateId(),
-        });
-      }
+      const { newFiles, errors } = processFiles(files, prev);
 
       if (errors.length > 0) {
         setFileError(errors.join("\n"));
@@ -87,6 +100,25 @@ export function useFileSelection() {
 
     // Reset input to allow re-selecting same files
     e.target.value = "";
+  };
+
+  const handleFilesDrop = (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) {
+      return;
+    }
+
+    setFileError(null);
+
+    setSelectedFiles((prev) => {
+      const { newFiles, errors } = processFiles(fileArray, prev);
+
+      if (errors.length > 0) {
+        setFileError(errors.join("\n"));
+      }
+
+      return newFiles.length > 0 ? [...prev, ...newFiles] : prev;
+    });
   };
 
   const removeFile = (id: string) => {
@@ -128,6 +160,7 @@ export function useFileSelection() {
     selectedFiles,
     fileError,
     handleFileChange,
+    handleFilesDrop,
     removeFile,
     updateFileMetadata,
     clearFiles,
