@@ -120,6 +120,8 @@ export function Sidebar() {
           size="icon"
           onClick={toggleCollapsed}
           className={cn("h-8 w-8", collapsed && "mx-auto")}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!collapsed}
         >
           {collapsed ? (
             <ChevronRight className="h-4 w-4" />

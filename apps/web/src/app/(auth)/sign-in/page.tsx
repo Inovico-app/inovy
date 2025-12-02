@@ -70,6 +70,8 @@ export default function SignInPage() {
         <CardContent className="space-y-4">
           {/* Email/Password Sign In */}
           <form onSubmit={handleEmailSignIn} className="space-y-4">
+            <fieldset className="space-y-4" disabled={isLoading}>
+              <legend className="sr-only">Sign in with email and password</legend>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -104,9 +106,10 @@ export default function SignInPage() {
                 disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isSigningIn ? "Signing in..." : "Sign in"}
-            </Button>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isSigningIn ? "Signing in..." : "Sign in"}
+              </Button>
+            </fieldset>
           </form>
 
           <div className="relative">
@@ -121,7 +124,9 @@ export default function SignInPage() {
           </div>
 
           {/* Social Sign In */}
-          <div className="grid grid-cols-2 gap-4">
+          <fieldset disabled={isLoading}>
+            <legend className="sr-only">Sign in with social provider</legend>
+            <div className="grid grid-cols-2 gap-4">
             <Button
               type="button"
               variant="outline"
@@ -163,16 +168,19 @@ export default function SignInPage() {
               </svg>
               Microsoft
             </Button>
-          </div>
+            </div>
+          </fieldset>
 
           {/* Passkey Sign In */}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={signInPasskey}
-            disabled={isLoading}
-            className="w-full"
-          >
+          <fieldset disabled={isLoading} className="w-full">
+            <legend className="sr-only">Sign in with passkey</legend>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={signInPasskey}
+              disabled={isLoading}
+              className="w-full"
+            >
             {isPasskeyLoading ? (
               "Authenticating..."
             ) : (
@@ -182,6 +190,7 @@ export default function SignInPage() {
               </>
             )}
           </Button>
+          </fieldset>
 
           {/* Magic Link */}
           <div className="relative">
@@ -196,20 +205,27 @@ export default function SignInPage() {
           </div>
 
           <form onSubmit={handleMagicLink} className="space-y-2">
-            <div className="flex gap-2">
-              <Input
-                type="email"
-                placeholder="you@example.com"
-                value={magicLinkEmail}
-                onChange={(e) => setMagicLinkEmail(e.target.value)}
-                required
-                disabled={isLoading}
-                className="flex-1"
-              />
-              <Button type="submit" disabled={isLoading}>
-                Send
-              </Button>
+            <fieldset disabled={isLoading} className="space-y-2">
+              <legend className="sr-only">Sign in with magic link</legend>
+              <div className="space-y-2">
+                <Label htmlFor="magic-link-email">Email</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="magic-link-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={magicLinkEmail}
+                  onChange={(e) => setMagicLinkEmail(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="flex-1"
+                />
+                <Button type="submit" disabled={isLoading}>
+                  Send
+                </Button>
+              </div>
             </div>
+            </fieldset>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
