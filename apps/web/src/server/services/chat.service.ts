@@ -4,6 +4,7 @@ import {
   ActionErrors,
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
+import { getCachedAgentSettings } from "@/server/cache/agent-settings.cache";
 import { getCachedOrganizationSettings } from "@/server/cache/organization-settings.cache";
 import { ChatQueries } from "@/server/data-access/chat.queries";
 import type {
@@ -647,6 +648,9 @@ Please answer the user's question based on this information.`
         orgInstructions = orgSettings?.instructions ?? null;
       }
 
+      // Get agent settings for configuration
+      const agentSettings = await getCachedAgentSettings();
+
       // Create the full prompt with context
       // Include conversation summary if available
       let ragContextWithSummary = context
@@ -684,8 +688,11 @@ Please answer the user's question based on this information.`
         connectionPool.getOpenAIClientWithTracking();
       let streamError: Error | null = null;
 
-      const result = streamText({
-        model: openai("gpt-5-nano"),
+      // GPT-5-nano (reasoning models) don't support temperature, topP, frequencyPenalty, presencePenalty
+      const isReasoningModel = agentSettings.model === "gpt-5-nano";
+
+      const streamTextOptions: Parameters<typeof streamText>[0] = {
+        model: openai(agentSettings.model),
         system: promptResult.systemPrompt,
         messages: [
           ...conversationHistory,
@@ -747,7 +754,17 @@ Please answer the user's question based on this information.`
 
           logger.info("Chat streaming completed", { conversationId });
         },
-      });
+      };
+
+      // Only include these parameters for non-reasoning models
+      if (!isReasoningModel) {
+        streamTextOptions.temperature = agentSettings.temperature;
+        streamTextOptions.topP = agentSettings.topP;
+        streamTextOptions.frequencyPenalty = agentSettings.frequencyPenalty;
+        streamTextOptions.presencePenalty = agentSettings.presencePenalty;
+      }
+
+      const result = streamText(streamTextOptions);
 
       // If stream error occurred immediately, decrement and throw
       if (streamError) {
@@ -870,6 +887,9 @@ Please answer the user's question based on this information.`
       const orgSettings = await getCachedOrganizationSettings(organizationId);
       const orgInstructions = orgSettings?.instructions ?? null;
 
+      // Get agent settings for configuration
+      const agentSettings = await getCachedAgentSettings();
+
       // Fetch knowledge base context for organization (org + global)
       const knowledgeResult = await KnowledgeBaseService.buildKnowledgeContext(
         null, // No project ID for org-level
@@ -913,8 +933,11 @@ Please answer the user's question based on this information. When referencing in
         connectionPool.getOpenAIClientWithTracking();
       let streamError: Error | null = null;
 
-      const result = streamText({
-        model: openai("gpt-5-nano"),
+      // GPT-5-nano (reasoning models) don't support temperature, topP, frequencyPenalty, presencePenalty
+      const isReasoningModel = agentSettings.model === "gpt-5-nano";
+
+      const streamTextOptions: Parameters<typeof streamText>[0] = {
+        model: openai(agentSettings.model),
         system: promptResult.systemPrompt,
         messages: [
           ...conversationHistory,
@@ -977,7 +1000,17 @@ Please answer the user's question based on this information. When referencing in
             conversationId,
           });
         },
-      });
+      };
+
+      // Only include these parameters for non-reasoning models
+      if (!isReasoningModel) {
+        streamTextOptions.temperature = agentSettings.temperature;
+        streamTextOptions.topP = agentSettings.topP;
+        streamTextOptions.frequencyPenalty = agentSettings.frequencyPenalty;
+        streamTextOptions.presencePenalty = agentSettings.presencePenalty;
+      }
+
+      const result = streamText(streamTextOptions);
 
       // If stream error occurred immediately, decrement and throw
       if (streamError) {

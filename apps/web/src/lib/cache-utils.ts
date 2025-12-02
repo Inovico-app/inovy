@@ -9,6 +9,9 @@ import { updateTag as nextUpdateTag, revalidateTag } from "next/cache";
  * Generate cache tags for different entity types
  */
 export const CacheTags = {
+  // Agent settings tags
+  agentSettings: () => `agent-settings`,
+
   // Project tags
   project: (projectId: string) => `project:${projectId}`,
   projectsByOrg: (orgCode: string) => `projects:org:${orgCode}`,
@@ -116,7 +119,8 @@ export const CacheTags = {
   team: (teamId: string) => `team:${teamId}`,
   teamsByOrg: (orgCode: string) => `teams:org:${orgCode}`,
   teamMembers: (teamId: string) => `team-members:${teamId}`,
-  teamsByDepartment: (departmentId: string) => `teams:department:${departmentId}`,
+  teamsByDepartment: (departmentId: string) =>
+    `teams:department:${departmentId}`,
   userTeams: (userId: string, orgCode: string) =>
     `user-teams:user:${userId}:org:${orgCode}`,
 

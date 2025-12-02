@@ -1,5 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentConfigList } from "@/features/admin/components/agent/agent-config-list";
+import { AgentSettings } from "@/features/admin/components/agent/agent-settings";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
@@ -38,21 +40,42 @@ async function AgentConfigContent() {
       <div className="mb-10">
         <h1 className="text-3xl font-bold">Agent Configuration</h1>
         <p className="text-muted-foreground mt-2">
-          Enable or disable the AI agent for specific organizations
+          Configure agent settings and manage agent access for organizations
         </p>
       </div>
 
-      <Suspense
-        fallback={
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-24 w-full" />
-            ))}
-          </div>
-        }
-      >
-        <AgentConfigList />
-      </Suspense>
+      <Tabs defaultValue="organizations" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="organizations">Organizations</TabsTrigger>
+          <TabsTrigger value="settings">Agent Settings</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="organizations" className="space-y-4">
+          <Suspense
+            fallback={
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-24 w-full" />
+                ))}
+              </div>
+            }
+          >
+            <AgentConfigList />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-4">
+          <Suspense
+            fallback={
+              <div className="space-y-4">
+                <Skeleton className="h-64 w-full" />
+              </div>
+            }
+          >
+            <AgentSettings />
+          </Suspense>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
