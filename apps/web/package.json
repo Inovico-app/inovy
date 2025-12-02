@@ -17,6 +17,7 @@
     "lint": "eslint --ext .js,.jsx,.ts,.tsx src --fix --max-warnings 0",
     "typecheck": "tsc",
     "index-project": "npx tsx --env-file=.env.local src/scripts/index-project-content.ts",
+    "optimize-qdrant": "npx tsx --env-file=.env.local src/scripts/optimize-qdrant-collections.ts",
     "auth:generate": "pnpx @better-auth/cli generate && pnpm tsx scripts/add-role-types.ts",
     "auth:add-role-types": "pnpm tsx scripts/add-role-types.ts",
     "email": "email dev --dir src/emails --port 3001"
@@ -132,3 +133,4 @@
     "typescript-eslint": "^8.44.0"
   }
 }
+
