@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +9,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { uploadKnowledgeDocumentAction } from "../actions/upload-document";
 import type { KnowledgeBaseScope } from "@/server/db/schema/knowledge-base-entries";
 import type { KnowledgeDocumentDto } from "@/server/dto/knowledge-base.dto";
+import { useState } from "react";
+import { useBatchUpload } from "../hooks/use-batch-upload";
+import { useFileSelection } from "../hooks/use-file-selection";
+import { DocumentFileList } from "./document-file-list";
+import { UploadSummary } from "./upload-summary";
 
 interface UploadKnowledgeDocumentDialogProps {
   open: boolean;
@@ -27,15 +28,6 @@ interface UploadKnowledgeDocumentDialogProps {
   onSuccess?: (document: KnowledgeDocumentDto) => void;
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_FILE_TYPES = [
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "text/plain",
-  "text/markdown",
-];
-
 export function UploadKnowledgeDocumentDialog({
   open,
   onOpenChange,
@@ -43,150 +35,140 @@ export function UploadKnowledgeDocumentDialog({
   scopeId,
   onSuccess,
 }: UploadKnowledgeDocumentDialogProps) {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
+  const [sharedDescription, setSharedDescription] = useState("");
+
+  const {
+    selectedFiles,
+    fileError,
+    handleFileChange,
+    removeFile,
+    updateFileMetadata,
+    clearFiles,
+    validateFiles,
+    maxBatchSize,
+  } = useFileSelection();
+
+  const {
+    isLoading,
+    uploadStates,
+    uploadFiles,
+    clearUploadStates,
+    hasSuccessfulUploads,
+    hasErrors,
+    isUploading,
+  } = useBatchUpload({
+    scope,
+    scopeId,
+    sharedDescription,
+    onSuccess,
   });
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [fileError, setFileError] = useState<string | null>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) {
-      setSelectedFile(null);
-      setFileError(null);
-      return;
-    }
-
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      setFileError(`File size must be less than ${MAX_FILE_SIZE / 1024 / 1024}MB`);
-      setSelectedFile(null);
-      return;
-    }
-
-    // Validate file type
-    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-      setFileError("File type not supported. Please upload PDF, Word, or text files.");
-      setSelectedFile(null);
-      return;
-    }
-
-    setFileError(null);
-    setSelectedFile(file);
-    // Auto-fill title if empty
-    if (!formData.title) {
-      setFormData({ ...formData, title: file.name.replace(/\.[^/.]+$/, "") });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedFile) {
-      setFileError("Please select a file");
+    if (!validateFiles()) {
       return;
     }
 
-    setIsLoading(true);
-    setFileError(null);
+    const result = await uploadFiles(selectedFiles, sharedDescription);
 
-    try {
-      const result = await uploadKnowledgeDocumentAction({
-        scope,
-        scopeId,
-        title: formData.title,
-        description: formData.description || null,
-        file: selectedFile,
-      });
-
-      if (result?.serverError) {
-        toast.error(result.serverError);
-        return;
-      }
-
-      if (result?.validationErrors) {
-        const firstFieldErrors = Object.values(result.validationErrors)[0];
-        const firstError = Array.isArray(firstFieldErrors)
-          ? firstFieldErrors[0]
-          : firstFieldErrors?._errors?.[0];
-        toast.error(firstError ?? "Validation failed");
-        return;
-      }
-
-      if (result?.data) {
-        toast.success("Document uploaded successfully");
-        onSuccess?.(result.data);
-        onOpenChange(false);
-        setFormData({ title: "", description: "" });
-        setSelectedFile(null);
-        router.refresh();
-      }
-    } catch (error) {
-      console.error("Error uploading document:", error);
-      toast.error("Failed to upload document");
-    } finally {
-      setIsLoading(false);
+    if (result.success && hasSuccessfulUploads) {
+      setTimeout(
+        () => {
+          onOpenChange(false);
+          resetForm();
+        },
+        selectedFiles.length > 1 ? 2000 : 1000
+      );
     }
   };
 
+  const resetForm = () => {
+    clearFiles();
+    clearUploadStates();
+    setSharedDescription("");
+  };
+
+  const successCount = Array.from(uploadStates.values()).filter(
+    (s) => s.status === "success"
+  ).length;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Upload Knowledge Document</DialogTitle>
+          <DialogTitle>
+            {selectedFiles.length > 1
+              ? "Upload Knowledge Documents"
+              : "Upload Knowledge Document"}
+          </DialogTitle>
           <DialogDescription>
-            Upload a document to extract terms and definitions automatically
+            Upload document{selectedFiles.length > 1 ? "s" : ""} to extract
+            terms and definitions automatically. You can upload up to{" "}
+            {maxBatchSize} files at once.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="file">Document *</Label>
+            <Label htmlFor="file">
+              Document{selectedFiles.length > 1 ? "s" : ""} *
+            </Label>
             <Input
               id="file"
               type="file"
               onChange={handleFileChange}
               accept=".pdf,.doc,.docx,.txt,.md"
-              required
-              disabled={isLoading}
+              multiple
+              disabled={isLoading || selectedFiles.length >= maxBatchSize}
             />
-            {fileError && <p className="text-sm text-destructive">{fileError}</p>}
-            {selectedFile && (
+            {fileError && (
+              <div className="text-sm text-destructive whitespace-pre-line">
+                {fileError}
+              </div>
+            )}
+            {selectedFiles.length > 0 && (
               <p className="text-sm text-muted-foreground">
-                Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
+                {selectedFiles.length} file{selectedFiles.length > 1 ? "s" : ""}{" "}
+                selected
+                {selectedFiles.length >= maxBatchSize && " (maximum reached)"}
               </p>
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-              placeholder="Document title"
-              required
-              maxLength={200}
+          {selectedFiles.length > 0 && (
+            <DocumentFileList
+              files={selectedFiles}
+              uploadStates={uploadStates}
+              onFileRemove={removeFile}
+              onFileMetadataChange={updateFileMetadata}
+              disabled={isLoading}
             />
-          </div>
+          )}
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description (optional)</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              placeholder="Brief description of the document"
-              rows={3}
-              maxLength={1000}
-            />
-          </div>
+          {selectedFiles.length > 1 && (
+            <div className="space-y-2">
+              <Label htmlFor="shared-description">
+                Shared Description (optional)
+              </Label>
+              <Textarea
+                id="shared-description"
+                value={sharedDescription}
+                onChange={(e) => setSharedDescription(e.target.value)}
+                placeholder="Description that will be applied to all documents if individual descriptions are not provided"
+                rows={2}
+                maxLength={1000}
+                disabled={isLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                This description will be used for documents that don't have an
+                individual description set.
+              </p>
+            </div>
+          )}
+
+          {hasSuccessfulUploads && (
+            <UploadSummary successCount={successCount} hasErrors={hasErrors} />
+          )}
 
           <DialogFooter>
             <Button
@@ -194,17 +176,29 @@ export function UploadKnowledgeDocumentDialog({
               variant="outline"
               onClick={() => {
                 onOpenChange(false);
-                setFormData({ title: "", description: "" });
-                setSelectedFile(null);
-                setFileError(null);
+                resetForm();
               }}
               disabled={isLoading}
             >
-              Cancel
+              {hasSuccessfulUploads ? "Close" : "Cancel"}
             </Button>
-            <Button type="submit" disabled={isLoading || !selectedFile}>
-              {isLoading ? "Uploading..." : "Upload Document"}
-            </Button>
+            {!hasSuccessfulUploads && (
+              <Button
+                type="submit"
+                disabled={
+                  isLoading ||
+                  selectedFiles.length === 0 ||
+                  isUploading ||
+                  selectedFiles.some((f) => !f.title || f.title.trim() === "")
+                }
+              >
+                {isLoading || isUploading
+                  ? `Uploading... (${Array.from(uploadStates.values()).filter((s) => s.status === "uploading").length}/${selectedFiles.length})`
+                  : selectedFiles.length > 1
+                    ? `Upload ${selectedFiles.length} Documents`
+                    : "Upload Document"}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>

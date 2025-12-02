@@ -326,6 +326,199 @@ export class DocumentProcessingService {
   }
 
   /**
+   * Upload multiple documents in batch
+   * Processes files in parallel with proper error handling
+   */
+  static async uploadDocumentsBatch(
+    files: Array<{
+      file: File;
+      title: string;
+      description?: string | null;
+    }>,
+    scope: KnowledgeBaseScope,
+    scopeId: string | null,
+    userId: string
+  ): Promise<
+    ActionResult<
+      Array<{
+        success: boolean;
+        document?: KnowledgeDocumentDto;
+        error?: string;
+        fileName: string;
+      }>
+    >
+  > {
+    try {
+      // Validate scope-specific permissions before upload
+      const permissionResult = await this.validateScopePermissions(
+        scope,
+        scopeId,
+        userId,
+        "write"
+      );
+      if (permissionResult.isErr()) {
+        return err(
+          ActionErrors.forbidden(
+            "You are not authorized to upload documents to this scope",
+            {
+              scope,
+              scopeId,
+              userId,
+            },
+            "DocumentProcessingService.uploadDocumentsBatch"
+          )
+        );
+      }
+
+      // Validate all files upfront
+      const allowedTypes = [
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // DOCX
+        "application/msword", // DOC
+        "text/plain", // TXT
+        "text/markdown", // MD
+      ];
+
+      const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+
+      const validationErrors: Array<{
+        fileName: string;
+        error: string;
+      }> = [];
+
+      for (const item of files) {
+        if (!allowedTypes.includes(item.file.type)) {
+          validationErrors.push({
+            fileName: item.file.name,
+            error: `File type ${item.file.type} is not supported. Supported types: PDF, DOCX, TXT, MD`,
+          });
+        } else if (item.file.size > maxSize) {
+          validationErrors.push({
+            fileName: item.file.name,
+            error: `File size exceeds 50MB limit`,
+          });
+        }
+      }
+
+      if (validationErrors.length > 0) {
+        // Return validation errors for all files
+        const results = files.map((item) => {
+          const error = validationErrors.find(
+            (e) => e.fileName === item.file.name
+          );
+          return {
+            success: false,
+            fileName: item.file.name,
+            error: error?.error ?? "Validation failed",
+          };
+        });
+        return ok(results);
+      }
+
+      // Process all files in parallel
+      const uploadPromises = files.map(async (item) => {
+        try {
+          const blobPath = `knowledge-base/${scope}/${scopeId ?? "global"}/${
+            item.file.name
+          }`;
+          const blobResult = await putBlob(blobPath, item.file, {
+            access: "public",
+            addRandomSuffix: true,
+          });
+
+          const createDto: CreateKnowledgeDocumentDto = {
+            scope,
+            scopeId,
+            title: item.title.trim(),
+            description: item.description?.trim() ?? null,
+            fileUrl: blobResult.url,
+            fileName: item.file.name,
+            fileSize: item.file.size,
+            fileType: item.file.type,
+            createdById: userId,
+          };
+
+          const document =
+            await KnowledgeBaseDocumentsQueries.createDocument(createDto);
+
+          logger.info("Document uploaded to knowledge base (batch)", {
+            documentId: document.id,
+            scope,
+            scopeId,
+            fileName: item.file.name,
+            userId,
+          });
+
+          // Start processing asynchronously (don't await)
+          this.processDocument(document.id).catch((error) => {
+            logger.error(
+              "Failed to process document",
+              { documentId: document.id },
+              error
+            );
+          });
+
+          return {
+            success: true,
+            document,
+            fileName: item.file.name,
+          };
+        } catch (error) {
+          logger.error(
+            "Failed to upload document in batch",
+            {
+              scope,
+              scopeId,
+              fileName: item.file.name,
+            },
+            error as Error
+          );
+          return {
+            success: false,
+            fileName: item.file.name,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to upload document",
+          };
+        }
+      });
+
+      const results = await Promise.allSettled(uploadPromises);
+
+      logger.info("Batch document upload completed", {
+        scope,
+        scopeId,
+        totalFiles: files.length,
+        successful: results.filter((r) => r.status === "fulfilled").length,
+        failed: results.filter((r) => r.status === "rejected").length,
+        userId,
+      });
+
+      return ok(results.map((r) => {
+        if (r.status === "fulfilled") {
+          return r.value;
+        } else {
+          return r.reason;
+        }
+      }));
+    } catch (error) {
+      logger.error(
+        "Failed to upload documents batch",
+        { scope, scopeId, fileCount: files.length },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to upload documents batch",
+          error as Error,
+          "DocumentProcessingService.uploadDocumentsBatch"
+        )
+      );
+    }
+  }
+
+  /**
    * Upload document to Vercel Blob and create database record
    */
   static async uploadDocument(
