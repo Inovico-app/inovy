@@ -60,6 +60,13 @@ export function AgentMetricsFilters({
 
   const [selectedUserId, setSelectedUserId] = useState(initialUserId ?? "");
 
+  // Sync local state with URL on navigation
+  useEffect(() => {
+    if (organizationId.userId !== undefined) {
+      setSelectedUserId(organizationId.userId ?? "");
+    }
+  }, [organizationId.userId]);
+
   // Update users when organization changes
   useEffect(() => {
     if (organizationId.organizationId) {

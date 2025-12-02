@@ -1165,7 +1165,7 @@ export class AgentAnalyticsQueries {
 
       // Quality score: sources (weight 40%) + token count normalized (weight 60%)
       // Normalize tokens: assume 1000 tokens = 100 points
-      const tokenScore = Math.min((tokens / 10) * 100, 100);
+      const tokenScore = Math.min((tokens / 1000) * 100, 100);
       const sourceScore = Math.min(sourceCountForMessage * 20, 100);
       const quality = sourceScore * 0.4 + tokenScore * 0.6;
 

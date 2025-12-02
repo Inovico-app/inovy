@@ -73,7 +73,8 @@ async function AgentMetricsContent({
   };
 
   // Pagination
-  const currentPage = params.page ? parseInt(params.page, 10) : 1;
+  const parsedPage = params.page ? parseInt(params.page, 10) : 1;
+  const currentPage = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
   const limit = 50;
   const offset = (currentPage - 1) * limit;
 
