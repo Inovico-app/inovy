@@ -189,7 +189,6 @@ export class DocumentProcessingService {
         );
       }
 
-      const user = authResult.value.user;
       const userOrgId = authResult.value.organization?.id;
 
       if (!userOrgId) {
@@ -370,7 +369,7 @@ export class DocumentProcessingService {
         );
       }
 
-      // Validate all files upfront
+      // Validate all files upfront and separate valid from invalid
       const allowedTypes = [
         "application/pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // DOCX
@@ -381,42 +380,45 @@ export class DocumentProcessingService {
 
       const maxSize = 50 * 1024 * 1024; // 50MB in bytes
 
-      const validationErrors: Array<{
-        fileName: string;
-        error: string;
+      const validFiles: Array<{
+        file: File;
+        title: string;
+        description?: string | null;
       }> = [];
 
+      const validationResults: Array<{
+        success: boolean;
+        fileName: string;
+        error?: string;
+      }> = [];
+
+      // Validate each file and separate valid from invalid
       for (const item of files) {
         if (!allowedTypes.includes(item.file.type)) {
-          validationErrors.push({
+          validationResults.push({
+            success: false,
             fileName: item.file.name,
             error: `File type ${item.file.type} is not supported. Supported types: PDF, DOCX, TXT, MD`,
           });
         } else if (item.file.size > maxSize) {
-          validationErrors.push({
+          validationResults.push({
+            success: false,
             fileName: item.file.name,
             error: `File size exceeds 50MB limit`,
           });
+        } else {
+          // File is valid, add to validFiles for processing
+          validFiles.push(item);
         }
       }
 
-      if (validationErrors.length > 0) {
-        // Return validation errors for all files
-        const results = files.map((item) => {
-          const error = validationErrors.find(
-            (e) => e.fileName === item.file.name
-          );
-          return {
-            success: false,
-            fileName: item.file.name,
-            error: error?.error ?? "Validation failed",
-          };
-        });
-        return ok(results);
+      // If no valid files, return early with validation errors
+      if (validFiles.length === 0) {
+        return ok(validationResults);
       }
 
-      // Process all files in parallel
-      const uploadPromises = files.map(async (item) => {
+      // Process valid files in parallel
+      const uploadPromises = validFiles.map(async (item) => {
         try {
           const blobPath = `knowledge-base/${scope}/${scopeId ?? "global"}/${
             item.file.name
@@ -484,24 +486,66 @@ export class DocumentProcessingService {
         }
       });
 
-      const results = await Promise.allSettled(uploadPromises);
+      const uploadResults = await Promise.allSettled(uploadPromises);
+
+      // Create a map of fileName -> result for quick lookup
+      const resultMap = new Map<
+        string,
+        {
+          success: boolean;
+          document?: KnowledgeDocumentDto;
+          error?: string;
+          fileName: string;
+        }
+      >();
+
+      // Add validation errors to map
+      for (const validationResult of validationResults) {
+        resultMap.set(validationResult.fileName, validationResult);
+      }
+
+      // Add upload results to map
+      for (const uploadResult of uploadResults) {
+        if (uploadResult.status === "fulfilled") {
+          resultMap.set(uploadResult.value.fileName, uploadResult.value);
+        } else {
+          // This should not happen since we catch errors in the promise,
+          // but handle it defensively
+          logger.error("Unexpected rejected promise in batch upload", {
+            error: uploadResult.reason,
+          });
+        }
+      }
+
+      // Reconstruct results array in original file order
+      const allResults = files.map((item) => {
+        const result = resultMap.get(item.file.name);
+        if (result) {
+          return result;
+        }
+        // Fallback (should not happen)
+        return {
+          success: false,
+          fileName: item.file.name,
+          error: "Result not found",
+        };
+      });
+
+      const successfulCount = allResults.filter((r) => r.success).length;
+      const failedCount = allResults.filter((r) => !r.success).length;
 
       logger.info("Batch document upload completed", {
         scope,
         scopeId,
         totalFiles: files.length,
-        successful: results.filter((r) => r.status === "fulfilled").length,
-        failed: results.filter((r) => r.status === "rejected").length,
+        validFiles: validFiles.length,
+        validationErrors: validationResults.length,
+        successful: successfulCount,
+        failed: failedCount,
         userId,
       });
 
-      return ok(results.map((r) => {
-        if (r.status === "fulfilled") {
-          return r.value;
-        } else {
-          return r.reason;
-        }
-      }));
+      return ok(allResults);
     } catch (error) {
       logger.error(
         "Failed to upload documents batch",

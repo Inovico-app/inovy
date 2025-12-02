@@ -51,7 +51,11 @@ export function useFileSelection() {
         }
 
         // Validate file type
-        if (!ALLOWED_FILE_TYPES.includes(file.type as typeof ALLOWED_FILE_TYPES[number])) {
+        if (
+          !ALLOWED_FILE_TYPES.includes(
+            file.type as (typeof ALLOWED_FILE_TYPES)[number]
+          )
+        ) {
           errors.push(
             `${file.name}: File type not supported. Please upload PDF, Word, or text files.`
           );
@@ -80,6 +84,9 @@ export function useFileSelection() {
 
       return newFiles.length > 0 ? [...prev, ...newFiles] : prev;
     });
+
+    // Reset input to allow re-selecting same files
+    e.target.value = "";
   };
 
   const removeFile = (id: string) => {

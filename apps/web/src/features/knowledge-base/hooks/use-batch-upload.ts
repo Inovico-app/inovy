@@ -21,6 +21,40 @@ interface UseBatchUploadOptions {
   onSuccess?: (document: KnowledgeDocumentDto) => void;
 }
 
+function extractFirstValidationError(
+  validationErrors: Record<string, unknown>
+): string {
+  const firstFieldErrors = Object.values(validationErrors)[0];
+
+  if (Array.isArray(firstFieldErrors)) {
+    const firstItem = firstFieldErrors[0];
+    if (typeof firstItem === "string") {
+      return firstItem;
+    }
+    if (
+      typeof firstItem === "object" &&
+      firstItem !== null &&
+      "_errors" in firstItem
+    ) {
+      const errorObj = firstItem as { _errors?: string[] };
+      if (Array.isArray(errorObj._errors) && errorObj._errors[0]) {
+        return errorObj._errors[0];
+      }
+    }
+  } else if (
+    typeof firstFieldErrors === "object" &&
+    firstFieldErrors !== null &&
+    "_errors" in firstFieldErrors
+  ) {
+    const errorObj = firstFieldErrors as { _errors?: string[] };
+    if (Array.isArray(errorObj._errors) && errorObj._errors[0]) {
+      return errorObj._errors[0];
+    }
+  }
+
+  return "Validation failed";
+}
+
 export function useBatchUpload({
   scope,
   scopeId,
@@ -59,35 +93,7 @@ export function useBatchUpload({
     }
 
     if (result?.validationErrors) {
-      const firstFieldErrors = Object.values(result.validationErrors)[0];
-      let firstError: string | undefined;
-
-      if (Array.isArray(firstFieldErrors)) {
-        const firstItem = firstFieldErrors[0];
-        if (typeof firstItem === "string") {
-          firstError = firstItem;
-        } else if (
-          typeof firstItem === "object" &&
-          firstItem !== null &&
-          "_errors" in firstItem
-        ) {
-          const errorObj = firstItem as { _errors?: string[] };
-          if (Array.isArray(errorObj._errors) && errorObj._errors[0]) {
-            firstError = errorObj._errors[0];
-          }
-        }
-      } else if (
-        typeof firstFieldErrors === "object" &&
-        firstFieldErrors !== null &&
-        "_errors" in firstFieldErrors
-      ) {
-        const errorObj = firstFieldErrors as { _errors?: string[] };
-        if (Array.isArray(errorObj._errors) && errorObj._errors[0]) {
-          firstError = errorObj._errors[0];
-        }
-      }
-
-      const errorMsg = firstError ?? "Validation failed";
+      const errorMsg = extractFirstValidationError(result.validationErrors);
       setUploadStates((prev) => {
         const next = new Map(prev);
         next.set(fileItem.id, {
@@ -149,35 +155,7 @@ export function useBatchUpload({
     }
 
     if (result?.validationErrors) {
-      const firstFieldErrors = Object.values(result.validationErrors)[0];
-      let firstError: string | undefined;
-
-      if (Array.isArray(firstFieldErrors)) {
-        const firstItem = firstFieldErrors[0];
-        if (typeof firstItem === "string") {
-          firstError = firstItem;
-        } else if (
-          typeof firstItem === "object" &&
-          firstItem !== null &&
-          "_errors" in firstItem
-        ) {
-          const errorObj = firstItem as { _errors?: string[] };
-          if (Array.isArray(errorObj._errors) && errorObj._errors[0]) {
-            firstError = errorObj._errors[0];
-          }
-        }
-      } else if (
-        typeof firstFieldErrors === "object" &&
-        firstFieldErrors !== null &&
-        "_errors" in firstFieldErrors
-      ) {
-        const errorObj = firstFieldErrors as { _errors?: string[] };
-        if (Array.isArray(errorObj._errors) && errorObj._errors[0]) {
-          firstError = errorObj._errors[0];
-        }
-      }
-
-      const errorMsg = firstError ?? "Validation failed";
+      const errorMsg = extractFirstValidationError(result.validationErrors);
       files.forEach((f) => {
         setUploadStates((prev) => {
           const next = new Map(prev);
