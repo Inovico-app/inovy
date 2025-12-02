@@ -1,5 +1,4 @@
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -20,7 +19,6 @@ import {
 } from "@/server/cache/knowledge-base.cache";
 import { OrganizationService } from "@/server/services/organization.service";
 import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
-import Link from "next/link";
 import { Suspense } from "react";
 
 async function OrganizationContent() {
@@ -103,7 +101,7 @@ async function OrganizationContent() {
   }
 
   return (
-    <div className="container mx-auto max-w-2xl py-8 px-4">
+    <div className="container mx-auto max-w-6xl py-12 px-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Organization</h1>
@@ -225,11 +223,6 @@ async function OrganizationContent() {
           )}
         </CardContent>
       </Card>
-
-      {/* Back Button */}
-      <Button variant="outline" asChild>
-        <Link href="/settings">← Back to Settings</Link>
-      </Button>
     </div>
   );
 }

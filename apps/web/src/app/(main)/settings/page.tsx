@@ -1,87 +1,111 @@
-import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DriveWatchSettings } from "@/features/settings/components/drive-watch-settings";
-import { GoogleConnection } from "@/features/settings/components/google-connection";
-import { GoogleSettings } from "@/features/settings/components/google-settings";
-import { GoogleStatusDashboard } from "@/features/settings/components/google-status-dashboard";
-import { Building2Icon, UserIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowRightIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
-const settingsSections = [
+const quickLinks = [
   {
-    id: "profile",
-    title: "Profile Settings",
+    title: "Profile",
     description: "Manage your personal account information",
-    icon: UserIcon,
     href: "/settings/profile" as Route,
   },
   {
-    id: "organization",
     title: "Organization",
     description: "View organization information and members",
-    icon: Building2Icon,
     href: "/settings/organization" as Route,
+  },
+  {
+    title: "Agent",
+    description: "Browse and manage knowledge base documents",
+    href: "/settings/agent" as Route,
+  },
+  {
+    title: "Integrations",
+    description: "Connect and manage third-party services",
+    href: "/settings/integrations" as Route,
   },
 ];
 
-function SettingsContent() {
+function SettingsDashboard() {
   return (
-    <div className="container mx-auto max-w-4xl py-8 px-4">
-      <div className="space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Settings</h1>
+    <div className="container mx-auto max-w-6xl py-12 px-6">
+      <div className="max-w-4xl">
+        <div className="mb-10">
+          <h1 className="text-3xl font-bold">Settings Dashboard</h1>
           <p className="text-muted-foreground mt-2">
-            Manage your account and organization preferences
+            Welcome to the settings panel. Select a section from the sidebar to
+            get started.
           </p>
         </div>
 
-        {/* Settings Grid */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {settingsSections.map((section) => {
-            const IconComponent = section.icon;
-            return (
-              <Link key={section.id} href={section.href}>
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="flex items-center gap-2">
-                          <IconComponent className="h-5 w-5" />
-                          {section.title}
-                        </CardTitle>
-                        <CardDescription>{section.description}</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
-              </Link>
-            );
-          })}
+        <div className="grid gap-4 md:grid-cols-2">
+          {quickLinks.map((link) => (
+            <Link key={link.href} href={link.href} className="group">
+              <Card className="transition-all hover:shadow-md hover:border-primary/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between text-lg">
+                    {link.title}
+                    <ArrowRightIcon className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  </CardTitle>
+                  <CardDescription>{link.description}</CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
+          ))}
         </div>
 
-        {/* Google Workspace Integration */}
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold">Integrations</h2>
-          <GoogleConnection />
-          <GoogleSettings />
-          <GoogleStatusDashboard />
-          <DriveWatchSettings />
-        </div>
-
-        {/* Back Button */}
-        <div>
-          <Button variant="outline" asChild>
-            <Link href="/">← Back to Dashboard</Link>
-          </Button>
-        </div>
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Getting Started</CardTitle>
+            <CardDescription>
+              Quick tips for managing your settings
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3 text-sm">
+              <li className="flex items-start gap-3">
+                <span className="font-semibold text-primary">Profile:</span>
+                <span className="text-muted-foreground">
+                  Update your personal information, email, and account
+                  preferences
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="font-semibold text-primary">
+                  Organization:
+                </span>
+                <span className="text-muted-foreground">
+                  View organization details, manage members, and configure
+                  organization-wide settings
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="font-semibold text-primary">Agent:</span>
+                <span className="text-muted-foreground">
+                  Browse and manage your knowledge base documents, upload new
+                  content, and configure AI agent settings
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="font-semibold text-primary">
+                  Integrations:
+                </span>
+                <span className="text-muted-foreground">
+                  Connect Google Workspace, manage API connections, and
+                  configure third-party service integrations
+                </span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -91,15 +115,29 @@ export default function SettingsPage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto max-w-4xl py-8 px-4">
-          <div className="space-y-8">
-            <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
-            <div className="h-64 bg-muted rounded animate-pulse" />
+        <div className="container mx-auto max-w-6xl py-12 px-6">
+          <div className="max-w-4xl">
+            <div className="mb-10 space-y-4">
+              <Skeleton className="h-9 w-64 animate-pulse" />
+              <Skeleton className="h-5 w-96 animate-pulse" />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Skeleton className="h-24 w-full animate-pulse" />
+              <Skeleton className="h-24 w-full animate-pulse" />
+              <Skeleton className="h-24 w-full animate-pulse" />
+              <Skeleton className="h-24 w-full animate-pulse" />
+            </div>
+            <Card className="mt-6">
+              <Skeleton className="h-12 w-full animate-pulse" />
+              <Skeleton className="h-5 w-96 animate-pulse" />
+              <Skeleton className="h-5 w-96 animate-pulse" />
+              <Skeleton className="h-5 w-96 animate-pulse" />
+            </Card>
           </div>
         </div>
       }
     >
-      <SettingsContent />
+      <SettingsDashboard />
     </Suspense>
   );
 }
