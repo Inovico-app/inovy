@@ -168,3 +168,26 @@ export async function getCachedOrganizationById(organizationId: string) {
   }
 }
 
+/**
+ * Get agent configuration for an organization (cached)
+ * Uses DAL for data access
+ */
+export async function getCachedAgentConfig(organizationId: string) {
+  "use cache";
+  cacheTag(CacheTags.organization(organizationId));
+
+  try {
+    const agentEnabled =
+      await OrganizationQueries.getAgentConfig(organizationId);
+
+    return agentEnabled ?? true; // Default to enabled if not found
+  } catch (error) {
+    logger.error(
+      "Failed to get agent configuration",
+      { organizationId },
+      error as Error
+    );
+    return true; // Default to enabled on error
+  }
+}
+

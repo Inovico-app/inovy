@@ -4,6 +4,7 @@ import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { ChatService } from "@/server/services/chat.service";
 import { ProjectService } from "@/server/services/project.service";
+import { AgentConfigService } from "@/server/services/agent-config.service";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -30,6 +31,21 @@ export async function POST(
     }
 
     const { user, organization } = authResult.value;
+
+    // Check if agent is enabled for this organization
+    const agentStatusResult = await AgentConfigService.isAgentEnabled(
+      organization.id
+    );
+
+    if (agentStatusResult.isErr() || !agentStatusResult.value) {
+      return NextResponse.json(
+        {
+          error: "Agent is disabled for this organization",
+          code: "AGENT_DISABLED",
+        },
+        { status: 403 }
+      );
+    }
 
     // Check rate limit (100 req/hour free, 1000 req/hour pro)
     const rateLimitResult = await checkRateLimit(user.id, {

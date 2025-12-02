@@ -281,6 +281,13 @@
       "when": 1764680300316,
       "tag": "0045_add_chat_context",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1764686381061,
+      "tag": "0046_add_agent_enabled_to_organizations",
+      "breakpoints": true
     }
   ]
 }

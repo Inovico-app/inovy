@@ -4,6 +4,7 @@ import { authClient } from "@/lib/auth-client";
 import { Permissions } from "@/lib/rbac/permissions";
 import {
   BarChart3Icon,
+  BotIcon,
   Building2Icon,
   ChevronRightIcon,
   FileTextIcon,
@@ -45,6 +46,12 @@ const SUPER_ADMIN_MENU_ITEMS: MenuItem[] = [
     icon: Building2Icon,
     title: "Organizations",
     description: "View and edit organizations",
+  },
+  {
+    href: "/admin/agent-config",
+    icon: BotIcon,
+    title: "Agent Configuration",
+    description: "Manage agent access per organization",
   },
 ];
 
