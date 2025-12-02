@@ -58,6 +58,8 @@ export default function SignUpPage() {
         <CardContent className="space-y-4">
           {/* Email/Password Sign Up */}
           <form onSubmit={handleEmailSignUp} className="space-y-4">
+            <fieldset className="space-y-4" disabled={isLoading}>
+              <legend className="sr-only">Create account with email and password</legend>
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input
@@ -98,9 +100,10 @@ export default function SignUpPage() {
                 Must be at least 8 characters
               </p>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating account..." : "Sign up"}
-            </Button>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Creating account..." : "Sign up"}
+              </Button>
+            </fieldset>
           </form>
 
           <div className="relative">
@@ -115,7 +118,9 @@ export default function SignUpPage() {
           </div>
 
           {/* Social Sign Up */}
-          <div className="grid grid-cols-2 gap-4">
+          <fieldset disabled={isLoading}>
+            <legend className="sr-only">Sign up with social provider</legend>
+            <div className="grid grid-cols-2 gap-4">
             <Button
               type="button"
               variant="outline"
@@ -157,16 +162,19 @@ export default function SignUpPage() {
               </svg>
               Microsoft
             </Button>
-          </div>
+            </div>
+          </fieldset>
 
           {/* Passkey Sign Up */}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={signUpPasskey}
-            disabled={isLoading}
-            className="w-full"
-          >
+          <fieldset disabled={isLoading} className="w-full">
+            <legend className="sr-only">Sign up with passkey</legend>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={signUpPasskey}
+              disabled={isLoading}
+              className="w-full"
+            >
             <svg
               className="mr-2 h-4 w-4"
               fill="none"
@@ -182,6 +190,7 @@ export default function SignUpPage() {
             </svg>
             Sign up with Passkey
           </Button>
+          </fieldset>
 
           {/* Magic Link */}
           <div className="relative">
@@ -196,20 +205,27 @@ export default function SignUpPage() {
           </div>
 
           <form onSubmit={handleMagicLink} className="space-y-2">
-            <div className="flex gap-2">
-              <Input
-                type="email"
-                placeholder="you@example.com"
-                value={magicLinkEmail}
-                onChange={(e) => setMagicLinkEmail(e.target.value)}
-                required
-                disabled={isLoading}
-                className="flex-1"
-              />
-              <Button type="submit" disabled={isLoading}>
-                Send
-              </Button>
+            <fieldset disabled={isLoading} className="space-y-2">
+              <legend className="sr-only">Sign up with magic link</legend>
+              <div className="space-y-2">
+                <Label htmlFor="magic-link-email">Email</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="magic-link-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={magicLinkEmail}
+                  onChange={(e) => setMagicLinkEmail(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="flex-1"
+                />
+                <Button type="submit" disabled={isLoading}>
+                  Send
+                </Button>
+              </div>
             </div>
+            </fieldset>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
