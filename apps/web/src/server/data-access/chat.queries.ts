@@ -122,7 +122,10 @@ export class ChatQueries {
     filter?: "all" | "active" | "archived" | "deleted";
     page?: number;
     limit?: number;
-  }): Promise<{ conversations: ChatConversation[]; total: number }> {
+  }): Promise<{
+    conversations: (ChatConversation & { lastMessage?: string | null })[];
+    total: number;
+  }> {
     const {
       userId,
       organizationId,
@@ -154,18 +157,69 @@ export class ChatQueries {
     } else if (filter === "deleted") {
       conditions.push(sql`${chatConversations.deletedAt} IS NOT NULL`);
     }
-    const conversations = await db
-      .select()
+
+    // Get conversations with last message using a derived table approach
+    // First get the conversations, then join with last messages
+    const conversationIds = await db
+      .select({ id: chatConversations.id })
       .from(chatConversations)
       .where(and(...conditions))
       .orderBy(desc(chatConversations.updatedAt))
       .limit(limit)
       .offset(offset);
+
+    if (conversationIds.length === 0) {
+      return { conversations: [], total: 0 };
+    }
+
+    const ids = conversationIds.map((c) => c.id);
+
+    // Get last message for each conversation using DISTINCT ON
+    // Use proper parameter binding for PostgreSQL array
+    // When ids is a single element, ensure it's still treated as an array
+    const lastMessages = await db.execute(
+      sql`
+        SELECT DISTINCT ON (conversation_id) 
+          conversation_id,
+          content
+        FROM ${chatMessages}
+        WHERE conversation_id = ANY(ARRAY[${sql.join(
+          ids.map((id) => sql`${id}::uuid`),
+          sql`, `
+        )}]::uuid[])
+        ORDER BY conversation_id, created_at DESC
+      `
+    );
+
+    const lastMessageMap = new Map<string, string>();
+    for (const row of lastMessages.rows as Array<{
+      conversation_id: string;
+      content: string;
+    }>) {
+      lastMessageMap.set(row.conversation_id, row.content);
+    }
+
+    // Get full conversation data
+    const conversations = await db
+      .select()
+      .from(chatConversations)
+      .where(inArray(chatConversations.id, ids))
+      .orderBy(desc(chatConversations.updatedAt));
+
+    // Map last messages to conversations
+    const conversationsWithLastMessage = conversations.map((conv) => ({
+      ...conv,
+      lastMessage: lastMessageMap.get(conv.id) ?? null,
+    }));
+
     const [{ count }] = await db
       .select({ count: sql<number>`count(*)` })
       .from(chatConversations)
       .where(and(...conditions));
-    return { conversations, total: Number(count) };
+    return {
+      conversations: conversationsWithLastMessage,
+      total: Number(count),
+    };
   }
   static async searchConversations(params: {
     userId: string;
@@ -174,7 +228,7 @@ export class ChatQueries {
     projectId?: string;
     context?: "project" | "organization";
     limit?: number;
-  }): Promise<ChatConversation[]> {
+  }): Promise<(ChatConversation & { lastMessage?: string | null })[]> {
     const {
       userId,
       query,
@@ -183,23 +237,106 @@ export class ChatQueries {
       context,
       limit = 20,
     } = params;
-    const conditions = [
+    const searchPattern = `%${query}%`;
+    const baseConditions = [
       eq(chatConversations.userId, userId),
       sql`${chatConversations.deletedAt} IS NULL`,
-      sql`${chatConversations.title} ILIKE ${`%${query}%`}`,
     ];
     if (organizationId)
-      conditions.push(eq(chatConversations.organizationId, organizationId));
+      baseConditions.push(eq(chatConversations.organizationId, organizationId));
     if (context === "project" && projectId)
-      conditions.push(eq(chatConversations.projectId, projectId));
+      baseConditions.push(eq(chatConversations.projectId, projectId));
     else if (context === "organization")
-      conditions.push(sql`${chatConversations.projectId} IS NULL`);
-    return await db
+      baseConditions.push(sql`${chatConversations.projectId} IS NULL`);
+
+    // Search in both title and message content
+    // Get conversations matching title
+    const titleMatches = await db
+      .select({ id: chatConversations.id })
+      .from(chatConversations)
+      .where(
+        and(
+          ...baseConditions,
+          sql`${chatConversations.title} ILIKE ${searchPattern}`
+        )
+      );
+
+    // Get conversation IDs that have matching message content
+    // Build conditions for content search
+    const contentSearchConditions = [
+      sql`cm.content ILIKE ${searchPattern}`,
+      sql`cc.user_id = ${userId}`,
+      sql`cc.deleted_at IS NULL`,
+    ];
+    if (organizationId) {
+      contentSearchConditions.push(sql`cc.organization_id = ${organizationId}`);
+    }
+    if (context === "project" && projectId) {
+      contentSearchConditions.push(sql`cc.project_id = ${projectId}`);
+    } else if (context === "organization") {
+      contentSearchConditions.push(sql`cc.project_id IS NULL`);
+    }
+
+    const contentMatchResult = await db.execute(
+      sql`
+        SELECT DISTINCT cm.conversation_id as id
+        FROM ${chatMessages} cm
+        INNER JOIN ${chatConversations} cc ON cm.conversation_id = cc.id
+        WHERE ${sql.join(contentSearchConditions, sql` AND `)}
+      `
+    );
+
+    // Combine IDs from both searches
+    const allMatchIds = new Set<string>();
+    titleMatches.forEach((c) => allMatchIds.add(c.id));
+    (contentMatchResult.rows as Array<{ id: string }>).forEach((row) =>
+      allMatchIds.add(row.id)
+    );
+
+    if (allMatchIds.size === 0) {
+      return [];
+    }
+
+    const ids = Array.from(allMatchIds);
+
+    // Get full conversation data
+    const matchingConversations = await db
       .select()
       .from(chatConversations)
-      .where(and(...conditions))
+      .where(inArray(chatConversations.id, ids))
       .orderBy(desc(chatConversations.updatedAt))
       .limit(limit);
+
+    // Get last message for each conversation using DISTINCT ON
+    // Use proper parameter binding for PostgreSQL array
+    // When ids is a single element, ensure it's still treated as an array
+    const lastMessages = await db.execute(
+      sql`
+        SELECT DISTINCT ON (conversation_id) 
+          conversation_id,
+          content
+        FROM ${chatMessages}
+        WHERE conversation_id = ANY(ARRAY[${sql.join(
+          ids.map((id) => sql`${id}::uuid`),
+          sql`, `
+        )}]::uuid[])
+        ORDER BY conversation_id, created_at DESC
+      `
+    );
+
+    const lastMessageMap = new Map<string, string>();
+    for (const row of lastMessages.rows as Array<{
+      conversation_id: string;
+      content: string;
+    }>) {
+      lastMessageMap.set(row.conversation_id, row.content);
+    }
+
+    // Map last messages to conversations
+    return matchingConversations.map((conv) => ({
+      ...conv,
+      lastMessage: lastMessageMap.get(conv.id) ?? null,
+    }));
   }
   static async softDeleteConversation(conversationId: string): Promise<void> {
     await db

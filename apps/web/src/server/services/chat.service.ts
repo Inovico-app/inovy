@@ -1036,7 +1036,10 @@ Please answer the user's question based on this information. When referencing in
     page?: number;
     limit?: number;
   }): Promise<
-    ActionResult<{ conversations: ChatConversation[]; total: number }>
+    ActionResult<{
+      conversations: (ChatConversation & { lastMessage?: string | null })[];
+      total: number;
+    }>
   > {
     try {
       const result = await ChatQueries.getConversationsWithPagination(params);
@@ -1063,7 +1066,9 @@ Please answer the user's question based on this information. When referencing in
     projectId?: string;
     context?: "project" | "organization";
     limit?: number;
-  }): Promise<ActionResult<ChatConversation[]>> {
+  }): Promise<
+    ActionResult<(ChatConversation & { lastMessage?: string | null })[]>
+  > {
     try {
       const conversations = await ChatQueries.searchConversations(params);
       return ok(conversations);
