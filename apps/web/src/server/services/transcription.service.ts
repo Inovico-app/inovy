@@ -8,9 +8,10 @@ import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { createClient } from "@deepgram/sdk";
 import { err, ok } from "neverthrow";
 import OpenAI from "openai";
-import { PromptBuilder } from "./prompt-builder.service";
+import { connectionPool } from "./connection-pool.service";
 import { KnowledgeBaseService } from "./knowledge-base.service";
 import { NotificationService } from "./notification.service";
+import { PromptBuilder } from "./prompt-builder.service";
 
 interface TranscriptionResult {
   text: string;
@@ -437,14 +438,20 @@ export class TranscriptionService {
         knowledgeContext: knowledgeContext || undefined,
       });
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-5-nano",
-        messages: [
-          { role: "system", content: promptResult.systemPrompt },
-          { role: "user", content: promptResult.userPrompt },
-        ],
-        response_format: { type: "json_object" },
-      });
+      // Call OpenAI API with retry logic
+      // Each retry attempt gets a fresh client from the pool for better round-robin and recovery
+      const completion = await connectionPool.executeWithRetry(
+        async () =>
+          connectionPool.getRawOpenAIClient().chat.completions.create({
+            model: "gpt-5-nano",
+            messages: [
+              { role: "system", content: promptResult.systemPrompt },
+              { role: "user", content: promptResult.userPrompt },
+            ],
+            response_format: { type: "json_object" },
+          }),
+        "openai"
+      );
 
       const responseContent = completion.choices[0]?.message?.content;
       if (!responseContent) {
