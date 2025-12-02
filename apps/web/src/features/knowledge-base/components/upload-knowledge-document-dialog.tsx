@@ -14,11 +14,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { KnowledgeBaseScope } from "@/server/db/schema/knowledge-base-entries";
 import type { KnowledgeDocumentDto } from "@/server/dto/knowledge-base.dto";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useBatchUpload } from "../hooks/use-batch-upload";
 import { useFileSelection } from "../hooks/use-file-selection";
 import { DocumentFileList } from "./document-file-list";
 import { UploadSummary } from "./upload-summary";
+import { cn } from "@/lib/utils";
 
 interface UploadKnowledgeDocumentDialogProps {
   open: boolean;
@@ -36,11 +37,14 @@ export function UploadKnowledgeDocumentDialog({
   onSuccess,
 }: UploadKnowledgeDocumentDialogProps) {
   const [sharedDescription, setSharedDescription] = useState("");
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   const {
     selectedFiles,
     fileError,
     handleFileChange,
+    handleFilesDrop,
     removeFile,
     updateFileMetadata,
     clearFiles,
@@ -93,6 +97,41 @@ export function UploadKnowledgeDocumentDialog({
     (s) => s.status === "success"
   ).length;
 
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer?.types?.includes("Files")) {
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set drag over to false if we're leaving the drop zone itself
+    if (
+      !dropZoneRef.current?.contains(e.relatedTarget as Node) &&
+      e.currentTarget === dropZoneRef.current
+    ) {
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    if (isLoading || selectedFiles.length >= maxBatchSize) {
+      return;
+    }
+
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      handleFilesDrop(files);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -113,14 +152,53 @@ export function UploadKnowledgeDocumentDialog({
             <Label htmlFor="file">
               Document{selectedFiles.length > 1 ? "s" : ""} *
             </Label>
-            <Input
-              id="file"
-              type="file"
-              onChange={handleFileChange}
-              accept=".pdf,.doc,.docx,.txt,.md"
-              multiple
-              disabled={isLoading || selectedFiles.length >= maxBatchSize}
-            />
+            <div
+              ref={dropZoneRef}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => {
+                if (!isLoading && selectedFiles.length < maxBatchSize) {
+                  document.getElementById("file")?.click();
+                }
+              }}
+              className={cn(
+                "border-2 border-dashed rounded-lg p-6 transition-colors",
+                isDragOver
+                  ? "border-primary bg-primary/5"
+                  : "border-muted-foreground/25 hover:border-muted-foreground/50",
+                isLoading || selectedFiles.length >= maxBatchSize
+                  ? "opacity-50 cursor-not-allowed"
+                  : "cursor-pointer"
+              )}
+            >
+              <div className="flex flex-col items-center justify-center gap-2 text-center">
+                <Input
+                  id="file"
+                  type="file"
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx,.txt,.md"
+                  multiple
+                  disabled={isLoading || selectedFiles.length >= maxBatchSize}
+                  className="sr-only"
+                />
+                <span
+                  className={cn(
+                    "text-sm font-medium",
+                    isLoading || selectedFiles.length >= maxBatchSize
+                      ? "opacity-50"
+                      : ""
+                  )}
+                >
+                  {isDragOver
+                    ? "Drop files here"
+                    : "Click to select files or drag and drop"}
+                </span>
+                <p className="text-xs text-muted-foreground">
+                  PDF, Word, or text files up to 50MB each
+                </p>
+              </div>
+            </div>
             {fileError && (
               <div className="text-sm text-destructive whitespace-pre-line">
                 {fileError}

@@ -142,6 +142,14 @@ export function KnowledgeBaseBrowser({
     void refetch();
   };
 
+  // Determine upload scope based on selected project filter
+  const uploadScope =
+    filters.projectId && filters.projectId !== ALL_PROJECTS_VALUE
+      ? "project"
+      : "organization";
+  const uploadScopeId =
+    uploadScope === "project" ? filters.projectId : organizationId;
+
   return (
     <div className="space-y-6">
       {/* Header with Bulk Upload Button */}
@@ -274,8 +282,8 @@ export function KnowledgeBaseBrowser({
       <UploadKnowledgeDocumentDialog
         open={isUploadDialogOpen}
         onOpenChange={setIsUploadDialogOpen}
-        scope="organization"
-        scopeId={organizationId}
+        scope={uploadScope}
+        scopeId={uploadScopeId}
         onSuccess={handleUploadSuccess}
       />
     </div>
