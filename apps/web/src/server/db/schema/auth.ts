@@ -93,14 +93,19 @@ export const verifications = pgTable(
   (table) => [index("verifications_identifier_idx").on(table.identifier)]
 );
 
-export const organizations = pgTable("organizations", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
-  logo: text("logo"),
-  createdAt: timestamp("created_at").notNull(),
-  metadata: text("metadata"),
-});
+export const organizations = pgTable(
+  "organizations",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    logo: text("logo"),
+    createdAt: timestamp("created_at").notNull(),
+    metadata: text("metadata"),
+    agentEnabled: boolean("agent_enabled").default(true).notNull(),
+  },
+  (table) => [index("idx_organizations_agent_enabled").on(table.agentEnabled)]
+);
 
 export const teams = pgTable(
   "teams",

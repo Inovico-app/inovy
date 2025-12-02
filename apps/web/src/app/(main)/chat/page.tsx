@@ -4,6 +4,7 @@ import { UnifiedChatInterface } from "@/features/chat/components/unified-chat-in
 import { getUserProjects } from "@/features/projects/actions/get-user-projects";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
+import { getCachedAgentConfig } from "@/server/cache/organization.cache";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -28,6 +29,11 @@ async function ChatPageContent() {
   // Get user's projects
   const projectsResult = await getUserProjects();
   const projects = projectsResult.success ? (projectsResult.data ?? []) : [];
+
+  // Check if agent is enabled
+  const agentEnabled = session.organization
+    ? await getCachedAgentConfig(session.organization.id)
+    : true;
 
   // If no projects and not admin, show error
   if (projects.length === 0 && !isAdmin) {
@@ -58,6 +64,8 @@ async function ChatPageContent() {
         projects={projects}
         defaultContext={isAdmin ? "organization" : "project"}
         defaultProjectId={projects[0]?.id}
+        agentEnabled={agentEnabled}
+        organizationName={session.organization?.name}
       />
     </div>
   );

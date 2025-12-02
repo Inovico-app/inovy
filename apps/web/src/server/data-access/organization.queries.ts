@@ -334,6 +334,7 @@ export class OrganizationQueries {
         name: data.name,
         slug: data.slug,
         createdAt: now,
+        agentEnabled: true, // Default to enabled
       });
 
       await tx.insert(members).values({
@@ -346,6 +347,40 @@ export class OrganizationQueries {
 
       return data.organizationId;
     });
+  }
+
+  /**
+   * Get agent configuration for an organization
+   * @param organizationId - Organization ID
+   * @returns Agent enabled status or null if organization not found
+   */
+  static async getAgentConfig(organizationId: string): Promise<boolean | null> {
+    const [org] = await db
+      .select({ agentEnabled: organizations.agentEnabled })
+      .from(organizations)
+      .where(eq(organizations.id, organizationId))
+      .limit(1);
+
+    return org?.agentEnabled ?? null;
+  }
+
+  /**
+   * Update agent configuration for an organization
+   * @param organizationId - Organization ID
+   * @param enabled - Whether agent is enabled
+   * @returns true if update successful, false if organization not found
+   */
+  static async updateAgentConfig(
+    organizationId: string,
+    enabled: boolean
+  ): Promise<boolean> {
+    const [updated] = await db
+      .update(organizations)
+      .set({ agentEnabled: enabled })
+      .where(eq(organizations.id, organizationId))
+      .returning();
+
+    return !!updated;
   }
 }
 

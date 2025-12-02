@@ -1,0 +1,2 @@
+ALTER TABLE "organizations" ADD COLUMN "agent_enabled" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+CREATE INDEX "idx_organizations_agent_enabled" ON "organizations" USING btree ("agent_enabled");

@@ -1,6 +1,7 @@
 import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
 import { KnowledgeBaseBrowserService } from "@/server/services/knowledge-base-browser.service";
+import { AgentConfigService } from "@/server/services/agent-config.service";
 import type { NextRequest } from "next/server";
 
 /**
@@ -20,6 +21,21 @@ export async function GET(request: NextRequest) {
     }
 
     const organizationId = authResult.value.organization.id;
+
+    // Check if agent is enabled for this organization
+    const agentStatusResult = await AgentConfigService.isAgentEnabled(
+      organizationId
+    );
+
+    if (agentStatusResult.isErr() || !agentStatusResult.value) {
+      return Response.json(
+        {
+          error: "Agent is disabled for this organization",
+          code: "AGENT_DISABLED",
+        },
+        { status: 403 }
+      );
+    }
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -78,6 +94,21 @@ export async function DELETE(request: NextRequest) {
     }
 
     const organizationId = authResult.value.organization.id;
+
+    // Check if agent is enabled for this organization
+    const agentStatusResult = await AgentConfigService.isAgentEnabled(
+      organizationId
+    );
+
+    if (agentStatusResult.isErr() || !agentStatusResult.value) {
+      return Response.json(
+        {
+          error: "Agent is disabled for this organization",
+          code: "AGENT_DISABLED",
+        },
+        { status: 403 }
+      );
+    }
 
     // Parse request body
     const body = await request.json().catch(() => ({}));

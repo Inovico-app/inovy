@@ -1,5 +1,6 @@
 "use client";
 
+import { AgentDisabledBanner } from "@/components/agent-disabled-banner";
 import {
   Conversation,
   ConversationContent,
@@ -29,7 +30,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { Building2, FolderOpen } from "lucide-react";
 import { useQueryState } from "nuqs";
-import { useEffect, useRef, useState } from "react";
+import { Activity, useEffect, useRef, useState } from "react";
 import { getConversationMessagesAction } from "../actions/conversation-history";
 import { ChatContextSelector } from "./chat-context-selector";
 import { CitationMarker } from "./citation-marker";
@@ -66,6 +67,8 @@ interface UnifiedChatInterfaceProps {
   projects: Project[];
   defaultContext?: "organization" | "project";
   defaultProjectId?: string;
+  agentEnabled?: boolean;
+  organizationName?: string;
 }
 
 export function UnifiedChatInterface({
@@ -73,6 +76,8 @@ export function UnifiedChatInterface({
   projects,
   defaultContext = "project",
   defaultProjectId,
+  agentEnabled = true,
+  organizationName,
 }: UnifiedChatInterfaceProps) {
   // Determine initial values
   const initialContext =
@@ -397,6 +402,13 @@ export function UnifiedChatInterface({
           </p>
         </div>
 
+        {/* Agent Disabled Banner */}
+        <Activity mode={agentEnabled ? "visible" : "hidden"}>
+          <div className="p-4 shrink-0">
+            <AgentDisabledBanner organizationName={organizationName} />
+          </div>
+        </Activity>
+
         {/* Conversation */}
         <Conversation>
           <ConversationContent>
@@ -531,7 +543,8 @@ export function UnifiedChatInterface({
                 disabled={
                   status === "streaming" ||
                   status === "submitted" ||
-                  (context === "project" && !projectId)
+                  (context === "project" && !projectId) ||
+                  !agentEnabled
                 }
               />
             </PromptInputBody>
@@ -545,7 +558,8 @@ export function UnifiedChatInterface({
                 disabled={
                   status === "streaming" ||
                   status === "submitted" ||
-                  (context === "project" && !projectId)
+                  (context === "project" && !projectId) ||
+                  !agentEnabled
                 }
                 status={
                   status === "streaming" || status === "submitted"

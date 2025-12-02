@@ -23,6 +23,7 @@ import { DocumentCard } from "./document-card";
 interface KnowledgeBaseBrowserProps {
   organizationId: string;
   projects: Array<{ id: string; name: string }>;
+  agentEnabled?: boolean;
 }
 
 const CONTENT_TYPES = [
@@ -41,6 +42,7 @@ const ALL_PROJECTS_VALUE = "__all__";
 export function KnowledgeBaseBrowser({
   organizationId,
   projects,
+  agentEnabled = true,
 }: KnowledgeBaseBrowserProps) {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 
@@ -158,6 +160,7 @@ export function KnowledgeBaseBrowser({
         <Button
           onClick={() => setIsUploadDialogOpen(true)}
           className="flex items-center gap-2"
+          disabled={!agentEnabled}
         >
           <Upload className="h-4 w-4" />
           Bulk Upload
