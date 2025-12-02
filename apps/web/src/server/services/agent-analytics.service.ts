@@ -308,6 +308,26 @@ export class AgentAnalyticsService {
   }
 
   /**
+   * Helper to wrap query calls in Result types with error handling
+   */
+  private static async wrapQuery<T>(
+    queryPromise: Promise<T>,
+    errorMessage: string
+  ): Promise<Result<T, Error>> {
+    try {
+      const data = await queryPromise;
+      return ok(data);
+    } catch (error) {
+      logger.error(errorMessage, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return err(
+        error instanceof Error ? error : new Error(errorMessage)
+      );
+    }
+  }
+
+  /**
    * Export analytics data as CSV
    */
   static async exportAnalyticsAsCSV(
@@ -319,7 +339,7 @@ export class AgentAnalyticsService {
     }
 
     try {
-      // Get all metrics data
+      // Get all metrics data directly from queries (permission already checked)
       const [
         requestCountResult,
         latencyResult,
@@ -328,12 +348,61 @@ export class AgentAnalyticsService {
         toolUsageResult,
         topQueriesResult,
       ] = await Promise.all([
-        this.getRequestCountOverTime(filters),
-        this.getAverageLatency(filters),
-        this.getErrorRate(filters),
-        this.getTokenUsage(filters),
-        this.getToolUsageStats(filters),
-        this.getTopQueries(filters, 100),
+        this.wrapQuery(
+          AgentAnalyticsQueries.getRequestCountOverTime(
+            filters.startDate,
+            filters.endDate,
+            filters.organizationId,
+            filters.userId
+          ),
+          "Failed to get request count over time"
+        ),
+        this.wrapQuery(
+          AgentAnalyticsQueries.getAverageLatency(
+            filters.startDate,
+            filters.endDate,
+            filters.organizationId,
+            filters.userId
+          ),
+          "Failed to get average latency"
+        ),
+        this.wrapQuery(
+          AgentAnalyticsQueries.getErrorRate(
+            filters.startDate,
+            filters.endDate,
+            filters.organizationId,
+            filters.userId
+          ),
+          "Failed to get error rate"
+        ),
+        this.wrapQuery(
+          AgentAnalyticsQueries.getTokenUsage(
+            filters.startDate,
+            filters.endDate,
+            filters.organizationId,
+            filters.userId
+          ),
+          "Failed to get token usage"
+        ),
+        this.wrapQuery(
+          AgentAnalyticsQueries.getToolUsageStats(
+            filters.startDate,
+            filters.endDate,
+            filters.organizationId,
+            filters.userId
+          ),
+          "Failed to get tool usage stats"
+        ),
+        this.wrapQuery(
+          AgentAnalyticsQueries.getTopQueries(
+            filters.startDate,
+            filters.endDate,
+            filters.organizationId,
+            filters.userId,
+            100
+          ),
+          "Failed to get top queries"
+        ),
       ]);
 
       // Build CSV content
@@ -344,9 +413,7 @@ export class AgentAnalyticsService {
       csvLines.push("Date,Count");
       if (requestCountResult.isOk()) {
         for (const point of requestCountResult.value) {
-          csvLines.push(
-            `${this.escapeCsvField(point.date)},${point.value}`
-          );
+          csvLines.push(`${this.escapeCsvField(point.date)},${point.value}`);
         }
       } else {
         csvLines.push(
@@ -360,9 +427,7 @@ export class AgentAnalyticsService {
       csvLines.push("Date,Latency (ms)");
       if (latencyResult.isOk()) {
         for (const point of latencyResult.value) {
-          csvLines.push(
-            `${this.escapeCsvField(point.date)},${point.value}`
-          );
+          csvLines.push(`${this.escapeCsvField(point.date)},${point.value}`);
         }
       } else {
         csvLines.push(
@@ -376,9 +441,7 @@ export class AgentAnalyticsService {
       csvLines.push("Date,Error Rate (%)");
       if (errorRateResult.isOk()) {
         for (const point of errorRateResult.value) {
-          csvLines.push(
-            `${this.escapeCsvField(point.date)},${point.value}`
-          );
+          csvLines.push(`${this.escapeCsvField(point.date)},${point.value}`);
         }
       } else {
         csvLines.push(
@@ -392,9 +455,7 @@ export class AgentAnalyticsService {
       csvLines.push("Date,Tokens");
       if (tokenUsageResult.isOk()) {
         for (const point of tokenUsageResult.value) {
-          csvLines.push(
-            `${this.escapeCsvField(point.date)},${point.value}`
-          );
+          csvLines.push(`${this.escapeCsvField(point.date)},${point.value}`);
         }
       } else {
         csvLines.push(
@@ -408,9 +469,7 @@ export class AgentAnalyticsService {
       csvLines.push("Tool Name,Count");
       if (toolUsageResult.isOk()) {
         for (const stat of toolUsageResult.value) {
-          csvLines.push(
-            `${this.escapeCsvField(stat.toolName)},${stat.count}`
-          );
+          csvLines.push(`${this.escapeCsvField(stat.toolName)},${stat.count}`);
         }
       } else {
         csvLines.push(
