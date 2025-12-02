@@ -298,6 +298,16 @@ export class AgentAnalyticsService {
   }
 
   /**
+   * Escape a CSV field by wrapping in double quotes and doubling internal quotes
+   */
+  private static escapeCsvField(value: string | number | Date): string {
+    const stringValue =
+      value instanceof Date ? value.toISOString() : String(value);
+    // Wrap in double quotes and double any internal quotes
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+
+  /**
    * Export analytics data as CSV
    */
   static async exportAnalyticsAsCSV(
@@ -334,8 +344,14 @@ export class AgentAnalyticsService {
       csvLines.push("Date,Count");
       if (requestCountResult.isOk()) {
         for (const point of requestCountResult.value) {
-          csvLines.push(`${point.date},${point.value}`);
+          csvLines.push(
+            `${this.escapeCsvField(point.date)},${point.value}`
+          );
         }
+      } else {
+        csvLines.push(
+          `${this.escapeCsvField("ERROR")},${this.escapeCsvField(requestCountResult.error.message)}`
+        );
       }
       csvLines.push("");
 
@@ -344,8 +360,14 @@ export class AgentAnalyticsService {
       csvLines.push("Date,Latency (ms)");
       if (latencyResult.isOk()) {
         for (const point of latencyResult.value) {
-          csvLines.push(`${point.date},${point.value}`);
+          csvLines.push(
+            `${this.escapeCsvField(point.date)},${point.value}`
+          );
         }
+      } else {
+        csvLines.push(
+          `${this.escapeCsvField("ERROR")},${this.escapeCsvField(latencyResult.error.message)}`
+        );
       }
       csvLines.push("");
 
@@ -354,8 +376,14 @@ export class AgentAnalyticsService {
       csvLines.push("Date,Error Rate (%)");
       if (errorRateResult.isOk()) {
         for (const point of errorRateResult.value) {
-          csvLines.push(`${point.date},${point.value}`);
+          csvLines.push(
+            `${this.escapeCsvField(point.date)},${point.value}`
+          );
         }
+      } else {
+        csvLines.push(
+          `${this.escapeCsvField("ERROR")},${this.escapeCsvField(errorRateResult.error.message)}`
+        );
       }
       csvLines.push("");
 
@@ -364,8 +392,14 @@ export class AgentAnalyticsService {
       csvLines.push("Date,Tokens");
       if (tokenUsageResult.isOk()) {
         for (const point of tokenUsageResult.value) {
-          csvLines.push(`${point.date},${point.value}`);
+          csvLines.push(
+            `${this.escapeCsvField(point.date)},${point.value}`
+          );
         }
+      } else {
+        csvLines.push(
+          `${this.escapeCsvField("ERROR")},${this.escapeCsvField(tokenUsageResult.error.message)}`
+        );
       }
       csvLines.push("");
 
@@ -374,8 +408,14 @@ export class AgentAnalyticsService {
       csvLines.push("Tool Name,Count");
       if (toolUsageResult.isOk()) {
         for (const stat of toolUsageResult.value) {
-          csvLines.push(`${stat.toolName},${stat.count}`);
+          csvLines.push(
+            `${this.escapeCsvField(stat.toolName)},${stat.count}`
+          );
         }
+      } else {
+        csvLines.push(
+          `${this.escapeCsvField("ERROR")},${this.escapeCsvField(toolUsageResult.error.message)}`
+        );
       }
       csvLines.push("");
 
@@ -385,9 +425,13 @@ export class AgentAnalyticsService {
       if (topQueriesResult.isOk()) {
         for (const query of topQueriesResult.value) {
           csvLines.push(
-            `"${query.query.replace(/"/g, '""')}",${query.count},${query.lastUsed.toISOString()}`
+            `${this.escapeCsvField(query.query)},${query.count},${this.escapeCsvField(query.lastUsed)}`
           );
         }
+      } else {
+        csvLines.push(
+          `${this.escapeCsvField("ERROR")},${this.escapeCsvField("ERROR")},${this.escapeCsvField(topQueriesResult.error.message)}`
+        );
       }
 
       return ok(csvLines.join("\n"));
