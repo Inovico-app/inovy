@@ -205,7 +205,7 @@ export class KnowledgeBaseBrowserService {
         return err(listResult.error);
       }
 
-      const docInfo = listResult.value[0];
+      const docInfo = listResult.value.documents[0];
       if (!docInfo) {
         return err(
           ActionErrors.notFound(
