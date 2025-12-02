@@ -159,10 +159,10 @@ async function OrganizationContent() {
       {/* Knowledge Base */}
       {organizationId && (
         <OrganizationKnowledgeBaseSection
+          canEdit
           initialEntries={knowledgeEntries}
           initialDocuments={knowledgeDocuments}
           organizationId={organizationId}
-          canEdit={canEdit}
         />
       )}
 

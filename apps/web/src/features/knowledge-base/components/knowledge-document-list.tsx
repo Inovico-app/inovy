@@ -1,5 +1,7 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,8 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,11 +16,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { TrashIcon, MoreVerticalIcon, ExternalLinkIcon, FileTextIcon } from "lucide-react";
-import { useState } from "react";
-import type { KnowledgeDocumentDto } from "@/server/dto/knowledge-base.dto";
-import { DeleteKnowledgeDocumentDialog } from "./delete-knowledge-document-dialog";
 import type { KnowledgeBaseScope } from "@/server/db/schema/knowledge-base-entries";
+import type { KnowledgeDocumentDto } from "@/server/dto/knowledge-base.dto";
+import {
+  ExternalLinkIcon,
+  FileTextIcon,
+  MoreVerticalIcon,
+  TrashIcon,
+  UploadIcon,
+} from "lucide-react";
+import { useState } from "react";
+import { DeleteKnowledgeDocumentDialog } from "./delete-knowledge-document-dialog";
 
 interface KnowledgeDocumentListProps {
   documents: KnowledgeDocumentDto[];
@@ -28,9 +34,13 @@ interface KnowledgeDocumentListProps {
   scopeId: string | null;
   canEdit: boolean;
   onDocumentDeleted: (documentId: string) => void;
+  onUploadClick?: () => void;
 }
 
-const processingStatusColors: Record<string, "default" | "secondary" | "destructive"> = {
+const processingStatusColors: Record<
+  string,
+  "default" | "secondary" | "destructive"
+> = {
   completed: "default",
   processing: "secondary",
   pending: "secondary",
@@ -46,20 +56,31 @@ const processingStatusLabels: Record<string, string> = {
 
 export function KnowledgeDocumentList({
   documents,
-  scope,
-  scopeId,
+  scope: _scope,
+  scopeId: _scopeId,
   canEdit,
   onDocumentDeleted,
+  onUploadClick,
 }: KnowledgeDocumentListProps) {
-  const [deletingDocument, setDeletingDocument] = useState<KnowledgeDocumentDto | null>(null);
+  const [deletingDocument, setDeletingDocument] =
+    useState<KnowledgeDocumentDto | null>(null);
 
   if (documents.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">No knowledge documents yet</p>
-        <p className="text-sm text-muted-foreground mt-2">
+        <FileTextIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+        <p className="text-muted-foreground font-medium">
+          No knowledge documents yet
+        </p>
+        <p className="text-sm text-muted-foreground mt-2 mb-4">
           Upload documents to extract terms and definitions automatically
         </p>
+        {canEdit && onUploadClick && (
+          <Button onClick={onUploadClick} variant="default" size="sm">
+            <UploadIcon className="h-4 w-4 mr-2" />
+            Batch Upload Documents
+          </Button>
+        )}
       </div>
     );
   }
@@ -69,7 +90,7 @@ export function KnowledgeDocumentList({
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
   };
 
   return (
@@ -131,9 +152,13 @@ export function KnowledgeDocumentList({
           <CardContent>
             <div className="flex items-center gap-2">
               <Badge
-                variant={processingStatusColors[document.processingStatus] || "secondary"}
+                variant={
+                  processingStatusColors[document.processingStatus] ||
+                  "secondary"
+                }
               >
-                {processingStatusLabels[document.processingStatus] || document.processingStatus}
+                {processingStatusLabels[document.processingStatus] ||
+                  document.processingStatus}
               </Badge>
               {document.processingError && (
                 <span className="text-sm text-destructive">

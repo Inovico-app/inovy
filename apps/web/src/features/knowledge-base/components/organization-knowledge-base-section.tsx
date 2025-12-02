@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,14 +9,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type {
+  KnowledgeDocumentDto,
+  KnowledgeEntryDto,
+} from "@/server/dto/knowledge-base.dto";
+import { BookOpenIcon, FileTextIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
-import { KnowledgeEntryList } from "./knowledge-entry-list";
-import { KnowledgeDocumentList } from "./knowledge-document-list";
 import { CreateKnowledgeEntryDialog } from "./create-knowledge-entry-dialog";
+import { KnowledgeDocumentList } from "./knowledge-document-list";
+import { KnowledgeEntryList } from "./knowledge-entry-list";
 import { UploadKnowledgeDocumentDialog } from "./upload-knowledge-document-dialog";
-import { Button } from "@/components/ui/button";
-import { PlusIcon, BookOpenIcon, FileTextIcon } from "lucide-react";
-import type { KnowledgeEntryDto, KnowledgeDocumentDto } from "@/server/dto/knowledge-base.dto";
 
 interface OrganizationKnowledgeBaseSectionProps {
   initialEntries: KnowledgeEntryDto[];
@@ -36,7 +39,8 @@ export function OrganizationKnowledgeBaseSection({
   const [entries, setEntries] = useState(initialEntries);
   const [documents, setDocuments] = useState(initialDocuments);
   const [showCreateEntryDialog, setShowCreateEntryDialog] = useState(false);
-  const [showUploadDocumentDialog, setShowUploadDocumentDialog] = useState(false);
+  const [showUploadDocumentDialog, setShowUploadDocumentDialog] =
+    useState(false);
 
   const handleEntryCreated = (entry: KnowledgeEntryDto) => {
     setEntries((prev) => [...prev, entry]);
@@ -89,7 +93,7 @@ export function OrganizationKnowledgeBaseSection({
                 variant="outline"
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
-                Upload Document
+                Batch Upload Documents
               </Button>
             </div>
           )}
@@ -115,6 +119,7 @@ export function OrganizationKnowledgeBaseSection({
               canEdit={canEdit}
               onEntryUpdated={handleEntryUpdated}
               onEntryDeleted={handleEntryDeleted}
+              onCreateClick={() => setShowCreateEntryDialog(true)}
             />
           </TabsContent>
           <TabsContent value="documents" className="mt-4">
@@ -124,6 +129,7 @@ export function OrganizationKnowledgeBaseSection({
               scopeId={organizationId}
               canEdit={canEdit}
               onDocumentDeleted={handleDocumentDeleted}
+              onUploadClick={() => setShowUploadDocumentDialog(true)}
             />
           </TabsContent>
         </Tabs>

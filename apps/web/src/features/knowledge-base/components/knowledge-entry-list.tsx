@@ -1,5 +1,7 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,8 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,12 +16,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PencilIcon, TrashIcon, MoreVerticalIcon } from "lucide-react";
-import { useState } from "react";
-import type { KnowledgeEntryDto } from "@/server/dto/knowledge-base.dto";
-import { EditKnowledgeEntryDialog } from "./edit-knowledge-entry-dialog";
-import { DeleteKnowledgeEntryDialog } from "./delete-knowledge-entry-dialog";
 import type { KnowledgeBaseScope } from "@/server/db/schema/knowledge-base-entries";
+import type { KnowledgeEntryDto } from "@/server/dto/knowledge-base.dto";
+import {
+  BookOpenIcon,
+  MoreVerticalIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon,
+} from "lucide-react";
+import { useState } from "react";
+import { DeleteKnowledgeEntryDialog } from "./delete-knowledge-entry-dialog";
+import { EditKnowledgeEntryDialog } from "./edit-knowledge-entry-dialog";
 
 interface KnowledgeEntryListProps {
   entries: KnowledgeEntryDto[];
@@ -30,26 +36,42 @@ interface KnowledgeEntryListProps {
   canEdit: boolean;
   onEntryUpdated: (entry: KnowledgeEntryDto) => void;
   onEntryDeleted: (entryId: string) => void;
+  onCreateClick?: () => void;
 }
 
 export function KnowledgeEntryList({
   entries,
-  scope,
-  scopeId,
+  scope: _scope,
+  scopeId: _scopeId,
   canEdit,
   onEntryUpdated,
   onEntryDeleted,
+  onCreateClick,
 }: KnowledgeEntryListProps) {
-  const [editingEntry, setEditingEntry] = useState<KnowledgeEntryDto | null>(null);
-  const [deletingEntry, setDeletingEntry] = useState<KnowledgeEntryDto | null>(null);
+  const [editingEntry, setEditingEntry] = useState<KnowledgeEntryDto | null>(
+    null
+  );
+  const [deletingEntry, setDeletingEntry] = useState<KnowledgeEntryDto | null>(
+    null
+  );
 
   if (entries.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">No knowledge entries yet</p>
-        <p className="text-sm text-muted-foreground mt-2">
-          Create entries to define terms and their meanings for your organization
+        <BookOpenIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+        <p className="text-muted-foreground font-medium">
+          No knowledge entries yet
         </p>
+        <p className="text-sm text-muted-foreground mt-2 mb-4">
+          Create entries to define terms and their meanings for your
+          organization
+        </p>
+        {canEdit && onCreateClick && (
+          <Button onClick={onCreateClick} variant="default" size="sm">
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Add Entry
+          </Button>
+        )}
       </div>
     );
   }
