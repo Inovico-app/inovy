@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "../db";
 import {
   knowledgeBaseDocuments,
@@ -137,6 +137,46 @@ export class KnowledgeBaseDocumentsQueries {
       createdAt: document.createdAt,
       updatedAt: document.updatedAt,
     };
+  }
+
+  /**
+   * Get multiple documents by IDs (batch query)
+   * Returns a map of documentId -> KnowledgeDocumentDto for efficient lookup
+   */
+  static async getDocumentsByIds(
+    ids: string[]
+  ): Promise<Map<string, KnowledgeDocumentDto>> {
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const documents = await db
+      .select()
+      .from(knowledgeBaseDocuments)
+      .where(inArray(knowledgeBaseDocuments.id, ids));
+
+    const documentMap = new Map<string, KnowledgeDocumentDto>();
+    for (const doc of documents) {
+      documentMap.set(doc.id, {
+        id: doc.id,
+        scope: doc.scope,
+        scopeId: doc.scopeId,
+        title: doc.title,
+        description: doc.description,
+        fileUrl: doc.fileUrl,
+        fileName: doc.fileName,
+        fileSize: doc.fileSize,
+        fileType: doc.fileType,
+        extractedText: doc.extractedText,
+        processingStatus: doc.processingStatus,
+        processingError: doc.processingError,
+        createdById: doc.createdById,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+      });
+    }
+
+    return documentMap;
   }
 
   /**

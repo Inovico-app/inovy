@@ -165,9 +165,6 @@ async function ProfileContent() {
         <Button asChild>
           <Link href="/settings/profile/edit">Edit Profile</Link>
         </Button>
-        <Button variant="outline" asChild>
-          <Link href="/settings">Back to Settings</Link>
-        </Button>
       </div>
     </div>
   );
@@ -186,7 +183,7 @@ export default function ProfilePage() {
       }
     >
       <ProtectedPage>
-        <div className="container mx-auto max-w-2xl py-8 px-4">
+        <div className="container mx-auto max-w-6xl py-12 px-6">
           <Suspense
             fallback={
               <div className="space-y-4">

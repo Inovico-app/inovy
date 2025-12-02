@@ -674,6 +674,202 @@ export class QdrantClientService {
   }
 
   /**
+   * List unique documents by scrolling through points and grouping by documentId/contentId
+   * Returns aggregated document metadata with chunk counts and pagination support
+   */
+  async listUniqueDocuments(
+    filter: QdrantFilter,
+    options: {
+      limit?: number; // Maximum number of unique documents to return
+      offset?: string | number | null; // Offset for pagination (point ID from previous page)
+      scrollBatchSize?: number; // Number of points to fetch per scroll batch (default: 1000)
+      collectionName?: string;
+    } = {}
+  ): Promise<
+    ActionResult<{
+      documents: Array<{
+        documentId: string;
+        contentId: string;
+        contentType: string;
+        organizationId: string;
+        projectId?: string;
+        filename?: string;
+        fileType?: string;
+        fileSize?: number;
+        title?: string;
+        chunksCount: number;
+        uploadDate?: Date;
+        metadata?: Record<string, unknown>;
+      }>;
+      nextOffset: string | number | null; // Offset for next page, null if no more results
+      hasMore: boolean;
+    }>
+  > {
+    const targetCollection =
+      options.collectionName ?? this.defaultCollectionName;
+    const maxDocuments = options.limit ?? 100; // Default to 100 unique documents
+    const scrollBatchSize = options.scrollBatchSize ?? 1000; // Fetch 1000 points at a time
+
+    // Ensure collection is initialized
+    const initResult = await this.initialize(targetCollection);
+    if (initResult.isErr()) {
+      return err(initResult.error);
+    }
+
+    return await this.executeWithRetry(async () => {
+      // Group points by documentId (preferred) or contentId
+      const documentMap = new Map<
+        string,
+        {
+          documentId: string;
+          contentId: string;
+          contentType: string;
+          organizationId: string;
+          projectId?: string;
+          filename?: string;
+          fileType?: string;
+          fileSize?: number;
+          title?: string;
+          chunksCount: number;
+          uploadDate?: Date;
+          metadata?: Record<string, unknown>;
+        }
+      >();
+
+      let currentOffset: string | number | null = options.offset ?? null;
+      let hasMorePoints = true;
+      let totalPointsScrolled = 0;
+
+      // Keep scrolling until we have enough unique documents or no more points
+      while (documentMap.size < maxDocuments && hasMorePoints) {
+        const scrollResult = await this.client.scroll(targetCollection, {
+          filter: filter as Record<string, unknown>,
+          limit: scrollBatchSize,
+          offset: currentOffset ?? undefined,
+          with_payload: true,
+          with_vector: false,
+        });
+
+        if (scrollResult.points.length === 0) {
+          hasMorePoints = false;
+          break;
+        }
+
+        totalPointsScrolled += scrollResult.points.length;
+
+        // Process points and group by documentId
+        for (const point of scrollResult.points) {
+          const payload = point.payload as QdrantPayload | undefined;
+          if (!payload) continue;
+
+          // Skip points without organizationId and log warning
+          if (!payload.organizationId) {
+            logger.warn("Skipping point with missing organizationId", {
+              component: "QdrantClientService",
+              pointId: point.id,
+              payload: {
+                documentId: payload.documentId,
+                contentId: payload.contentId,
+                contentType: payload.contentType,
+                filename: payload.filename,
+                projectId: payload.projectId,
+                timestamp: payload.timestamp,
+              },
+            });
+            continue;
+          }
+
+          // Use documentId if available, otherwise fall back to contentId
+          const docId =
+            (payload.documentId as string) ??
+            (payload.contentId as string) ??
+            String(point.id);
+
+          if (!documentMap.has(docId)) {
+            // Only add if we haven't reached the limit
+            if (documentMap.size >= maxDocuments) {
+              // We have enough documents, but mark that there might be more
+              hasMorePoints = true;
+              break;
+            }
+
+            // Initialize document entry
+            documentMap.set(docId, {
+              documentId: docId,
+              contentId: (payload.contentId as string) ?? docId,
+              contentType: (payload.contentType as string) ?? "unknown",
+              organizationId: payload.organizationId as string,
+              projectId: payload.projectId as string | undefined,
+              filename: payload.filename as string | undefined,
+              fileType: payload.fileType as string | undefined,
+              fileSize: payload.fileSize as number | undefined,
+              title: payload.title as string | undefined,
+              chunksCount: 1,
+              uploadDate: payload.timestamp
+                ? new Date(payload.timestamp)
+                : undefined,
+              metadata: payload,
+            });
+          } else {
+            // Increment chunk count for existing document
+            const doc = documentMap.get(docId);
+            if (doc) {
+              doc.chunksCount += 1;
+              // Update upload date if this chunk is newer
+              if (payload.timestamp) {
+                const chunkDate = new Date(payload.timestamp);
+                if (!doc.uploadDate || chunkDate > doc.uploadDate) {
+                  doc.uploadDate = chunkDate;
+                }
+              }
+            }
+          }
+        }
+
+        // Check if there are more points to scroll
+        // Qdrant returns next_page_offset if there are more results
+        const nextPageOffset =
+          (scrollResult as { next_page_offset?: string | number })
+            .next_page_offset ?? null;
+
+        if (
+          nextPageOffset === null ||
+          scrollResult.points.length < scrollBatchSize
+        ) {
+          hasMorePoints = false;
+          currentOffset = null;
+        } else {
+          currentOffset = nextPageOffset;
+          // If we've reached the document limit, we still need to check if there are more
+          // by looking at whether we got a full batch
+          if (documentMap.size >= maxDocuments) {
+            // We have enough documents, but there might be more points
+            // Set offset for next page
+            break;
+          }
+        }
+      }
+
+      const documents = Array.from(documentMap.values());
+
+      logger.debug("Listed unique documents from Qdrant", {
+        component: "QdrantClientService",
+        collectionName: targetCollection,
+        documentCount: documents.length,
+        totalPointsScrolled,
+        hasMore: hasMorePoints && currentOffset !== null,
+        nextOffset: currentOffset,
+      });
+
+      return ok({
+        documents,
+        nextOffset: hasMorePoints ? currentOffset : null,
+        hasMore: hasMorePoints && currentOffset !== null,
+      });
+    });
+  }
+
+  /**
    * Execute operation with retry logic and exponential backoff
    */
   private async executeWithRetry<T>(

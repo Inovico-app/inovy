@@ -64,5 +64,12 @@ export const queryKeys = {
     members: (orgCode: string) =>
       [...queryKeys.organization.all, "members", orgCode] as const,
   },
+  agentKnowledgeBase: {
+    all: ["agent", "knowledge-base"] as const,
+    documents: (filters?: Record<string, unknown>) =>
+      [...queryKeys.agentKnowledgeBase.all, "documents", filters] as const,
+    document: (documentId: string) =>
+      [...queryKeys.agentKnowledgeBase.all, "document", documentId] as const,
+  },
 } as const;
 
