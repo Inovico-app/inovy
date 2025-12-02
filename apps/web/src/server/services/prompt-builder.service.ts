@@ -59,6 +59,10 @@ export interface TranscriptionEnhancementPromptParams {
   knowledgeContext?: string;
 }
 
+export interface ConversationSummarizeParams {
+  conversationText: string;
+}
+
 // Legacy interface for backward compatibility
 export interface PromptContext {
   systemInstructions: string;
@@ -658,6 +662,48 @@ Your role:
       const userPrompt = `Process the audio transcription with the provided context.${
         audioMetadataTag ? `\n\n${audioMetadataTag}` : ""
       }`;
+
+      return {
+        systemPrompt,
+        userPrompt,
+      };
+    }
+  };
+
+  /**
+   * Conversation summarization prompts
+   */
+  static Conversations = class {
+    /**
+     * Build prompt for conversation summarization
+     */
+    static summarize(params: ConversationSummarizeParams): PromptResult {
+      const systemPromptContent = `Je bent een AI-assistent die conversatiegeschiedenis samenvat.
+
+Je taak is om een beknopte maar informatieve samenvatting te maken van een conversatie tussen een gebruiker en een AI-assistent.
+
+De samenvatting moet:
+1. De belangrijkste onderwerpen en vragen identificeren die zijn besproken
+2. Belangrijke beslissingen of conclusies samenvatten
+3. Belangrijke context behouden die nodig is voor toekomstige interacties
+4. Beknopt zijn maar wel alle essentiële informatie bevatten
+
+Focus op informatie die relevant is voor het voortzetten van de conversatie met context.
+
+Antwoord ALLEEN met valid JSON in het volgende formaat:
+{
+  "summary": "Een beknopte samenvatting van de belangrijkste onderwerpen, vragen en conclusies uit de conversatie..."
+}`;
+
+      const systemPrompt =
+        PromptBuilder.Base.buildSystemPromptWithGuardRails(systemPromptContent);
+
+      const userPrompt = PromptBuilder.Base.wrapInXmlTag(
+        "conversation",
+        `Maak een samenvatting van deze conversatie:
+
+${params.conversationText}`
+      );
 
       return {
         systemPrompt,

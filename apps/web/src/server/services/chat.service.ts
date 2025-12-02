@@ -14,10 +14,11 @@ import type {
   NewChatMessage,
   SourceReference,
 } from "@/server/db/schema/chat-messages";
-import { streamText, type CoreMessage } from "ai";
+import { streamText } from "ai";
 import { err, ok } from "neverthrow";
 import { getCachedProjectTemplate } from "../cache/project-template.cache";
 import { connectionPool } from "./connection-pool.service";
+import { ConversationContextManager } from "./conversation-context-manager.service";
 import { KnowledgeBaseService } from "./knowledge-base.service";
 import { ProjectService } from "./project.service";
 import { PromptBuilder } from "./prompt-builder.service";
@@ -265,7 +266,6 @@ export class ChatService {
     }
   }
 
-
   /**
    * Generate chat response using GPT-5-nano with streaming
    */
@@ -305,7 +305,7 @@ export class ChatService {
       await ChatQueries.createMessage(userMessageEntry);
 
       // Get relevant context using RAG search
-      const contextResult = await this.getRelevantContext(
+      const ragContextResult = await this.getRelevantContext(
         userMessage,
         projectId
       );
@@ -313,9 +313,9 @@ export class ChatService {
       let context = "";
       let sources: SourceReference[] = [];
 
-      if (contextResult.isOk()) {
-        context = contextResult.value.context;
-        sources = contextResult.value.sources.map(
+      if (ragContextResult.isOk()) {
+        context = ragContextResult.value.context;
+        sources = ragContextResult.value.sources.map(
           (source: {
             contentId: string;
             contentType: string;
@@ -336,17 +336,21 @@ export class ChatService {
         );
       }
 
-      // Get conversation history
-      const messages =
-        await ChatQueries.getMessagesByConversationId(conversationId);
+      // Get conversation context with smart pruning and summarization
+      const conversationContextResult =
+        await ConversationContextManager.getConversationContext(conversationId);
 
-      // Build conversation history for context (last 10 messages)
-      const conversationHistory: CoreMessage[] = messages
-        .slice(-10)
-        .map((msg) => ({
-          role: msg.role as "user" | "assistant",
-          content: msg.content,
-        }));
+      if (conversationContextResult.isErr()) {
+        logger.error("Failed to get conversation context", {
+          component: "ChatService.generateResponse",
+          conversationId,
+          error: conversationContextResult.error,
+        });
+        return err(conversationContextResult.error);
+      }
+
+      const conversationHistory = conversationContextResult.value.messages;
+      const conversationSummary = conversationContextResult.value.summary;
 
       // Get project and knowledge context for prompt building
       const projectResult = await ProjectService.getProjectById(projectId);
@@ -354,10 +358,11 @@ export class ChatService {
 
       let knowledgeContext = "";
       if (project) {
-        const knowledgeResult = await KnowledgeBaseService.buildKnowledgeContext(
-          projectId,
-          project.organizationId
-        );
+        const knowledgeResult =
+          await KnowledgeBaseService.buildKnowledgeContext(
+            projectId,
+            project.organizationId
+          );
         if (knowledgeResult.isOk()) {
           knowledgeContext = knowledgeResult.value;
         }
@@ -380,7 +385,8 @@ export class ChatService {
       }
 
       // Build complete prompt with XML tagging and priority hierarchy
-      const ragContext = context
+      // Include conversation summary if available
+      let ragContextWithSummary = context
         ? `Here is relevant information from the project recordings:
 
 ${context}
@@ -388,13 +394,17 @@ ${context}
 Please answer the user's question based on this information.`
         : "No relevant information was found in the project recordings. Let the user know you don't have specific information to answer their question.";
 
+      if (conversationSummary) {
+        ragContextWithSummary += `\n\nPrevious conversation summary:\n${conversationSummary}`;
+      }
+
       const promptResult = PromptBuilder.Chat.buildPrompt({
         projectId,
         organizationId: project?.organizationId ?? null,
         projectName: project?.name,
         projectDescription: project?.description ?? null,
         knowledgeContext,
-        ragContent: ragContext,
+        ragContent: ragContextWithSummary,
         userQuery: userMessage,
         projectTemplate,
         isOrganizationLevel: false,
@@ -471,7 +481,13 @@ Please answer the user's question based on this information.`
       await ChatQueries.createMessage(assistantMessageEntry);
 
       // Update conversation title if it's the first message
-      if (messages.length === 1 && !conversation.title) {
+      const conversationMessages =
+        await ChatQueries.getMessagesByConversationId(conversationId);
+      /**
+       * At the time of the check, there are always at least 2 messages (user + assistant),
+       * so the condition should be === 2 to detect the first exchange and generate an auto-title.
+       */
+      if (conversationMessages.length === 2 && !conversation.title) {
         // Generate a short title from the first user message
         const title =
           userMessage.length > 50
@@ -532,7 +548,7 @@ Please answer the user's question based on this information.`
       await ChatQueries.createMessage(userMessageEntry);
 
       // Get relevant context using RAG search
-      const contextResult = await this.getRelevantContext(
+      const ragContextResult = await this.getRelevantContext(
         userMessage,
         projectId
       );
@@ -540,9 +556,9 @@ Please answer the user's question based on this information.`
       let context = "";
       let sources: SourceReference[] = [];
 
-      if (contextResult.isOk()) {
-        context = contextResult.value.context;
-        sources = contextResult.value.sources.map(
+      if (ragContextResult.isOk()) {
+        context = ragContextResult.value.context;
+        sources = ragContextResult.value.sources.map(
           (source: {
             contentId: string;
             contentType: string;
@@ -563,17 +579,21 @@ Please answer the user's question based on this information.`
         );
       }
 
-      // Get conversation history
-      const messages =
-        await ChatQueries.getMessagesByConversationId(conversationId);
+      // Get conversation context with smart pruning and summarization
+      const conversationContextResult =
+        await ConversationContextManager.getConversationContext(conversationId);
 
-      // Build conversation history for context (last 10 messages)
-      const conversationHistory: CoreMessage[] = messages
-        .slice(-10)
-        .map((msg) => ({
-          role: msg.role as "user" | "assistant",
-          content: msg.content,
-        }));
+      if (conversationContextResult.isErr()) {
+        logger.error("Failed to get conversation context", {
+          component: "ChatService.streamResponse",
+          conversationId,
+          error: conversationContextResult.error,
+        });
+        return err(conversationContextResult.error);
+      }
+
+      const conversationHistory = conversationContextResult.value.messages;
+      const conversationSummary = conversationContextResult.value.summary;
 
       // Get project and knowledge context for prompt building
       const projectResult = await ProjectService.getProjectById(projectId);
@@ -581,10 +601,11 @@ Please answer the user's question based on this information.`
 
       let knowledgeContext = "";
       if (project) {
-        const knowledgeResult = await KnowledgeBaseService.buildKnowledgeContext(
-          projectId,
-          project.organizationId
-        );
+        const knowledgeResult =
+          await KnowledgeBaseService.buildKnowledgeContext(
+            projectId,
+            project.organizationId
+          );
         if (knowledgeResult.isOk()) {
           knowledgeContext = knowledgeResult.value;
         }
@@ -603,13 +624,18 @@ Please answer the user's question based on this information.`
       }
 
       // Create the full prompt with context
-      const ragContext = context
+      // Include conversation summary if available
+      let ragContextWithSummary = context
         ? `Here is relevant information from the project recordings:
 
 ${context}
 
 Please answer the user's question based on this information.`
         : "No relevant information was found in the project recordings. Let the user know you don't have specific information to answer their question.";
+
+      if (conversationSummary) {
+        ragContextWithSummary += `\n\nPrevious conversation summary:\n${conversationSummary}`;
+      }
 
       // Build complete prompt with priority hierarchy
       const promptResult = PromptBuilder.Chat.buildPrompt({
@@ -618,7 +644,7 @@ Please answer the user's question based on this information.`
         projectName: project?.name,
         projectDescription: project?.description ?? null,
         knowledgeContext,
-        ragContent: ragContext,
+        ragContent: ragContextWithSummary,
         userQuery: userMessage,
         organizationInstructions: orgInstructions,
         projectTemplate,
@@ -681,7 +707,13 @@ Please answer the user's question based on this information.`
           await ChatQueries.createMessage(assistantMessageEntry);
 
           // Update conversation title if it's the first exchange
-          if (messages.length === 1 && !conversation.title) {
+          const conversationMessages =
+            await ChatQueries.getMessagesByConversationId(conversationId);
+          /**
+           * At the time of the check, there are always at least 2 messages (user + assistant),
+           * so the condition should be === 2 to detect the first exchange and generate an auto-title.
+           */
+          if (conversationMessages.length === 2 && !conversation.title) {
             const title =
               userMessage.length > 50
                 ? userMessage.substring(0, 50) + "..."
@@ -763,7 +795,7 @@ Please answer the user's question based on this information.`
       await ChatQueries.createMessage(userMessageEntry);
 
       // Get relevant context using organization-wide RAG search
-      const contextResult = await this.getRelevantContextOrganizationWide(
+      const ragContextResult = await this.getRelevantContextOrganizationWide(
         userMessage,
         organizationId
       );
@@ -771,9 +803,9 @@ Please answer the user's question based on this information.`
       let context = "";
       let sources: SourceReference[] = [];
 
-      if (contextResult.isOk()) {
-        context = contextResult.value.context;
-        sources = contextResult.value.sources.map(
+      if (ragContextResult.isOk()) {
+        context = ragContextResult.value.context;
+        sources = ragContextResult.value.sources.map(
           (source: {
             contentId: string;
             contentType: string;
@@ -794,17 +826,21 @@ Please answer the user's question based on this information.`
         );
       }
 
-      // Get conversation history
-      const messages =
-        await ChatQueries.getMessagesByConversationId(conversationId);
+      // Get conversation context with smart pruning and summarization
+      const conversationContextResult =
+        await ConversationContextManager.getConversationContext(conversationId);
 
-      // Build conversation history for context (last 10 messages)
-      const conversationHistory: CoreMessage[] = messages
-        .slice(-10)
-        .map((msg) => ({
-          role: msg.role as "user" | "assistant",
-          content: msg.content,
-        }));
+      if (conversationContextResult.isErr()) {
+        logger.error("Failed to get conversation context", {
+          component: "ChatService.streamOrganizationResponse",
+          conversationId,
+          error: conversationContextResult.error,
+        });
+        return err(conversationContextResult.error);
+      }
+
+      const conversationHistory = conversationContextResult.value.messages;
+      const conversationSummary = conversationContextResult.value.summary;
 
       // Get organization settings for instructions
       const orgSettings = await getCachedOrganizationSettings(organizationId);
@@ -820,7 +856,8 @@ Please answer the user's question based on this information.`
         : "";
 
       // Create the full prompt with context
-      const ragContext = context
+      // Include conversation summary if available
+      let ragContextWithSummary = context
         ? `Here is relevant information from across all organization recordings and projects:
 
 ${context}
@@ -828,11 +865,15 @@ ${context}
 Please answer the user's question based on this information. When referencing information, mention which project it comes from.`
         : "No relevant information was found in the organization's recordings. Let the user know you don't have specific information to answer their question.";
 
+      if (conversationSummary) {
+        ragContextWithSummary += `\n\nPrevious conversation summary:\n${conversationSummary}`;
+      }
+
       // Build complete prompt with priority hierarchy
       const promptResult = PromptBuilder.Chat.buildPrompt({
         organizationId,
         knowledgeContext,
-        ragContent: ragContext,
+        ragContent: ragContextWithSummary,
         userQuery: userMessage,
         organizationInstructions: orgInstructions,
         projectTemplate: null, // No project template for org-level chat
@@ -898,7 +939,9 @@ Please answer the user's question based on this information. When referencing in
           await ChatQueries.createMessage(assistantMessageEntry);
 
           // Update conversation title if it's the first exchange
-          if (messages.length === 1 && !conversation.title) {
+          const conversationMessages =
+            await ChatQueries.getMessagesByConversationId(conversationId);
+          if (conversationMessages.length === 1 && !conversation.title) {
             const title =
               userMessage.length > 50
                 ? userMessage.substring(0, 50) + "..."
