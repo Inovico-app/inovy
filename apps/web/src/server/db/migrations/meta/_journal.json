@@ -288,6 +288,13 @@
       "when": 1764686381061,
       "tag": "0046_add_agent_enabled_to_organizations",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1764688133864,
+      "tag": "0047_add_agent_settings_table",
+      "breakpoints": true
     }
   ]
 }
