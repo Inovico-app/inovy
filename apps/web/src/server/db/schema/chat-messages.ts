@@ -1,10 +1,18 @@
-import { pgTable, text, timestamp, uuid, jsonb, index, integer } from "drizzle-orm/pg-core";
+import {
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { chatConversations } from "./chat-conversations";
 
 export const messageRoleEnum = ["user", "assistant"] as const;
 export type MessageRole = (typeof messageRoleEnum)[number];
 
-interface SourceReference {
+export interface SourceReference {
   contentId: string;
   contentType:
     | "recording"
@@ -56,5 +64,4 @@ export const chatMessages = pgTable(
 
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type NewChatMessage = typeof chatMessages.$inferInsert;
-export type { SourceReference, ToolCall };
 
