@@ -93,31 +93,25 @@ export class SearchResultFormatter {
       }
     }
 
-    // If we have some text but it's shorter than original, add ellipsis
-    if (truncated.length > 0 && truncated.length < text.length) {
-      return { text: truncated.trim() + "...", wasTruncated: true };
-    }
-
-    // If truncated is empty but we have sentences, take first sentence
+    // If truncated is empty but we have sentences, take first sentence (even if truncated)
     if (truncated.length === 0 && sentences.length > 0) {
-      const firstSentence = sentences[0]?.trim();
-      if (!firstSentence) {
-        return {
-          text: text.substring(0, maxChars - 3) + "...",
-          wasTruncated: true,
-        };
-      }
+      const firstSentence = sentences[0]?.trim() || "";
       if (firstSentence.length > maxChars - 3) {
         // Even first sentence is too long, truncate it
-        return {
-          text: firstSentence.substring(0, maxChars - 3) + "...",
-          wasTruncated: true,
-        };
+        truncated = firstSentence.substring(0, maxChars - 3);
+      } else {
+        truncated = firstSentence;
       }
-      return { text: firstSentence + "...", wasTruncated: true };
     }
 
-    return { text: truncated.trim(), wasTruncated: false };
+    // Determine if truncation occurred and format accordingly
+    const wasTruncated = truncated.length < text.length;
+    const trimmedTruncated = truncated.trim();
+    const finalText = wasTruncated
+      ? trimmedTruncated + "..."
+      : trimmedTruncated;
+
+    return { text: finalText, wasTruncated };
   }
 
   /**
