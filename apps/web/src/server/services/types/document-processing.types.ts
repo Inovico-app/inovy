@@ -6,8 +6,16 @@ export interface DocumentMetadata {
   filename?: string;
   fileType?: string;
   fileSize?: number;
+  uploadDate?: string;
   title?: string;
   description?: string;
+  author?: string;
+  date?: string;
+  language?: string;
+  headings?: string[];
+  sections?: string[];
+  pageCount?: number;
+  wordCount?: number;
   documentId?: string;
   userId?: string;
   organizationId?: string;
