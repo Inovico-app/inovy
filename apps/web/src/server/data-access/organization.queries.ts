@@ -278,9 +278,7 @@ export class OrganizationQueries {
    * Get organization members - direct DB query
    * For use in cached contexts without headers
    */
-  static async getMembersDirect(
-    organizationId: string
-  ): Promise<
+  static async getMembersDirect(organizationId: string): Promise<
     Array<{
       id: string;
       email: string;
@@ -305,6 +303,49 @@ export class OrganizationQueries {
       name: member.name,
       role: member.role,
     }));
+  }
+
+  /**
+   * Create an organization with a member in a transaction
+   * Ensures atomicity - if either operation fails, both are rolled back
+   * @param data - Organization and member creation data
+   * @returns The created organization ID
+   */
+  static async createOrganizationWithMember(data: {
+    organizationId: string;
+    name: string;
+    slug: string;
+    userId: string;
+    memberId: string;
+    memberRole?:
+      | "owner"
+      | "admin"
+      | "superadmin"
+      | "manager"
+      | "user"
+      | "viewer";
+  }): Promise<string> {
+    return await db.transaction(async (tx) => {
+      const now = new Date();
+
+      // Create organization
+      await tx.insert(organizations).values({
+        id: data.organizationId,
+        name: data.name,
+        slug: data.slug,
+        createdAt: now,
+      });
+
+      await tx.insert(members).values({
+        id: data.memberId,
+        organizationId: data.organizationId,
+        userId: data.userId,
+        role: data.memberRole ?? "owner",
+        createdAt: now,
+      });
+
+      return data.organizationId;
+    });
   }
 }
 

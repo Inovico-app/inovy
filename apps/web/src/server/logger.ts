@@ -50,7 +50,7 @@ export function getServerLogger(): PinoLogger {
       },
     },
     timestamp: pinoLib.stdTimeFunctions.isoTime,
-    // Redact sensitive fields
+    // Redact sensitive fields and PII
     redact: {
       paths: [
         "password",
@@ -68,6 +68,11 @@ export function getServerLogger(): PinoLogger {
         "cookie",
         "sessionId",
         "session_id",
+        "email", // Redact raw email addresses (use emailHash instead)
+        "userEmail",
+        "user_email",
+        "emailAddress",
+        "email_address",
       ],
       censor: "[Redacted]",
     },
