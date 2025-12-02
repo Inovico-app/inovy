@@ -4,6 +4,7 @@ import OrganizationInvitationEmail from "@/emails/templates/organization-invitat
 import PasswordResetEmail from "@/emails/templates/password-reset-email";
 import VerificationEmail from "@/emails/templates/verification-email";
 import { logger } from "@/lib/logger";
+import { anonymizeEmail } from "@/lib/pii-utils";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
 import { UserQueries } from "@/server/data-access/user.queries";
 import { db } from "@/server/db";
@@ -180,7 +181,9 @@ export const auth = betterAuth({
 
         if (email) {
           // Check if user exists using your existing UserQueries
-          const user = await UserQueries.findByEmail(email);
+          const user = await UserQueries.findByEmail(
+            email.toLowerCase().trim()
+          );
 
           if (!user) {
             throw new APIError("NOT_FOUND", {
@@ -358,7 +361,7 @@ const ensureUserHasOrganization = async (
   if (existingOrganizationId) {
     logger.debug("User already has an organization", {
       userId: user.id,
-      email: user.email,
+      emailHash: anonymizeEmail(user.email),
       organizationId: existingOrganizationId,
     });
     return existingOrganizationId;
@@ -366,43 +369,17 @@ const ensureUserHasOrganization = async (
 
   try {
     // Generate base organization slug from user data
+    // Note: Using email local part for slug generation is acceptable as it's not logged
+    // Only anonymized emailHash is included in log statements
     const emailLocal = (user.email ?? "user").split("@")[0] ?? "user";
-    let orgSlug = `org-${emailLocal}`.toLowerCase().replace(/[^a-z0-9-]/g, "-");
-
-    // Check if slug already exists and generate a unique one with suffix if needed
-    let attempts = 0;
-    while (attempts < 10) {
-      const slugExists = await OrganizationQueries.slugExists(
-        orgSlug,
-        ctx.headers ?? new Headers()
-      );
-
-      if (!slugExists) {
-        break;
-      }
-
-      // Add suffix if slug already exists
-      const suffix = nanoid(4).toLowerCase();
-      orgSlug = `org-${emailLocal}-${suffix}`
-        .toLowerCase()
-        .replace(/[^a-z0-9-]/g, "-");
-      attempts++;
-
-      if (attempts === 1) {
-        logger.info("Organization slug exists, adding suffix", {
-          userId: user.id,
-          email: user.email,
-          newSlug: orgSlug,
-        });
-      }
-    }
+    const orgSlug = await generateSlug(emailLocal, ctx, user);
 
     // Use slug format for organization name
     const orgName = orgSlug;
 
     logger.info("Creating personal organization for user", {
       userId: user.id,
-      email: user.email,
+      emailHash: anonymizeEmail(user.email),
       orgSlug,
       orgName,
       path: ctx.path,
@@ -431,10 +408,66 @@ const ensureUserHasOrganization = async (
     // Log error but don't fail auth - organization can be created later
     logger.error("Failed to create personal organization", {
       userId: user.id,
-      email: user.email,
+      emailHash: anonymizeEmail(user.email),
       error: error instanceof Error ? error.message : String(error),
     });
     return null;
   }
 };
+
+async function generateSlug(
+  emailLocal: string,
+  ctx: MiddlewareContext<
+    MiddlewareOptions,
+    AuthContext<BetterAuthOptions> & {
+      returned?: unknown | undefined;
+      responseHeaders?: Headers | undefined;
+    }
+  >,
+  user: {
+    id: string;
+    createdAt: Date;
+    updatedAt: Date;
+    email: string;
+    emailVerified: boolean;
+    name: string;
+    image?: string | null | undefined;
+    role: string;
+  }
+) {
+  let orgSlug = `org-${emailLocal}`.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+
+  // Check if slug already exists and generate a unique one with suffix if needed
+  let attempts = 0;
+  while (attempts < 10) {
+    const slugExists = await OrganizationQueries.slugExists(
+      orgSlug,
+      ctx.headers ?? new Headers()
+    );
+
+    if (!slugExists) {
+      break;
+    }
+
+    // Add suffix if slug already exists
+    const suffix = nanoid(4).toLowerCase();
+    orgSlug = `org-${emailLocal}-${suffix}`
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "-");
+    attempts++;
+
+    if (attempts === 1) {
+      logger.debug("Organization slug exists, adding suffix", {
+        userId: user.id,
+        emailHash: anonymizeEmail(user.email),
+        newSlug: orgSlug,
+      });
+    }
+  }
+  if (attempts >= 10) {
+    // Use a fully random slug as fallback
+    orgSlug = `org-${nanoid(8)}`.toLowerCase();
+  }
+  return orgSlug;
+}
 
