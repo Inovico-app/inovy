@@ -18,6 +18,7 @@ import type {
 import { streamText } from "ai";
 import { err, ok } from "neverthrow";
 import { getCachedProjectTemplate } from "../cache/project-template.cache";
+import { AgentMetricsService } from "./agent-metrics.service";
 import { connectionPool } from "./connection-pool.service";
 import { ConversationContextManager } from "./conversation-context-manager.service";
 import { KnowledgeBaseService } from "./knowledge-base.service";
@@ -687,6 +688,11 @@ Please answer the user's question based on this information.`
       const { client: openai, pooled } =
         connectionPool.getOpenAIClientWithTracking();
       let streamError: Error | null = null;
+      let errorMetricTracked = false;
+
+      // Track metrics: record start time and user ID
+      const startTime = Date.now();
+      const userId = conversation.userId;
 
       // GPT-5-nano (reasoning models) don't support temperature, topP, frequencyPenalty, presencePenalty
       const isReasoningModel = agentSettings.model === "gpt-5-nano";
@@ -701,12 +707,29 @@ Please answer the user's question based on this information.`
             content: promptResult.userPrompt,
           },
         ],
-        onError: (error) => {
+        onError: async (error) => {
           // Decrement active requests on error
           pooled.activeRequests--;
           // Capture streaming errors
           streamError =
             error instanceof Error ? error : new Error(String(error));
+
+          // Calculate latency
+          const latencyMs = Date.now() - startTime;
+
+          // Track error metric
+          await AgentMetricsService.trackRequest({
+            organizationId,
+            userId,
+            conversationId,
+            requestType: "chat",
+            latencyMs,
+            error: true,
+            errorMessage: streamError.message,
+            query: userMessage,
+          });
+          errorMetricTracked = true;
+
           logger.error("Stream error during chat response streaming", {
             component: "ChatService.streamResponse",
             conversationId,
@@ -714,12 +737,29 @@ Please answer the user's question based on this information.`
             error: streamError,
           });
         },
-        async onFinish({ text }) {
+        async onFinish({ text, usage, toolCalls }) {
           // Decrement active requests when stream finishes
           pooled.activeRequests--;
 
+          // Calculate latency
+          const latencyMs = Date.now() - startTime;
+
           // Only save if stream completed successfully
           if (streamError) {
+            // Track error metric only if not already tracked in onError
+            if (!errorMetricTracked) {
+              await AgentMetricsService.trackRequest({
+                organizationId,
+                userId,
+                conversationId,
+                requestType: "chat",
+                latencyMs,
+                error: true,
+                errorMessage: streamError.message,
+                query: userMessage,
+              });
+            }
+
             logger.warn("Stream finished with error, not saving message", {
               component: "ChatService.streamResponse",
               conversationId,
@@ -727,6 +767,26 @@ Please answer the user's question based on this information.`
             });
             return;
           }
+
+          // Extract tool calls if available
+          const toolCallNames = toolCalls
+            ? toolCalls
+                .map((tc) => tc.toolName || tc.toolCallId)
+                .filter(Boolean)
+            : undefined;
+
+          // Track success metric
+          await AgentMetricsService.trackRequest({
+            organizationId,
+            userId,
+            conversationId,
+            requestType: "chat",
+            latencyMs,
+            error: false,
+            tokenCount: usage?.totalTokens,
+            toolCalls: toolCallNames,
+            query: userMessage,
+          });
 
           // Save assistant message after streaming is complete
           const assistantMessageEntry: NewChatMessage = {
@@ -933,6 +993,10 @@ Please answer the user's question based on this information. When referencing in
         connectionPool.getOpenAIClientWithTracking();
       let streamError: Error | null = null;
 
+      // Track metrics: record start time
+      const startTime = Date.now();
+      const userId = conversation.userId;
+
       // GPT-5-nano (reasoning models) don't support temperature, topP, frequencyPenalty, presencePenalty
       const isReasoningModel = agentSettings.model === "gpt-5-nano";
 
@@ -946,12 +1010,28 @@ Please answer the user's question based on this information. When referencing in
             content: promptResult.userPrompt,
           },
         ],
-        onError: (error) => {
+        onError: async (error) => {
           // Decrement active requests on error
           pooled.activeRequests--;
           // Capture streaming errors
           streamError =
             error instanceof Error ? error : new Error(String(error));
+
+          // Calculate latency
+          const latencyMs = Date.now() - startTime;
+
+          // Track error metric
+          await AgentMetricsService.trackRequest({
+            organizationId,
+            userId,
+            conversationId,
+            requestType: "chat",
+            latencyMs,
+            error: true,
+            errorMessage: streamError.message,
+            query: userMessage,
+          });
+
           logger.error(
             "Stream error during organization chat response streaming",
             {
@@ -962,12 +1042,27 @@ Please answer the user's question based on this information. When referencing in
             }
           );
         },
-        async onFinish({ text }) {
+        async onFinish({ text, usage, toolCalls }) {
           // Decrement active requests when stream finishes
           pooled.activeRequests--;
 
+          // Calculate latency
+          const latencyMs = Date.now() - startTime;
+
           // Only save if stream completed successfully
           if (streamError) {
+            // Track error metric
+            await AgentMetricsService.trackRequest({
+              organizationId,
+              userId,
+              conversationId,
+              requestType: "chat",
+              latencyMs,
+              error: true,
+              errorMessage: streamError.message,
+              query: userMessage,
+            });
+
             logger.warn("Stream finished with error, not saving message", {
               component: "ChatService.streamOrganizationResponse",
               conversationId,
@@ -975,6 +1070,26 @@ Please answer the user's question based on this information. When referencing in
             });
             return;
           }
+
+          // Extract tool calls if available
+          const toolCallNames = toolCalls
+            ? toolCalls
+                .map((tc) => tc.toolName || tc.toolCallId)
+                .filter(Boolean)
+            : undefined;
+
+          // Track success metric
+          await AgentMetricsService.trackRequest({
+            organizationId,
+            userId,
+            conversationId,
+            requestType: "chat",
+            latencyMs,
+            error: false,
+            tokenCount: usage?.totalTokens,
+            toolCalls: toolCallNames,
+            query: userMessage,
+          });
 
           // Save assistant message after streaming is complete
           const assistantMessageEntry: NewChatMessage = {

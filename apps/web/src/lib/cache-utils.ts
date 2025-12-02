@@ -12,6 +12,11 @@ export const CacheTags = {
   // Agent settings tags
   agentSettings: () => `agent-settings`,
 
+  // Agent analytics tags
+  agentAnalytics: () => `agent-analytics`,
+  agentAnalyticsByOrg: (orgId: string) => `agent-analytics:org:${orgId}`,
+  agentAnalyticsByUser: (userId: string) => `agent-analytics:user:${userId}`,
+
   // Project tags
   project: (projectId: string) => `project:${projectId}`,
   projectsByOrg: (orgCode: string) => `projects:org:${orgCode}`,
