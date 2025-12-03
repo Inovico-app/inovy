@@ -16,20 +16,16 @@ export function TranscriptionStatus({
   }
 
   return (
-    <div className="flex items-center justify-center gap-2 text-sm">
+    <div className="flex items-center gap-1.5">
       {isTranscribing ? (
         <>
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-green-600 dark:text-green-400 font-medium">
-            Live transcriptie actief
-          </span>
+          <span className="text-green-600 dark:text-green-400">Transcribing</span>
         </>
       ) : (
         <>
-          <AlertCircle className="w-4 h-4 text-muted-foreground" />
-          <span className="text-muted-foreground">
-            Transcriptie verbinding maken...
-          </span>
+          <AlertCircle className="w-3 h-3 text-muted-foreground" />
+          <span>Connecting...</span>
         </>
       )}
     </div>
