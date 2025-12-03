@@ -89,7 +89,7 @@ export default function RecordPage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto max-w-4xl py-8 px-4">
+        <div className="container mx-auto max-w-7xl py-8 px-4">
           <div className="space-y-4">
             <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
             <div className="h-64 bg-muted rounded animate-pulse" />
@@ -98,7 +98,7 @@ export default function RecordPage() {
       }
     >
       <ProtectedPage>
-        <div className="container mx-auto max-w-4xl py-8 px-4">
+        <div className="container mx-auto max-w-7xl py-8 px-4">
           <Suspense
             fallback={
               <div className="space-y-4">

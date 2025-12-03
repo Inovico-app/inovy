@@ -12,8 +12,13 @@ export function useLiveRecording() {
   const [permissionDenied, setPermissionDenied] = useState(false);
 
   // Hooks
-  const { microphone, setupMicrophone, startMicrophone, stopMicrophone } =
-    useMicrophone();
+  const {
+    microphone,
+    stream,
+    setupMicrophone,
+    startMicrophone,
+    stopMicrophone,
+  } = useMicrophone();
   const { duration, startTimer, stopTimer, resetTimer } =
     useRecordingDuration();
   const wakeLock = useWakeLock(); // Prevent screen from locking during recording
@@ -154,6 +159,7 @@ export function useLiveRecording() {
 
     // Microphone
     microphone,
+    stream,
     startMicrophone,
 
     // Handlers

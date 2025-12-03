@@ -4,6 +4,7 @@ import { createContext, type ReactNode, useContext, useState } from "react";
 
 interface MicrophoneContextType {
   microphone: MediaRecorder | null;
+  stream: MediaStream | null;
   startMicrophone: () => void;
   stopMicrophone: () => void;
   setupMicrophone: () => Promise<void>;
@@ -45,6 +46,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
     MicrophoneState.NotSetup
   );
   const [microphone, setMicrophone] = useState<MediaRecorder | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
   const setupMicrophone = async () => {
     setMicrophoneState(MicrophoneState.SettingUp);
@@ -61,6 +63,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
 
       setMicrophoneState(MicrophoneState.Ready);
       setMicrophone(microphone);
+      setStream(userMedia);
     } catch (err: unknown) {
       console.error(err);
 
@@ -93,6 +96,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
     <MicrophoneContext.Provider
       value={{
         microphone,
+        stream,
         startMicrophone,
         stopMicrophone,
         setupMicrophone,
