@@ -85,6 +85,12 @@ export const auth = betterAuth({
       trustedProviders: ["google", "microsoft"],
     },
   },
+  oauth: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    },
+  },
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,
@@ -121,7 +127,6 @@ export const auth = betterAuth({
       tenantId: process.env.MICROSOFT_TENANT_ID ?? "common",
     },
   },
-
   session: {
     cookieCache: {
       enabled: true,
