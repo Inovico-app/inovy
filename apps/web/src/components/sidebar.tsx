@@ -13,10 +13,11 @@ import {
   CheckSquare,
   ChevronLeft,
   ChevronRight,
+  FileAudio,
   FolderKanban,
   LayoutDashboard,
   MessageSquare,
-  Mic,
+  Plus,
   Settings,
   ShieldAlert,
 } from "lucide-react";
@@ -35,7 +36,7 @@ interface NavLink {
 
 const navLinks: NavLink[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/record", label: "Record", icon: Mic },
+  { to: "/recordings", label: "Recordings", icon: FileAudio },
   { to: "/chat", label: "Chat", icon: MessageSquare },
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
@@ -215,6 +216,24 @@ export function Sidebar() {
           </>
         )}
       </nav>
+
+      {/* Footer with New Recording Button */}
+      <div className="border-t p-2">
+        <Link href="/record" as={"/record" as Route}>
+          <Button
+            className={cn(
+              "w-full justify-start gap-2",
+              collapsed && "px-2"
+            )}
+            variant="default"
+            size={collapsed ? "icon" : "default"}
+            aria-label={collapsed ? "New Recording" : undefined}
+          >
+            <Plus className="h-4 w-4 shrink-0" />
+            {!collapsed && <span>New Recording</span>}
+          </Button>
+        </Link>
+      </div>
     </aside>
   );
 }
