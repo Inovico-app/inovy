@@ -78,6 +78,14 @@ export class GoogleDriveService {
       const drive = driveResult.value;
       const channelId = randomUUID();
 
+      logger.info("Creating Drive watch subscription", {
+        component: "GoogleDriveService.startWatch",
+        userId,
+        folderId,
+        generatedChannelId: channelId,
+        webhookUrl,
+      });
+
       const watchResponse = await drive.files.watch({
         fileId: folderId,
         requestBody: {
@@ -101,14 +109,31 @@ export class GoogleDriveService {
         );
       }
 
+      const returnedChannelId = watchResponse.data.id;
+
+      // Verify Google returned the same channelId we sent
+      if (returnedChannelId !== channelId) {
+        logger.warn("Channel ID mismatch between sent and returned", {
+          component: "GoogleDriveService.startWatch",
+          userId,
+          folderId,
+          sentChannelId: channelId,
+          returnedChannelId,
+        });
+      }
+
       logger.info("Started Drive watch", {
+        component: "GoogleDriveService.startWatch",
         userId,
         folderId,
-        channelId: watchResponse.data.id,
+        channelId: returnedChannelId,
+        resourceId: watchResponse.data.resourceId,
+        expiration: watchResponse.data.expiration,
+        webhookUrl,
       });
 
       return ok({
-        channelId: watchResponse.data.id,
+        channelId: returnedChannelId,
         resourceId: watchResponse.data.resourceId,
         expiration: parseInt(watchResponse.data.expiration),
       });
