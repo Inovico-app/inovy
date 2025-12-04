@@ -7,6 +7,18 @@ import { GoogleDriveService } from "@/server/services/google-drive.service";
 import { DriveWatchesService } from "@/server/services/drive-watches.service";
 
 /**
+ * GET /api/webhooks/google-drive
+ * Webhook verification endpoint (if needed by Google)
+ * This endpoint is public (no auth required) as Google Drive calls it directly
+ */
+export async function GET() {
+  return NextResponse.json({
+    message: "Google Drive webhook endpoint is active",
+    endpoint: "/api/webhooks/google-drive",
+  });
+}
+
+/**
  * POST /api/webhooks/google-drive
  * Receives Google Drive push notifications for file changes
  * This endpoint is public (no auth required) as Google Drive calls it directly
@@ -42,17 +54,31 @@ export async function POST(request: NextRequest) {
       if (!channelId) {
         logger.warn("Change notification missing channel ID", {
           component: "POST /api/webhooks/google-drive",
+          resourceId,
+          messageNumber,
         });
         // Still return 200 to avoid Google retries
         return NextResponse.json({ success: true });
       }
+
+      logger.info("Processing change notification", {
+        component: "POST /api/webhooks/google-drive",
+        channelId,
+        resourceId,
+        messageNumber,
+      });
 
       // Process change notification asynchronously
       // Don't await to ensure we return quickly (< 10s)
       processChangeNotification(channelId).catch((error) => {
         logger.error(
           "Error processing change notification",
-          { channelId },
+          {
+            component: "POST /api/webhooks/google-drive",
+            channelId,
+            resourceId,
+            messageNumber,
+          },
           error as Error
         );
       });
@@ -89,10 +115,21 @@ async function processChangeNotification(channelId: string): Promise<void> {
     // Get watch by channel ID
     const watch = await DriveWatchesQueries.getWatchByChannel(channelId);
 
-    if (!watch || !watch.isActive) {
-      logger.info("Watch not found or inactive", {
+    if (!watch) {
+      logger.warn("Watch not found for channel ID", {
         component: "processChangeNotification",
         channelId,
+      });
+      return;
+    }
+
+    if (!watch.isActive) {
+      logger.info("Watch is inactive", {
+        component: "processChangeNotification",
+        channelId,
+        watchId: watch.id,
+        folderId: watch.folderId,
+        userId: watch.userId,
       });
       return;
     }
@@ -102,10 +139,12 @@ async function processChangeNotification(channelId: string): Promise<void> {
       folderId: watch.folderId,
       userId: watch.userId,
       watchId: watch.id,
+      channelId,
+      resourceId: watch.resourceId,
     });
 
-    // Fetch recent files from the watched folder (last 5 minutes)
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    // Fetch recent files from the watched folder (last 10 minutes to account for timing issues)
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
     const filesResult = await GoogleDriveService.getFolderFiles(
       watch.userId,
       watch.folderId,
@@ -121,6 +160,7 @@ async function processChangeNotification(channelId: string): Promise<void> {
         component: "processChangeNotification",
         folderId: watch.folderId,
         userId: watch.userId,
+        channelId,
         error: filesResult.error,
       });
       return;
@@ -128,24 +168,41 @@ async function processChangeNotification(channelId: string): Promise<void> {
 
     const files = filesResult.value;
 
-    // Filter files created/modified in last 5 minutes
-    const recentFiles = files.filter((file) => {
-      const modifiedTime = file.modifiedTime
-        ? new Date(file.modifiedTime)
-        : null;
-      const createdTime = file.createdTime ? new Date(file.createdTime) : null;
-
-      return (
-        (modifiedTime && modifiedTime > fiveMinutesAgo) ||
-        (createdTime && createdTime > fiveMinutesAgo)
-      );
+    logger.info("Fetched files from Drive folder", {
+      component: "processChangeNotification",
+      folderId: watch.folderId,
+      userId: watch.userId,
+      totalFiles: files.length,
+      channelId,
     });
+
+    // Filter files created/modified in last 10 minutes
+    // If we have fewer than 50 files total, process all of them to avoid missing files due to timing
+    const recentFiles =
+      files.length < 50
+        ? files
+        : files.filter((file) => {
+            const modifiedTime = file.modifiedTime
+              ? new Date(file.modifiedTime)
+              : null;
+            const createdTime = file.createdTime
+              ? new Date(file.createdTime)
+              : null;
+
+            return (
+              (modifiedTime && modifiedTime > tenMinutesAgo) ||
+              (createdTime && createdTime > tenMinutesAgo)
+            );
+          });
 
     if (recentFiles.length === 0) {
       logger.info("No recent files found in watched folder", {
         component: "processChangeNotification",
         folderId: watch.folderId,
         userId: watch.userId,
+        totalFiles: files.length,
+        timeWindow: "10 minutes",
+        channelId,
       });
       return;
     }
@@ -155,7 +212,10 @@ async function processChangeNotification(channelId: string): Promise<void> {
       folderId: watch.folderId,
       userId: watch.userId,
       fileCount: recentFiles.length,
+      totalFiles: files.length,
       fileNames: recentFiles.map((f) => f.name),
+      fileIds: recentFiles.map((f) => f.id),
+      channelId,
     });
 
     // Process uploaded files
@@ -170,7 +230,11 @@ async function processChangeNotification(channelId: string): Promise<void> {
         component: "processChangeNotification",
         folderId: watch.folderId,
         userId: watch.userId,
+        channelId,
+        fileCount: recentFiles.length,
         error: processResult.error,
+        errorCode: processResult.error.code,
+        errorMessage: processResult.error.message,
       });
       return;
     }
@@ -179,13 +243,18 @@ async function processChangeNotification(channelId: string): Promise<void> {
       component: "processChangeNotification",
       folderId: watch.folderId,
       userId: watch.userId,
+      channelId,
       processed: processResult.value.processed,
       skipped: processResult.value.skipped,
+      totalFiles: recentFiles.length,
     });
   } catch (error) {
     logger.error(
       "Error processing change notification",
-      { channelId },
+      {
+        component: "processChangeNotification",
+        channelId,
+      },
       error as Error
     );
     // Don't throw - errors are logged but webhook should still return 200

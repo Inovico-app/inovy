@@ -59,6 +59,33 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_WEBHOOK_URL ||
       `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/webhooks/google-drive`;
 
+    // Validate webhook URL is publicly accessible (not localhost in production)
+    if (
+      process.env.NODE_ENV === "production" &&
+      (webhookUrl.includes("localhost") || webhookUrl.includes("127.0.0.1"))
+    ) {
+      logger.warn("Webhook URL uses localhost in production", {
+        component: "POST /api/integrations/google/drive/watch/start",
+        webhookUrl,
+        userId: user.id,
+      });
+      return NextResponse.json(
+        {
+          error:
+            "Webhook URL must be publicly accessible. Set NEXT_PUBLIC_WEBHOOK_URL environment variable to a public URL.",
+        },
+        { status: 400 }
+      );
+    }
+
+    logger.info("Starting Drive watch with webhook URL", {
+      component: "POST /api/integrations/google/drive/watch/start",
+      userId: user.id,
+      folderId,
+      projectId,
+      webhookUrl,
+    });
+
     // Start watch
     const result = await DriveWatchesService.startWatch(
       user.id,
@@ -98,6 +125,17 @@ export async function POST(request: NextRequest) {
         { status: statusMap[result.error.code] ?? 500 }
       );
     }
+
+    logger.info("Successfully started Drive watch", {
+      component: "POST /api/integrations/google/drive/watch/start",
+      userId: user.id,
+      folderId,
+      projectId,
+      watchId: result.value.id,
+      webhookUrl,
+      expiresAt: result.value.expiresAt,
+      isActive: result.value.isActive,
+    });
 
     return NextResponse.json({
       success: true,

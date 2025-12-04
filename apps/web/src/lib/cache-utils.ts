@@ -21,6 +21,7 @@ export const CacheTags = {
   project: (projectId: string) => `project:${projectId}`,
   projectsByOrg: (orgCode: string) => `projects:org:${orgCode}`,
   projectCount: (orgCode: string) => `project-count:org:${orgCode}`,
+  projectsByUser: (userId: string) => `projects:user:${userId}`,
 
   // Project template tags
   projectTemplate: (projectId: string) => `project-template:${projectId}`,

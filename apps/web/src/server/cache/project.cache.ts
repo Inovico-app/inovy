@@ -25,8 +25,6 @@ export async function getCachedProjectByIdWithCreator(
  * Returns basic project info for dropdowns
  */
 export async function getCachedUserProjects() {
-  "use cache";
-
   const result = await ProjectService.getProjectsByOrganization();
 
   if (result.isErr()) {
