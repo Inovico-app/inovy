@@ -91,11 +91,10 @@ export async function GET(request: NextRequest) {
     const result = await GoogleOAuthService.storeConnection(user.id, code);
 
     if (result.isErr()) {
-      logger.error(
-        "Failed to store Google OAuth connection",
-        { userId: user.id },
-        new Error(result.error.message)
-      );
+      logger.error("Failed to store Google OAuth connection", {
+        userId: user.id,
+        error: result.error.message,
+      });
       return NextResponse.redirect(
         new URL(
           `/settings?google_error=${encodeURIComponent(result.error.message)}`,

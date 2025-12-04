@@ -146,6 +146,9 @@ export function GoogleConnection() {
                   {status.scopes.includes(
                     "https://www.googleapis.com/auth/calendar.events"
                   ) && <li>Create calendar events</li>}
+                  {status.scopes.includes(
+                    "https://www.googleapis.com/auth/drive.readonly"
+                  ) && <li>Read Drive files and folders</li>}
                 </ul>
               </div>
             )}
