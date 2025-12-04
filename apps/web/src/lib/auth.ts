@@ -114,6 +114,7 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      prompt: "select_account consent",
     },
     microsoft: {
       clientId: process.env.MICROSOFT_CLIENT_ID ?? "",
