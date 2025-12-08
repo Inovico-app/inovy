@@ -6,7 +6,6 @@ import VerificationEmail from "@/emails/templates/verification-email";
 import { logger } from "@/lib/logger";
 import { anonymizeEmail } from "@/lib/pii-utils";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
-import { UserQueries } from "@/server/data-access/user.queries";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema/auth";
 import { passkey } from "@better-auth/passkey";
@@ -17,11 +16,9 @@ import type {
   MiddlewareOptions,
 } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError, createAuthMiddleware } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink, organization } from "better-auth/plugins";
-import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { ac, roles } from "./auth/access-control";
 
@@ -134,125 +131,74 @@ export const auth = betterAuth({
   },
 
   databaseHooks: {
+    // Session gets triggered by social signups and signins, so we need to ensure the user has an organization here too
     session: {
       create: {
-        before: async (session) => {
+        before: async (session, ctx) => {
+          const organizationId = await ensureUserHasOrganization(
+            session.userId,
+            undefined,
+            ctx as MiddlewareContext<
+              MiddlewareOptions,
+              AuthContext<BetterAuthOptions>
+            >
+          );
+
+          if (!organizationId) {
+            logger.error("Failed to ensure user has organization", {
+              userId: session.userId,
+              error: "No organization found",
+              path: ctx?.path ?? "unknown",
+              hook: "databaseHooks.session.create.before",
+            });
+            return;
+          }
+
           // Automatically set active organization if user has organizations
           // and no active organization is set
-          if (!session.activeOrganizationId && session.userId) {
-            const organizationId =
-              await OrganizationQueries.getFirstOrganizationForUser(
-                session.userId
-              );
+          // Note: ensureUserHasOrganization already fetches the organization, so we use the returned ID
+          if (!session.activeOrganizationId && organizationId) {
+            logger.debug("Setting active organization for new session", {
+              userId: session.userId,
+              organizationId,
+            });
 
-            if (organizationId) {
-              logger.debug("Setting active organization for new session", {
-                userId: session.userId,
-                organizationId,
-              });
-
-              return {
-                data: {
-                  ...session,
-                  activeOrganizationId: organizationId,
-                },
-              };
-            }
+            return {
+              data: {
+                ...session,
+                activeOrganizationId: organizationId,
+              },
+            };
           }
 
           return { data: session };
         },
       },
     },
-  },
-
-  hooks: {
-    before: createAuthMiddleware(async (ctx) => {
-      // Check if this is a sign-in path
-      const isSignInPath =
-        ctx.path === "/sign-in/email" ||
-        ctx.path.startsWith("/sign-in/sso") ||
-        ctx.path.includes("/sign-in/magic-link") ||
-        ctx.path === "/sign-in/passkey";
-
-      if (isSignInPath) {
-        // Extract email from request body
-        const email = ctx.body?.email as string | undefined;
-
-        if (email) {
-          // Check if user exists using your existing UserQueries
-          const user = await UserQueries.findByEmail(
-            email.toLowerCase().trim()
+    user: {
+      create: {
+        after: async (user, ctx) => {
+          // Ensure user has an organization (creates one if needed)
+          const organizationId = await ensureUserHasOrganization(
+            user.id,
+            user.email,
+            ctx as MiddlewareContext<
+              MiddlewareOptions,
+              AuthContext<BetterAuthOptions>
+            >
           );
 
-          if (!user) {
-            throw new APIError("NOT_FOUND", {
-              message: "No account found with this email address.",
+          if (!organizationId) {
+            logger.error("Failed to ensure user has organization", {
+              userId: user.id,
+              error: "No organization found",
+              path: ctx?.path ?? "unknown",
+              hook: "databaseHooks.user.create.after",
             });
           }
-        }
-      }
-    }),
-    after: createAuthMiddleware(async (ctx) => {
-      // Helper function to ensure user has an organization
-      // Creates one if they don't have any
-
-      // Handle sign-up paths (email/password, social, magic link)
-      const isSignUpPath =
-        ctx.path === "/sign-up/email" ||
-        ctx.path.startsWith("/sign-up/sso") ||
-        ctx.path.includes("/sign-up/magic-link");
-
-      // Handle sign-in paths (email/password, magic link, etc.)
-      const isSignInPath =
-        ctx.path === "/sign-in/email" ||
-        ctx.path.startsWith("/sign-in/sso") ||
-        ctx.path.includes("/sign-in/magic-link") ||
-        ctx.path === "/sign-in/passkey";
-
-      const user = (ctx.context.returned as { user: BetterAuthUser })?.user;
-
-      if (!user) {
-        return;
-      }
-
-      // Ensure user has an organization (for both sign-up and sign-in)
-      if (isSignUpPath || isSignInPath) {
-        try {
-          // Ensure user has an organization (creates one if needed)
-          const organizationId = await ensureUserHasOrganization(user, ctx);
-
-          if (organizationId) {
-            // Set active organization in session if not already set
-            const sessionResult = await auth.api.getSession({
-              headers: ctx.headers ?? new Headers(),
-            });
-
-            if (
-              sessionResult?.session &&
-              !sessionResult.session.activeOrganizationId
-            ) {
-              await db
-                .update(schema.sessions)
-                .set({ activeOrganizationId: organizationId })
-                .where(eq(schema.sessions.userId, user.id));
-
-              logger.info("Set active organization", {
-                userId: user.id,
-                organizationId,
-                path: ctx.path,
-              });
-            }
-          }
-        } catch (error) {
-          // Log error but don't fail auth
-          logger.error("Failed to ensure user has organization", {
-            userId: user.id,
-            error: error instanceof Error ? error.message : String(error),
-          });
-        }
-      }
-    }),
+        },
+      },
+    },
   },
   user: {
     additionalFields: {
@@ -345,7 +291,8 @@ export type BetterAuthSession = typeof auth.$Infer.Session;
 export type BetterAuthUser = typeof auth.$Infer.Session.user;
 
 const ensureUserHasOrganization = async (
-  user: BetterAuthUser,
+  userId: string,
+  userEmail: string | undefined | null,
   ctx: MiddlewareContext<
     MiddlewareOptions,
     AuthContext<BetterAuthOptions> & {
@@ -356,12 +303,12 @@ const ensureUserHasOrganization = async (
 ) => {
   // Check if user already has an organization
   const existingOrganizationId =
-    await OrganizationQueries.getFirstOrganizationForUser(user.id);
+    await OrganizationQueries.getFirstOrganizationForUser(userId);
 
   if (existingOrganizationId) {
     logger.debug("User already has an organization", {
-      userId: user.id,
-      emailHash: anonymizeEmail(user.email),
+      userId: userId,
+      emailHash: userEmail ? anonymizeEmail(userEmail) : "[no-email]",
       organizationId: existingOrganizationId,
     });
     return existingOrganizationId;
@@ -369,17 +316,16 @@ const ensureUserHasOrganization = async (
 
   try {
     // Generate base organization slug from user data
-    // Note: Using email local part for slug generation is acceptable as it's not logged
-    // Only anonymized emailHash is included in log statements
-    const emailLocal = (user.email ?? "user").split("@")[0] ?? "user";
-    const orgSlug = await generateSlug(emailLocal, ctx, user);
+    // Note: orgSlug and orgName are derived identifiers, not raw PII
+    // They are safe to log as they don't directly expose email addresses
+    const orgSlug = await generateSlug(userId, userEmail ?? undefined, ctx);
 
     // Use slug format for organization name
     const orgName = orgSlug;
 
     logger.info("Creating personal organization for user", {
-      userId: user.id,
-      emailHash: anonymizeEmail(user.email),
+      userId: userId,
+      emailHash: userEmail ? anonymizeEmail(userEmail) : "[no-email]",
       orgSlug,
       orgName,
       path: ctx.path,
@@ -391,13 +337,13 @@ const ensureUserHasOrganization = async (
       organizationId: orgId,
       name: orgName,
       slug: orgSlug,
-      userId: user.id,
+      userId: userId,
       memberId: memberId,
       memberRole: "owner",
     });
 
     logger.info("Successfully created personal organization for user", {
-      userId: user.id,
+      userId: userId,
       organizationId: orgId,
       organizationName: orgName,
       organizationSlug: orgSlug,
@@ -407,8 +353,8 @@ const ensureUserHasOrganization = async (
   } catch (error) {
     // Log error but don't fail auth - organization can be created later
     logger.error("Failed to create personal organization", {
-      userId: user.id,
-      emailHash: anonymizeEmail(user.email),
+      userId: userId,
+      emailHash: userEmail ? anonymizeEmail(userEmail) : "[no-email]",
       error: error instanceof Error ? error.message : String(error),
     });
     return null;
@@ -416,26 +362,26 @@ const ensureUserHasOrganization = async (
 };
 
 async function generateSlug(
-  emailLocal: string,
+  userId: string,
+  userEmail: string | undefined,
   ctx: MiddlewareContext<
     MiddlewareOptions,
     AuthContext<BetterAuthOptions> & {
       returned?: unknown | undefined;
       responseHeaders?: Headers | undefined;
     }
-  >,
-  user: {
-    id: string;
-    createdAt: Date;
-    updatedAt: Date;
-    email: string;
-    emailVerified: boolean;
-    name: string;
-    image?: string | null | undefined;
-    role: string;
-  }
+  >
 ) {
-  let orgSlug = `org-${emailLocal}`.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+  // Fall back to userId-based slug if email is not available (e.g., session-based flows)
+  let orgSlug: string;
+  if (userEmail) {
+    orgSlug = `org-${userEmail}`.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+  } else {
+    // Use userId-based slug when email is not available
+    orgSlug = `org-user-${userId.substring(0, 8)}`
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "-");
+  }
 
   // Check if slug already exists and generate a unique one with suffix if needed
   let attempts = 0;
@@ -451,15 +397,22 @@ async function generateSlug(
 
     // Add suffix if slug already exists
     const suffix = nanoid(4).toLowerCase();
-    orgSlug = `org-${emailLocal}-${suffix}`
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, "-");
+    if (userEmail) {
+      const emailLocal = userEmail.split("@")[0] ?? "user";
+      orgSlug = `org-${emailLocal}-${suffix}`
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, "-");
+    } else {
+      orgSlug = `org-user-${userId.substring(0, 8)}-${suffix}`
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, "-");
+    }
     attempts++;
 
     if (attempts === 1) {
       logger.debug("Organization slug exists, adding suffix", {
-        userId: user.id,
-        emailHash: anonymizeEmail(user.email),
+        userId: userId,
+        emailHash: userEmail ? anonymizeEmail(userEmail) : "[no-email]",
         newSlug: orgSlug,
       });
     }
