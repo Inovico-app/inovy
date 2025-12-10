@@ -49,7 +49,11 @@ const statement = {
   // Team management
   team: ["create", "read", "update", "delete"],
 
+  // Audit log management
   "audit-log": ["read"],
+
+  // Onboarding management
+  onboarding: ["create", "read", "update", "complete"],
 } as const;
 
 /**
@@ -78,6 +82,7 @@ export const superAdmin = ac.newRole({
   integration: ["manage"],
   team: ["create", "read", "update", "delete"],
   "audit-log": ["read"],
+  onboarding: ["create", "read", "update", "complete"],
 });
 
 // Admin - Full access except super admin features
@@ -95,6 +100,7 @@ export const admin = ac.newRole({
   integration: ["manage"],
   team: ["create", "read", "update", "delete"],
   "audit-log": ["read"],
+  onboarding: ["create", "read", "update", "complete"],
 });
 
 // Manager - Limited admin access
@@ -110,6 +116,7 @@ export const manager = ac.newRole({
   setting: ["read", "update"],
   integration: ["manage"],
   team: ["read"],
+  onboarding: ["create", "read", "update", "complete"],
 });
 
 // User - Standard user permissions
@@ -126,6 +133,7 @@ export const user = ac.newRole({
   setting: ["read", "update"],
   integration: [], // No integration management
   team: ["read"],
+  onboarding: ["create", "read", "update", "complete"],
 });
 
 // Viewer - Read-only access

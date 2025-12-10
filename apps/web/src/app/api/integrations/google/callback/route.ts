@@ -54,6 +54,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    let redirectUrl = "/settings?google_success=true";
+
     // Verify state parameter (CSRF protection)
     if (state) {
       try {
@@ -78,6 +80,11 @@ export async function GET(request: NextRequest) {
           return NextResponse.redirect(
             new URL("/settings?google_error=state_expired", request.url)
           );
+        }
+
+        // Use redirect URL from state if provided
+        if (stateData.redirectUrl) {
+          redirectUrl = stateData.redirectUrl;
         }
       } catch (stateError) {
         logger.error("Invalid state parameter", {}, stateError as Error);
@@ -108,10 +115,27 @@ export async function GET(request: NextRequest) {
       email: result.value.email,
     });
 
-    // Redirect to settings with success message
-    return NextResponse.redirect(
-      new URL("/settings?google_success=true", request.url)
-    );
+    // If redirecting to onboarding, mark Google Calendar as connected during onboarding
+    if (redirectUrl.includes("/onboarding")) {
+      const { OnboardingService } =
+        await import("@/server/services/onboarding.service");
+      const onboardingResult = await OnboardingService.getOnboardingByUserId(
+        user.id
+      );
+      if (onboardingResult.isOk() && onboardingResult.value) {
+        const { OnboardingQueries } =
+          await import("@/server/data-access/onboarding.queries");
+        await OnboardingQueries.updateOnboardingData(
+          onboardingResult.value.id,
+          {
+            googleCalendarConnectedDuringOnboarding: true,
+          }
+        );
+      }
+    }
+
+    // Redirect to the specified URL or settings
+    return NextResponse.redirect(new URL(redirectUrl, request.url));
   } catch (error) {
     logger.error("Error in Google OAuth callback", {}, error as Error);
     return NextResponse.redirect(

@@ -1,0 +1,1 @@
+ALTER TABLE "onboardings" ADD COLUMN "google_connected_during_onboarding" boolean DEFAULT false NOT NULL;

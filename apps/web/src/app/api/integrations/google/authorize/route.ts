@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthorizationUrl } from "../../../../../features/integrations/google/lib/google-oauth";
 import { getAuthSession } from "../../../../../lib/auth/auth-helpers";
 import { logger } from "../../../../../lib/logger";
@@ -7,7 +7,9 @@ import { logger } from "../../../../../lib/logger";
  * GET /api/integrations/google/authorize
  * Initiates Google OAuth flow
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const redirectUrl = searchParams.get("redirect") || "/settings?google_success=true";
   try {
     // Verify user is authenticated
     const sessionResult = await getAuthSession();
@@ -33,11 +35,12 @@ export async function GET() {
       );
     }
 
-    // Generate state parameter for CSRF protection
+    // Generate state parameter for CSRF protection and redirect URL
     const state = Buffer.from(
       JSON.stringify({
         userId: user.id,
         timestamp: Date.now(),
+        redirectUrl,
       })
     ).toString("base64");
 

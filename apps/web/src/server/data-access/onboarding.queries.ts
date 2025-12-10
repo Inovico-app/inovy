@@ -7,6 +7,39 @@ import {
 import { and, avg, count, eq, sql } from "drizzle-orm";
 
 /**
+ * Type definitions for Onboarding queries
+ */
+
+export interface CreateOnboardingData {
+  userId?: string;
+  organizationId?: string;
+  signupType: "individual" | "organization";
+  orgSize?: number;
+  referralSource?: string;
+  signupMethod: "email" | "google" | "microsoft" | "magic_link" | "passkey";
+}
+
+export interface UpdateOnboardingData {
+  signupType?: "individual" | "organization";
+  orgSize?: number | null;
+  researchQuestion?: string | null;
+  referralSource?: string | null;
+  referralSourceOther?: string | null;
+  googleCalendarConnectedDuringOnboarding?: boolean;
+  newsletterOptIn?: boolean | null;
+  organizationId?: string | null;
+}
+
+export interface OnboardingStats {
+  totalSignups: number;
+  individualSignups: number;
+  organizationSignups: number;
+  signupMethods: Record<string, number>;
+  referralSources: Record<string, number>;
+  averageOrgSize: number;
+}
+
+/**
  * Database queries for Onboarding operations
  * Pure data access layer - no business logic
  */
@@ -14,14 +47,9 @@ export class OnboardingQueries {
   /**
    * Create a new onboarding record
    */
-  static async createOnboarding(data: {
-    userId?: string;
-    organizationId?: string;
-    signupType: "individual" | "organization";
-    orgSize?: number;
-    referralSource?: string;
-    signupMethod: "email" | "google" | "microsoft" | "magic_link" | "passkey";
-  }): Promise<Onboarding> {
+  static async createOnboarding(
+    data: CreateOnboardingData
+  ): Promise<Onboarding> {
     const newOnboarding: NewOnboarding = {
       userId: data.userId ?? null,
       organizationId: data.organizationId ?? null,
@@ -37,11 +65,7 @@ export class OnboardingQueries {
       .values(newOnboarding)
       .returning();
 
-    if (!inserted) {
-      throw new Error("Failed to create onboarding record");
-    }
-
-    return inserted;
+    return inserted ?? null;
   }
 
   /**
@@ -77,14 +101,7 @@ export class OnboardingQueries {
   /**
    * Get aggregated onboarding statistics
    */
-  static async getOnboardingStats(): Promise<{
-    totalSignups: number;
-    individualSignups: number;
-    organizationSignups: number;
-    signupMethods: Record<string, number>;
-    referralSources: Record<string, number>;
-    averageOrgSize: number;
-  }> {
+  static async getOnboardingStats(): Promise<OnboardingStats> {
     // Get total signups
     const [totalResult] = await db.select({ count: count() }).from(onboardings);
 
@@ -170,6 +187,54 @@ export class OnboardingQueries {
         updatedAt: new Date(),
       })
       .where(eq(onboardings.id, id));
+  }
+
+  /**
+   * Update onboarding data
+   */
+  static async updateOnboardingData(
+    id: string,
+    data: UpdateOnboardingData
+  ): Promise<Onboarding> {
+    // Build update object, only including fields that are explicitly provided
+    const updateData: Record<string, unknown> = {
+      updatedAt: new Date(),
+    };
+
+    if (data.signupType !== undefined) {
+      updateData.signupType = data.signupType;
+    }
+    if (data.orgSize !== undefined) {
+      updateData.orgSize = data.orgSize;
+    }
+    if (data.researchQuestion !== undefined) {
+      updateData.researchQuestion = data.researchQuestion;
+    }
+    if (data.referralSource !== undefined) {
+      updateData.referralSource = data.referralSource;
+    }
+    if (data.referralSourceOther !== undefined) {
+      updateData.referralSourceOther = data.referralSourceOther;
+    }
+    if (data.googleCalendarConnectedDuringOnboarding !== undefined) {
+      updateData.googleCalendarConnectedDuringOnboarding =
+        data.googleCalendarConnectedDuringOnboarding;
+    }
+    // Only include newsletterOptIn if it's explicitly provided as a boolean (not null)
+    if (data.newsletterOptIn !== undefined && data.newsletterOptIn !== null) {
+      updateData.newsletterOptIn = data.newsletterOptIn;
+    }
+    if (data.organizationId !== undefined) {
+      updateData.organizationId = data.organizationId;
+    }
+
+    const [updated] = await db
+      .update(onboardings)
+      .set(updateData)
+      .where(eq(onboardings.id, id))
+      .returning();
+
+    return updated ?? null;
   }
 }
 

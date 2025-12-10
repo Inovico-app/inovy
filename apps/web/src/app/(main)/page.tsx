@@ -12,6 +12,7 @@ import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { logger } from "@/lib/logger";
 import { getCachedTaskStats } from "@/server/cache/task.cache";
 import { DashboardService } from "@/server/services/dashboard.service";
+import { OnboardingService } from "@/server/services/onboarding.service";
 import { TaskService } from "@/server/services/task.service";
 import {
   Building2,
@@ -67,6 +68,16 @@ async function DashboardContent() {
         </div>
       </div>
     );
+  }
+
+  try {
+    await OnboardingService.ensureOnboardingRecordExists(user.id);
+  } catch (error) {
+    // Log but don't fail dashboard load
+    logger.error("Failed to ensure onboarding record exists", {
+      userId: user.id,
+      error,
+    });
   }
 
   if (!organization) {

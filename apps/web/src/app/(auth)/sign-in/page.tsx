@@ -4,15 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSignIn } from "@/features/auth/hooks/use-sign-in";
-import { ArrowLeft, Lock, Mail, Shield, Sparkles, Star } from "lucide-react";
+import { Lock, Mail, Shield, Sparkles, Star } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Activity, useState } from "react";
 import { toast } from "sonner";
 
 export default function SignInPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [magicLinkEmail, setMagicLinkEmail] = useState("");
@@ -61,15 +59,6 @@ export default function SignInPage() {
       <div className="flex w-full flex-col bg-background dark:bg-card lg:w-1/2">
         <div className="flex flex-1 flex-col justify-center px-6 py-12 sm:px-12">
           <div className="mx-auto w-full max-w-md">
-            {/* Back Button */}
-            <button
-              onClick={() => router.back()}
-              className="mb-8 flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Terug
-            </button>
-
             {/* Title */}
             <h1 className="mb-2 text-3xl font-semibold text-foreground">
               Welkom terug
@@ -152,17 +141,6 @@ export default function SignInPage() {
                 </Button>
 
                 {/* Magic Link Option */}
-                <div className="relative py-2">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border" />
-                  </div>
-                  <div className="relative flex justify-center text-xs">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      Of
-                    </span>
-                  </div>
-                </div>
-
                 <Button
                   type="button"
                   variant="outline"

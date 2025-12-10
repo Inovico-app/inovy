@@ -1,0 +1,1 @@
+ALTER TABLE "onboardings" ADD COLUMN "research_question" text;

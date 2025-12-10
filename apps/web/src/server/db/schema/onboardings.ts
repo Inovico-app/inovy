@@ -49,7 +49,15 @@ export const onboardings = pgTable(
     }),
     signupType: signupTypeEnum("signup_type").notNull(),
     orgSize: integer("org_size"), // Only for organization signups
-    referralSource: text("referral_source"), // e.g., 'google', 'linkedin', 'referral', 'direct', etc.
+    researchQuestion: text("research_question"), // Only for individual signups
+    referralSource: text("referral_source"), // e.g., 'google', 'linkedin', 'referral', 'direct', 'other', etc.
+    referralSourceOther: text("referral_source_other"), // Free text when referralSource is 'other'
+    googleConnectedDuringOnboarding: boolean(
+      "google_connected_during_onboarding"
+    )
+      .default(false)
+      .notNull(), // Track if user connected Google Calendar during onboarding
+    newsletterOptIn: boolean("newsletter_opt_in").default(false).notNull(), // Track if user opted into newsletter during onboarding
     signupMethod: signupMethodEnum("signup_method").notNull(),
     onboardingCompleted: boolean("onboarding_completed")
       .default(false)
