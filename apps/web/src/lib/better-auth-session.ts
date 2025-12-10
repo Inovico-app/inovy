@@ -77,7 +77,7 @@ async function fetchAndBuildSession(
         (error.message.includes("prerender") ||
           error.message.includes("HangingPromiseRejection"))
       ) {
-        logger.auth.error("Cannot access headers during prerendering", error, {
+        logger.auth.warn("Cannot access headers during prerendering", error, {
           action: actionContext,
         });
         return err("Cannot access headers during prerendering");
