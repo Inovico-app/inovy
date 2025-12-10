@@ -11,7 +11,7 @@ import { signUpEmailAction } from "../actions/sign-up";
 export function useSignUp() {
   const router = useRouter();
 
-  const { execute: executeSignUp, isExecuting: isSigningUp } = useAction(
+  const { execute: executeSignUp, isExecuting: isSigningUp, result: signUpResult } = useAction(
     signUpEmailAction,
     {
       onSuccess: () => {
@@ -20,13 +20,10 @@ export function useSignUp() {
         );
         router.push("/sign-in" as Route);
       },
-      onError: ({ error }) => {
-        toast.error(error.serverError || "Account aanmaken mislukt");
-      },
     }
   );
 
-  const { execute: executeSocialSignIn, isExecuting: isSocialSigningIn } =
+  const { execute: executeSocialSignIn, isExecuting: isSocialSigningIn, result: socialSignInResult } =
     useAction(getSocialSignInUrlAction, {
       onSuccess: ({ data }) => {
         const url = typeof data?.url === "string" ? data.url : undefined;
@@ -39,13 +36,10 @@ export function useSignUp() {
       },
     });
 
-  const { execute: executeMagicLink, isExecuting: isSendingMagicLink } =
+  const { execute: executeMagicLink, isExecuting: isSendingMagicLink, result: magicLinkResult } =
     useAction(sendMagicLinkAction, {
       onSuccess: () => {
         toast.success("Magic link verzonden! Controleer je e-mail.");
-      },
-      onError: ({ error }) => {
-        toast.error(error.serverError || "Magic link verzenden mislukt");
       },
     });
 
@@ -59,6 +53,9 @@ export function useSignUp() {
     isSigningUp,
     isSocialSigningIn,
     isSendingMagicLink,
+    signUpError: signUpResult.serverError,
+    magicLinkError: magicLinkResult.serverError,
+    socialSignInError: socialSignInResult.serverError,
   };
 }
 
