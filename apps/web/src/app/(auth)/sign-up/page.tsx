@@ -7,7 +7,7 @@ import { useSignUp } from "@/features/auth/hooks/use-sign-up";
 import { ArrowLeft, Lock, Mail, Shield, Sparkles, Star } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Activity, useState } from "react";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -125,44 +125,48 @@ export default function SignUpPage() {
                 </div>
               </div>
 
-              {/* Email Sign Up Button */}
-              {!showEmailForm && !showMagicLinkForm ? (
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowEmailForm(true)}
-                    disabled={isLoading}
-                    className="w-full justify-start border-border bg-background hover:bg-accent"
-                  >
-                    <Mail className="mr-3 h-5 w-5" />
-                    Verder met email
-                  </Button>
+              <Activity
+                mode={
+                  !showEmailForm && !showMagicLinkForm ? "visible" : "hidden"
+                }
+              >
+                {/* Email Sign Up Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowEmailForm(true)}
+                  disabled={isLoading}
+                  className="w-full justify-start border-border bg-background hover:bg-accent"
+                >
+                  <Mail className="mr-3 h-5 w-5" />
+                  Verder met email
+                </Button>
 
-                  {/* Magic Link Option */}
-                  <div className="relative py-2">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-border" />
-                    </div>
-                    <div className="relative flex justify-center text-xs">
-                      <span className="bg-background px-2 text-muted-foreground">
-                        Of
-                      </span>
-                    </div>
+                {/* Magic Link Option */}
+                <div className="relative py-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
                   </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Of
+                    </span>
+                  </div>
+                </div>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowMagicLinkForm(true)}
-                    disabled={isLoading}
-                    className="w-full justify-start border-border bg-background hover:bg-accent"
-                  >
-                    <Sparkles className="mr-3 h-5 w-5" />
-                    Verder met magic link
-                  </Button>
-                </>
-              ) : showEmailForm ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowMagicLinkForm(true)}
+                  disabled={isLoading}
+                  className="w-full justify-start border-border bg-background hover:bg-accent"
+                >
+                  <Sparkles className="mr-3 h-5 w-5" />
+                  Verder met magic link
+                </Button>
+              </Activity>
+
+              <Activity mode={showEmailForm ? "visible" : "hidden"}>
                 <form onSubmit={handleEmailSignUp} className="space-y-4">
                   <fieldset className="space-y-4" disabled={isLoading}>
                     <legend className="sr-only">
@@ -233,7 +237,9 @@ export default function SignUpPage() {
                     </div>
                   </fieldset>
                 </form>
-              ) : (
+              </Activity>
+
+              <Activity mode={showMagicLinkForm ? "visible" : "hidden"}>
                 <form onSubmit={handleMagicLink} className="space-y-4">
                   <fieldset className="space-y-4" disabled={isLoading}>
                     <legend className="sr-only">Sign up with magic link</legend>
@@ -276,7 +282,7 @@ export default function SignUpPage() {
                     </div>
                   </fieldset>
                 </form>
-              )}
+              </Activity>
 
               {/* Terms and Privacy Policy */}
               <p className="mt-8 text-center text-xs text-muted-foreground">
