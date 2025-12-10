@@ -16,12 +16,12 @@ export function useSignUp() {
     {
       onSuccess: () => {
         toast.success(
-          "Account created! Please check your email to verify your account."
+          "Account aangemaakt! Controleer je e-mail om je account te verifiëren."
         );
         router.push("/sign-in" as Route);
       },
       onError: ({ error }) => {
-        toast.error(error.serverError || "Failed to create account");
+        toast.error(error.serverError || "Account aanmaken mislukt");
       },
     }
   );
@@ -35,17 +35,17 @@ export function useSignUp() {
         }
       },
       onError: ({ error }) => {
-        toast.error(error.serverError ?? "Failed to initiate social sign-in");
+        toast.error(error.serverError ?? "Social login starten mislukt");
       },
     });
 
   const { execute: executeMagicLink, isExecuting: isSendingMagicLink } =
     useAction(sendMagicLinkAction, {
       onSuccess: () => {
-        toast.success("Magic link sent! Check your email.");
+        toast.success("Magic link verzonden! Controleer je e-mail.");
       },
       onError: ({ error }) => {
-        toast.error(error.serverError || "Failed to send magic link");
+        toast.error(error.serverError || "Magic link verzenden mislukt");
       },
     });
 
