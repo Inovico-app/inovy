@@ -1,7 +1,7 @@
 import { ProtectedPage } from "@/components/protected-page";
 import { Card } from "@/components/ui/card";
 import { UnifiedChatInterface } from "@/features/chat/components/unified-chat-interface";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
 import { getCachedAgentConfig } from "@/server/cache/organization.cache";
 import { getCachedUserProjects } from "@/server/cache/project.cache";
@@ -10,7 +10,7 @@ import { redirect } from "next/navigation";
 
 async function ChatPageContent() {
   // Get session with roles
-  const sessionResult = await getAuthSession();
+  const sessionResult = await getBetterAuthSession();
 
   if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
     redirect("/api/auth/login");

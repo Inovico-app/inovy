@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TeamMemberAssignment } from "@/features/admin/components/team/team-member-assignment";
 import { UserManagementTable } from "@/features/admin/components/user/user-management-table";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { isOrganizationAdmin } from "@/lib/rbac/rbac";
@@ -24,7 +24,7 @@ function AdminUsersHeader() {
 }
 
 async function TeamAssignmentTab() {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (
     authResult.isErr() ||
@@ -81,7 +81,7 @@ async function TeamAssignmentTab() {
 
 async function AdminUsersContainer() {
   // Check if user is authenticated and has admin permissions
-  const sessionResult = await getAuthSession();
+  const sessionResult = await getBetterAuthSession();
 
   if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
     redirect("/");

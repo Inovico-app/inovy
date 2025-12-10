@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { withRateLimit } from "@/lib/rate-limit";
 import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
@@ -31,7 +31,7 @@ export const POST = withRateLimit(
 
     try {
       // Get authenticated session with roles
-      const sessionResult = await getAuthSession();
+      const sessionResult = await getBetterAuthSession();
 
       if (sessionResult.isErr()) {
         logger.error("Failed to get auth session", {
@@ -180,7 +180,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Get authenticated session with roles
-    const sessionResult = await getAuthSession();
+    const sessionResult = await getBetterAuthSession();
 
     if (sessionResult.isErr()) {
       logger.error("Failed to get auth session", {

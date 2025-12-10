@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import { cache } from "react";
@@ -45,7 +45,7 @@ export const getCachedProjectTemplateById = cache(
     "use cache";
 
     // Get current organization context for verification
-    const authResult = await getAuthSession();
+    const authResult = await getBetterAuthSession();
     if (authResult.isErr() || !authResult.value.organization) {
       return null;
     }

@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrganizationList } from "@/features/admin/components/organization/organization-list";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { redirect } from "next/navigation";
@@ -12,7 +12,7 @@ export const metadata = {
 };
 
 async function OrganizationsContent() {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (authResult.isErr()) {
     redirect("/sign-in");

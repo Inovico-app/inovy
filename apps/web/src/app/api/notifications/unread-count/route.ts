@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { NotificationService } from "@/server/services/notification.service";
 import { NextResponse } from "next/server";
@@ -11,7 +11,7 @@ import { NextResponse } from "next/server";
 export async function GET() {
   try {
     // Verify authentication
-    const authResult = await getAuthSession();
+    const authResult = await getBetterAuthSession();
     if (
       authResult.isErr() ||
       !authResult.value.isAuthenticated ||

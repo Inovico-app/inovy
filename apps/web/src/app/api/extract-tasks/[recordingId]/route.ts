@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { withRateLimit } from "@/lib/rate-limit";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
@@ -17,7 +17,7 @@ export const POST = withRateLimit(
       const { recordingId } = await props.params;
 
       // Verify authentication
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (
         authResult.isErr() ||
         !authResult.value.isAuthenticated ||
@@ -131,7 +131,7 @@ export const POST = withRateLimit(
   },
   async () => {
     // Custom user ID extraction for rate limiting
-    const authResult = await getAuthSession();
+    const authResult = await getBetterAuthSession();
     if (authResult.isOk() && authResult.value.isAuthenticated) {
       return authResult.value.user?.id ?? null;
     }

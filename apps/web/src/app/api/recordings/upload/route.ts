@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger, serializeError } from "@/lib/logger";
 import { withRateLimit } from "@/lib/rate-limit";
 import { rateLimiter } from "@/server/services/rate-limiter.service";
@@ -49,7 +49,7 @@ export const POST = withRateLimit(
         request,
         onBeforeGenerateToken: async (pathname, clientPayload) => {
           // Authenticate user
-          const authResult = await getAuthSession();
+          const authResult = await getBetterAuthSession();
 
           if (
             authResult.isErr() ||
@@ -133,7 +133,7 @@ export const POST = withRateLimit(
 
           // Get user info for consent tracking
           // Note: user is not currently used but may be needed for future consent tracking
-          const authResult = await getAuthSession();
+          const authResult = await getBetterAuthSession();
           const _user =
             authResult.isOk() && authResult.value.isAuthenticated
               ? authResult.value.user
@@ -235,7 +235,7 @@ export const POST = withRateLimit(
   },
   async (_request) => {
     // Custom user ID extraction for rate limiting
-    const authResult = await getAuthSession();
+    const authResult = await getBetterAuthSession();
     return authResult.isOk() &&
       authResult.value.isAuthenticated &&
       authResult.value.user

@@ -8,7 +8,7 @@ import type { Column } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 import type { Result } from "neverthrow";
 import { err, ok } from "neverthrow";
-import { getAuthSession } from "../auth/auth-helpers";
+import { getBetterAuthSession } from "../better-auth-session";
 import type { BetterAuthOrganization } from "../better-auth-session";
 import { logger } from "../logger";
 import type { ActionError } from "../server-action-client/action-errors";
@@ -94,7 +94,7 @@ export function filterByOrganization(
 export async function getOrganizationFromSession(): Promise<
   Result<BetterAuthOrganization, ActionError>
 > {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (authResult.isErr()) {
     return err(
@@ -191,7 +191,7 @@ export async function validateOrganizationContext(context?: string): Promise<
     ActionError
   >
 > {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (authResult.isErr()) {
     return err(

@@ -14,7 +14,7 @@ import { ReprocessButton } from "@/features/recordings/components/reprocess-butt
 import { ReprocessingStatusIndicator } from "@/features/recordings/components/reprocessing-status-indicator";
 import { TranscriptionSection } from "@/features/recordings/components/transcription/transcription-section";
 import { TaskCard } from "@/features/tasks/components/task-card-with-edit";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { formatDateLong } from "@/lib/formatters/date-formatters";
 import { formatDuration } from "@/lib/formatters/duration-formatters";
 import { formatFileSize } from "@/lib/formatters/file-size-formatters";
@@ -42,7 +42,7 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
   const { projectId, recordingId } = await params;
 
   // Get auth session for organization ID
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
   const organizationId =
     authResult.isOk() && authResult.value.organization
       ? authResult.value.organization.id

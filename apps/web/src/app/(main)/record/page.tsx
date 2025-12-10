@@ -1,14 +1,14 @@
 import { ProtectedPage } from "@/components/protected-page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RecordPageClient } from "@/features/recordings/components/record-page-client";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { ProjectService } from "@/server/services/project.service";
 import { InfoIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
 async function RecordPageContent() {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (authResult.isErr() || !authResult.value.isAuthenticated) {
     return (

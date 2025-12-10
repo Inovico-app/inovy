@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { getCachedDriveWatches } from "@/server/cache/drive-watch.cache";
 import { getCachedUserProjects } from "@/server/cache/project.cache";
 import { Suspense } from "react";
@@ -18,7 +18,7 @@ import { DriveWatchSettingsClient } from "./drive-watch-settings-client";
  */
 export async function DriveWatchSettings() {
   // Get auth session (outside cache)
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (
     authResult.isErr() ||

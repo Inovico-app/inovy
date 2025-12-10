@@ -2,7 +2,7 @@ import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import type { ActionResult } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
-import { getAuthSession } from "../../lib/auth/auth-helpers";
+import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { getCachedTaskStats } from "../cache/task.cache";
@@ -36,7 +36,7 @@ export class TaskService {
     filters?: Omit<TaskFiltersDto, "assigneeId" | "organizationId">
   ): Promise<ActionResult<TaskDto[]>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -87,7 +87,7 @@ export class TaskService {
     recordingId: string
   ): Promise<ActionResult<TaskDto[]>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -139,7 +139,7 @@ export class TaskService {
     filters?: Omit<TaskFiltersDto, "assigneeId" | "organizationId">
   ): Promise<ActionResult<TaskWithContextDto[]>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -185,7 +185,7 @@ export class TaskService {
    */
   static async getTaskStats(): Promise<ActionResult<TaskStatsDto>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -232,7 +232,7 @@ export class TaskService {
     status: Task["status"]
   ): Promise<ActionResult<TaskDto>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -322,7 +322,7 @@ export class TaskService {
     input: UpdateTaskMetadataDto
   ): Promise<ActionResult<TaskDto>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -430,7 +430,7 @@ export class TaskService {
     taskId: string
   ): Promise<ActionResult<TaskHistoryDto[]>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(

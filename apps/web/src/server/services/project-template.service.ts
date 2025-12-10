@@ -2,7 +2,7 @@ import type { BetterAuthUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
-import { getAuthSession } from "../../lib/auth/auth-helpers";
+import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { ProjectTemplateQueries } from "../data-access/project-templates.queries";
@@ -25,7 +25,7 @@ export class ProjectTemplateService {
   ): Promise<ActionResult<ProjectTemplateDto | null>> {
     try {
       // Check authentication and get session
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
 
       if (authResult.isErr()) {
         return err(

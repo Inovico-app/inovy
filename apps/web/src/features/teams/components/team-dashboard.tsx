@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { isOrganizationAdmin, isTeamManager } from "@/lib/rbac/rbac";
 import { getCachedTeamById } from "@/server/cache/team.cache";
 import type { TeamMemberWithUserDto } from "@/server/dto/team.dto";
@@ -23,7 +23,7 @@ interface TeamDashboardProps {
 }
 
 export async function TeamDashboard({ teamId }: TeamDashboardProps) {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (
     authResult.isErr() ||

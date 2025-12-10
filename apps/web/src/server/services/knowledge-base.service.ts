@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
@@ -36,7 +36,7 @@ export class KnowledgeBaseService {
       }
 
       // Validate organization access
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr() || !authResult.value.user) {
         return err(
           ActionErrors.unauthenticated(
@@ -115,7 +115,7 @@ export class KnowledgeBaseService {
   ): Promise<ActionResult<KnowledgeEntryDto[]>> {
     try {
       // Validate scope-specific permissions
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr() || !authResult.value.user) {
         // Only return empty array if explicitly allowed (e.g., during revalidation)
         if (options?.allowUnauthenticated) {
@@ -184,7 +184,7 @@ export class KnowledgeBaseService {
       }
 
       // Validate scope-specific permissions
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr() || !authResult.value.user) {
         return err(
           ActionErrors.unauthenticated(
@@ -692,7 +692,7 @@ export class KnowledgeBaseService {
   ): Promise<ActionResult<KnowledgeDocumentDto[]>> {
     try {
       // Validate scope-specific permissions
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr() || !authResult.value.user) {
         // Only return empty array if explicitly allowed (e.g., during revalidation)
         if (options?.allowUnauthenticated) {
@@ -895,7 +895,7 @@ export class KnowledgeBaseService {
     operation: "read" | "write"
   ): Promise<ActionResult<void>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr() || !authResult.value.user) {
         return err(
           ActionErrors.unauthenticated(

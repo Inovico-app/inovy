@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { ProjectService } from "@/server/services/project.service";
@@ -17,7 +17,7 @@ const indexRequestSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await getAuthSession();
+    const authResult = await getBetterAuthSession();
 
     if (
       authResult.isErr() ||

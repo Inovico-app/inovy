@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import { AlertCircle } from "lucide-react";
 import { useEffect } from "react";
 
@@ -11,7 +12,11 @@ interface DashboardErrorProps {
 
 export default function DashboardError({ error, reset }: DashboardErrorProps) {
   useEffect(() => {
-    console.error("Dashboard page error:", error);
+    logger.error("Dashboard page error occurred", {
+      component: "DashboardError",
+      error: error instanceof Error ? error : new Error(String(error)),
+      digest: error.digest,
+    });
   }, [error]);
 
   return (

@@ -4,7 +4,7 @@ import { AgentMetricsExport } from "@/features/admin/components/agent/agent-metr
 import { AgentMetricsFilters } from "@/features/admin/components/agent/agent-metrics-filters";
 import { AgentMetricsTable } from "@/features/admin/components/agent/agent-metrics-table";
 import { TopQueriesTable } from "@/features/admin/components/agent/top-queries-table";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { AgentAnalyticsService } from "@/server/services/agent-analytics.service";
@@ -30,7 +30,7 @@ interface AgentMetricsContentProps {
 async function AgentMetricsContent({
   searchParams,
 }: AgentMetricsContentProps) {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (authResult.isErr()) {
     redirect("/sign-in");

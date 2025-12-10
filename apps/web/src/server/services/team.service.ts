@@ -1,6 +1,6 @@
 import type { Team, TeamInput, TeamMember } from "better-auth/plugins";
 import { err, ok } from "neverthrow";
-import { getAuthSession } from "../../lib/auth/auth-helpers";
+import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
@@ -31,7 +31,7 @@ export class TeamService {
     organizationId: string
   ): Promise<ActionResult<Team[]>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -80,7 +80,7 @@ export class TeamService {
    */
   static async getTeamById(id: string): Promise<ActionResult<Team | null>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -135,7 +135,7 @@ export class TeamService {
     userId: string
   ): Promise<ActionResult<TeamMember[]>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -192,7 +192,7 @@ export class TeamService {
     teamId: string
   ): Promise<ActionResult<TeamMember[]>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -250,7 +250,7 @@ export class TeamService {
     teamId: string
   ): Promise<ActionResult<TeamMemberWithUserDto[]>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -354,7 +354,7 @@ export class TeamService {
     organizationId: string
   ): Promise<ActionResult<Map<string, UserTeamRoleDto[]>>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -445,7 +445,7 @@ export class TeamService {
    */
   static async createTeam(data: CreateTeamDto): Promise<ActionResult<TeamDto>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -516,7 +516,7 @@ export class TeamService {
     data: UpdateTeamDto
   ): Promise<ActionResult<TeamDto>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -601,7 +601,7 @@ export class TeamService {
    */
   static async deleteTeam(id: string): Promise<ActionResult<void>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -665,7 +665,7 @@ export class TeamService {
     role: UserTeamRole = "member"
   ): Promise<ActionResult<UserTeamRoleDto>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -753,7 +753,7 @@ export class TeamService {
     teamId: string
   ): Promise<ActionResult<void>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -820,7 +820,7 @@ export class TeamService {
     role: UserTeamRole
   ): Promise<ActionResult<UserTeamRoleDto>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(

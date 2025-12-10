@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { ArrowRightIcon } from "lucide-react";
@@ -16,7 +16,7 @@ import { Suspense } from "react";
 
 async function AdminDashboard() {
   // Check if user is authenticated and has admin permissions
-  const sessionResult = await getAuthSession();
+  const sessionResult = await getBetterAuthSession();
 
   if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
     redirect("/");

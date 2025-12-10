@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import { AlertTriangle } from "lucide-react";
 import { useEffect } from "react";
 
@@ -11,7 +12,11 @@ interface GlobalErrorProps {
 
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
-    console.error("Global error:", error);
+    logger.error("Global error occurred", {
+      component: "GlobalError",
+      error: error instanceof Error ? error : new Error(String(error)),
+      digest: error.digest,
+    });
   }, [error]);
 
   return (

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import { AlertCircle } from "lucide-react";
 import { useEffect } from "react";
 
@@ -11,7 +12,11 @@ interface ChatErrorProps {
 
 export default function ChatError({ error, reset }: ChatErrorProps) {
   useEffect(() => {
-    console.error("Chat page error:", error);
+    logger.error("Chat page error occurred", {
+      component: "ChatError",
+      error: error instanceof Error ? error : new Error(String(error)),
+      digest: error.digest,
+    });
   }, [error]);
 
   return (

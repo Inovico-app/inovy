@@ -12,7 +12,7 @@ import { AutoProcessToggle } from "@/features/recordings/components/auto-process
 import { DataDeletion } from "@/features/settings/components/data-deletion";
 import { DataExport } from "@/features/settings/components/data-export";
 import { getDeletionStatus } from "@/features/settings/lib/get-deletion-status";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import {
   getCachedTeamsByOrganization,
   getCachedUserTeams,
@@ -22,7 +22,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 async function ProfileContent() {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (authResult.isErr() || !authResult.value.user) {
     return (

@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import {
   ActionErrors,
@@ -69,7 +69,7 @@ export class KnowledgeBaseBrowserService {
   ): Promise<ActionResult<ListDocumentsResponse>> {
     try {
       // Verify authentication
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr() || !authResult.value.organization) {
         return err(
           ActionErrors.unauthenticated(
@@ -275,7 +275,7 @@ export class KnowledgeBaseBrowserService {
   ): Promise<ActionResult<DocumentPreviewDto>> {
     try {
       // Verify authentication
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr() || !authResult.value.organization) {
         return err(
           ActionErrors.unauthenticated(
@@ -376,7 +376,7 @@ export class KnowledgeBaseBrowserService {
   ): Promise<ActionResult<void>> {
     try {
       // Verify authentication
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr() || !authResult.value.organization) {
         return err(
           ActionErrors.unauthenticated(
@@ -466,7 +466,7 @@ export class KnowledgeBaseBrowserService {
   ): Promise<ActionResult<void>> {
     try {
       // Verify authentication
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr() || !authResult.value.organization) {
         return err(
           ActionErrors.unauthenticated(

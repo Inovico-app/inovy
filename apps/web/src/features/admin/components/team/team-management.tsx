@@ -7,13 +7,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
 import { TeamManagementClient } from "./team-management-client";
 
 export async function TeamManagement() {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (authResult.isErr() || !authResult.value.organization) {
     return (

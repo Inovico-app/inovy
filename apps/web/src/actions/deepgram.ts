@@ -1,6 +1,6 @@
 "use server";
 
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { getTemporaryDeepgramToken } from "@/lib/deepgram";
 import { logger } from "@/lib/logger";
 import { publicActionClient } from "@/lib/server-action-client/action-client";
@@ -8,7 +8,7 @@ import { ActionErrors } from "@/lib/server-action-client/action-errors";
 
 export const getDeepgramClientTokenAction = publicActionClient.action(
   async () => {
-    const authResult = await getAuthSession();
+    const authResult = await getBetterAuthSession();
     if (
       authResult.isErr() ||
       !authResult.value.user ||

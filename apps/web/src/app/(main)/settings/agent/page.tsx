@@ -1,12 +1,12 @@
 import { AgentDisabledBanner } from "@/components/agent-disabled-banner";
 import { KnowledgeBaseBrowser } from "@/features/agent/components/knowledge-base-browser";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { getCachedAgentConfig } from "@/server/cache/organization.cache";
 import { getCachedUserProjects } from "@/server/cache/project.cache";
 import { Activity, Suspense } from "react";
 
 async function AgentContent() {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (authResult.isErr() || !authResult.value.organization) {
     return (

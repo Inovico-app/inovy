@@ -1,6 +1,6 @@
 "use server";
 
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { OrganizationAssignmentService } from "@/server/services/organization-assignment.service";
 
@@ -15,7 +15,7 @@ export async function ensureUserOrganization(): Promise<{
 }> {
   try {
     // Get current auth session
-    const authResult = await getAuthSession();
+    const authResult = await getBetterAuthSession();
 
     if (authResult.isErr()) {
       logger.error("Failed to get auth session in ensureUserOrganization", {

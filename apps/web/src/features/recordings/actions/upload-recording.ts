@@ -1,6 +1,6 @@
 "use server";
 
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 import { RecordingService } from "@/server/services/recording.service";
@@ -24,7 +24,7 @@ export async function uploadRecordingFormAction(
 ): Promise<{ success: boolean; recordingId?: string; error?: string }> {
   try {
     // Get auth session
-    const authResult = await getAuthSession();
+    const authResult = await getBetterAuthSession();
     if (
       authResult.isErr() ||
       !authResult.value.isAuthenticated ||

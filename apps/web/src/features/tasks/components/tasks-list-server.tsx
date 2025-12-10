@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { getCachedUserProjects } from "@/server/cache/project.cache";
 import { getCachedTasksWithContext } from "@/server/cache/task.cache";
 import { GlobalTaskListClient } from "./global-task-list-client";
@@ -8,7 +8,7 @@ import { GlobalTaskListClient } from "./global-task-list-client";
  * Uses cache functions for optimal performance
  */
 export async function TasksListServer() {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (authResult.isErr() || !authResult.value.isAuthenticated) {
     return (

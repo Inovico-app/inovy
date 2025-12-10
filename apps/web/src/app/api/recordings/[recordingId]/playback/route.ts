@@ -1,5 +1,6 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { decrypt } from "@/lib/encryption";
+import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { RecordingService } from "@/server/services/recording.service";
 import { type NextRequest, NextResponse } from "next/server";
@@ -12,11 +13,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ recordingId: string }> }
 ) {
+  const { recordingId } = await params;
   try {
-    const { recordingId } = await params;
 
     // Get authenticated session
-    const authResult = await getAuthSession();
+    const authResult = await getBetterAuthSession();
     if (authResult.isErr() || !authResult.value.isAuthenticated) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -87,7 +88,11 @@ export async function GET(
         const encryptedData = await response.arrayBuffer();
         fileBuffer = decrypt(Buffer.from(encryptedData).toString("base64"));
       } catch (error) {
-        console.error("Failed to decrypt recording", error);
+        logger.error("Failed to decrypt recording", {
+          component: "recording-playback-route",
+          recordingId,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
         return NextResponse.json(
           { error: "Failed to decrypt recording" },
           { status: 500 }
@@ -108,7 +113,11 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Error serving recording playback", error);
+    logger.error("Error serving recording playback", {
+      component: "recording-playback-route",
+      recordingId,
+      error: error instanceof Error ? error : new Error(String(error)),
+    });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

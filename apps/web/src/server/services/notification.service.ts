@@ -1,6 +1,6 @@
 import { err, ok } from "neverthrow";
 import { revalidateTag } from "next/cache";
-import { getAuthSession } from "../../lib/auth/auth-helpers";
+import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { CacheInvalidation, CacheTags } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import {
@@ -64,7 +64,7 @@ export class NotificationService {
     filters?: NotificationFiltersDto
   ): Promise<ActionResult<NotificationListDto>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -120,7 +120,7 @@ export class NotificationService {
    */
   static async getUnreadCount(): Promise<ActionResult<number>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -165,7 +165,7 @@ export class NotificationService {
     notificationId: string
   ): Promise<ActionResult<NotificationDto>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(
@@ -245,7 +245,7 @@ export class NotificationService {
    */
   static async markAllAsRead(): Promise<ActionResult<number>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(

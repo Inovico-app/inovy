@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
@@ -19,7 +19,7 @@ export async function POST(
 ) {
   try {
     const { projectId } = await params;
-    const authResult = await getAuthSession();
+    const authResult = await getBetterAuthSession();
 
     if (
       authResult.isErr() ||
@@ -162,7 +162,7 @@ export async function GET(
 ) {
   try {
     const { projectId } = await params;
-    const authResult = await getAuthSession();
+    const authResult = await getBetterAuthSession();
 
     if (
       authResult.isErr() ||

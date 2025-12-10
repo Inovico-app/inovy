@@ -1,10 +1,10 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { getCachedRecordingsByOrganization } from "@/server/cache/recording.cache";
 import { getCachedUserProjects } from "@/server/cache/project.cache";
 import { RecordingsOverviewClient } from "./recordings-overview-client";
 
 export async function RecordingsOverview() {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (authResult.isErr() || !authResult.value.isAuthenticated) {
     return (
