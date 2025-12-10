@@ -1,0 +1,1 @@
+ALTER TABLE "onboardings" ADD COLUMN "newsletter_opt_in" boolean DEFAULT false NOT NULL;

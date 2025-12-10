@@ -9,7 +9,11 @@ export interface OnboardingDto {
   organizationId: string | null;
   signupType: "individual" | "organization";
   orgSize: number | null;
+  researchQuestion: string | null;
   referralSource: string | null;
+  referralSourceOther: string | null;
+  googleConnectedDuringOnboarding: boolean;
+  newsletterOptIn: boolean | null;
   signupMethod: "email" | "google" | "microsoft" | "magic_link" | "passkey";
   onboardingCompleted: boolean;
   createdAt: Date;
@@ -21,7 +25,10 @@ export interface CreateOnboardingDto {
   organizationId?: string;
   signupType: "individual" | "organization";
   orgSize?: number;
+  researchQuestion?: string;
   referralSource?: string;
+  googleConnectedDuringOnboarding?: boolean;
+  newsletterOptIn?: boolean;
   signupMethod: "email" | "google" | "microsoft" | "magic_link" | "passkey";
 }
 
@@ -32,5 +39,12 @@ export interface OnboardingStatsDto {
   signupMethods: Record<string, number>;
   referralSources: Record<string, number>;
   averageOrgSize: number;
+}
+
+export interface UpdateOnboardingDto {
+  researchQuestion?: string | null;
+  googleConnectedDuringOnboarding?: boolean;
+  newsletterOptIn?: boolean | null;
+  referralSource?: string | null;
 }
 

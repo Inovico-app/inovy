@@ -28,6 +28,7 @@ import {
  * Uses Better Auth permission format directly
  */
 const schemaMetadata = z.object({
+  name: z.string().optional(),
   permissions: z.record(z.string(), z.array(z.string())), // Better Auth permission format
   skipAuth: z.boolean().optional(),
 });
@@ -78,9 +79,10 @@ async function actionLoggerMiddleware({
     ctx: NC;
   }) => Promise<MiddlewareResult<string, NC>>;
 }) {
-  const { permissions } = metadata;
+  const { name, permissions } = metadata;
 
-  logger.info(`Executing server action`, {
+  logger.info(`Executing server action: ${name ?? "unknown"}`, {
+    name: name ?? "unknown",
     permissions: JSON.stringify(permissions),
     component: "server-action",
   });
@@ -155,7 +157,10 @@ async function authenticationMiddleware({
     );
   }
 
-  if (!organization) {
+  // Only require organization if permissions are specified (non-empty)
+  const hasPermissions = Object.keys(permissions).length > 0;
+
+  if (!organization && hasPermissions) {
     ctx.logger.error("Organization not found in session", {
       component: "auth-middleware",
       permissions,
@@ -169,27 +174,30 @@ async function authenticationMiddleware({
   }
 
   // Check authorization using Better Auth's built-in API
-  const isAuthorized = await checkPermission(permissions);
+  // Only check if permissions are specified and organization exists
+  if (hasPermissions && organization) {
+    const isAuthorized = await checkPermission(permissions);
 
-  if (!isAuthorized) {
-    // Log unauthorized access attempt using security logger
-    ctx.logger.security.unauthorizedAccess({
-      userId: user.id,
-      resource: JSON.stringify(permissions),
-      action: "access",
-      reason: "User does not have required roles",
-    });
-
-    const actionError = ActionErrors.forbidden(
-      "User is not authorized to perform this action",
-      {
+    if (!isAuthorized) {
+      // Log unauthorized access attempt using security logger
+      ctx.logger.security.unauthorizedAccess({
         userId: user.id,
-        organizationId: organization.id,
-        permissions,
-      },
-      "auth-middleware"
-    );
-    throw createErrorForNextSafeAction(actionError);
+        resource: JSON.stringify(permissions),
+        action: "access",
+        reason: "User does not have required roles",
+      });
+
+      const actionError = ActionErrors.forbidden(
+        "User is not authorized to perform this action",
+        {
+          userId: user.id,
+          organizationId: organization.id,
+          permissions,
+        },
+        "auth-middleware"
+      );
+      throw createErrorForNextSafeAction(actionError);
+    }
   }
 
   return next({
@@ -197,7 +205,7 @@ async function authenticationMiddleware({
       ...ctx,
       session,
       user,
-      organizationId: organization.id, // Make organization ID available to all actions
+      organizationId: organization?.id, // Make organization ID available to all actions (may be undefined)
     },
   });
 }

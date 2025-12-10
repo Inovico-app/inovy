@@ -114,12 +114,15 @@ importers:
       '@radix-ui/react-select':
         specifier: ^2.2.6
         version: 2.2.6(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      '@radix-ui/react-separator':
+        specifier: ^1.1.8
+        version: 1.1.8(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       '@radix-ui/react-slider':
         specifier: ^1.3.6
         version: 1.3.6(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       '@radix-ui/react-slot':
         specifier: ^1.2.3
-        version: 1.2.3(@types/react@19.2.7)(react@19.2.1)
+        version: 1.2.4(@types/react@19.2.7)(react@19.2.1)
       '@radix-ui/react-switch':
         specifier: ^1.2.6
         version: 1.2.6(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -1923,6 +1926,19 @@ packages:
       '@types/react-dom':
         optional: true
 
+  '@radix-ui/react-primitive@2.1.4':
+    resolution: {integrity: sha512-9hQc4+GNVtJAIEPEqlYqW5RiYdrr8ea5XQ0ZOnD6fgru+83kqT15mq2OCcbe8KnjRZl5vF3ks69AKz3kh1jrhg==}
+    peerDependencies:
+      '@types/react': '*'
+      '@types/react-dom': '*'
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
+        optional: true
+
   '@radix-ui/react-progress@1.1.7':
     resolution: {integrity: sha512-vPdg/tF6YC/ynuBIJlk1mm7Le0VgW6ub6J2UWnTQ7/D23KXcPI1qy+0vBkgKgd38RCMJavBXpB83HPNFMTb0Fg==}
     peerDependencies:
@@ -2001,6 +2017,19 @@ packages:
       '@types/react-dom':
         optional: true
 
+  '@radix-ui/react-separator@1.1.8':
+    resolution: {integrity: sha512-sDvqVY4itsKwwSMEe0jtKgfTh+72Sy3gPmQpjqcQneqQ4PFmr/1I0YA+2/puilhggCe2gJcx5EBAYFkWkdpa5g==}
+    peerDependencies:
+      '@types/react': '*'
+      '@types/react-dom': '*'
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
+        optional: true
+
   '@radix-ui/react-slider@1.3.6':
     resolution: {integrity: sha512-JPYb1GuM1bxfjMRlNLE+BcmBC8onfCi60Blk7OBqi2MLTFdS+8401U4uFjnwkOr49BLmXxLC6JHkvAsx5OJvHw==}
     peerDependencies:
@@ -2016,6 +2045,15 @@ packages:
 
   '@radix-ui/react-slot@1.2.3':
     resolution: {integrity: sha512-aeNmHnBxbi2St0au6VBVC7JXFlhLlOnvIIlePNniyUNAClzmtAUEY8/pBiK3iHjufOlwA+c20/8jngo7xcrg8A==}
+    peerDependencies:
+      '@types/react': '*'
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
+  '@radix-ui/react-slot@1.2.4':
+    resolution: {integrity: sha512-Jl+bCv8HxKnlTLVrcDE8zTMJ09R9/ukw4qBs/oZClOfoQk/cOTbDn+NceXfV7j09YPVQUryJPHurafcSg6EVKA==}
     peerDependencies:
       '@types/react': '*'
       react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
@@ -3871,9 +3909,6 @@ packages:
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
-
-  csstype@3.1.3:
-    resolution: {integrity: sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==}
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
@@ -9062,6 +9097,15 @@ snapshots:
       '@types/react': 19.2.7
       '@types/react-dom': 19.2.3(@types/react@19.2.7)
 
+  '@radix-ui/react-primitive@2.1.4(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
+    dependencies:
+      '@radix-ui/react-slot': 1.2.4(@types/react@19.2.7)(react@19.2.1)
+      react: 19.2.1
+      react-dom: 19.2.1(react@19.2.1)
+    optionalDependencies:
+      '@types/react': 19.2.7
+      '@types/react-dom': 19.2.3(@types/react@19.2.7)
+
   '@radix-ui/react-progress@1.1.7(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
     dependencies:
       '@radix-ui/react-context': 1.1.2(@types/react@19.2.7)(react@19.2.1)
@@ -9162,6 +9206,15 @@ snapshots:
       '@types/react': 19.2.7
       '@types/react-dom': 19.2.3(@types/react@19.2.7)
 
+  '@radix-ui/react-separator@1.1.8(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
+    dependencies:
+      '@radix-ui/react-primitive': 2.1.4(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      react: 19.2.1
+      react-dom: 19.2.1(react@19.2.1)
+    optionalDependencies:
+      '@types/react': 19.2.7
+      '@types/react-dom': 19.2.3(@types/react@19.2.7)
+
   '@radix-ui/react-slider@1.3.6(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
     dependencies:
       '@radix-ui/number': 1.1.1
@@ -9182,6 +9235,13 @@ snapshots:
       '@types/react-dom': 19.2.3(@types/react@19.2.7)
 
   '@radix-ui/react-slot@1.2.3(@types/react@19.2.7)(react@19.2.1)':
+    dependencies:
+      '@radix-ui/react-compose-refs': 1.1.2(@types/react@19.2.7)(react@19.2.1)
+      react: 19.2.1
+    optionalDependencies:
+      '@types/react': 19.2.7
+
+  '@radix-ui/react-slot@1.2.4(@types/react@19.2.7)(react@19.2.1)':
     dependencies:
       '@radix-ui/react-compose-refs': 1.1.2(@types/react@19.2.7)(react@19.2.1)
       react: 19.2.1
@@ -11273,8 +11333,6 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
-  csstype@3.1.3: {}
-
   csstype@3.2.3: {}
 
   cytoscape-cose-bilkent@4.1.0(cytoscape@3.33.1):
@@ -11576,7 +11634,7 @@ snapshots:
   dom-helpers@5.2.1:
     dependencies:
       '@babel/runtime': 7.28.4
-      csstype: 3.1.3
+      csstype: 3.2.3
 
   dom-serializer@2.0.0:
     dependencies:

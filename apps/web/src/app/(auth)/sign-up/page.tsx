@@ -143,16 +143,6 @@ export default function SignUpPage() {
                 </Button>
 
                 {/* Magic Link Option */}
-                <div className="relative py-2">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border" />
-                  </div>
-                  <div className="relative flex justify-center text-xs">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      Of
-                    </span>
-                  </div>
-                </div>
 
                 <Button
                   type="button"
@@ -293,6 +283,14 @@ export default function SignUpPage() {
                 en ons{" "}
                 <Link href="#" className="text-primary hover:underline">
                   privacy beleid
+                </Link>
+              </p>
+
+              {/* Sign In Link */}
+              <p className="mt-4 text-center text-sm text-muted-foreground">
+                Heb je al een account?{" "}
+                <Link href="/sign-in" className="text-primary hover:underline">
+                  Klik hier om in te loggen
                 </Link>
               </p>
             </div>

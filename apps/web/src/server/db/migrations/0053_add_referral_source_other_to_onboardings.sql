@@ -1,0 +1,1 @@
+ALTER TABLE "onboardings" ADD COLUMN "referral_source_other" text;

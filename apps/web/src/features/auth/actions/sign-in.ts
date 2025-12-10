@@ -1,11 +1,13 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import {
   createErrorForNextSafeAction,
   publicActionClient,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { OnboardingService } from "@/server/services/onboarding.service";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
@@ -50,6 +52,22 @@ export const signInEmailAction = publicActionClient
       );
     }
 
+    // Ensure onboarding record exists
+    try {
+      const sessionResult = await getBetterAuthSession();
+      if (sessionResult.isOk() && sessionResult.value.user) {
+        const user = sessionResult.value.user;
+        const requestHeaders = await headers();
+        await OnboardingService.ensureOnboardingRecordExists(
+          user.id,
+          requestHeaders
+        );
+      }
+    } catch (error) {
+      // Log but don't fail sign-in if onboarding creation fails
+      console.error("Failed to ensure onboarding record exists:", error);
+    }
+
     // Always redirect to home page after successful sign-in
     redirect("/");
   });
@@ -66,7 +84,7 @@ export const getSocialSignInUrlAction = publicActionClient
       const result = await auth.api.signInSocial({
         body: {
           provider,
-          callbackURL: "/",
+          callbackURL: "/", // Will be handled by home page to check onboarding
         },
         headers: await headers(),
       });

@@ -4,7 +4,11 @@ import {
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
-import { OnboardingQueries } from "../data-access/onboarding.queries";
+import {
+  OnboardingQueries,
+  type UpdateOnboardingData,
+} from "../data-access/onboarding.queries";
+import { UserQueries } from "../data-access/user.queries";
 import type {
   CreateOnboardingDto,
   OnboardingDto,
@@ -54,14 +58,23 @@ export class OnboardingService {
         organizationId: onboarding.organizationId,
         signupType: onboarding.signupType,
         orgSize: onboarding.orgSize,
+        researchQuestion: onboarding.researchQuestion ?? null,
         referralSource: onboarding.referralSource,
+        referralSourceOther: onboarding.referralSourceOther ?? null,
+        googleConnectedDuringOnboarding:
+          onboarding.googleConnectedDuringOnboarding,
+        newsletterOptIn: onboarding.newsletterOptIn,
         signupMethod: onboarding.signupMethod,
         onboardingCompleted: onboarding.onboardingCompleted,
         createdAt: onboarding.createdAt,
         updatedAt: onboarding.updatedAt,
       });
     } catch (error) {
-      logger.error("Failed to create onboarding record", { data }, error as Error);
+      logger.error(
+        "Failed to create onboarding record",
+        { data },
+        error as Error
+      );
       return err(
         ActionErrors.internal(
           "Failed to create onboarding record",
@@ -91,7 +104,12 @@ export class OnboardingService {
         organizationId: onboarding.organizationId,
         signupType: onboarding.signupType,
         orgSize: onboarding.orgSize,
+        researchQuestion: onboarding.researchQuestion ?? null,
         referralSource: onboarding.referralSource,
+        referralSourceOther: onboarding.referralSourceOther ?? null,
+        googleConnectedDuringOnboarding:
+          onboarding.googleConnectedDuringOnboarding,
+        newsletterOptIn: onboarding.newsletterOptIn,
         signupMethod: onboarding.signupMethod,
         onboardingCompleted: onboarding.onboardingCompleted,
         createdAt: onboarding.createdAt,
@@ -133,7 +151,12 @@ export class OnboardingService {
         organizationId: onboarding.organizationId,
         signupType: onboarding.signupType,
         orgSize: onboarding.orgSize,
+        researchQuestion: onboarding.researchQuestion ?? null,
         referralSource: onboarding.referralSource,
+        referralSourceOther: onboarding.referralSourceOther ?? null,
+        googleConnectedDuringOnboarding:
+          onboarding.googleConnectedDuringOnboarding,
+        newsletterOptIn: onboarding.newsletterOptIn,
         signupMethod: onboarding.signupMethod,
         onboardingCompleted: onboarding.onboardingCompleted,
         createdAt: onboarding.createdAt,
@@ -188,7 +211,7 @@ export class OnboardingService {
   static async updateOnboardingCompleted(
     id: string,
     completed: boolean
-  ): Promise<ActionResult<void>> {
+  ): Promise<ActionResult<boolean>> {
     try {
       await OnboardingQueries.updateOnboardingCompleted(id, completed);
 
@@ -197,7 +220,7 @@ export class OnboardingService {
         completed,
       });
 
-      return ok(undefined);
+      return ok(true);
     } catch (error) {
       logger.error(
         "Failed to update onboarding completion status",
@@ -209,6 +232,108 @@ export class OnboardingService {
           "Failed to update onboarding completion status",
           error as Error,
           "OnboardingService.updateOnboardingCompleted"
+        )
+      );
+    }
+  }
+
+  static async updateOnboardingData(
+    onboardingId: string,
+    data: UpdateOnboardingData
+  ): Promise<ActionResult<boolean>> {
+    try {
+      await OnboardingQueries.updateOnboardingData(onboardingId, data);
+    } catch (error) {
+      const { organizationId: _, ...rest } = data;
+      logger.error(
+        "Failed to update user onboarding",
+        { onboardingId, data: rest },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to update user onboarding",
+          error as Error,
+          "OnboardingService.updateUserOnboarding"
+        )
+      );
+    }
+    return ok(true);
+  }
+
+  /**
+   * Ensure onboarding record exists for a user
+   * Creates one if it doesn't exist, determining signup method from user accounts
+   */
+  static async ensureOnboardingRecordExists(
+    userId: string,
+    requestHeaders?: Headers
+  ): Promise<ActionResult<OnboardingDto>> {
+    try {
+      // Check if onboarding already exists
+      const existingResult = await this.getOnboardingByUserId(userId);
+
+      if (existingResult.isErr()) {
+        return err(existingResult.error);
+      }
+
+      if (existingResult.value) {
+        return ok(existingResult.value);
+      }
+
+      // Determine signup method from user accounts
+      const userAccounts = await UserQueries.listAccounts(requestHeaders);
+      let signupMethod:
+        | "email"
+        | "google"
+        | "microsoft"
+        | "magic_link"
+        | "passkey" = "email";
+
+      if (userAccounts.length > 0) {
+        const account = userAccounts[0];
+        if (account.providerId === "google") {
+          signupMethod = "google";
+        } else if (account.providerId === "microsoft") {
+          signupMethod = "microsoft";
+        } else if (account.providerId === "magic-link") {
+          signupMethod = "magic_link";
+        } else if (account.providerId === "passkey") {
+          signupMethod = "passkey";
+        } else if (account.providerId === "credential") {
+          signupMethod = "email";
+        }
+      }
+
+      // Create onboarding record
+      const createResult = await this.createOnboarding({
+        userId,
+        signupType: "individual",
+        signupMethod,
+      });
+
+      if (createResult.isErr()) {
+        return err(createResult.error);
+      }
+
+      logger.info("Created onboarding record for user", {
+        userId,
+        onboardingId: createResult.value.id,
+        signupMethod,
+      });
+
+      return ok(createResult.value);
+    } catch (error) {
+      logger.error(
+        "Failed to ensure onboarding record exists",
+        { userId },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to ensure onboarding record exists",
+          error as Error,
+          "OnboardingService.ensureOnboardingRecordExists"
         )
       );
     }

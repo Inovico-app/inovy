@@ -140,7 +140,7 @@ export class UserQueries {
       image?: string | null;
     },
     requestHeaders?: Headers
-  ): Promise<BetterAuthUser | null> {
+  ): Promise<boolean> {
     const headersList = requestHeaders ?? (await headers());
 
     try {
@@ -153,9 +153,9 @@ export class UserQueries {
       });
 
       // Better Auth updateUser returns the updated user
-      return (result as { user?: BetterAuthUser }).user ?? null;
+      return result.status;
     } catch {
-      return null;
+      return false;
     }
   }
 
@@ -271,17 +271,24 @@ export class UserQueries {
 
       // If updating the current user, use Better Auth API
       if (session?.user?.id === userId) {
-        const updatedUser = await this.updateUser(data, headersList);
-        if (!updatedUser) return null;
+        const success = await this.updateUser(data, headersList);
+        if (!success) return null;
+
+        // Get updated user from session
+        const updatedSession = await auth.api.getSession({
+          headers: headersList,
+        });
+
+        if (!updatedSession?.user) return null;
 
         return {
-          id: updatedUser.id,
-          email: updatedUser.email,
-          name: updatedUser.name ?? null,
-          image: updatedUser.image ?? null,
-          emailVerified: updatedUser.emailVerified ?? false,
-          createdAt: updatedUser.createdAt ?? new Date(),
-          updatedAt: updatedUser.updatedAt ?? new Date(),
+          id: updatedSession.user.id,
+          email: updatedSession.user.email,
+          name: updatedSession.user.name ?? null,
+          image: updatedSession.user.image ?? null,
+          emailVerified: updatedSession.user.emailVerified ?? false,
+          createdAt: updatedSession.user.createdAt ?? new Date(),
+          updatedAt: updatedSession.user.updatedAt ?? new Date(),
         };
       }
     } catch {
