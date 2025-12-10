@@ -1,8 +1,9 @@
 import { neonConfig, Pool } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import ws from "ws";
-import * as authSchema from "./schema/auth";
 import * as agentSettingsSchema from "./schema/agent-settings";
+import * as authSchema from "./schema/auth";
+import * as pendingTeamAssignmentsSchema from "./schema/pending-team-assignments";
 
 // Configure Neon for different runtime environments
 if (typeof window === "undefined") {
@@ -34,6 +35,7 @@ export const db = drizzle(pool, {
   schema: {
     ...authSchema,
     ...agentSettingsSchema,
+    ...pendingTeamAssignmentsSchema,
   },
 });
 

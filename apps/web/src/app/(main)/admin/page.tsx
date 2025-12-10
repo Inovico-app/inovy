@@ -11,6 +11,7 @@ import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -75,8 +76,7 @@ async function AdminDashboard() {
 
         <div className="grid gap-4 md:grid-cols-2">
           {quickLinks.map((link) => (
-            // @ts-expect-error - Next.js Link typing issue with dynamic routes
-            <Link key={link.href} href={link.href} className="group">
+            <Link key={link.href} href={link.href as Route} className="group">
               <Card className="transition-all hover:shadow-md hover:border-primary/50">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between text-lg">

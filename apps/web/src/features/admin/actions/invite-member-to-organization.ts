@@ -8,6 +8,7 @@ import {
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { PendingTeamAssignmentsQueries } from "@/server/data-access/pending-team-assignments.queries";
 import { TeamService } from "@/server/services/team.service";
 import { APIError } from "better-auth/api";
 import { err, ok } from "neverthrow";
@@ -59,19 +60,12 @@ export const inviteMemberToOrganization = authorizedActionClient
         );
       }
 
-      // If teams are specified, we'll need to assign them after the user accepts the invitation
-      // For now, we'll store this intention in the invitation metadata if supported
-      // Otherwise, the team assignment will need to be done manually after acceptance
-
-      // Note: Better Auth invitations may not support team assignment directly
-      // This would need to be handled after the user accepts the invitation
-      // You might want to store the teamIds in a separate table for pending assignments
-
+      // Store pending team assignments if teams are specified
+      // These will be applied when the invitation is accepted
       if (teamIds && teamIds.length > 0) {
-        // TODO: Store pending team assignments in a separate table
-        // This can be picked up by a webhook or post-invitation handler
-        console.log(
-          `Team assignments pending for ${email}: ${teamIds.join(", ")}`
+        await PendingTeamAssignmentsQueries.createPendingAssignments(
+          result.id,
+          teamIds
         );
       }
 
