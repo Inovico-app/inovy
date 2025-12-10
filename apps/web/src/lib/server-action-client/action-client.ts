@@ -229,7 +229,6 @@ export function createErrorForNextSafeAction(
  * Smart error handler that works with Result types
  */
 function handleActionError(error: unknown): string {
-  console.error("ERROR:", error);
   // Check if it's our ActionError wrapped in an Error
   if (error instanceof Error && "actionError" in error) {
     const actionError = (error as Error & { actionError: ActionError })

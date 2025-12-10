@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { type NextRequest, NextResponse } from "next/server";
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify user is authenticated
-    const sessionResult = await getAuthSession();
+    const sessionResult = await getBetterAuthSession();
 
     if (sessionResult.isErr()) {
       logger.error(

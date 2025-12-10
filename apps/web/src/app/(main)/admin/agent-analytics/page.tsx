@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAnalyticsCharts } from "@/features/admin/components/agent/user-analytics-charts";
 import { UserAnalyticsFilters } from "@/features/admin/components/agent/user-analytics-filters";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { AgentAnalyticsService } from "@/server/services/agent-analytics.service";
@@ -25,7 +25,7 @@ interface UserAnalyticsContentProps {
 async function UserAnalyticsContent({
   searchParams,
 }: UserAnalyticsContentProps) {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (authResult.isErr()) {
     redirect("/sign-in");

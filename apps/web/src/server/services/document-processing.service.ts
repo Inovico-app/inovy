@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
@@ -33,7 +33,7 @@ export class DocumentProcessingService {
    */
   private static async resolveOrganizationId(
     document: KnowledgeDocumentDto,
-    authResult: Awaited<ReturnType<typeof getAuthSession>>
+    authResult: Awaited<ReturnType<typeof getBetterAuthSession>>
   ): Promise<ActionResult<string>> {
     // Priority 1: Use organization from auth session if available
     if (
@@ -91,7 +91,7 @@ export class DocumentProcessingService {
     context: string
   ): Promise<ActionResult<void>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr() || !authResult.value.user) {
         return err(
           ActionErrors.unauthenticated("Authentication required", context)
@@ -179,7 +179,7 @@ export class DocumentProcessingService {
     operation: "read" | "write"
   ): Promise<ActionResult<void>> {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr() || !authResult.value.user) {
         return err(
           ActionErrors.unauthenticated(
@@ -712,7 +712,7 @@ export class DocumentProcessingService {
       }
 
       // Resolve organization ID using proper resolution flow
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       const orgIdResult = await this.resolveOrganizationId(
         document,
         authResult
@@ -989,7 +989,7 @@ export class DocumentProcessingService {
       }
 
       // Resolve organization ID for Qdrant deletion using proper resolution flow
-      const orgAuthResult = await getAuthSession();
+      const orgAuthResult = await getBetterAuthSession();
       const orgIdResult = await this.resolveOrganizationId(
         document,
         orgAuthResult

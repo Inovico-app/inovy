@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TaskCard } from "@/features/tasks/components/task-card";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { filterTasksByStatus } from "@/lib/filters/task-filters";
 import { logger } from "@/lib/logger";
 import { getCachedDashboardOverview } from "@/server/cache/dashboard.cache";
@@ -28,7 +28,7 @@ import type { Route } from "next";
 import Link from "next/link";
 
 async function DashboardContent() {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (authResult.isErr()) {
     logger.error("Failed to get user session in Dashboard", {

@@ -16,6 +16,10 @@ interface AuthSession {
  * Get authentication session using Better Auth
  * Uses React cache() for deduplication within the same render
  *
+ * @deprecated Use getBetterAuthSession() directly from @/lib/better-auth-session instead.
+ * This wrapper loses the member field and adds unnecessary indirection.
+ * This function will be removed in a future version.
+ *
  * @returns Result containing session data
  */
 export async function getAuthSession(): Promise<Result<AuthSession, string>> {

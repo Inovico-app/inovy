@@ -4,7 +4,7 @@ import {
   type UserTier,
 } from "@/server/services/rate-limiter.service";
 import { type NextRequest, NextResponse } from "next/server";
-import { getAuthSession } from "./auth/auth-helpers";
+import { getBetterAuthSession } from "./better-auth-session";
 
 /**
  * Convert a timestamp in milliseconds to Unix timestamp in seconds
@@ -192,7 +192,7 @@ export function addRateLimitHeaders(
  */
 async function extractUserId(_request: NextRequest): Promise<string | null> {
   try {
-    const sessionResult = await getAuthSession();
+    const sessionResult = await getBetterAuthSession();
 
     if (sessionResult.isOk() && sessionResult.value.isAuthenticated) {
       return sessionResult.value.user?.id ?? null;

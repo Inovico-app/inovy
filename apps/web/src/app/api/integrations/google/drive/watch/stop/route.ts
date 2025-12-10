@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { DriveWatchesService } from "@/server/services/drive-watches.service";
 import { stopDriveWatchSchema } from "@/server/validation/drive-watch";
@@ -11,7 +11,7 @@ import { type NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user
-    const sessionResult = await getAuthSession();
+    const sessionResult = await getBetterAuthSession();
 
     if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

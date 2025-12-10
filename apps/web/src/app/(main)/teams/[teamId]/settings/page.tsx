@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamSettings } from "@/features/teams/components/team-settings";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import {
   canAccessTeam,
   isOrganizationAdmin,
@@ -21,7 +21,7 @@ async function TeamSettingsContainer({
   params: Promise<{ teamId: string }>;
 }) {
   const { teamId } = await params;
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (
     authResult.isErr() ||

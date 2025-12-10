@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
@@ -247,7 +247,7 @@ export class AgentAnalyticsService {
 
       // For non-superadmins, only return their organization
       if (!hasSuperAdminPermission) {
-        const authResult = await getAuthSession();
+        const authResult = await getBetterAuthSession();
         if (authResult.isErr() || !authResult.value.organization) {
           return ok([]);
         }
@@ -291,7 +291,7 @@ export class AgentAnalyticsService {
 
       // For non-superadmins, enforce organization scope
       if (!hasSuperAdminPermission) {
-        const authResult = await getAuthSession();
+        const authResult = await getBetterAuthSession();
         if (authResult.isErr() || !authResult.value.organization) {
           logger.error("Failed to get user organization for access control", {
             error: authResult.isErr()

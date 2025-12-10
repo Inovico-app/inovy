@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamDashboard } from "@/features/teams/components/team-dashboard";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { canAccessTeam } from "@/lib/rbac/rbac";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -17,7 +17,7 @@ async function TeamDashboardContainer({
   params: Promise<{ teamId: string }>;
 }) {
   const { teamId } = await params;
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (
     authResult.isErr() ||

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import { AlertCircle } from "lucide-react";
 import { useEffect } from "react";
 
@@ -11,7 +12,11 @@ interface RecordErrorProps {
 
 export default function RecordError({ error, reset }: RecordErrorProps) {
   useEffect(() => {
-    console.error("Record page error:", error);
+    logger.error("Record page error occurred", {
+      component: "RecordError",
+      error: error instanceof Error ? error : new Error(String(error)),
+      digest: error.digest,
+    });
   }, [error]);
 
   return (

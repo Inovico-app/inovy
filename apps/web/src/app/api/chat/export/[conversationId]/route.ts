@@ -1,4 +1,5 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { logger } from "@/lib/logger";
 import { ChatService } from "@/server/services/chat.service";
 import { NextResponse } from "next/server";
 
@@ -9,7 +10,7 @@ export async function GET(
   const params = await props.params;
   try {
     // Authenticate
-    const sessionResult = await getAuthSession();
+    const sessionResult = await getBetterAuthSession();
     if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -66,7 +67,10 @@ export async function GET(
       });
     }
   } catch (error) {
-    console.error("Export error:", error);
+    logger.error("Export error", {
+      component: "chat-export-route",
+      error: error instanceof Error ? error : new Error(String(error)),
+    });
     return NextResponse.json(
       { error: "Failed to export conversation" },
       { status: 500 }

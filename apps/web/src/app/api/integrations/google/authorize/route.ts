@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getAuthorizationUrl } from "../../../../../features/integrations/google/lib/google-oauth";
-import { getAuthSession } from "../../../../../lib/auth/auth-helpers";
+import { getBetterAuthSession } from "../../../../../lib/better-auth-session";
 import { logger } from "../../../../../lib/logger";
 
 /**
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const redirectUrl = searchParams.get("redirect") || "/settings?google_success=true";
   try {
     // Verify user is authenticated
-    const sessionResult = await getAuthSession();
+    const sessionResult = await getBetterAuthSession();
 
     if (sessionResult.isErr() || !sessionResult.value.user) {
       logger.error(

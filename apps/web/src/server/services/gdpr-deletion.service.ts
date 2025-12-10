@@ -1,7 +1,7 @@
 import { del } from "@vercel/blob";
 import { createHash } from "crypto";
 import { err, ok } from "neverthrow";
-import { getAuthSession } from "../../lib/auth/auth-helpers";
+import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { logger } from "../../lib/logger";
 import {
   ActionErrors,
@@ -563,7 +563,7 @@ export class GdprDeletionService {
   > {
     try {
       // Check authentication
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
       if (authResult.isErr()) {
         return err(
           ActionErrors.internal(

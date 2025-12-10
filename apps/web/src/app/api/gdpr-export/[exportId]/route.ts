@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { DataExportsQueries } from "@/server/data-access/data-exports.queries";
 import { GdprExportService } from "@/server/services/gdpr-export.service";
@@ -27,7 +27,7 @@ export async function GET(
     const { exportId } = validationResult.data;
 
     // Authenticate
-    const sessionResult = await getAuthSession();
+    const sessionResult = await getBetterAuthSession();
     if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

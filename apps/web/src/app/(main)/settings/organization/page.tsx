@@ -10,7 +10,7 @@ import { TeamManagement } from "@/features/admin/components/team/team-management
 import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/components/organization-knowledge-base-section";
 import { getOrganizationSettings } from "@/features/settings/actions/organization-settings";
 import { OrganizationInstructionsSection } from "@/features/settings/components/organization-instructions-section";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import {
@@ -22,7 +22,7 @@ import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
 import { Suspense } from "react";
 
 async function OrganizationContent() {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (authResult.isErr()) {
     return (

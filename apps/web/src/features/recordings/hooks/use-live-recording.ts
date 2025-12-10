@@ -1,4 +1,5 @@
 import { useWakeLock } from "@/hooks/use-wake-lock";
+import { logger } from "@/lib/logger";
 import { useMicrophone } from "@/providers/MicrophoneProvider";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useRecordingDuration } from "./use-recording-duration";
@@ -76,7 +77,10 @@ export function useLiveRecording() {
           await onTranscriptionReady();
         }
       } catch (error) {
-        console.error("Error starting recording:", error);
+        logger.error("Error starting recording", {
+          component: "use-live-recording",
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
         if (error instanceof Error && error.name === "NotAllowedError") {
           setPermissionDenied(true);
         }
@@ -134,7 +138,10 @@ export function useLiveRecording() {
 
       return audioBlob;
     } catch (error) {
-      console.error("Error stopping recording:", error);
+      logger.error("Error stopping recording", {
+        component: "use-live-recording",
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
       setRecorderError(
         error instanceof Error ? error.message : "Fout bij stoppen van opname"
       );

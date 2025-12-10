@@ -1,4 +1,4 @@
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { KnowledgeBaseBrowserService } from "@/server/services/knowledge-base-browser.service";
 import { AgentConfigService } from "@/server/services/agent-config.service";
@@ -10,7 +10,7 @@ import type { NextRequest } from "next/server";
  */
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await getAuthSession();
+    const authResult = await getBetterAuthSession();
 
     if (
       authResult.isErr() ||

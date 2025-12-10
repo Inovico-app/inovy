@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { getCachedTeamsByOrganization } from "@/server/cache/team.cache";
 import { OrganizationService } from "@/server/services/organization.service";
@@ -19,7 +19,7 @@ import { UserRoleBadge } from "./user-role-badge";
 
 export async function UserManagementTable() {
   try {
-    const authResult = await getAuthSession();
+    const authResult = await getBetterAuthSession();
 
     if (
       authResult.isErr() ||

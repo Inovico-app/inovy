@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentConfigList } from "@/features/admin/components/agent/agent-config-list";
 import { AgentSettings } from "@/features/admin/components/agent/agent-settings";
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { redirect } from "next/navigation";
@@ -14,7 +14,7 @@ export const metadata = {
 };
 
 async function AgentConfigContent() {
-  const authResult = await getAuthSession();
+  const authResult = await getBetterAuthSession();
 
   if (authResult.isErr()) {
     redirect("/sign-in");

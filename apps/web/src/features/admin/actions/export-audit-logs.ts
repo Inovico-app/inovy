@@ -1,6 +1,6 @@
 "use server";
 
-import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
@@ -29,7 +29,7 @@ export const exportAuditLogs = authorizedActionClient
   .inputSchema(exportAuditLogsSchema)
   .action(async ({ parsedInput }) => {
     try {
-      const authResult = await getAuthSession();
+      const authResult = await getBetterAuthSession();
 
       if (
         authResult.isErr() ||
