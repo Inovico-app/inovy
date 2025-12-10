@@ -221,10 +221,7 @@ export function Sidebar() {
       <div className="border-t p-2">
         <Link href="/record" as={"/record" as Route}>
           <Button
-            className={cn(
-              "w-full justify-start gap-2",
-              collapsed && "px-2"
-            )}
+            className={cn("w-full justify-start gap-2", collapsed && "px-2")}
             variant="default"
             size={collapsed ? "icon" : "default"}
             aria-label={collapsed ? "New Recording" : undefined}

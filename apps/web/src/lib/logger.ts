@@ -220,6 +220,10 @@ class Logger {
         error
       );
     },
+
+    warn: (message: string, context?: LogContext, error?: Error) => {
+      this.warn(`Auth warning: ${message}`, context, error);
+    },
   };
 
   // Helper method for security and organization isolation logging
