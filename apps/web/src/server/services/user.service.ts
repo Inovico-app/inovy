@@ -273,6 +273,49 @@ export class UserService {
   }
 
   /**
+   * Update user's onboarding completed status
+   * @param userId - Better Auth user ID
+   * @param completed - Whether onboarding is completed
+   */
+  static async updateOnboardingCompleted(
+    userId: string,
+    completed: boolean
+  ): Promise<ActionResult<boolean>> {
+    logger.info("Updating user onboarding completed status", {
+      component: "UserService.updateOnboardingCompleted",
+      userId,
+      completed,
+    });
+
+    try {
+      await UserQueries.updateOnboardingCompleted(userId, completed);
+
+      logger.info("Successfully updated user onboarding completed status", {
+        component: "UserService.updateOnboardingCompleted",
+        userId,
+        completed,
+      });
+
+      return ok(true);
+    } catch (error) {
+      logger.error("Failed to update user onboarding completed status", {
+        component: "UserService.updateOnboardingCompleted",
+        error,
+        userId,
+        completed,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to update user onboarding completed status",
+          error as Error,
+          "UserService.updateOnboardingCompleted"
+        )
+      );
+    }
+  }
+
+  /**
    * Get organizationId for a user
    * @param userId - Better Auth user ID
    * @returns Organization ID or error if user is not a member of any organization

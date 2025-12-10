@@ -26,7 +26,7 @@ export async function ProtectedPage({
   const user = sessionResult.value.user;
 
   // Check onboarding status (skip for onboarding page itself)
-  if (!skipOnboardingCheck && user && !user.onboardingCompleted) {
+  if (!skipOnboardingCheck && !user?.onboardingCompleted) {
     redirect("/onboarding" as Route);
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useOnboardingActions } from "../hooks/use-onboarding-actions";
@@ -39,7 +39,7 @@ export function OnboardingStepForm({
   const [completedSteps, setCompletedSteps] = useState<Set<Step>>(new Set());
 
   const form = useForm<OnboardingFormValues>({
-    resolver: zodResolver(onboardingFormSchema),
+    resolver: standardSchemaResolver(onboardingFormSchema),
     defaultValues: {
       name: initialData?.name ?? "",
       signupType: initialData?.signupType ?? "individual",

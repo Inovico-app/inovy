@@ -14,6 +14,7 @@ import type {
   OnboardingDto,
   OnboardingStatsDto,
 } from "../dto/onboarding.dto";
+import { UserService } from "./user.service";
 
 /**
  * Business logic layer for Onboarding operations
@@ -207,16 +208,58 @@ export class OnboardingService {
 
   /**
    * Update onboarding completion status
+   * Also updates the user's onboardingCompleted status
    */
   static async updateOnboardingCompleted(
     id: string,
     completed: boolean
   ): Promise<ActionResult<boolean>> {
     try {
+      // Get onboarding record to get userId
+      const onboarding = await OnboardingQueries.getOnboardingById(id);
+
+      if (!onboarding) {
+        return err(
+          ActionErrors.notFound(
+            "Onboarding",
+            "OnboardingService.updateOnboardingCompleted"
+          )
+        );
+      }
+
+      // Update onboarding record
       await OnboardingQueries.updateOnboardingCompleted(id, completed);
+
+      // Update user's onboardingCompleted status if userId exists
+      if (onboarding.userId) {
+        const userUpdateResult = await UserService.updateOnboardingCompleted(
+          onboarding.userId,
+          completed
+        );
+
+        if (userUpdateResult.isErr()) {
+          const errorCause =
+            userUpdateResult.error.cause instanceof Error
+              ? userUpdateResult.error.cause
+              : undefined;
+          logger.error(
+            "Failed to update user onboarding completed status",
+            {
+              userId: onboarding.userId,
+              onboardingId: id,
+              completed,
+              errorCode: userUpdateResult.error.code,
+              errorMessage: userUpdateResult.error.message,
+            },
+            errorCause
+          );
+          // Continue even if user update fails - onboarding record is updated
+        }
+      }
 
       logger.info("Updated onboarding completion status", {
         onboardingId: id,
+        userId: onboarding.userId ?? undefined,
         completed,
       });
 
