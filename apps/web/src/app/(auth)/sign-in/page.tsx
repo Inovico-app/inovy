@@ -54,7 +54,7 @@ export default function SignInPage() {
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      toast.error("Please enter your email address first");
+      toast.error("Voer eerst je e-mailadres in");
       return;
     }
     requestPasswordReset({ email });
@@ -64,8 +64,8 @@ export default function SignInPage() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Sign in</CardTitle>
-          <CardDescription>Sign in to your Inovy account</CardDescription>
+          <CardTitle>Welkom terug</CardTitle>
+          <CardDescription>Log in met je account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Email/Password Sign In */}
@@ -77,7 +77,7 @@ export default function SignInPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="je@voorbeeld.nl"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -86,14 +86,14 @@ export default function SignInPage() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Wachtwoord</Label>
                 <button
                   type="button"
                   onClick={handlePasswordReset}
                   className="text-xs text-primary hover:underline"
                   disabled={isLoading}
                 >
-                  Forgot password?
+                  Wachtwoord vergeten?
                 </button>
               </div>
               <Input
@@ -107,7 +107,7 @@ export default function SignInPage() {
               />
             </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isSigningIn ? "Signing in..." : "Sign in"}
+                {isSigningIn ? "Inloggen..." : "Inloggen met email"}
               </Button>
             </fieldset>
           </form>
@@ -118,7 +118,7 @@ export default function SignInPage() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
+                Of
               </span>
             </div>
           </div>
@@ -151,7 +151,7 @@ export default function SignInPage() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Google
+              Inloggen met Google
             </Button>
             <Button
               type="button"
@@ -166,7 +166,7 @@ export default function SignInPage() {
               >
                 <path d="M0 0h11.377v11.372H0zm12.623 0H24v11.372H12.623zM0 12.628h11.377V24H0zm12.623 0H24V24H12.623z" />
               </svg>
-              Microsoft
+              Inloggen met Microsoft
             </Button>
             </div>
           </fieldset>
@@ -182,11 +182,11 @@ export default function SignInPage() {
               className="w-full"
             >
             {isPasskeyLoading ? (
-              "Authenticating..."
+              "Authenticeren..."
             ) : (
               <>
                 <LockKeyhole className="size-4 mr-2" />
-                Sign in with Passkey
+                Inloggen met Passkey
               </>
             )}
           </Button>
@@ -199,7 +199,7 @@ export default function SignInPage() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                Or use magic link
+                Of gebruik magic link
               </span>
             </div>
           </div>
@@ -213,7 +213,7 @@ export default function SignInPage() {
                 <Input
                   id="magic-link-email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder="je@voorbeeld.nl"
                   value={magicLinkEmail}
                   onChange={(e) => setMagicLinkEmail(e.target.value)}
                   required
@@ -221,7 +221,7 @@ export default function SignInPage() {
                   className="flex-1"
                 />
                 <Button type="submit" disabled={isLoading}>
-                  Send
+                  Versturen
                 </Button>
               </div>
             </div>
@@ -229,12 +229,12 @@ export default function SignInPage() {
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
+            Nog geen account?{" "}
             <Link
               href={"/sign-up" as Route}
               className="text-primary hover:underline"
             >
-              Sign up
+              Registreer je hier
             </Link>
           </p>
         </CardContent>

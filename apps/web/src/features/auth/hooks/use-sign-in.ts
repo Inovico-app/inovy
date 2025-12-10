@@ -14,12 +14,12 @@ export function useSignIn() {
     signInEmailAction,
     {
       onSuccess: () => {
-        toast.success("Signed in successfully");
+        toast.success("Succesvol ingelogd");
       },
       onError: ({ error }) => {
-        const errorMessage = error.serverError ?? "Failed to sign in";
+        const errorMessage = error.serverError ?? "Inloggen mislukt";
         if (errorMessage.includes("verify")) {
-          toast.error("Please verify your email address before signing in");
+          toast.error("Verifieer eerst je e-mailadres voordat je inlogt");
         } else {
           toast.error(errorMessage);
         }
@@ -36,27 +36,27 @@ export function useSignIn() {
         }
       },
       onError: ({ error }) => {
-        toast.error(error.serverError ?? "Failed to initiate social sign-in");
+        toast.error(error.serverError ?? "Social login starten mislukt");
       },
     });
 
   const { execute: executeMagicLink, isExecuting: isSendingMagicLink } =
     useAction(sendMagicLinkAction, {
       onSuccess: () => {
-        toast.success("Magic link sent! Check your email.");
+        toast.success("Magic link verzonden! Controleer je e-mail.");
       },
       onError: ({ error }) => {
-        toast.error(error.serverError ?? "Failed to send magic link");
+        toast.error(error.serverError ?? "Magic link verzenden mislukt");
       },
     });
 
   const { execute: executePasswordReset, isExecuting: isResettingPassword } =
     useAction(requestPasswordResetAction, {
       onSuccess: () => {
-        toast.success("Password reset email sent! Check your email.");
+        toast.success("Wachtwoord reset e-mail verzonden! Controleer je e-mail.");
       },
       onError: ({ error }) => {
-        toast.error(error.serverError ?? "Failed to send password reset email");
+        toast.error(error.serverError ?? "Wachtwoord reset e-mail verzenden mislukt");
       },
     });
 

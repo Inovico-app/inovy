@@ -52,8 +52,8 @@ export default function SignUpPage() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Create an account</CardTitle>
-          <CardDescription>Sign up to get started with Inovy</CardDescription>
+          <CardTitle>Account aanmaken</CardTitle>
+          <CardDescription>Registreer je om te beginnen met Inovy</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Email/Password Sign Up */}
@@ -61,11 +61,11 @@ export default function SignUpPage() {
             <fieldset className="space-y-4" disabled={isLoading}>
               <legend className="sr-only">Create account with email and password</legend>
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">Naam</Label>
               <Input
                 id="name"
                 type="text"
-                placeholder="John Doe"
+                placeholder="Jan Jansen"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -77,7 +77,7 @@ export default function SignUpPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="je@voorbeeld.nl"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -85,7 +85,7 @@ export default function SignUpPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Wachtwoord</Label>
               <Input
                 id="password"
                 type="password"
@@ -97,11 +97,11 @@ export default function SignUpPage() {
                 disabled={isLoading}
               />
               <p className="text-xs text-muted-foreground">
-                Must be at least 8 characters
+                Minimaal 8 tekens
               </p>
             </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating account..." : "Sign up"}
+                {isLoading ? "Account aanmaken..." : "Registreren"}
               </Button>
             </fieldset>
           </form>
@@ -112,7 +112,7 @@ export default function SignUpPage() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
+                Of
               </span>
             </div>
           </div>
@@ -145,7 +145,7 @@ export default function SignUpPage() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Google
+              Registreren met Google
             </Button>
             <Button
               type="button"
@@ -160,7 +160,7 @@ export default function SignUpPage() {
               >
                 <path d="M0 0h11.377v11.372H0zm12.623 0H24v11.372H12.623zM0 12.628h11.377V24H0zm12.623 0H24V24H12.623z" />
               </svg>
-              Microsoft
+              Registreren met Microsoft
             </Button>
             </div>
           </fieldset>
@@ -188,7 +188,7 @@ export default function SignUpPage() {
                 d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
               />
             </svg>
-            Sign up with Passkey
+            Registreren met Passkey
           </Button>
           </fieldset>
 
@@ -199,7 +199,7 @@ export default function SignUpPage() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                Or use magic link
+                Of gebruik magic link
               </span>
             </div>
           </div>
@@ -213,7 +213,7 @@ export default function SignUpPage() {
                 <Input
                   id="magic-link-email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder="je@voorbeeld.nl"
                   value={magicLinkEmail}
                   onChange={(e) => setMagicLinkEmail(e.target.value)}
                   required
@@ -221,7 +221,7 @@ export default function SignUpPage() {
                   className="flex-1"
                 />
                 <Button type="submit" disabled={isLoading}>
-                  Send
+                  Versturen
                 </Button>
               </div>
             </div>
@@ -229,12 +229,12 @@ export default function SignUpPage() {
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
+            Heb je al een account?{" "}
             <Link
               href={"/sign-in" as Route}
               className="text-primary hover:underline"
             >
-              Sign in
+              Log in
             </Link>
           </p>
         </CardContent>
