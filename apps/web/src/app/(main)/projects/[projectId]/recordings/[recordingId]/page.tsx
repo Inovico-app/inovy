@@ -1,5 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { ConsentManager } from "@/features/recordings/components/consent-manager";
 import { EnhancedSummarySection } from "@/features/recordings/components/enhanced-summary-section";
 import { RecordingDetailActionsDropdown } from "@/features/recordings/components/recording-detail-actions-dropdown";
@@ -10,14 +15,17 @@ import { ReprocessingStatusIndicator } from "@/features/recordings/components/re
 import { TranscriptionSection } from "@/features/recordings/components/transcription/transcription-section";
 import { TaskCard } from "@/features/tasks/components/task-card-with-edit";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { formatDateLong } from "@/lib/formatters/date-formatters";
+import { formatDuration } from "@/lib/formatters/duration-formatters";
+import { formatFileSize } from "@/lib/formatters/file-size-formatters";
 import type { ActionResult } from "@/lib/server-action-client/action-errors";
+import { getCachedRecordingById } from "@/server/cache/recording.cache";
 import { getCachedSummary } from "@/server/cache/summary.cache";
 import type { ConsentParticipant } from "@/server/db/schema/consent";
 import type { TaskDto } from "@/server/dto/task.dto";
 import { AIInsightService } from "@/server/services/ai-insight.service";
 import { ConsentService } from "@/server/services/consent.service";
 import { ProjectService } from "@/server/services/project.service";
-import { RecordingService } from "@/server/services/recording.service";
 import { TaskService } from "@/server/services/task.service";
 import { ArrowLeftIcon, CalendarIcon, ClockIcon, FileIcon } from "lucide-react";
 import { ok } from "neverthrow";
@@ -41,6 +49,7 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
       : null;
 
   // Fetch recording, project, summary, tasks, transcription insight, and consent in parallel
+  // Note: Recording and summary use cache functions; project service uses cache internally
   const [
     recordingResult,
     projectResult,
@@ -49,7 +58,7 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
     transcriptionInsightResult,
     consentParticipantsResult,
   ] = await Promise.all([
-    RecordingService.getRecordingById(recordingId),
+    getCachedRecordingById(recordingId),
     ProjectService.getProjectById(projectId),
     getCachedSummary(recordingId),
     TaskService.getTasksByRecordingId(recordingId),
@@ -86,34 +95,6 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
   const consentParticipants = consentParticipantsResult.isOk()
     ? consentParticipantsResult.value
     : [];
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return "Unknown";
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${remainingSeconds}s`;
-    }
-    return `${minutes}m ${remainingSeconds}s`;
-  };
-
-  const formatFileSize = (bytes: number) => {
-    const mb = bytes / (1024 * 1024);
-    if (mb >= 1000) {
-      return `${(mb / 1024).toFixed(2)} GB`;
-    }
-    return `${mb.toFixed(2)} MB`;
-  };
 
   const isVideo = recording.fileMimeType.startsWith("video/");
   const isAudio = recording.fileMimeType.startsWith("audio/");
@@ -196,7 +177,7 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
                 <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">Date:</span>
                 <span className="text-sm">
-                  {formatDate(recording.recordingDate)}
+                  {formatDateLong(recording.recordingDate)}
                 </span>
               </div>
               <div className="flex items-center gap-2">

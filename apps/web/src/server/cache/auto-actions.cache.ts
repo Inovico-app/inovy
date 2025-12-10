@@ -1,5 +1,3 @@
-"use cache";
-
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import { AutoActionsService } from "../services/auto-actions.service";

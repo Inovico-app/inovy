@@ -1,5 +1,3 @@
-"use cache";
-
 import { CacheTags } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import {

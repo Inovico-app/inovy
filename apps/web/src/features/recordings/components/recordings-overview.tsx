@@ -1,6 +1,6 @@
 import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { getCachedRecordingsByOrganization } from "@/server/cache/recording.cache";
-import { ProjectService } from "@/server/services/project.service";
+import { getCachedUserProjects } from "@/server/cache/project.cache";
 import { RecordingsOverviewClient } from "./recordings-overview-client";
 
 export async function RecordingsOverview() {
@@ -26,21 +26,16 @@ export async function RecordingsOverview() {
 
   const organizationId = organization.id;
 
-  // Fetch recordings and projects in parallel
-  const [recordings, projectsResult] = await Promise.all([
+  // Fetch recordings and projects in parallel (both cached)
+  const [recordings, projects] = await Promise.all([
     getCachedRecordingsByOrganization(organizationId),
-    ProjectService.getProjectsByOrganization({
-      organizationId: organizationId,
-      status: "active",
-    }),
+    getCachedUserProjects(organizationId),
   ]);
-
-  const projects = projectsResult.isOk() ? projectsResult.value : [];
 
   return (
     <RecordingsOverviewClient
       recordings={recordings}
-      projects={projects.map((p) => ({ id: p.id, name: p.name }))}
+      projects={projects}
     />
   );
 }

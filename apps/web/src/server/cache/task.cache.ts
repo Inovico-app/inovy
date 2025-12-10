@@ -38,9 +38,28 @@ export async function getCachedTaskStats(
   "use cache";
   cacheTag(
     CacheTags.tasksByUser(userId, orgCode),
-    CacheTags.tasksByOrg(orgCode)
+    CacheTags.tasksByOrg(orgCode),
+    CacheTags.taskStats(userId, orgCode)
   );
 
   return await TasksQueries.getTaskStats(orgCode, userId);
+}
+
+/**
+ * Get tasks with context for the authenticated user (cached)
+ * Returns tasks with project and recording information
+ */
+export async function getCachedTasksWithContext(
+  userId: string,
+  orgCode: string,
+  filters?: Omit<TaskFiltersDto, "assigneeId" | "organizationId">
+) {
+  "use cache";
+  cacheTag(
+    CacheTags.tasksByUser(userId, orgCode),
+    CacheTags.tasksByOrg(orgCode)
+  );
+
+  return await TaskService.getTasksWithContext(filters);
 }
 

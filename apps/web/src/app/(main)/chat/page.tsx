@@ -1,10 +1,10 @@
 import { ProtectedPage } from "@/components/protected-page";
 import { Card } from "@/components/ui/card";
 import { UnifiedChatInterface } from "@/features/chat/components/unified-chat-interface";
-import { getUserProjects } from "@/features/projects/actions/get-user-projects";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
 import { getCachedAgentConfig } from "@/server/cache/organization.cache";
+import { getCachedUserProjects } from "@/server/cache/project.cache";
 import { AlertCircle } from "lucide-react";
 import { redirect } from "next/navigation";
 
@@ -25,9 +25,10 @@ async function ChatPageContent() {
   // Check if user is admin
   const isAdmin = canAccessOrganizationChat(session.user);
 
-  // Get user's projects
-  const projectsResult = await getUserProjects();
-  const projects = projectsResult.success ? (projectsResult.data ?? []) : [];
+  // Get user's projects (cached)
+  const projects = session.organization
+    ? await getCachedUserProjects(session.organization.id)
+    : [];
 
   // Check if agent is enabled
   const agentEnabled = session.organization

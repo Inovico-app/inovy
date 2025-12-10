@@ -1,9 +1,9 @@
-import { GlobalTaskList } from "@/features/tasks/components/global-task-list";
+import { TasksListServer } from "@/features/tasks/components/tasks-list-server";
 import { Suspense } from "react";
 
 export default async function TasksPage() {
   // CACHE COMPONENTS: Wrap dynamic content in Suspense to enable static shell generation
-  // GlobalTaskList accesses auth data and tasks, making it dynamic
+  // TasksListServer uses cache functions for data fetching
   return (
     <Suspense
       fallback={
@@ -25,8 +25,8 @@ export default async function TasksPage() {
             </p>
           </div>
 
-          {/* Tasks List */}
-          <GlobalTaskList />
+          {/* Tasks List - Server component with cache functions */}
+          <TasksListServer />
         </div>
       </div>
     </Suspense>

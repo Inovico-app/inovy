@@ -1,5 +1,3 @@
-"use cache";
-
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import { TaskService } from "../services/task.service";
