@@ -1,9 +1,9 @@
+import type { BetterAuthUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { del } from "@vercel/blob";
 import { err, ok } from "neverthrow";
 import { getAuthSession } from "../../lib/auth/auth-helpers";
-import type { BetterAuthUser } from "../../lib/better-auth-session";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { getCachedProjectByIdWithCreator } from "../cache/project.cache";

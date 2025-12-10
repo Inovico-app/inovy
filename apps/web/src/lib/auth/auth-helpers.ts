@@ -1,8 +1,8 @@
 import { err, ok, type Result } from "neverthrow";
+import type { BetterAuthUser } from "../auth";
 import {
   getBetterAuthSession,
   type BetterAuthOrganization,
-  type BetterAuthUser,
 } from "../better-auth-session";
 import { logger } from "../logger";
 

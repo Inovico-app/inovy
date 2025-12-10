@@ -1,22 +1,8 @@
-import { type Result, err, ok } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 import { headers } from "next/headers";
 import { cache } from "react";
-import { auth } from "./auth";
+import { auth, type BetterAuthUser } from "./auth";
 import { logger } from "./logger";
-
-/**
- * Better Auth session types
- */
-export interface BetterAuthUser {
-  id: string;
-  email: string;
-  name: string;
-  image?: string | null;
-  emailVerified: boolean;
-  role: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 export interface BetterAuthOrganization {
   id: string;

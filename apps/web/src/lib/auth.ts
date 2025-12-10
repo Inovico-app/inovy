@@ -129,7 +129,6 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24, // 1 day
     freshAge: 60 * 10, // 10 minutes
   },
-
   databaseHooks: {
     // Session gets triggered by social signups and signins, so we need to ensure the user has an organization here too
     session: {
@@ -195,6 +194,7 @@ export const auth = betterAuth({
               path: ctx?.path ?? "unknown",
               hook: "databaseHooks.user.create.after",
             });
+            return undefined;
           }
         },
       },
@@ -204,11 +204,24 @@ export const auth = betterAuth({
     additionalFields: {
       role: {
         type: "string",
-        enum: ["owner", "admin", "superadmin", "manager", "user", "viewer"],
+        enum: [
+          "owner",
+          "admin",
+          "superadmin",
+          "manager",
+          "user",
+          "viewer",
+        ] as const,
         defaultValue: "user",
         required: true,
         description: "The role of the user in the organization",
         input: false, // don't allow user to change their role
+      },
+      onboardingCompleted: {
+        type: "boolean",
+        defaultValue: false,
+        required: true,
+        input: false, // don't allow user to change this directly
       },
     },
   },

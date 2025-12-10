@@ -1,5 +1,5 @@
+import type { BetterAuthUser } from "@/lib/auth";
 import { auth } from "@/lib/auth";
-import type { BetterAuthUser } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import {
   ActionErrors,

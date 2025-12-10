@@ -1,4 +1,4 @@
-import type { BetterAuthUser } from "@/lib/better-auth-session";
+import type { BetterAuthUser } from "@/lib/auth";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import {
