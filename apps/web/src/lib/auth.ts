@@ -194,7 +194,10 @@ export const auth = betterAuth({
               path: ctx?.path ?? "unknown",
               hook: "databaseHooks.user.create.after",
             });
+            return undefined;
           }
+
+          return { data: user } as const;
         },
       },
     },
@@ -203,11 +206,24 @@ export const auth = betterAuth({
     additionalFields: {
       role: {
         type: "string",
-        enum: ["owner", "admin", "superadmin", "manager", "user", "viewer"],
+        enum: [
+          "owner",
+          "admin",
+          "superadmin",
+          "manager",
+          "user",
+          "viewer",
+        ] as const,
         defaultValue: "user",
         required: true,
         description: "The role of the user in the organization",
         input: false, // don't allow user to change their role
+      },
+      onboardingCompleted: {
+        type: "boolean",
+        defaultValue: false,
+        required: true,
+        input: false, // don't allow user to change this directly
       },
     },
   },

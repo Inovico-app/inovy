@@ -30,6 +30,7 @@ export const users = pgTable("users", {
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
   role: organizationMemberRoleEnum("role").default("user").notNull(),
+  onboardingCompleted: boolean("onboarding_completed").default(false).notNull(),
 });
 
 export const sessions = pgTable(
