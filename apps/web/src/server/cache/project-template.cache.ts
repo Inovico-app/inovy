@@ -1,4 +1,3 @@
-import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import { cache } from "react";
@@ -32,28 +31,6 @@ export const getCachedProjectTemplate = cache(
     }
 
     return result.value ?? null;
-  }
-);
-
-/**
- * Get project template by ID with caching (serializable)
- * @deprecated Use getCachedProjectTemplate with projectId instead
- * This function requires auth context and may be less efficient
- */
-export const getCachedProjectTemplateById = cache(
-  async (_templateId: string): Promise<ProjectTemplateDto | null> => {
-    "use cache";
-
-    // Get current organization context for verification
-    const authResult = await getBetterAuthSession();
-    if (authResult.isErr() || !authResult.value.organization) {
-      return null;
-    }
-
-    // Note: We don't have a direct "by ID" query method on the service
-    // The service requires projectId for organization-scoped queries
-    // Consider using getCachedProjectTemplate(projectId) instead
-    return null;
   }
 );
 

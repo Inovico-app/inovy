@@ -1,5 +1,8 @@
 "use client";
 
+import { formatDateShort } from "@/lib/formatters/date-formatters";
+import { formatDurationCompact } from "@/lib/formatters/duration-formatters";
+import { formatFileSizePrecise } from "@/lib/formatters/file-size-formatters";
 import { ClockIcon, FileAudioIcon, FileVideoIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -62,26 +65,6 @@ export function RecordingCardWithStatus({
     previousStatusRef.current = recording.transcriptionStatus;
   }, [recording.transcriptionStatus]);
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return null;
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-  };
-
-  const formatFileSize = (bytes: number) => {
-    const mb = bytes / (1024 * 1024);
-    return `${mb.toFixed(1)} MB`;
-  };
-
   const getFileIcon = (mimeType: string) => {
     if (mimeType.startsWith("video/")) {
       return <FileVideoIcon className="h-5 w-5 text-muted-foreground" />;
@@ -129,17 +112,17 @@ export function RecordingCardWithStatus({
         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <ClockIcon className="h-4 w-4" />
-            <span>{formatDate(recording.recordingDate)}</span>
+            <span>{formatDateShort(recording.recordingDate)}</span>
           </div>
           {recording.duration && (
             <div className="flex items-center gap-1.5">
               {getFileIcon(recording.fileMimeType)}
-              <span>{formatDuration(recording.duration)}</span>
+              <span>{formatDurationCompact(recording.duration)}</span>
             </div>
           )}
           <div className="flex items-center gap-1.5">
             <span className="text-xs">
-              {formatFileSize(recording.fileSize)}
+              {formatFileSizePrecise(recording.fileSize)}
             </span>
           </div>
         </div>

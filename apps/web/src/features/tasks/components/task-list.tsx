@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 import type { Task } from "@/server/db/schema/tasks";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -42,7 +43,11 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
       // For now, just show success message
       toast.success("Taak status bijgewerkt!");
     } catch (error) {
-      console.error("Error updating task status:", error);
+      logger.error("Error updating task status", {
+        component: "task-list",
+        error: error instanceof Error ? error : new Error(String(error)),
+        taskId,
+      });
       toast.error("Fout bij bijwerken van taak");
       // Revert optimistic update
       setLocalTasks(tasks ?? []);

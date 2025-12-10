@@ -1,4 +1,6 @@
-import { useEffect, useRef } from "react";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 
 const interpolateColor = (
   startColor: number[],
@@ -14,29 +16,85 @@ const interpolateColor = (
   return result;
 };
 
+// Type guard for AudioContext support
+function getAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  // Check for standard AudioContext
+  if (window.AudioContext) {
+    return new window.AudioContext();
+  }
+
+  // Check for webkitAudioContext (legacy Safari)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const WebkitAudioContext = (window as any).webkitAudioContext;
+  if (WebkitAudioContext) {
+    return new WebkitAudioContext();
+  }
+
+  return null;
+}
+
 export const AudioVisualizer = ({
   microphone,
 }: {
   microphone: MediaRecorder;
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // @ts-expect-error - webkitAudoContext is for very old browsers (Safari < 14.1, Chrome < 35, older mobile browsers)
-  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  const analyser = audioContext.createAnalyser();
-  const dataArray = new Uint8Array(analyser.frequencyBinCount);
+  const [canvasWidth, setCanvasWidth] = useState(800); // Default width for SSR
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+
+  // Initialize audio context and analyser
+  useEffect(() => {
+    const ctx = getAudioContext();
+    if (!ctx) {
+      return;
+    }
+
+    audioContextRef.current = ctx;
+    const analyser = ctx.createAnalyser();
+    analyserRef.current = analyser;
+    // Create Uint8Array for frequency data
+    const bufferLength = analyser.frequencyBinCount;
+    const buffer = new ArrayBuffer(bufferLength);
+    dataArrayRef.current = new Uint8Array(buffer) as Uint8Array<ArrayBuffer>;
+
+    return () => {
+      ctx.close();
+    };
+  }, []);
+
+  // Set canvas width on mount/client-side
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setCanvasWidth(window.innerWidth);
+    }
+  }, []);
 
   useEffect(() => {
-    const source = audioContext.createMediaStreamSource(microphone.stream);
-    source.connect(analyser);
+    if (!audioContextRef.current || !analyserRef.current) {
+      return;
+    }
+
+    const source = audioContextRef.current.createMediaStreamSource(
+      microphone.stream
+    );
+    source.connect(analyserRef.current);
 
     draw();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [microphone.stream]);
 
   const draw = (): void => {
     const canvas = canvasRef.current;
+    const analyser = analyserRef.current;
+    const dataArray = dataArrayRef.current;
 
-    if (!canvas) return;
+    if (!canvas || !analyser || !dataArray) return;
 
     canvas.style.width = "100%";
     canvas.style.height = "100%";
@@ -73,6 +131,6 @@ export const AudioVisualizer = ({
     }
   };
 
-  return <canvas ref={canvasRef} width={window.innerWidth}></canvas>;
+  return <canvas ref={canvasRef} width={canvasWidth}></canvas>;
 };
 

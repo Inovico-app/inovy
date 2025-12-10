@@ -220,14 +220,14 @@ export async function createProject(input: CreateProjectInput) {
   try {
     const validation = schema.parse(input);
 
-    const session = await getAuthSession();
-    if (!session) {
+    const sessionResult = await getBetterAuthSession();
+    if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
       throw new ServerActionError("Not authenticated", {
         code: "UNAUTHENTICATED",
       });
     }
 
-    const user = await syncUser(session.user);
+    const user = await syncUser(sessionResult.value.user);
     if (!user) {
       throw new ServerActionError("User sync failed", {
         code: "INTERNAL_SERVER_ERROR",
@@ -440,8 +440,8 @@ export class TaskService {
     updates: UpdateTaskData
   ): Promise<ActionResult<TaskDto>> {
     try {
-      const authResult = await getAuthSession();
-      if (authResult.isErr()) {
+      const authResult = await getBetterAuthSession();
+      if (authResult.isErr() || !authResult.value.isAuthenticated) {
         return err(ActionErrors.internal("Auth failed"));
       }
 

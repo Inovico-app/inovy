@@ -1,3 +1,4 @@
+import { formatDurationCompact } from "@/lib/formatters/duration-formatters";
 import { useEffect, useRef, useState } from "react";
 
 export function useRecordingDuration() {
@@ -35,17 +36,9 @@ export function useRecordingDuration() {
     };
   }, []);
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
-  };
-
   return {
     duration,
-    formattedDuration: formatDuration(duration),
+    formattedDuration: formatDurationCompact(duration),
     startTimer,
     stopTimer,
     resetTimer,
