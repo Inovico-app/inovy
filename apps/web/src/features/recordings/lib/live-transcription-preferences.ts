@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 /**
  * Cookie name for storing live transcription preference
  */
@@ -25,10 +27,10 @@ export function getLiveTranscriptionPreferenceClient(): boolean {
     const value = transcriptionCookie.split("=")[1];
     return value === "true";
   } catch (error) {
-    console.error(
-      "Failed to read live transcription preference from client:",
-      error
-    );
+    logger.error("Failed to read live transcription preference from client", {
+      component: "live-transcription-preferences",
+      error: error instanceof Error ? error : new Error(String(error)),
+    });
     return true; // Default to enabled on error
   }
 }
@@ -49,7 +51,10 @@ export function setLiveTranscriptionPreferenceClient(enabled: boolean): void {
     }`;
     document.cookie = cookieValue;
   } catch (error) {
-    console.error("Failed to set live transcription preference:", error);
+    logger.error("Failed to set live transcription preference", {
+      component: "live-transcription-preferences",
+      error: error instanceof Error ? error : new Error(String(error)),
+    });
     throw new Error("Failed to update live transcription preference");
   }
 }

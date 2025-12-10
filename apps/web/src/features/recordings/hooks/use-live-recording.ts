@@ -32,7 +32,10 @@ export function useLiveRecording() {
     try {
       await setupMicrophone();
     } catch (error) {
-      console.error("Error setting up microphone:", error);
+      logger.error("Error setting up microphone", {
+        component: "use-live-recording",
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
       if (error instanceof Error && error.name === "NotAllowedError") {
         setPermissionDenied(true);
       }

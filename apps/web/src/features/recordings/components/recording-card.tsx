@@ -1,3 +1,6 @@
+import { formatDateShort } from "@/lib/formatters/date-formatters";
+import { formatDurationCompact } from "@/lib/formatters/duration-formatters";
+import { formatFileSizePrecise } from "@/lib/formatters/file-size-formatters";
 import type { RecordingDto } from "@/server/dto/recording.dto";
 import {
   CalendarIcon,
@@ -58,29 +61,6 @@ export function RecordingCard({
   projectId,
   projectName,
 }: RecordingCardProps) {
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
-  };
-
-  const formatDuration = (seconds: number | null): string => {
-    if (!seconds) return "Unknown";
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
   const statusConfig = STATUS_CONFIG[recording.transcriptionStatus];
 
   return (
@@ -155,20 +135,20 @@ export function RecordingCard({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
             <CalendarIcon className="h-4 w-4" />
-            <span>{formatDate(recording.recordingDate)}</span>
+            <span>{formatDateShort(recording.recordingDate)}</span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <FileAudioIcon className="h-4 w-4" />
-            <span>{formatFileSize(recording.fileSize)}</span>
+            <span>{formatFileSizePrecise(recording.fileSize)}</span>
           </div>
           {recording.duration && (
             <div className="flex items-center gap-2 text-muted-foreground">
               <ClockIcon className="h-4 w-4" />
-              <span>{formatDuration(recording.duration)}</span>
+              <span>{formatDurationCompact(recording.duration)}</span>
             </div>
           )}
           <div className="flex items-center gap-2 text-muted-foreground text-xs">
-            Uploaded {formatDate(recording.createdAt)}
+            Uploaded {formatDateShort(recording.createdAt)}
           </div>
         </div>
       </CardContent>
