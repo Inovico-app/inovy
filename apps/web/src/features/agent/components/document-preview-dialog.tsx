@@ -1,5 +1,8 @@
 "use client";
 
+import { Loader } from "@/components/loader";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -7,17 +10,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
-import { Loader } from "@/components/loader";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircleIcon } from "lucide-react";
+import { formatFileSizePrecise } from "@/lib/formatters/file-size-formatters";
 import { queryKeys } from "@/lib/query-keys";
 import type { DocumentPreviewDto } from "@/server/dto/knowledge-base-browser.dto";
+import { useQuery } from "@tanstack/react-query";
+import { AlertCircleIcon } from "lucide-react";
 
 interface DocumentPreviewDialogProps {
   documentId: string;
-  organizationId: string;
+  organizationId: string; // Used in query key for cache invalidation
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -30,14 +31,6 @@ const contentTypeLabels: Record<string, string> = {
   task: "Task",
   project_template: "Template",
   organization_instructions: "Instructions",
-};
-
-const formatFileSize = (bytes?: number): string => {
-  if (!bytes || bytes === 0) return "Unknown";
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 };
 
 const formatDate = (date?: Date): string => {
@@ -53,7 +46,7 @@ const formatDate = (date?: Date): string => {
 
 export function DocumentPreviewDialog({
   documentId,
-  organizationId,
+  organizationId: _organizationId,
   open,
   onOpenChange,
 }: DocumentPreviewDialogProps) {
@@ -83,9 +76,7 @@ export function DocumentPreviewDialog({
           <DialogTitle>
             {document?.title || document?.filename || documentId}
           </DialogTitle>
-          <DialogDescription>
-            Document preview and metadata
-          </DialogDescription>
+          <DialogDescription>Document preview and metadata</DialogDescription>
         </DialogHeader>
 
         {isLoading && (
@@ -129,7 +120,10 @@ export function DocumentPreviewDialog({
                 )}
                 {document.fileSize && (
                   <div>
-                    <strong>File Size:</strong> {formatFileSize(document.fileSize)}
+                    <strong>File Size:</strong>{" "}
+                    {document.fileSize
+                      ? formatFileSizePrecise(document.fileSize)
+                      : "Unknown"}
                   </div>
                 )}
                 {document.fileType && (

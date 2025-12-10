@@ -1,5 +1,15 @@
 "use client";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +26,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { formatFileSizePrecise } from "@/lib/formatters/file-size-formatters";
+import { queryKeys } from "@/lib/query-keys";
 import type { IndexedDocumentDto } from "@/server/dto/knowledge-base-browser.dto";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   EyeIcon,
   FileTextIcon,
@@ -25,20 +38,8 @@ import {
   TrashIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { DocumentPreviewDialog } from "./document-preview-dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/query-keys";
 import { toast } from "sonner";
+import { DocumentPreviewDialog } from "./document-preview-dialog";
 
 interface DocumentCardProps {
   document: IndexedDocumentDto;
@@ -83,15 +84,6 @@ export function DocumentCard({
   const [showPreview, setShowPreview] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const queryClient = useQueryClient();
-
-  const formatFileSize = (bytes?: number): string => {
-    if (!bytes || bytes === 0) return "Unknown";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    const idx = Math.min(i, sizes.length - 1);
-    return Math.round((bytes / Math.pow(k, idx)) * 100) / 100 + " " + sizes[idx];
-  };
 
   const formatDate = (date?: Date): string => {
     if (!date) return "Unknown";
@@ -159,7 +151,8 @@ export function DocumentCard({
     },
   });
 
-  const displayTitle = document.title || document.filename || document.documentId;
+  const displayTitle =
+    document.title || document.filename || document.documentId;
   const canReindex = !!document.processingStatus; // Only if document exists in DB
 
   return (
@@ -235,7 +228,8 @@ export function DocumentCard({
               </div>
               {document.fileSize && (
                 <div>
-                  <strong>Size:</strong> {formatFileSize(document.fileSize)}
+                  <strong>Size:</strong>{" "}
+                  {formatFileSizePrecise(document.fileSize)}
                 </div>
               )}
               {document.uploadDate && (

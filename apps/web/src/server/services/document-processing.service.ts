@@ -1,4 +1,5 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { MAX_FILE_SIZE_50MB } from "@/lib/constants/file-sizes";
 import { logger } from "@/lib/logger";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
@@ -378,7 +379,7 @@ export class DocumentProcessingService {
         "text/markdown", // MD
       ];
 
-      const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+      const maxSize = MAX_FILE_SIZE_50MB;
 
       const validFiles: Array<{
         file: File;
@@ -616,7 +617,7 @@ export class DocumentProcessingService {
       }
 
       // Validate file size (50MB limit)
-      const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+      const maxSize = MAX_FILE_SIZE_50MB;
       if (file.size > maxSize) {
         return err(
           ActionErrors.badRequest(

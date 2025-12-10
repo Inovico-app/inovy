@@ -12,6 +12,7 @@ import {
   MicrophoneEvents,
   useMicrophone,
 } from "@/providers/MicrophoneProvider";
+import { logger } from "@/lib/logger";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 

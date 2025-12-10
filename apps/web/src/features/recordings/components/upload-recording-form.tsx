@@ -1,5 +1,6 @@
 "use client";
 
+import { formatFileSizePrecise } from "@/lib/formatters/file-size-formatters";
 import { uploadRecordingToBlob } from "@/lib/vercel-blob";
 import {
   ALLOWED_MIME_TYPES,
@@ -212,13 +213,6 @@ export function UploadRecordingForm({
     }
   };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
-  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -270,7 +264,7 @@ export function UploadRecordingForm({
               <div className="flex-1 text-left">
                 <p className="text-sm font-medium truncate">{file.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {formatFileSize(file.size)}
+                  {formatFileSizePrecise(file.size)}
                 </p>
               </div>
               {!isUploading && (

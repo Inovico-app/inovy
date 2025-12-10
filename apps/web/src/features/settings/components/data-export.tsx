@@ -1,5 +1,6 @@
 "use client";
 
+import { formatFileSizePrecise } from "@/lib/formatters/file-size-formatters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -157,12 +158,6 @@ export function DataExport() {
     }
   }
 
-  function formatFileSize(bytes: number | null | undefined): string {
-    if (!bytes) return "Unknown";
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
 
   function getStatusBadge(status: DataExport["status"]) {
     switch (status) {
@@ -341,7 +336,7 @@ export function DataExport() {
                           )}
                         </span>
                         {export_.fileSize && (
-                          <span>{formatFileSize(export_.fileSize)}</span>
+                          <span>{formatFileSizePrecise(export_.fileSize)}</span>
                         )}
                       </div>
                       <div className="text-xs">
