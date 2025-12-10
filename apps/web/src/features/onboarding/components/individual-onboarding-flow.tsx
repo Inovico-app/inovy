@@ -1,6 +1,7 @@
 "use client";
 
-import { Activity } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useRef } from "react";
 import { useGoogleConnection } from "../hooks/use-google-connection";
 import type { Step } from "../hooks/use-onboarding-steps";
 import { StepAccountType } from "./steps/step-account-type";
@@ -15,6 +16,36 @@ interface IndividualOnboardingFlowProps {
   isLoading: boolean;
 }
 
+function StepTransition({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Focus the first interactive element when the step mounts/transitions in
+    const timer = setTimeout(() => {
+      const element = ref.current?.querySelector(
+        'input, select, textarea, button[type="submit"]'
+      );
+      if (element instanceof HTMLElement) {
+        element.focus();
+      }
+    }, 100); // Small delay to allow animation to start/render
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, x: 10 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -10 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 export function IndividualOnboardingFlow({
   currentStep,
   isLoading,
@@ -23,35 +54,47 @@ export function IndividualOnboardingFlow({
     useGoogleConnection(currentStep);
 
   return (
-    <>
-      <Activity mode={currentStep === 1 ? "visible" : "hidden"}>
-        <StepName isLoading={isLoading} />
-      </Activity>
+    <AnimatePresence mode="wait">
+      {currentStep === 1 && (
+        <StepTransition key="step1">
+          <StepName isLoading={isLoading} />
+        </StepTransition>
+      )}
 
-      <Activity mode={currentStep === 2 ? "visible" : "hidden"}>
-        <StepAccountType />
-      </Activity>
+      {currentStep === 2 && (
+        <StepTransition key="step2">
+          <StepAccountType />
+        </StepTransition>
+      )}
 
-      <Activity mode={currentStep === 3 ? "visible" : "hidden"}>
-        <StepResearchQuestion isLoading={isLoading} />
-      </Activity>
+      {currentStep === 3 && (
+        <StepTransition key="step3">
+          <StepResearchQuestion isLoading={isLoading} />
+        </StepTransition>
+      )}
 
-      <Activity mode={currentStep === 4 ? "visible" : "hidden"}>
-        <StepCalendar
-          googleConnected={googleConnected}
-          checkingGoogleStatus={checkingGoogleStatus}
-          onConnectGoogle={handleConnectGoogle}
-        />
-      </Activity>
+      {currentStep === 4 && (
+        <StepTransition key="step4">
+          <StepCalendar
+            googleConnected={googleConnected}
+            checkingGoogleStatus={checkingGoogleStatus}
+            onConnectGoogle={handleConnectGoogle}
+          />
+        </StepTransition>
+      )}
 
-      <Activity mode={currentStep === 6 ? "visible" : "hidden"}>
-        <StepReferralSource isLoading={isLoading} />
-      </Activity>
+      {currentStep === 6 && (
+        <StepTransition key="step6">
+          <StepReferralSource isLoading={isLoading} />
+        </StepTransition>
+      )}
 
-      <Activity mode={currentStep === 7 ? "visible" : "hidden"}>
-        <StepNewsletter isLoading={isLoading} />
-      </Activity>
-    </>
+      {currentStep === 7 && (
+        <StepTransition key="step7">
+          <StepNewsletter isLoading={isLoading} />
+        </StepTransition>
+      )}
+    </AnimatePresence>
   );
 }
 
