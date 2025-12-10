@@ -1,21 +1,17 @@
 "use client";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RecordingErrorBoundary } from "@/components/recording-error-boundary";
 import { LiveRecorder } from "@/features/recordings/components/live-recorder/live-recorder";
 import { RecordPageSidebar } from "@/features/recordings/components/record-page-sidebar";
 import { RecordingSettingsSidebar } from "@/features/recordings/components/recording-settings-sidebar";
 import { convertBlobToMp3 } from "@/features/recordings/lib/audio-utils";
-import {
-  getLiveTranscriptionPreferenceClient,
-  setLiveTranscriptionPreferenceClient,
-} from "@/features/recordings/lib/live-transcription-preferences";
-import { getAutoProcessPreferenceClient } from "@/features/recordings/lib/recording-preferences";
-import { setAutoProcessPreference } from "@/features/recordings/lib/recording-preferences-server";
+import { useRecordingPreferences } from "@/features/recordings/hooks/use-recording-preferences";
 import { uploadRecordingToBlob } from "@/lib/vercel-blob";
 import type { ProjectWithCreatorDto } from "@/server/dto/project.dto";
 import { InfoIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 interface RecordPageClientProps {
@@ -27,77 +23,15 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     projects[0]?.id ?? ""
   );
-  const [autoProcessEnabled, setAutoProcessEnabled] = useState(false);
-  const [isSavingPreference, setIsSavingPreference] = useState(false);
-  const [liveTranscriptionEnabled, setLiveTranscriptionEnabled] =
-    useState(true);
   const [isRecording, setIsRecording] = useState(false);
 
-  // Check preferences on mount
-  useEffect(() => {
-    try {
-      const autoProcessPreference = getAutoProcessPreferenceClient();
-      setAutoProcessEnabled(autoProcessPreference);
-    } catch (error) {
-      console.error("Failed to check auto-process preference:", error);
-    }
-
-    try {
-      const transcriptionPreference = getLiveTranscriptionPreferenceClient();
-      setLiveTranscriptionEnabled(transcriptionPreference);
-    } catch (error) {
-      console.error("Failed to check transcription preference:", error);
-    }
-  }, []);
-
-  const handleToggleAutoProcess = async () => {
-    const newValue = !autoProcessEnabled;
-    setIsSavingPreference(true);
-
-    try {
-      await setAutoProcessPreference(newValue);
-      setAutoProcessEnabled(newValue);
-      toast.success(
-        newValue
-          ? "Auto-verwerking ingeschakeld"
-          : "Auto-verwerking uitgeschakeld",
-        {
-          description: newValue
-            ? "Live opnames worden automatisch verwerkt na opslaan"
-            : "Je kunt verwerking handmatig starten per opname",
-        }
-      );
-    } catch (error) {
-      console.error("Failed to update auto-process preference:", error);
-      toast.error("Fout bij opslaan van voorkeuren", {
-        description: "Probeer het opnieuw",
-      });
-    } finally {
-      setIsSavingPreference(false);
-    }
-  };
-
-  const handleToggleTranscription = (enabled: boolean) => {
-    try {
-      setLiveTranscriptionPreferenceClient(enabled);
-      setLiveTranscriptionEnabled(enabled);
-      toast.success(
-        enabled
-          ? "Real-time transcription enabled"
-          : "Real-time transcription disabled",
-        {
-          description: enabled
-            ? "Speech will be transcribed during recording"
-            : "Only audio will be recorded",
-        }
-      );
-    } catch (error) {
-      console.error("Failed to update transcription preference:", error);
-      toast.error("Failed to save preference", {
-        description: "Please try again",
-      });
-    }
-  };
+  const {
+    autoProcessEnabled,
+    liveTranscriptionEnabled,
+    isSavingPreference,
+    handleToggleAutoProcess,
+    handleToggleTranscription,
+  } = useRecordingPreferences();
 
   const handleLiveRecordingComplete = async (
     audioBlob: Blob,
@@ -142,59 +76,60 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header - Full width */}
-      <div className="pb-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Record Meeting
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1.5">
-          Record audio directly from your browser with live transcription
-        </p>
-      </div>
+    <RecordingErrorBoundary>
+      <div className="space-y-6">
+        {/* Header - Full width */}
+        <div className="pb-1">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Record Meeting
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1.5">
+            Record audio directly from your browser with live transcription
+          </p>
+        </div>
 
-      {/* Main Content Area with Sidebars - Aligned vertically */}
-      <div className="flex flex-col xl:flex-row gap-6">
-        {/* Recording and Transcription Containers */}
-        <div className="flex-1 min-w-0">
-          {selectedProjectId ? (
-            <LiveRecorder
-              onRecordingComplete={handleLiveRecordingComplete}
+        {/* Main Content Area with Sidebars - Aligned vertically */}
+        <div className="flex flex-col xl:flex-row gap-6">
+          {/* Recording and Transcription Containers */}
+          <div className="flex-1 min-w-0">
+            {selectedProjectId ? (
+              <LiveRecorder
+                onRecordingComplete={handleLiveRecordingComplete}
+                liveTranscriptionEnabled={liveTranscriptionEnabled}
+                onTranscriptionToggle={handleToggleTranscription}
+                onRecordingStateChange={setIsRecording}
+              />
+            ) : (
+              <Alert>
+                <InfoIcon className="h-4 w-4" />
+                <AlertDescription>
+                  Selecteer een project om te beginnen met opnemen
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          {/* Sidebars - Right side, aligned with recording containers */}
+          <div className="flex flex-col xl:flex-col gap-4 xl:w-80 xl:flex-shrink-0">
+            {/* Project Settings Sidebar */}
+            <RecordPageSidebar
+              projects={projects}
+              selectedProjectId={selectedProjectId}
+              onProjectChange={setSelectedProjectId}
+            />
+
+            {/* Recording Settings Sidebar */}
+            <RecordingSettingsSidebar
               liveTranscriptionEnabled={liveTranscriptionEnabled}
               onTranscriptionToggle={handleToggleTranscription}
-              onRecordingStateChange={setIsRecording}
+              autoProcessEnabled={autoProcessEnabled}
+              onAutoProcessToggle={handleToggleAutoProcess}
+              isRecording={isRecording}
+              isSavingPreference={isSavingPreference}
             />
-          ) : (
-            <Alert>
-              <InfoIcon className="h-4 w-4" />
-              <AlertDescription>
-                Selecteer een project om te beginnen met opnemen
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
-
-        {/* Sidebars - Right side, aligned with recording containers */}
-        <div className="flex flex-col xl:flex-col gap-4 xl:w-80 xl:flex-shrink-0">
-          {/* Project Settings Sidebar */}
-          <RecordPageSidebar
-            projects={projects}
-            selectedProjectId={selectedProjectId}
-            onProjectChange={setSelectedProjectId}
-          />
-
-          {/* Recording Settings Sidebar */}
-          <RecordingSettingsSidebar
-            liveTranscriptionEnabled={liveTranscriptionEnabled}
-            onTranscriptionToggle={handleToggleTranscription}
-            autoProcessEnabled={autoProcessEnabled}
-            onAutoProcessToggle={handleToggleAutoProcess}
-            isRecording={isRecording}
-            isSavingPreference={isSavingPreference}
-          />
+          </div>
         </div>
       </div>
-    </div>
+    </RecordingErrorBoundary>
   );
 }
-

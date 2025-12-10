@@ -5,7 +5,7 @@ import {
 } from "@/features/recordings/actions/redact-pii";
 import type { Redaction } from "@/server/db/schema/redactions";
 import { useAction } from "next-safe-action/hooks";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { toast } from "sonner";
 
 export function useRedactions(
@@ -26,11 +26,18 @@ export function useRedactions(
       },
     });
 
+  // Use useEffectEvent to create a stable reference for refresh function
+  const refreshRedactions = useEffectEvent(() => {
+    if (recordingId) {
+      getRedactions({ recordingId });
+    }
+  });
+
   const { execute: createRedaction, isExecuting: isCreatingRedaction } =
     useAction(createRedactionAction, {
       onSuccess: () => {
         toast.success("Redactie aangemaakt");
-        getRedactions({ recordingId });
+        refreshRedactions();
         onRedactionsChange?.();
       },
       onError: () => {
@@ -42,7 +49,7 @@ export function useRedactions(
     useAction(deleteRedactionAction, {
       onSuccess: () => {
         toast.success("Redactie verwijderd");
-        getRedactions({ recordingId });
+        refreshRedactions();
         onRedactionsChange?.();
       },
       onError: () => {
@@ -54,7 +61,8 @@ export function useRedactions(
     if (recordingId) {
       getRedactions({ recordingId });
     }
-  }, [recordingId, getRedactions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordingId]);
 
   const handleCreateRedaction = (
     originalText: string,
@@ -89,7 +97,7 @@ export function useRedactions(
     handleCreateRedaction,
     handleRemoveRedaction,
     isRedacted,
-    refreshRedactions: () => getRedactions({ recordingId }),
+    refreshRedactions,
   };
 }
 

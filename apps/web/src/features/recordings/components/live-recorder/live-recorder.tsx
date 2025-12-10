@@ -1,27 +1,13 @@
 "use client";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { LiveWaveform } from "@/components/ui/live-waveform";
-import { ConsentBanner } from "@/features/recordings/components/consent-banner";
-import { ConsentStatus } from "@/features/recordings/components/consent-status";
 import { useLiveRecording } from "@/features/recordings/hooks/use-live-recording";
 import { useLiveTranscription } from "@/features/recordings/hooks/use-live-transcription";
 import { logger } from "@/lib/logger";
-import { useEffect, useState } from "react";
-import { RecordingControls } from "./recording-controls";
-import { RecordingErrors } from "./recording-errors";
+import { useEffect, useEffectEvent, useState } from "react";
+import { ConsentManager } from "./consent-manager";
+import { RecordingSection } from "./recording-section";
+import { StopConfirmationDialog } from "./stop-confirmation-dialog";
 import { TranscriptionDisplay } from "./transcription-display";
-import { TranscriptionStatus } from "./transcription-status";
 
 interface LiveRecorderProps {
   onRecordingComplete: (
@@ -71,7 +57,7 @@ export function LiveRecorder({
   }, [recording.isRecording, onRecordingStateChange]);
 
   // Handle start recording
-  const handleStart = async () => {
+  const handleStart = useEffectEvent(async () => {
     // Show consent banner if consent not yet granted
     if (!consentGranted) {
       setShowConsentBanner(true);
@@ -106,34 +92,34 @@ export function LiveRecorder({
         "Failed to start recording with transcription"
       );
     }
-  };
+  });
 
   // Handle consent granted
-  const handleConsentGranted = () => {
+  const handleConsentGranted = useEffectEvent(() => {
     const now = new Date();
     setConsentGranted(true);
     setConsentGrantedAt(now);
     setShowConsentBanner(false);
     // Start recording after consent is granted
     void handleStart();
-  };
+  });
 
   // Handle consent denied
-  const handleConsentDenied = () => {
+  const handleConsentDenied = useEffectEvent(() => {
     setShowConsentBanner(false);
-  };
+  });
 
   // Handle stop click (with confirmation for short recordings)
-  const handleStopClick = () => {
+  const handleStopClick = useEffectEvent(() => {
     if (recording.duration < 3) {
       setShowStopConfirm(true);
     } else {
       void handleFinalStop();
     }
-  };
+  });
 
   // Handle final stop
-  const handleFinalStop = async () => {
+  const handleFinalStop = useEffectEvent(async () => {
     try {
       setShowStopConfirm(false);
 
@@ -164,7 +150,13 @@ export function LiveRecorder({
         "Kon transcriptie niet starten. Probeer het opnieuw."
       );
     }
-  };
+  });
+
+  const formattedDuration = `${Math.floor(recording.duration / 60)
+    .toString()
+    .padStart(2, "0")}:${Math.floor(recording.duration % 60)
+    .toString()
+    .padStart(2, "0")}`;
 
   return (
     <>
@@ -186,141 +178,25 @@ export function LiveRecorder({
             maxHeight: "800px",
           }}
         >
-          <div
-            className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card via-card to-card/50 transition-all duration-500 h-full flex flex-col ${
-              recording.isRecording && !recording.isPaused
-                ? "shadow-lg shadow-primary/10 ring-2 ring-primary/20"
-                : "shadow-md"
-            }`}
-          >
-            {/* Animated background pulse when recording */}
-            {recording.isRecording && !recording.isPaused && (
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 animate-pulse pointer-events-none" />
-            )}
-
-            <div
-              className={`relative p-8 flex flex-col ${
-                externalLiveTranscriptionEnabled
-                  ? "space-y-8 flex-1"
-                  : "space-y-8"
-              }`}
-            >
-              {/* Header with status */}
-              <div className="flex items-start justify-between flex-shrink-0">
-                <div>
-                  <h2 className="text-2xl font-bold tracking-tight mb-1">
-                    Live Recording
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {externalLiveTranscriptionEnabled
-                      ? "Real-time audio capture with live transcription"
-                      : "Direct audio capture from your microphone"}
-                  </p>
-                </div>
-                {recording.isRecording && (
-                  <Badge
-                    variant={recording.isPaused ? "outline" : "default"}
-                    className={`ml-2 ${
-                      recording.isPaused
-                        ? ""
-                        : "animate-pulse bg-primary text-primary-foreground"
-                    }`}
-                  >
-                    {recording.isPaused ? "Paused" : "Recording"}
-                  </Badge>
-                )}
-              </div>
-
-              {/* Errors and Status - Compact */}
-              <div className="flex-shrink-0">
-                <RecordingErrors
-                  permissionDenied={recording.permissionDenied}
-                  recorderError={recording.recorderError}
-                  transcriptionError={transcription.transcriptionError}
-                  isSaving={recording.isSaving}
-                />
-              </div>
-
-              {/* Live Waveform - Large and prominent */}
-              {(recording.isRecording || recording.isPaused) &&
-                recording.stream && (
-                  <div className="relative overflow-hidden rounded-xl border-2 border-border/50 bg-gradient-to-b from-muted/30 to-muted/10 p-8 backdrop-blur-sm flex-shrink-0">
-                    <div className="flex h-40 items-center justify-center">
-                      <LiveWaveform
-                        active={recording.isRecording}
-                        barWidth={5}
-                        barGap={2}
-                        barRadius={8}
-                        barColor="#71717a"
-                        fadeEdges
-                        fadeWidth={48}
-                        sensitivity={0.8}
-                        smoothingTimeConstant={0.85}
-                        className="w-full"
-                      />
-                    </div>
-                    {/* Subtle glow effect when recording */}
-                    {recording.isRecording && !recording.isPaused && (
-                      <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent pointer-events-none" />
-                    )}
-                  </div>
-                )}
-
-              {/* Recording Controls - Centered and prominent */}
-              <div className="flex flex-col items-center gap-6 flex-1 justify-center">
-                <RecordingControls
-                  isRecording={recording.isRecording}
-                  isPaused={recording.isPaused}
-                  duration={recording.duration}
-                  isSaving={recording.isSaving}
-                  permissionDenied={recording.permissionDenied}
-                  formattedDuration={`${Math.floor(recording.duration / 60)
-                    .toString()
-                    .padStart(2, "0")}:${Math.floor(recording.duration % 60)
-                    .toString()
-                    .padStart(2, "0")}`}
-                  onStart={handleStart}
-                  onPause={recording.handlePause}
-                  onResume={recording.handleResume}
-                  onStop={handleStopClick}
-                />
-              </div>
-
-              {/* Status indicators - Compact row */}
-              <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground flex-shrink-0">
-                {consentGranted && (
-                  <div className="flex items-center gap-1.5">
-                    <ConsentStatus status="granted" />
-                    <span>Consent granted</span>
-                  </div>
-                )}
-                {recording.isRecording && recording.wakeLockActive && (
-                  <div className="flex items-center gap-1.5 text-green-600">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                    <span>Screen lock active</span>
-                  </div>
-                )}
-                <TranscriptionStatus
-                  isRecording={recording.isRecording}
-                  liveTranscriptionEnabled={externalLiveTranscriptionEnabled}
-                  isTranscribing={transcription.isTranscribing}
-                />
-              </div>
-            </div>
-          </div>
+          <RecordingSection
+            isRecording={recording.isRecording}
+            isPaused={recording.isPaused}
+            duration={recording.duration}
+            isSaving={recording.isSaving}
+            permissionDenied={recording.permissionDenied}
+            recorderError={recording.recorderError}
+            transcriptionError={transcription.transcriptionError}
+            stream={recording.stream}
+            liveTranscriptionEnabled={externalLiveTranscriptionEnabled}
+            isTranscribing={transcription.isTranscribing}
+            consentGranted={consentGranted}
+            wakeLockActive={recording.wakeLockActive}
+            formattedDuration={formattedDuration}
+            onStart={handleStart}
+            onPause={recording.handlePause}
+            onResume={recording.handleResume}
+            onStop={handleStopClick}
+          />
         </div>
 
         {/* Live Transcription Section - Same height as recording */}
@@ -341,32 +217,17 @@ export function LiveRecorder({
         )}
       </div>
 
-      {/* Consent Banner */}
-      <ConsentBanner
-        isOpen={showConsentBanner}
+      <ConsentManager
+        showConsentBanner={showConsentBanner}
         onConsentGranted={handleConsentGranted}
         onConsentDenied={handleConsentDenied}
       />
 
-      {/* Stop Confirmation Dialog */}
-      <AlertDialog open={showStopConfirm} onOpenChange={setShowStopConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Opname stoppen?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Je opname is minder dan 3 seconden. Weet je zeker dat je wilt
-              stoppen?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Doorgaan met opnemen</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void handleFinalStop()}>
-              Ja, stoppen
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <StopConfirmationDialog
+        open={showStopConfirm}
+        onOpenChange={setShowStopConfirm}
+        onConfirm={handleFinalStop}
+      />
     </>
   );
 }
-

@@ -1,3 +1,4 @@
+import { ChatErrorBoundary } from "@/components/chat-error-boundary";
 import { ProtectedPage } from "@/components/protected-page";
 import { Card } from "@/components/ui/card";
 import { UnifiedChatInterface } from "@/features/chat/components/unified-chat-interface";
@@ -59,14 +60,16 @@ async function ChatPageContent() {
 
   return (
     <div className="h-[calc(100vh-4rem)]">
-      <UnifiedChatInterface
-        isAdmin={isAdmin}
-        projects={projects}
-        defaultContext={isAdmin ? "organization" : "project"}
-        defaultProjectId={projects[0]?.id}
-        agentEnabled={agentEnabled}
-        organizationName={session.organization?.name}
-      />
+      <ChatErrorBoundary>
+        <UnifiedChatInterface
+          isAdmin={isAdmin}
+          projects={projects}
+          defaultContext={isAdmin ? "organization" : "project"}
+          defaultProjectId={projects[0]?.id}
+          agentEnabled={agentEnabled}
+          organizationName={session.organization?.name}
+        />
+      </ChatErrorBoundary>
     </div>
   );
 }

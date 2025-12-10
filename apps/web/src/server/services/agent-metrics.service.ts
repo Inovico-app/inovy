@@ -6,7 +6,7 @@ import { AgentAnalyticsQueries } from "@/server/data-access/agent-analytics.quer
 import type { AgentMetric } from "@/server/db/schema/agent-metrics";
 import type { NewAgentMetric } from "@/server/db/schema/agent-metrics";
 import type { AnalyticsFilters } from "@/server/services/agent-analytics.service";
-import { err, ok, Result } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 
 export interface AgentMetricInput {
   organizationId: string;
