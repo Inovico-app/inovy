@@ -69,6 +69,19 @@ export class OnboardingQueries {
   }
 
   /**
+   * Get onboarding record by ID
+   */
+  static async getOnboardingById(id: string): Promise<Onboarding | null> {
+    const [onboarding] = await db
+      .select()
+      .from(onboardings)
+      .where(eq(onboardings.id, id))
+      .limit(1);
+
+    return onboarding ?? null;
+  }
+
+  /**
    * Get onboarding record by user ID
    */
   static async getOnboardingByUserId(

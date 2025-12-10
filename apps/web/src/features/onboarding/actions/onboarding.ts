@@ -9,10 +9,7 @@ import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { OnboardingQueries } from "@/server/data-access/onboarding.queries";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
 import { UserQueries } from "@/server/data-access/user.queries";
-import { db } from "@/server/db";
-import { users } from "@/server/db/schema/auth";
 import { OnboardingService } from "@/server/services/onboarding.service";
-import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { z } from "zod";
 
@@ -117,7 +114,7 @@ export const completeOnboardingAction = authorizedActionClient
       organizationId, // Link onboarding to user's organization
     });
 
-    // Mark onboarding as completed
+    // Mark onboarding as completed (also updates user's onboardingCompleted status)
     const updateResult = await OnboardingService.updateOnboardingCompleted(
       onboardingId,
       true
@@ -126,12 +123,6 @@ export const completeOnboardingAction = authorizedActionClient
     if (updateResult.isErr()) {
       throw createErrorForNextSafeAction(updateResult.error);
     }
-
-    // Update user's onboarding completed status
-    await db
-      .update(users)
-      .set({ onboardingCompleted: true })
-      .where(eq(users.id, userId));
 
     return { success: true };
   });

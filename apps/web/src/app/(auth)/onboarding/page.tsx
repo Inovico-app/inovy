@@ -5,7 +5,6 @@ import { logger } from "@/lib/logger";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
 import { OnboardingService } from "@/server/services/onboarding.service";
 import type { Route } from "next";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -23,21 +22,19 @@ async function OnboardingContent({
   const user = sessionResult.value.user;
 
   // Get or create onboarding record
-  const requestHeaders = await headers();
   const onboardingResult = await OnboardingService.ensureOnboardingRecordExists(
-    user.id,
-    requestHeaders
+    user.id
   );
 
   if (onboardingResult.isErr()) {
     // If error, redirect to home
-    redirect("/onboarding" as Route);
+    redirect("/sign-in" as Route);
   }
 
   const onboarding = onboardingResult.value;
 
-  // Check if user already completed onboarding (check database record, not session)
-  if (onboarding.onboardingCompleted) {
+  // Check if user already completed onboarding (session, not database record)
+  if (user.onboardingCompleted) {
     redirect("/");
   }
 
@@ -47,10 +44,7 @@ async function OnboardingContent({
     const organizationId =
       await OrganizationQueries.getFirstOrganizationForUser(user.id);
     if (organizationId) {
-      const organization = await OrganizationQueries.findById(
-        organizationId,
-        requestHeaders
-      );
+      const organization = await OrganizationQueries.findById(organizationId);
       if (organization) {
         organizationName = organization.name;
       }

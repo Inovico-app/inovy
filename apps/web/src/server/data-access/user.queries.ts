@@ -319,6 +319,23 @@ export class UserQueries {
   }
 
   /**
+   * Update user's onboarding completed status
+   * Pure data access - no business logic
+   */
+  static async updateOnboardingCompleted(
+    userId: string,
+    completed: boolean
+  ): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        onboardingCompleted: completed,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+  }
+
+  /**
    * Get organizationId for a user by querying members table
    * Pure data access - no business logic
    */

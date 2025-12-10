@@ -67,8 +67,26 @@ async function fetchAndBuildSession(
   actionContext: string
 ): Promise<Result<BetterAuthSessionData, string>> {
   try {
+    let requestHeaders: Headers;
+    try {
+      requestHeaders = await headers();
+    } catch (error) {
+      // Handle prerendering errors - headers() cannot be called during prerendering
+      if (
+        error instanceof Error &&
+        (error.message.includes("prerender") ||
+          error.message.includes("HangingPromiseRejection"))
+      ) {
+        logger.auth.error("Cannot access headers during prerendering", error, {
+          action: actionContext,
+        });
+        return err("Cannot access headers during prerendering");
+      }
+      throw error;
+    }
+
     const session = await auth.api.getSession({
-      headers: await headers(),
+      headers: requestHeaders,
     });
 
     if (!session?.user) {
@@ -85,12 +103,12 @@ async function fetchAndBuildSession(
     const [organizationsResult, activeMemberResult] = await Promise.all([
       auth.api
         .listOrganizations({
-          headers: await headers(),
+          headers: requestHeaders,
         })
         .catch(() => null),
       auth.api
         .getActiveMember({
-          headers: await headers(),
+          headers: requestHeaders,
         })
         .catch(() => null),
     ]);
