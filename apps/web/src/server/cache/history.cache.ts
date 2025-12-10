@@ -1,5 +1,3 @@
-"use cache";
-
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import { SummaryEditService } from "../services/summary-edit.service";
@@ -36,6 +34,9 @@ export async function getCachedSummaryHistory(
 ) {
   "use cache";
   cacheTag(CacheTags.summaryHistory(recordingId));
-  return await SummaryEditService.getSummaryHistory(recordingId, organizationId);
+  return await SummaryEditService.getSummaryHistory(
+    recordingId,
+    organizationId
+  );
 }
 

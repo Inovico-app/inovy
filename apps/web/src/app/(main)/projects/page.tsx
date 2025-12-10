@@ -2,6 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProjectSearch } from "@/features/projects/components/project-search";
 import { ProjectTabs } from "@/features/projects/components/project-tabs";
+import { formatDateShort } from "@/lib/formatters/date-formatters";
+import { getCreatorDisplayName } from "@/lib/formatters/display-formatters";
+import { filterProjectsBySearch } from "@/lib/filters/project-filters";
 import type { AllowedStatus } from "@/server/data-access/projects.queries";
 import type { ProjectWithRecordingCountDto } from "@/server/dto/project.dto";
 import { ProjectService } from "@/server/services/project.service";
@@ -13,23 +16,6 @@ interface ProjectsListProps {
   searchQuery?: string;
   status?: AllowedStatus;
 }
-
-/**
- * Format creator name from creatorName field (fetched via JOIN)
- * Falls back to email or "Unknown Creator" if name is not available
- */
-const getCreatorDisplayName = (
-  creatorName: string | null,
-  creatorEmail: string | null
-): string => {
-  if (creatorName) {
-    return creatorName;
-  }
-  if (creatorEmail) {
-    return creatorEmail;
-  }
-  return "Unknown Creator";
-};
 
 async function ProjectsList({
   searchQuery,
@@ -51,29 +37,17 @@ async function ProjectsList({
     );
   }
 
-  let projects = projectsResult.value;
-
   // Filter projects by search query
-  if (searchQuery) {
-    const query = searchQuery.toLowerCase();
-    projects = projects.filter((project) =>
-      project.name.toLowerCase().includes(query)
-    );
-  }
+  const projects = filterProjectsBySearch(
+    projectsResult.value,
+    searchQuery
+  );
 
   // Creator details are already included via JOIN, no need to fetch separately
   const projectsWithCreators = projects.map((project) => ({
     ...project,
     createdBy: getCreatorDisplayName(project.creatorName, project.creatorEmail),
   }));
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
 
   return (
     <>
@@ -117,7 +91,7 @@ async function ProjectsList({
                       </div>
                       <div className="flex items-center text-xs text-muted-foreground">
                         <CalendarIcon className="h-3 w-3 mr-1" />
-                        Created {formatDate(project.createdAt)}
+                        Created {formatDateShort(project.createdAt)}
                       </div>
                       <div className="flex items-center text-xs text-muted-foreground">
                         <FileTextIcon className="h-3 w-3 mr-1" />

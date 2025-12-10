@@ -23,8 +23,8 @@ async function AgentContent() {
   const organization = authResult.value.organization;
   const organizationId = organization.id;
 
-  // Fetch projects for filtering
-  const projects = await getCachedUserProjects();
+  // Fetch projects for filtering (cached)
+  const projects = await getCachedUserProjects(organizationId);
 
   // Check if agent is enabled
   const agentEnabled = await getCachedAgentConfig(organizationId);

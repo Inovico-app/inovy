@@ -139,12 +139,16 @@ export function useChatContext({
     handleContextChange: (
       newContext: "organization" | "project",
       newProjectId?: string
-    ) => handleContextChange(newContext, newProjectId ?? undefined, false),
+    ): void => {
+      handleContextChange(newContext, newProjectId ?? undefined, false);
+    },
     handleContextChangeWithMessages: (
       newContext: "organization" | "project",
       newProjectId?: string,
       hasMessages = false
-    ) => handleContextChange(newContext, newProjectId ?? undefined, hasMessages),
+    ): void => {
+      handleContextChange(newContext, newProjectId ?? undefined, hasMessages);
+    },
     handleConfirmContextSwitch,
     setShowSwitchDialog,
     getTargetContextName,

@@ -21,11 +21,18 @@ export async function getCachedProjectByIdWithCreator(
 }
 
 /**
- * Get projects for the authenticated user's organization (cached)
+ * Get projects for an organization (cached)
  * Returns basic project info for dropdowns
+ * @param orgCode - Organization code/ID
  */
-export async function getCachedUserProjects() {
-  const result = await ProjectService.getProjectsByOrganization();
+export async function getCachedUserProjects(orgCode: string) {
+  "use cache";
+  cacheTag(CacheTags.projectsByOrg(orgCode));
+
+  const result = await ProjectService.getProjectsByOrganization({
+    organizationId: orgCode,
+    status: "active",
+  });
 
   if (result.isErr()) {
     return [];

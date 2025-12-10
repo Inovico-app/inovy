@@ -9,11 +9,14 @@ import {
 } from "@/components/ui/card";
 import { TaskCard } from "@/features/tasks/components/task-card";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
+import { filterTasksByStatus } from "@/lib/filters/task-filters";
 import { logger } from "@/lib/logger";
-import { getCachedTaskStats } from "@/server/cache/task.cache";
-import { DashboardService } from "@/server/services/dashboard.service";
+import { getCachedDashboardOverview } from "@/server/cache/dashboard.cache";
+import {
+  getCachedTaskStats,
+  getCachedTasksWithContext,
+} from "@/server/cache/task.cache";
 import { OnboardingService } from "@/server/services/onboarding.service";
-import { TaskService } from "@/server/services/task.service";
 import {
   Building2,
   FolderIcon,
@@ -99,10 +102,8 @@ async function DashboardContent() {
 
   const organizationId = organization.id;
 
-  const dashboardOverviewResult = await DashboardService.getDashboardOverview(
-    user.id
-  );
-
+  // Get dashboard overview (cached)
+  const dashboardOverviewResult = await getCachedDashboardOverview(user.id);
   const dashboardOverview = dashboardOverviewResult.isOk()
     ? dashboardOverviewResult.value
     : null;
@@ -117,13 +118,20 @@ async function DashboardContent() {
   // Get task statistics (cached)
   const taskStats = await getCachedTaskStats(user.id, organizationId);
 
-  // Get recent tasks (limit to 3 for dashboard)
-  const recentTasksResult = await TaskService.getTasksWithContext();
-  const recentTasks = recentTasksResult.isOk()
+  // Get recent tasks (limit to 3 for dashboard) - cached
+  const recentTasksResult = await getCachedTasksWithContext(
+    user.id,
+    organizationId
+  );
+  const allRecentTasks = recentTasksResult.isOk()
     ? recentTasksResult.value
-        .filter((t) => t.status === "pending" || t.status === "in_progress")
-        .slice(0, 3)
     : [];
+
+  // Filter by status and limit to 3
+  const recentTasks = filterTasksByStatus(allRecentTasks, [
+    "pending",
+    "in_progress",
+  ]).slice(0, 3);
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">

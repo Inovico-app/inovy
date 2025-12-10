@@ -38,10 +38,24 @@ export async function DriveWatchSettings() {
   }
 
   const userId = authResult.value.user.id;
+  const organizationId = authResult.value.organization?.id;
+
+  if (!organizationId) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Google Drive Folder Monitoring</CardTitle>
+          <CardDescription>
+            Organization context required.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   // Fetch watches and projects using cached functions
   const watches = await getCachedDriveWatches(userId);
-  const projects = await getCachedUserProjects();
+  const projects = await getCachedUserProjects(organizationId);
 
   return (
     <Card>
