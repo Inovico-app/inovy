@@ -16,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { formatFileSizePrecise } from "@/lib/formatters/file-size-formatters";
 import type { KnowledgeBaseScope } from "@/server/db/schema/knowledge-base-entries";
 import type { KnowledgeDocumentDto } from "@/server/dto/knowledge-base.dto";
 import {
@@ -85,13 +86,6 @@ export function KnowledgeDocumentList({
     );
   }
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
-  };
 
   return (
     <div className="space-y-4">
@@ -112,7 +106,7 @@ export function KnowledgeDocumentList({
                 <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
                   <span>{document.fileName}</span>
                   <span>•</span>
-                  <span>{formatFileSize(document.fileSize)}</span>
+                  <span>{formatFileSizePrecise(document.fileSize)}</span>
                   <span>•</span>
                   <span>{document.fileType}</span>
                 </div>

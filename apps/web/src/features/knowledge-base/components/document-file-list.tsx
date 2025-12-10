@@ -1,5 +1,6 @@
 "use client";
 
+import { formatFileSizePrecise } from "@/lib/formatters/file-size-formatters";
 import { X, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,17 +33,7 @@ interface DocumentFileListProps {
   disabled?: boolean;
 }
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(2)} KB`;
-  }
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-}
 
 function getFileIcon(fileType: string) {
   if (fileType === "application/pdf") {
@@ -114,7 +105,7 @@ export function DocumentFileList({
                         {fileItem.file.name}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {formatFileSize(fileItem.file.size)}
+                        {formatFileSizePrecise(fileItem.file.size)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">

@@ -1,3 +1,4 @@
+import { ONE_YEAR } from "@/lib/constants/time";
 import { logger } from "@/lib/logger";
 
 /**
@@ -45,7 +46,7 @@ export function setLiveTranscriptionPreferenceClient(enabled: boolean): void {
   }
 
   try {
-    const maxAge = 60 * 60 * 24 * 365; // 1 year
+    const maxAge = ONE_YEAR; // 1 year
     const cookieValue = `${LIVE_TRANSCRIPTION_COOKIE_NAME}=${enabled}; max-age=${maxAge}; path=/; samesite=strict${
       process.env.NODE_ENV === "production" ? "; secure" : ""
     }`;

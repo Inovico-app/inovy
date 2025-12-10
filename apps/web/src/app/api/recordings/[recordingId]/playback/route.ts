@@ -1,4 +1,8 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+import {
+  API_TIMEOUT_30_SECONDS,
+  CACHE_MAX_AGE_1_HOUR,
+} from "@/lib/constants/api";
 import { decrypt } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
@@ -15,7 +19,6 @@ export async function GET(
 ) {
   const { recordingId } = await params;
   try {
-
     // Get authenticated session
     const authResult = await getBetterAuthSession();
     if (authResult.isErr() || !authResult.value.isAuthenticated) {
@@ -57,7 +60,10 @@ export async function GET(
     // Note: This loads the entire file into memory. For files up to 500MB (MAX_FILE_SIZE),
     // this is acceptable, but consider streaming decryption for future optimization.
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      API_TIMEOUT_30_SECONDS
+    );
 
     let response: Response;
     try {
@@ -109,7 +115,7 @@ export async function GET(
         "Content-Type": recording.fileMimeType,
         "Content-Length": fileBuffer.length.toString(),
         "Content-Disposition": `inline; filename="${recording.fileName}"`,
-        "Cache-Control": "private, max-age=3600",
+        "Cache-Control": `private, max-age=${CACHE_MAX_AGE_1_HOUR}`,
       },
     });
   } catch (error) {

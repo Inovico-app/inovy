@@ -1,3 +1,4 @@
+import { ONE_SECOND_MS } from "@/lib/constants/time";
 import { formatDurationCompact } from "@/lib/formatters/duration-formatters";
 import { useEffect, useRef, useState } from "react";
 
@@ -14,7 +15,7 @@ export function useRecordingDuration() {
     // Start new interval
     durationInterval.current = setInterval(() => {
       setDuration((prev) => prev + 1);
-    }, 1000);
+    }, ONE_SECOND_MS);
   };
 
   const stopTimer = () => {
