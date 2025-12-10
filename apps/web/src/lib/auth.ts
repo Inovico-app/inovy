@@ -128,7 +128,6 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24, // 1 day
     freshAge: 60 * 10, // 10 minutes
   },
-
   databaseHooks: {
     // Session gets triggered by social signups and signins, so we need to ensure the user has an organization here too
     session: {
@@ -196,8 +195,6 @@ export const auth = betterAuth({
             });
             return undefined;
           }
-
-          return { data: user } as const;
         },
       },
     },

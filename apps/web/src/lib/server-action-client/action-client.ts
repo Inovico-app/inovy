@@ -12,10 +12,8 @@ import {
 } from "next-safe-action";
 import { z } from "zod";
 
-import {
-  getBetterAuthSession,
-  type BetterAuthUser,
-} from "../better-auth-session";
+import type { BetterAuthUser } from "../auth";
+import { getBetterAuthSession } from "../better-auth-session";
 import { generateApplicationErrorMessage } from "../error-messages";
 import { logger } from "../logger";
 import { checkPermission } from "../rbac/permissions-server";

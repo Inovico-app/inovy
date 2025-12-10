@@ -1,7 +1,10 @@
-import type { BetterAuthUser } from "../better-auth-session";
+import type { BetterAuthUser } from "../auth";
 import { ActionErrors } from "./action-errors";
 
-export function getUserOrganizationId(user: NonNullable<BetterAuthUser>, organizationId?: string) {
+export function getUserOrganizationId(
+  user: NonNullable<BetterAuthUser>,
+  organizationId?: string
+) {
   if (!organizationId) {
     throw ActionErrors.internal(
       "Failed to get user's organization ID from context",
