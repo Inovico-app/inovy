@@ -5,9 +5,8 @@ import { getUserProjects } from "@/features/projects/actions/get-user-projects";
 import { getAuthSession } from "@/lib/auth/auth-helpers";
 import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
 import { getCachedAgentConfig } from "@/server/cache/organization.cache";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 
 async function ChatPageContent() {
   // Get session with roles
@@ -73,22 +72,9 @@ async function ChatPageContent() {
 
 export default function OrganizationChatPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">
-              Loading organization chat...
-            </p>
-          </div>
-        </div>
-      }
-    >
-      <ProtectedPage>
-        <ChatPageContent />
-      </ProtectedPage>
-    </Suspense>
+    <ProtectedPage>
+      <ChatPageContent />
+    </ProtectedPage>
   );
 }
 

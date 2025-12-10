@@ -11,7 +11,7 @@ export class AgentSettingsQueries {
    */
   static async getAgentSettings(): Promise<AgentSettings> {
     try {
-      let settings = await db
+      const settings = await db
         .select()
         .from(agentSettings)
         .where(eq(agentSettings.id, this.DEFAULT_ID))
