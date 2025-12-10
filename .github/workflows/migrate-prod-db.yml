@@ -10,6 +10,7 @@ on:
 
 jobs:
   migrate:
+    environment: production
     runs-on: ubuntu-latest
     permissions:
       contents: read
