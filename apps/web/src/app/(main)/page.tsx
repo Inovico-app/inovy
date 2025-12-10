@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 
 async function DashboardContent() {
   const authResult = await getAuthSession();
@@ -330,27 +329,10 @@ async function DashboardContent() {
 }
 
 export default async function Home() {
-  // CACHE COMPONENTS: Wrap dynamic content in Suspense to enable static shell generation
-  // The ProtectedPage component accesses auth data, making it dynamic
   return (
-    <Suspense
-      fallback={
-        <div className="container mx-auto max-w-6xl px-4 py-8">
-          <div className="space-y-8 animate-pulse">
-            <div className="h-8 bg-muted rounded w-1/3" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-32 bg-muted rounded" />
-              ))}
-            </div>
-          </div>
-        </div>
-      }
-    >
-      <ProtectedPage>
-        <DashboardContent />
-      </ProtectedPage>
-    </Suspense>
+    <ProtectedPage>
+      <DashboardContent />
+    </ProtectedPage>
   );
 }
 
