@@ -45,11 +45,12 @@ export function UnifiedChatInterface({
   });
 
   // Use unified API endpoint for both contexts
+  // Note: Type mismatch between ai package versions - DefaultChatTransport works correctly at runtime
   const { messages, status, error, setMessages, sendMessage } = useChat({
     id:
       chatContext.conversationId ??
       `${chatContext.context}-${chatContext.projectId ?? "org"}`,
-    // @ts-expect-error - DefaultChatTransport is not assignable to ChatTransport
+    // @ts-expect-error - Type mismatch between ai@6.0.0-beta.118 and ai@5.0.86 - DefaultChatTransport works correctly at runtime
     transport: new DefaultChatTransport({
       api: "/api/chat",
       body: {

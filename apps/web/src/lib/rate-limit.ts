@@ -211,13 +211,15 @@ async function extractUserId(_request: NextRequest): Promise<string | null> {
 /**
  * Handler function type for API routes
  * Supports both simple handlers and Next.js dynamic route handlers with params
- * @note Using `any` for context is necessary to support Next.js route handlers with various context types
+ * Uses a flexible type to accommodate different handler signatures
+ * 
+ * @note The context parameter can vary:
+ * - Simple handlers: no context or undefined
+ * - Dynamic route handlers: { params: Promise<{ [key: string]: string }> }
+ * TypeScript's structural typing allows this to work with specific param types
  */
-type ApiRouteHandler = (
-  request: NextRequest,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context?: any
-) => Promise<Response | NextResponse>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ApiRouteHandler = (request: NextRequest, context?: any) => Promise<Response | NextResponse>;
 
 /**
  * Wrapper function to add rate limiting to API route handlers

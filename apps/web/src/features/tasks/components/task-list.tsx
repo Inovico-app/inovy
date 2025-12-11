@@ -3,12 +3,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { logger } from "@/lib/logger";
 import type { Task } from "@/server/db/schema/tasks";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { useExtractTasksMutation } from "../hooks/use-extract-tasks-mutation";
+import { useTaskOperations } from "../hooks/use-task-operations";
 import { TaskCard } from "./task-card";
 
 interface TaskListProps {
@@ -25,33 +24,23 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
     onSuccess: onRegenerate,
   });
 
+  const { handleStatusChange } = useTaskOperations();
+
   const handleGenerate = () => {
     extractTasks();
   };
 
-  const handleStatusChange = async (
+  const handleTaskStatusChange = async (
     taskId: string,
     newStatus: Task["status"]
   ) => {
-    try {
-      // Optimistically update UI
-      setLocalTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
-      );
+    // Optimistically update UI
+    setLocalTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+    );
 
-      // TODO: Create API endpoint for updating task status
-      // For now, just show success message
-      toast.success("Taak status bijgewerkt!");
-    } catch (error) {
-      logger.error("Error updating task status", {
-        component: "task-list",
-        error: error instanceof Error ? error : new Error(String(error)),
-        taskId,
-      });
-      toast.error("Fout bij bijwerken van taak");
-      // Revert optimistic update
-      setLocalTasks(tasks ?? []);
-    }
+    // Use the server action via useTaskOperations hook
+    await handleStatusChange(taskId, newStatus);
   };
 
   if (!localTasks || localTasks.length === 0) {
@@ -110,7 +99,7 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
                 <TaskCard
                   key={task.id}
                   task={task}
-                  onStatusChange={handleStatusChange}
+                  onStatusChange={handleTaskStatusChange}
                 />
               ))}
             </div>
@@ -126,7 +115,7 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
                 <TaskCard
                   key={task.id}
                   task={task}
-                  onStatusChange={handleStatusChange}
+                  onStatusChange={handleTaskStatusChange}
                 />
               ))}
             </div>
@@ -142,7 +131,7 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
                 <TaskCard
                   key={task.id}
                   task={task}
-                  onStatusChange={handleStatusChange}
+                  onStatusChange={handleTaskStatusChange}
                 />
               ))}
             </div>
@@ -158,7 +147,7 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
                 <TaskCard
                   key={task.id}
                   task={task}
-                  onStatusChange={handleStatusChange}
+                  onStatusChange={handleTaskStatusChange}
                 />
               ))}
             </div>
