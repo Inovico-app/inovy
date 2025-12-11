@@ -244,6 +244,62 @@ export const auth = betterAuth({
         maximumTeams: 10, // Optional: limit teams per organization
         allowRemovingAllTeams: false, // Optional: prevent removing the last team
       },
+      organizationHooks: {
+        /**
+         * After accepting an invitation, automatically apply pending team assignments
+         * This hook runs automatically when Better Auth processes invitation acceptance
+         */
+        afterAcceptInvitation: async ({
+          invitation,
+          member,
+          user,
+          organization,
+        }) => {
+          const { PendingTeamAssignmentsQueries } = await import(
+            "@/server/data-access/pending-team-assignments.queries"
+          );
+          const { headers } = await import("next/headers");
+
+          try {
+            // Get pending team assignments for this invitation
+            const teamIds =
+              await PendingTeamAssignmentsQueries.getPendingAssignmentsByInvitationId(
+                invitation.id
+              );
+
+            if (teamIds.length > 0) {
+              // Use Better Auth API to add user to teams
+              const headersList = await headers();
+              await Promise.all(
+                teamIds.map((teamId) =>
+                  auth.api.addTeamMember({
+                    body: {
+                      teamId,
+                      userId: user.id,
+                    },
+                    headers: headersList,
+                  })
+                )
+              );
+
+              // Clean up pending assignments after successful application
+              await PendingTeamAssignmentsQueries.deletePendingAssignmentsByInvitationId(
+                invitation.id
+              );
+            }
+          } catch (error) {
+            // Log error but don't fail the invitation acceptance
+            // Team assignments can be applied manually later if needed
+            const { logger } = await import("@/lib/logger");
+            logger.error("Failed to apply pending team assignments in hook", {
+              invitationId: invitation.id,
+              userId: user.id,
+              organizationId: organization.id,
+              error: error instanceof Error ? error : new Error(String(error)),
+            });
+          }
+        },
+      },
       async sendInvitationEmail(data: {
         id: string;
         email: string;
