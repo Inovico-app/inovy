@@ -337,6 +337,13 @@
       "when": 1765378586065,
       "tag": "0053_add_referral_source_other_to_onboardings",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1765441652465,
+      "tag": "0054_add_pending_team_assignments_table",
+      "breakpoints": true
     }
   ]
 }

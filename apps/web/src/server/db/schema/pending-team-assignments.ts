@@ -1,5 +1,4 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { index } from "drizzle-orm/pg-core";
+import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { invitations } from "./auth";
 
 /**
