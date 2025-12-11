@@ -103,32 +103,16 @@ async function DashboardContent() {
   const organizationId = organization.id;
 
   // Get dashboard overview (cached)
-  const dashboardOverviewResult = await getCachedDashboardOverview(user.id);
-  const dashboardOverview = dashboardOverviewResult.isOk()
-    ? dashboardOverviewResult.value
-    : null;
-
-  if (dashboardOverviewResult.isErr()) {
-    logger.error("Failed to get dashboard overview in Dashboard", {
-      component: "DashboardContent",
-      error: dashboardOverviewResult.error,
-    });
-  }
+  const dashboardStats = await getCachedDashboardOverview(organizationId);
 
   // Get task statistics (cached)
   const taskStats = await getCachedTaskStats(user.id, organizationId);
 
   // Get recent tasks (limit to 3 for dashboard) - cached
-  const recentTasksResult = await getCachedTasksWithContext(
-    user.id,
-    organizationId
-  );
-  const allRecentTasks = recentTasksResult.isOk()
-    ? recentTasksResult.value
-    : [];
+  const recentTasks = await getCachedTasksWithContext(user.id, organizationId);
 
   // Filter by status and limit to 3
-  const recentTasks = filterTasksByStatus(allRecentTasks, [
+  const filteredTasks = filterTasksByStatus(recentTasks, [
     "pending",
     "in_progress",
   ]).slice(0, 3);
@@ -174,7 +158,7 @@ async function DashboardContent() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {dashboardOverview?.stats.totalProjects ?? 0}
+                  {dashboardStats?.stats.totalProjects ?? 0}
                 </div>
                 <p className="text-xs text-muted-foreground">Active projects</p>
               </CardContent>
@@ -191,7 +175,7 @@ async function DashboardContent() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {dashboardOverview?.stats.totalRecordings ?? 0}
+                  {dashboardStats?.stats.totalRecordings ?? 0}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Total recordings
@@ -259,7 +243,7 @@ async function DashboardContent() {
         </Card>
 
         {/* Recent Tasks Section */}
-        {recentTasks.length > 0 && (
+        {filteredTasks.length > 0 && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -275,7 +259,7 @@ async function DashboardContent() {
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              {recentTasks.map((task) => (
+              {filteredTasks.map((task) => (
                 <TaskCard key={task.id} task={task} showContext />
               ))}
             </CardContent>

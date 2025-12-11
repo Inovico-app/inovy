@@ -132,6 +132,9 @@ export const CacheTags = {
 
   // Organization list tags (for superadmin)
   organizations: () => `organizations:all`,
+
+  // Invitation tags
+  invitation: (invitationId: string) => `invitation:${invitationId}`,
 } as const;
 
 /**

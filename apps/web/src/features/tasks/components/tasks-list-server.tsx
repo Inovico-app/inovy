@@ -29,12 +29,10 @@ export async function TasksListServer() {
   }
 
   // Fetch tasks and projects in parallel (both cached)
-  const [tasksResult, projects] = await Promise.all([
+  const [tasks, projects] = await Promise.all([
     getCachedTasksWithContext(user.id, organization.id),
     getCachedUserProjects(organization.id),
   ]);
-
-  const tasks = tasksResult.isOk() ? tasksResult.value : [];
 
   return (
     <GlobalTaskListClient initialTasks={tasks} initialProjects={projects} />

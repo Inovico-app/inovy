@@ -1,3 +1,4 @@
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { err, ok } from "neverthrow";
 import { logger } from "../../lib/logger";
 import {
@@ -9,7 +10,6 @@ import {
   getRecentProjectsForDashboard,
   getRecentRecordingsForDashboard,
 } from "../data-access/dashboard.queries";
-import { UserService } from "./user.service";
 
 interface DashboardOverview {
   stats: {
@@ -41,27 +41,51 @@ export class DashboardService {
   /**
    * Get complete dashboard overview for a user's organization
    */
-  static async getDashboardOverview(
-    userId: string
-  ): Promise<ActionResult<DashboardOverview>> {
+  static async getDashboardOverview(): Promise<
+    ActionResult<DashboardOverview>
+  > {
     try {
-      // Get organizationId from userId using UserService
-      const organizationIdResult =
-        await UserService.getOrganizationIdByUserId(userId);
-
-      if (organizationIdResult.isErr()) {
-        return err(organizationIdResult.error);
+      const session = await getBetterAuthSession();
+      if (session.isErr()) {
+        return err(
+          ActionErrors.internal(
+            "Failed to get authentication session",
+            session.error,
+            "DashboardService.getDashboardOverview"
+          )
+        );
       }
 
-      const organizationId = organizationIdResult.value;
+      const { user, organization } = session.value;
 
-      logger.info("Fetching dashboard overview", { userId, organizationId });
+      if (!user) {
+        return err(
+          ActionErrors.notFound(
+            "User not found",
+            "DashboardService.getDashboardOverview"
+          )
+        );
+      }
+
+      if (!organization) {
+        return err(
+          ActionErrors.notFound(
+            "Organization not found",
+            "DashboardService.getDashboardOverview"
+          )
+        );
+      }
+
+      logger.debug("Fetching dashboard overview", {
+        userId: user.id,
+        organizationId: organization.id,
+      });
 
       // Fetch all data in parallel using DAL
       const [stats, recentProjects, recentRecordings] = await Promise.all([
-        getDashboardStats(organizationId),
-        getRecentProjectsForDashboard(organizationId, 5),
-        getRecentRecordingsForDashboard(organizationId, 5),
+        getDashboardStats(organization.id),
+        getRecentProjectsForDashboard(organization.id, 5),
+        getRecentRecordingsForDashboard(organization.id, 5),
       ]);
 
       const overview: DashboardOverview = {
@@ -71,19 +95,18 @@ export class DashboardService {
       };
 
       logger.info("Successfully fetched dashboard overview", {
-        userId,
-        organizationId,
+        userId: user.id,
+        organizationId: organization.id,
         projectCount: overview.stats.totalProjects,
         recordingCount: overview.stats.totalRecordings,
       });
 
       return ok(overview);
     } catch (error) {
-      logger.error(
-        "Error fetching dashboard overview",
-        { userId },
-        error as Error
-      );
+      logger.error("Error fetching dashboard overview", {
+        component: "DashboardService.getDashboardOverview",
+        error: error as Error,
+      });
 
       return err(
         ActionErrors.internal(

@@ -60,6 +60,11 @@ export async function getCachedTasksWithContext(
     CacheTags.tasksByOrg(orgCode)
   );
 
-  return await TaskService.getTasksWithContext(filters);
+  const result = await TaskService.getTasksWithContext(filters);
+  if (result.isErr()) {
+    return [];
+  }
+
+  return result.value ?? [];
 }
 

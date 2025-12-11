@@ -1,3 +1,7 @@
+"use cache";
+
+import { CacheTags } from "@/lib/cache-utils";
+import { cacheTag } from "next/cache";
 import { DashboardService } from "../services/dashboard.service";
 
 /**
@@ -9,12 +13,20 @@ import { DashboardService } from "../services/dashboard.service";
  * Get complete dashboard overview (cached)
  * Includes stats, recent projects, and recent recordings
  * Calls DashboardService which aggregates data from multiple sources
- * @param userId - User ID to get dashboard for
  */
-export async function getCachedDashboardOverview(userId: string) {
+export async function getCachedDashboardOverview(organizationId: string) {
   "use cache";
-  // Note: We can't tag by orgCode here since DashboardService gets it internally
-  // The service will handle organization scoping
-  return await DashboardService.getDashboardOverview(userId);
+  cacheTag(
+    CacheTags.dashboardStats(organizationId),
+    CacheTags.recentProjects(organizationId),
+    CacheTags.recentRecordings(organizationId)
+  );
+
+  const result = await DashboardService.getDashboardOverview();
+  if (result.isErr()) {
+    return null;
+  }
+
+  return result.value ?? null;
 }
 
