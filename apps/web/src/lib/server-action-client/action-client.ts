@@ -65,6 +65,7 @@ export const authorizedActionClient = createSafeActionClient({
  */
 export const publicActionClient = createSafeActionClient({
   handleServerError: handleActionError,
+  defineMetadataSchema: () => schemaMetadata,
 }).use(publicActionLoggerMiddleware);
 
 /**

@@ -13,6 +13,10 @@ import { signUpEmailSchema } from "../validation/auth.schema";
  * Sign up with email and password
  */
 export const signUpEmailAction = publicActionClient
+  .metadata({
+    permissions: {},
+    name: "sign-up-email",
+  })
   .inputSchema(signUpEmailSchema)
   .action(async ({ parsedInput }) => {
     const { email, password, name } = parsedInput;

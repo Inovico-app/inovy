@@ -1,7 +1,5 @@
 import { auth } from "@/lib/auth";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
-import { anonymizeEmail } from "@/lib/pii-utils";
 import {
   ActionErrors,
   type ActionResult,
@@ -64,8 +62,7 @@ export class InvitationService {
    * @param userId - The user ID accepting the invitation (must match invitation email)
    */
   static async acceptInvitation(
-    invitationId: string,
-    userId: string
+    invitationId: string
   ): Promise<ActionResult<void>> {
     try {
       // Get invitation details to validate
@@ -103,36 +100,6 @@ export class InvitationService {
         );
       }
 
-      // Get user session to validate email match
-      const sessionResult = await getBetterAuthSession();
-
-      if (sessionResult.isErr() || !sessionResult.value.user) {
-        return err(
-          ActionErrors.unauthenticated(
-            "User must be authenticated to accept invitation",
-            "InvitationService.acceptInvitation"
-          )
-        );
-      }
-
-      const user = sessionResult.value.user;
-
-      // Validate user email matches invitation email
-      if (user.email !== invitation.email) {
-        return err(
-          ActionErrors.forbidden(
-            "User identity does not match invitation recipient",
-            {
-              userId: user.id,
-              invitationId: invitation.id,
-              userEmailHash: anonymizeEmail(user.email),
-              invitationEmailHash: anonymizeEmail(invitation.email),
-            },
-            "InvitationService.acceptInvitation"
-          )
-        );
-      }
-
       // Accept invitation using Better Auth API
       const headersList = await headers();
       const result = await auth.api.acceptInvitation({
@@ -154,7 +121,6 @@ export class InvitationService {
 
       logger.info("Invitation accepted successfully", {
         invitationId,
-        userId,
         organizationId: invitation.organization.id,
       });
 
@@ -213,7 +179,6 @@ export class InvitationService {
 
       logger.error("Failed to accept invitation", {
         invitationId,
-        userId,
         error: error instanceof Error ? error : new Error(String(error)),
       });
 

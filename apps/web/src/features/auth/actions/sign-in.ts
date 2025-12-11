@@ -21,6 +21,10 @@ import {
  * Cookies are automatically handled by Better Auth's nextCookies plugin
  */
 export const signInEmailAction = publicActionClient
+  .metadata({
+    permissions: {},
+    name: "sign-in-email",
+  })
   .inputSchema(signInEmailSchema)
   .action(async ({ parsedInput }) => {
     const { email, password } = parsedInput;
@@ -76,6 +80,10 @@ export const signInEmailAction = publicActionClient
  * Get social sign-in URL (returns redirect URL for OAuth flow)
  */
 export const getSocialSignInUrlAction = publicActionClient
+  .metadata({
+    permissions: {},
+    name: "get-social-sign-in-url",
+  })
   .inputSchema(socialSignInSchema)
   .action(async ({ parsedInput }) => {
     const { provider } = parsedInput;
@@ -106,6 +114,10 @@ export const getSocialSignInUrlAction = publicActionClient
  * to handle server-side redirect logic
  */
 export const passkeySignInSuccessAction = publicActionClient
+  .metadata({
+    permissions: {},
+    name: "passkey-sign-in-success",
+  })
   .inputSchema(passkeySignInSchema)
   .action(async () => {
     // Verify the user is authenticated after passkey sign-in

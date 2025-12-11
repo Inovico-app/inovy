@@ -13,6 +13,10 @@ import { magicLinkSchema } from "../validation/auth.schema";
  * Send magic link for passwordless authentication
  */
 export const sendMagicLinkAction = publicActionClient
+  .metadata({
+    permissions: {},
+    name: "send-magic-link",
+  })
   .inputSchema(magicLinkSchema)
   .action(async ({ parsedInput }) => {
     const { email } = parsedInput;
