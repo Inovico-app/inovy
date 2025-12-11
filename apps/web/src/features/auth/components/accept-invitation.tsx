@@ -1,9 +1,9 @@
-import { InvitationService } from "@/server/services/invitation.service";
-import { AcceptInvitationClient } from "./accept-invitation-client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Clock, CheckCircle2 } from "lucide-react";
+import { getCachedInvitationDetails } from "@/server/cache/invitations.cache";
+import { AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { AcceptInvitationClient } from "./accept-invitation-client";
 
-interface AcceptInvitationServerProps {
+interface AcceptInvitationProps {
   invitationId: string;
 }
 
@@ -11,16 +11,14 @@ interface AcceptInvitationServerProps {
  * Server component that fetches invitation data for display
  * Handles different invitation states (not found, expired, already accepted)
  */
-export async function AcceptInvitationServer({
+export async function AcceptInvitation({
   invitationId,
-}: AcceptInvitationServerProps) {
+}: AcceptInvitationProps) {
   // Fetch invitation details
-  const invitationResult = await InvitationService.getInvitationDetails(
-    invitationId
-  );
+  const invitation = await getCachedInvitationDetails(invitationId);
 
   // Handle invitation not found
-  if (invitationResult.isErr()) {
+  if (!invitation) {
     return (
       <div className="container mx-auto max-w-2xl px-4 py-12">
         <Alert variant="destructive">
@@ -35,8 +33,6 @@ export async function AcceptInvitationServer({
     );
   }
 
-  const invitation = invitationResult.value;
-
   // Check if invitation is expired
   if (new Date() > invitation.expiresAt) {
     return (
@@ -46,7 +42,9 @@ export async function AcceptInvitationServer({
           <AlertTitle>Invitation Expired</AlertTitle>
           <AlertDescription>
             This invitation has expired. Please contact{" "}
-            <strong>{invitation.inviter.name || invitation.inviter.email}</strong>{" "}
+            <strong>
+              {invitation.inviter.name || invitation.inviter.email}
+            </strong>{" "}
             for a new invitation to join{" "}
             <strong>{invitation.organization.name}</strong>.
           </AlertDescription>
@@ -66,7 +64,9 @@ export async function AcceptInvitationServer({
             This invitation has already been{" "}
             {invitation.status === "accepted" ? "accepted" : "processed"}. If
             you believe this is an error, please contact{" "}
-            <strong>{invitation.inviter.name || invitation.inviter.email}</strong>
+            <strong>
+              {invitation.inviter.name || invitation.inviter.email}
+            </strong>
             .
           </AlertDescription>
         </Alert>
