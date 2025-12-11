@@ -13,6 +13,10 @@ import {
  * Request password reset email
  */
 export const requestPasswordResetAction = publicActionClient
+  .metadata({
+    permissions: {},
+    name: "request-password-reset",
+  })
   .inputSchema(requestPasswordResetSchema)
   .action(async ({ parsedInput }) => {
     const { email } = parsedInput;
@@ -40,6 +44,10 @@ export const requestPasswordResetAction = publicActionClient
  * Reset password with token
  */
 export const resetPasswordAction = publicActionClient
+  .metadata({
+    permissions: {},
+    name: "reset-password",
+  })
   .inputSchema(resetPasswordSchema)
   .action(async ({ parsedInput }) => {
     const { token, password } = parsedInput;

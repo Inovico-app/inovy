@@ -6,8 +6,12 @@ import { logger } from "@/lib/logger";
 import { publicActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 
-export const getDeepgramClientTokenAction = publicActionClient.action(
-  async () => {
+export const getDeepgramClientTokenAction = publicActionClient
+  .metadata({
+    permissions: {},
+    name: "get-deepgram-client-token",
+  })
+  .action(async () => {
     const authResult = await getBetterAuthSession();
     if (
       authResult.isErr() ||
@@ -53,6 +57,5 @@ export const getDeepgramClientTokenAction = publicActionClient.action(
     }
 
     return { data: { token: tokenResult.access_token, success: true } };
-  }
-);
+  });
 
