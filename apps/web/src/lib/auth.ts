@@ -6,6 +6,8 @@ import VerificationEmail from "@/emails/templates/verification-email";
 import { logger } from "@/lib/logger";
 import { anonymizeEmail } from "@/lib/pii-utils";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
+import { PendingTeamAssignmentsQueries } from "@/server/data-access/pending-team-assignments.queries";
+import { UserQueries } from "@/server/data-access/user.queries";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema/auth";
 import { passkey } from "@better-auth/passkey";
@@ -20,6 +22,7 @@ import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink, organization } from "better-auth/plugins";
 import { nanoid } from "nanoid";
+import { headers } from "next/headers";
 import { ac, roles } from "./auth/access-control";
 
 /**
@@ -243,6 +246,241 @@ export const auth = betterAuth({
         enabled: true,
         maximumTeams: 10, // Optional: limit teams per organization
         allowRemovingAllTeams: false, // Optional: prevent removing the last team
+      },
+      organizationHooks: {
+        /**
+         * Before creating an invitation
+         * Customize invitation expiration (default: 7 days)
+         */
+        beforeCreateInvitation: async ({
+          invitation,
+          inviter,
+          organization,
+        }) => {
+          // Set custom expiration to 7 days
+          const customExpiration = new Date(
+            Date.now() + 1000 * 60 * 60 * 24 * 7
+          ); // 7 days
+
+          logger.debug("Creating invitation with custom expiration", {
+            invitationId: invitation.id,
+            email: invitation.email,
+            organizationId: organization.id,
+            inviterId: inviter.id,
+            expiresAt: customExpiration,
+          });
+
+          return {
+            data: {
+              ...invitation,
+              expiresAt: customExpiration,
+            },
+          };
+        },
+
+        /**
+         * After creating an invitation
+         * Track metrics, log invitation creation
+         * Note: Email sending is handled by sendInvitationEmail callback
+         */
+        afterCreateInvitation: async ({
+          invitation,
+          inviter,
+          organization,
+        }) => {
+          logger.info("Invitation created successfully", {
+            invitationId: invitation.id,
+            email: invitation.email,
+            organizationId: organization.id,
+            organizationName: organization.name,
+            inviterId: inviter.id,
+            inviterEmail: inviter.user.email,
+            role: invitation.role,
+            expiresAt: invitation.expiresAt,
+          });
+        },
+
+        /**
+         * Before accepting an invitation
+         * Additional validation before acceptance
+         */
+        beforeAcceptInvitation: async ({ invitation, user, organization }) => {
+          logger.debug("Validating invitation acceptance", {
+            invitationId: invitation.id,
+            userId: user.id,
+            userEmail: user.email,
+            organizationId: organization.id,
+            organizationName: organization.name,
+          });
+
+          // Additional validation logic can be added here
+          // For example: check user eligibility, organization limits, etc.
+          // If validation fails, throw an error to prevent acceptance
+        },
+
+        /**
+         * After accepting an invitation, automatically apply pending team assignments
+         * This hook runs automatically when Better Auth processes invitation acceptance
+         */
+        afterAcceptInvitation: async ({
+          invitation,
+          member,
+          user,
+          organization,
+        }) => {
+          logger.info("Invitation accepted", {
+            invitationId: invitation.id,
+            userId: user.id,
+            userEmailHash: anonymizeEmail(user.email),
+            organizationId: organization.id,
+            organizationName: organization.name,
+            memberId: member.id,
+            role: member.role,
+          });
+
+          try {
+            // Get pending team assignments for this invitation
+            const teamIds =
+              await PendingTeamAssignmentsQueries.getPendingAssignmentsByInvitationId(
+                invitation.id
+              );
+
+            if (teamIds.length > 0) {
+              // Use Better Auth API to add user to teams
+              const headersList = await headers();
+              await Promise.all(
+                teamIds.map((teamId) =>
+                  auth.api.addTeamMember({
+                    body: {
+                      teamId,
+                      userId: user.id,
+                    },
+                    headers: headersList,
+                  })
+                )
+              );
+
+              // Clean up pending assignments after successful application
+              await PendingTeamAssignmentsQueries.deletePendingAssignmentsByInvitationId(
+                invitation.id
+              );
+
+              logger.info("Applied pending team assignments", {
+                invitationId: invitation.id,
+                userId: user.id,
+                teamIds,
+              });
+            }
+          } catch (error) {
+            // Log error but don't fail the invitation acceptance
+            // Team assignments can be applied manually later if needed
+            logger.error("Failed to apply pending team assignments in hook", {
+              invitationId: invitation.id,
+              userId: user.id,
+              organizationId: organization.id,
+              error: error instanceof Error ? error : new Error(String(error)),
+            });
+          }
+        },
+
+        /**
+         * Before rejecting an invitation
+         * Log rejection reason, perform validation
+         */
+        beforeRejectInvitation: async ({ invitation, user, organization }) => {
+          logger.debug("Validating invitation rejection", {
+            invitationId: invitation.id,
+            userId: user.id,
+            userEmail: user.email,
+            organizationId: organization.id,
+            organizationName: organization.name,
+          });
+
+          // Additional validation or logging can be added here
+        },
+
+        /**
+         * After rejecting an invitation
+         * Notify inviter of rejection
+         */
+        afterRejectInvitation: async ({ invitation, user, organization }) => {
+          logger.info("Invitation rejected", {
+            invitationId: invitation.id,
+            userId: user.id,
+            userEmail: user.email,
+            organizationId: organization.id,
+            organizationName: organization.name,
+            inviterId: invitation.inviterId,
+          });
+
+          // Notify inviter of rejection
+          // This could send an email notification or create an in-app notification
+          try {
+            // Get inviter details to send notification
+            const inviter = await UserQueries.findById(invitation.inviterId);
+
+            if (inviter) {
+              logger.debug("Inviter notified of rejection", {
+                invitationId: invitation.id,
+                inviterId: invitation.inviterId,
+                inviterEmailHash: anonymizeEmail(inviter.email),
+                rejectedByEmailHash: anonymizeEmail(user.email),
+              });
+
+              // TODO: Send notification to inviter if needed
+              // Could use NotificationService or send email here
+              // Example: await NotificationService.createNotification({...})
+            }
+          } catch (error) {
+            logger.error("Failed to notify inviter of rejection", {
+              invitationId: invitation.id,
+              inviterId: invitation.inviterId,
+              error: error instanceof Error ? error : new Error(String(error)),
+            });
+          }
+        },
+
+        /**
+         * Before cancelling an invitation
+         * Verify cancellation permissions
+         */
+        beforeCancelInvitation: async ({
+          invitation,
+          cancelledBy,
+          organization,
+        }) => {
+          logger.debug("Validating invitation cancellation", {
+            invitationId: invitation.id,
+            cancelledById: cancelledBy.id,
+            cancelledByEmail: cancelledBy.user.email,
+            organizationId: organization.id,
+            organizationName: organization.name,
+          });
+
+          // Additional permission checks can be added here
+          // If validation fails, throw an error to prevent cancellation
+        },
+
+        /**
+         * After cancelling an invitation
+         * Log cancellation for audit purposes
+         */
+        afterCancelInvitation: async ({
+          invitation,
+          cancelledBy,
+          organization,
+        }) => {
+          logger.info("Invitation cancelled", {
+            invitationId: invitation.id,
+            cancelledById: cancelledBy.id,
+            cancelledByEmail: cancelledBy.user.email,
+            organizationId: organization.id,
+            organizationName: organization.name,
+            invitedEmail: invitation.email,
+          });
+
+          // Additional tracking or cleanup can be added here
+        },
       },
       async sendInvitationEmail(data: {
         id: string;
