@@ -495,6 +495,13 @@ export const auth = betterAuth({
               process.env.NEXT_PUBLIC_APP_URL ??
               "http://localhost:3000");
         const inviteLink = `${baseUrl}/accept-invitation/${data.id}`;
+
+        // Fetch team names for this invitation
+        const teamNames =
+          await PendingTeamAssignmentsQueries.getTeamNamesByInvitationId(
+            data.id
+          );
+
         await sendEmailFromTemplate({
           to: data.email,
           subject: `You've been invited to join ${data.organization.name}`,
@@ -503,6 +510,7 @@ export const auth = betterAuth({
             organizationName: data.organization.name,
             inviterName: data.inviter.user.name,
             inviterEmail: data.inviter.user.email,
+            teamNames: teamNames.length > 0 ? teamNames : undefined,
           }),
         });
       },
