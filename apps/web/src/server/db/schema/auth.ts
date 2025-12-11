@@ -9,14 +9,28 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
-export const organizationMemberRoleEnum = pgEnum("organization_member_role", [
+/**
+ * Organization member role values
+ */
+const organizationMemberRoles = [
   "owner",
   "admin",
   "superadmin",
   "manager",
   "user",
   "viewer",
-]);
+] as const;
+
+export const organizationMemberRoleEnum = pgEnum(
+  "organization_member_role",
+  organizationMemberRoles
+);
+
+/**
+ * TypeScript type for organization member roles
+ * Extracted from the enum values for type safety
+ */
+export type OrganizationMemberRole = (typeof organizationMemberRoles)[number];
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
