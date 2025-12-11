@@ -1,7 +1,12 @@
-import { db } from "../db";
-import { invitations, organizations, users } from "../db/schema/auth";
-import { pendingTeamAssignments } from "../db/schema/pending-team-assignments";
 import { eq } from "drizzle-orm";
+import { db } from "../db";
+import {
+  invitations,
+  organizations,
+  users,
+  type OrganizationMemberRole,
+} from "../db/schema/auth";
+import { pendingTeamAssignments } from "../db/schema/pending-team-assignments";
 
 /**
  * Invitation details with related data
@@ -9,7 +14,7 @@ import { eq } from "drizzle-orm";
 export interface InvitationDetails {
   id: string;
   email: string;
-  role: string;
+  role: OrganizationMemberRole;
   status: string;
   expiresAt: Date;
   createdAt: Date;
@@ -53,7 +58,10 @@ export class InvitationsQueries {
         inviterEmail: users.email,
       })
       .from(invitations)
-      .innerJoin(organizations, eq(invitations.organizationId, organizations.id))
+      .innerJoin(
+        organizations,
+        eq(invitations.organizationId, organizations.id)
+      )
       .innerJoin(users, eq(invitations.inviterId, users.id))
       .where(eq(invitations.id, invitationId))
       .limit(1);
