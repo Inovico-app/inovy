@@ -11,6 +11,7 @@ interface OrganizationInvitationEmailProps {
   organizationName: string;
   inviterName?: string | null;
   inviterEmail: string;
+  teamNames?: string[];
 }
 
 export default function OrganizationInvitationEmail({
@@ -18,6 +19,7 @@ export default function OrganizationInvitationEmail({
   organizationName,
   inviterName,
   inviterEmail,
+  teamNames,
 }: OrganizationInvitationEmailProps) {
   const inviterDisplay = inviterName ?? inviterEmail;
 
@@ -31,6 +33,13 @@ export default function OrganizationInvitationEmail({
           <strong>{inviterDisplay}</strong> has invited you to join{" "}
           <strong>{organizationName}</strong> on Inovy.
         </Text>
+        {teamNames && teamNames.length > 0 && (
+          <Text className="text-[#1a1a1a] text-base leading-normal my-4">
+            You will be added to the following team
+            {teamNames.length > 1 ? "s" : ""}:{" "}
+            <strong>{teamNames.join(", ")}</strong>
+          </Text>
+        )}
         <Text className="text-[#1a1a1a] text-base leading-normal my-4">
           Click the button below to accept the invitation and join the
           organization:
