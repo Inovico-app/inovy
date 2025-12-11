@@ -27,7 +27,12 @@ export default async function proxy(req: NextRequest) {
   }
 
   // Always allow these routes (no auth check needed)
-  const alwaysPublicRoutes = ["/api/auth", "/_next", "/favicon.ico"];
+  const alwaysPublicRoutes = [
+    "/api/auth",
+    "/_next",
+    "/favicon.ico",
+    "/accept-invitation",
+  ];
   const isAlwaysPublic = alwaysPublicRoutes.some((route) =>
     req.nextUrl.pathname.startsWith(route)
   );
