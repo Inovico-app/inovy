@@ -1,35 +1,19 @@
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { ConsentManager } from "@/features/recordings/components/consent-manager";
 import { EnhancedSummarySection } from "@/features/recordings/components/enhanced-summary-section";
 import { RecordingDetailActionsDropdown } from "@/features/recordings/components/recording-detail-actions-dropdown";
 import { RecordingDetailStatus } from "@/features/recordings/components/recording-detail-status";
-import { RecordingPlayerWrapper } from "@/features/recordings/components/recording-player-wrapper";
+import { RecordingActionItemsCard } from "@/features/recordings/components/recording-detail/recording-action-items-card";
+import { RecordingDetailBreadcrumb } from "@/features/recordings/components/recording-detail/recording-detail-breadcrumb";
+import { RecordingDetailSkeleton } from "@/features/recordings/components/recording-detail/recording-detail-skeleton";
+import { RecordingInfoCard } from "@/features/recordings/components/recording-detail/recording-info-card";
+import { RecordingMediaPlayer } from "@/features/recordings/components/recording-detail/recording-media-player";
 import { ReprocessButton } from "@/features/recordings/components/reprocess-button";
 import { ReprocessingStatusIndicator } from "@/features/recordings/components/reprocessing-status-indicator";
 import { TranscriptionSection } from "@/features/recordings/components/transcription/transcription-section";
-import { TaskCard } from "@/features/tasks/components/task-card-with-edit";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { formatDateLong } from "@/lib/formatters/date-formatters";
-import { formatDuration } from "@/lib/formatters/duration-formatters";
-import { formatFileSize } from "@/lib/formatters/file-size-formatters";
-import type { ActionResult } from "@/lib/server-action-client/action-errors";
-import { getCachedRecordingById } from "@/server/cache/recording.cache";
-import { getCachedSummary } from "@/server/cache/summary.cache";
-import type { ConsentParticipant } from "@/server/db/schema/consent";
-import type { TaskDto } from "@/server/dto/task.dto";
-import { AIInsightService } from "@/server/services/ai-insight.service";
-import { ConsentService } from "@/server/services/consent.service";
-import { ProjectService } from "@/server/services/project.service";
-import { TaskService } from "@/server/services/task.service";
-import { ArrowLeftIcon, CalendarIcon, ClockIcon, FileIcon } from "lucide-react";
-import { ok } from "neverthrow";
-import type { Route } from "next";
+import { getRecordingDetailPageData } from "@/features/recordings/server/get-recording-detail-page-data";
+import type { AIInsightDto } from "@/server/dto/ai-insight.dto";
+import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -41,94 +25,32 @@ interface RecordingDetailPageProps {
 async function RecordingDetail({ params }: RecordingDetailPageProps) {
   const { projectId, recordingId } = await params;
 
-  // Get auth session for organization ID
-  const authResult = await getBetterAuthSession();
-  const organizationId =
-    authResult.isOk() && authResult.value.organization
-      ? authResult.value.organization.id
-      : null;
+  const data = await getRecordingDetailPageData({ recordingId });
+  if (!data) {
+    notFound();
+  }
 
-  // Fetch recording, project, summary, tasks, transcription insight, and consent in parallel
-  // Note: Recording and summary use cache functions; project service uses cache internally
-  const [
-    recordingResult,
-    projectResult,
+  const {
+    recording,
     summary,
-    tasksResult,
-    transcriptionInsightResult,
-    consentParticipantsResult,
-  ] = await Promise.all([
-    getCachedRecordingById(recordingId),
-    ProjectService.getProjectById(projectId),
-    getCachedSummary(recordingId),
-    TaskService.getTasksByRecordingId(recordingId),
-    AIInsightService.getInsightByTypeInternal(recordingId, "transcription"),
-    organizationId
-      ? ConsentService.getConsentParticipants(recordingId, organizationId)
-      : Promise.resolve(ok([]) as ActionResult<ConsentParticipant[]>),
-  ]);
+    tasks,
+    transcriptionInsights,
+    participantsConsent,
+  } = data;
 
-  if (recordingResult.isErr() || projectResult.isErr()) {
+  if (!recording) {
     notFound();
   }
 
-  const recording = recordingResult.value;
-  const project = projectResult.value;
-
-  if (!recording || !project) {
-    notFound();
-  }
-
-  // Verify recording belongs to this project
-  if (recording.projectId !== projectId) {
-    notFound();
-  }
-
-  const tasks = tasksResult.isOk() ? tasksResult.value : [];
-
-  // Extract transcription insight data
-  const transcriptionInsight = transcriptionInsightResult.isOk()
-    ? transcriptionInsightResult.value
-    : null;
-
-  // Extract consent participants
-  const consentParticipants = consentParticipantsResult.isOk()
-    ? consentParticipantsResult.value
-    : [];
-
-  const isVideo = recording.fileMimeType.startsWith("video/");
-  const isAudio = recording.fileMimeType.startsWith("audio/");
+  const knowledgeUsed = extractUsedKnowledge(transcriptionInsights);
 
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Breadcrumb Navigation */}
-        <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link
-            href="/projects"
-            className="hover:text-foreground transition-colors"
-          >
-            Projects
-          </Link>
-          <span>/</span>
-          <Link
-            href={`/projects/${projectId}` as Route}
-            className="hover:text-foreground transition-colors"
-          >
-            {project.name}
-          </Link>
-          <span>/</span>
-          <Link
-            href={`/projects/${projectId}` as Route}
-            className="hover:text-foreground transition-colors"
-          >
-            Recordings
-          </Link>
-          <span>/</span>
-          <span className="text-foreground font-medium truncate">
-            {recording.title}
-          </span>
-        </nav>
+        <RecordingDetailBreadcrumb
+          projectId={projectId}
+          recordingId={recordingId}
+        />
 
         {/* Header */}
         <div className="flex justify-between items-start gap-4">
@@ -166,90 +88,14 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
           initialWorkflowStatus={recording.workflowStatus}
         />
 
-        {/* Metadata */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recording Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Date:</span>
-                <span className="text-sm">
-                  {formatDateLong(recording.recordingDate)}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <ClockIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Duration:</span>
-                <span className="text-sm">
-                  {formatDuration(recording.duration)}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <FileIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  File size:
-                </span>
-                <span className="text-sm">
-                  {formatFileSize(recording.fileSize)}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <FileIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Format:</span>
-                <span className="text-sm">
-                  {recording.fileName.split(".").pop()?.toUpperCase()}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Media Player */}
-        <Card id="player">
-          <CardHeader>
-            <CardTitle>Playback</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="w-full">
-              <RecordingPlayerWrapper
-                fileUrl={recording.fileUrl}
-                fileMimeType={recording.fileMimeType}
-                fileName={recording.fileName}
-                isVideo={isVideo}
-                isAudio={isAudio}
-                recordingId={recording.id}
-                isEncrypted={recording.isEncrypted}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <RecordingInfoCard recording={recording} />
+        <RecordingMediaPlayer recording={recording} />
 
         {/* Transcription */}
         <TranscriptionSection
-          recordingId={recording.id}
-          recordingTitle={recording.title}
-          transcriptionStatus={recording.transcriptionStatus}
-          transcriptionText={recording.transcriptionText}
-          redactedTranscriptionText={recording.redactedTranscriptionText}
-          utterances={transcriptionInsight?.utterances ?? undefined}
-          isTranscriptionManuallyEdited={
-            recording.isTranscriptionManuallyEdited
-          }
-          transcriptionLastEditedById={recording.transcriptionLastEditedById}
-          transcriptionLastEditedAt={recording.transcriptionLastEditedAt}
-          speakersDetected={transcriptionInsight?.speakersDetected ?? undefined}
-          confidence={transcriptionInsight?.confidenceScore ?? undefined}
-          knowledgeUsed={
-            transcriptionInsight?.content &&
-            typeof transcriptionInsight.content === "object" &&
-            "knowledgeUsed" in transcriptionInsight.content &&
-            Array.isArray(transcriptionInsight.content.knowledgeUsed)
-              ? (transcriptionInsight.content.knowledgeUsed as string[])
-              : undefined
-          }
+          recording={recording}
+          knowledgeUsed={knowledgeUsed ?? []}
+          transcriptionInsights={transcriptionInsights}
         />
 
         {/* AI-Generated Summary */}
@@ -262,73 +108,49 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
         {/* Consent Management */}
         <ConsentManager
           recordingId={recording.id}
-          initialParticipants={consentParticipants}
+          initialParticipants={participantsConsent}
           organizerEmail={recording.createdById}
         />
 
-        {/* Extracted Action Items */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Extracted Action Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {tasks.length > 0 ? (
-              <div className="space-y-4">
-                {tasks.map((task: TaskDto) => (
-                  <TaskCard key={task.id} task={task} />
-                ))}
-              </div>
-            ) : recording.transcriptionStatus === "completed" ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>No action items extracted yet</p>
-                <p className="text-sm mt-2">
-                  Task extraction may still be in progress
-                </p>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>
-                  Action items will be extracted after transcription completes
-                </p>
-                <p className="text-sm mt-2">
-                  Please wait for the transcription to finish
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <RecordingActionItemsCard recording={recording} tasks={tasks} />
 
         {/* Navigation */}
         <div className="flex justify-between">
           <Button variant="outline" asChild>
-            <Link href={`/projects/${projectId}` as Route}>
+            <Link href={`/projects/${projectId}`}>
               <ArrowLeftIcon className="h-4 w-4 mr-2" />
               Back to Project
             </Link>
           </Button>
         </div>
       </div>
+      ;
     </div>
   );
+}
+
+/**
+ *
+ * @param transcriptionInsights - The transcription insights to extract the knowledge used from.
+ * Extract the knowledgeUsed array from transcriptionInsights if it exists and is valid.
+ * We need to safely navigate the nested structure and validate the type because
+ * transcriptionInsights.content is dynamically typed and may not always contain knowledgeUsed.
+ * @returns The knowledge used or undefined if it doesn't exist.
+ */
+function extractUsedKnowledge(transcriptionInsights: AIInsightDto | null) {
+  return transcriptionInsights?.content &&
+    typeof transcriptionInsights.content === "object" &&
+    "knowledgeUsed" in transcriptionInsights.content &&
+    Array.isArray(transcriptionInsights.content.knowledgeUsed)
+    ? (transcriptionInsights.content.knowledgeUsed as string[])
+    : undefined;
 }
 
 export default async function RecordingDetailPage({
   params,
 }: RecordingDetailPageProps) {
   return (
-    <Suspense
-      fallback={
-        <div className="container mx-auto py-8 px-4">
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div className="h-8 bg-muted rounded animate-pulse" />
-            <div className="h-12 bg-muted rounded animate-pulse" />
-            <div className="h-48 bg-muted rounded animate-pulse" />
-            <div className="h-64 bg-muted rounded animate-pulse" />
-            <div className="h-48 bg-muted rounded animate-pulse" />
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<RecordingDetailSkeleton />}>
       <RecordingDetail params={params} />
     </Suspense>
   );

@@ -1,3 +1,6 @@
+import type { AIInsightDto } from "@/server/dto/ai-insight.dto";
+import type { RecordingDto } from "@/server/dto/recording.dto";
+
 export interface Utterance {
   speaker: number;
   text: string;
@@ -44,28 +47,13 @@ export interface TranscriptionEditViewProps {
 }
 
 export interface TranscriptionEditorProps {
-  recordingId: string;
-  transcriptionText: string;
-  utterances: Utterance[];
-  isManuallyEdited?: boolean;
-  lastEditedById?: string | null;
-  lastEditedAt?: Date | null;
-  speakersDetected?: number;
-  confidence?: number;
+  recording: RecordingDto;
+  transcriptionInsights: AIInsightDto | null;
 }
 
 export interface TranscriptionSectionProps {
-  recordingId: string;
-  recordingTitle: string;
-  transcriptionStatus: "pending" | "processing" | "completed" | "failed";
-  transcriptionText: string | null;
-  redactedTranscriptionText?: string | null;
-  utterances?: Utterance[];
-  isTranscriptionManuallyEdited?: boolean;
-  transcriptionLastEditedById?: string | null;
-  transcriptionLastEditedAt?: Date | null;
-  speakersDetected?: number;
-  confidence?: number;
-  knowledgeUsed?: string[];
+  recording: RecordingDto;
+  transcriptionInsights: AIInsightDto | null;
+  knowledgeUsed: string[];
 }
 

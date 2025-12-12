@@ -39,9 +39,14 @@ export function HeaderAuthButtons() {
       userId: user?.id,
       component: "HeaderAuthButtons",
     });
-    await signOut();
-    router.push("/sign-in" as Route);
-    router.refresh();
+    await signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push("/sign-in"); // redirect to login page
+          router.refresh();
+        },
+      },
+    });
   };
 
   if (isLoading) {

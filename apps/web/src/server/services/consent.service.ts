@@ -1,5 +1,6 @@
 import { err, ok } from "neverthrow";
 import { logger } from "../../lib/logger";
+import { CacheInvalidation } from "../../lib/cache-utils";
 import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
 import {
   ActionErrors,
@@ -149,6 +150,8 @@ export class ConsentService {
         userId,
       });
 
+      CacheInvalidation.invalidateConsentParticipants(recordingId, organizationId);
+
       return ok(participant);
     } catch (error) {
       // Preserve ActionErrors (e.g., from assertOrganizationAccess)
@@ -241,6 +244,8 @@ export class ConsentService {
         participantId: updated.id,
         userId,
       });
+
+      CacheInvalidation.invalidateConsentParticipants(recordingId, organizationId);
 
       return ok(updated);
     } catch (error) {

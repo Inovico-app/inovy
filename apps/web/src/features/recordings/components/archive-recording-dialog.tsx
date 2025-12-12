@@ -22,7 +22,6 @@ interface ArchiveRecordingDialogProps {
   recordingTitle: string;
   isArchived: boolean;
   variant?: "default" | "outline" | "ghost" | "destructive";
-  open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
@@ -31,15 +30,9 @@ export function ArchiveRecordingDialog({
   recordingTitle,
   isArchived,
   variant = "outline",
-  open: controlledOpen,
-  onOpenChange: controlledOnOpenChange,
+  onOpenChange,
 }: ArchiveRecordingDialogProps) {
   const router = useRouter();
-  const [internalOpen, setInternalOpen] = useState(false);
-
-  // Use controlled or uncontrolled state
-  const open = controlledOpen ?? internalOpen;
-  const setOpen = controlledOnOpenChange ?? setInternalOpen;
   const [isLoading, setIsLoading] = useState(false);
 
   const handleArchive = async () => {
@@ -59,7 +52,6 @@ export function ArchiveRecordingDialog({
       toast.error("Failed to archive recording");
     } finally {
       setIsLoading(false);
-      setOpen(false);
     }
   };
 
@@ -80,12 +72,11 @@ export function ArchiveRecordingDialog({
       toast.error("Failed to restore recording");
     } finally {
       setIsLoading(false);
-      setOpen(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open>
       <DialogTrigger asChild>
         <Button variant={variant} size="sm">
           {isArchived ? (
@@ -124,7 +115,7 @@ export function ArchiveRecordingDialog({
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => setOpen(false)}
+            onClick={() => onOpenChange?.(false)}
             disabled={isLoading}
           >
             Cancel

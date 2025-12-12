@@ -203,11 +203,10 @@ export class SummaryService {
         knowledgeUsed: knowledgeEntries.map((e) => e.id), // Track which knowledge entries were used
       };
 
-      await AIInsightsQueries.updateInsightContent(
-        insight.id,
-        summaryContentWithKnowledge,
-        confidence
-      );
+      await AIInsightsQueries.updateInsightContent(insight.id, {
+        content: summaryContentWithKnowledge,
+        confidenceScore: confidence,
+      });
 
       // Invalidate cache to pick up the new summary
       CacheInvalidation.invalidateSummary(recordingId);

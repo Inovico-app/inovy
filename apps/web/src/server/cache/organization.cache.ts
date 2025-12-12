@@ -1,10 +1,5 @@
 import { CacheTags } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
-import {
-  ActionErrors,
-  type ActionResult,
-} from "@/lib/server-action-client/action-errors";
-import { err, ok } from "neverthrow";
 import { cacheTag } from "next/cache";
 import { OrganizationSettingsQueries } from "../data-access/organization-settings.queries";
 import { OrganizationQueries } from "../data-access/organization.queries";
@@ -91,7 +86,7 @@ export async function getCachedOrganizationMembers(organizationId: string) {
  */
 export async function getCachedOrganizationInstructions(
   organizationId: string
-): Promise<ActionResult<OrganizationSettingsDto | null>> {
+): Promise<OrganizationSettingsDto | null> {
   "use cache";
   cacheTag(CacheTags.organizationInstructions(organizationId));
 
@@ -99,20 +94,14 @@ export async function getCachedOrganizationInstructions(
     const instructions =
       await OrganizationSettingsQueries.findByOrganizationId(organizationId);
 
-    return ok(instructions);
+    return instructions;
   } catch (error) {
     logger.error(
       "Failed to get organization instructions",
       { organizationId },
       error as Error
     );
-    return err(
-      ActionErrors.internal(
-        "Failed to get organization instructions",
-        error as Error,
-        "getCachedOrganizationInstructions"
-      )
-    );
+    return null;
   }
 }
 

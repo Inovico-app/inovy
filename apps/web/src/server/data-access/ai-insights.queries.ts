@@ -85,14 +85,12 @@ export class AIInsightsQueries {
 
   static async updateInsightContent(
     insightId: string,
-    content: Record<string, unknown>,
-    confidenceScore?: number
+    data: Partial<Omit<NewAIInsight, "id" | "createdAt" | "updatedAt">>
   ): Promise<AIInsight | undefined> {
     const [updated] = await db
       .update(aiInsights)
       .set({
-        content,
-        confidenceScore,
+        ...data,
         processingStatus: "completed",
         updatedAt: new Date(),
       })

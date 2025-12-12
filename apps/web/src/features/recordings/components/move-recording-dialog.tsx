@@ -29,7 +29,6 @@ interface MoveRecordingDialogProps {
   currentProjectId: string;
   variant?: "default" | "outline" | "ghost";
   triggerContent?: React.ReactNode;
-  open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
@@ -38,15 +37,9 @@ export function MoveRecordingDialog({
   currentProjectId,
   variant = "ghost",
   triggerContent,
-  open: controlledOpen,
-  onOpenChange: controlledOnOpenChange,
+  onOpenChange,
 }: MoveRecordingDialogProps) {
-  const [internalOpen, setInternalOpen] = useState(false);
   const [targetProjectId, setTargetProjectId] = useState<string>("");
-
-  // Use controlled or uncontrolled state
-  const open = controlledOpen ?? internalOpen;
-  const setOpen = controlledOnOpenChange ?? setInternalOpen;
 
   // Fetch projects when dialog opens
   const {
@@ -54,7 +47,7 @@ export function MoveRecordingDialog({
     isLoading: isLoadingProjects,
     error: projectsError,
   } = useProjectsForMove({
-    enabled: open,
+    enabled: true,
     currentProjectId,
   });
 
@@ -66,7 +59,7 @@ export function MoveRecordingDialog({
   // Move recording mutation
   const { moveRecording, isMoving } = useMoveRecordingMutation({
     onSuccess: () => {
-      setOpen(false);
+      onOpenChange?.(false);
       setTargetProjectId("");
     },
   });
@@ -86,7 +79,7 @@ export function MoveRecordingDialog({
   const selectedProject = projects?.find((p) => p.id === targetProjectId);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open>
       <DialogTrigger asChild>
         {triggerContent || (
           <Button variant={variant} size="sm">
@@ -156,7 +149,7 @@ export function MoveRecordingDialog({
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => setOpen(false)}
+            onClick={() => onOpenChange?.(false)}
             disabled={isMoving}
           >
             Cancel

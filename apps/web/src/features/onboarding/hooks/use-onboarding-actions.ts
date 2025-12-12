@@ -88,6 +88,7 @@ export function useOnboardingActions({
         }
         toast.success("Welkom bij Inovy! Je onboarding is voltooid.");
         router.push("/");
+        router.refresh();
       },
       onError: ({ error }) => {
         toast.error(error.serverError || "Failed to complete onboarding");
