@@ -1,6 +1,7 @@
 import { logger } from "@/lib/logger";
 import type { WorkflowResult as SerializableResult } from "@/workflows/lib/workflow-result";
 import { failure, success } from "@/workflows/lib/workflow-result";
+import { revalidatePath } from "next/cache";
 import { updateWorkflowStatus } from "../shared/update-status";
 import { getAiInsightsStep } from "./steps/step-ai-insights";
 import { executeFinalStep } from "./steps/step-finalize";
@@ -105,7 +106,7 @@ export async function convertRecordingIntoAiInsights(
 
     const utterances =
       transcriptionInsight.success && transcriptionInsight.value
-        ? transcriptionInsight.value.utterances ?? undefined
+        ? (transcriptionInsight.value.utterances ?? undefined)
         : undefined;
 
     // Step 2: Run summary and task extraction in parallel
@@ -173,6 +174,10 @@ export async function convertRecordingIntoAiInsights(
       durationMs: duration,
       isReprocessing,
     });
+
+    revalidatePath(
+      `/projects/${recording.projectId}/recordings/${recording.id}`
+    );
 
     return success({
       recordingId,

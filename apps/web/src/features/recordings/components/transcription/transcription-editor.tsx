@@ -1,22 +1,33 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
+import type { Utterance } from "@/server/dto/ai-insight.dto";
 import { useState } from "react";
-import { TranscriptionTabs } from "./transcription-tabs";
 import { TranscriptionEditView } from "./transcription-edit-view";
+import { TranscriptionTabs } from "./transcription-tabs";
 import type { TranscriptionEditorProps } from "./types";
 
 export function TranscriptionEditor({
-  recordingId,
-  transcriptionText,
-  utterances,
-  isManuallyEdited,
-  lastEditedById,
-  lastEditedAt,
-  speakersDetected,
-  confidence,
+  recording,
+  transcriptionInsights,
 }: TranscriptionEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
+
+  if (!transcriptionInsights) {
+    return null;
+  }
+
+  const {
+    transcriptionText,
+    isTranscriptionManuallyEdited,
+    transcriptionLastEditedAt,
+  } = recording;
+  const {
+    speakersDetected,
+    confidenceScore,
+    utterances,
+    content: { utterances: contentUtterances },
+  } = transcriptionInsights;
 
   if (!transcriptionText) {
     return (
@@ -33,12 +44,12 @@ export function TranscriptionEditor({
       <Card>
         <CardContent className="pt-6">
           <TranscriptionEditView
-            recordingId={recordingId}
+            recordingId={recording.id}
             transcriptionText={transcriptionText}
-            isManuallyEdited={isManuallyEdited}
-            lastEditedAt={lastEditedAt}
-            speakersDetected={speakersDetected}
-            confidence={confidence}
+            isManuallyEdited={isTranscriptionManuallyEdited}
+            lastEditedAt={transcriptionLastEditedAt}
+            speakersDetected={speakersDetected ?? 0}
+            confidence={confidenceScore ?? 0}
             onCancel={() => setIsEditing(false)}
             onSuccess={() => setIsEditing(false)}
           />
@@ -49,13 +60,13 @@ export function TranscriptionEditor({
 
   return (
     <TranscriptionTabs
-      utterances={utterances}
+      utterances={utterances ?? (contentUtterances as Utterance[]) ?? []}
       transcriptionText={transcriptionText}
-      recordingId={recordingId}
-      isManuallyEdited={isManuallyEdited}
-      lastEditedAt={lastEditedAt}
-      speakersDetected={speakersDetected}
-      confidence={confidence}
+      recordingId={recording.id}
+      isManuallyEdited={isTranscriptionManuallyEdited}
+      lastEditedAt={transcriptionLastEditedAt}
+      speakersDetected={speakersDetected ?? 0}
+      confidence={confidenceScore ?? 0}
       onEditStart={() => setIsEditing(true)}
     />
   );

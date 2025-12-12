@@ -1,7 +1,6 @@
 "use client";
 
 import { PencilIcon } from "lucide-react";
-import { useState } from "react";
 import { Button } from "../../../components/ui/button";
 import {
   Dialog,
@@ -18,7 +17,6 @@ interface EditRecordingModalProps {
   recording: RecordingDto;
   variant?: "default" | "outline" | "ghost";
   triggerContent?: React.ReactNode;
-  open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
@@ -26,21 +24,10 @@ export function EditRecordingModal({
   recording,
   variant = "outline",
   triggerContent,
-  open: controlledOpen,
-  onOpenChange: controlledOnOpenChange,
+  onOpenChange,
 }: EditRecordingModalProps) {
-  const [internalOpen, setInternalOpen] = useState(false);
-
-  // Use controlled or uncontrolled state
-  const open = controlledOpen ?? internalOpen;
-  const setOpen = controlledOnOpenChange ?? setInternalOpen;
-
-  const handleSuccess = () => {
-    setOpen(false);
-  };
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open>
       <DialogTrigger asChild>
         {triggerContent || (
           <Button variant={variant} size="sm">
@@ -64,7 +51,7 @@ export function EditRecordingModal({
             description: recording.description,
             recordingDate: recording.recordingDate,
           }}
-          onSuccess={handleSuccess}
+          onSuccess={() => onOpenChange?.(false)}
         />
       </DialogContent>
     </Dialog>

@@ -23,7 +23,6 @@ interface DeleteRecordingDialogProps {
   recordingTitle: string;
   projectId: string;
   variant?: "default" | "outline" | "ghost" | "destructive";
-  open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
@@ -32,15 +31,9 @@ export function DeleteRecordingDialog({
   recordingTitle,
   projectId,
   variant = "destructive",
-  open: controlledOpen,
-  onOpenChange: controlledOnOpenChange,
+  onOpenChange,
 }: DeleteRecordingDialogProps) {
   const router = useRouter();
-  const [internalOpen, setInternalOpen] = useState(false);
-
-  // Use controlled or uncontrolled state
-  const open = controlledOpen ?? internalOpen;
-  const setOpen = controlledOnOpenChange ?? setInternalOpen;
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +72,6 @@ export function DeleteRecordingDialog({
       }
 
       toast.success(`Recording "${recordingTitle}" deleted successfully`);
-      setOpen(false);
       router.refresh();
       router.push(`/projects/${projectId}`);
     } catch (error) {
@@ -97,11 +89,11 @@ export function DeleteRecordingDialog({
       setConfirmationText("");
       setError(null);
     }
-    setOpen(newOpen);
+    onOpenChange?.(newOpen);
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open>
       <DialogTrigger asChild>
         <Button variant={variant} size="sm">
           <Trash2Icon className="h-4 w-4 mr-2" />

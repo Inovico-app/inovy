@@ -1,6 +1,7 @@
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import { ProjectQueries } from "../data-access/projects.queries";
+import type { ProjectWithCreatorDetailsDto } from "../dto/project.dto";
 import { ProjectService } from "../services/project.service";
 
 /**
@@ -43,5 +44,19 @@ export async function getCachedUserProjects(orgCode: string) {
     id: project.id,
     name: project.name,
   }));
+}
+
+/**
+ * Get project by ID using ProjectService (cached)
+ * Useful for page loaders that already operate on ActionResult semantics.
+ */
+export async function getCachedProjectById(
+  projectId: string
+): Promise<ProjectWithCreatorDetailsDto | null> {
+  "use cache";
+  cacheTag(CacheTags.project(projectId));
+  const result = await ProjectService.getProjectById(projectId);
+
+  return result.isOk() ? result.value : null;
 }
 

@@ -7,7 +7,6 @@ import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { createClient } from "@deepgram/sdk";
 import { err, ok } from "neverthrow";
-import OpenAI from "openai";
 import { connectionPool } from "./connection-pool.service";
 import { KnowledgeBaseService } from "./knowledge-base.service";
 import { NotificationService } from "./notification.service";
@@ -242,17 +241,17 @@ export class TranscriptionService {
       }
 
       // Update AI insight with transcription data
-      await AIInsightsQueries.updateInsightContent(
-        insight.id,
-        {
+      await AIInsightsQueries.updateInsightContent(insight.id, {
+        content: {
           text: transcriptionText,
           confidence,
           speakers,
           utterances,
           knowledgeUsed: knowledgeEntries.map((e) => e.id), // Track which knowledge entries were used
         },
-        confidence
-      );
+        confidenceScore: confidence,
+        utterances,
+      });
 
       // Update recording with transcription text
       await RecordingsQueries.updateRecordingTranscription(
@@ -421,11 +420,6 @@ export class TranscriptionService {
 
       const knowledgeEntries = knowledgeResult.value;
 
-      // Use OpenAI to identify potential misheard terms
-      const openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY ?? "",
-      });
-
       // Build knowledge context for correction prompt
       // Persists knowledge entry id so that the LLM can reference the correct entry.
       const knowledgeContext = knowledgeEntries
@@ -506,9 +500,10 @@ export class TranscriptionService {
         string,
         unknown
       >;
-      await AIInsightsQueries.updateInsightContent(
-        transcriptionInsight.id,
-        {
+      await AIInsightsQueries.updateInsightContent(transcriptionInsight.id, {
+        ...currentContent,
+        confidenceScore: transcriptionInsight.confidenceScore ?? 0,
+        content: {
           ...currentContent,
           corrections: corrections.map((c) => ({
             original: c.original,
@@ -517,8 +512,7 @@ export class TranscriptionService {
             confidence: c.confidence,
           })),
         },
-        transcriptionInsight.confidenceScore ?? 0
-      );
+      });
 
       logger.info("Transcription corrections applied", {
         component: "TranscriptionService.correctTranscriptionWithKnowledge",

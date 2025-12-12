@@ -1,4 +1,5 @@
 import { err, ok } from "neverthrow";
+import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
 import {
@@ -11,7 +12,6 @@ import type { AIInsight, NewAIInsight } from "../db/schema/ai-insights";
 import type {
   AIInsightDto,
   InsightType,
-  UpdateAIInsightContentDto,
   UpdateAIInsightStatusDto,
   UpdateAIInsightWithEditDto,
 } from "../dto/ai-insight.dto";
@@ -69,7 +69,7 @@ export class AIInsightService {
           organizationId,
           "AIInsightService.getInsightsByRecordingId"
         );
-      } catch (error) {
+      } catch (_error) {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -145,7 +145,7 @@ export class AIInsightService {
           organizationId,
           "AIInsightService.getInsightByType"
         );
-      } catch (error) {
+      } catch (_error) {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -222,6 +222,14 @@ export class AIInsightService {
         );
       }
 
+      CacheInvalidation.invalidateAIInsightByType(
+        insight.recordingId,
+        insight.insightType
+      );
+      if (insight.insightType === "summary") {
+        CacheInvalidation.invalidateSummary(insight.recordingId);
+      }
+
       return ok(this.toDto(insight));
     } catch (error) {
       logger.error("Failed to update AI insight status", {}, error as Error);
@@ -240,14 +248,15 @@ export class AIInsightService {
    * Used by AI processing workflows to store generated content
    */
   static async updateInsightContent(
-    input: UpdateAIInsightContentDto
+    input: Partial<Omit<NewAIInsight, "id" | "createdAt" | "updatedAt">> & {
+      id: string;
+    }
   ): Promise<ActionResult<AIInsightDto>> {
     try {
-      const insight = await AIInsightsQueries.updateInsightContent(
-        input.insightId,
-        input.content,
-        input.confidenceScore
-      );
+      const insight = await AIInsightsQueries.updateInsightContent(input.id, {
+        content: input.content,
+        confidenceScore: input.confidenceScore,
+      });
 
       if (!insight) {
         return err(
@@ -256,6 +265,14 @@ export class AIInsightService {
             "AIInsightService.updateInsightContent"
           )
         );
+      }
+
+      CacheInvalidation.invalidateAIInsightByType(
+        insight.recordingId,
+        insight.insightType
+      );
+      if (insight.insightType === "summary") {
+        CacheInvalidation.invalidateSummary(insight.recordingId);
       }
 
       return ok(this.toDto(insight));
@@ -312,7 +329,7 @@ export class AIInsightService {
           organizationId,
           "AIInsightService.updateInsightWithEdit"
         );
-      } catch (error) {
+      } catch (_error) {
         return err(
           ActionErrors.notFound(
             "AI Insight not found",
@@ -334,6 +351,14 @@ export class AIInsightService {
             "AIInsightService.updateInsightWithEdit"
           )
         );
+      }
+
+      CacheInvalidation.invalidateAIInsightByType(
+        insight.recordingId,
+        insight.insightType
+      );
+      if (insight.insightType === "summary") {
+        CacheInvalidation.invalidateSummary(insight.recordingId);
       }
 
       return ok(this.toDto(insight));
@@ -381,7 +406,7 @@ export class AIInsightService {
           organizationId,
           "AIInsightService.updateSpeakerNames"
         );
-      } catch (error) {
+      } catch (_error) {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -419,6 +444,11 @@ export class AIInsightService {
           )
         );
       }
+
+      CacheInvalidation.invalidateAIInsightByType(
+        updated.recordingId,
+        updated.insightType
+      );
 
       return ok(this.toDto(updated));
     } catch (error) {
@@ -465,7 +495,7 @@ export class AIInsightService {
           organizationId,
           "AIInsightService.deleteInsight"
         );
-      } catch (error) {
+      } catch (_error) {
         return err(
           ActionErrors.notFound(
             "AI Insight not found",
@@ -475,6 +505,14 @@ export class AIInsightService {
       }
 
       await AIInsightsQueries.deleteInsight(insightId);
+
+      CacheInvalidation.invalidateAIInsightByType(
+        insight.recordingId,
+        insight.insightType
+      );
+      if (insight.insightType === "summary") {
+        CacheInvalidation.invalidateSummary(insight.recordingId);
+      }
 
       return ok(undefined);
     } catch (error) {

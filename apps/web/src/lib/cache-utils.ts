@@ -30,13 +30,22 @@ export const CacheTags = {
   tasksByUser: (userId: string, orgCode: string) =>
     `tasks:user:${userId}:org:${orgCode}`,
   tasksByOrg: (orgCode: string) => `tasks:org:${orgCode}`,
+  tasksByRecording: (recordingId: string) => `tasks:recording:${recordingId}`,
   taskStats: (userId: string, orgCode: string) =>
     `task-stats:user:${userId}:org:${orgCode}`,
   taskTags: (orgCode: string) => `task-tags:org:${orgCode}`,
   taskTagsForTask: (taskId: string) => `task-tags:task:${taskId}`,
 
+  // AI insight tags
+  aiInsightByType: (recordingId: string, insightType: string) =>
+    `ai-insight:${recordingId}:type:${insightType}`,
+
   // Summary tags
   summary: (recordingId: string) => `summary:${recordingId}`,
+
+  // Consent tags
+  consentParticipants: (recordingId: string, organizationId: string) =>
+    `consent-participants:${recordingId}:org:${organizationId}`,
 
   // User tags
   user: (userId: string) => `user:${userId}`,
@@ -223,10 +232,38 @@ export const CacheInvalidation = {
   },
 
   /**
+   * Invalidate tasks by recording cache
+   */
+  invalidateTasksByRecording(recordingId: string, orgCode?: string): void {
+    const tags = [CacheTags.tasksByRecording(recordingId)];
+    if (orgCode) {
+      tags.push(CacheTags.tasksByOrg(orgCode));
+    }
+    invalidateCache(...tags);
+  },
+
+  /**
    * Invalidate summary cache
    */
   invalidateSummary(recordingId: string): void {
     revalidateTag(CacheTags.summary(recordingId), "max");
+  },
+
+  /**
+   * Invalidate AI insight cache
+   */
+  invalidateAIInsightByType(recordingId: string, insightType: string): void {
+    invalidateCache(CacheTags.aiInsightByType(recordingId, insightType));
+  },
+
+  /**
+   * Invalidate consent participants cache
+   */
+  invalidateConsentParticipants(
+    recordingId: string,
+    organizationId: string
+  ): void {
+    invalidateCache(CacheTags.consentParticipants(recordingId, organizationId));
   },
 
   /**

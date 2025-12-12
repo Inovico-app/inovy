@@ -1,3 +1,4 @@
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import { TasksQueries } from "../data-access/tasks.queries";
@@ -23,9 +24,8 @@ export async function getCachedTasksByUser(
     CacheTags.tasksByOrg(orgCode)
   );
 
-  return await TaskService.getTasksByAssignee({
-    ...filters,
-  });
+  const result = await TaskService.getTasksByAssignee(filters);
+  return result.isOk() ? (result.value ?? []) : [];
 }
 
 /**
@@ -66,5 +66,33 @@ export async function getCachedTasksWithContext(
   }
 
   return result.value ?? [];
+}
+
+/**
+ * Get tasks for a recording (cached)
+ * Tags include recording-specific and organization-wide task tags so existing
+ * task mutation invalidation stays effective.
+ */
+export async function getCachedTasksByRecordingId(recordingId: string) {
+  "use cache";
+
+  const authResult = await getBetterAuthSession();
+  const orgId =
+    authResult.isOk() && authResult.value.organization
+      ? authResult.value.organization.id
+      : null;
+
+  if (orgId) {
+    cacheTag(
+      CacheTags.tasksByRecording(recordingId),
+      CacheTags.tasksByOrg(orgId)
+    );
+  } else {
+    cacheTag(CacheTags.tasksByRecording(recordingId));
+  }
+
+  const result = await TaskService.getTasksByRecordingId(recordingId);
+
+  return result.isOk() ? result.value : [];
 }
 

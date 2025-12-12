@@ -113,7 +113,6 @@ export function RecordingDetailActionsDropdown({
       >
         <EditRecordingModal
           recording={recording}
-          open={showEditModal}
           onOpenChange={setShowEditModal}
         />
       </Activity>
@@ -125,7 +124,6 @@ export function RecordingDetailActionsDropdown({
         <MoveRecordingDialog
           recording={recording}
           currentProjectId={projectId}
-          open={showMoveDialog}
           onOpenChange={setShowMoveDialog}
         />
       </Activity>
@@ -138,7 +136,6 @@ export function RecordingDetailActionsDropdown({
           recordingId={recording.id}
           recordingTitle={recording.title}
           isArchived={isArchived}
-          open={showArchiveDialog}
           onOpenChange={setShowArchiveDialog}
         />
       </Activity>
@@ -151,7 +148,6 @@ export function RecordingDetailActionsDropdown({
           recordingId={recording.id}
           recordingTitle={recording.title}
           projectId={projectId}
-          open={showDeleteDialog}
           onOpenChange={setShowDeleteDialog}
         />
       </Activity>

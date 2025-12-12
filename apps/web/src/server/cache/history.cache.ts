@@ -8,6 +8,24 @@ import { TranscriptionEditService } from "../services/transcription-edit.service
  * Uses Next.js 16 cache with tags for invalidation
  */
 
+export interface TranscriptionHistoryEntry {
+  id: string;
+  versionNumber: number;
+  content: string;
+  editedById: string;
+  editedAt: Date;
+  changeDescription: string | null;
+}
+
+export interface SummaryHistoryEntry {
+  id: string;
+  versionNumber: number;
+  content: Record<string, unknown>;
+  editedById: string;
+  editedAt: Date;
+  changeDescription: string | null;
+}
+
 /**
  * Get transcription history for a recording (cached)
  * Calls TranscriptionEditService which includes business logic
@@ -15,13 +33,14 @@ import { TranscriptionEditService } from "../services/transcription-edit.service
 export async function getCachedTranscriptionHistory(
   recordingId: string,
   organizationId: string
-) {
+): Promise<TranscriptionHistoryEntry[]> {
   "use cache";
   cacheTag(CacheTags.transcriptionHistory(recordingId));
-  return await TranscriptionEditService.getTranscriptionHistory(
+  const result = await TranscriptionEditService.getTranscriptionHistory(
     recordingId,
     organizationId
   );
+  return result.isOk() ? result.value : [];
 }
 
 /**
@@ -31,12 +50,13 @@ export async function getCachedTranscriptionHistory(
 export async function getCachedSummaryHistory(
   recordingId: string,
   organizationId: string
-) {
+): Promise<SummaryHistoryEntry[]> {
   "use cache";
   cacheTag(CacheTags.summaryHistory(recordingId));
-  return await SummaryEditService.getSummaryHistory(
+  const result = await SummaryEditService.getSummaryHistory(
     recordingId,
     organizationId
   );
+  return result.isOk() ? result.value : [];
 }
 

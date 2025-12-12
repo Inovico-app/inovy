@@ -1,5 +1,6 @@
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
+import type { RecordingDto } from "../dto/recording.dto";
 import { RecordingService } from "../services/recording.service";
 
 /**
@@ -11,10 +12,13 @@ import { RecordingService } from "../services/recording.service";
  * Get recording by ID (cached)
  * Calls RecordingService which includes business logic and auth checks
  */
-export async function getCachedRecordingById(recordingId: string) {
+export async function getCachedRecordingById(
+  recordingId: string
+): Promise<RecordingDto | null> {
   "use cache";
   cacheTag(CacheTags.recording(recordingId));
-  return await RecordingService.getRecordingById(recordingId);
+  const result = await RecordingService.getRecordingById(recordingId);
+  return result.isOk() ? (result.value ?? null) : null;
 }
 
 /**
