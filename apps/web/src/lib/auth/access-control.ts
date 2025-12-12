@@ -54,6 +54,9 @@ const statement = {
 
   // Onboarding management
   onboarding: ["create", "read", "update", "complete"],
+
+  // Invitation management
+  invitation: ["create", "cancel"],
 } as const;
 
 /**
@@ -83,6 +86,7 @@ export const superAdmin = ac.newRole({
   team: ["create", "read", "update", "delete"],
   "audit-log": ["read"],
   onboarding: ["create", "read", "update", "complete"],
+  invitation: ["create", "cancel"],
 });
 
 // Admin - Full access except super admin features
@@ -101,6 +105,7 @@ export const admin = ac.newRole({
   team: ["create", "read", "update", "delete"],
   "audit-log": ["read"],
   onboarding: ["create", "read", "update", "complete"],
+  invitation: ["create", "cancel"],
 });
 
 // Manager - Limited admin access
@@ -117,6 +122,7 @@ export const manager = ac.newRole({
   integration: ["manage"],
   team: ["read"],
   onboarding: ["create", "read", "update", "complete"],
+  invitation: ["create", "cancel"],
 });
 
 // User - Standard user permissions
