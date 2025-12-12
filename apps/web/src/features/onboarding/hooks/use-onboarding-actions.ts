@@ -3,6 +3,7 @@ import {
   completeOnboardingAction,
   updateOnboardingDataAction,
 } from "@/features/onboarding/actions/onboarding";
+import { authClient } from "@/lib/auth-client";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -74,7 +75,17 @@ export function useOnboardingActions({
   const { execute: completeOnboarding, isExecuting: isCompleting } = useAction(
     completeOnboardingAction,
     {
-      onSuccess: () => {
+      onSuccess: async () => {
+        // revoke all sessions and use a fresh one
+        try {
+          await authClient.revokeSessions();
+          await authClient.getSession();
+        } catch (error) {
+          toast.error(
+            "Failed to complete onboarding: revoking sessions failed"
+          );
+          console.error("Revoke sessions error:", error);
+        }
         toast.success("Welkom bij Inovy! Je onboarding is voltooid.");
         router.push("/");
       },
