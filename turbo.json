@@ -3,13 +3,17 @@
   "globalDependencies": [".env*"],
   "ui": "tui",
   "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$"]
+    },
     "web#db:migrate": {
-      "dependsOn": ["^web#db:migrate"],
+      "dependsOn": ["^db:migrate"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "env": ["DATABASE_URL"]
     },
     "web#build": {
-      "dependsOn": ["^web#build"],
+      "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "env": [
         "DATABASE_URL",

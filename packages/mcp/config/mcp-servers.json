@@ -1,5 +1,26 @@
 [
   {
+    "name": "filesystem",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-filesystem",
+      "./allowed-directory"
+    ],
+    "retryAttempts": 3,
+    "retryDelay": 2000
+  },
+  {
+    "name": "sequential-thinking",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+  },
+  {
+    "name": "inovy-rag",
+    "command": "npx",
+    "args": ["-y", "mcp-remote", "https://inovy-web.vercel.app/api/mcp"]
+  },
+  {
     "name": "google-drive",
     "command": "npx",
     "args": ["-y", "@modelcontextprotocol/server-google-drive"],
@@ -30,17 +51,6 @@
       "MS_CLIENT_SECRET": "${MS_CLIENT_SECRET}",
       "MS_TENANT_ID": "${MS_TENANT_ID}"
     },
-    "retryAttempts": 3,
-    "retryDelay": 2000
-  },
-  {
-    "name": "filesystem",
-    "command": "npx",
-    "args": [
-      "-y",
-      "@modelcontextprotocol/server-filesystem",
-      "./allowed-directory"
-    ],
     "retryAttempts": 3,
     "retryDelay": 2000
   }

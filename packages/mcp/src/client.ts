@@ -1,14 +1,14 @@
-import {
+import { Client } from "@modelcontextprotocol/sdk/client";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import type { Tool } from "@modelcontextprotocol/sdk/types.js";
+import type { Logger } from "pino";
+import type {
   AggregatedTool,
   MCPClientConfig,
   MCPServerHealth,
   RetryState,
-} from "@inovy/agent-shared";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { Logger } from "pino";
-import { generateCorrelationId, logger } from "../lib/logger.js";
+} from "./types";
+import { generateCorrelationId } from "./utils";
 
 export class MCPClientManager {
   private clients: Map<string, Client> = new Map();
@@ -21,7 +21,7 @@ export class MCPClientManager {
   private healthCheckInterval?: NodeJS.Timeout;
   private logger: Logger;
 
-  constructor(configs: MCPClientConfig[]) {
+  constructor(configs: MCPClientConfig[], logger: Logger) {
     this.logger = logger.child({ component: "MCPClientManager" });
     const correlationId = generateCorrelationId();
     this.logger.info({ correlationId }, "Initializing MCP Client Manager");
@@ -104,19 +104,20 @@ export class MCPClientManager {
         command: config.command,
         args: config.args,
         env: {
+          // Config values act as defaults; runtime env should be able to override them.
+          ...(config.env ?? {}),
           ...Object.fromEntries(
             Object.entries(process.env).filter(([_, v]) => v !== undefined) as [
               string,
               string
             ][]
           ),
-          ...config.env,
         },
       });
 
       const client = new Client(
         {
-          name: "agent-server-client",
+          name: "inocy-mcp-client",
           version: "1.0.0",
         },
         {
@@ -310,7 +311,7 @@ export class MCPClientManager {
    */
   async invokeTool(
     toolName: string,
-    params: any,
+    params: Record<string, unknown>,
     parentCorrelationId?: string
   ) {
     const correlationId = parentCorrelationId || generateCorrelationId();
@@ -461,7 +462,6 @@ export class MCPClientManager {
     this.transports.clear();
     this.tools.clear();
     this.toolToServer.clear();
-
     this.logger.info({ correlationId }, "MCP Client Manager shutdown complete");
   }
 }
