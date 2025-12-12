@@ -1,6 +1,8 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { logger, serializeError } from "@/lib/logger";
+import { anonymizeEmail, anonymizeUserId } from "@/lib/pii-utils";
 import {
   authorizedActionClient,
   createErrorForNextSafeAction,
@@ -26,16 +28,35 @@ export const inviteColleaguesAction = authorizedActionClient
     const userId = ctx.user?.id;
 
     if (!userId) {
+      logger.warn("Onboarding invite colleagues: unauthenticated", {
+        component: "onboarding",
+        action: "inviteColleaguesAction",
+      });
       throw createErrorForNextSafeAction(
         ActionErrors.unauthenticated("User not found")
       );
     }
+
+    const requestHeaders = await headers();
+    const requestId =
+      requestHeaders.get("x-request-id") ??
+      requestHeaders.get("x-vercel-id") ??
+      undefined;
 
     // Get user's organization
     const organizationId =
       await OrganizationQueries.getFirstOrganizationForUser(userId);
 
     if (!organizationId) {
+      logger.error(
+        "Onboarding invite colleagues: organization not found for user",
+        {
+          component: "onboarding",
+          action: "inviteColleaguesAction",
+          requestId,
+          userIdHash: anonymizeUserId(userId),
+        }
+      );
       throw createErrorForNextSafeAction(
         ActionErrors.internal(
           "User organization not found. Please contact support.",
@@ -52,6 +73,13 @@ export const inviteColleaguesAction = authorizedActionClient
       .filter((email) => email.length > 0);
 
     if (emailList.length === 0) {
+      logger.warn("Onboarding invite colleagues: no valid emails provided", {
+        component: "onboarding",
+        action: "inviteColleaguesAction",
+        requestId,
+        userIdHash: anonymizeUserId(userId),
+        organizationId,
+      });
       throw createErrorForNextSafeAction(
         ActionErrors.validation("No valid email addresses found", {
           context: "inviteColleaguesAction",
@@ -64,6 +92,15 @@ export const inviteColleaguesAction = authorizedActionClient
     const invalidEmails = emailList.filter((email) => !emailRegex.test(email));
 
     if (invalidEmails.length > 0) {
+      logger.warn("Onboarding invite colleagues: invalid email(s) provided", {
+        component: "onboarding",
+        action: "inviteColleaguesAction",
+        requestId,
+        userIdHash: anonymizeUserId(userId),
+        organizationId,
+        invalidCount: invalidEmails.length,
+        invalidEmailHashes: invalidEmails.map((email) => anonymizeEmail(email)),
+      });
       throw createErrorForNextSafeAction(
         ActionErrors.validation(
           `Invalid email addresses: ${invalidEmails.join(", ")}`,
@@ -72,12 +109,24 @@ export const inviteColleaguesAction = authorizedActionClient
       );
     }
 
-    const requestHeaders = await headers();
+    const log = logger.child({
+      component: "onboarding",
+      action: "inviteColleaguesAction",
+      requestId,
+      userIdHash: anonymizeUserId(userId),
+      organizationId,
+    });
+
+    log.info("Onboarding invite colleagues: started", {
+      emailCount: emailList.length,
+    });
+
     const results: Array<{ email: string; success: boolean; error?: string }> =
       [];
 
     // Send invitations for each email
     for (const email of emailList) {
+      const emailHash = anonymizeEmail(email);
       try {
         const result = await auth.api.createInvitation({
           body: {
@@ -89,8 +138,18 @@ export const inviteColleaguesAction = authorizedActionClient
         });
 
         if (result) {
+          log.debug("Onboarding invite colleagues: invitation created", {
+            emailHash,
+            invitationId: result.id,
+          });
           results.push({ email, success: true });
         } else {
+          log.warn(
+            "Onboarding invite colleagues: invitation creation returned empty result",
+            {
+              emailHash,
+            }
+          );
           results.push({
             email,
             success: false,
@@ -102,12 +161,27 @@ export const inviteColleaguesAction = authorizedActionClient
           error instanceof APIError &&
           error.body?.code === "USER_IS_ALREADY_A_MEMBER_OF_THIS_ORGANIZATION"
         ) {
+          log.error("Onboarding invite colleagues: user already a member", {
+            emailHash,
+            errorCode: error.body?.code,
+          });
           results.push({
             email,
             success: false,
             error: "User is already a member",
           });
         } else {
+          const errorCode =
+            error instanceof APIError ? error.body?.code : undefined;
+          log.error(
+            "Onboarding invite colleagues: failed to create invitation",
+            {
+              emailHash,
+              errorCode,
+              errorDetails: serializeError(error),
+            },
+            error instanceof Error ? error : undefined
+          );
           results.push({
             email,
             success: false,
@@ -119,6 +193,12 @@ export const inviteColleaguesAction = authorizedActionClient
 
     const successCount = results.filter((r) => r.success).length;
     const failureCount = results.filter((r) => !r.success).length;
+
+    log.info("Onboarding invite colleagues: completed", {
+      emailCount: emailList.length,
+      successCount,
+      failureCount,
+    });
 
     return {
       success: successCount > 0,
