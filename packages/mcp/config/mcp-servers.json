@@ -17,8 +17,8 @@
   },
   {
     "name": "inovy-rag",
-    "command": "npx",
-    "args": ["-y", "mcp-remote", "https://inovy-web.vercel.app/api/mcp"]
+    "command": "node",
+    "args": ["./packages/mcp/scripts/mcp-remote-wrapper.mjs"]
   },
   {
     "name": "google-drive",
