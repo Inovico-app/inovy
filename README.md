@@ -351,7 +351,7 @@ Notification Dispatch
    # Google Workspace
    GOOGLE_CLIENT_ID="your-google-client-id"
    GOOGLE_CLIENT_SECRET="your-google-client-secret"
-   
+
    # Microsoft 365
    MICROSOFT_CLIENT_ID="your-microsoft-client-id"
    MICROSOFT_CLIENT_SECRET="your-microsoft-client-secret"
@@ -360,10 +360,10 @@ Notification Dispatch
    # AI Services
    # OpenAI
    OPENAI_API_KEY="your-openai-api-key"
-   
+
    # Anthropic
    ANTHROPIC_API_KEY="your-anthropic-api-key"
-   
+
    # Deepgram (Transcription)
    DEEPGRAM_API_KEY="your-deepgram-api-key"
 
@@ -457,23 +457,17 @@ Notification Dispatch
 
 7. **Agent Server Setup (Optional)**
 
-   The agent server provides MCP (Model Context Protocol) integration for AI agents:
+   MCP (Model Context Protocol) integration can be configured via the MCP servers config:
 
    ```bash
-   # From project root
-   cd apps/agent-server
-
-   # Install dependencies (if not already installed)
-   pnpm install
-
    # Configure MCP servers
-   # Edit config/mcp-servers.json with your credentials
-
-   # Start the agent server
-   pnpm dev
+   # Edit packages/mcp/config/mcp-servers.json with your credentials
    ```
 
-   The agent server runs on a separate port and provides MCP tool integration for Google Workspace and Microsoft 365.
+   The `inovy-rag` entry uses **MCP_REMOTE_URL** to decide which environment to connect to:
+
+   - **Local dev default (no env needed)**: `http://localhost:3000/api/mcp`
+   - **Preview / production**: set `MCP_REMOTE_URL` to your deployed endpoint, e.g. `https://<your-deployment>/api/mcp`
 
 8. **Start Development Server**
 
@@ -807,16 +801,17 @@ npm run index-project     # Index project content to vector database
 npm run email             # Start React Email preview server (port 3001)
 ```
 
-### Agent Server
+### MCP (Model Context Protocol)
 
 ```bash
-# From apps/agent-server directory
-cd apps/agent-server
-pnpm dev                  # Start agent server in development mode
-pnpm build                # Build agent server
-pnpm start                # Start production agent server
+# MCP tools/package (optional)
+cd packages/mcp
+pnpm dev                  # TypeScript watch (no emit)
 pnpm lint                 # Run ESLint
 pnpm check-types          # TypeScript validation
+
+# If you're using the remote MCP server config, set:
+# MCP_REMOTE_URL=https://<your-deployment>/api/mcp
 ```
 
 ### Cache Management
@@ -883,9 +878,9 @@ pnpm typecheck            # Check types across entire monorepo
 # From apps/web directory
 npm run typecheck         # Check types for web app
 
-# From apps/agent-server directory
-cd apps/agent-server
-pnpm check-types          # Check types for agent server
+# From packages/mcp directory
+cd packages/mcp
+pnpm check-types          # Check types for MCP package
 ```
 
 ### Package Management
@@ -898,10 +893,6 @@ pnpm install              # Install all dependencies
 cd apps/web
 pnpm add <package>       # Add dependency
 
-# Add new dependency to agent-server
-cd apps/agent-server
-pnpm add <package>       # Add dependency
-
 # Add new dependency to shared package
 cd packages/agent-shared
 pnpm add <package>       # Add dependency
@@ -912,23 +903,27 @@ pnpm add <package>       # Add dependency
 Inovy uses Better Auth for comprehensive authentication and authorization:
 
 1. **User Registration/Login**
+
    - Email/password with email verification
    - OAuth providers (Google, Microsoft)
    - Magic link authentication
    - Passkey/WebAuthn support
 
 2. **Session Management**
+
    - Secure session cookies managed by Better Auth
    - Custom session with role information
    - Session expiration and refresh handling
 
 3. **Organization Management**
+
    - Multi-organization support
    - Organization invitations via email
    - Role-based membership (owner, admin, member)
    - Active organization context switching
 
 4. **Access Control**
+
    - RBAC with organization-level permissions
    - Policy-based authorization
    - Protected routes with middleware
@@ -960,6 +955,7 @@ Inovy uses Better Auth for comprehensive authentication and authorization:
 ### Better Auth Schema
 
 Better Auth manages its own schema for:
+
 - **Users** - Authentication user accounts
 - **Sessions** - User sessions
 - **Accounts** - OAuth account links

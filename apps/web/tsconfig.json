@@ -23,7 +23,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@inovy/mcp": ["../../packages/mcp/src/index.ts"]
     }
   },
   "include": [
@@ -32,7 +33,8 @@
     "./.next/types/**/*.ts",
     "./next-env.d.ts",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    "src/app/api/.well-known/oauth-protected-resource/**/*.ts"
   ],
   "exclude": ["./node_modules"]
 }
