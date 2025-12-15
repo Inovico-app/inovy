@@ -74,10 +74,9 @@ export function useOnboardingActions({
     completeOnboardingAction,
     {
       onSuccess: async () => {
-        // revoke all sessions and use a fresh one
         try {
-          await authClient.revokeSessions();
-          await authClient.getSession();
+          // Make sure we refresh all cached session data by fetching a new session
+          await authClient.getSession({ query: { disableCookieCache: true } });
         } catch (error) {
           toast.error(
             "Failed to complete onboarding: revoking sessions failed"

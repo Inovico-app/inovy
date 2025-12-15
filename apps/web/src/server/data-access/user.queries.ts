@@ -133,17 +133,20 @@ export class UserQueries {
   /**
    * Update a user using Better Auth API
    * Note: Better Auth updateUser API only updates the current user
+   * Custom fields like onboardingCompleted are updated separately via direct DB access
    */
   static async updateUser(
     data: {
       name?: string;
       image?: string | null;
+      onboardingCompleted?: boolean;
     },
     requestHeaders?: Headers
   ): Promise<boolean> {
     const headersList = requestHeaders ?? (await headers());
 
     try {
+      // Update standard fields via Better Auth API
       const result = await auth.api.updateUser({
         headers: headersList,
         body: {
@@ -151,6 +154,20 @@ export class UserQueries {
           image: data.image ?? undefined,
         },
       });
+
+      // Update custom fields via direct DB access if provided
+      if (data.onboardingCompleted !== undefined) {
+        const session = await auth.api.getSession({
+          headers: headersList,
+        });
+
+        if (session?.user?.id) {
+          await this.updateOnboardingCompleted(
+            session.user.id,
+            data.onboardingCompleted
+          );
+        }
+      }
 
       // Better Auth updateUser returns the updated user
       return result.status;

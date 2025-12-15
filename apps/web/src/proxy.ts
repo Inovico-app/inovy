@@ -1,12 +1,24 @@
+import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
+import { auth, type BetterAuthUser } from "./lib/auth";
 
-const getSessionCookie = async (req: NextRequest) => {
-  const cookieName =
-    process.env.NODE_ENV === "production"
-      ? "__Secure-better-auth.session_token"
-      : "better-auth.session_token";
-  return req.cookies.get(cookieName);
-};
+// Always allow these routes (no auth check needed)
+const publicRoutes = [
+  "/api/auth",
+  "/_next",
+  "/favicon.ico",
+  "/accept-invitation",
+  "/sign-in",
+  "/sign-up",
+  "/onboarding",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+  "/verify-email-token",
+];
+
+const isAlwaysPublic = (req: NextRequest) =>
+  publicRoutes.some((route) => req.nextUrl.pathname.startsWith(route));
 
 export default async function proxy(req: NextRequest) {
   // Handle CORS for API routes
@@ -26,40 +38,27 @@ export default async function proxy(req: NextRequest) {
     return res;
   }
 
-  // Always allow these routes (no auth check needed)
-  const alwaysPublicRoutes = [
-    "/api/auth",
-    "/_next",
-    "/favicon.ico",
-    "/accept-invitation",
-  ];
-  const isAlwaysPublic = alwaysPublicRoutes.some((route) =>
-    req.nextUrl.pathname.startsWith(route)
-  );
+  const publicRoute = isAlwaysPublic(req);
 
-  if (isAlwaysPublic) {
+  if (publicRoute) {
+    // Early return for public/auth routes
     return NextResponse.next();
   }
 
-  // Check if this is an auth page (sign-in, sign-up)
-  const isAuthPage = ["/sign-in", "/sign-up"].includes(req.nextUrl.pathname);
+  // Use a fresh session to avoid caching issues, this however has a minor performance impact
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-  // Optimistic session check using cookie cache
-  // Note: This is optimistic - full validation happens in ProtectedPage components
-  const sessionCookie = await getSessionCookie(req);
-
-  // Handle auth pages: redirect authenticated users away, allow unauthenticated users
-  if (isAuthPage) {
-    if (sessionCookie) {
-      // Authenticated user trying to access sign-in/sign-up - redirect to home
-      return NextResponse.redirect(new URL("/", req.url));
-    }
-    // Unauthenticated user accessing sign-in/sign-up - allow access
-    return NextResponse.next();
+  // Redirect user to onboarding page if they have not completed onboarding
+  const hasUserOnboarded = (session?.user as BetterAuthUser)
+    ?.onboardingCompleted;
+  if (!hasUserOnboarded) {
+    return NextResponse.redirect(new URL("/onboarding", req.url));
   }
 
   // For all other routes, require authentication
-  if (!sessionCookie) {
+  if (!session) {
     // Redirect to sign-in, preserving the original URL for redirect after login
     const signInUrl = new URL("/sign-in", req.url);
     signInUrl.searchParams.set("redirect", req.nextUrl.pathname);
