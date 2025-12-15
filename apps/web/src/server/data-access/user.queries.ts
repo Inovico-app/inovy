@@ -161,12 +161,13 @@ export class UserQueries {
           headers: headersList,
         });
 
-        if (session?.user?.id) {
-          await this.updateOnboardingCompleted(
-            session.user.id,
-            data.onboardingCompleted
-          );
+        if (!session?.user?.id) {
+          return false;
         }
+        await this.updateOnboardingCompleted(
+          session.user.id,
+          data.onboardingCompleted
+        );
       }
 
       // Better Auth updateUser returns the updated user
