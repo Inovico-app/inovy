@@ -80,11 +80,6 @@ export const auth = betterAuth({
       });
     },
   },
-  account: {
-    accountLinking: {
-      trustedProviders: ["google", "microsoft"],
-    },
-  },
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,
@@ -126,11 +121,20 @@ export const auth = betterAuth({
     cookieCache: {
       enabled: true,
       maxAge: 60 * 60 * 24 * 7, // 7 days
-      strategy: "jwe",
+      strategy: "compact",
+      refreshCache: true, // Enable stateless refresh
     },
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // 1 day
     freshAge: 60 * 10, // 10 minutes
+  },
+  account: {
+    accountLinking: {
+      trustedProviders: ["google", "microsoft"],
+    },
+    storeStateStrategy: "cookie",
+    storeAccountCookie: true,
+    updateAccountOnSignIn: true,
   },
   databaseHooks: {
     // Session gets triggered by social signups and signins, so we need to ensure the user has an organization here too

@@ -73,6 +73,7 @@ export const completeOnboardingAction = authorizedActionClient
         const updatedUser = await UserQueries.updateUser(
           {
             name: name.trim(),
+            onboardingCompleted: true,
           },
           requestHeaders
         );
@@ -122,17 +123,6 @@ export const completeOnboardingAction = authorizedActionClient
 
     if (updateResult.isErr()) {
       throw createErrorForNextSafeAction(updateResult.error);
-    }
-
-    // revoke all sessions and use a fresh one
-    try {
-      await auth.api.revokeSessions({
-        headers: await headers(),
-      });
-    } catch (error) {
-      throw createErrorForNextSafeAction(
-        ActionErrors.internal("Failed to revoke sessions", error as Error)
-      );
     }
 
     return { success: true };
