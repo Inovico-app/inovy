@@ -500,10 +500,10 @@ ${params.transcriptionText}`
 
       const systemPromptContent = `Je bent een AI-assistent die Nederlandse vergadernotulen analyseert en samenvat.
 
-Je taak is om een gestructureerde samenvatting te maken van de vergadertranscriptie.
+Je taak is om een gestructureerde samenvatting te maken van de vergadertranscriptie. Dit moet een beknopte samenvatting in het Nederlands zijn met de essentie van de vergadering zodat de gebruiker de essentie van de vergadering kan snel begrijpen.
 
 Analyseer de transcriptie en maak een samenvatting met de volgende structuur:
-1. Overview: Een beknopt overzicht (1-2 paragrafen) die de essentie van de vergadering samenvat
+1. Overview: Een beknopt overzicht (1-4 paragrafen) die de essentie van de vergadering samenvat
 2. Topics: Een lijst van de belangrijkste onderwerpen die zijn besproken
 3. Decisions: Een lijst van beslissingen die tijdens de vergadering zijn genomen
 4. Speaker Contributions: Voor elke geïdentificeerde spreker, een lijst van hun belangrijkste bijdragen
