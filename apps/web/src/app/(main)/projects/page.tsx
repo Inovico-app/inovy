@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CreateProjectModal } from "@/features/projects/components/create-project-modal";
 import { ProjectSearch } from "@/features/projects/components/project-search";
 import { ProjectTabs } from "@/features/projects/components/project-tabs";
 import { formatDateShort } from "@/lib/formatters/date-formatters";
@@ -122,12 +123,14 @@ async function ProjectsList({
                   : "Create your first project to start organizing your meeting recordings."}
             </p>
             {!searchQuery && status === "active" && (
-              <Button asChild>
-                <Link href="/projects/create">
-                  <PlusIcon className="h-4 w-4 mr-2" />
-                  Create Your First Project
-                </Link>
-              </Button>
+              <CreateProjectModal
+                trigger={
+                  <Button>
+                    <PlusIcon className="h-4 w-4 mr-2" />
+                    Create Your First Project
+                  </Button>
+                }
+              />
             )}
           </CardContent>
         </Card>
@@ -157,12 +160,7 @@ async function ProjectsPageContent({
               Organize your meeting recordings by project
             </p>
           </div>
-          <Button asChild>
-            <Link href="/projects/create">
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Create New Project
-            </Link>
-          </Button>
+          <CreateProjectModal />
         </div>
 
         {/* Tabs */}
