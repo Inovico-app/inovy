@@ -26,7 +26,7 @@ const createOrganizationSchema = z.object({
       /^[a-z0-9-]+$/,
       "Slug must contain only lowercase letters, numbers, and hyphens"
     ),
-  logo: z.string().url().optional(),
+  logo: z.url().optional(),
 });
 
 /**
@@ -35,6 +35,7 @@ const createOrganizationSchema = z.object({
  */
 export const createOrganization = authorizedActionClient
   .metadata({
+    name: "create-organization",
     permissions: policyToPermissions("organizations:create"),
   })
   .inputSchema(createOrganizationSchema)

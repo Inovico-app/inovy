@@ -82,7 +82,7 @@ export function isAdmin(user: BetterAuthUser) {
  * Alias for isAdmin for better semantic clarity
  */
 export function isOrganizationAdmin(user: BetterAuthUser) {
-  return isAdmin(user) || isOwner(user);
+  return isAdmin(user) || isOwner(user) || isSuperAdmin(user);
 }
 
 /**

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../db";
 import {
   invitations,
@@ -7,6 +7,9 @@ import {
   type OrganizationMemberRole,
 } from "../db/schema/auth";
 import { pendingTeamAssignments } from "../db/schema/pending-team-assignments";
+
+export type Invitation = typeof invitations.$inferSelect;
+export type NewInvitation = typeof invitations.$inferInsert;
 
 /**
  * Invitation details with related data
@@ -98,6 +101,43 @@ export class InvitationsQueries {
       },
       pendingTeamIds,
     };
+  }
+
+  /**
+   * Find a pending invitation by email and organization
+   */
+  static async getPendingInvitation(
+    email: string,
+    organizationId: string
+  ): Promise<Invitation | null> {
+    const [invitation] = await db
+      .select()
+      .from(invitations)
+      .where(
+        and(
+          eq(invitations.email, email.toLowerCase()),
+          eq(invitations.organizationId, organizationId),
+          eq(invitations.status, "pending")
+        )
+      )
+      .limit(1);
+
+    return invitation ?? null;
+  }
+
+  /**
+   * Create a new invitation record
+   */
+  static async createInvitation(data: NewInvitation): Promise<Invitation> {
+    const [invitation] = await db
+      .insert(invitations)
+      .values({
+        ...data,
+        createdAt: data.createdAt ?? new Date(),
+      })
+      .returning();
+
+    return invitation;
   }
 }
 

@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { InviteUserDialog } from "@/features/admin/components/organization/invite-user-dialog";
 import { TeamManagement } from "@/features/admin/components/team/team-management";
 import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/components/organization-knowledge-base-section";
 import { getOrganizationSettings } from "@/features/settings/actions/organization-settings";
@@ -170,12 +171,17 @@ async function OrganizationContent() {
       {/* Members List */}
       <Card>
         <CardHeader>
-          <CardTitle>Organization Members</CardTitle>
-          <CardDescription>
-            {members.length > 0
-              ? "All members in your organization"
-              : "No members in this organization yet"}
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Organization Members</CardTitle>
+              <CardDescription>
+                {members.length > 0
+                  ? "All members in your organization"
+                  : "No members in this organization yet"}
+              </CardDescription>
+            </div>
+            {canEdit && <InviteUserDialog />}
+          </div>
         </CardHeader>
         <CardContent>
           {members.length > 0 ? (

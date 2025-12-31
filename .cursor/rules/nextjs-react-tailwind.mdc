@@ -169,10 +169,10 @@ const searchParams = await props.searchParams;
 
 ## AI Code Review Guidelines
 
-- After commiting the code if lint, typecheck , build and run tests are successful, run an AI code review to check if the code is ready to be pushed using CodeRabbit.ai command: `coderabbit review --plain --type=committed`. This runs a full code review of the committed code. You are then expected to fix the issues reported by the AI code review and commit the changes again.
+- After commiting the code if lint, typecheck , build and run tests are successful, run an AI code review to check if the code is ready to be committed and pushed using CodeRabbit.ai command: `coderrabit --prompt-only -t uncommitted`. This runs a full code review of the uncommitted code. You are then expected to fix the issues reported by the AI code review and continue with the commit and push process.
 
 ```bash
-coderabbit review --plain --type=committed
+coderrabit --prompt-only -t uncommitted
 ```
 
 ## Development Workflow

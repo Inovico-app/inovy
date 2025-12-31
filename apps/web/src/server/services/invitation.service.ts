@@ -9,7 +9,9 @@ import { err, ok } from "neverthrow";
 import { headers } from "next/headers";
 import {
   InvitationsQueries,
+  type Invitation,
   type InvitationDetails,
+  type NewInvitation,
 } from "../data-access/invitations.queries";
 
 /**
@@ -17,6 +19,54 @@ import {
  * Handles invitation details retrieval and acceptance using Better Auth APIs
  */
 export class InvitationService {
+  /**
+   * Create a new invitation
+   */
+  static async createInvitation(
+    data: NewInvitation
+  ): Promise<ActionResult<Invitation>> {
+    try {
+      // Check for existing pending invitation
+      const existingInvitation = await InvitationsQueries.getPendingInvitation(
+        data.email,
+        data.organizationId
+      );
+
+      if (existingInvitation) {
+        return err(
+          ActionErrors.validation(
+            "An invitation is already pending for this email",
+            { context: "InvitationService.createInvitation" }
+          )
+        );
+      }
+
+      const invitation = await InvitationsQueries.createInvitation(data);
+
+      logger.info("Invitation created successfully", {
+        invitationId: invitation.id,
+        organizationId: invitation.organizationId,
+        email: invitation.email,
+      });
+
+      return ok(invitation);
+    } catch (error) {
+      logger.error("Failed to create invitation", {
+        email: data.email,
+        organizationId: data.organizationId,
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to create invitation",
+          error as Error,
+          "InvitationService.createInvitation"
+        )
+      );
+    }
+  }
+
   /**
    * Get invitation details with all related data
    * Includes organization, inviter, and pending team assignments
