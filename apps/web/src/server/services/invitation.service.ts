@@ -46,13 +46,11 @@ export class InvitationService {
       logger.info("Invitation created successfully", {
         invitationId: invitation.id,
         organizationId: invitation.organizationId,
-        email: invitation.email,
       });
 
       return ok(invitation);
     } catch (error) {
       logger.error("Failed to create invitation", {
-        email: data.email,
         organizationId: data.organizationId,
         error: error instanceof Error ? error : new Error(String(error)),
       });

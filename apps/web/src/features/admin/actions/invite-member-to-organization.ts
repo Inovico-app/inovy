@@ -120,7 +120,6 @@ export const inviteMemberToOrganization = authorizedActionClient
             "Superadmin inviting member to organization they don't belong to. Using manual flow.",
             {
               organizationId,
-              email,
               adminId: user.id,
             }
           );
