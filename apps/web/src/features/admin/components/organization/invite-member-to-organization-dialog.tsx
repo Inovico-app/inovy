@@ -102,20 +102,32 @@ export function InviteMemberToOrganizationDialog({
       } else if (result?.validationErrors) {
         const firstFieldErrors = Object.values(result.validationErrors)[0];
         let firstError: string | undefined;
-        
+
         if (Array.isArray(firstFieldErrors)) {
           const firstItem = firstFieldErrors[0];
-          if (typeof firstItem === 'string') {
+          if (typeof firstItem === "string") {
             firstError = firstItem;
-          } else if (firstItem && typeof firstItem === 'object' && '_errors' in firstItem) {
+          } else if (
+            firstItem &&
+            typeof firstItem === "object" &&
+            "_errors" in firstItem
+          ) {
             const errors = firstItem._errors;
-            firstError = Array.isArray(errors) && errors.length > 0 ? errors[0] : undefined;
+            firstError =
+              Array.isArray(errors) && errors.length > 0
+                ? errors[0]
+                : undefined;
           }
-        } else if (firstFieldErrors && typeof firstFieldErrors === 'object' && '_errors' in firstFieldErrors) {
+        } else if (
+          firstFieldErrors &&
+          typeof firstFieldErrors === "object" &&
+          "_errors" in firstFieldErrors
+        ) {
           const errors = firstFieldErrors._errors;
-          firstError = Array.isArray(errors) && errors.length > 0 ? errors[0] : undefined;
+          firstError =
+            Array.isArray(errors) && errors.length > 0 ? errors[0] : undefined;
         }
-        
+
         toast.error(firstError ?? "Validation failed");
       } else if (result?.serverError) {
         toast.error(result.serverError);
@@ -241,8 +253,8 @@ export function InviteMemberToOrganizationDialog({
               </div>
               {selectedTeams.length > 0 && (
                 <p className="text-sm text-muted-foreground">
-                  {selectedTeams.length} team{selectedTeams.length === 1 ? "" : "s"}{" "}
-                  selected
+                  {selectedTeams.length} team
+                  {selectedTeams.length === 1 ? "" : "s"} selected
                 </p>
               )}
             </div>

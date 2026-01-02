@@ -31,8 +31,6 @@ export const userDeletionRequests = pgTable("user_deletion_requests", {
     .defaultNow(),
 });
 
-export type UserDeletionRequest =
-  typeof userDeletionRequests.$inferSelect;
-export type NewUserDeletionRequest =
-  typeof userDeletionRequests.$inferInsert;
+export type UserDeletionRequest = typeof userDeletionRequests.$inferSelect;
+export type NewUserDeletionRequest = typeof userDeletionRequests.$inferInsert;
 

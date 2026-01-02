@@ -1,6 +1,6 @@
-import { pgTable, text, timestamp, uuid, integer } from "drizzle-orm/pg-core";
-import { tasks } from "./tasks";
+import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { recordings } from "./recordings";
+import { tasks } from "./tasks";
 
 export const autoActionTypeEnum = ["calendar_event", "email_draft"] as const;
 export type AutoActionType = (typeof autoActionTypeEnum)[number];

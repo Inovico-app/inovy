@@ -15,7 +15,6 @@ const nextConfig: NextConfig = {
     "thread-system",
   ],
   experimental: {
-    turbopackFileSystemCacheForDev: true,
     serverActions: {
       bodySizeLimit: "500mb",
     },

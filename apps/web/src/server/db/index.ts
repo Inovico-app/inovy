@@ -1,9 +1,7 @@
 import { neonConfig, Pool } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import ws from "ws";
-import * as agentSettingsSchema from "./schema/agent-settings";
-import * as authSchema from "./schema/auth";
-import * as pendingTeamAssignmentsSchema from "./schema/pending-team-assignments";
+import * as schema from "./schema";
 
 // Configure Neon for different runtime environments
 if (typeof window === "undefined") {
@@ -29,13 +27,9 @@ const pool = new Pool({
   connectionTimeoutMillis: 10000, // 10 second connection timeout
 });
 
-// Initialize drizzle with auth schema including relations
-// This is required for Better Auth's experimental joins feature
+// Initialize drizzle with all schema including relations
+// This is required for Drizzle's Relational Query API and Better Auth's experimental joins feature
 export const db = drizzle(pool, {
-  schema: {
-    ...authSchema,
-    ...agentSettingsSchema,
-    ...pendingTeamAssignmentsSchema,
-  },
+  schema,
 });
 

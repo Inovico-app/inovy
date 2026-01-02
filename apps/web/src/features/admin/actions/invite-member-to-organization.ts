@@ -1,16 +1,23 @@
 "use server";
 
+import { sendEmailFromTemplate } from "@/emails/client";
+import OrganizationInvitationEmail from "@/emails/templates/organization-invitation-email";
 import { auth } from "@/lib/auth";
 import { CacheInvalidation } from "@/lib/cache-utils";
+import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { OrganizationQueries } from "@/server/data-access/organization.queries";
 import { PendingTeamAssignmentsQueries } from "@/server/data-access/pending-team-assignments.queries";
+import { type OrganizationMemberRole } from "@/server/db/schema/auth";
+import { InvitationService } from "@/server/services/invitation.service";
 import { TeamService } from "@/server/services/team.service";
 import { APIError } from "better-auth/api";
+import { nanoid } from "nanoid";
 import { err, ok } from "neverthrow";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -34,60 +41,186 @@ export const inviteMemberToOrganization = authorizedActionClient
       teamIds: z.array(z.string()).optional(),
     })
   )
-  .action(async ({ parsedInput }) => {
+  .action(async ({ parsedInput, ctx }) => {
     const { organizationId, email, role, teamIds } = parsedInput;
+    const { user } = ctx;
 
     try {
-      // Create invitation using Better Auth API
-      const result = await auth.api.createInvitation({
-        body: {
-          email,
-          role,
-          organizationId,
-        },
-        headers: await headers(),
-      });
+      // First, check if the user is already a member of the organization
+      // This is a more robust check before calling Better Auth
+      const existingMembers =
+        await OrganizationQueries.getMembersDirect(organizationId);
+      const isAlreadyMember = existingMembers.some(
+        (m) => m.email.toLowerCase() === email.toLowerCase()
+      );
 
-      if (!result) {
+      if (isAlreadyMember) {
         return resultToActionResponse(
           err(
-            ActionErrors.internal(
-              "Failed to invite member",
-              undefined,
-              "inviteMemberToOrganization"
+            ActionErrors.validation(
+              "This user is already a member of the organization",
+              { context: "inviteMemberToOrganization" }
             )
           )
         );
       }
 
-      // Store pending team assignments if teams are specified
-      // These will be applied when the invitation is accepted
-      if (teamIds && teamIds.length > 0) {
-        await PendingTeamAssignmentsQueries.createPendingAssignments(
-          result.id,
-          teamIds
-        );
-      }
-
-      // Invalidate cache
-      CacheInvalidation.invalidateOrganization(organizationId);
-      if (teamIds && teamIds.length > 0) {
-        teamIds.forEach((teamId) => {
-          CacheInvalidation.invalidateTeamMembers(teamId);
+      // Try creating invitation using Better Auth API first
+      try {
+        const result = await auth.api.createInvitation({
+          body: {
+            email,
+            role,
+            organizationId,
+          },
+          headers: await headers(),
         });
-      }
 
-      // Revalidate routes
-      revalidatePath(`/admin/organizations/${organizationId}`);
-      revalidatePath("/admin/organizations");
-      revalidatePath("/admin/users");
+        if (result) {
+          // Store pending team assignments if teams are specified
+          if (teamIds && teamIds.length > 0) {
+            await PendingTeamAssignmentsQueries.createPendingAssignments(
+              result.id,
+              teamIds
+            );
+          }
+
+          // Invalidate cache
+          CacheInvalidation.invalidateOrganization(organizationId);
+          if (teamIds && teamIds.length > 0) {
+            teamIds.forEach((teamId) => {
+              CacheInvalidation.invalidateTeamMembers(teamId);
+            });
+          }
+
+          // Revalidate routes
+          revalidatePath(`/admin/organizations/${organizationId}`);
+          revalidatePath("/admin/organizations");
+          revalidatePath("/admin/users");
+
+          return resultToActionResponse(
+            ok({
+              success: true,
+              data: result,
+              pendingTeamAssignments: teamIds ?? [],
+            })
+          );
+        }
+      } catch (error) {
+        // If Better Auth fails with "Member not found" and user is a superadmin,
+        // we handle it manually because Better Auth requires the inviter to be a member.
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+
+        if (
+          errorMessage.includes("Member not found") &&
+          user?.role === "superadmin"
+        ) {
+          logger.info(
+            "Superadmin inviting member to organization they don't belong to. Using manual flow.",
+            {
+              organizationId,
+              adminId: user.id,
+            }
+          );
+
+          const org = await OrganizationQueries.findByIdDirect(organizationId);
+          if (!org) {
+            return resultToActionResponse(
+              err(
+                ActionErrors.notFound(
+                  "Organization",
+                  "inviteMemberToOrganization"
+                )
+              )
+            );
+          }
+
+          const invitationId = nanoid();
+          const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7); // 7 days
+
+          const invitationResult = await InvitationService.createInvitation({
+            id: invitationId,
+            organizationId,
+            email: email.toLowerCase(),
+            role: role as OrganizationMemberRole,
+            inviterId: user.id,
+            status: "pending",
+            expiresAt,
+          });
+
+          if (invitationResult.isErr()) {
+            return resultToActionResponse(err(invitationResult.error));
+          }
+
+          if (teamIds && teamIds.length > 0) {
+            await PendingTeamAssignmentsQueries.createPendingAssignments(
+              invitationId,
+              teamIds
+            );
+          }
+
+          const baseUrl =
+            process.env.BETTER_AUTH_URL ??
+            process.env.NEXT_PUBLIC_APP_URL ??
+            "http://localhost:3000";
+          const inviteLink = `${baseUrl}/accept-invitation/${invitationId}`;
+
+          const teamNames =
+            teamIds && teamIds.length > 0
+              ? await PendingTeamAssignmentsQueries.getTeamNamesByInvitationId(
+                  invitationId
+                )
+              : [];
+
+          await sendEmailFromTemplate({
+            to: email,
+            subject: `You've been invited to join ${org.name}`,
+            react: OrganizationInvitationEmail({
+              invitationUrl: inviteLink,
+              organizationName: org.name,
+              inviterName: user.name,
+              inviterEmail: user.email,
+              teamNames: teamNames.length > 0 ? teamNames : undefined,
+            }),
+          });
+
+          CacheInvalidation.invalidateOrganization(organizationId);
+          if (teamIds && teamIds.length > 0) {
+            teamIds.forEach((teamId) => {
+              CacheInvalidation.invalidateTeamMembers(teamId);
+            });
+          }
+          revalidatePath(`/admin/organizations/${organizationId}`);
+          revalidatePath("/admin/organizations");
+          revalidatePath("/admin/users");
+
+          return resultToActionResponse(
+            ok({
+              success: true,
+              data: {
+                id: invitationId,
+                role,
+                organizationId,
+                expiresAt,
+              },
+              pendingTeamAssignments: teamIds ?? [],
+            })
+          );
+        }
+
+        // Re-throw if not handled
+        throw error;
+      }
 
       return resultToActionResponse(
-        ok({
-          success: true,
-          data: result,
-          pendingTeamAssignments: teamIds ?? [],
-        })
+        err(
+          ActionErrors.internal(
+            "Failed to invite member",
+            undefined,
+            "inviteMemberToOrganization"
+          )
+        )
       );
     } catch (error) {
       // Check for specific Better Auth APIError codes
