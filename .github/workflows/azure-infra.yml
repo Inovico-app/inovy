@@ -1,7 +1,7 @@
 name: Azure Infrastructure Inovy
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       environment:
         description: "Environment to deploy to"
