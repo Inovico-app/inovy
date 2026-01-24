@@ -64,6 +64,7 @@
     "@vercel/analytics": "^1.5.0",
     "@vercel/blob": "^2.0.0",
     "@vercel/speed-insights": "^1.2.0",
+    "@workflow/ai": "4.0.1-beta.41",
     "@xyflow/react": "^12.9.2",
     "ai": "6.0.0-beta.118",
     "archiver": "^7.0.1",
@@ -139,4 +140,3 @@
     "typescript-eslint": "^8.44.0"
   }
 }
-
