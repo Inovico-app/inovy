@@ -26,6 +26,8 @@ export function TranscriptionEditor({
     speakersDetected,
     confidenceScore,
     utterances,
+    speakerNames,
+    speakerUserIds,
     content: { utterances: contentUtterances },
   } = transcriptionInsights;
 
@@ -67,6 +69,8 @@ export function TranscriptionEditor({
       lastEditedAt={transcriptionLastEditedAt}
       speakersDetected={speakersDetected ?? 0}
       confidence={confidenceScore ?? 0}
+      speakerNames={speakerNames}
+      speakerUserIds={speakerUserIds}
       onEditStart={() => setIsEditing(true)}
     />
   );

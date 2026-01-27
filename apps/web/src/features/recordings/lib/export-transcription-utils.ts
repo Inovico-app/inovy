@@ -6,11 +6,40 @@ interface Utterance {
   confidence: number;
 }
 
+interface UserInfo {
+  id: string;
+  email: string | null;
+  given_name: string | null;
+  family_name: string | null;
+}
+
 function getSpeakerName(
   speaker: number,
-  speakerNames?: Record<string, string>
-) {
-  return speakerNames?.[speaker.toString()] ?? `Spreker ${speaker + 1}`;
+  speakerNames?: Record<string, string>,
+  speakerUserIds?: Record<string, string> | null,
+  userMap?: Map<string, UserInfo>
+): string {
+  const speakerKey = speaker.toString();
+  
+  // First check if speaker is linked to a user
+  const userId = speakerUserIds?.[speakerKey];
+  if (userId && userMap) {
+    const user = userMap.get(userId);
+    if (user) {
+      const fullName = [user.given_name, user.family_name]
+        .filter(Boolean)
+        .join(" ");
+      if (fullName) {
+        return fullName;
+      }
+      if (user.email) {
+        return user.email;
+      }
+    }
+  }
+  
+  // Fallback to custom name or default
+  return speakerNames?.[speakerKey] ?? `Spreker ${speaker + 1}`;
 }
 
 function formatTime(seconds: number): string {
@@ -39,11 +68,18 @@ function formatTimeSimple(seconds: number): string {
 
 export function exportAsText(
   utterances: Utterance[],
-  speakerNames?: Record<string, string>
+  speakerNames?: Record<string, string>,
+  speakerUserIds?: Record<string, string> | null,
+  userMap?: Map<string, UserInfo>
 ): string {
   return utterances
     .map((utterance) => {
-      const speakerName = getSpeakerName(utterance.speaker, speakerNames);
+      const speakerName = getSpeakerName(
+        utterance.speaker,
+        speakerNames,
+        speakerUserIds,
+        userMap
+      );
       return `${speakerName} [${formatTimeSimple(utterance.start)}]: ${
         utterance.text
       }`;
@@ -53,11 +89,18 @@ export function exportAsText(
 
 export function exportAsSRT(
   utterances: Utterance[],
-  speakerNames?: Record<string, string>
+  speakerNames?: Record<string, string>,
+  speakerUserIds?: Record<string, string> | null,
+  userMap?: Map<string, UserInfo>
 ): string {
   return utterances
     .map((utterance, index) => {
-      const speakerName = getSpeakerName(utterance.speaker, speakerNames);
+      const speakerName = getSpeakerName(
+        utterance.speaker,
+        speakerNames,
+        speakerUserIds,
+        userMap
+      );
       return `${index + 1}
 ${formatTime(utterance.start)} --> ${formatTime(utterance.end)}
 <v ${speakerName}>${utterance.text}`;
@@ -67,11 +110,18 @@ ${formatTime(utterance.start)} --> ${formatTime(utterance.end)}
 
 export function exportAsJSON(
   utterances: Utterance[],
-  speakerNames?: Record<string, string>
+  speakerNames?: Record<string, string>,
+  speakerUserIds?: Record<string, string> | null,
+  userMap?: Map<string, UserInfo>
 ): string {
   const data = utterances.map((utterance) => ({
     speaker: utterance.speaker,
-    speakerName: getSpeakerName(utterance.speaker, speakerNames),
+    speakerName: getSpeakerName(
+      utterance.speaker,
+      speakerNames,
+      speakerUserIds,
+      userMap
+    ),
     text: utterance.text,
     start: utterance.start,
     end: utterance.end,
@@ -83,9 +133,7 @@ export function exportAsJSON(
 /**
  * Export redacted text (plain text format)
  */
-export function exportRedactedText(
-  redactedText: string
-): string {
+export function exportRedactedText(redactedText: string): string {
   return redactedText;
 }
 

@@ -1,8 +1,10 @@
 "use client";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
 import { Edit2 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { EditSpeakerNameDialog } from "./edit-speaker-name-dialog";
 
 // Whitelist of allowed color classes to prevent XSS
@@ -20,6 +22,7 @@ const ALLOWED_TEXT_COLORS = [
 interface SpeakerLabelProps {
   speakerNumber: number;
   customName?: string;
+  currentUserId?: string | null;
   textColor?: string;
   recordingId: string;
 }
@@ -27,11 +30,39 @@ interface SpeakerLabelProps {
 export function SpeakerLabel({
   speakerNumber,
   customName,
+  currentUserId,
   textColor,
   recordingId,
 }: SpeakerLabelProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const displayName = customName ?? `Spreker ${speakerNumber + 1}`;
+  const { data: users = [] } = useOrganizationUsersQuery();
+
+  // Get speaker display info
+  const speakerInfo = useMemo(() => {
+    const defaultName = `Spreker ${speakerNumber + 1}`;
+
+    if (currentUserId) {
+      const user = users.find((u) => u.id === currentUserId);
+      if (user) {
+        const fullName = [user.given_name, user.family_name]
+          .filter(Boolean)
+          .join(" ");
+        return {
+          name: fullName || user.email || customName || defaultName,
+          userId: user.id,
+          email: user.email,
+        };
+      }
+    }
+
+    return {
+      name: customName || defaultName,
+      userId: null,
+      email: null,
+    };
+  }, [speakerNumber, customName, currentUserId, users]);
+
+  const displayName = speakerInfo.name;
 
   // Validate textColor against whitelist
   const safeTextColor =
@@ -39,9 +70,29 @@ export function SpeakerLabel({
       ? textColor
       : "";
 
+  // Get user initials for avatar fallback
+  const userInitials = useMemo(() => {
+    if (speakerInfo.userId && speakerInfo.name) {
+      return speakerInfo.name
+        .trim()
+        .split(/\s+/)
+        .map((n) => n[0])
+        .filter((char) => char !== undefined)
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return (speakerNumber + 1).toString();
+  }, [speakerInfo.userId, speakerInfo.name, speakerNumber]);
+
   return (
     <>
       <div className="flex items-center gap-2">
+        {speakerInfo.userId && (
+          <Avatar className="flex-shrink-0 w-6 h-6">
+            <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
+          </Avatar>
+        )}
         <Badge
           variant="secondary"
           className={`text-xs ${safeTextColor}`}
@@ -63,6 +114,7 @@ export function SpeakerLabel({
         onOpenChange={setIsDialogOpen}
         speakerNumber={speakerNumber}
         currentName={customName}
+        currentUserId={currentUserId}
         recordingId={recordingId}
       />
     </>

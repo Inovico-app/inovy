@@ -21,6 +21,8 @@ export function TranscriptionTabs({
   lastEditedAt,
   speakersDetected,
   confidence,
+  speakerNames,
+  speakerUserIds,
   onEditStart,
 }: TranscriptionTabsProps) {
   // URL state management with nuqs
@@ -113,6 +115,8 @@ export function TranscriptionTabs({
                 utterances={utterances}
                 viewMode="simple"
                 speakersDetected={speakersDetected}
+                speakerNames={speakerNames}
+                speakerUserIds={speakerUserIds}
               />
             </TabsContent>
 
@@ -121,6 +125,8 @@ export function TranscriptionTabs({
                 utterances={utterances}
                 viewMode="detailed"
                 speakersDetected={speakersDetected}
+                speakerNames={speakerNames}
+                speakerUserIds={speakerUserIds}
               />
             </TabsContent>
           </Tabs>

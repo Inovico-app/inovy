@@ -59,6 +59,7 @@ export const aiInsights = pgTable("ai_insights", {
   speakersDetected: integer("speakers_detected"),
   utterances: jsonb("utterances").$type<Utterance[]>(),
   speakerNames: jsonb("speaker_names").$type<Record<string, string>>(), // e.g., { "0": "John Doe", "1": "Jane Smith" }
+  speakerUserIds: jsonb("speaker_user_ids").$type<Record<string, string>>(), // e.g., { "0": "user-id-123", "1": "user-id-456" }
   errorMessage: text("error_message"),
   isManuallyEdited: boolean("is_manually_edited").notNull().default(false), // Track if insight has been manually edited
   lastEditedById: text("last_edited_by_id"), // Better Auth user ID who last edited

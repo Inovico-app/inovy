@@ -1,11 +1,13 @@
 "use client";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
 import { Copy } from "lucide-react";
 import type { HTMLAttributes } from "react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import type { TranscriptionMessageBubbleProps } from "./types";
 
@@ -101,16 +103,49 @@ export const TranscriptionMessageContent = ({
 export function TranscriptionMessageBubble({
   utterance,
   viewMode,
+  speakerNames,
+  speakerUserIds,
 }: TranscriptionMessageBubbleProps) {
   const speakerColor = getSpeakerColor(utterance.speaker);
   const isLeftAligned = utterance.speaker % 2 === 0 && viewMode === "detailed";
+  const { data: users = [] } = useOrganizationUsersQuery();
+
+  // Get speaker display info
+  const speakerInfo = useMemo(() => {
+    const speakerKey = utterance.speaker.toString();
+    const userId = speakerUserIds?.[speakerKey];
+    const customName = speakerNames?.[speakerKey];
+    const defaultName = `Spreker ${utterance.speaker + 1}`;
+
+    if (userId) {
+      const user = users.find((u) => u.id === userId);
+      if (user) {
+        const fullName = [user.given_name, user.family_name]
+          .filter(Boolean)
+          .join(" ");
+        return {
+          name: fullName || user.email || defaultName,
+          userId: user.id,
+          email: user.email,
+          image: null, // Organization users query doesn't return image
+        };
+      }
+    }
+
+    return {
+      name: customName || defaultName,
+      userId: null,
+      email: null,
+      image: null,
+    };
+  }, [utterance.speaker, speakerNames, speakerUserIds, users]);
 
   const handleJumpToTimestamp = useCallback(() => {
     window.location.hash = `t=${utterance.start}`;
   }, [utterance.start]);
 
   const handleCopyUtterance = useCallback(async () => {
-    const text = `Spreker ${utterance.speaker + 1} [${formatTime(
+    const text = `${speakerInfo.name} [${formatTime(
       utterance.start
     )}]: ${utterance.text}`;
     try {
@@ -120,18 +155,36 @@ export function TranscriptionMessageBubble({
       console.error("Failed to copy utterance:", error);
       toast.error("Fout bij kopiëren naar klembord");
     }
-  }, [utterance.speaker, utterance.start, utterance.text]);
+  }, [speakerInfo.name, utterance.start, utterance.text]);
+
+  // Get user initials for avatar fallback
+  const userInitials = useMemo(() => {
+    if (speakerInfo.userId && speakerInfo.name) {
+      return speakerInfo.name
+        .trim()
+        .split(/\s+/)
+        .map((n) => n[0])
+        .filter((char) => char !== undefined)
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return (utterance.speaker + 1).toString();
+  }, [speakerInfo.userId, speakerInfo.name, utterance.speaker]);
 
   return (
     <TranscriptionMessage isLeftAligned={isLeftAligned}>
       {viewMode === "detailed" && (
-        <div
-          className={`flex-shrink-0 ${speakerColor.avatar} rounded-full w-8 h-8 flex items-center justify-center font-semibold text-xs text-foreground`}
-          aria-label={`Spreker ${utterance.speaker + 1}`}
-          role="img"
-        >
-          {utterance.speaker + 1}
-        </div>
+        <Avatar className="flex-shrink-0 w-8 h-8">
+          {speakerInfo.image ? (
+            <AvatarImage src={speakerInfo.image} alt={speakerInfo.name} />
+          ) : null}
+          <AvatarFallback
+            className={cn(speakerColor.avatar, "font-semibold text-xs")}
+          >
+            {userInitials}
+          </AvatarFallback>
+        </Avatar>
       )}
       <TranscriptionMessageContent speakerColor={speakerColor}>
         {viewMode === "detailed" && (
@@ -139,9 +192,9 @@ export function TranscriptionMessageBubble({
             <Badge
               variant="secondary"
               className={`text-xs ${speakerColor.text}`}
-              aria-label={`Spreker ${utterance.speaker + 1}`}
+              aria-label={speakerInfo.name}
             >
-              Spreker {utterance.speaker + 1}
+              {speakerInfo.name}
             </Badge>
           </div>
         )}
