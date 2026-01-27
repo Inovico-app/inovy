@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { LiveWaveform } from "@/components/ui/live-waveform";
 import { ConsentStatus } from "@/features/recordings/components/consent-status";
 import { useMicrophone } from "@/providers/microphone/MicrophoneProvider";
+import { MicrophoneDeviceSelector } from "./microphone-device-selector";
 import { MicrophoneGainControl } from "./microphone-gain-control";
 import { RecordingControls } from "./recording-controls";
 import { RecordingErrors } from "./recording-errors";
@@ -46,7 +47,7 @@ export function RecordingSection({
   onResume,
   onStop,
 }: RecordingSectionProps) {
-  const { gain, setGain } = useMicrophone();
+  const { gain, setGain, deviceId, setDeviceId } = useMicrophone();
 
   return (
     <div
@@ -98,16 +99,21 @@ export function RecordingSection({
           />
         </div>
 
-        {/* Microphone Gain Control - Show when stream is available */}
-        {stream && (
-          <div className="flex-shrink-0 rounded-lg border bg-muted/30 p-4">
+        {/* Microphone Device Selector and Gain Control */}
+        <div className="flex-shrink-0 rounded-lg border bg-muted/30 p-4 space-y-4">
+          <MicrophoneDeviceSelector
+            deviceId={deviceId}
+            onDeviceChange={setDeviceId}
+            disabled={isRecording}
+          />
+          {stream && (
             <MicrophoneGainControl
               gain={gain}
               onGainChange={setGain}
               disabled={false}
             />
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Live Waveform - Large and prominent */}
         {(isRecording || isPaused) && stream && (
