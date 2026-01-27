@@ -1,6 +1,6 @@
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { logger } from "@/lib/logger";
-import { useMicrophone } from "@/providers/MicrophoneProvider";
+import { useMicrophone } from "@/providers/microphone/MicrophoneProvider";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useRecordingDuration } from "./use-recording-duration";
 
