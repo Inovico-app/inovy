@@ -9,16 +9,25 @@ export interface Utterance {
   confidence: number;
 }
 
+export interface GroupedUtterance {
+  speaker: number;
+  utterances: Utterance[];
+  text: string;
+  start: number;
+  end: number;
+  confidence: number;
+  startIndices: number[]; // Original utterance indices
+}
+
 export type ViewMode = "simple" | "detailed";
 
 export interface TranscriptionMessageBubbleProps {
-  utterance: Utterance;
+  groupedUtterance: GroupedUtterance;
   viewMode: ViewMode;
   speakersDetected?: number;
   speakerNames?: Record<string, string> | null;
   speakerUserIds?: Record<string, string> | null;
   recordingId: string;
-  utteranceIndex: number;
 }
 
 export interface TranscriptionMessageViewProps {
