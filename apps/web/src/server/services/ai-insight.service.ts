@@ -466,6 +466,108 @@ export class AIInsightService {
   }
 
   /**
+   * Update speaker for a specific utterance with authorization check
+   */
+  static async updateUtteranceSpeaker(
+    recordingId: string,
+    utteranceIndex: number,
+    newSpeaker: number,
+    userId: string,
+    organizationId: string
+  ): Promise<ActionResult<AIInsightDto>> {
+    try {
+      // Verify recording belongs to organization
+      const recording =
+        await RecordingsQueries.selectRecordingById(recordingId);
+      if (!recording) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "AIInsightService.updateUtteranceSpeaker"
+          )
+        );
+      }
+
+      try {
+        assertOrganizationAccess(
+          recording.organizationId,
+          organizationId,
+          "AIInsightService.updateUtteranceSpeaker"
+        );
+      } catch (error) {
+        return err(
+          ActionErrors.notFound(
+            "Recording not found: " + (error as Error).message,
+            "AIInsightService.updateUtteranceSpeaker"
+          )
+        );
+      }
+
+      // Get the transcription insight for this recording
+      const insight =
+        await AIInsightsQueries.getTranscriptionInsightByRecordingId(
+          recordingId
+        );
+
+      if (!insight) {
+        return err(
+          ActionErrors.notFound(
+            "Transcription not found",
+            "AIInsightService.updateUtteranceSpeaker"
+          )
+        );
+      }
+
+      // Validate utterance index is within bounds
+      if (
+        !insight.utterances ||
+        utteranceIndex < 0 ||
+        utteranceIndex >= insight.utterances.length
+      ) {
+        return err(
+          ActionErrors.validation("Invalid utterance index", {
+            utteranceIndex,
+            utterancesLength: insight.utterances?.length ?? 0,
+          })
+        );
+      }
+
+      // Update the utterance speaker
+      const updated = await AIInsightsQueries.updateUtteranceSpeaker(
+        insight.id,
+        utteranceIndex,
+        newSpeaker,
+        userId
+      );
+
+      if (!updated) {
+        return err(
+          ActionErrors.notFound(
+            "AI Insight",
+            "AIInsightService.updateUtteranceSpeaker"
+          )
+        );
+      }
+
+      CacheInvalidation.invalidateAIInsightByType(
+        updated.recordingId,
+        updated.insightType
+      );
+
+      return ok(this.toDto(updated));
+    } catch (error) {
+      logger.error("Failed to update utterance speaker", {}, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to update utterance speaker",
+          error as Error,
+          "AIInsightService.updateUtteranceSpeaker"
+        )
+      );
+    }
+  }
+
+  /**
    * Delete an insight with authorization check
    */
   static async deleteInsight(

@@ -201,5 +201,60 @@ export class AIInsightsQueries {
       .limit(1);
     return insight ?? null;
   }
+
+  /**
+   * Update speaker for a specific utterance in the utterances array
+   * Uses a transaction to ensure atomic read-modify-write and prevent race conditions
+   */
+  static async updateUtteranceSpeaker(
+    insightId: string,
+    utteranceIndex: number,
+    newSpeaker: number,
+    userId: string
+  ): Promise<AIInsight | undefined> {
+    return await db.transaction(async (tx) => {
+      // Get current insight to access utterances array within transaction
+      const [insight] = await tx
+        .select()
+        .from(aiInsights)
+        .where(eq(aiInsights.id, insightId))
+        .limit(1);
+
+      if (!insight) {
+        return undefined;
+      }
+
+      // Validate utterances array exists and index is valid
+      if (!insight.utterances || insight.utterances.length === 0) {
+        return undefined;
+      }
+
+      if (utteranceIndex < 0 || utteranceIndex >= insight.utterances.length) {
+        return undefined;
+      }
+
+      // Create updated utterances array with new speaker value
+      const updatedUtterances = [...insight.utterances];
+      updatedUtterances[utteranceIndex] = {
+        ...updatedUtterances[utteranceIndex],
+        speaker: newSpeaker,
+      };
+
+      // Update the insight with new utterances array within the same transaction
+      const [updated] = await tx
+        .update(aiInsights)
+        .set({
+          utterances: updatedUtterances,
+          isManuallyEdited: true,
+          lastEditedById: userId,
+          lastEditedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(aiInsights.id, insightId))
+        .returning();
+
+      return updated;
+    });
+  }
 }
 

@@ -5,11 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
-import { Copy } from "lucide-react";
+import { Copy, UserCog } from "lucide-react";
 import type { HTMLAttributes } from "react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { TranscriptionMessageBubbleProps } from "./types";
+import { ChangeUtteranceSpeakerDialog } from "./change-utterance-speaker-dialog";
 
 const SPEAKER_COLORS = [
   "bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100",
@@ -103,12 +104,16 @@ export const TranscriptionMessageContent = ({
 export function TranscriptionMessageBubble({
   utterance,
   viewMode,
+  speakersDetected,
   speakerNames,
   speakerUserIds,
+  recordingId,
+  utteranceIndex,
 }: TranscriptionMessageBubbleProps) {
   const speakerColor = getSpeakerColor(utterance.speaker);
   const isLeftAligned = utterance.speaker % 2 === 0 && viewMode === "detailed";
   const { data: users = [] } = useOrganizationUsersQuery();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Get speaker display info
   const speakerInfo = useMemo(() => {
@@ -156,6 +161,10 @@ export function TranscriptionMessageBubble({
       toast.error("Fout bij kopiëren naar klembord");
     }
   }, [speakerInfo.name, utterance.start, utterance.text]);
+
+  const handleSpeakerChangeSuccess = useCallback(() => {
+    // The page will automatically refresh via revalidatePath in the server action
+  }, []);
 
   // Get user initials for avatar fallback
   const userInitials = useMemo(() => {
@@ -227,13 +236,35 @@ export function TranscriptionMessageBubble({
             variant="ghost"
             size="sm"
             onClick={handleCopyUtterance}
-            className="ml-auto h-6 px-1"
+            className="h-6 px-1"
             title="Kopieer utterance"
+            aria-label="Kopieer utterance"
           >
             <Copy className="h-3 w-3" />
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsDialogOpen(true)}
+            className="ml-auto h-6 px-1"
+            title="Wijzig spreker"
+            aria-label="Wijzig spreker voor deze zin"
+          >
+            <UserCog className="h-3 w-3" />
+          </Button>
         </div>
       </TranscriptionMessageContent>
+      <ChangeUtteranceSpeakerDialog
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        recordingId={recordingId}
+        utteranceIndex={utteranceIndex}
+        currentSpeaker={utterance.speaker}
+        speakersDetected={speakersDetected}
+        speakerNames={speakerNames}
+        speakerUserIds={speakerUserIds}
+        onSuccess={handleSpeakerChangeSuccess}
+      />
     </TranscriptionMessage>
   );
 }

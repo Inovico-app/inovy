@@ -117,6 +117,7 @@ export function TranscriptionTabs({
                 speakersDetected={speakersDetected}
                 speakerNames={speakerNames}
                 speakerUserIds={speakerUserIds}
+                recordingId={recordingId}
               />
             </TabsContent>
 
@@ -127,6 +128,7 @@ export function TranscriptionTabs({
                 speakersDetected={speakersDetected}
                 speakerNames={speakerNames}
                 speakerUserIds={speakerUserIds}
+                recordingId={recordingId}
               />
             </TabsContent>
           </Tabs>
