@@ -17,6 +17,7 @@ import {
   getUtteranceCountLabel,
 } from "./utterance-helpers";
 import { getSpeakerInfo, getUserInitials } from "./speaker-helpers";
+import { useJumpToTimestamp } from "@/features/recordings/hooks/use-jump-to-timestamp";
 
 const SPEAKER_COLORS = [
   "bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100",
@@ -136,8 +137,10 @@ export function TranscriptionMessageBubble({
   );
   const hasMultipleUtterances = groupedUtterance.utterances.length > 1;
 
+  const jumpToTimestamp = useJumpToTimestamp();
+
   const handleJumpToTimestamp = () => {
-    window.location.hash = `t=${groupedUtterance.start}`;
+    jumpToTimestamp(groupedUtterance.start);
   };
 
   const handleCopyUtterance = async () => {
