@@ -34,7 +34,10 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
 
   const handleLiveRecordingComplete = async (
     audioBlob: Blob,
-    _transcription: string
+    _transcription: string,
+    consentGranted: boolean,
+    consentGrantedAt: Date,
+    participants: Array<{ id: string; email: string; name?: string }>
   ) => {
     if (!selectedProjectId) {
       toast.error("Selecteer eerst een project");
@@ -57,6 +60,15 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
         fileName: audioFile.name,
         fileSize: audioFile.size,
         fileMimeType: audioFile.type,
+        consentGiven: consentGranted,
+        consentGivenAt: consentGranted ? consentGrantedAt.toISOString() : undefined,
+        participants:
+          participants.length > 0
+            ? participants.map((p) => ({
+                email: p.email,
+                name: p.name,
+              }))
+            : undefined,
       });
 
       // Upload directly to Vercel Blob using the client upload pattern

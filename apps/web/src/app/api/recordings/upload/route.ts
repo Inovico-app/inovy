@@ -2,6 +2,7 @@ import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger, serializeError } from "@/lib/logger";
 import { withRateLimit } from "@/lib/rate-limit";
 import { rateLimiter } from "@/server/services/rate-limiter.service";
+import { ConsentService } from "@/server/services/consent.service";
 import { RecordingService } from "@/server/services/recording.service";
 import {
   ALLOWED_MIME_TYPES,
@@ -9,9 +10,15 @@ import {
 } from "@/server/validation/recordings/upload-recording";
 import { convertRecordingIntoAiInsights } from "@/workflows/convert-recording";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 import { start } from "workflow/api";
+
+interface Participant {
+  email: string;
+  name?: string;
+}
 
 interface UploadMetadata {
   projectId: string;
@@ -24,6 +31,7 @@ interface UploadMetadata {
   fileMimeType: string;
   consentGiven?: boolean;
   consentGivenAt?: string;
+  participants?: Participant[];
 }
 
 interface TokenPayload extends UploadMetadata {
@@ -186,6 +194,64 @@ export const POST = withRateLimit(
             projectId: payload.projectId,
             recordingMode: payload.recordingMode,
           });
+
+          // Save participants' consent if provided
+          // Note: Never log participant emails or names (PII) - only log counts
+          if (payload.participants && payload.participants.length > 0) {
+            try {
+              const headersList = await headers();
+              const ipAddress =
+                headersList.get("x-forwarded-for") ||
+                headersList.get("x-real-ip") ||
+                "unknown";
+              const userAgent = headersList.get("user-agent") || "unknown";
+
+              // Grant consent for each participant
+              const consentResults = await Promise.allSettled(
+                payload.participants.map((participant) =>
+                  ConsentService.grantConsent(
+                    recording.id,
+                    participant.email,
+                    participant.name,
+                    "explicit",
+                    payload.userId,
+                    payload.organizationId,
+                    ipAddress,
+                    userAgent
+                  )
+                )
+              );
+
+              const successful = consentResults.filter(
+                (r) => r.status === "fulfilled" && r.value.isOk()
+              ).length;
+              const failed = consentResults.length - successful;
+
+              // Log only counts, never PII (emails/names)
+              if (failed > 0) {
+                logger.warn("Some participant consents failed to save", {
+                  component: "POST /api/recordings/upload - onUploadCompleted",
+                  recordingId: recording.id,
+                  total: payload.participants.length,
+                  succeeded: successful,
+                  failed,
+                });
+              } else {
+                logger.info("All participant consents saved successfully", {
+                  component: "POST /api/recordings/upload - onUploadCompleted",
+                  recordingId: recording.id,
+                  participantCount: payload.participants.length,
+                });
+              }
+            } catch (error) {
+              logger.error("Failed to save participant consents", {
+                component: "POST /api/recordings/upload - onUploadCompleted",
+                recordingId: recording.id,
+                error: serializeError(error),
+              });
+              // Don't throw - consent saving failure shouldn't block recording creation
+            }
+          }
 
           // Revalidate the project page
           revalidatePath(`/projects/${payload.projectId}`);

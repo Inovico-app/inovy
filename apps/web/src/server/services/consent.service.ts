@@ -1,6 +1,6 @@
 import { err, ok } from "neverthrow";
-import { logger } from "../../lib/logger";
 import { CacheInvalidation } from "../../lib/cache-utils";
+import { logger } from "../../lib/logger";
 import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
 import {
   ActionErrors,
@@ -143,6 +143,7 @@ export class ConsentService {
         // Audit failure doesn't block consent operation, but is logged for monitoring
       }
 
+      // Log only participantId (UUID), never PII like email or name
       logger.info("Consent granted", {
         component: "ConsentService.grantConsent",
         recordingId,
@@ -150,7 +151,10 @@ export class ConsentService {
         userId,
       });
 
-      CacheInvalidation.invalidateConsentParticipants(recordingId, organizationId);
+      CacheInvalidation.invalidateConsentParticipants(
+        recordingId,
+        organizationId
+      );
 
       return ok(participant);
     } catch (error) {
@@ -238,6 +242,7 @@ export class ConsentService {
         // Audit failure doesn't block consent operation, but is logged for monitoring
       }
 
+      // Log only participantId (UUID), never PII like email or name
       logger.info("Consent revoked", {
         component: "ConsentService.revokeConsent",
         recordingId,
@@ -245,7 +250,10 @@ export class ConsentService {
         userId,
       });
 
-      CacheInvalidation.invalidateConsentParticipants(recordingId, organizationId);
+      CacheInvalidation.invalidateConsentParticipants(
+        recordingId,
+        organizationId
+      );
 
       return ok(updated);
     } catch (error) {
