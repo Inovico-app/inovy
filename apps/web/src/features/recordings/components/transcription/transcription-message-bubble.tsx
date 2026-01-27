@@ -7,10 +7,16 @@ import { cn } from "@/lib/utils";
 import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
 import { Copy, UserCog } from "lucide-react";
 import type { HTMLAttributes } from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import type { TranscriptionMessageBubbleProps } from "./types";
 import { ChangeUtteranceSpeakerDialog } from "./change-utterance-speaker-dialog";
+import {
+  formatTimestampRange,
+  formatCopyText,
+  getUtteranceCountLabel,
+} from "./utterance-helpers";
+import { getSpeakerInfo, getUserInitials } from "./speaker-helpers";
 
 const SPEAKER_COLORS = [
   "bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100",
@@ -102,57 +108,40 @@ export const TranscriptionMessageContent = ({
 );
 
 export function TranscriptionMessageBubble({
-  utterance,
+  groupedUtterance,
   viewMode,
   speakersDetected,
   speakerNames,
   speakerUserIds,
   recordingId,
-  utteranceIndex,
 }: TranscriptionMessageBubbleProps) {
-  const speakerColor = getSpeakerColor(utterance.speaker);
-  const isLeftAligned = utterance.speaker % 2 === 0 && viewMode === "detailed";
+  const speakerColor = getSpeakerColor(groupedUtterance.speaker);
+  const isLeftAligned =
+    groupedUtterance.speaker % 2 === 0 && viewMode === "detailed";
   const { data: users = [] } = useOrganizationUsersQuery();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Get speaker display info
-  const speakerInfo = useMemo(() => {
-    const speakerKey = utterance.speaker.toString();
-    const userId = speakerUserIds?.[speakerKey];
-    const customName = speakerNames?.[speakerKey];
-    const defaultName = `Spreker ${utterance.speaker + 1}`;
+  // Get speaker display info (React 19 handles optimization automatically)
+  const speakerInfo = getSpeakerInfo(
+    groupedUtterance.speaker,
+    speakerNames,
+    speakerUserIds,
+    users
+  );
 
-    if (userId) {
-      const user = users.find((u) => u.id === userId);
-      if (user) {
-        const fullName = [user.given_name, user.family_name]
-          .filter(Boolean)
-          .join(" ");
-        return {
-          name: fullName || user.email || defaultName,
-          userId: user.id,
-          email: user.email,
-          image: null, // Organization users query doesn't return image
-        };
-      }
-    }
+  const userInitials = getUserInitials(speakerInfo, groupedUtterance.speaker);
+  const timestampRange = formatTimestampRange(groupedUtterance);
+  const utteranceCountLabel = getUtteranceCountLabel(
+    groupedUtterance.utterances.length
+  );
+  const hasMultipleUtterances = groupedUtterance.utterances.length > 1;
 
-    return {
-      name: customName || defaultName,
-      userId: null,
-      email: null,
-      image: null,
-    };
-  }, [utterance.speaker, speakerNames, speakerUserIds, users]);
+  const handleJumpToTimestamp = () => {
+    window.location.hash = `t=${groupedUtterance.start}`;
+  };
 
-  const handleJumpToTimestamp = useCallback(() => {
-    window.location.hash = `t=${utterance.start}`;
-  }, [utterance.start]);
-
-  const handleCopyUtterance = useCallback(async () => {
-    const text = `${speakerInfo.name} [${formatTime(
-      utterance.start
-    )}]: ${utterance.text}`;
+  const handleCopyUtterance = async () => {
+    const text = formatCopyText(groupedUtterance, speakerInfo.name);
     try {
       await navigator.clipboard.writeText(text);
       toast.success("Utterance gekopieerd naar klembord");
@@ -160,26 +149,11 @@ export function TranscriptionMessageBubble({
       console.error("Failed to copy utterance:", error);
       toast.error("Fout bij kopiëren naar klembord");
     }
-  }, [speakerInfo.name, utterance.start, utterance.text]);
+  };
 
-  const handleSpeakerChangeSuccess = useCallback(() => {
+  const handleSpeakerChangeSuccess = () => {
     // The page will automatically refresh via revalidatePath in the server action
-  }, []);
-
-  // Get user initials for avatar fallback
-  const userInitials = useMemo(() => {
-    if (speakerInfo.userId && speakerInfo.name) {
-      return speakerInfo.name
-        .trim()
-        .split(/\s+/)
-        .map((n) => n[0])
-        .filter((char) => char !== undefined)
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    return (utterance.speaker + 1).toString();
-  }, [speakerInfo.userId, speakerInfo.name, utterance.speaker]);
+  };
 
   return (
     <TranscriptionMessage isLeftAligned={isLeftAligned}>
@@ -205,11 +179,20 @@ export function TranscriptionMessageBubble({
             >
               {speakerInfo.name}
             </Badge>
+            {hasMultipleUtterances && (
+              <Badge
+                variant="outline"
+                className="text-xs"
+                aria-label={`${utteranceCountLabel} gecombineerd`}
+              >
+                {utteranceCountLabel}
+              </Badge>
+            )}
           </div>
         )}
 
         <p className="text-sm whitespace-pre-wrap break-words">
-          {utterance.text}
+          {groupedUtterance.text}
         </p>
 
         <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
@@ -217,20 +200,30 @@ export function TranscriptionMessageBubble({
             onClick={handleJumpToTimestamp}
             className="hover:underline cursor-pointer"
             title="Ga naar dit moment in de opname"
-            aria-label={`Ga naar ${formatTime(utterance.start)}`}
+            aria-label={
+              hasMultipleUtterances
+                ? `Ga naar tijdsbereik ${timestampRange}`
+                : `Ga naar starttijd ${timestampRange}`
+            }
           >
-            <span aria-label={`Starttijd ${formatTime(utterance.start)}`}>
-              {formatTime(utterance.start)}
+            <span
+              aria-label={
+                hasMultipleUtterances
+                  ? `Tijdsbereik ${timestampRange}`
+                  : `Starttijd ${timestampRange}`
+              }
+            >
+              {timestampRange}
             </span>
           </button>
           <Badge
             variant="outline"
             className="text-xs"
             aria-label={`Betrouwbaarheid ${Math.round(
-              utterance.confidence * 100
+              groupedUtterance.confidence * 100
             )}%`}
           >
-            {Math.round(utterance.confidence * 100)}%
+            {Math.round(groupedUtterance.confidence * 100)}%
           </Badge>
           <Button
             variant="ghost"
@@ -258,8 +251,8 @@ export function TranscriptionMessageBubble({
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         recordingId={recordingId}
-        utteranceIndex={utteranceIndex}
-        currentSpeaker={utterance.speaker}
+        utteranceIndex={groupedUtterance.startIndices[0]}
+        currentSpeaker={groupedUtterance.speaker}
         speakersDetected={speakersDetected}
         speakerNames={speakerNames}
         speakerUserIds={speakerUserIds}
