@@ -344,6 +344,13 @@
       "when": 1765441652465,
       "tag": "0054_add_pending_team_assignments_table",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1769529405779,
+      "tag": "0055_add_speaker_user_ids_to_ai_insights",
+      "breakpoints": true
     }
   ]
 }
