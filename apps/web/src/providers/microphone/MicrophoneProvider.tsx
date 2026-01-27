@@ -2,6 +2,10 @@
 
 import { getMicrophoneGainPreferenceClient } from "@/features/recordings/lib/microphone-gain-preferences";
 import {
+  getMicrophoneDevicePreferenceClient,
+  setMicrophoneDevicePreferenceClient,
+} from "@/features/recordings/lib/microphone-device-preferences";
+import {
   createContext,
   type ReactNode,
   useContext,
@@ -54,6 +58,8 @@ interface MicrophoneContextType {
   microphoneState: MicrophoneState | null;
   gain: number;
   setGain: (gain: number) => void;
+  deviceId: string | null;
+  setDeviceId: (deviceId: string | null) => void;
 }
 
 interface MicrophoneContextProviderProps {
@@ -86,6 +92,9 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [gain, setGainState] = useState<number>(() =>
     getMicrophoneGainPreferenceClient()
+  );
+  const [deviceId, setDeviceIdState] = useState<string | null>(() =>
+    getMicrophoneDevicePreferenceClient()
   );
 
   // ==========================================================================
@@ -135,9 +144,13 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
     cleanupResources();
 
     try {
-      // Get raw MediaStream from getUserMedia
+      // Get raw MediaStream from getUserMedia with optional deviceId constraint
+      const audioConstraints = deviceId
+        ? { ...AUDIO_CONSTRAINTS, deviceId: { exact: deviceId } }
+        : AUDIO_CONSTRAINTS;
+
       const rawStream = await navigator.mediaDevices.getUserMedia({
-        audio: AUDIO_CONSTRAINTS,
+        audio: audioConstraints,
       });
 
       // Create audio processing pipeline with gain control
@@ -172,10 +185,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
     }
 
     // Guard: microphone must be in Ready state (inactive) or Paused state
-    if (
-      microphone.state !== "inactive" &&
-      microphone.state !== "paused"
-    ) {
+    if (microphone.state !== "inactive" && microphone.state !== "paused") {
       console.warn(
         `Cannot start microphone: invalid state ${microphone.state}`
       );
@@ -271,6 +281,16 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
   };
 
   // ==========================================================================
+  // Device Selection
+  // ==========================================================================
+
+  const setDeviceId = (newDeviceId: string | null) => {
+    setDeviceIdState(newDeviceId);
+    // Persist preference immediately
+    setMicrophoneDevicePreferenceClient(newDeviceId);
+  };
+
+  // ==========================================================================
   // Effects
   // ==========================================================================
 
@@ -280,6 +300,19 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
       cleanupResources();
     };
   }, []);
+
+  // Re-setup microphone when deviceId changes (if microphone is already set up)
+  useEffect(() => {
+    // Only re-setup if microphone was previously initialized and not actively recording
+    // Skip if NotSetup (initial mount) or SettingUp (already in progress)
+    if (
+      microphoneState === MicrophoneState.Ready ||
+      microphoneState === MicrophoneState.Paused
+    ) {
+      void setupMicrophone();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deviceId]);
 
   // ==========================================================================
   // Render
@@ -296,6 +329,8 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
         microphoneState,
         gain,
         setGain,
+        deviceId,
+        setDeviceId,
       }}
     >
       {children}
