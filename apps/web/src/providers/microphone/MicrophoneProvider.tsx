@@ -13,13 +13,13 @@ import {
   cleanupAudioProcessor,
   createAudioProcessor,
   updateGain,
-} from "./microphone/microphone-audio-processor";
+} from "./microphone-audio-processor";
 import {
   AUDIO_CONSTRAINTS,
   MAX_GAIN,
   MEDIA_RECORDER_TIMESLICE,
   MIN_GAIN,
-} from "./microphone/microphone-constants";
+} from "./microphone-constants";
 
 // ============================================================================
 // Types & Enums

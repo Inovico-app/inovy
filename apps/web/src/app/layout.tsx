@@ -1,16 +1,16 @@
+import { AriaLiveRegion } from "@/components/aria-live-region";
+import { SkipLink } from "@/components/skip-link";
 import { BetterAuthProvider } from "@/providers/AuthProvider";
 import { DeepgramContextProvider } from "@/providers/DeepgramProvider";
-import { MicrophoneContextProvider } from "@/providers/MicrophoneProvider";
+import { MicrophoneContextProvider } from "@/providers/microphone/MicrophoneProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 import { SpeedInsights as VercelSpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
-import { SkipLink } from "@/components/skip-link";
-import { AriaLiveRegion } from "@/components/aria-live-region";
 import "../index.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
