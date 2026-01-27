@@ -1,8 +1,9 @@
 import { ConsentBanner } from "@/features/recordings/components/consent-banner";
+import type { Participant } from "@/features/recordings/hooks/use-consent-banner";
 
 interface ConsentManagerProps {
   showConsentBanner: boolean;
-  onConsentGranted: () => void;
+  onConsentGranted: (participants: Participant[]) => void;
   onConsentDenied: () => void;
 }
 
