@@ -13,6 +13,7 @@ export function TranscriptionMessageView({
   speakersDetected,
   speakerNames,
   speakerUserIds,
+  recordingId,
 }: TranscriptionMessageViewProps) {
   if (!utterances || utterances.length === 0) {
     return (
@@ -33,6 +34,8 @@ export function TranscriptionMessageView({
             speakersDetected={speakersDetected}
             speakerNames={speakerNames}
             speakerUserIds={speakerUserIds}
+            recordingId={recordingId}
+            utteranceIndex={index}
           />
         ))}
       </ConversationContent>

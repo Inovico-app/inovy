@@ -17,6 +17,8 @@ export interface TranscriptionMessageBubbleProps {
   speakersDetected?: number;
   speakerNames?: Record<string, string> | null;
   speakerUserIds?: Record<string, string> | null;
+  recordingId: string;
+  utteranceIndex: number;
 }
 
 export interface TranscriptionMessageViewProps {
@@ -26,6 +28,7 @@ export interface TranscriptionMessageViewProps {
   confidence?: number;
   speakerNames?: Record<string, string> | null;
   speakerUserIds?: Record<string, string> | null;
+  recordingId: string;
 }
 
 export interface TranscriptionTabsProps {
