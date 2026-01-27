@@ -19,13 +19,14 @@ const updateSpeakerNamesSchema = z.object({
       /^[a-zA-Z0-9\s\-.]*$/,
       "Speaker name can only contain letters, numbers, spaces, hyphens, and periods"
     ),
+  userId: z.string().optional().nullable(),
 });
 
 export const updateSpeakerNames = authorizedActionClient
   .metadata({ permissions: policyToPermissions("recordings:update") })
   .inputSchema(updateSpeakerNamesSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { recordingId, speakerNumber, speakerName } = parsedInput;
+    const { recordingId, speakerNumber, speakerName, userId } = parsedInput;
     const { organizationId } = ctx;
 
     if (!organizationId) {
@@ -63,11 +64,25 @@ export const updateSpeakerNames = authorizedActionClient
         [speakerNumber.toString()]: speakerName,
       };
 
+      // Update speaker user IDs (create new object to avoid mutation)
+      const currentSpeakerUserIds = {
+        ...((insight.speakerUserIds as Record<string, string>) || {}),
+      };
+
+      if (userId === null || userId === undefined || userId === "") {
+        // Remove user link if userId is null/empty
+        delete currentSpeakerUserIds[speakerNumber.toString()];
+      } else {
+        // Set user link if userId is provided
+        currentSpeakerUserIds[speakerNumber.toString()] = userId;
+      }
+
       // Update via service
       const updateResult = await AIInsightService.updateSpeakerNames(
         recordingId,
         currentSpeakerNames,
-        organizationId
+        organizationId,
+        currentSpeakerUserIds
       );
 
       if (updateResult.isErr()) {

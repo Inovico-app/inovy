@@ -15,6 +15,8 @@ export interface TranscriptionMessageBubbleProps {
   utterance: Utterance;
   viewMode: ViewMode;
   speakersDetected?: number;
+  speakerNames?: Record<string, string> | null;
+  speakerUserIds?: Record<string, string> | null;
 }
 
 export interface TranscriptionMessageViewProps {
@@ -22,6 +24,8 @@ export interface TranscriptionMessageViewProps {
   viewMode: ViewMode;
   speakersDetected?: number;
   confidence?: number;
+  speakerNames?: Record<string, string> | null;
+  speakerUserIds?: Record<string, string> | null;
 }
 
 export interface TranscriptionTabsProps {
@@ -32,6 +36,8 @@ export interface TranscriptionTabsProps {
   lastEditedAt?: Date | null;
   speakersDetected?: number;
   confidence?: number;
+  speakerNames?: Record<string, string> | null;
+  speakerUserIds?: Record<string, string> | null;
   onEditStart: () => void;
 }
 

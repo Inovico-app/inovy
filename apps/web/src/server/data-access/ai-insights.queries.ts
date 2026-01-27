@@ -143,14 +143,25 @@ export class AIInsightsQueries {
 
   static async updateSpeakerNames(
     insightId: string,
-    speakerNames: Record<string, string>
+    speakerNames: Record<string, string>,
+    speakerUserIds?: Record<string, string> | null
   ): Promise<AIInsight | undefined> {
+    const updateData: {
+      speakerNames: Record<string, string>;
+      speakerUserIds?: Record<string, string> | null;
+      updatedAt: Date;
+    } = {
+      speakerNames,
+      updatedAt: new Date(),
+    };
+
+    if (speakerUserIds !== undefined) {
+      updateData.speakerUserIds = speakerUserIds;
+    }
+
     const [updated] = await db
       .update(aiInsights)
-      .set({
-        speakerNames,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(aiInsights.id, insightId))
       .returning();
     return updated;

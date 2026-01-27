@@ -11,8 +11,16 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { updateSpeakerNames } from "@/features/recordings/actions/update-speaker-names";
-import { useState } from "react";
+import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface EditSpeakerNameDialogProps {
@@ -20,6 +28,7 @@ interface EditSpeakerNameDialogProps {
   onOpenChange: (open: boolean) => void;
   speakerNumber: number;
   currentName?: string;
+  currentUserId?: string | null;
   recordingId: string;
 }
 
@@ -28,10 +37,42 @@ export function EditSpeakerNameDialog({
   onOpenChange,
   speakerNumber,
   currentName,
+  currentUserId,
   recordingId,
 }: EditSpeakerNameDialogProps) {
   const [name, setName] = useState(currentName || "");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(
+    currentUserId || null
+  );
   const [isSaving, setIsSaving] = useState(false);
+  const { data: users = [], isLoading: isLoadingUsers } =
+    useOrganizationUsersQuery();
+
+  // Update state when props change
+  useEffect(() => {
+    if (isOpen) {
+      setName(currentName || "");
+      setSelectedUserId(currentUserId || null);
+    }
+  }, [isOpen, currentName, currentUserId]);
+
+  // Auto-fill name when user is selected
+  useEffect(() => {
+    if (selectedUserId && !name) {
+      const selectedUser = users.find((u) => u.id === selectedUserId);
+      if (selectedUser) {
+        const fullName = [
+          selectedUser.given_name,
+          selectedUser.family_name,
+        ]
+          .filter(Boolean)
+          .join(" ");
+        if (fullName) {
+          setName(fullName);
+        }
+      }
+    }
+  }, [selectedUserId, users, name]);
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -54,6 +95,7 @@ export function EditSpeakerNameDialog({
         recordingId,
         speakerNumber,
         speakerName: name.trim(),
+        userId: selectedUserId || null,
       });
 
       if (result.data?.success) {
@@ -74,6 +116,7 @@ export function EditSpeakerNameDialog({
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       setName(currentName || "");
+      setSelectedUserId(currentUserId || null);
     }
     onOpenChange(open);
   };
@@ -88,6 +131,42 @@ export function EditSpeakerNameDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="speaker-user" className="col-span-4 sm:col-span-1">
+              Gebruiker
+            </Label>
+            <Select
+              value={selectedUserId ?? "__none__"}
+              onValueChange={(value) =>
+                setSelectedUserId(value === "__none__" ? null : value)
+              }
+              disabled={isLoadingUsers || isSaving}
+            >
+              <SelectTrigger
+                id="speaker-user"
+                className="col-span-4 sm:col-span-3"
+              >
+                <SelectValue placeholder="Selecteer gebruiker (optioneel)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Geen gebruiker</SelectItem>
+                {users.map((user) => {
+                  const fullName = [
+                    user.given_name,
+                    user.family_name,
+                  ]
+                    .filter(Boolean)
+                    .join(" ");
+                  const displayName = fullName || user.email || user.id;
+                  return (
+                    <SelectItem key={user.id} value={user.id}>
+                      {displayName}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="speaker-name" className="col-span-4 sm:col-span-1">
               Naam

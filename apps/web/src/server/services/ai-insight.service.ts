@@ -385,7 +385,8 @@ export class AIInsightService {
   static async updateSpeakerNames(
     recordingId: string,
     speakerNames: Record<string, string>,
-    organizationId: string
+    organizationId: string,
+    speakerUserIds?: Record<string, string> | null
   ): Promise<ActionResult<AIInsightDto>> {
     try {
       // Verify recording belongs to organization
@@ -430,10 +431,11 @@ export class AIInsightService {
         );
       }
 
-      // Update the speaker names
+      // Update the speaker names and user IDs
       const updated = await AIInsightsQueries.updateSpeakerNames(
         insight.id,
-        speakerNames
+        speakerNames,
+        speakerUserIds
       );
 
       if (!updated) {
@@ -541,6 +543,7 @@ export class AIInsightService {
       speakersDetected: insight.speakersDetected,
       utterances: insight.utterances,
       speakerNames: insight.speakerNames as Record<string, string> | null,
+      speakerUserIds: insight.speakerUserIds as Record<string, string> | null,
       errorMessage: insight.errorMessage,
       isManuallyEdited: insight.isManuallyEdited,
       lastEditedById: insight.lastEditedById,
