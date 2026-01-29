@@ -1,0 +1,156 @@
+name: Setup Terraform Storage Account
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        type: string
+        default: "prd"
+      resource_group_name:
+        description: "Resource group name for Terraform state storage"
+        required: true
+        type: string
+        default: "rg-terraform-states"
+      storage_account_suffix:
+        description: "Optional suffix for storage account name (for uniqueness). If not provided, will use subscription ID hash"
+        required: false
+        type: string
+      location:
+        description: "Azure region for resources"
+        required: true
+        type: string
+        default: "westeurope"
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  setup-terraform-storage:
+    if: ${{ inputs.environment == 'prd' }}
+    environment: prd
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Generate Storage Account Name
+        id: generate-name
+        run: |
+          ENV="${{ inputs.environment }}"
+          SUFFIX="${{ inputs.storage_account_suffix }}"
+
+          # Generate suffix from subscription ID if not provided
+          if [ -z "$SUFFIX" ]; then
+            SUB_ID="${{ vars.AZURE_SUBSCRIPTION_ID }}"
+            # Extract last 8 alphanumeric characters from subscription ID
+            SUFFIX=$(echo "$SUB_ID" | tr -d '-' | grep -o '[a-zA-Z0-9]' | tail -8 | tr -d '\n')
+            # If still empty, use a hash
+            if [ -z "$SUFFIX" ]; then
+              SUFFIX=$(echo "$SUB_ID" | sha256sum | cut -c1-8)
+            fi
+          fi
+
+          # Create storage account name: sttf<env><suffix>
+          # Azure storage accounts: 3-24 chars, lowercase alphanumeric only
+          ENV_SHORT=$(echo "$ENV" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g' | cut -c1-4)
+          STORAGE_NAME="sttf${ENV_SHORT}${SUFFIX}"
+
+          # Ensure it's max 24 characters, lowercase, alphanumeric only
+          STORAGE_NAME=$(echo "$STORAGE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g' | cut -c1-24)
+
+          # Ensure minimum length of 3 characters
+          if [ ${#STORAGE_NAME} -lt 3 ]; then
+            STORAGE_NAME="${STORAGE_NAME}000"
+            STORAGE_NAME=$(echo "$STORAGE_NAME" | cut -c1-24)
+          fi
+
+          echo "Generated storage account name: $STORAGE_NAME"
+          echo "name=$STORAGE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Create Resource Group (if not exists)
+        run: |
+          if ! az group show --name "${{ inputs.resource_group_name }}" &>/dev/null; then
+            echo "Creating resource group: ${{ inputs.resource_group_name }}"
+            az group create \
+              --name "${{ inputs.resource_group_name }}" \
+              --location "${{ inputs.location }}"
+          else
+            echo "Resource group '${{ inputs.resource_group_name }}' already exists, skipping creation"
+          fi
+
+      - name: Create Storage Account (if not exists)
+        run: |
+          STORAGE_NAME="${{ steps.generate-name.outputs.name }}"
+          if ! az storage account show --name "$STORAGE_NAME" --resource-group "${{ inputs.resource_group_name }}" &>/dev/null; then
+            echo "Creating storage account: $STORAGE_NAME"
+            az storage account create \
+              --name "$STORAGE_NAME" \
+              --resource-group "${{ inputs.resource_group_name }}" \
+              --location "${{ inputs.location }}" \
+              --sku Standard_LRS \
+              --kind StorageV2 \
+              --allow-blob-public-access false \
+              --min-tls-version TLS1_2
+          else
+            echo "Storage account '$STORAGE_NAME' already exists, skipping creation"
+          fi
+
+      - name: Enable Storage Account Features
+        run: |
+          az storage account blob-service-properties update \
+            --account-name "${{ steps.generate-name.outputs.name }}" \
+            --resource-group "${{ inputs.resource_group_name }}" \
+            --enable-versioning true \
+            --enable-delete-retention true \
+            --delete-retention-days 7 \
+            --enable-change-feed true \
+            --enable-restore-policy true \
+            --restore-days 7
+
+      - name: Create Terraform State Container (if not exists)
+        run: |
+          if ! az storage container show \
+            --name tfstate \
+            --account-name "${{ steps.generate-name.outputs.name }}" \
+            --auth-mode login &>/dev/null; then
+            echo "Creating container: tfstate"
+            az storage container create \
+              --name tfstate \
+              --account-name "${{ steps.generate-name.outputs.name }}" \
+              --auth-mode login
+          else
+            echo "Container 'tfstate' already exists, skipping creation"
+          fi
+
+      - name: Output Storage Account Details
+        run: |
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Storage Account Name: ${{ steps.generate-name.outputs.name }}"
+          echo "Resource Group: ${{ inputs.resource_group_name }}"
+          echo "Container Name: tfstate"
+          echo ""
+          echo "Add this to your Terraform backend configuration:"
+          echo "terraform {"
+          echo "  backend \"azurerm\" {"
+          echo "    resource_group_name  = \"${{ inputs.resource_group_name }}\""
+          echo "    storage_account_name = \"${{ steps.generate-name.outputs.name }}\""
+          echo "    container_name       = \"tfstate\""
+          echo "    key                  = \"${{ inputs.environment }}/infrastructure.tfstate\""
+          echo "  }"
+          echo "}"

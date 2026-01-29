@@ -1,7 +1,16 @@
 name: Azure Infrastructure Inovy
 
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+defaults:
+  run:
+    shell: bash
+
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       environment:
         description: "Environment to deploy to"
@@ -14,14 +23,12 @@ jobs:
     if: ${{ inputs.environment == 'prd' }}
     environment: prd
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
 
     steps:
       - name: Azure Login
         uses: azure/login@v2
         with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
