@@ -57,7 +57,7 @@ jobs:
           echo "Current state "$RESOURCE_PROVIDER": ${registration_state}"
           if [[ $registration_state == "NotRegistered" ]]
           then
-            echo "Registering "$RESOURCE_PROVIDER"
+            echo 'Registering "$RESOURCE_PROVIDER"'
             az provider register --namespace "$RESOURCE_PROVIDER"
           fi
 
