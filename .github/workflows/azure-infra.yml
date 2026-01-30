@@ -75,7 +75,7 @@ jobs:
         if: ${{ inputs.terraform_action == 'plan' }}
         working-directory: infrastructure
         run: |
-          terraform plan -out=tfplan
+          terraform plan -input=false -out=tfplan
 
       - name: Upload Plan to Storage Account
         if: ${{ inputs.terraform_action == 'plan' }}
@@ -125,7 +125,7 @@ jobs:
         run: |
           if [ -f "tfplan" ]; then
             echo "Applying plan from saved tfplan file..."
-            terraform apply tfplan
+            terraform apply tfplan --auto-approve
           else
             echo "ERROR: Plan file not found. Cannot apply without a plan."
             exit 1
