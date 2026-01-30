@@ -43,9 +43,6 @@ jobs:
       id-token: write
 
     steps:
-      - name: Setup Azure CLI
-        uses: azure/cli@v2
-
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -53,29 +50,16 @@ jobs:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Verify Subscription Access
+      - name: Register Microsoft.Storage resource provider
         run: |
-          SUBSCRIPTION_ID="${{ vars.AZURE_SUBSCRIPTION_ID }}"
-          echo "Verifying access to subscription: $SUBSCRIPTION_ID"
-
-          # Set the subscription explicitly
-          az account set --subscription "$SUBSCRIPTION_ID" || {
-            echo "ERROR: Failed to set subscription. Listing available subscriptions:"
-            az account list --output table
-            exit 1
-          }
-
-          # Verify subscription is accessible
-          SUB_INFO=$(az account show --subscription "$SUBSCRIPTION_ID" 2>&1)
-          if [ $? -ne 0 ]; then
-            echo "ERROR: Subscription '$SUBSCRIPTION_ID' not found or not accessible"
-            echo "Available subscriptions:"
-            az account list --output table
-            exit 1
+          resource-provider="Microsoft.Storage"
+          registration_state=$(az provider show  --namespace "$resource-provider"|jq '.registrationState' -r)
+          echo "Current state "$resource-provider": ${registration_state}"
+          if [[ $registration_state == "NotRegistered" ]]
+          then
+            echo "Registering "$resource-provider""
+            az provider register --namespace "$resource-provider"
           fi
-
-          echo "Subscription verified successfully:"
-          echo "$SUB_INFO" | grep -E "(id|name|tenantId)" || echo "$SUB_INFO"
 
       - name: Generate Storage Account Name
         id: generate-name
