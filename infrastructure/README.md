@@ -2,12 +2,18 @@
 
 This directory contains Terraform configuration files for managing Azure infrastructure.
 
+## Documentation
+
+- **[WORKFLOWS.md](./WORKFLOWS.md)** - Detailed explanation of GitHub Actions workflows and Terraform deployment process
+- **[README.md](./README.md)** - This file (quick reference)
+
 ## Structure
 
 - `main.tf` - Main Terraform configuration and provider setup
 - `variables.tf` - Input variables
 - `outputs.tf` - Output values
 - `backend.tf` - Backend configuration for Terraform state storage
+- `WORKFLOWS.md` - Workflow documentation
 
 ## Backend Configuration
 
