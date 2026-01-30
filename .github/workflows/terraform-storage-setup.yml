@@ -52,13 +52,13 @@ jobs:
 
       - name: Register Microsoft.Storage resource provider
         run: |
-          resource-provider="Microsoft.Storage"
-          registration_state=$(az provider show  --namespace "$resource-provider"|jq '.registrationState' -r)
-          echo "Current state "$resource-provider": ${registration_state}"
+          RESOURCE_PROVIDER="Microsoft.Storage"
+          registration_state=$(az provider show  --namespace "$RESOURCE_PROVIDER"|jq '.registrationState' -r)
+          echo "Current state "$RESOURCE_PROVIDER": ${registration_state}"
           if [[ $registration_state == "NotRegistered" ]]
           then
-            echo "Registering "$resource-provider""
-            az provider register --namespace "$resource-provider"
+            echo "Registering "$RESOURCE_PROVIDER"
+            az provider register --namespace "$RESOURCE_PROVIDER"
           fi
 
       - name: Generate Storage Account Name
