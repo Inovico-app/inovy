@@ -82,6 +82,7 @@ export const archiveRecordingAction = authorizedActionClient
     revalidatePath(
       `/projects/${recording.projectId}/recordings/${recordingId}`
     );
+    revalidatePath("/recordings");
 
     return { data: { success: result.value } };
   });

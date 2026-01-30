@@ -105,6 +105,7 @@ export const deleteRecordingAction = authorizedActionClient
 
     // Revalidate paths
     revalidatePath(`/projects/${recording.projectId}`);
+    revalidatePath("/recordings");
 
     return { data: { success: true, projectId: recording.projectId } };
   });

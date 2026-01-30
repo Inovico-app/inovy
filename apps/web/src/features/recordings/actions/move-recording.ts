@@ -51,6 +51,7 @@ export const moveRecordingAction = authorizedActionClient
     // Note: We invalidate the cache in the service, but we also revalidate paths here
     revalidatePath(`/projects/${movedRecording.projectId}`);
     revalidatePath(`/projects/${movedRecording.projectId}/recordings`);
+    revalidatePath("/recordings");
 
     return {
       success: true,

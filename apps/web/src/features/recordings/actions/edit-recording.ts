@@ -51,6 +51,7 @@ export const updateRecordingAction = authorizedActionClient
       `/projects/${recording.projectId}/recordings/${recordingId}`
     );
     revalidatePath(`/projects/${recording.projectId}`);
+    revalidatePath("/recordings");
 
     // Convert Result to action response
     return resultToActionResponse(result);

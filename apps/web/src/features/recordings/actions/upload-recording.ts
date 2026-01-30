@@ -192,6 +192,7 @@ export async function uploadRecordingFormAction(
 
     // Revalidate the project page
     revalidatePath(`/projects/${projectId}`);
+    revalidatePath("/recordings");
 
     // Trigger AI processing workflow in the background (fire and forget)
     const workflowRun = await start(convertRecordingIntoAiInsights, [

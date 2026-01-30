@@ -55,6 +55,7 @@ export const unarchiveRecordingAction = authorizedActionClient
     revalidatePath(
       `/projects/${recording.projectId}/recordings/${recordingId}`
     );
+    revalidatePath("/recordings");
 
     return { data: { success: result.value } };
   });
