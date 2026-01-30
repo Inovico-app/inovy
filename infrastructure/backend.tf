@@ -1,9 +1,10 @@
 terraform {
+  # If you store state in Azure Storage, that ALSO needs OIDC config
   backend "azurerm" {
-    # These values will be provided via backend config file or command line
-    # resource_group_name  = "rg-terraform-states"
-    # storage_account_name = "sttfprd<unique-suffix>"
-    # container_name       = "tfstate"
-    # key                  = "prd/infrastructure.tfstate"
+    resource_group_name  = var.resource_group_name
+    storage_account_name = "sttf${var.environment}inovy"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+    use_oidc             = true
   }
 }
