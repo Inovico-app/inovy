@@ -133,7 +133,7 @@ jobs:
             --delete-retention-days 7 \
             --enable-change-feed true \
             --enable-restore-policy true \
-            --restore-days 7
+            --restore-days 6
 
       - name: Create Terraform State Container (if not exists)
         run: |
