@@ -8,11 +8,3 @@ variable "location" {
   type        = string
   default     = "westeurope"
 }
-
-variable "resource_group_name" {
-  description = "Name of the resource group for Terraform state storage"
-  type        = string
-  default     = "rg-terraform-states"
-}
-
-# Add your custom variables here

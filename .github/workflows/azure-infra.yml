@@ -86,7 +86,11 @@ jobs:
         if: ${{ inputs.terraform_action == 'plan' }}
         working-directory: infrastructure
         run: |
-          terraform plan -input=false -out=tfplan
+          terraform plan \
+            -input=false \
+            -out=tfplan \
+            -var="environment=${{ inputs.environment }}" \
+            -var="location=${{ inputs.location }}"
 
       - name: Upload Plan to Storage Account
         if: ${{ inputs.terraform_action == 'plan' }}
