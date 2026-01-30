@@ -11,3 +11,14 @@ terraform {
     }
   }
 }
+
+resource "azurerm_resource_group" "inovy" {
+  name     = "rg-inovy-${var.environment}"
+  location = var.location
+
+  tags = {
+    Environment = var.environment
+    Application = "inovy"
+    ManagedBy   = "terraform"
+  }
+}
