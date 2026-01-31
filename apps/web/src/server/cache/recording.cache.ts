@@ -24,19 +24,18 @@ export async function getCachedRecordingById(
 /**
  * Get recordings by project ID (cached)
  * Calls RecordingService which includes business logic and auth checks
+ * Note: Search filtering should be done client-side to avoid cache fragmentation
  */
 export async function getCachedRecordingsByProjectId(
   projectId: string,
-  organizationId: string,
-  options?: { search?: string }
+  organizationId: string
 ) {
   "use cache";
   cacheTag(CacheTags.recordingsByProject(projectId));
 
   const recordings = await RecordingService.getRecordingsByProjectId(
     projectId,
-    organizationId,
-    options
+    organizationId
   );
 
   if (recordings.isOk()) {
@@ -49,21 +48,16 @@ export async function getCachedRecordingsByProjectId(
 /**
  * Get recordings by organization (cached)
  * Calls RecordingService which includes business logic and auth checks
+ * Note: Filtering (search, status, projects) should be done client-side to avoid cache fragmentation
  */
 export async function getCachedRecordingsByOrganization(
-  organizationId: string,
-  options?: {
-    statusFilter?: "active" | "archived";
-    search?: string;
-    projectIds?: string[];
-  }
+  organizationId: string
 ) {
   "use cache";
   cacheTag(CacheTags.recordingsByOrg(organizationId));
 
   const recordings = await RecordingService.getRecordingsByOrganization(
-    organizationId,
-    options
+    organizationId
   );
 
   if (recordings.isOk()) {
