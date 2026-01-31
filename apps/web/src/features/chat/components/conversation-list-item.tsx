@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ChatConversation } from "@/server/db/schema/chat-conversations";
 import { Building2, FolderOpen, MoreVertical } from "lucide-react";
+import { differenceInCalendarDays } from "date-fns";
 import { ConversationActionsMenu } from "./conversation-actions-menu";
 
 interface ConversationListItemProps {
@@ -33,10 +34,8 @@ export function ConversationListItem({
       return `${Math.floor(diffInHours)}h ago`;
     }
 
-    // For older dates, use calendar days by normalizing to midnight
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const compareDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const diffInDays = Math.floor((today.getTime() - compareDate.getTime()) / (1000 * 60 * 60 * 24));
+    // For older dates, use calendar days
+    const diffInDays = differenceInCalendarDays(now, date);
 
     if (diffInDays < 7) {
       return `${diffInDays}d ago`;
