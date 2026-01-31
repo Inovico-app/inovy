@@ -63,8 +63,12 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
   const formatRelativeTime = (date: Date | null) => {
     if (!date) return "Never";
 
+    // Normalize both dates to midnight to compare calendar days
     const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const compareDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    const diffInMs = today.getTime() - compareDate.getTime();
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
     if (diffInDays === 0) return "Today";

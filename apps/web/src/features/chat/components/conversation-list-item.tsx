@@ -25,14 +25,21 @@ export function ConversationListItem({
     const now = new Date();
     const diffInMs = now.getTime() - date.getTime();
     const diffInHours = diffInMs / (1000 * 60 * 60);
-    const diffInDays = diffInHours / 24;
 
+    // For recent times (< 24 hours), use time-based display
     if (diffInHours < 1) {
       return "Just now";
     } else if (diffInHours < 24) {
       return `${Math.floor(diffInHours)}h ago`;
-    } else if (diffInDays < 7) {
-      return `${Math.floor(diffInDays)}d ago`;
+    }
+
+    // For older dates, use calendar days by normalizing to midnight
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const compareDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffInDays = Math.floor((today.getTime() - compareDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffInDays < 7) {
+      return `${diffInDays}d ago`;
     } else {
       return date.toLocaleDateString();
     }
