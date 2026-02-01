@@ -3,6 +3,7 @@ import { SkipLink } from "@/components/skip-link";
 import { BetterAuthProvider } from "@/providers/AuthProvider";
 import { DeepgramContextProvider } from "@/providers/DeepgramProvider";
 import { MicrophoneContextProvider } from "@/providers/microphone/MicrophoneProvider";
+import { SystemAudioContextProvider } from "@/providers/system-audio/SystemAudioProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
@@ -47,16 +48,18 @@ export default function RootLayout({
         <BetterAuthProvider>
           <DeepgramContextProvider>
             <MicrophoneContextProvider>
-              <QueryProvider>
-                <NuqsAdapter>
-                  <ThemeProvider>
-                    <VercelAnalytics />
-                    <VercelSpeedInsights />
-                    {children}
-                    <Toaster richColors />
-                  </ThemeProvider>
-                </NuqsAdapter>
-              </QueryProvider>
+              <SystemAudioContextProvider>
+                <QueryProvider>
+                  <NuqsAdapter>
+                    <ThemeProvider>
+                      <VercelAnalytics />
+                      <VercelSpeedInsights />
+                      {children}
+                      <Toaster richColors />
+                    </ThemeProvider>
+                  </NuqsAdapter>
+                </QueryProvider>
+              </SystemAudioContextProvider>
             </MicrophoneContextProvider>
           </DeepgramContextProvider>
         </BetterAuthProvider>

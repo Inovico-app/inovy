@@ -2,6 +2,7 @@
 
 import { useLiveRecording } from "@/features/recordings/hooks/use-live-recording";
 import { useLiveTranscription } from "@/features/recordings/hooks/use-live-transcription";
+import { useAudioSource } from "@/features/recordings/hooks/use-audio-source";
 import { logger } from "@/lib/logger";
 import { useEffect, useEffectEvent, useState } from "react";
 import type { Participant } from "@/features/recordings/hooks/use-consent-banner";
@@ -35,8 +36,17 @@ export function LiveRecorder({
   const [consentGrantedAt, setConsentGrantedAt] = useState<Date | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
 
+  // Audio source management
+  const audioSource = useAudioSource();
+  
+  // Don't auto-setup audio sources - only setup when user starts recording
+  // This prevents permission prompts from appearing when user hasn't explicitly requested system audio
+
   // Custom hooks
-  const recording = useLiveRecording();
+  const recording = useLiveRecording({
+    audioSource: audioSource.audioSource,
+    combinedStream: audioSource.combinedStream,
+  });
   const transcription = useLiveTranscription({
     microphone: recording.microphone,
     isRecording: recording.isRecording,
@@ -68,6 +78,12 @@ export function LiveRecorder({
     }
 
     try {
+      // Setup audio sources if needed (this requests permissions only when user starts recording)
+      // This ensures we only ask for system audio permission when user explicitly wants it
+      if (audioSource.audioSource === "system" || audioSource.audioSource === "both") {
+        await audioSource.setupAudioSources();
+      }
+
       if (externalLiveTranscriptionEnabled) {
         // Start recording with transcription
         await recording.handleStart(true, async () => {
@@ -88,12 +104,14 @@ export function LiveRecorder({
       }
     } catch (error) {
       logger.warn(
-        "Failed to start recording with transcription:",
+        "Failed to start recording:",
         error instanceof Error ? { error } : { error: String(error) }
       );
-      recording.setRecorderError(
-        "Failed to start recording with transcription"
-      );
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to start recording";
+      recording.setRecorderError(errorMessage);
     }
   });
 
@@ -199,6 +217,15 @@ export function LiveRecorder({
             consentGranted={consentGranted}
             wakeLockActive={recording.wakeLockActive}
             formattedDuration={formattedDuration}
+            audioSource={audioSource.audioSource}
+            onAudioSourceChange={audioSource.setAudioSource}
+            compatibility={audioSource.compatibility}
+            isSystemAudioActive={
+              (audioSource.audioSource === "system" ||
+                audioSource.audioSource === "both") &&
+              !!audioSource.systemAudioStream
+            }
+            systemAudioSetupError={audioSource.setupError}
             onStart={handleStart}
             onPause={recording.handlePause}
             onResume={recording.handleResume}
