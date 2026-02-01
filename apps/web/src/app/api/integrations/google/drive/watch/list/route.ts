@@ -1,5 +1,6 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
+import { createSafeActionErrorResponse, createSafeErrorResponse } from "@/lib/safe-error-response";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { DriveWatchesService } from "@/server/services/drive-watches.service";
@@ -44,32 +45,9 @@ export async function GET(request: NextRequest) {
     const result = await DriveWatchesService.listWatches(userId);
 
     if (result.isErr()) {
-      logger.error("Failed to list Drive watches", {
-        component: "GET /api/integrations/google/drive/watch/list",
-        userId: user.id,
-        requestedUserId,
-        error: result.error,
-      });
-
-      // Map error code to HTTP status
-      const statusMap: Record<string, number> = {
-        UNAUTHENTICATED: 401,
-        FORBIDDEN: 403,
-        NOT_FOUND: 404,
-        BAD_REQUEST: 400,
-        CONFLICT: 409,
-        VALIDATION_ERROR: 400,
-        RATE_LIMITED: 429,
-        SERVICE_UNAVAILABLE: 503,
-        INTERNAL_SERVER_ERROR: 500,
-      };
-
-      return NextResponse.json(
-        {
-          error: result.error.message,
-          code: result.error.code,
-        },
-        { status: statusMap[result.error.code] ?? 500 }
+      return createSafeActionErrorResponse(
+        result.error,
+        "GET /api/integrations/google/drive/watch/list"
       );
     }
 
@@ -78,10 +56,9 @@ export async function GET(request: NextRequest) {
       watches: result.value,
     });
   } catch (error) {
-    logger.error("Error in list Drive watches API route", {}, error as Error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+    return createSafeErrorResponse(
+      error,
+      "GET /api/integrations/google/drive/watch/list"
     );
   }
 }

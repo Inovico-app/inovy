@@ -1,3 +1,4 @@
+import { createSafeErrorResponse } from "@/lib/safe-error-response";
 import { QdrantClientService } from "@/server/services/rag/qdrant.service";
 import { NextResponse } from "next/server";
 
@@ -36,14 +37,13 @@ export async function GET() {
       { status: 200 }
     );
   } catch (error) {
-    return NextResponse.json(
+    return createSafeErrorResponse(
+      error,
+      "GET /api/qdrant/health",
       {
-        status: "unhealthy",
-        service: "qdrant",
-        error:
-          error instanceof Error ? error.message : "Unknown error occurred",
-      },
-      { status: 503 }
+        fallbackStatus: 503,
+        fallbackMessage: "Service unavailable",
+      }
     );
   }
 }
