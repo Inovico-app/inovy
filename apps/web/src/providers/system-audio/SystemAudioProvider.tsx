@@ -71,21 +71,23 @@ const SystemAudioContextProvider: React.FC<
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const rawStreamRef = useRef<MediaStream | null>(null);
+  const systemAudioStreamRef = useRef<MediaStream | null>(null);
+  const videoStreamRef = useRef<MediaStream | null>(null);
 
   // ==========================================================================
   // Cleanup Helpers
   // ==========================================================================
 
   const cleanupResources = () => {
-    // Stop all tracks
+    // Stop all tracks - read from refs to avoid stale closures
     if (rawStreamRef.current) {
       rawStreamRef.current.getTracks().forEach((track) => track.stop());
     }
-    if (systemAudioStream) {
-      systemAudioStream.getTracks().forEach((track) => track.stop());
+    if (systemAudioStreamRef.current) {
+      systemAudioStreamRef.current.getTracks().forEach((track) => track.stop());
     }
-    if (videoStream) {
-      videoStream.getTracks().forEach((track) => track.stop());
+    if (videoStreamRef.current) {
+      videoStreamRef.current.getTracks().forEach((track) => track.stop());
     }
 
     // Close audio context
@@ -93,8 +95,10 @@ const SystemAudioContextProvider: React.FC<
       audioContextRef.current.close().catch(console.error);
     }
 
-    // Reset refs
+    // Reset all refs when tearing down so future cleanups see correct values
     rawStreamRef.current = null;
+    systemAudioStreamRef.current = null;
+    videoStreamRef.current = null;
     audioContextRef.current = null;
   };
 
@@ -149,15 +153,22 @@ const SystemAudioContextProvider: React.FC<
       // Create a new stream with only audio tracks for recording
       const audioOnlyStream = new MediaStream(audioTracks);
       setSystemAudioStream(audioOnlyStream);
+      systemAudioStreamRef.current = audioOnlyStream; // Update ref for cleanup
 
-      // Store video stream separately (we'll hide it but need to keep it alive)
+      // Store video stream separately - keep tracks alive but hidden
       if (videoTracks.length > 0) {
         const videoOnlyStream = new MediaStream(videoTracks);
+        
+        // Hide video tracks by disabling them instead of stopping
+        // This keeps the stream alive and usable while preventing video rendering
+        videoTracks.forEach((track) => {
+          track.enabled = false;
+        });
+        
         setVideoStream(videoOnlyStream);
-
-        // Hide video track by stopping it (but keep the stream reference)
-        // Actually, we should keep video track alive but hidden
-        // Stopping it might stop the entire stream
+        videoStreamRef.current = videoOnlyStream; // Update ref for cleanup
+      } else {
+        videoStreamRef.current = null; // Clear ref if no video tracks
       }
 
       // Handle track ended events (user stops sharing)

@@ -31,6 +31,7 @@ interface RecordingSectionProps {
   onAudioSourceChange: (source: AudioSourceType) => void;
   compatibility: SystemAudioCompatibility;
   isSystemAudioActive?: boolean;
+  systemAudioSetupError?: string | null;
   onStart: () => void;
   onPause: () => void;
   onResume: () => void;
@@ -55,6 +56,7 @@ export function RecordingSection({
   onAudioSourceChange,
   compatibility,
   isSystemAudioActive = false,
+  systemAudioSetupError,
   onStart,
   onPause,
   onResume,
@@ -209,7 +211,7 @@ export function RecordingSection({
           {(audioSource === "system" || audioSource === "both") && (
             <SystemAudioStatus
               isActive={isSystemAudioActive}
-              hasError={!compatibility.isAudioSupported}
+              hasError={!!systemAudioSetupError}
             />
           )}
           <TranscriptionStatus

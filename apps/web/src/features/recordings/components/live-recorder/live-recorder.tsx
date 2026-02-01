@@ -225,6 +225,7 @@ export function LiveRecorder({
                 audioSource.audioSource === "both") &&
               !!audioSource.systemAudioStream
             }
+            systemAudioSetupError={audioSource.setupError}
             onStart={handleStart}
             onPause={recording.handlePause}
             onResume={recording.handleResume}

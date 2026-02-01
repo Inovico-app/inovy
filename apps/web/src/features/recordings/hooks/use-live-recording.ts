@@ -147,6 +147,46 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
               audioChunksRef.current.push(event.data);
             }
           };
+
+          recorder.onerror = (event) => {
+            logger.error("MediaRecorder error", {
+              component: "use-live-recording",
+              error: event instanceof ErrorEvent ? event.error : new Error(String(event)),
+            });
+
+            // Stop recording and transition to error state
+            try {
+              if (recorder.state !== "inactive") {
+                recorder.stop();
+              }
+            } catch (stopError) {
+              logger.error("Error stopping MediaRecorder after error", {
+                component: "use-live-recording",
+                error: stopError instanceof Error ? stopError : new Error(String(stopError)),
+              });
+            }
+
+            // Clear the recorder reference
+            mediaRecorderRef.current = null;
+
+            // Update state
+            setIsRecording(false);
+            setIsPaused(false);
+            stopTimer();
+            setRecorderError(
+              event instanceof ErrorEvent && event.error
+                ? event.error.message
+                : "MediaRecorder error occurred"
+            );
+
+            // Release wake lock
+            wakeLock.release().catch((releaseError) => {
+              logger.error("Error releasing wake lock after MediaRecorder error", {
+                component: "use-live-recording",
+                error: releaseError instanceof Error ? releaseError : new Error(String(releaseError)),
+              });
+            });
+          };
         }
 
         setIsRecording(true);
@@ -232,23 +272,30 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
       stopTimer();
 
       // Stop the appropriate recorder
-      if (options?.combinedStream && mediaRecorderRef.current) {
-        if (mediaRecorderRef.current.state !== "inactive") {
-          mediaRecorderRef.current.stop();
-        }
-        // Wait for final data
-        await new Promise<void>((resolve) => {
-          if (mediaRecorderRef.current) {
-            mediaRecorderRef.current.onstop = () => resolve();
-            if (mediaRecorderRef.current.state === "recording") {
-              mediaRecorderRef.current.stop();
+      if (options?.combinedStream) {
+        // Capture recorder reference atomically to avoid race conditions
+        const recorder = mediaRecorderRef.current;
+        
+        if (recorder && recorder.state === "recording") {
+          // Wait for final data with atomic handler setup
+          await new Promise<void>((resolve) => {
+            // Set onstop handler before calling stop to ensure we catch the event
+            recorder.onstop = () => {
+              // Clear the handler to avoid stray handlers
+              recorder.onstop = null;
+              resolve();
+            };
+            // Only call stop if still recording (atomic check)
+            if (recorder.state === "recording") {
+              recorder.stop();
             } else {
+              // If state changed between checks, clear handler and resolve immediately
+              recorder.onstop = null;
               resolve();
             }
-          } else {
-            resolve();
-          }
-        });
+          });
+        }
+        // If recorder is null or already inactive, no need to wait
       } else {
         // Stop provider recorders
         const currentAudioSource = options?.audioSource || "microphone";
