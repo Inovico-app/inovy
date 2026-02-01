@@ -7,4 +7,3 @@ export function generateCorrelationId(): string {
   return randomUUID();
 }
 
-

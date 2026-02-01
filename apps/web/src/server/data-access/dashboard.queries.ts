@@ -1,4 +1,4 @@
-import { count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import { projects } from "../db/schema/projects";
 import { recordings } from "../db/schema/recordings";
@@ -61,13 +61,25 @@ export async function getDashboardStats(organizationId: string) {
   const totalProjects = await db
     .select({ count: count() })
     .from(projects)
-    .where(eq(projects.organizationId, organizationId));
+    .where(
+      and(
+        eq(projects.organizationId, organizationId),
+        eq(projects.status, "active")
+      )
+    );
 
   const totalRecordings = await db
     .select({ count: count() })
     .from(recordings)
     .innerJoin(projects, eq(recordings.projectId, projects.id))
-    .where(eq(projects.organizationId, organizationId));
+    .where(
+      and(
+        eq(projects.organizationId, organizationId),
+        eq(projects.status, "active"),
+        eq(recordings.organizationId, organizationId),
+        eq(recordings.status, "active")
+      )
+    );
 
   return {
     totalProjects: totalProjects[0]?.count ?? 0,
