@@ -1,6 +1,7 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { withRateLimit } from "@/lib/rate-limit";
+import { createSafeActionErrorResponse } from "@/lib/safe-error-response";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { AIInsightService } from "@/server/services/ai-insight.service";
 import { rateLimiter } from "@/server/services/rate-limiter.service";

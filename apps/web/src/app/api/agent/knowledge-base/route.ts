@@ -1,5 +1,6 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
+import { createSafeActionErrorResponse, createSafeErrorResponse } from "@/lib/safe-error-response";
 import { KnowledgeBaseBrowserService } from "@/server/services/knowledge-base-browser.service";
 import { AgentConfigService } from "@/server/services/agent-config.service";
 import type { NextRequest } from "next/server";
@@ -57,23 +58,18 @@ export async function GET(request: NextRequest) {
     });
 
     if (result.isErr()) {
-      logger.error("Failed to list documents", {
-        component: "api/agent/knowledge-base",
-        error: result.error.message,
-      });
-      return Response.json(
-        { error: result.error.message },
-        { status: result.error.code === "INTERNAL_SERVER_ERROR" ? 500 : 400 }
+      return createSafeActionErrorResponse(
+        result.error,
+        "GET /api/agent/knowledge-base"
       );
     }
 
     return Response.json(result.value);
   } catch (error) {
-    logger.error("Unexpected error listing documents", {
-      component: "api/agent/knowledge-base",
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    return createSafeErrorResponse(
+      error,
+      "GET /api/agent/knowledge-base"
+    );
   }
 }
 
@@ -128,24 +124,18 @@ export async function DELETE(request: NextRequest) {
     );
 
     if (result.isErr()) {
-      logger.error("Failed to delete document", {
-        component: "api/agent/knowledge-base",
-        documentId,
-        error: result.error.message,
-      });
-      return Response.json(
-        { error: result.error.message },
-        { status: result.error.code === "INTERNAL_SERVER_ERROR" ? 500 : 400 }
+      return createSafeActionErrorResponse(
+        result.error,
+        "DELETE /api/agent/knowledge-base"
       );
     }
 
     return Response.json({ success: true });
   } catch (error) {
-    logger.error("Unexpected error deleting document", {
-      component: "api/agent/knowledge-base",
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    return createSafeErrorResponse(
+      error,
+      "DELETE /api/agent/knowledge-base"
+    );
   }
 }
 

@@ -314,14 +314,23 @@ export const logger = new Logger();
  * Helper function to serialize errors for logging
  * Useful when passing errors as part of the context object
  * Includes cause property for Drizzle and other wrapped errors
+ * 
+ * SECURITY: In production, stack traces, SQL queries, and file paths are excluded
+ * to prevent information leakage. These details are only logged in development.
  */
 export function serializeError(error: unknown): unknown {
+  const isProduction = process.env.NODE_ENV === "production";
+
   if (error instanceof Error) {
     const serialized: Record<string, unknown> = {
       message: error.message,
-      stack: error.stack,
       name: error.name,
     };
+
+    // Only include stack traces in development
+    if (!isProduction && error.stack) {
+      serialized.stack = error.stack;
+    }
 
     // Include cause if it exists (common in Drizzle errors)
     if ("cause" in error && error.cause) {
@@ -329,28 +338,30 @@ export function serializeError(error: unknown): unknown {
         const causeError = error.cause as Error & Record<string, unknown>;
         serialized.cause = {
           message: causeError.message,
-          stack: causeError.stack,
           name: causeError.name,
-          // Include any additional properties from the cause
-          ...(Object.fromEntries(
-            Object.entries(causeError).filter(
-              ([key]) => !["message", "stack", "name"].includes(key)
-            )
-          ) as Record<string, unknown>),
+          // Only include stack trace in development
+          ...((!isProduction && causeError.stack) ? { stack: causeError.stack } : {}),
         };
       } else {
-        serialized.cause = error.cause;
+        // For non-Error causes, only include in development
+        if (!isProduction) {
+          serialized.cause = error.cause;
+        }
       }
     }
 
-    // Include query property if it exists (Drizzle query errors)
-    if ("query" in error) {
-      serialized.query = (error as { query?: unknown }).query;
-    }
+    // SECURITY: Never include SQL queries or parameters in production
+    // These could expose database schema and sensitive data
+    if (!isProduction) {
+      // Include query property if it exists (Drizzle query errors)
+      if ("query" in error) {
+        serialized.query = (error as { query?: unknown }).query;
+      }
 
-    // Include params property if it exists (Drizzle query errors)
-    if ("params" in error) {
-      serialized.params = (error as { params?: unknown }).params;
+      // Include params property if it exists (Drizzle query errors)
+      if ("params" in error) {
+        serialized.params = (error as { params?: unknown }).params;
+      }
     }
 
     return serialized;
