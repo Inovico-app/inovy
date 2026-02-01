@@ -18,33 +18,11 @@ import {
 } from "./utterance-helpers";
 import { getSpeakerInfo, getUserInitials } from "./speaker-helpers";
 import { useJumpToTimestamp } from "@/features/recordings/hooks/use-jump-to-timestamp";
-
-const SPEAKER_COLORS = [
-  "bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100",
-  "bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100",
-  "bg-purple-100 text-purple-900 dark:bg-purple-900 dark:text-purple-100",
-  "bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100",
-  "bg-pink-100 text-pink-900 dark:bg-pink-900 dark:text-pink-100",
-  "bg-indigo-100 text-indigo-900 dark:bg-indigo-900 dark:text-indigo-100",
-];
-
-const SPEAKER_BG_COLORS = [
-  "bg-blue-50 dark:bg-blue-950",
-  "bg-green-50 dark:bg-green-950",
-  "bg-purple-50 dark:bg-purple-950",
-  "bg-amber-50 dark:bg-amber-950",
-  "bg-pink-50 dark:bg-pink-950",
-  "bg-indigo-50 dark:bg-indigo-950",
-];
-
-const SPEAKER_AVATAR_COLORS = [
-  "bg-blue-200 dark:bg-blue-800",
-  "bg-green-200 dark:bg-green-800",
-  "bg-purple-200 dark:bg-purple-800",
-  "bg-amber-200 dark:bg-amber-800",
-  "bg-pink-200 dark:bg-pink-800",
-  "bg-indigo-200 dark:bg-indigo-800",
-];
+import {
+  getSpeakerMessageColor,
+  getSpeakerBgColor,
+  getSpeakerAvatarColor,
+} from "@/features/recordings/lib/speaker-colors";
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -57,11 +35,10 @@ function getSpeakerColor(speakerIndex: number): {
   bg: string;
   avatar: string;
 } {
-  const colorIndex = speakerIndex % SPEAKER_COLORS.length;
   return {
-    text: SPEAKER_COLORS[colorIndex],
-    bg: SPEAKER_BG_COLORS[colorIndex],
-    avatar: SPEAKER_AVATAR_COLORS[colorIndex],
+    text: getSpeakerMessageColor(speakerIndex),
+    bg: getSpeakerBgColor(speakerIndex),
+    avatar: getSpeakerAvatarColor(speakerIndex),
   };
 }
 

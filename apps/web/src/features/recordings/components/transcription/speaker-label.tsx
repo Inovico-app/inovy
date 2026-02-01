@@ -1,23 +1,16 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
 import { Edit2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { EditSpeakerNameDialog } from "./edit-speaker-name-dialog";
-
-// Whitelist of allowed color classes to prevent XSS
-const ALLOWED_TEXT_COLORS = [
-  "text-blue-600 dark:text-blue-400",
-  "text-green-600 dark:text-green-400",
-  "text-purple-600 dark:text-purple-400",
-  "text-amber-600 dark:text-amber-400",
-  "text-pink-600 dark:text-pink-400",
-  "text-red-600 dark:text-red-400",
-  "text-cyan-600 dark:text-cyan-400",
-  "text-orange-600 dark:text-orange-400",
-] as const;
+import { getSpeakerInfo, getUserInitials } from "./speaker-helpers";
+import {
+  getSpeakerTextColor,
+  isValidSpeakerTextColor,
+} from "@/features/recordings/lib/speaker-colors";
 
 interface SpeakerLabelProps {
   speakerNumber: number;
@@ -25,6 +18,8 @@ interface SpeakerLabelProps {
   currentUserId?: string | null;
   textColor?: string;
   recordingId: string;
+  speakerNames?: Record<string, string> | null;
+  speakerUserIds?: Record<string, string> | null;
 }
 
 export function SpeakerLabel({
@@ -33,62 +28,45 @@ export function SpeakerLabel({
   currentUserId,
   textColor,
   recordingId,
+  speakerNames,
+  speakerUserIds,
 }: SpeakerLabelProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { data: users = [] } = useOrganizationUsersQuery();
 
-  // Get speaker display info
-  const speakerInfo = useMemo(() => {
-    const defaultName = `Spreker ${speakerNumber + 1}`;
+  // Get speaker display info using centralized helper
+  const speakerInfo = getSpeakerInfo(
+    speakerNumber,
+    speakerNames,
+    speakerUserIds,
+    users
+  );
 
-    if (currentUserId) {
-      const user = users.find((u) => u.id === currentUserId);
-      if (user) {
-        const fullName = [user.given_name, user.family_name]
-          .filter(Boolean)
-          .join(" ");
-        return {
-          name: fullName || user.email || customName || defaultName,
-          userId: user.id,
-          email: user.email,
-        };
-      }
-    }
+  // Use customName prop if provided (for backward compatibility), otherwise use speakerInfo.name
+  // speakerInfo.name already handles speakerNames, speakerUserIds, and default names
+  const displayName = customName ?? speakerInfo.name;
 
-    return {
-      name: customName || defaultName,
-      userId: null,
-      email: null,
-    };
-  }, [speakerNumber, customName, currentUserId, users]);
+  // Get user initials using centralized helper
+  const userInitials = getUserInitials(speakerInfo, speakerNumber);
 
-  const displayName = speakerInfo.name;
-
-  // Validate textColor against whitelist
+  // Validate textColor against whitelist or use default speaker color
   const safeTextColor =
-    textColor && (ALLOWED_TEXT_COLORS as readonly string[]).includes(textColor)
+    textColor && isValidSpeakerTextColor(textColor)
       ? textColor
-      : "";
+      : getSpeakerTextColor(speakerNumber);
 
-  // Get user initials for avatar fallback
-  const userInitials = useMemo(() => {
-    if (speakerInfo.userId && speakerInfo.name) {
-      return speakerInfo.name
-        .trim()
-        .split(/\s+/)
-        .map((n) => n[0])
-        .filter((char) => char !== undefined)
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    return (speakerNumber + 1).toString();
-  }, [speakerInfo.userId, speakerInfo.name, speakerNumber]);
+  // Use currentUserId from props if provided, otherwise use speakerInfo.userId
+  // This allows overriding the userId for specific use cases
+  const effectiveUserId = currentUserId ?? speakerInfo.userId;
+  
+  // Use customName prop if provided, otherwise use speakerNames from the recording
+  // This ensures the dialog shows the correct current name
+  const effectiveCustomName = customName ?? speakerNames?.[speakerNumber.toString()];
 
   return (
     <>
       <div className="flex items-center gap-2">
-        {speakerInfo.userId && (
+        {effectiveUserId && (
           <Avatar className="flex-shrink-0 w-6 h-6">
             <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
           </Avatar>
@@ -113,8 +91,8 @@ export function SpeakerLabel({
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         speakerNumber={speakerNumber}
-        currentName={customName}
-        currentUserId={currentUserId}
+        currentName={effectiveCustomName}
+        currentUserId={effectiveUserId}
         recordingId={recordingId}
       />
     </>
