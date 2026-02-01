@@ -5,6 +5,7 @@ import { SpeakerLabel } from "./speaker-label";
 
 interface SpeakerLegendProps {
   speakersDetected?: number;
+  utterances?: Array<{ speaker?: number }>;
   speakerNames?: Record<string, string> | null;
   speakerUserIds?: Record<string, string> | null;
   recordingId: string;
@@ -13,31 +14,31 @@ interface SpeakerLegendProps {
 /**
  * SpeakerLegend component displays all detected speakers in a legend format.
  * Shows each speaker with their label, allowing users to see and manage all speakers at once.
- * Only displays when speakers are detected.
+ * Always displays to allow manual assignment of speakers even when none are detected.
  */
 export function SpeakerLegend({
   speakersDetected = 0,
+  utterances,
   speakerNames,
   speakerUserIds,
   recordingId,
 }: SpeakerLegendProps) {
   const speakers = useSpeakerList({
     speakersDetected,
+    utterances,
     speakerNames,
     speakerUserIds,
   });
 
-  // Don't render if no speakers detected
-  if (speakersDetected <= 0 || speakers.length === 0) {
-    return null;
-  }
-
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span>Sprekers:</span>
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-semibold text-foreground">Sprekers</span>
+        <span className="text-xs text-muted-foreground">
+          ({speakers.length} {speakers.length === 1 ? "spreker" : "sprekers"})
+        </span>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2.5">
         {speakers.map((speaker) => (
           <SpeakerLabel
             key={speaker.number}

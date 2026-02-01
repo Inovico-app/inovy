@@ -45,6 +45,16 @@ export const SPEAKER_AVATAR_COLORS = [
   "bg-indigo-200 dark:bg-indigo-800",
 ] as const;
 
+// Badge/chip background colors for speaker labels (subtle, muted backgrounds)
+export const SPEAKER_BADGE_BG_COLORS = [
+  "bg-blue-500/10 dark:bg-blue-400/10",
+  "bg-green-500/10 dark:bg-green-400/10",
+  "bg-purple-500/10 dark:bg-purple-400/10",
+  "bg-amber-500/10 dark:bg-amber-400/10",
+  "bg-pink-500/10 dark:bg-pink-400/10",
+  "bg-indigo-500/10 dark:bg-indigo-400/10",
+] as const;
+
 /**
  * Gets text color class for a speaker badge.
  * @param speakerIndex - The speaker index (0-based)
@@ -86,22 +96,34 @@ export function getSpeakerAvatarColor(speakerIndex: number): string {
 }
 
 /**
- * Gets all color classes for a speaker (text, background, avatar).
+ * Gets badge/chip background color class for a speaker label.
+ * @param speakerIndex - The speaker index (0-based)
+ * @returns Badge background color class string
+ */
+export function getSpeakerBadgeBgColor(speakerIndex: number): string {
+  const colorIndex = speakerIndex % SPEAKER_BADGE_BG_COLORS.length;
+  return SPEAKER_BADGE_BG_COLORS[colorIndex];
+}
+
+/**
+ * Gets all color classes for a speaker (text, background, avatar, badge).
  * Useful for components that need multiple color values.
  * @param speakerIndex - The speaker index (0-based)
- * @returns Object with text, message, bg, and avatar color classes
+ * @returns Object with text, message, bg, avatar, and badge color classes
  */
 export function getSpeakerColors(speakerIndex: number): {
   text: string;
   message: string;
   bg: string;
   avatar: string;
+  badgeBg: string;
 } {
   return {
     text: getSpeakerTextColor(speakerIndex),
     message: getSpeakerMessageColor(speakerIndex),
     bg: getSpeakerBgColor(speakerIndex),
     avatar: getSpeakerAvatarColor(speakerIndex),
+    badgeBg: getSpeakerBadgeBgColor(speakerIndex),
   };
 }
 

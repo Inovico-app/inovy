@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
+import { useOrganizationMembers } from "@/features/tasks/hooks/use-organization-members";
 import { Copy, UserCog } from "lucide-react";
 import type { HTMLAttributes } from "react";
 import { useState } from "react";
@@ -96,7 +96,7 @@ export function TranscriptionMessageBubble({
   const speakerColor = getSpeakerColor(groupedUtterance.speaker);
   const isLeftAligned =
     groupedUtterance.speaker % 2 === 0 && viewMode === "detailed";
-  const { data: users = [] } = useOrganizationUsersQuery();
+  const { members: users = [] } = useOrganizationMembers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Get speaker display info (React 19 handles optimization automatically)

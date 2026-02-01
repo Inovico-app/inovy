@@ -98,19 +98,18 @@ export function TranscriptionTabs({
           </p>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        <div className="pb-4 border-b border-border">
+          <SpeakerLegend
+            speakersDetected={speakersDetected ?? 0}
+            utterances={utterances}
+            speakerNames={speakerNames}
+            speakerUserIds={speakerUserIds}
+            recordingId={recordingId}
+          />
+        </div>
         {hasUtterances ? (
           <>
-            {speakersDetected !== undefined && speakersDetected > 0 && (
-              <div className="mb-4 pb-4 border-b">
-                <SpeakerLegend
-                  speakersDetected={speakersDetected}
-                  speakerNames={speakerNames}
-                  speakerUserIds={speakerUserIds}
-                  recordingId={recordingId}
-                />
-              </div>
-            )}
             <Tabs
               value={activeTab || "simple"}
               onValueChange={(value) =>
