@@ -20,6 +20,37 @@ const nextConfig: NextConfig = {
     },
     proxyClientMaxBodySize: "500mb",
   },
+  // Security headers to prevent directory listing and enhance security
+  // Implements SSD-29.1.02: Disable directory listing on web server
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
   webpack: (config, { isServer }) => {
     // Exclude pino and related Node.js-only packages from client bundle
     if (!isServer) {
