@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { differenceInCalendarDays } from "date-fns";
 
 interface ProjectDetailPageProps {
   params: Promise<{ projectId: string }>;
@@ -64,8 +65,7 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
     if (!date) return "Never";
 
     const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    const diffInDays = differenceInCalendarDays(now, date);
 
     if (diffInDays === 0) return "Today";
     if (diffInDays === 1) return "Yesterday";
