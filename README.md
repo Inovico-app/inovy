@@ -978,6 +978,32 @@ Better Auth manages its own schema for:
 
 This project is private and proprietary.
 
+## 🔒 Security
+
+Inovy follows strict security standards for healthcare applications:
+
+- **NEN 7510** - Healthcare Information Security (Netherlands)
+- **AVG/GDPR** - Data Protection Regulation
+- **BIO** - Baseline Information Security Government
+- **OWASP Top 10** - Web Application Security
+
+### Security Documentation
+
+For detailed security guidelines and implementation practices:
+
+- **[Security Documentation](/docs/security/README.md)** - Comprehensive security guidelines
+- **[XML Parsing Security](/docs/security/xml-parsing-security.md)** - XXE prevention (SSD-32.1.02)
+- **[Security Policy](/SECURITY.md)** - Vulnerability reporting and disclosure
+
+### Reporting Security Issues
+
+If you discover a security vulnerability, please report it responsibly:
+
+- **Email:** security@inovy.app
+- **GitHub:** Use [GitHub Security Advisories](https://github.com/inovy/inovy/security/advisories/new)
+
+See [SECURITY.md](/SECURITY.md) for full details.
+
 ## 🙋‍♂️ Support
 
 For questions and support, please refer to the project documentation or contact the development team.
