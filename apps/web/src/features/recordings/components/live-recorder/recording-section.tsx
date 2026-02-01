@@ -2,11 +2,16 @@ import { Badge } from "@/components/ui/badge";
 import { LiveWaveform } from "@/components/ui/live-waveform";
 import { ConsentStatus } from "@/features/recordings/components/consent-status";
 import { useMicrophone } from "@/providers/microphone/MicrophoneProvider";
+import { AudioSourceSelector } from "./audio-source-selector";
+import { BrowserCompatibilityWarning } from "./browser-compatibility-warning";
 import { MicrophoneDeviceSelector } from "./microphone-device-selector";
 import { MicrophoneGainControl } from "./microphone-gain-control";
 import { RecordingControls } from "./recording-controls";
 import { RecordingErrors } from "./recording-errors";
+import { SystemAudioStatus } from "./system-audio-status";
 import { TranscriptionStatus } from "./transcription-status";
+import type { AudioSourceType } from "@/features/recordings/lib/audio-source-preferences";
+import type { SystemAudioCompatibility } from "@/features/recordings/lib/system-audio-detection";
 
 interface RecordingSectionProps {
   isRecording: boolean;
@@ -22,6 +27,10 @@ interface RecordingSectionProps {
   consentGranted: boolean;
   wakeLockActive: boolean;
   formattedDuration: string;
+  audioSource: AudioSourceType;
+  onAudioSourceChange: (source: AudioSourceType) => void;
+  compatibility: SystemAudioCompatibility;
+  isSystemAudioActive?: boolean;
   onStart: () => void;
   onPause: () => void;
   onResume: () => void;
@@ -42,6 +51,10 @@ export function RecordingSection({
   consentGranted,
   wakeLockActive,
   formattedDuration,
+  audioSource,
+  onAudioSourceChange,
+  compatibility,
+  isSystemAudioActive = false,
   onStart,
   onPause,
   onResume,
@@ -90,29 +103,40 @@ export function RecordingSection({
         </div>
 
         {/* Errors and Status - Compact */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 space-y-2">
           <RecordingErrors
             permissionDenied={permissionDenied}
             recorderError={recorderError}
             transcriptionError={transcriptionError}
             isSaving={isSaving}
           />
+          <BrowserCompatibilityWarning compatibility={compatibility} />
         </div>
 
-        {/* Microphone Device Selector and Gain Control */}
+        {/* Audio Source Selection */}
         <div className="flex-shrink-0 rounded-lg border bg-muted/30 p-4 space-y-4">
-          <MicrophoneDeviceSelector
-            deviceId={deviceId}
-            onDeviceChange={setDeviceId}
+          <AudioSourceSelector
+            audioSource={audioSource}
+            onAudioSourceChange={onAudioSourceChange}
+            isSystemAudioSupported={compatibility.isAudioSupported}
             disabled={isRecording}
           />
-          {stream && (
-            <MicrophoneGainControl
-              gain={gain}
-              onGainChange={setGain}
-              disabled={false}
-            />
-          )}
+          {audioSource === "microphone" || audioSource === "both" ? (
+            <>
+              <MicrophoneDeviceSelector
+                deviceId={deviceId}
+                onDeviceChange={setDeviceId}
+                disabled={isRecording}
+              />
+              {stream && (
+                <MicrophoneGainControl
+                  gain={gain}
+                  onGainChange={setGain}
+                  disabled={false}
+                />
+              )}
+            </>
+          ) : null}
         </div>
 
         {/* Live Waveform - Large and prominent */}
@@ -181,6 +205,12 @@ export function RecordingSection({
               </svg>
               <span>Screen lock active</span>
             </div>
+          )}
+          {(audioSource === "system" || audioSource === "both") && (
+            <SystemAudioStatus
+              isActive={isSystemAudioActive}
+              hasError={!compatibility.isAudioSupported}
+            />
           )}
           <TranscriptionStatus
             isRecording={isRecording}
