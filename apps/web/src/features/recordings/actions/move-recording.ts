@@ -8,7 +8,6 @@ import {
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { RecordingService } from "@/server/services/recording.service";
 import { moveRecordingSchema } from "@/server/validation/recordings/move-recording";
-import { revalidatePath } from "next/cache";
 
 /**
  * Server action to move a recording to another project
@@ -47,11 +46,9 @@ export const moveRecordingAction = authorizedActionClient
     // Convert Result to action response (throws if error)
     const movedRecording = resultToActionResponse(result);
 
-    // Revalidate paths for both source and target projects
-    // Note: We invalidate the cache in the service, but we also revalidate paths here
-    revalidatePath(`/projects/${movedRecording.projectId}`);
-    revalidatePath(`/projects/${movedRecording.projectId}/recordings`);
-    revalidatePath("/recordings");
+    // Cache invalidation is handled by RecordingService.moveRecording
+    // which calls CacheInvalidation.invalidateRecording and invalidateProjectRecordings
+    // for both source and target projects using updateTag
 
     return {
       success: true,

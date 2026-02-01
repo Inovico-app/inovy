@@ -7,7 +7,6 @@ import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { RecordingService } from "@/server/services/recording.service";
 import { archiveRecordingSchema } from "@/server/validation/recordings/archive-recording";
-import { revalidatePath } from "next/cache";
 
 /**
  * Archive recording action
@@ -77,12 +76,8 @@ export const archiveRecordingAction = authorizedActionClient
       },
     });
 
-    // Revalidate paths
-    revalidatePath(`/projects/${recording.projectId}`);
-    revalidatePath(
-      `/projects/${recording.projectId}/recordings/${recordingId}`
-    );
-    revalidatePath("/recordings");
+    // Cache invalidation is handled by RecordingService.archiveRecording
+    // which calls CacheInvalidation.invalidateRecording using updateTag
 
     return { data: { success: result.value } };
   });

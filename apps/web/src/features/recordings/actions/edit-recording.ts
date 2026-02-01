@@ -1,7 +1,6 @@
 "use server";
 
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
-import { revalidatePath } from "next/cache";
 import {
   authorizedActionClient,
   resultToActionResponse,
@@ -45,13 +44,8 @@ export const updateRecordingAction = authorizedActionClient
       throw result.error;
     }
 
-    // Get the recording to revalidate the correct path
-    const recording = result.value;
-    revalidatePath(
-      `/projects/${recording.projectId}/recordings/${recordingId}`
-    );
-    revalidatePath(`/projects/${recording.projectId}`);
-    revalidatePath("/recordings");
+    // Cache invalidation is handled by RecordingService.updateRecordingMetadata
+    // which calls CacheInvalidation.invalidateRecording using updateTag
 
     // Convert Result to action response
     return resultToActionResponse(result);

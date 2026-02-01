@@ -8,7 +8,6 @@ import { AuditLogService } from "@/server/services/audit-log.service";
 import { RecordingService } from "@/server/services/recording.service";
 import { deleteRecordingSchema } from "@/server/validation/recordings/delete-recording";
 import { del } from "@vercel/blob";
-import { revalidatePath } from "next/cache";
 
 /**
  * Delete recording action (hard delete with blob cleanup)
@@ -103,9 +102,8 @@ export const deleteRecordingAction = authorizedActionClient
       });
     }
 
-    // Revalidate paths
-    revalidatePath(`/projects/${recording.projectId}`);
-    revalidatePath("/recordings");
+    // Cache invalidation is handled by RecordingService.deleteRecording
+    // which calls CacheInvalidation.invalidateRecording using updateTag
 
     return { data: { success: true, projectId: recording.projectId } };
   });

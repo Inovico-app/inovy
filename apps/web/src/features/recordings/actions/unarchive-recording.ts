@@ -1,7 +1,6 @@
 "use server";
 
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
-import { revalidatePath } from "next/cache";
 import { authorizedActionClient } from "../../../lib/server-action-client/action-client";
 import { ActionErrors } from "../../../lib/server-action-client/action-errors";
 import { RecordingService } from "../../../server/services/recording.service";
@@ -50,12 +49,8 @@ export const unarchiveRecordingAction = authorizedActionClient
       );
     }
 
-    // Revalidate paths
-    revalidatePath(`/projects/${recording.projectId}`);
-    revalidatePath(
-      `/projects/${recording.projectId}/recordings/${recordingId}`
-    );
-    revalidatePath("/recordings");
+    // Cache invalidation is handled by RecordingService.unarchiveRecording
+    // which calls CacheInvalidation.invalidateRecording using updateTag
 
     return { data: { success: result.value } };
   });
