@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
@@ -77,6 +78,9 @@ export const createProjectAction = authorizedActionClient
         projectName: name,
       },
     });
+
+    // Revalidate dashboard page to refresh stats
+    revalidatePath("/");
 
     // Convert Result to action response (throws if error)
     return resultToActionResponse(result);

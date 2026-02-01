@@ -169,7 +169,9 @@ export const CacheInvalidation = {
   invalidateProjectCache(orgCode: string): void {
     invalidateCache(
       CacheTags.projectsByOrg(orgCode),
-      CacheTags.projectCount(orgCode)
+      CacheTags.projectCount(orgCode),
+      CacheTags.dashboardStats(orgCode),
+      CacheTags.recentProjects(orgCode)
     );
   },
 
@@ -181,7 +183,9 @@ export const CacheInvalidation = {
       CacheTags.project(projectId),
       CacheTags.projectsByOrg(orgCode),
       CacheTags.projectCount(orgCode),
-      CacheTags.projectTemplate(projectId)
+      CacheTags.projectTemplate(projectId),
+      CacheTags.dashboardStats(orgCode),
+      CacheTags.recentProjects(orgCode)
     );
   },
 
