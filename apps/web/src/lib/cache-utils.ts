@@ -97,6 +97,13 @@ export const CacheTags = {
   botSettings: (userId: string, organizationId: string) =>
     `bot-settings:${userId}:${organizationId}`,
 
+  // Bot Sessions tags
+  // Note: Uses organizationId (UUID) instead of orgCode (slug) for consistency with bot sessions schema
+  botSessions: (organizationId: string) => `bot-sessions:org:${organizationId}`,
+  botSession: (sessionId: string) => `bot-session:${sessionId}`,
+  botSessionsByStatus: (organizationId: string, status: string) =>
+    `bot-sessions:org:${organizationId}:status:${status}`,
+
   // Knowledge Base tags
   knowledgeEntries: (
     scope: "project" | "org" | "global",
@@ -290,6 +297,23 @@ export const CacheInvalidation = {
    */
   invalidateBotSettings(userId: string, organizationId: string): void {
     invalidateCache(CacheTags.botSettings(userId, organizationId));
+  },
+
+  /**
+   * Invalidate bot sessions cache for an organization
+   */
+  invalidateBotSessions(organizationId: string): void {
+    invalidateCache(CacheTags.botSessions(organizationId));
+  },
+
+  /**
+   * Invalidate specific bot session cache
+   */
+  invalidateBotSession(sessionId: string, organizationId: string): void {
+    invalidateCache(
+      CacheTags.botSession(sessionId),
+      CacheTags.botSessions(organizationId)
+    );
   },
 
   /**
