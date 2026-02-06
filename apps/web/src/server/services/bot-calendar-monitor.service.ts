@@ -222,23 +222,24 @@ export class BotCalendarMonitorService {
 
           // Create notification if consent is required
           if (botStatus === "pending_consent") {
-            const notificationResult = await NotificationService.createNotification({
-              recordingId: null, // No recording yet
-              projectId: project.id,
-              userId: settings.userId,
-              organizationId: settings.organizationId,
-              type: "bot_consent_request",
-              title: "Bot consent required",
-              message: `Bot wants to join "${meeting.title || "meeting"}"`,
-              metadata: {
-                sessionId: session.id,
-                meetingTitle: meeting.title,
-                meetingTime: meeting.start
-                  ? new Date(meeting.start).toLocaleString()
-                  : undefined,
-                meetingUrl: meeting.meetingUrl,
-              },
-            });
+            const notificationResult =
+              await NotificationService.createNotification({
+                recordingId: null, // No recording yet
+                projectId: project.id,
+                userId: settings.userId,
+                organizationId: settings.organizationId,
+                type: "bot_consent_request",
+                title: "Bot consent required",
+                message: `Bot wants to join "${meeting.title || "meeting"}"`,
+                metadata: {
+                  sessionId: session.id,
+                  meetingTitle: meeting.title,
+                  meetingTime: meeting.start
+                    ? new Date(meeting.start).toISOString()
+                    : undefined,
+                  meetingUrl: meeting.meetingUrl,
+                },
+              });
 
             if (notificationResult.isErr()) {
               logger.error("Failed to create bot consent notification", {

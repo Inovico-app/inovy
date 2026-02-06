@@ -35,17 +35,31 @@ export const updateBotSettings = authorizedActionClient
       botEnabled: parsedInput.botEnabled,
     });
 
-    const settings = await BotSettingsQueries.upsert({
-      userId: user.id,
-      organizationId,
-      botEnabled: parsedInput.botEnabled,
-      autoJoinEnabled: parsedInput.autoJoinEnabled,
-      requirePerMeetingConsent: parsedInput.requirePerMeetingConsent,
-      botDisplayName: parsedInput.botDisplayName,
-      botJoinMessage: parsedInput.botJoinMessage ?? null,
-      calendarIds: parsedInput.calendarIds ?? null,
-      inactivityTimeoutMinutes: parsedInput.inactivityTimeoutMinutes,
-    });
+    let settings;
+    try {
+      settings = await BotSettingsQueries.upsert({
+        userId: user.id,
+        organizationId,
+        botEnabled: parsedInput.botEnabled,
+        autoJoinEnabled: parsedInput.autoJoinEnabled,
+        requirePerMeetingConsent: parsedInput.requirePerMeetingConsent,
+        botDisplayName: parsedInput.botDisplayName,
+        botJoinMessage: parsedInput.botJoinMessage ?? null,
+        calendarIds: parsedInput.calendarIds ?? null,
+        inactivityTimeoutMinutes: parsedInput.inactivityTimeoutMinutes,
+      });
+    } catch (error) {
+      logger.error("Failed to upsert bot settings", {
+        userId: user.id,
+        organizationId,
+        error,
+      });
+      throw ActionErrors.internal(
+        "Failed to save bot settings",
+        undefined,
+        "update-bot-settings"
+      );
+    }
 
     // Invalidate cache
     CacheInvalidation.invalidateBotSettings(user.id, organizationId);

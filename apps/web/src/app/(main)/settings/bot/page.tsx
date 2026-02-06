@@ -1,6 +1,7 @@
 import { ProtectedPage } from "@/components/protected-page";
 import { BotSettingsContent } from "@/features/bot/components/bot-settings-content";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { logger, serializeError } from "@/lib/logger";
 import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
 import { Suspense } from "react";
 
@@ -54,11 +55,14 @@ async function BotSettingsContentWrapper() {
     );
   }
 
-  try {
-    const settings = await getCachedBotSettings(user.id, organization.id);
-    return <BotSettingsContent initialSettings={settings} />;
-  } catch (error) {
-    console.error("Failed to load bot settings:", error);
+  const settingsResult = await getCachedBotSettings(user.id, organization.id);
+
+  if (settingsResult.isErr()) {
+    logger.error("Failed to load bot settings", {
+      userId: user.id,
+      organizationId: organization.id,
+      error: serializeError(settingsResult.error),
+    });
     return (
       <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
         <p className="text-sm text-destructive">
@@ -67,6 +71,8 @@ async function BotSettingsContentWrapper() {
       </div>
     );
   }
+
+  return <BotSettingsContent initialSettings={settingsResult.value} />;
 }
 
 export default function BotSettingsPage() {
@@ -78,7 +84,8 @@ export default function BotSettingsPage() {
             <div>
               <h1 className="text-3xl font-bold">Bot Settings</h1>
               <p className="text-muted-foreground mt-2">
-                Configure your meeting bot preferences and manage recording consent
+                Configure your meeting bot preferences and manage recording
+                consent
               </p>
             </div>
             <Suspense fallback={<BotSettingsContentLoading />}>
@@ -90,3 +97,4 @@ export default function BotSettingsPage() {
     </Suspense>
   );
 }
+

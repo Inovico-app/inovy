@@ -1,7 +1,7 @@
 "use server";
 
 import { CacheInvalidation } from "@/lib/cache-utils";
-import { logger } from "@/lib/logger";
+import { logger, serializeError } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
@@ -80,19 +80,39 @@ export const approveBotJoin = authorizedActionClient
     }
 
     // Create confirmation notification
-    await NotificationService.createNotification({
-      recordingId: session.recordingId ?? null,
-      projectId: session.projectId,
-      userId: user.id,
-      organizationId,
-      type: "recording_processed",
-      title: "Bot session approved",
-      message: `Bot will join "${session.meetingTitle || "meeting"}" as scheduled.`,
-      metadata: {
+    try {
+      const notificationResult = await NotificationService.createNotification({
+        recordingId: session.recordingId ?? null,
+        projectId: session.projectId,
+        userId: user.id,
+        organizationId,
+        type: "bot_session_update",
+        title: "Bot session approved",
+        message: `Bot will join "${session.meetingTitle || "meeting"}" as scheduled.`,
+        metadata: {
+          sessionId,
+          action: "approved",
+        },
+      });
+
+      if (notificationResult.isErr()) {
+        logger.warn("Failed to create approval notification", {
+          userId: user.id,
+          organizationId,
+          sessionId,
+          error: notificationResult.error.message,
+        });
+        // Continue - notification failure should not block the approval action
+      }
+    } catch (error) {
+      logger.error("Unexpected error creating approval notification", {
+        userId: user.id,
+        organizationId,
         sessionId,
-        action: "approved",
-      },
-    });
+        error: serializeError(error),
+      });
+      // Continue - notification failure should not block the approval action
+    }
 
     // Invalidate caches
     CacheInvalidation.invalidateNotifications(user.id, organizationId);

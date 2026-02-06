@@ -6,6 +6,7 @@ import {
   ChevronRightIcon,
   SettingsIcon,
   UserIcon,
+  VideoIcon,
 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -41,7 +42,7 @@ const SETTINGS_MENU_ITEMS: MenuItem[] = [
   },
   {
     href: "/settings/bot",
-    icon: BotIcon,
+    icon: VideoIcon,
     title: "Bot",
     description: "Configure meeting bot preferences",
   },

@@ -9,12 +9,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import type { BotSettings } from "@/server/db/schema/bot-settings";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
+import { useUpdateBotSettings } from "../hooks/use-update-bot-settings";
 import { ConsentDialog } from "./consent-dialog";
-import { updateBotSettings } from "../actions/update-bot-settings";
-import type { BotSettings } from "@/server/db/schema/bot-settings";
 
 interface EnableBotToggleProps {
   settings: BotSettings;
@@ -25,69 +24,45 @@ interface EnableBotToggleProps {
  * Enable/disable bot toggle component with consent dialog
  */
 export function EnableBotToggle({ settings, onUpdate }: EnableBotToggleProps) {
-  const [isSaving, setIsSaving] = useState(false);
-  const [showConsentDialog, setShowConsentDialog] = useState(false);
-  const [pendingEnable, setPendingEnable] = useState(false);
+  const [isConsentDialogOpen, setIsConsentDialogOpen] = useState(false);
+  const [isPendingEnable, setIsPendingEnable] = useState(false);
 
-  const handleToggle = async () => {
+  const { updateBotSettings, isUpdating: isSaving } = useUpdateBotSettings({
+    onUpdate,
+  });
+
+  const handleToggle = () => {
     const newValue = !settings.botEnabled;
 
     // If enabling, show consent dialog first
-    if (newValue && !settings.botEnabled) {
-      setPendingEnable(true);
-      setShowConsentDialog(true);
+    if (newValue) {
+      setIsPendingEnable(true);
+      setIsConsentDialogOpen(true);
       return;
     }
 
     // If disabling, proceed directly
-    await updateSettings(newValue);
+    updateSettings(newValue);
   };
 
-  const handleConsentAccept = async () => {
-    setShowConsentDialog(false);
-    if (pendingEnable) {
-      await updateSettings(true);
-      setPendingEnable(false);
+  const handleConsentAccept = () => {
+    setIsConsentDialogOpen(false);
+    if (isPendingEnable) {
+      updateSettings(true);
+      setIsPendingEnable(false);
     }
   };
 
-  const updateSettings = async (enabled: boolean) => {
-    setIsSaving(true);
-
-    try {
-      const result = await updateBotSettings({
-        botEnabled: enabled,
-        autoJoinEnabled: enabled ? settings.autoJoinEnabled : false,
-        requirePerMeetingConsent: settings.requirePerMeetingConsent,
-        botDisplayName: settings.botDisplayName,
-        botJoinMessage: settings.botJoinMessage,
-        calendarIds: settings.calendarIds,
-        inactivityTimeoutMinutes: settings.inactivityTimeoutMinutes,
-      });
-
-      if (result?.data) {
-        toast.success(
-          enabled
-            ? "Bot enabled successfully"
-            : "Bot disabled successfully",
-          {
-            description: enabled
-              ? "The bot will now join your meetings automatically"
-              : "The bot will no longer join your meetings",
-          }
-        );
-        onUpdate();
-      } else {
-        throw new Error("Failed to update settings");
-      }
-    } catch (error) {
-      console.error("Failed to update bot settings:", error);
-      toast.error("Failed to update bot settings", {
-        description: "Please try again",
-      });
-    } finally {
-      setIsSaving(false);
-    }
+  const updateSettings = (enabled: boolean) => {
+    updateBotSettings({
+      botEnabled: enabled,
+      autoJoinEnabled: enabled ? settings.autoJoinEnabled : false,
+      requirePerMeetingConsent: settings.requirePerMeetingConsent,
+      botDisplayName: settings.botDisplayName,
+      botJoinMessage: settings.botJoinMessage,
+      calendarIds: settings.calendarIds,
+      inactivityTimeoutMinutes: settings.inactivityTimeoutMinutes,
+    });
   };
 
   return (
@@ -142,10 +117,11 @@ export function EnableBotToggle({ settings, onUpdate }: EnableBotToggleProps) {
       </Card>
 
       <ConsentDialog
-        open={showConsentDialog}
-        onOpenChange={setShowConsentDialog}
+        open={isConsentDialogOpen}
+        onOpenChange={setIsConsentDialogOpen}
         onAccept={handleConsentAccept}
       />
     </>
   );
 }
+

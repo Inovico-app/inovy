@@ -93,6 +93,7 @@ export const CacheTags = {
   driveWatches: (userId: string) => `drive-watches:user:${userId}`,
 
   // Bot Settings tags
+  // Note: Uses organizationId (UUID) instead of orgCode (slug) for consistency with bot settings schema
   botSettings: (userId: string, organizationId: string) =>
     `bot-settings:${userId}:${organizationId}`,
 

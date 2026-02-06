@@ -105,7 +105,7 @@ export const denyBotJoin = authorizedActionClient
         projectId: session.projectId,
         userId: user.id,
         organizationId,
-        type: "recording_processed",
+        type: "bot_session_update",
         title: "Bot session denied",
         message: `Bot will not join "${session.meetingTitle || "meeting"}".`,
         metadata: {

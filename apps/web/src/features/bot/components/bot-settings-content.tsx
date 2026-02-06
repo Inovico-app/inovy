@@ -1,10 +1,10 @@
 "use client";
 
+import type { BotSettings } from "@/server/db/schema/bot-settings";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BotConfigurationForm } from "./bot-configuration-form";
 import { EnableBotToggle } from "./enable-bot-toggle";
-import type { BotSettings } from "@/server/db/schema/bot-settings";
 
 interface BotSettingsContentProps {
   initialSettings: BotSettings;
@@ -25,7 +25,7 @@ export function BotSettingsContent({
     setSettings(initialSettings);
   }, [initialSettings]);
 
-  const loadSettings = async () => {
+  const loadSettings = () => {
     // Refresh the page to reload cached data
     router.refresh();
   };
@@ -39,3 +39,4 @@ export function BotSettingsContent({
     </div>
   );
 }
+
