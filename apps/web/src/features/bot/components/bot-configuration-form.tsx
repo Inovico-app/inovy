@@ -30,7 +30,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { BotSettings } from "@/server/db/schema/bot-settings";
-import { z } from "zod";
+import { type z } from "zod";
 
 interface BotConfigurationFormProps {
   settings: BotSettings;

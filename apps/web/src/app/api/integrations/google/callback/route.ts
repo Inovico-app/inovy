@@ -94,8 +94,19 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Store OAuth connection
-    const result = await GoogleOAuthService.storeConnection(user.id, code);
+    // Build redirect URI dynamically from request URL to match authorization
+    // This must match exactly the redirect URI used during authorization
+    const callbackUrl = new URL(
+      "/api/integrations/google/callback",
+      request.url
+    ).toString();
+
+    // Store OAuth connection (must use same redirect URI as authorization)
+    const result = await GoogleOAuthService.storeConnection(
+      user.id,
+      code,
+      callbackUrl
+    );
 
     if (result.isErr()) {
       logger.error("Failed to store Google OAuth connection", {

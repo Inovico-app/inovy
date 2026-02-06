@@ -3,7 +3,7 @@ import { logger } from "@/lib/logger";
 import { BotSettingsQueries } from "@/server/data-access/bot-settings.queries";
 import type { BotSettings } from "@/server/db/schema/bot-settings";
 import { err, fromPromise, ok, type Result } from "neverthrow";
-import { cacheTag, updateTag } from "next/cache";
+import { cacheTag } from "next/cache";
 
 /**
  * Cached bot settings queries
@@ -81,8 +81,9 @@ export async function getCachedBotSettings(
 
     settings = upsertResult.value;
 
-    // Invalidate cache immediately after creation to ensure consistency
-    updateTag(CacheTags.botSettings(userId, organizationId));
+    // Note: Cannot call updateTag during render. The cache will be stale for this request,
+    // but since we're returning the newly created settings directly, this is fine.
+    // The cache will naturally refresh on subsequent requests.
   }
 
   return ok(settings);

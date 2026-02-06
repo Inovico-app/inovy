@@ -64,7 +64,7 @@ export function setMicrophoneGainPreferenceClient(gain: number): void {
   }
 
   // Clamp gain to valid range
-  let clampedGain = Math.max(MIN_GAIN, Math.min(MAX_GAIN, gain));
+  const clampedGain = Math.max(MIN_GAIN, Math.min(MAX_GAIN, gain));
   if (clampedGain !== gain) {
     console.warn(
       `Gain value ${gain} is out of range. Clamping to [${MIN_GAIN}, ${MAX_GAIN}]`

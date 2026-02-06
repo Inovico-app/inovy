@@ -104,6 +104,10 @@ export const CacheTags = {
   botSessionsByStatus: (organizationId: string, status: string) =>
     `bot-sessions:org:${organizationId}:status:${status}`,
 
+  // Calendar Meetings tags
+  calendarMeetings: (userId: string, organizationId: string) =>
+    `calendar-meetings:user:${userId}:org:${organizationId}`,
+
   // Knowledge Base tags
   knowledgeEntries: (
     scope: "project" | "org" | "global",

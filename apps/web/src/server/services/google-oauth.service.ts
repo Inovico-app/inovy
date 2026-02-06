@@ -23,14 +23,18 @@ import type { OAuthConnection } from "../db/schema/oauth-connections";
 export class GoogleOAuthService {
   /**
    * Store OAuth connection after successful authorization
+   * @param userId - User ID
+   * @param code - Authorization code from Google
+   * @param redirectUri - Redirect URI used during authorization (must match exactly)
    */
   static async storeConnection(
     userId: string,
-    code: string
+    code: string,
+    redirectUri?: string
   ): Promise<ActionResult<OAuthConnection>> {
     try {
-      // Exchange code for tokens
-      const tokens = await exchangeCodeForTokens(code);
+      // Exchange code for tokens (must use same redirect URI as authorization)
+      const tokens = await exchangeCodeForTokens(code, redirectUri);
 
       // Get user email
       const email = await getUserEmail(tokens.accessToken);

@@ -43,9 +43,20 @@ export function createGoogleOAuthClient(): OAuth2Client {
 
 /**
  * Generate authorization URL for OAuth flow
+ * @param state - Optional state parameter for CSRF protection
+ * @param redirectUri - Optional redirect URI (defaults to GOOGLE_REDIRECT_URI)
  */
-export function getAuthorizationUrl(state?: string): string {
-  const oauth2Client = createGoogleOAuthClient();
+export function getAuthorizationUrl(
+  state?: string,
+  redirectUri?: string
+): string {
+  const oauth2Client = redirectUri
+    ? new google.auth.OAuth2(
+        GOOGLE_CLIENT_ID,
+        GOOGLE_CLIENT_SECRET,
+        redirectUri
+      )
+    : createGoogleOAuthClient();
 
   return oauth2Client.generateAuthUrl({
     access_type: "offline", // Request refresh token
@@ -57,14 +68,25 @@ export function getAuthorizationUrl(state?: string): string {
 
 /**
  * Exchange authorization code for tokens
+ * @param code - Authorization code from Google
+ * @param redirectUri - Redirect URI used during authorization (must match exactly)
  */
-export async function exchangeCodeForTokens(code: string): Promise<{
+export async function exchangeCodeForTokens(
+  code: string,
+  redirectUri?: string
+): Promise<{
   accessToken: string;
   refreshToken: string;
   expiresAt: Date;
   scopes: string[];
 }> {
-  const oauth2Client = createGoogleOAuthClient();
+  const oauth2Client = redirectUri
+    ? new google.auth.OAuth2(
+        GOOGLE_CLIENT_ID,
+        GOOGLE_CLIENT_SECRET,
+        redirectUri
+      )
+    : createGoogleOAuthClient();
 
   const { tokens } = await oauth2Client.getToken(code);
 

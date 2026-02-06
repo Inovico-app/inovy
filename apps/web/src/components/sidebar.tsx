@@ -11,6 +11,7 @@ import { useActiveMemberRole } from "@/hooks/use-active-member-role";
 import { cn } from "@/lib/utils";
 import {
   Bot,
+  Calendar,
   CheckSquare,
   ChevronLeft,
   ChevronRight,
@@ -41,6 +42,7 @@ const navLinks: NavLink[] = [
   { to: "/chat", label: "Chat", icon: MessageSquare },
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
+  { to: "/meetings", label: "Meetings", icon: Calendar },
   { to: "/bot/sessions", label: "Bot Sessions", icon: Bot },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
@@ -94,7 +96,7 @@ export function Sidebar() {
           <Skeleton className="h-6 w-20" />
         </div>
         <nav className="flex-1 space-y-1 p-2">
-          {[...Array(6)].map((_, i) => (
+          {[...Array(navLinks.length)].map((_, i) => (
             <Skeleton key={i} className="h-10 w-full mb-2" />
           ))}
         </nav>

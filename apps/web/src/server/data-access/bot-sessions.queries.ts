@@ -179,6 +179,42 @@ export class BotSessionsQueries {
   }
 
   /**
+   * Find bot sessions by multiple calendar event IDs
+   * Returns a map of calendarEventId -> BotSession for quick lookup
+   */
+  static async findByCalendarEventIds(
+    calendarEventIds: string[],
+    organizationId: string
+  ): Promise<Map<string, BotSession>> {
+    if (calendarEventIds.length === 0) {
+      return new Map();
+    }
+
+    const result = await db
+      .select()
+      .from(botSessions)
+      .where(
+        and(
+          inArray(botSessions.calendarEventId, calendarEventIds),
+          eq(botSessions.organizationId, organizationId)
+        )
+      )
+      .orderBy(desc(botSessions.createdAt));
+
+    const sessionMap = new Map<string, BotSession>();
+    for (const session of result) {
+      if (session.calendarEventId) {
+        // Only keep the first (most recent) session for each calendarEventId
+        if (!sessionMap.has(session.calendarEventId)) {
+          sessionMap.set(session.calendarEventId, session);
+        }
+      }
+    }
+
+    return sessionMap;
+  }
+
+  /**
    * Find bot sessions by status
    */
   static async findByStatus(
