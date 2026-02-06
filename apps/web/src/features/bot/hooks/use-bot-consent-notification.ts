@@ -72,8 +72,14 @@ export function useBotConsentNotification({
     executeDeny({ sessionId });
   };
 
+  const actionInProgress: "approve" | "deny" | null = isApproving
+    ? "approve"
+    : isDenying
+      ? "deny"
+      : null;
+
   return {
-    actionInProgress: isApproving ? "approve" : isDenying ? "deny" : null,
+    actionInProgress,
     handleApprove,
     handleDeny,
   };
