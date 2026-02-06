@@ -4,13 +4,14 @@ import {
   ActionErrors,
   type ActionResult,
 } from "../../lib/server-action-client/action-errors";
+import { getRecallApiKey } from "./recall-api.utils";
 
 /**
  * Recall.ai API Service
  * Handles interactions with Recall.ai API for bot session management
  */
 export class RecallApiService {
-  private static readonly API_BASE_URL = "https://api.recall.ai/api/v1";
+  static readonly API_BASE_URL = "https://api.recall.ai/api/v1";
 
   private static getWebhookBaseUrl(): string {
     const webhookBaseUrl =
@@ -21,16 +22,6 @@ export class RecallApiService {
       );
     }
     return webhookBaseUrl;
-  }
-  /**
-   * Get API key from environment
-   */
-  private static getApiKey(): string {
-    const apiKey = process.env.RECALL_API_KEY;
-    if (!apiKey) {
-      throw new Error("RECALL_API_KEY environment variable is not set");
-    }
-    return apiKey;
   }
 
   /**
@@ -44,7 +35,7 @@ export class RecallApiService {
     customMetadata?: Record<string, string>
   ): Promise<ActionResult<{ botId: string; status: string }>> {
     try {
-      const apiKey = this.getApiKey();
+      const apiKey = getRecallApiKey();
       const webhookUrl = `${this.getWebhookBaseUrl()}/api/webhooks/recall`;
 
       logger.info("Creating Recall.ai bot session", {
@@ -135,7 +126,7 @@ export class RecallApiService {
     botId: string
   ): Promise<ActionResult<{ status: string }>> {
     try {
-      const apiKey = this.getApiKey();
+      const apiKey = getRecallApiKey();
 
       const response = await fetch(`${this.API_BASE_URL}/bot/${botId}/`, {
         method: "GET",
@@ -180,6 +171,66 @@ export class RecallApiService {
           "Failed to get bot status",
           error as Error,
           "RecallApiService.getBotStatus"
+        )
+      );
+    }
+  }
+
+  /**
+   * Get full bot details including status and recordings
+   * @param botId - The Recall.ai bot ID
+   * @returns Result containing full bot details
+   */
+  static async getBotDetails(
+    botId: string
+  ): Promise<ActionResult<{ status: string; recordings?: unknown[] }>> {
+    try {
+      const apiKey = getRecallApiKey();
+
+      const response = await fetch(`${this.API_BASE_URL}/bot/${botId}/`, {
+        method: "GET",
+        headers: {
+          Authorization: `Token ${apiKey}`,
+        },
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error("Recall.ai API error", {
+          component: "RecallApiService.getBotDetails",
+          botId,
+          status: response.status,
+          error: errorText,
+        });
+
+        return err(
+          ActionErrors.internal(
+            `Failed to get bot details: ${response.statusText}`,
+            new Error(errorText),
+            "RecallApiService.getBotDetails"
+          )
+        );
+      }
+
+      const data = await response.json();
+
+      return ok({
+        status: data.status ?? "unknown",
+        recordings: data.recordings,
+      });
+    } catch (error) {
+      logger.error("Failed to get bot details", {
+        component: "RecallApiService.getBotDetails",
+        botId,
+        error: serializeError(error),
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to get bot details",
+          error as Error,
+          "RecallApiService.getBotDetails"
         )
       );
     }

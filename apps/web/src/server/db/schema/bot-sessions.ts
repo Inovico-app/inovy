@@ -18,6 +18,7 @@ export const botStatusEnum = [
   "failed",
   "pending_consent",
 ] as const;
+
 export type BotStatus = (typeof botStatusEnum)[number];
 
 export const botSessions = pgTable(
@@ -74,4 +75,3 @@ export const botSessions = pgTable(
 
 export type BotSession = typeof botSessions.$inferSelect;
 export type NewBotSession = typeof botSessions.$inferInsert;
-
