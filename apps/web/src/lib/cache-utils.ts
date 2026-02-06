@@ -92,6 +92,11 @@ export const CacheTags = {
   // Drive Watch tags
   driveWatches: (userId: string) => `drive-watches:user:${userId}`,
 
+  // Bot Settings tags
+  // Note: Uses organizationId (UUID) instead of orgCode (slug) for consistency with bot settings schema
+  botSettings: (userId: string, organizationId: string) =>
+    `bot-settings:${userId}:${organizationId}`,
+
   // Knowledge Base tags
   knowledgeEntries: (
     scope: "project" | "org" | "global",
@@ -278,6 +283,13 @@ export const CacheInvalidation = {
       CacheTags.notifications(userId, orgCode),
       CacheTags.notificationUnreadCount(userId, orgCode)
     );
+  },
+
+  /**
+   * Invalidate bot settings cache for a user
+   */
+  invalidateBotSettings(userId: string, organizationId: string): void {
+    invalidateCache(CacheTags.botSettings(userId, organizationId));
   },
 
   /**

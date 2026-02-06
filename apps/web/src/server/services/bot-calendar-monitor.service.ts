@@ -10,6 +10,7 @@ import { ProjectQueries } from "../data-access/projects.queries";
 import { BotProviderFactory } from "./bot-providers/factory";
 import { GoogleCalendarService } from "./google-calendar.service";
 import { GoogleOAuthService } from "./google-oauth.service";
+import { NotificationService } from "./notification.service";
 
 /**
  * Bot Calendar Monitor Service
@@ -204,7 +205,7 @@ export class BotCalendarMonitorService {
           const { providerId, internalStatus } = sessionResult.value;
 
           // Persist bot session to database
-          await BotSessionsQueries.insert({
+          const session = await BotSessionsQueries.insert({
             projectId: project.id,
             organizationId: settings.organizationId,
             userId: settings.userId,
@@ -218,6 +219,39 @@ export class BotCalendarMonitorService {
               meeting.attendees?.map((a) => a.email).filter(Boolean) ??
               undefined,
           });
+
+          // Create notification if consent is required
+          if (botStatus === "pending_consent") {
+            const notificationResult =
+              await NotificationService.createNotification({
+                recordingId: null, // No recording yet
+                projectId: project.id,
+                userId: settings.userId,
+                organizationId: settings.organizationId,
+                type: "bot_consent_request",
+                title: "Bot consent required",
+                message: `Bot wants to join "${meeting.title || "meeting"}"`,
+                metadata: {
+                  sessionId: session.id,
+                  meetingTitle: meeting.title,
+                  meetingTime: meeting.start
+                    ? new Date(meeting.start).toISOString()
+                    : undefined,
+                  meetingUrl: meeting.meetingUrl,
+                },
+              });
+
+            if (notificationResult.isErr()) {
+              logger.error("Failed to create bot consent notification", {
+                component: "BotCalendarMonitorService.processUserCalendar",
+                userId: settings.userId,
+                sessionId: session.id,
+                projectId: project.id,
+                error: notificationResult.error.message,
+              });
+              // Continue - notification failure should not block session creation
+            }
+          }
 
           sessionsCreated++;
 
