@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarEventItem } from "@/features/meetings/components/calendar-event-item";
+import { CalendarEventItem } from "./calendar-event-item";
 import {
   getCalendarDays,
   groupMeetingsByDate,

@@ -11,7 +11,7 @@ import {
 import { formatMonthYear } from "@/features/meetings/lib/calendar-utils";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
-export type CalendarView = "month" | "week" | "day";
+export type CalendarView = "month" | "week" | "day" | "list";
 
 interface CalendarHeaderProps {
   currentDate: Date;
@@ -33,37 +33,43 @@ export function CalendarHeader({
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={onToday}>
-          Today
-        </Button>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={onPreviousMonth}
-            aria-label="Previous month"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={onNextMonth}
-            aria-label="Next month"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-        <h2 className="text-xl font-semibold">{formatMonthYear(currentDate)}</h2>
+        {view !== "list" && (
+          <>
+            <Button variant="outline" size="sm" onClick={onToday}>
+              Today
+            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onPreviousMonth}
+                aria-label="Previous month"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onNextMonth}
+                aria-label="Next month"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <h2 className="text-xl font-semibold">{formatMonthYear(currentDate)}</h2>
+          </>
+        )}
+        {view === "list" && (
+          <h2 className="text-xl font-semibold">Meetings List</h2>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
         <Select
           value={view}
           onValueChange={(value) => {
-            // Only allow month view for now, with explicit type narrowing
             const validView = value as CalendarView;
-            if (validView === "month") {
+            if (validView === "month" || validView === "list") {
               onViewChange(validView);
             }
           }}
@@ -73,6 +79,7 @@ export function CalendarHeader({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="month">Month</SelectItem>
+            <SelectItem value="list">List</SelectItem>
             <SelectItem value="week" disabled>
               Week (Coming soon)
             </SelectItem>
