@@ -10,6 +10,7 @@ import {
 import { useActiveMemberRole } from "@/hooks/use-active-member-role";
 import { cn } from "@/lib/utils";
 import {
+  Bot,
   CheckSquare,
   ChevronLeft,
   ChevronRight,
@@ -40,6 +41,7 @@ const navLinks: NavLink[] = [
   { to: "/chat", label: "Chat", icon: MessageSquare },
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
+  { to: "/bot/sessions", label: "Bot Sessions", icon: Bot },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

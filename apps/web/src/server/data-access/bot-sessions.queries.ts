@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lt } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import { db } from "../db";
 import {
   botSessions,
@@ -6,6 +6,7 @@ import {
   type BotStatus,
   type NewBotSession,
 } from "../db/schema/bot-sessions";
+import { recordings } from "../db/schema/recordings";
 
 /**
  * Database queries for Bot Session operations
@@ -504,6 +505,175 @@ export class BotSessionsQueries {
       .returning();
 
     return updated ?? null;
+  }
+
+  /**
+   * Find bot sessions with pagination, optionally filtered by status
+   * Returns sessions with pagination metadata
+   */
+  static async findByStatusWithPagination(
+    organizationId: string,
+    options?: {
+      status?: BotStatus | BotStatus[];
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<{
+    sessions: BotSession[];
+    total: number;
+    hasMore: boolean;
+    nextOffset: number | null;
+  }> {
+    const limit = options?.limit ?? 20;
+    const offset = options?.offset ?? 0;
+
+    // Build where conditions
+    const conditions = [eq(botSessions.organizationId, organizationId)];
+
+    if (options?.status) {
+      if (Array.isArray(options.status)) {
+        conditions.push(inArray(botSessions.botStatus, options.status));
+      } else {
+        conditions.push(eq(botSessions.botStatus, options.status));
+      }
+    }
+
+    // Get total count
+    const totalResult = await db
+      .select({ count: count() })
+      .from(botSessions)
+      .where(and(...conditions));
+
+    const total = totalResult[0]?.count ?? 0;
+
+    // Get paginated sessions
+    const sessions = await db
+      .select()
+      .from(botSessions)
+      .where(and(...conditions))
+      .orderBy(desc(botSessions.createdAt))
+      .limit(limit + 1) // Fetch one extra to check if there are more
+      .offset(offset);
+
+    // Check if there are more results
+    const hasMore = sessions.length > limit;
+    const paginatedSessions = hasMore ? sessions.slice(0, limit) : sessions;
+    const nextOffset = hasMore ? offset + limit : null;
+
+    return {
+      sessions: paginatedSessions,
+      total,
+      hasMore,
+      nextOffset,
+    };
+  }
+
+  /**
+   * Find bot session by ID with joined recording data
+   * Returns session with recording metadata if recordingId exists
+   */
+  static async findByIdWithRecording(
+    id: string,
+    organizationId: string
+  ): Promise<
+    | (BotSession & {
+        recording?: {
+          id: string;
+          title: string;
+          fileUrl: string;
+          fileName: string;
+          fileSize: number;
+          fileMimeType: string;
+          duration: number | null;
+          recordingDate: Date;
+        } | null;
+      })
+    | null
+  > {
+    const result = await db
+      .select({
+        // Bot session fields
+        id: botSessions.id,
+        recordingId: botSessions.recordingId,
+        projectId: botSessions.projectId,
+        organizationId: botSessions.organizationId,
+        userId: botSessions.userId,
+        recallBotId: botSessions.recallBotId,
+        recallStatus: botSessions.recallStatus,
+        meetingUrl: botSessions.meetingUrl,
+        meetingTitle: botSessions.meetingTitle,
+        calendarEventId: botSessions.calendarEventId,
+        botStatus: botSessions.botStatus,
+        joinedAt: botSessions.joinedAt,
+        leftAt: botSessions.leftAt,
+        error: botSessions.error,
+        retryCount: botSessions.retryCount,
+        meetingParticipants: botSessions.meetingParticipants,
+        createdAt: botSessions.createdAt,
+        updatedAt: botSessions.updatedAt,
+        // Recording fields (nullable)
+        recordingTitle: recordings.title,
+        recordingFileUrl: recordings.fileUrl,
+        recordingFileName: recordings.fileName,
+        recordingFileSize: recordings.fileSize,
+        recordingFileMimeType: recordings.fileMimeType,
+        recordingDuration: recordings.duration,
+        recordingDate: recordings.recordingDate,
+      })
+      .from(botSessions)
+      .leftJoin(recordings, eq(botSessions.recordingId, recordings.id))
+      .where(
+        and(
+          eq(botSessions.id, id),
+          eq(botSessions.organizationId, organizationId)
+        )
+      )
+      .limit(1);
+
+    if (result.length === 0) {
+      return null;
+    }
+
+    const row = result[0];
+    const session: BotSession = {
+      id: row.id,
+      recordingId: row.recordingId,
+      projectId: row.projectId,
+      organizationId: row.organizationId,
+      userId: row.userId,
+      recallBotId: row.recallBotId,
+      recallStatus: row.recallStatus,
+      meetingUrl: row.meetingUrl,
+      meetingTitle: row.meetingTitle,
+      calendarEventId: row.calendarEventId,
+      botStatus: row.botStatus,
+      joinedAt: row.joinedAt,
+      leftAt: row.leftAt,
+      error: row.error,
+      retryCount: row.retryCount,
+      meetingParticipants: row.meetingParticipants,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+
+    const recording =
+      row.recordingId && row.recordingTitle
+        ? {
+            id: row.recordingId,
+            title: row.recordingTitle,
+            fileUrl: row.recordingFileUrl!,
+            fileName: row.recordingFileName!,
+            fileSize: row.recordingFileSize!,
+            fileMimeType: row.recordingFileMimeType!,
+            duration: row.recordingDuration,
+            recordingDate: row.recordingDate!,
+          }
+        : null;
+
+    return {
+      ...session,
+      recording,
+    };
   }
 }
 
