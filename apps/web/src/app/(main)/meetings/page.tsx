@@ -6,7 +6,7 @@ import { getCachedBotSessionsByCalendarEventIds } from "@/server/cache/bot-sessi
 import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
 import { getCachedCalendarMeetings } from "@/server/cache/calendar-meetings.cache";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
-import { format, parse, startOfMonth } from "date-fns";
+import { parse, startOfMonth } from "date-fns";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -27,25 +27,22 @@ async function MeetingsContent({
     redirect("/sign-in");
   }
 
-  // Check Google Calendar connection status first
+  // Check Google Calendar connection status
   const connectionStatusResult = await GoogleOAuthService.getConnectionStatus(
     user.id
   );
 
   if (connectionStatusResult.isErr()) {
-    // Handle transient API errors separately from "not connected" state
     return (
       <div className="container mx-auto py-8 px-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
-            <p className="text-sm text-destructive font-medium mb-2">
-              Failed to check Google Calendar connection
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Please try refreshing the page. If the problem persists, check your
-              connection and try again.
-            </p>
-          </div>
+        <div className="max-w-2xl mx-auto rounded-lg border border-destructive bg-destructive/10 p-4">
+          <p className="text-sm text-destructive font-medium mb-2">
+            Failed to check Google Calendar connection
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Please try refreshing the page. If the problem persists, check your
+            connection and try again.
+          </p>
         </div>
       </div>
     );
@@ -55,13 +52,16 @@ async function MeetingsContent({
     return <GoogleConnectionPrompt />;
   }
 
-  // Get bot settings to retrieve calendarIds
-  const settingsResult = await getCachedBotSettings(user.id, organization.id);
+  // Get bot settings and parse month in parallel
+  const [{ month: monthParam }, settingsResult] = await Promise.all([
+    searchParams,
+    getCachedBotSettings(user.id, organization.id),
+  ]);
 
   if (settingsResult.isErr()) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
+        <div className="max-w-2xl mx-auto rounded-lg border border-destructive bg-destructive/10 p-4">
           <p className="text-sm text-destructive">
             Failed to load bot settings. Please try again.
           </p>
@@ -70,30 +70,22 @@ async function MeetingsContent({
     );
   }
 
-  const settings = settingsResult.value;
-  const calendarIds = settings.calendarIds;
+  // Parse month from URL or use current month
+  const currentMonth = monthParam
+    ? startOfMonth(parse(monthParam, "yyyy-MM", new Date()))
+    : startOfMonth(new Date());
 
-  // Read month from URL params or use current month
-  const { month: monthParam } = await searchParams;
-  const targetDate = monthParam
-    ? parse(monthParam, "yyyy-MM", new Date())
-    : new Date();
-  const currentMonth = startOfMonth(targetDate);
-
-  // Calculate month range for the selected month
   const { start: timeMin, end: timeMax } = getMonthRange(currentMonth);
 
-  // Fetch calendar meetings for the month
-  // Cache function may throw errors which will be caught by error boundary
+  // Fetch meetings first, then bot sessions
   const meetings = await getCachedCalendarMeetings(
     user.id,
     organization.id,
     timeMin,
     timeMax,
-    calendarIds
+    settingsResult.value.calendarIds
   );
 
-  // Fetch matching bot sessions
   const calendarEventIds = meetings.map((m) => m.id);
   const botSessions =
     calendarEventIds.length > 0
