@@ -1,15 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { formatMonthYear } from "@/features/meetings/lib/calendar-utils";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { CalendarViewToggle } from "./calendar-view-toggle";
 
 export type CalendarView = "month" | "week" | "day" | "list";
 
@@ -65,29 +59,7 @@ export function CalendarHeader({
       </div>
 
       <div className="flex items-center gap-2">
-        <Select
-          value={view}
-          onValueChange={(value) => {
-            const validView = value as CalendarView;
-            if (validView === "month" || validView === "list") {
-              onViewChange(validView);
-            }
-          }}
-        >
-          <SelectTrigger className="w-[120px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="month">Month</SelectItem>
-            <SelectItem value="list">List</SelectItem>
-            <SelectItem value="week" disabled>
-              Week (Coming soon)
-            </SelectItem>
-            <SelectItem value="day" disabled>
-              Day (Coming soon)
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <CalendarViewToggle view={view} onViewChange={onViewChange} />
         <Button size="sm" disabled aria-label="New event">
           <Plus className="h-4 w-4 mr-2" />
           New Event

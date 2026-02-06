@@ -3,7 +3,7 @@
 import { CalendarGrid } from "./calendar-grid";
 import { CalendarHeader, type CalendarView } from "./calendar-header";
 import { MeetingsList } from "../meetings/meetings-list";
-import { matchMeetingsWithSessions } from "@/features/meetings/lib/calendar-utils";
+import { matchMeetingsWithSessions, filterMeetingsByBotStatus, sortMeetingsChronologically } from "@/features/meetings/lib/calendar-utils";
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
 import type { MeetingBotStatus } from "@/features/meetings/lib/calendar-utils";
 import type { CalendarEvent } from "@/server/services/google-calendar.service";
@@ -14,8 +14,10 @@ import {
   parseAsInteger,
   useQueryState,
 } from "nuqs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useRef } from "react";
 
 interface CalendarViewProps {
   initialDate?: Date;
@@ -29,6 +31,8 @@ interface CalendarViewProps {
   selectedStatus?: MeetingBotStatus | "all";
 }
 
+const VIEW_STORAGE_KEY = "meetings-view-preference";
+
 export function CalendarViewComponent({
   initialDate = new Date(),
   meetings,
@@ -40,6 +44,11 @@ export function CalendarViewComponent({
   selectedStatus: initialSelectedStatus = "all",
 }: CalendarViewProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const viewContainerRef = useRef<HTMLDivElement>(null);
+  const previousViewRef = useRef<string | null>(null);
+  const hasInitializedFromStorage = useRef(false);
+
   const [monthParam, setMonthParam] = useQueryState(
     "month",
     parseAsString.withDefault(format(startOfMonth(initialDate), "yyyy-MM"))
@@ -64,6 +73,39 @@ export function CalendarViewComponent({
     : startOfMonth(initialDate);
 
   const meetingsWithSessions = matchMeetingsWithSessions(meetings, botSessions);
+
+  // Initialize view from localStorage if URL param is missing (client-side only)
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      !hasInitializedFromStorage.current &&
+      !searchParams.has("view")
+    ) {
+      const stored = localStorage.getItem(VIEW_STORAGE_KEY);
+      if (stored === "month" || stored === "list") {
+        setView(stored);
+      }
+      hasInitializedFromStorage.current = true;
+    }
+  }, [searchParams, setView]);
+
+  // Persist view preference to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined" && (view === "month" || view === "list")) {
+      localStorage.setItem(VIEW_STORAGE_KEY, view);
+    }
+  }, [view]);
+
+  // Scroll to top when view changes
+  useEffect(() => {
+    if (previousViewRef.current && previousViewRef.current !== view) {
+      // Scroll to top of the view container when switching views
+      viewContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Also scroll window to top for better UX
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    previousViewRef.current = view;
+  }, [view]);
 
   const handlePreviousMonth = () => {
     const newDate = startOfMonth(addMonths(currentDate, -1));
@@ -129,36 +171,98 @@ export function CalendarViewComponent({
         onNextMonth={handleNextMonth}
         onToday={handleToday}
       />
-      {view === "month" && (
-        <CalendarGrid
-          currentDate={currentDate}
-          meetings={meetingsWithSessions}
-          onDayClick={handleDayClick}
-        />
-      )}
-      {view === "list" && paginatedMeetings && (
-        <MeetingsList
-          meetings={paginatedMeetings}
-          allMeetings={meetingsWithSessions}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          total={total}
-          selectedStatus={selectedStatus}
-          onStatusChange={handleStatusChange}
-          onPageChange={handlePageChange}
-          onClearFilters={handleClearFilters}
-        />
-      )}
-      {view === "week" && (
-        <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-          Week view coming soon
-        </div>
-      )}
-      {view === "day" && (
-        <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-          Day view coming soon
-        </div>
-      )}
+      <div ref={viewContainerRef} className="relative min-h-[400px]">
+        <AnimatePresence mode="wait">
+          {view === "month" && (
+            <motion.div
+              key="month-view"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              <CalendarGrid
+                currentDate={currentDate}
+                meetings={meetingsWithSessions}
+                onDayClick={handleDayClick}
+              />
+            </motion.div>
+          )}
+          {view === "list" && (
+            <motion.div
+              key="list-view"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              {paginatedMeetings ? (
+                <MeetingsList
+                  meetings={paginatedMeetings}
+                  allMeetings={meetingsWithSessions}
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  total={total}
+                  selectedStatus={selectedStatus}
+                  onStatusChange={handleStatusChange}
+                  onPageChange={handlePageChange}
+                  onClearFilters={handleClearFilters}
+                />
+              ) : (
+                // Fallback: use client-side pagination when server data isn't ready yet
+                (() => {
+                  const filtered = filterMeetingsByBotStatus(meetingsWithSessions, selectedStatus);
+                  const sorted = sortMeetingsChronologically(filtered);
+                  const pageSize = 20;
+                  const offset = (currentPage - 1) * pageSize;
+                  const clientPaginated = sorted.slice(offset, offset + pageSize);
+                  const clientTotalPages = Math.ceil(sorted.length / pageSize);
+                  
+                  return (
+                    <MeetingsList
+                      meetings={clientPaginated}
+                      allMeetings={meetingsWithSessions}
+                      currentPage={currentPage}
+                      totalPages={clientTotalPages}
+                      total={sorted.length}
+                      selectedStatus={selectedStatus}
+                      onStatusChange={handleStatusChange}
+                      onPageChange={handlePageChange}
+                      onClearFilters={handleClearFilters}
+                    />
+                  );
+                })()
+              )}
+            </motion.div>
+          )}
+          {view === "week" && (
+            <motion.div
+              key="week-view"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
+                Week view coming soon
+              </div>
+            </motion.div>
+          )}
+          {view === "day" && (
+            <motion.div
+              key="day-view"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
+                Day view coming soon
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
