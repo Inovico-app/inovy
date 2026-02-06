@@ -6,10 +6,15 @@ import { getCachedBotSessionsByCalendarEventIds } from "@/server/cache/bot-sessi
 import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
 import { getCachedCalendarMeetings } from "@/server/cache/calendar-meetings.cache";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
+import { format, parse, startOfMonth } from "date-fns";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-async function MeetingsContent() {
+async function MeetingsContent({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
   const authResult = await getBetterAuthSession();
 
   if (authResult.isErr() || !authResult.value.isAuthenticated) {
@@ -27,10 +32,26 @@ async function MeetingsContent() {
     user.id
   );
 
-  if (
-    connectionStatusResult.isErr() ||
-    !connectionStatusResult.value.connected
-  ) {
+  if (connectionStatusResult.isErr()) {
+    // Handle transient API errors separately from "not connected" state
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
+            <p className="text-sm text-destructive font-medium mb-2">
+              Failed to check Google Calendar connection
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Please try refreshing the page. If the problem persists, check your
+              connection and try again.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!connectionStatusResult.value.connected) {
     return <GoogleConnectionPrompt />;
   }
 
@@ -52,12 +73,18 @@ async function MeetingsContent() {
   const settings = settingsResult.value;
   const calendarIds = settings.calendarIds;
 
-  // Calculate month range (current month)
-  const now = new Date();
-  const { start: timeMin, end: timeMax } = getMonthRange(now);
+  // Read month from URL params or use current month
+  const { month: monthParam } = await searchParams;
+  const targetDate = monthParam
+    ? parse(monthParam, "yyyy-MM", new Date())
+    : new Date();
+  const currentMonth = startOfMonth(targetDate);
+
+  // Calculate month range for the selected month
+  const { start: timeMin, end: timeMax } = getMonthRange(currentMonth);
 
   // Fetch calendar meetings for the month
-  // Cache function returns plain array (unwrapped from Result) for serialization
+  // Cache function may throw errors which will be caught by error boundary
   const meetings = await getCachedCalendarMeetings(
     user.id,
     organization.id,
@@ -87,7 +114,7 @@ async function MeetingsContent() {
         </div>
 
         <CalendarViewComponent
-          initialDate={now}
+          initialDate={currentMonth}
           meetings={meetings}
           botSessions={botSessions}
         />
@@ -96,7 +123,11 @@ async function MeetingsContent() {
   );
 }
 
-export default function MeetingsPage() {
+export default function MeetingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
   return (
     <Suspense
       fallback={
@@ -122,7 +153,7 @@ export default function MeetingsPage() {
         </div>
       }
     >
-      <MeetingsContent />
+      <MeetingsContent searchParams={searchParams} />
     </Suspense>
   );
 }

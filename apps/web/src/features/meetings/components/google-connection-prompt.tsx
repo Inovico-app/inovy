@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,10 +10,7 @@ import { Calendar } from "lucide-react";
 import Link from "next/link";
 
 export function GoogleConnectionPrompt() {
-  const handleConnect = () => {
-    const redirectUrl = `/api/integrations/google/authorize?redirect=${encodeURIComponent("/meetings")}`;
-    window.location.href = redirectUrl;
-  };
+  const connectUrl = `/api/integrations/google/authorize?redirect=${encodeURIComponent("/meetings")}`;
 
   return (
     <div className="container mx-auto max-w-2xl py-12 px-4">
@@ -44,8 +39,8 @@ export function GoogleConnectionPrompt() {
             </ul>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 pt-4">
-            <Button onClick={handleConnect} className="flex-1">
-              Connect Google Calendar
+            <Button asChild className="flex-1">
+              <a href={connectUrl}>Connect Google Calendar</a>
             </Button>
             <Button variant="outline" asChild className="flex-1">
               <Link href="/settings/integrations">

@@ -40,6 +40,9 @@ export function getMonthRange(date: Date): { start: Date; end: Date } {
 /**
  * Generate array of days for calendar grid
  * Includes days from previous/next month to fill the grid
+ * @param year - Year (e.g., 2026)
+ * @param month - 0-indexed month (0 = January, 11 = December)
+ * @param weekStartsOn - Day of week to start the week (0 = Sunday, 6 = Saturday)
  */
 export function getCalendarDays(
   year: number,

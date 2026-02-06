@@ -1,5 +1,3 @@
-"use cache";
-
 import { CacheTags } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import type { CalendarEvent } from "@/server/services/google-calendar.service";
@@ -15,6 +13,7 @@ import { cacheTag } from "next/cache";
  * Get cached calendar meetings for a date range
  * Fetches meetings from Google Calendar API with extended time range
  * Returns plain array (unwrapped from Result) for Next.js cache serialization
+ * Rethrows errors so error boundaries can handle them
  */
 export async function getCachedCalendarMeetings(
   userId: string,
@@ -46,11 +45,11 @@ export async function getCachedCalendarMeetings(
       organizationId,
       error: result.error,
     });
-    // Return empty array on error for Next.js cache serialization
-    // Cache functions must return serializable data (not Result objects)
-    // Errors are logged for monitoring; empty array prevents cache serialization issues
-    // Callers should check logs if meetings are unexpectedly empty
-    return [];
+    // Rethrow error so error boundaries can handle it
+    // Convert ActionError to Error for proper error boundary handling
+    const error = new Error(result.error.message || "Failed to fetch calendar meetings");
+    error.name = result.error.code || "CalendarMeetingsError";
+    throw error;
   }
 
   logger.info("Successfully fetched calendar meetings", {

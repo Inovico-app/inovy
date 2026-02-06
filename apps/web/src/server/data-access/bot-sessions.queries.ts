@@ -198,12 +198,16 @@ export class BotSessionsQueries {
           inArray(botSessions.calendarEventId, calendarEventIds),
           eq(botSessions.organizationId, organizationId)
         )
-      );
+      )
+      .orderBy(desc(botSessions.createdAt));
 
     const sessionMap = new Map<string, BotSession>();
     for (const session of result) {
       if (session.calendarEventId) {
-        sessionMap.set(session.calendarEventId, session);
+        // Only keep the first (most recent) session for each calendarEventId
+        if (!sessionMap.has(session.calendarEventId)) {
+          sessionMap.set(session.calendarEventId, session);
+        }
       }
     }
 

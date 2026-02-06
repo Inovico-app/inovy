@@ -35,12 +35,13 @@ export function CalendarGrid({
   };
 
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="rounded-lg border bg-card" role="grid" aria-label="Calendar">
       {/* Days of week header */}
-      <div className="grid grid-cols-7 border-b">
+      <div className="grid grid-cols-7 border-b" role="row">
         {DAYS_OF_WEEK.map((day) => (
           <div
             key={day}
+            role="columnheader"
             className="border-r p-2 text-center text-sm font-medium text-muted-foreground last:border-r-0"
           >
             {day}
@@ -54,22 +55,31 @@ export function CalendarGrid({
           const dateKey = format(day.date, "yyyy-MM-dd");
           const dayMeetings = meetingsByDate.get(dateKey) ?? [];
 
+          const isInteractive = onDayClick && day.isCurrentMonth;
+
           return (
-            <button
-              type="button"
+            <div
               key={`${day.date.toISOString()}-${index}`}
-              disabled={!onDayClick || !day.isCurrentMonth}
+              role="gridcell"
+              aria-label={format(day.date, "EEEE, MMMM d, yyyy")}
+              tabIndex={isInteractive ? 0 : undefined}
               aria-current={day.isToday ? "date" : undefined}
-              aria-disabled={!onDayClick || !day.isCurrentMonth}
+              aria-disabled={!isInteractive}
               className={cn(
                 "min-h-[100px] w-full text-left border-b border-r p-2 transition-colors last:border-r-0",
                 !day.isCurrentMonth && "bg-muted/30",
                 day.isToday && "bg-primary/5",
                 day.isCurrentMonth && "hover:bg-accent/50",
-                onDayClick && day.isCurrentMonth && "cursor-pointer",
-                (!onDayClick || !day.isCurrentMonth) && "cursor-default"
+                isInteractive && "cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                !isInteractive && "cursor-default"
               )}
               onClick={() => handleDayClick(day)}
+              onKeyDown={(e) => {
+                if (isInteractive && (e.key === "Enter" || e.key === " ")) {
+                  e.preventDefault();
+                  handleDayClick(day);
+                }
+              }}
             >
               <div
                 className={cn(
@@ -104,7 +114,7 @@ export function CalendarGrid({
                   </div>
                 )}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

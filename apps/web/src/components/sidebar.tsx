@@ -96,7 +96,7 @@ export function Sidebar() {
           <Skeleton className="h-6 w-20" />
         </div>
         <nav className="flex-1 space-y-1 p-2">
-          {[...Array(6)].map((_, i) => (
+          {[...Array(navLinks.length)].map((_, i) => (
             <Skeleton key={i} className="h-10 w-full mb-2" />
           ))}
         </nav>

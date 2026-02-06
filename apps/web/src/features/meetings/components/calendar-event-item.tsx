@@ -19,10 +19,11 @@ export function CalendarEventItem({
 
   if (compact) {
     return (
-      <button
-        type="button"
+      <div
+        role="group"
+        aria-label={`${meeting.title} - ${timeDisplay}`}
         className={cn(
-          "group w-full text-left rounded-md p-1.5 text-xs transition-colors",
+          "group w-full rounded-md p-1.5 text-xs transition-colors",
           "hover:bg-accent",
           hasBotSession && "bg-primary/5"
         )}
@@ -43,15 +44,16 @@ export function CalendarEventItem({
             />
           )}
         </div>
-      </button>
+      </div>
     );
   }
 
   return (
-    <button
-      type="button"
+    <div
+      role="group"
+      aria-label={`${meeting.title} - ${timeDisplay}`}
       className={cn(
-        "group w-full text-left rounded-lg border p-2 text-sm transition-colors",
+        "group w-full rounded-lg border p-2 text-sm transition-colors",
         "hover:bg-accent",
         hasBotSession && "border-primary/20 bg-primary/5"
       )}
@@ -73,6 +75,6 @@ export function CalendarEventItem({
           <BotStatusBadge status={meeting.botSession.botStatus} />
         )}
       </div>
-    </button>
+    </div>
   );
 }

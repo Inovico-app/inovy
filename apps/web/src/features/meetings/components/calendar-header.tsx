@@ -58,14 +58,27 @@ export function CalendarHeader({
       </div>
 
       <div className="flex items-center gap-2">
-        <Select value={view} onValueChange={onViewChange}>
+        <Select
+          value={view}
+          onValueChange={(value) => {
+            // Only allow month view for now, with explicit type narrowing
+            const validView = value as CalendarView;
+            if (validView === "month") {
+              onViewChange(validView);
+            }
+          }}
+        >
           <SelectTrigger className="w-[120px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="month">Month</SelectItem>
-            <SelectItem value="week">Week</SelectItem>
-            <SelectItem value="day">Day</SelectItem>
+            <SelectItem value="week" disabled>
+              Week (Coming soon)
+            </SelectItem>
+            <SelectItem value="day" disabled>
+              Day (Coming soon)
+            </SelectItem>
           </SelectContent>
         </Select>
         <Button size="sm" disabled aria-label="New event">
