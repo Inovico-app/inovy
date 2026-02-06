@@ -87,3 +87,32 @@ export async function getCachedBotSessionDetails(
   return result;
 }
 
+/**
+ * Get cached bot sessions by calendar event IDs
+ * Returns a map of calendarEventId -> BotSession for quick lookup
+ */
+export async function getCachedBotSessionsByCalendarEventIds(
+  calendarEventIds: string[],
+  organizationId: string
+): Promise<Map<string, BotSession>> {
+  "use cache";
+  cacheTag(CacheTags.botSessions(organizationId));
+
+  logger.info("Fetching bot sessions by calendar event IDs", {
+    organizationId,
+    calendarEventIdCount: calendarEventIds.length,
+  });
+
+  const result = await BotSessionsQueries.findByCalendarEventIds(
+    calendarEventIds,
+    organizationId
+  );
+
+  logger.info("Successfully fetched bot sessions by calendar event IDs", {
+    organizationId,
+    sessionCount: result.size,
+  });
+
+  return result;
+}
+
