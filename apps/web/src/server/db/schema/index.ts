@@ -5,6 +5,7 @@ export * from "./audit-logs";
 export * from "./auth";
 export * from "./auto-actions";
 export * from "./bot-sessions";
+export * from "./bot-settings";
 export * from "./chat-audit-log";
 export * from "./chat-conversations";
 export * from "./chat-embeddings";
