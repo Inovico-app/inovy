@@ -4,6 +4,7 @@ import {
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
 import { RecallApiService } from "@/server/services/recall-api.service";
+import { getRecallApiKey } from "@/server/services/recall-api.utils";
 import { err, ok } from "neverthrow";
 import type {
   BotProvider,
@@ -64,20 +65,31 @@ export class RecallBotProvider implements BotProvider {
     providerId: string
   ): Promise<ActionResult<BotSessionStatus>> {
     try {
-      const result = await RecallApiService.getBotStatus(providerId);
+      const result = await RecallApiService.getBotDetails(providerId);
 
       if (result.isErr()) {
         return err(result.error);
       }
 
-      const { status } = result.value;
+      const { status, recordings } = result.value;
       const internalStatus = mapRecallStatusToBotStatus(status);
 
-      // Try to get recording URL if available
-      const recordingUrlResult = await this.getRecordingDownloadUrl(providerId);
-      const recordingUrl = recordingUrlResult.isOk()
-        ? recordingUrlResult.value
-        : undefined;
+      // Extract recording URL from recordings array if available
+      // Format: recordings[].media_shortcuts.video_mixed.data.download_url
+      let recordingUrl: string | undefined;
+      if (recordings && Array.isArray(recordings) && recordings.length > 0) {
+        const latestRecording = recordings[recordings.length - 1] as {
+          media_shortcuts?: {
+            video_mixed?: {
+              data?: {
+                download_url?: string;
+              };
+            };
+          };
+        };
+        recordingUrl =
+          latestRecording?.media_shortcuts?.video_mixed?.data?.download_url;
+      }
 
       return ok({
         providerId,
@@ -104,7 +116,7 @@ export class RecallBotProvider implements BotProvider {
 
   async terminateSession(providerId: string): Promise<ActionResult<void>> {
     try {
-      const apiKey = this.getApiKey();
+      const apiKey = getRecallApiKey();
       const response = await fetch(
         `${RecallApiService.API_BASE_URL}/bot/${providerId}/`,
         {
@@ -161,7 +173,7 @@ export class RecallBotProvider implements BotProvider {
     providerId: string
   ): Promise<ActionResult<string>> {
     try {
-      const apiKey = this.getApiKey();
+      const apiKey = getRecallApiKey();
       const response = await fetch(
         `${RecallApiService.API_BASE_URL}/bot/${providerId}/`,
         {
@@ -231,14 +243,6 @@ export class RecallBotProvider implements BotProvider {
         )
       );
     }
-  }
-
-  private getApiKey(): string {
-    const apiKey = process.env.RECALL_API_KEY;
-    if (!apiKey) {
-      throw new Error("RECALL_API_KEY environment variable is not set");
-    }
-    return apiKey;
   }
 }
 
