@@ -9,7 +9,8 @@ import { logger } from "../../../../../lib/logger";
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const redirectUrl = searchParams.get("redirect") || "/settings?google_success=true";
+  const redirectUrl =
+    searchParams.get("redirect") || "/settings?google_success=true";
   try {
     // Verify user is authenticated
     const sessionResult = await getBetterAuthSession();
@@ -44,10 +45,20 @@ export async function GET(request: NextRequest) {
       })
     ).toString("base64");
 
-    // Get authorization URL
-    const authUrl = getAuthorizationUrl(state);
+    // Build redirect URI dynamically from request URL to avoid redirect_uri_mismatch
+    // This ensures the redirect URI matches the current request origin
+    const callbackUrl = new URL(
+      "/api/integrations/google/callback",
+      request.url
+    ).toString();
 
-    logger.info("Initiating Google OAuth flow", { userId: user.id });
+    // Get authorization URL with dynamic redirect URI
+    const authUrl = getAuthorizationUrl(state, callbackUrl);
+
+    logger.info("Initiating Google OAuth flow", {
+      userId: user.id,
+      redirectUri: callbackUrl,
+    });
 
     // Redirect to Google OAuth consent screen
     return NextResponse.redirect(authUrl);
