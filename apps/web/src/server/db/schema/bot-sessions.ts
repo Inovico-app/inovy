@@ -2,6 +2,18 @@ import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
 import { recordings } from "./recordings";
 
+export const botStatusEnum = [
+  "scheduled",
+  "joining",
+  "active",
+  "leaving",
+  "completed",
+  "failed",
+  "pending_consent",
+] as const;
+
+export type BotStatus = (typeof botStatusEnum)[number];
+
 export const botSessions = pgTable("bot_sessions", {
   id: uuid("id").defaultRandom().primaryKey(),
   recordingId: uuid("recording_id").references(() => recordings.id, {

@@ -10,7 +10,7 @@ import {
  * Handles interactions with Recall.ai API for bot session management
  */
 export class RecallApiService {
-  private static readonly API_BASE_URL = "https://api.recall.ai/api/v1";
+  static readonly API_BASE_URL = "https://api.recall.ai/api/v1";
 
   private static getWebhookBaseUrl(): string {
     const webhookBaseUrl =
