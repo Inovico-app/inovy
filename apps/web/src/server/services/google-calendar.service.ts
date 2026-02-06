@@ -12,6 +12,20 @@ import type { Task } from "../db/schema/tasks";
 import { GoogleOAuthService } from "./google-oauth.service";
 
 /**
+ * Calendar event with Google Meet link
+ */
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  meetingUrl: string; // Extracted from conferenceData or hangoutLink
+  attendees?: Array<{ email: string; responseStatus: string }>;
+  organizer?: { email: string };
+  calendarId: string;
+}
+
+/**
  * Google Calendar Service
  * Manages calendar event creation from tasks
  */
@@ -315,6 +329,190 @@ export class GoogleCalendarService {
           "Failed to get calendar event",
           error as Error,
           "GoogleCalendarService.getEvent"
+        )
+      );
+    }
+  }
+
+  /**
+   * Get upcoming Google Meet meetings for a user
+   * @param userId - User ID
+   * @param options - Options for filtering meetings
+   * @returns Result containing list of calendar events with Google Meet links
+   */
+  static async getUpcomingMeetings(
+    userId: string,
+    options?: {
+      timeMin?: Date; // Default: now
+      timeMax?: Date; // Default: now + 30 minutes
+      calendarIds?: string[]; // Default: ['primary']
+    }
+  ): Promise<ActionResult<CalendarEvent[]>> {
+    try {
+      const tokenResult = await GoogleOAuthService.getValidAccessToken(userId);
+
+      if (tokenResult.isErr()) {
+        return err(
+          ActionErrors.internal(
+            "Failed to get valid access token",
+            tokenResult.error,
+            "GoogleCalendarService.getUpcomingMeetings"
+          )
+        );
+      }
+
+      const accessToken = tokenResult.value;
+
+      const oauth2Client = createGoogleOAuthClient();
+      oauth2Client.setCredentials({
+        access_token: accessToken,
+      });
+
+      const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+
+      // Set default time range (now to 30 minutes from now)
+      const now = new Date();
+      const timeMin = options?.timeMin ?? now;
+      const timeMax =
+        options?.timeMax ?? new Date(now.getTime() + 30 * 60 * 1000);
+      const calendarIds = options?.calendarIds ?? ["primary"];
+
+      const meetings: CalendarEvent[] = [];
+
+      // Fetch events from each calendar
+      for (const calendarId of calendarIds) {
+        try {
+          const response = await calendar.events.list({
+            calendarId,
+            timeMin: timeMin.toISOString(),
+            timeMax: timeMax.toISOString(),
+            singleEvents: true, // Expand recurring events
+            orderBy: "startTime",
+            maxResults: 100,
+          });
+
+          if (!response.data.items) {
+            continue;
+          }
+
+          // Get user's email from OAuth connection for attendance filtering
+          const connectionResult =
+            await GoogleOAuthService.getConnection(userId);
+          const userEmail =
+            connectionResult.isOk() && connectionResult.value?.email
+              ? connectionResult.value.email.toLowerCase()
+              : null;
+
+          for (const event of response.data.items) {
+            // Extract Google Meet URL
+            let meetingUrl: string | null = null;
+
+            // Check conferenceData (new format)
+            if (
+              event.conferenceData?.entryPoints &&
+              Array.isArray(event.conferenceData.entryPoints)
+            ) {
+              const meetEntry = event.conferenceData.entryPoints.find(
+                (entry) =>
+                  entry.entryPointType === "video" &&
+                  entry.uri?.includes("meet.google.com")
+              );
+              if (meetEntry?.uri) {
+                meetingUrl = meetEntry.uri;
+              }
+            }
+
+            // Fallback to hangoutLink (legacy format)
+            if (!meetingUrl && event.hangoutLink?.includes("meet.google.com")) {
+              meetingUrl = event.hangoutLink;
+            }
+
+            // Skip if no Google Meet link found
+            if (!meetingUrl) {
+              continue;
+            }
+
+            // Filter by user attendance
+            // User must be organizer or have accepted the invitation
+            const isOrganizer =
+              event.organizer?.email?.toLowerCase() === userEmail;
+            const isAttending =
+              event.attendees?.some(
+                (attendee) =>
+                  attendee.email?.toLowerCase() === userEmail &&
+                  (attendee.responseStatus === "accepted" ||
+                    attendee.responseStatus === "tentative")
+              ) ?? false;
+
+            if (!isOrganizer && !isAttending) {
+              continue;
+            }
+
+            // Extract event details
+            const startDate = event.start?.dateTime
+              ? new Date(event.start.dateTime)
+              : event.start?.date
+                ? new Date(event.start.date)
+                : null;
+            const endDate = event.end?.dateTime
+              ? new Date(event.end.dateTime)
+              : event.end?.date
+                ? new Date(event.end.date)
+                : null;
+
+            if (!startDate || !endDate || !event.id) {
+              continue;
+            }
+
+            meetings.push({
+              id: event.id,
+              title: event.summary || "Untitled Event",
+              start: startDate,
+              end: endDate,
+              meetingUrl,
+              attendees: event.attendees?.map((a) => ({
+                email: a.email || "",
+                responseStatus: a.responseStatus || "needsAction",
+              })),
+              organizer: event.organizer
+                ? { email: event.organizer.email || "" }
+                : undefined,
+              calendarId,
+            });
+          }
+        } catch (calendarError) {
+          logger.error(
+            "Failed to fetch events from calendar",
+            {
+              userId,
+              calendarId,
+              error: calendarError,
+            },
+            calendarError as Error
+          );
+          // Continue with other calendars
+        }
+      }
+
+      logger.info("Fetched upcoming Google Meet meetings", {
+        userId,
+        count: meetings.length,
+        timeMin: timeMin.toISOString(),
+        timeMax: timeMax.toISOString(),
+      });
+
+      return ok(meetings);
+    } catch (error) {
+      logger.error(
+        "Failed to get upcoming meetings",
+        { userId },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to get upcoming meetings",
+          error as Error,
+          "GoogleCalendarService.getUpcomingMeetings"
         )
       );
     }
