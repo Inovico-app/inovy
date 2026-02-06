@@ -1,5 +1,4 @@
 import { put } from "@vercel/blob";
-import { and, eq } from "drizzle-orm";
 import { err, ok } from "neverthrow";
 import { start } from "workflow/api";
 import { logger, serializeError } from "../../lib/logger";
@@ -10,12 +9,12 @@ import {
 import { convertRecordingIntoAiInsights } from "../../workflows/convert-recording";
 import { BotSessionsQueries } from "../data-access/bot-sessions.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
-import { db } from "../db";
-import { botSessions } from "../db/schema/bot-sessions";
+import { type BotStatus } from "../db/schema/bot-sessions";
 import type {
   BotRecordingReadyEvent,
   BotStatusChangeEvent,
 } from "../validation/bot/recall-webhook.schema";
+import { mapRecallStatusToBotStatus } from "./bot-providers/recall/status-mapper";
 import { RecordingService } from "./recording.service";
 
 /**
@@ -43,17 +42,63 @@ export class BotWebhookService {
         return ok(undefined);
       }
 
+      // Find existing session to check current state
+      const existingSession = await BotSessionsQueries.findByRecallBotId(
+        bot.id,
+        organizationId
+      );
+
+      if (!existingSession) {
+        logger.warn("Bot session not found for status update", {
+          component: "BotWebhookService.processStatusChange",
+          botId: bot.id,
+          organizationId,
+        });
+        return ok(undefined);
+      }
+
+      // Map Recall.ai status to internal BotStatus
+      const internalStatus = mapRecallStatusToBotStatus(bot.status);
+
+      // Prepare updates
+      const updates: Partial<{
+        recallStatus: string;
+        botStatus: BotStatus;
+        joinedAt: Date | null;
+        leftAt: Date | null;
+        error: string | null;
+      }> = {
+        recallStatus: bot.status,
+        botStatus: internalStatus,
+      };
+
+      // Set joinedAt when bot becomes active (if not already set)
+      if (internalStatus === "active" && !existingSession.joinedAt) {
+        updates.joinedAt = new Date();
+      }
+
+      // Set leftAt when bot leaves or completes (if not already set)
+      if (
+        (internalStatus === "leaving" || internalStatus === "completed") &&
+        !existingSession.leftAt
+      ) {
+        updates.leftAt = new Date();
+      }
+
+      // Handle failures
+      if (internalStatus === "failed") {
+        updates.error = `Bot failed: ${bot.status}`;
+      }
+
       // Update bot session status
       const session = await BotSessionsQueries.updateByRecallBotId(
         bot.id,
         organizationId,
-        {
-          recallStatus: bot.status,
-        }
+        updates
       );
 
       if (!session) {
-        logger.warn("Bot session not found for status update", {
+        logger.warn("Failed to update bot session", {
           component: "BotWebhookService.processStatusChange",
           botId: bot.id,
           organizationId,
@@ -65,7 +110,10 @@ export class BotWebhookService {
         component: "BotWebhookService.processStatusChange",
         sessionId: session.id,
         botId: bot.id,
-        status: bot.status,
+        recallStatus: bot.status,
+        botStatus: internalStatus,
+        joinedAt: updates.joinedAt,
+        leftAt: updates.leftAt,
       });
 
       return ok(undefined);
@@ -237,30 +285,29 @@ export class BotWebhookService {
         finalRecordingId = createResult.value.id;
       }
 
-      // Update bot session with recording ID in a transaction to ensure atomicity
-      await db.transaction(async (tx) => {
-        // Re-check session exists and update recordingId
-        const [updatedSession] = await tx
-          .update(botSessions)
-          .set({
-            recordingId: finalRecordingId,
-            recallStatus: bot.status,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(botSessions.recallBotId, bot.id),
-              eq(botSessions.organizationId, organizationId)
-            )
+      // Update bot session with recording ID
+      const updatedSession = await BotSessionsQueries.updateRecordingId(
+        bot.id,
+        organizationId,
+        finalRecordingId,
+        bot.status
+      );
+
+      if (!updatedSession) {
+        logger.error("Failed to update bot session with recording ID", {
+          component: "BotWebhookService.processRecordingReady",
+          botId: bot.id,
+          organizationId,
+          recordingId: finalRecordingId,
+        });
+        return err(
+          ActionErrors.internal(
+            "Failed to update bot session",
+            undefined,
+            "BotWebhookService.processRecordingReady"
           )
-          .returning();
-
-        if (!updatedSession) {
-          throw new Error("Failed to update bot session");
-        }
-
-        return updatedSession;
-      });
+        );
+      }
 
       logger.info("Recording processed and bot session updated", {
         component: "BotWebhookService.processRecordingReady",

@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import { db } from "../db";
 import {
   botSessions,
@@ -92,11 +92,14 @@ export class BotSessionsQueries {
         BotSession,
         | "recordingId"
         | "recallStatus"
+        | "recallBotId"
         | "botStatus"
         | "calendarEventId"
         | "error"
         | "meetingTitle"
         | "meetingParticipants"
+        | "joinedAt"
+        | "leftAt"
       >
     >
   ): Promise<BotSession | null> {
@@ -123,7 +126,17 @@ export class BotSessionsQueries {
   static async updateByRecallBotId(
     recallBotId: string,
     organizationId: string,
-    data: Partial<Pick<BotSession, "recordingId" | "recallStatus">>
+    data: Partial<
+      Pick<
+        BotSession,
+        | "recordingId"
+        | "recallStatus"
+        | "botStatus"
+        | "joinedAt"
+        | "leftAt"
+        | "error"
+      >
+    >
   ): Promise<BotSession | null> {
     const [session] = await db
       .update(botSessions)
@@ -186,6 +199,42 @@ export class BotSessionsQueries {
     if (limit) {
       return await query.limit(limit);
     }
+
+    return await query;
+  }
+
+  /**
+   * Find bot sessions that need status polling
+   * Returns sessions in 'joining' or 'active' status created within time window
+   */
+  static async findSessionsNeedingPolling(
+    organizationId: string,
+    options?: {
+      maxAgeHours?: number; // Default: 4 hours
+      statuses?: BotStatus[]; // Default: ['joining', 'active']
+      limit?: number; // Default: 100
+    }
+  ): Promise<BotSession[]> {
+    const maxAgeHours = options?.maxAgeHours ?? 4;
+    const statuses = options?.statuses ?? ["joining", "active"];
+    const limit = options?.limit ?? 100;
+
+    // Calculate the minimum created date (now - maxAgeHours)
+    const minCreatedAt = new Date();
+    minCreatedAt.setHours(minCreatedAt.getHours() - maxAgeHours);
+
+    const query = db
+      .select()
+      .from(botSessions)
+      .where(
+        and(
+          eq(botSessions.organizationId, organizationId),
+          inArray(botSessions.botStatus, statuses),
+          gte(botSessions.createdAt, minCreatedAt)
+        )
+      )
+      .orderBy(desc(botSessions.createdAt))
+      .limit(limit);
 
     return await query;
   }
@@ -326,6 +375,135 @@ export class BotSessionsQueries {
       .returning();
 
     return session ?? null;
+  }
+
+  /**
+   * Get unique organization IDs that have active sessions needing polling
+   * Used by status polling service to determine which organizations to poll
+   */
+  static async findOrganizationsWithActiveSessions(options?: {
+    maxAgeHours?: number; // Default: 4 hours
+    statuses?: BotStatus[]; // Default: ['joining', 'active']
+    limit?: number; // Default: 1000
+  }): Promise<string[]> {
+    const maxAgeHours = options?.maxAgeHours ?? 4;
+    const statuses = options?.statuses ?? ["joining", "active"];
+    const limit = options?.limit ?? 1000;
+
+    const minCreatedAt = new Date();
+    minCreatedAt.setHours(minCreatedAt.getHours() - maxAgeHours);
+
+    const sessions = await db
+      .select({
+        organizationId: botSessions.organizationId,
+      })
+      .from(botSessions)
+      .where(
+        and(
+          inArray(botSessions.botStatus, statuses),
+          gte(botSessions.createdAt, minCreatedAt)
+        )
+      )
+      .limit(limit);
+
+    // Extract unique organization IDs
+    return [...new Set(sessions.map((s) => s.organizationId))];
+  }
+
+  /**
+   * Find failed bot sessions that can be retried
+   * Returns sessions with botStatus='failed' and retryCount < maxRetries
+   * created within the specified time window
+   */
+  static async findFailedSessionsForRetry(options?: {
+    maxRetries?: number; // Default: 3
+    maxAgeHours?: number; // Default: 24 hours
+    limit?: number; // Default: 100
+  }): Promise<BotSession[]> {
+    const maxRetries = options?.maxRetries ?? 3;
+    const maxAgeHours = options?.maxAgeHours ?? 24;
+    const limit = options?.limit ?? 100;
+
+    const minCreatedAt = new Date();
+    minCreatedAt.setHours(minCreatedAt.getHours() - maxAgeHours);
+
+    // Filter by retryCount in SQL for better performance
+    const failedSessions = await db
+      .select()
+      .from(botSessions)
+      .where(
+        and(
+          eq(botSessions.botStatus, "failed"),
+          gte(botSessions.createdAt, minCreatedAt),
+          lt(botSessions.retryCount, maxRetries)
+        )
+      )
+      .limit(limit);
+
+    return failedSessions;
+  }
+
+  /**
+   * Update bot session recording ID
+   * Used by webhook handler to atomically update recordingId and recallStatus
+   */
+  static async updateRecordingId(
+    recallBotId: string,
+    organizationId: string,
+    recordingId: string,
+    recallStatus: BotSession["recallStatus"]
+  ): Promise<BotSession | null> {
+    const [updatedSession] = await db
+      .update(botSessions)
+      .set({
+        recordingId,
+        recallStatus,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(botSessions.recallBotId, recallBotId),
+          eq(botSessions.organizationId, organizationId)
+        )
+      )
+      .returning();
+
+    return updatedSession ?? null;
+  }
+
+  /**
+   * Update bot session and increment retry count atomically
+   * Used by retry logic to ensure both operations succeed or fail together
+   */
+  static async updateAndIncrementRetryCount(
+    id: string,
+    organizationId: string,
+    updates: Partial<
+      Pick<BotSession, "recallBotId" | "recallStatus" | "botStatus" | "error">
+    >
+  ): Promise<BotSession | null> {
+    // Get current session to read retryCount
+    const session = await this.findById(id, organizationId);
+    if (!session) {
+      return null;
+    }
+
+    const [updated] = await db
+      .update(botSessions)
+      .set({
+        ...updates,
+        retryCount: session.retryCount + 1,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(botSessions.id, id),
+          eq(botSessions.organizationId, organizationId)
+        )
+      )
+      .returning();
+
+    return updated ?? null;
   }
 }
 
