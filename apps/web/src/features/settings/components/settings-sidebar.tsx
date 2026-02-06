@@ -40,6 +40,12 @@ const SETTINGS_MENU_ITEMS: MenuItem[] = [
     description: "Browse knowledge base documents",
   },
   {
+    href: "/settings/bot",
+    icon: BotIcon,
+    title: "Bot",
+    description: "Configure meeting bot preferences",
+  },
+  {
     href: "/settings/integrations",
     icon: SettingsIcon,
     title: "Integrations",

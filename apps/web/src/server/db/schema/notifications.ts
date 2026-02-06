@@ -1,4 +1,11 @@
-import { pgTable, text, timestamp, uuid, boolean, jsonb } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  boolean,
+  jsonb,
+} from "drizzle-orm/pg-core";
 import { recordings } from "./recordings";
 import { projects } from "./projects";
 
@@ -10,14 +17,14 @@ export const notificationTypeEnum = [
   "tasks_completed",
   "tasks_failed",
   "recording_processed",
+  "bot_consent_request",
 ] as const;
 export type NotificationType = (typeof notificationTypeEnum)[number];
 
 export const notifications = pgTable("notifications", {
   id: uuid("id").defaultRandom().primaryKey(),
   recordingId: uuid("recording_id")
-    .notNull()
-    .references(() => recordings.id),
+    .references(() => recordings.id), // Nullable for bot_consent_request notifications
   projectId: uuid("project_id")
     .notNull()
     .references(() => projects.id),
