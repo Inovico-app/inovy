@@ -1,5 +1,5 @@
 import type { CalendarEvent } from "@/server/services/google-calendar.service";
-import type { BotSession } from "@/server/db/schema/bot-sessions";
+import type { BotSession, BotStatus } from "@/server/db/schema/bot-sessions";
 import {
   startOfMonth,
   endOfMonth,
@@ -9,6 +9,7 @@ import {
   isSameMonth,
   isToday,
   format,
+  differenceInMinutes,
 } from "date-fns";
 
 /**
@@ -122,4 +123,115 @@ export function formatDayHeader(date: Date): string {
  */
 export function formatMonthYear(date: Date): string {
   return format(date, "MMMM yyyy");
+}
+
+/**
+ * Calculate meeting duration in minutes
+ */
+export function getMeetingDuration(start: Date, end: Date): number {
+  return differenceInMinutes(end, start);
+}
+
+/**
+ * Format meeting duration for display (e.g., "30 min", "1.5 hours")
+ */
+export function formatMeetingDuration(start: Date, end: Date): string {
+  const minutes = getMeetingDuration(start, end);
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+  const hours = minutes / 60;
+  if (hours % 1 === 0) {
+    return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+  }
+  return `${hours.toFixed(1)} hours`;
+}
+
+/**
+ * Get attendees count from meeting
+ */
+export function getAttendeesCount(meeting: CalendarEvent): number {
+  return meeting.attendees?.length ?? 0;
+}
+
+/**
+ * Format attendees count for display
+ */
+export function formatAttendeesCount(meeting: CalendarEvent): string {
+  const count = getAttendeesCount(meeting);
+  if (count === 0) {
+    return "No attendees";
+  }
+  return `${count} ${count === 1 ? "attendee" : "attendees"}`;
+}
+
+/**
+ * Determine bot status for a meeting (including "no_bot")
+ */
+export type MeetingBotStatus = BotStatus | "no_bot";
+
+/**
+ * Valid bot status values including "no_bot" and "all"
+ */
+const VALID_BOT_STATUSES: Array<MeetingBotStatus | "all"> = [
+  "all",
+  "scheduled",
+  "joining",
+  "active",
+  "leaving",
+  "completed",
+  "failed",
+  "pending_consent",
+  "no_bot",
+] as const;
+
+/**
+ * Validate and normalize bot status parameter
+ */
+export function validateBotStatus(
+  status: string | undefined
+): MeetingBotStatus | "all" {
+  if (!status) {
+    return "all";
+  }
+  return VALID_BOT_STATUSES.includes(status as MeetingBotStatus | "all")
+    ? (status as MeetingBotStatus | "all")
+    : "all";
+}
+
+export function getMeetingBotStatus(
+  meeting: CalendarEvent,
+  botSession?: BotSession
+): MeetingBotStatus {
+  if (!botSession) {
+    return "no_bot";
+  }
+  return botSession.botStatus;
+}
+
+/**
+ * Filter meetings by bot status
+ */
+export function filterMeetingsByBotStatus(
+  meetings: MeetingWithSession[],
+  status: MeetingBotStatus | "all"
+): MeetingWithSession[] {
+  if (status === "all") {
+    return meetings;
+  }
+  return meetings.filter((meeting) => {
+    const meetingStatus = getMeetingBotStatus(meeting, meeting.botSession);
+    return meetingStatus === status;
+  });
+}
+
+/**
+ * Sort meetings chronologically (upcoming first)
+ */
+export function sortMeetingsChronologically(
+  meetings: MeetingWithSession[]
+): MeetingWithSession[] {
+  return [...meetings].sort((a, b) => {
+    return a.start.getTime() - b.start.getTime();
+  });
 }

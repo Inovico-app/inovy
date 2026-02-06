@@ -1,19 +1,29 @@
-import { CalendarViewComponent } from "@/features/meetings/components/calendar-view";
+import { CalendarViewComponent } from "@/features/meetings/components/calendar/calendar-view";
 import { GoogleConnectionPrompt } from "@/features/meetings/components/google-connection-prompt";
-import { getMonthRange } from "@/features/meetings/lib/calendar-utils";
+import {
+  getMonthRange,
+  matchMeetingsWithSessions,
+  validateBotStatus,
+} from "@/features/meetings/lib/calendar-utils";
+import { paginateMeetings } from "@/features/meetings/lib/meetings-pagination";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { getCachedBotSessionsByCalendarEventIds } from "@/server/cache/bot-sessions.cache";
 import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
 import { getCachedCalendarMeetings } from "@/server/cache/calendar-meetings.cache";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
-import { parse, startOfMonth } from "date-fns";
+import { addMonths, parse, startOfMonth } from "date-fns";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 async function MeetingsContent({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{
+    month?: string;
+    view?: string;
+    page?: string;
+    botStatus?: string;
+  }>;
 }) {
   const authResult = await getBetterAuthSession();
 
@@ -52,8 +62,11 @@ async function MeetingsContent({
     return <GoogleConnectionPrompt />;
   }
 
-  // Get bot settings and parse month in parallel
-  const [{ month: monthParam }, settingsResult] = await Promise.all([
+  // Get bot settings and parse search params in parallel
+  const [
+    { month: monthParam, view: viewParam, page: pageParam, botStatus: botStatusParam },
+    settingsResult,
+  ] = await Promise.all([
     searchParams,
     getCachedBotSettings(user.id, organization.id),
   ]);
@@ -70,19 +83,30 @@ async function MeetingsContent({
     );
   }
 
+  // Parse view (default: "month")
+  const view = viewParam === "list" ? "list" : "month";
+
   // Parse month from URL or use current month
   const currentMonth = monthParam
     ? startOfMonth(parse(monthParam, "yyyy-MM", new Date()))
     : startOfMonth(new Date());
 
-  const { start: timeMin, end: timeMax } = getMonthRange(currentMonth);
+  // Determine time range based on view
+  // For list view, fetch next 6 months; for calendar view, fetch current month
+  const timeRange =
+    view === "list"
+      ? {
+          start: new Date(),
+          end: addMonths(new Date(), 6),
+        }
+      : getMonthRange(currentMonth);
 
   // Fetch meetings first, then bot sessions
   const meetings = await getCachedCalendarMeetings(
     user.id,
     organization.id,
-    timeMin,
-    timeMax,
+    timeRange.start,
+    timeRange.end,
     settingsResult.value.calendarIds
   );
 
@@ -94,6 +118,29 @@ async function MeetingsContent({
           organization.id
         )
       : new Map();
+
+  // Match meetings with bot sessions
+  const meetingsWithSessions = matchMeetingsWithSessions(meetings, botSessions);
+
+  // Parse pagination and filter params with validation
+  const parsedPage = pageParam ? parseInt(pageParam, 10) : 1;
+  const currentPage =
+    Number.isFinite(parsedPage) && parsedPage >= 1
+      ? Math.floor(parsedPage)
+      : 1;
+
+  // Validate bot status param
+  const selectedStatus = validateBotStatus(botStatusParam);
+
+  // Apply pagination and filtering for list view
+  let paginatedResult;
+  if (view === "list") {
+    paginatedResult = paginateMeetings(meetingsWithSessions, {
+      page: currentPage,
+      pageSize: 20,
+      botStatus: selectedStatus,
+    });
+  }
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -109,6 +156,11 @@ async function MeetingsContent({
           initialDate={currentMonth}
           meetings={meetings}
           botSessions={botSessions}
+          paginatedMeetings={paginatedResult?.meetings}
+          currentPage={paginatedResult?.currentPage}
+          totalPages={paginatedResult?.totalPages}
+          total={paginatedResult?.total}
+          selectedStatus={selectedStatus}
         />
       </div>
     </div>
@@ -118,7 +170,12 @@ async function MeetingsContent({
 export default function MeetingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{
+    month?: string;
+    view?: string;
+    page?: string;
+    botStatus?: string;
+  }>;
 }) {
   return (
     <Suspense
