@@ -10,6 +10,8 @@ import {
   isToday,
   format,
   differenceInMinutes,
+  addMonths,
+  subMonths,
 } from "date-fns";
 
 /**
@@ -35,6 +37,24 @@ export function getMonthRange(date: Date): { start: Date; end: Date } {
   return {
     start: startOfMonth(date),
     end: endOfMonth(date),
+  };
+}
+
+/**
+ * Get padded month range (current month ± 2 months)
+ * This allows instant month switching without refetching data
+ * @param date - The current month date
+ * @param paddingMonths - Number of months to pad on each side (default: 2)
+ */
+export function getPaddedMonthRange(
+  date: Date,
+  paddingMonths: number = 2
+): { start: Date; end: Date } {
+  const paddedStart = subMonths(startOfMonth(date), paddingMonths);
+  const paddedEnd = endOfMonth(addMonths(date, paddingMonths));
+  return {
+    start: paddedStart,
+    end: paddedEnd,
   };
 }
 

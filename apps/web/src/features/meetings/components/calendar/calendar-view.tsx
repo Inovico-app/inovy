@@ -3,31 +3,25 @@
 import { CalendarGrid } from "./calendar-grid";
 import { CalendarHeader, type CalendarView } from "./calendar-header";
 import { MeetingsList } from "../meetings/meetings-list";
-import { matchMeetingsWithSessions, filterMeetingsByBotStatus, sortMeetingsChronologically } from "@/features/meetings/lib/calendar-utils";
+import { matchMeetingsWithSessions, filterMeetingsByBotStatus, sortMeetingsChronologically, getMonthRange } from "@/features/meetings/lib/calendar-utils";
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
 import type { MeetingBotStatus } from "@/features/meetings/lib/calendar-utils";
-import type { CalendarEvent } from "@/server/services/google-calendar.service";
-import type { BotSession } from "@/server/db/schema/bot-sessions";
-import { addMonths, format, parse, startOfMonth } from "date-fns";
+import { useMeetingsQuery } from "@/features/meetings/hooks/use-meetings-query";
+import { useBotSessionsQuery } from "@/features/meetings/hooks/use-bot-sessions-query";
+import { addMonths, format, parse, startOfMonth, isWithinInterval } from "date-fns";
 import {
   parseAsString,
   parseAsInteger,
   useQueryState,
 } from "nuqs";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
+import { paginateMeetings } from "@/features/meetings/lib/meetings-pagination";
 
 interface CalendarViewProps {
   initialDate?: Date;
-  meetings: CalendarEvent[];
-  botSessions: Map<string, BotSession>;
-  // List view props
-  paginatedMeetings?: MeetingWithSession[];
-  currentPage?: number;
-  totalPages?: number;
-  total?: number;
   selectedStatus?: MeetingBotStatus | "all";
 }
 
@@ -35,15 +29,8 @@ const VIEW_STORAGE_KEY = "meetings-view-preference";
 
 export function CalendarViewComponent({
   initialDate = new Date(),
-  meetings,
-  botSessions,
-  paginatedMeetings,
-  currentPage: initialCurrentPage = 1,
-  totalPages = 1,
-  total = 0,
   selectedStatus: initialSelectedStatus = "all",
 }: CalendarViewProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const viewContainerRef = useRef<HTMLDivElement>(null);
   const previousViewRef = useRef<string | null>(null);
@@ -59,7 +46,7 @@ export function CalendarViewComponent({
   );
   const [currentPage, setCurrentPage] = useQueryState(
     "page",
-    parseAsInteger.withDefault(initialCurrentPage)
+    parseAsInteger.withDefault(1)
   );
   const [selectedStatusParam, setSelectedStatusParam] = useQueryState(
     "botStatus",
@@ -72,7 +59,60 @@ export function CalendarViewComponent({
     ? parse(monthParam, "yyyy-MM", new Date())
     : startOfMonth(initialDate);
 
-  const meetingsWithSessions = matchMeetingsWithSessions(meetings, botSessions);
+  const currentMonthStart = startOfMonth(currentDate);
+
+  // Fetch meetings for current month (with padding)
+  const { data: meetings = [], isLoading: isLoadingMeetings } = useMeetingsQuery({
+    month: currentDate,
+    enabled: view === "month" || view === "list",
+  });
+
+  // Filter meetings to current month range for calendar view
+  const currentMonthRange = useMemo(() => getMonthRange(currentDate), [currentDate]);
+  const meetingsForCurrentMonth = useMemo(() => {
+    return meetings.filter((meeting) =>
+      isWithinInterval(meeting.start, currentMonthRange)
+    );
+  }, [meetings, currentMonthRange]);
+
+  // Get calendar event IDs for bot sessions (use all meetings, not just current month)
+  // This ensures we have bot session data for adjacent months too
+  const calendarEventIds = useMemo(
+    () => meetings.map((m) => m.id),
+    [meetings]
+  );
+
+  // Fetch bot sessions
+  const { data: botSessionsData = {}, isLoading: isLoadingBotSessions } =
+    useBotSessionsQuery({
+      calendarEventIds,
+      enabled: calendarEventIds.length > 0,
+    });
+
+  // Convert bot sessions object to Map
+  const botSessions = useMemo(() => {
+    return new Map(Object.entries(botSessionsData));
+  }, [botSessionsData]);
+
+  // Match meetings with bot sessions
+  const meetingsWithSessions = useMemo(
+    () => matchMeetingsWithSessions(meetingsForCurrentMonth, botSessions),
+    [meetingsForCurrentMonth, botSessions]
+  );
+
+  // Paginate meetings for list view
+  const paginatedResult = useMemo(() => {
+    if (view === "list") {
+      return paginateMeetings(meetingsWithSessions, {
+        page: currentPage,
+        pageSize: 20,
+        botStatus: selectedStatus,
+      });
+    }
+    return null;
+  }, [view, meetingsWithSessions, currentPage, selectedStatus]);
+
+  const isLoading = isLoadingMeetings || isLoadingBotSessions;
 
   // Initialize view from localStorage if URL param is missing (client-side only)
   useEffect(() => {
@@ -110,19 +150,19 @@ export function CalendarViewComponent({
   const handlePreviousMonth = () => {
     const newDate = startOfMonth(addMonths(currentDate, -1));
     setMonthParam(format(newDate, "yyyy-MM"));
-    router.refresh();
+    // No router.refresh() needed - React Query handles data fetching
   };
 
   const handleNextMonth = () => {
     const newDate = startOfMonth(addMonths(currentDate, 1));
     setMonthParam(format(newDate, "yyyy-MM"));
-    router.refresh();
+    // No router.refresh() needed - React Query handles data fetching
   };
 
   const handleToday = () => {
     const today = startOfMonth(new Date());
     setMonthParam(format(today, "yyyy-MM"));
-    router.refresh();
+    // No router.refresh() needed - React Query handles data fetching
   };
 
   const handleDayClick = (date: Date) => {
@@ -139,7 +179,7 @@ export function CalendarViewComponent({
       if (newView === "list") {
         setCurrentPage(1);
       }
-      router.refresh();
+      // No router.refresh() needed - React Query handles data fetching
     }
   };
 
@@ -147,18 +187,18 @@ export function CalendarViewComponent({
     setSelectedStatusParam(status);
     // Reset to page 1 when changing filter
     setCurrentPage(1);
-    router.refresh();
+    // No router.refresh() needed - client-side filtering
   };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    router.refresh();
+    // No router.refresh() needed - client-side pagination
   };
 
   const handleClearFilters = () => {
     setSelectedStatusParam("all");
     setCurrentPage(1);
-    router.refresh();
+    // No router.refresh() needed - client-side filtering
   };
 
   return (
@@ -181,11 +221,17 @@ export function CalendarViewComponent({
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              <CalendarGrid
-                currentDate={currentDate}
-                meetings={meetingsWithSessions}
-                onDayClick={handleDayClick}
-              />
+              {isLoading ? (
+                <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
+                  Loading calendar...
+                </div>
+              ) : (
+                <CalendarGrid
+                  currentDate={currentDate}
+                  meetings={meetingsWithSessions}
+                  onDayClick={handleDayClick}
+                />
+              )}
             </motion.div>
           )}
           {view === "list" && (
@@ -196,43 +242,23 @@ export function CalendarViewComponent({
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              {paginatedMeetings ? (
+              {isLoading ? (
+                <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
+                  Loading meetings...
+                </div>
+              ) : paginatedResult ? (
                 <MeetingsList
-                  meetings={paginatedMeetings}
+                  meetings={paginatedResult.meetings}
                   allMeetings={meetingsWithSessions}
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  total={total}
+                  currentPage={paginatedResult.currentPage}
+                  totalPages={paginatedResult.totalPages}
+                  total={paginatedResult.total}
                   selectedStatus={selectedStatus}
                   onStatusChange={handleStatusChange}
                   onPageChange={handlePageChange}
                   onClearFilters={handleClearFilters}
                 />
-              ) : (
-                // Fallback: use client-side pagination when server data isn't ready yet
-                (() => {
-                  const filtered = filterMeetingsByBotStatus(meetingsWithSessions, selectedStatus);
-                  const sorted = sortMeetingsChronologically(filtered);
-                  const pageSize = 20;
-                  const offset = (currentPage - 1) * pageSize;
-                  const clientPaginated = sorted.slice(offset, offset + pageSize);
-                  const clientTotalPages = Math.ceil(sorted.length / pageSize);
-                  
-                  return (
-                    <MeetingsList
-                      meetings={clientPaginated}
-                      allMeetings={meetingsWithSessions}
-                      currentPage={currentPage}
-                      totalPages={clientTotalPages}
-                      total={sorted.length}
-                      selectedStatus={selectedStatus}
-                      onStatusChange={handleStatusChange}
-                      onPageChange={handlePageChange}
-                      onClearFilters={handleClearFilters}
-                    />
-                  );
-                })()
-              )}
+              ) : null}
             </motion.div>
           )}
           {view === "week" && (

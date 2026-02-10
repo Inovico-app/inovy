@@ -335,6 +335,242 @@ export class GoogleCalendarService {
   }
 
   /**
+   * Create a calendar event
+   * @param userId - User ID
+   * @param eventDetails - Event details
+   * @returns Result containing event ID and URL
+   */
+  static async createEvent(
+    userId: string,
+    eventDetails: {
+      title: string;
+      start: Date;
+      end: Date;
+      description?: string;
+      location?: string;
+      calendarId?: string; // Defaults to "primary"
+      attendees?: string[]; // Array of email addresses
+    }
+  ): Promise<
+    ActionResult<{
+      eventId: string;
+      eventUrl: string;
+      meetingUrl: string | null;
+    }>
+  > {
+    try {
+      // Get valid access token
+      const tokenResult = await GoogleOAuthService.getValidAccessToken(userId);
+
+      if (tokenResult.isErr()) {
+        return err(
+          ActionErrors.internal(
+            "Failed to get valid access token",
+            tokenResult.error,
+            "GoogleCalendarService.createEvent"
+          )
+        );
+      }
+
+      const accessToken = tokenResult.value;
+
+      // Create OAuth client with token
+      const oauth2Client = createGoogleOAuthClient();
+      oauth2Client.setCredentials({
+        access_token: accessToken,
+      });
+
+      // Initialize Calendar API
+      const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+
+      const calendarId = eventDetails.calendarId || "primary";
+
+      // Prepare attendees array
+      const attendees = eventDetails.attendees && eventDetails.attendees.length > 0
+        ? eventDetails.attendees.map((email) => ({ email }))
+        : undefined;
+
+      // Create event with Google Meet conference data
+      const event = {
+        summary: eventDetails.title,
+        description: eventDetails.description || "",
+        location: eventDetails.location || undefined,
+        attendees,
+        start: {
+          dateTime: eventDetails.start.toISOString(),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        end: {
+          dateTime: eventDetails.end.toISOString(),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        conferenceData: {
+          createRequest: {
+            requestId: `${Date.now()}-${Math.random()}`,
+            conferenceSolutionKey: {
+              type: "hangoutsMeet",
+            },
+          },
+        },
+      };
+
+      const response = await calendar.events.insert({
+        calendarId,
+        requestBody: event,
+        conferenceDataVersion: 1,
+      });
+
+      if (!response.data.id || !response.data.htmlLink) {
+        return err(
+          ActionErrors.internal(
+            "Failed to create calendar event - no event ID returned",
+            undefined,
+            "GoogleCalendarService.createEvent"
+          )
+        );
+      }
+
+      // Extract Google Meet URL
+      let meetingUrl: string | null = null;
+      if (
+        response.data.conferenceData?.entryPoints &&
+        Array.isArray(response.data.conferenceData.entryPoints)
+      ) {
+        const meetEntry = response.data.conferenceData.entryPoints.find(
+          (entry) =>
+            entry.entryPointType === "video" &&
+            entry.uri?.includes("meet.google.com")
+        );
+        if (meetEntry?.uri) {
+          meetingUrl = meetEntry.uri;
+        }
+      }
+
+      // Fallback to hangoutLink (legacy format)
+      if (
+        !meetingUrl &&
+        response.data.hangoutLink?.includes("meet.google.com")
+      ) {
+        meetingUrl = response.data.hangoutLink;
+      }
+
+      logger.info("Created Google Calendar event", {
+        userId,
+        eventId: response.data.id,
+        calendarId,
+      });
+
+      return ok({
+        eventId: response.data.id,
+        eventUrl: response.data.htmlLink,
+        meetingUrl,
+      });
+    } catch (error) {
+      const errorMessage = `Failed to create Google Calendar event: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`;
+      logger.error(errorMessage, { userId }, error as Error);
+
+      return err(
+        ActionErrors.internal(
+          errorMessage,
+          error as Error,
+          "GoogleCalendarService.createEvent"
+        )
+      );
+    }
+  }
+
+  /**
+   * Get list of user's calendars
+   * @param userId - User ID
+   * @returns Result containing list of calendars
+   */
+  static async getCalendarsList(
+    userId: string
+  ): Promise<
+    ActionResult<Array<{ id: string; summary: string; accessRole: string }>>
+  > {
+    try {
+      // Get valid access token
+      const tokenResult = await GoogleOAuthService.getValidAccessToken(userId);
+
+      if (tokenResult.isErr()) {
+        return err(
+          ActionErrors.internal(
+            "Failed to get valid access token",
+            tokenResult.error,
+            "GoogleCalendarService.getCalendarsList"
+          )
+        );
+      }
+
+      const accessToken = tokenResult.value;
+
+      // Create OAuth client with token
+      const oauth2Client = createGoogleOAuthClient();
+      oauth2Client.setCredentials({
+        access_token: accessToken,
+      });
+
+      // Initialize Calendar API
+      const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+
+      const response = await calendar.calendarList.list({
+        minAccessRole: "writer", // Only return calendars user can write to
+      });
+
+      if (!response.data.items) {
+        return ok([]);
+      }
+
+      const calendars = response.data.items
+        .filter((cal) => cal.id) // Only require id, summary can be empty
+        .map((cal) => ({
+          id: cal.id!,
+          summary: cal.summary || cal.id || "Unnamed Calendar",
+          accessRole: cal.accessRole || "reader",
+        }));
+
+      logger.info("Fetched user calendars", {
+        userId,
+        count: calendars.length,
+      });
+
+      return ok(calendars);
+    } catch (error) {
+      // Check for insufficient scopes error
+      const isInsufficientScopes =
+        error instanceof Error &&
+        (error.message.includes("insufficient authentication scopes") ||
+          error.message.includes("insufficientPermissions") ||
+          (error as any).code === 403);
+
+      if (isInsufficientScopes) {
+        logger.error("Insufficient Google OAuth scopes for calendar list", {
+          userId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+        return err(
+          ActionErrors.badRequest(
+            "Your Google account connection is missing required permissions. Please disconnect and reconnect your Google account in settings to grant calendar access.",
+            "GoogleCalendarService.getCalendarsList"
+          )
+        );
+      }
+
+      logger.error("Failed to get calendars list", { userId }, error as Error);
+      return err(
+        ActionErrors.internal(
+          "Failed to get calendars list",
+          error as Error,
+          "GoogleCalendarService.getCalendarsList"
+        )
+      );
+    }
+  }
+
+  /**
    * Get upcoming Google Meet meetings for a user
    * @param userId - User ID
    * @param options - Options for filtering meetings
