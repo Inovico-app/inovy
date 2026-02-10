@@ -1,5 +1,5 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { logger } from "@/lib/logger";
+import { createSafeActionErrorResponse, createSafeErrorResponse } from "@/lib/safe-error-response";
 import { DriveWatchesService } from "@/server/services/drive-watches.service";
 import { stopDriveWatchSchema } from "@/server/validation/drive-watch";
 import { type NextRequest, NextResponse } from "next/server";
@@ -51,32 +51,9 @@ export async function POST(request: NextRequest) {
     const result = await DriveWatchesService.stopWatch(user.id, folderId);
 
     if (result.isErr()) {
-      logger.error("Failed to stop Drive watch", {
-        component: "POST /api/integrations/google/drive/watch/stop",
-        userId: user.id,
-        folderId,
-        error: result.error,
-      });
-
-      // Map error code to HTTP status
-      const statusMap: Record<string, number> = {
-        UNAUTHENTICATED: 401,
-        FORBIDDEN: 403,
-        NOT_FOUND: 404,
-        BAD_REQUEST: 400,
-        CONFLICT: 409,
-        VALIDATION_ERROR: 400,
-        RATE_LIMITED: 429,
-        SERVICE_UNAVAILABLE: 503,
-        INTERNAL_SERVER_ERROR: 500,
-      };
-
-      return NextResponse.json(
-        {
-          error: result.error.message,
-          code: result.error.code,
-        },
-        { status: statusMap[result.error.code] ?? 500 }
+      return createSafeActionErrorResponse(
+        result.error,
+        "POST /api/integrations/google/drive/watch/stop"
       );
     }
 
@@ -85,10 +62,9 @@ export async function POST(request: NextRequest) {
       message: "Watch stopped successfully",
     });
   } catch (error) {
-    logger.error("Error in stop Drive watch API route", {}, error as Error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+    return createSafeErrorResponse(
+      error,
+      "POST /api/integrations/google/drive/watch/stop"
     );
   }
 }

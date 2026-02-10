@@ -1,6 +1,7 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { withRateLimit } from "@/lib/rate-limit";
+import { createSafeActionErrorResponse } from "@/lib/safe-error-response";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { rateLimiter } from "@/server/services/rate-limiter.service";
 import { RecordingService } from "@/server/services/recording.service";
@@ -82,15 +83,9 @@ export const POST = withRateLimit(
       );
 
       if (result.isErr()) {
-        logger.error("Transcription failed", {
-          component: "TranscribeRoute",
-          recordingId,
-          error: result.error,
-        });
-
-        return NextResponse.json(
-          { error: result.error.message },
-          { status: 500 }
+        return createSafeActionErrorResponse(
+          result.error,
+          "POST /api/transcribe/[recordingId]"
         );
       }
 

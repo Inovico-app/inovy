@@ -1,5 +1,5 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { logger } from "@/lib/logger";
+import { createSafeActionErrorResponse, createSafeErrorResponse } from "@/lib/safe-error-response";
 import { KnowledgeBaseBrowserService } from "@/server/services/knowledge-base-browser.service";
 import { AgentConfigService } from "@/server/services/agent-config.service";
 import type { NextRequest } from "next/server";
@@ -55,24 +55,18 @@ export async function POST(request: NextRequest) {
     );
 
     if (result.isErr()) {
-      logger.error("Failed to re-index document", {
-        component: "api/agent/knowledge-base/reindex",
-        documentId,
-        error: result.error.message,
-      });
-      return Response.json(
-        { error: result.error.message },
-        { status: result.error.code === "INTERNAL_SERVER_ERROR" ? 500 : 400 }
+      return createSafeActionErrorResponse(
+        result.error,
+        "POST /api/agent/knowledge-base/reindex"
       );
     }
 
     return Response.json({ success: true });
   } catch (error) {
-    logger.error("Unexpected error re-indexing document", {
-      component: "api/agent/knowledge-base/reindex",
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    return createSafeErrorResponse(
+      error,
+      "POST /api/agent/knowledge-base/reindex"
+    );
   }
 }
 

@@ -1,5 +1,6 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
+import { createSafeErrorResponse } from "@/lib/safe-error-response";
 import { DataExportsQueries } from "@/server/data-access/data-exports.queries";
 import { GdprExportService } from "@/server/services/gdpr-export.service";
 import { NextResponse } from "next/server";
@@ -64,7 +65,8 @@ export async function GET(
         );
       }
       if (error.code === "BAD_REQUEST") {
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        // Don't expose technical error details
+        return NextResponse.json({ error: "Invalid request" }, { status: 400 });
       }
       return NextResponse.json(
         { error: "Failed to get export" },
@@ -104,13 +106,9 @@ export async function GET(
       },
     });
   } catch (error) {
-    logger.error("Export download error", {
-      component: "GET /api/gdpr-export/[exportId]",
+    return createSafeErrorResponse(
       error,
-    });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      "GET /api/gdpr-export/[exportId]"
     );
   }
 }
