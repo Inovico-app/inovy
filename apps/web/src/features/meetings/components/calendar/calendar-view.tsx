@@ -59,8 +59,6 @@ export function CalendarViewComponent({
     ? parse(monthParam, "yyyy-MM", new Date())
     : startOfMonth(initialDate);
 
-  const currentMonthStart = startOfMonth(currentDate);
-
   // Fetch meetings for current month (with padding)
   const { data: meetings = [], isLoading: isLoadingMeetings } = useMeetingsQuery({
     month: currentDate,
@@ -75,11 +73,10 @@ export function CalendarViewComponent({
     );
   }, [meetings, currentMonthRange]);
 
-  // Get calendar event IDs for bot sessions (use all meetings, not just current month)
-  // This ensures we have bot session data for adjacent months too
+  // Get calendar event IDs for bot sessions (use current month meetings only)
   const calendarEventIds = useMemo(
-    () => meetings.map((m) => m.id),
-    [meetings]
+    () => meetingsForCurrentMonth.map((m) => m.id),
+    [meetingsForCurrentMonth]
   );
 
   // Fetch bot sessions
@@ -222,7 +219,13 @@ export function CalendarViewComponent({
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
               {isLoading ? (
-                <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
+                <div
+                  role="status"
+                  aria-live="polite"
+                  aria-busy="true"
+                  className="rounded-lg border bg-card p-8 text-center text-muted-foreground"
+                >
+                  <span className="sr-only">Loading calendar…</span>
                   Loading calendar...
                 </div>
               ) : (
@@ -243,7 +246,13 @@ export function CalendarViewComponent({
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
               {isLoading ? (
-                <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
+                <div
+                  role="status"
+                  aria-live="polite"
+                  aria-busy="true"
+                  className="rounded-lg border bg-card p-8 text-center text-muted-foreground"
+                >
+                  <span className="sr-only">Loading meetings…</span>
                   Loading meetings...
                 </div>
               ) : paginatedResult ? (

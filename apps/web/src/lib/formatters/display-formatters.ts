@@ -37,3 +37,29 @@ export function formatUserName(
   return parts.length > 0 ? parts.join(" ") : "Unknown";
 }
 
+/**
+ * Get user display name from email, given name, and family name
+ * Falls back to email if name is not available
+ * @param email - User's email (can be null)
+ * @param given_name - User's given name (can be null)
+ * @param family_name - User's family name (can be null)
+ * @returns Display name string
+ */
+export function getUserDisplayName({
+  email,
+  given_name,
+  family_name,
+}: {
+  email: string | null;
+  given_name: string | null;
+  family_name: string | null;
+}): string {
+  if (given_name && family_name) {
+    return `${given_name} ${family_name}`;
+  }
+  if (given_name) {
+    return given_name;
+  }
+  return email || "Unknown";
+}
+

@@ -15,7 +15,7 @@ import { z } from "zod";
 
 const createCalendarEventWithBotSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  startDateTime: z.date(),
+  startDateTime: z.coerce.date(),
   duration: z.number().min(15).max(480).default(30), // 15 min to 8 hours, default 30
   description: z.string().optional(),
   location: z.string().optional(),
@@ -23,6 +23,9 @@ const createCalendarEventWithBotSchema = z.object({
   addBot: z.boolean().default(true),
   attendeeUserIds: z.array(z.string()).default([]),
   attendeeEmails: z.array(z.string().email()).default([]),
+  allDay: z.boolean().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 });
 
 /**
@@ -51,7 +54,7 @@ export const createCalendarEventWithBot = authorizedActionClient
       );
     }
 
-    const { title, startDateTime, duration, description, location, calendarId, addBot, attendeeUserIds, attendeeEmails } =
+    const { title, startDateTime, duration, description, location, calendarId, addBot, attendeeUserIds, attendeeEmails, allDay, startDate, endDate } =
       parsedInput;
 
     logger.info("Creating calendar event with bot", {
@@ -59,11 +62,22 @@ export const createCalendarEventWithBot = authorizedActionClient
       organizationId,
       title,
       addBot,
+      allDay,
     });
 
-    // Calculate end time
-    const start = new Date(startDateTime);
-    const end = new Date(start.getTime() + duration * 60 * 1000);
+    // Calculate end time or use date strings for all-day events
+    let start: Date;
+    let end: Date;
+    
+    if (allDay && startDate && endDate) {
+      // All-day events: use date strings (YYYY-MM-DD format)
+      start = new Date(`${startDate}T00:00:00`);
+      end = new Date(`${endDate}T23:59:59`);
+    } else {
+      // Timed events: calculate from startDateTime and duration
+      start = new Date(startDateTime);
+      end = new Date(start.getTime() + duration * 60 * 1000);
+    }
 
     // Collect attendee emails
     const attendeeEmailList: string[] = [...(attendeeEmails || [])];
@@ -76,8 +90,8 @@ export const createCalendarEventWithBot = authorizedActionClient
           members.map((m) => [m.id, m.email])
         );
         
-        for (const userId of attendeeUserIds) {
-          const email = userIdToEmail.get(userId);
+        for (const attendeeUserId of attendeeUserIds) {
+          const email = userIdToEmail.get(attendeeUserId);
           if (email) {
             attendeeEmailList.push(email);
           }
@@ -101,6 +115,8 @@ export const createCalendarEventWithBot = authorizedActionClient
       location,
       calendarId,
       attendees: attendeeEmailList.length > 0 ? attendeeEmailList : undefined,
+      allDay: allDay || false,
+      userTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
 
     if (eventResult.isErr()) {
@@ -146,8 +162,6 @@ export const createCalendarEventWithBot = authorizedActionClient
               error: settingsResult.error,
             });
           } else {
-            const settings = settingsResult.value;
-
             // Get active project for organization
             const project = await ProjectQueries.findFirstActiveByOrganization(
               organizationId

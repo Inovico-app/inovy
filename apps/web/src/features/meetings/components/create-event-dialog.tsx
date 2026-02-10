@@ -151,39 +151,57 @@ export function CreateEventDialog({
     },
   });
 
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!open) {
+      reset();
+    }
+  }, [open, reset]);
+
 
   const onSubmit = async (data: FormData) => {
-    // Combine date and time into datetime
-    let start: Date;
-    let end: Date;
-
     if (data.allDay) {
-      // All day events: start at 00:00, end at 23:59:59 of the end date
-      start = new Date(`${data.startDate}T00:00:00`);
-      end = new Date(`${data.endDate}T23:59:59`);
+      // All day events: pass date strings directly
+      createEvent({
+        title: data.title,
+        startDateTime: new Date(`${data.startDate}T00:00:00`),
+        duration: 1440, // 24 hours in minutes
+        description: data.description || undefined,
+        location: data.location || undefined,
+        calendarId: "primary",
+        addBot: data.addBot,
+        attendeeUserIds: data.attendeeUserIds || [],
+        attendeeEmails: data.attendeeEmails || [],
+        allDay: true,
+        startDate: data.startDate,
+        endDate: data.endDate,
+      });
     } else {
       // Timed events: combine date and time
-      start = new Date(`${data.startDate}T${data.startTime || "00:00"}:00`);
-      end = new Date(`${data.endDate}T${data.endTime || "00:00"}:00`);
+      const start = new Date(`${data.startDate}T${data.startTime || "00:00"}:00`);
+      const end = new Date(`${data.endDate}T${data.endTime || "00:00"}:00`);
+
+      // Calculate duration in minutes
+      const calculatedDuration = Math.round((end.getTime() - start.getTime()) / (60 * 1000));
+
+      if (calculatedDuration < 15) {
+        toast.error("Duration must be at least 15 minutes");
+        return;
+      }
+
+      createEvent({
+        title: data.title,
+        startDateTime: start,
+        duration: calculatedDuration,
+        description: data.description || undefined,
+        location: data.location || undefined,
+        calendarId: "primary",
+        addBot: data.addBot,
+        attendeeUserIds: data.attendeeUserIds || [],
+        attendeeEmails: data.attendeeEmails || [],
+        allDay: false,
+      });
     }
-
-    // Calculate duration in minutes
-    const calculatedDuration = Math.round((end.getTime() - start.getTime()) / (60 * 1000));
-    
-    // Ensure duration is within valid range (minimum 15 minutes)
-    const finalDuration = Math.max(15, calculatedDuration);
-
-    createEvent({
-      title: data.title,
-      startDateTime: start,
-      duration: finalDuration,
-      description: data.description || undefined,
-      location: data.location || undefined,
-      calendarId: "primary", // Always use primary calendar
-      addBot: data.addBot,
-      attendeeUserIds: data.attendeeUserIds || [],
-      attendeeEmails: data.attendeeEmails || [],
-    });
   };
 
 

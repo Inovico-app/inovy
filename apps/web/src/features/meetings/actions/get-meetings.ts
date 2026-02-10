@@ -10,8 +10,8 @@ import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { z } from "zod";
 
 const getMeetingsSchema = z.object({
-  timeMin: z.date(),
-  timeMax: z.date(),
+  timeMin: z.coerce.date(),
+  timeMax: z.coerce.date(),
 });
 
 /**

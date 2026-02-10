@@ -17,7 +17,7 @@ export function useBotSessionsQuery({
   enabled = true,
 }: UseBotSessionsQueryOptions) {
   return useQuery({
-    queryKey: ["bot-sessions", calendarEventIds.sort().join(",")],
+    queryKey: ["bot-sessions", [...(calendarEventIds || [])].sort().join(",")],
     queryFn: async () => {
       if (calendarEventIds.length === 0) {
         return {} as Record<string, BotSession>;

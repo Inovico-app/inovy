@@ -2,6 +2,7 @@
 
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
+import { useRef } from "react";
 import { toast } from "sonner";
 import { createCalendarEventWithBot } from "../actions/create-calendar-event-with-bot";
 
@@ -23,6 +24,8 @@ export function useCreateCalendarEvent(
   options?: UseCreateCalendarEventOptions
 ) {
   const router = useRouter();
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
 
   const { execute, isExecuting } = useAction(createCalendarEventWithBot, {
     onSuccess: ({ data }) => {
@@ -32,25 +35,36 @@ export function useCreateCalendarEvent(
         if (error) {
           toast.warning("Event created with warnings", {
             description: error,
+            action: eventUrl
+              ? {
+                  label: "Open Event",
+                  onClick: () => {
+                    window.open(eventUrl, "_blank");
+                  },
+                }
+              : undefined,
           });
         } else {
           toast.success("Calendar event created successfully", {
             description: sessionId
               ? "Event and bot session created"
               : "Event created",
+            action: eventUrl
+              ? {
+                  label: "Open Event",
+                  onClick: () => {
+                    window.open(eventUrl, "_blank");
+                  },
+                }
+              : undefined,
           });
-        }
-
-        // Open calendar event in new tab
-        if (eventUrl) {
-          window.open(eventUrl, "_blank");
         }
 
         // Refresh the page to show the new event
         router.refresh();
 
         // Call custom onSuccess callback if provided
-        options?.onSuccess?.(data);
+        optionsRef.current?.onSuccess?.(data);
       }
     },
     onError: ({ error }) => {
@@ -59,7 +73,7 @@ export function useCreateCalendarEvent(
       });
 
       // Call custom onError callback if provided
-      options?.onError?.(error);
+      optionsRef.current?.onError?.(error);
     },
   });
 

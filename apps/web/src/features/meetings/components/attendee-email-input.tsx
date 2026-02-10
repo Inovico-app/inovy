@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -12,6 +12,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
+import { getUserDisplayName } from "@/lib/formatters/display-formatters";
 
 interface AttendeeEmailInputProps {
   value: string;
@@ -27,25 +28,8 @@ export function AttendeeEmailInput({
   disabled = false,
 }: AttendeeEmailInputProps) {
   const [emailSuggestionsOpen, setEmailSuggestionsOpen] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const { data: organizationUsers = [] } = useOrganizationUsersQuery();
-
-  // Helper function to get user display name
-  const getUserDisplayName = useCallback(
-    (user: {
-      email: string | null;
-      given_name: string | null;
-      family_name: string | null;
-    }) => {
-      if (user.given_name && user.family_name) {
-        return `${user.given_name} ${user.family_name}`;
-      }
-      if (user.given_name) {
-        return user.given_name;
-      }
-      return user.email || "Unknown";
-    },
-    []
-  );
 
   // Filter organization users based on email input
   const emailSuggestions = useMemo(() => {
@@ -58,11 +42,15 @@ export function AttendeeEmailInput({
       .filter((user) => {
         if (!user.email) return false;
         const email = user.email.toLowerCase();
-        const name = getUserDisplayName(user).toLowerCase();
+        const name = getUserDisplayName({
+          email: user.email,
+          given_name: user.given_name,
+          family_name: user.family_name,
+        }).toLowerCase();
         return email.includes(input) || name.includes(input);
       })
       .slice(0, 5); // Limit to 5 suggestions
-  }, [value, organizationUsers, getUserDisplayName]);
+  }, [value, organizationUsers]);
 
   const handleAdd = () => {
     const email = value.trim();
@@ -71,9 +59,11 @@ export function AttendeeEmailInput({
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      setEmailError("Please enter a valid email address");
       return;
     }
 
+    setEmailError(null);
     onAdd(email);
     onChange("");
   };
@@ -93,7 +83,12 @@ export function AttendeeEmailInput({
               onChange={(e) => {
                 onChange(e.target.value);
                 setEmailSuggestionsOpen(e.target.value.trim().length > 0);
+                if (emailError) {
+                  setEmailError(null);
+                }
               }}
+              aria-invalid={emailError ? "true" : "false"}
+              aria-describedby={emailError ? "email-error" : undefined}
               onFocus={() => {
                 if (value.trim().length > 0 && emailSuggestions.length > 0) {
                   setEmailSuggestionsOpen(true);
@@ -114,6 +109,11 @@ export function AttendeeEmailInput({
               }}
               disabled={disabled}
             />
+            {emailError && (
+              <p id="email-error" className="text-sm text-destructive mt-1">
+                {emailError}
+              </p>
+            )}
           </div>
         </PopoverTrigger>
         <PopoverContent
@@ -132,12 +132,22 @@ export function AttendeeEmailInput({
                       if (user.email) {
                         onChange(user.email);
                         setEmailSuggestionsOpen(false);
+                        setEmailError(null);
                       }
                     }}
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                    }}
                     className="cursor-pointer"
-                  >
+                    >
                     <div className="flex flex-col">
-                      <span className="text-sm">{getUserDisplayName(user)}</span>
+                      <span className="text-sm">
+                        {getUserDisplayName({
+                          email: user.email,
+                          given_name: user.given_name,
+                          family_name: user.family_name,
+                        })}
+                      </span>
                       {user.email && (
                         <span className="text-xs text-muted-foreground">
                           {user.email}

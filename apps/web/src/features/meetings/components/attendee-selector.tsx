@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { Loader2Icon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { AttendeeEmailInput } from "./attendee-email-input";
 import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
+import { getUserDisplayName } from "@/lib/formatters/display-formatters";
 
 interface AttendeeSelectorProps {
   selectedUserIds: string[];
@@ -27,22 +28,10 @@ export function AttendeeSelector({
   const { data: organizationUsers = [], isLoading: loadingUsers } =
     useOrganizationUsersQuery();
 
-  // Helper function to get user display name
-  const getUserDisplayName = useCallback(
-    (user: {
-      email: string | null;
-      given_name: string | null;
-      family_name: string | null;
-    }) => {
-      if (user.given_name && user.family_name) {
-        return `${user.given_name} ${user.family_name}`;
-      }
-      if (user.given_name) {
-        return user.given_name;
-      }
-      return user.email || "Unknown";
-    },
-    []
+  // Get set of organization member emails for deduplication
+  const orgMemberEmails = useMemo(
+    () => new Set(organizationUsers.map((user) => user.email).filter(Boolean) as string[]),
+    [organizationUsers]
   );
 
   const toggleUserAttendee = (userId: string) => {
@@ -54,7 +43,7 @@ export function AttendeeSelector({
   };
 
   const addCustomEmail = (email: string) => {
-    if (selectedEmails.includes(email)) {
+    if (selectedEmails.includes(email) || orgMemberEmails.has(email)) {
       return;
     }
     onEmailsChange([...selectedEmails, email]);
@@ -84,7 +73,11 @@ export function AttendeeSelector({
           <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-2">
             {organizationUsers.map((user) => {
               const isSelected = selectedUserIds.includes(user.id);
-              const displayName = getUserDisplayName(user);
+              const displayName = getUserDisplayName({
+                email: user.email,
+                given_name: user.given_name,
+                family_name: user.family_name,
+              });
               return (
                 <div key={user.id} className="flex items-center space-x-2">
                   <Checkbox

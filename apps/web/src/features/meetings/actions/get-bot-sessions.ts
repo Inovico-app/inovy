@@ -8,7 +8,7 @@ import { BotSessionsQueries } from "@/server/data-access/bot-sessions.queries";
 import { z } from "zod";
 
 const getBotSessionsSchema = z.object({
-  calendarEventIds: z.array(z.string()),
+  calendarEventIds: z.array(z.string()).max(500),
 });
 
 /**
@@ -27,7 +27,7 @@ export const getBotSessions = authorizedActionClient
     const { calendarEventIds } = parsedInput;
 
     if (calendarEventIds.length === 0) {
-      return new Map<string, unknown>();
+      return {};
     }
 
     logger.info("Fetching bot sessions", {

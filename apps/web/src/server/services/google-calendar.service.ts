@@ -40,6 +40,7 @@ export class GoogleCalendarService {
     options?: {
       duration?: number; // in minutes, default 30
       description?: string;
+      userTimezone?: string;
     }
   ): Promise<ActionResult<{ eventId: string; eventUrl: string }>> {
     try {
@@ -99,17 +100,20 @@ export class GoogleCalendarService {
       eventDescription += `\nCreated from Inovy recording\n`;
       eventDescription += `Task ID: ${task.id}`;
 
+      // Use user's timezone or fallback to UTC
+      const timeZone = options?.userTimezone || "UTC";
+
       // Create event
       const event = {
         summary: task.title,
         description: eventDescription,
         start: {
           dateTime: startDate.toISOString(),
-          timeZone: "UTC",
+          timeZone,
         },
         end: {
           dateTime: endDate.toISOString(),
-          timeZone: "UTC",
+          timeZone,
         },
         colorId:
           task.priority === "urgent"
@@ -350,6 +354,8 @@ export class GoogleCalendarService {
       location?: string;
       calendarId?: string; // Defaults to "primary"
       attendees?: string[]; // Array of email addresses
+      allDay?: boolean;
+      userTimezone?: string;
     }
   ): Promise<
     ActionResult<{
@@ -390,29 +396,65 @@ export class GoogleCalendarService {
         ? eventDetails.attendees.map((email) => ({ email }))
         : undefined;
 
+      // Use user's timezone or fallback to server timezone
+      const timeZone = eventDetails.userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
       // Create event with Google Meet conference data
-      const event = {
-        summary: eventDetails.title,
-        description: eventDetails.description || "",
-        location: eventDetails.location || undefined,
-        attendees,
-        start: {
-          dateTime: eventDetails.start.toISOString(),
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        },
-        end: {
-          dateTime: eventDetails.end.toISOString(),
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        },
-        conferenceData: {
+      type EventPayload = {
+        summary: string;
+        description: string;
+        location?: string;
+        attendees?: Array<{ email: string }>;
+        start: { dateTime?: string; date?: string; timeZone?: string };
+        end: { dateTime?: string; date?: string; timeZone?: string };
+        conferenceData?: {
           createRequest: {
-            requestId: `${Date.now()}-${Math.random()}`,
-            conferenceSolutionKey: {
-              type: "hangoutsMeet",
+            requestId: string;
+            conferenceSolutionKey: { type: string };
+          };
+        };
+      };
+
+      let event: EventPayload;
+
+      if (eventDetails.allDay) {
+        // All-day events use date-only format (YYYY-MM-DD)
+        const startDate = eventDetails.start.toISOString().split("T")[0];
+        const endDate = eventDetails.end.toISOString().split("T")[0];
+        event = {
+          summary: eventDetails.title,
+          description: eventDetails.description || "",
+          location: eventDetails.location || undefined,
+          attendees,
+          start: { date: startDate },
+          end: { date: endDate },
+        };
+      } else {
+        // Timed events use dateTime with timezone
+        event = {
+          summary: eventDetails.title,
+          description: eventDetails.description || "",
+          location: eventDetails.location || undefined,
+          attendees,
+          start: {
+            dateTime: eventDetails.start.toISOString(),
+            timeZone,
+          },
+          end: {
+            dateTime: eventDetails.end.toISOString(),
+            timeZone,
+          },
+          // Only add conference data for timed events (all-day events don't support Meet links)
+          conferenceData: {
+            createRequest: {
+              requestId: `${Date.now()}-${Math.random()}`,
+              conferenceSolutionKey: {
+                type: "hangoutsMeet",
+              },
             },
           },
-        },
-      };
+        };
+      }
 
       const response = await calendar.events.insert({
         calendarId,

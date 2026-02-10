@@ -16,29 +16,32 @@ interface UseMeetingsQueryOptions {
  * React Query hook for fetching calendar meetings with automatic prefetching
  * Prefetches adjacent months in the background for instant month switching
  */
+// Shared helper for fetching meetings
+async function fetchMeetingsForRange(timeMin: Date, timeMax: Date): Promise<CalendarEvent[]> {
+  const result = await getMeetings({ timeMin, timeMax });
+
+  if (result?.serverError) {
+    throw new Error(result.serverError);
+  }
+
+  if (!result?.data) {
+    return [];
+  }
+
+  return result.data as CalendarEvent[];
+}
+
 export function useMeetingsQuery({ month, enabled = true }: UseMeetingsQueryOptions) {
   const queryClient = useQueryClient();
   const monthStart = startOfMonth(month);
   const { start, end } = getPaddedMonthRange(monthStart, 2);
+  
+  // Use stable primitive for month key
+  const monthKey = monthStart.getTime();
 
   const query = useQuery({
-    queryKey: ["meetings", monthStart.toISOString()],
-    queryFn: async () => {
-      const result = await getMeetings({
-        timeMin: start,
-        timeMax: end,
-      });
-
-      if (result?.serverError) {
-        throw new Error(result.serverError);
-      }
-
-      if (!result?.data) {
-        return [] as CalendarEvent[];
-      }
-
-      return result.data as CalendarEvent[];
-    },
+    queryKey: ["meetings", monthKey],
+    queryFn: () => fetchMeetingsForRange(start, end),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     enabled,
   });
@@ -52,35 +55,25 @@ export function useMeetingsQuery({ month, enabled = true }: UseMeetingsQueryOpti
     // Prefetch next month
     const nextMonth = addMonths(monthStart, 1);
     const nextMonthRange = getPaddedMonthRange(nextMonth, 2);
+    const nextMonthKey = startOfMonth(nextMonth).getTime();
     
     queryClient.prefetchQuery({
-      queryKey: ["meetings", nextMonth.toISOString()],
-      queryFn: async () => {
-        const result = await getMeetings({
-          timeMin: nextMonthRange.start,
-          timeMax: nextMonthRange.end,
-        });
-        return result?.data ?? [];
-      },
+      queryKey: ["meetings", nextMonthKey],
+      queryFn: () => fetchMeetingsForRange(nextMonthRange.start, nextMonthRange.end),
       staleTime: 5 * 60 * 1000,
     });
 
     // Prefetch previous month
     const prevMonth = addMonths(monthStart, -1);
     const prevMonthRange = getPaddedMonthRange(prevMonth, 2);
+    const prevMonthKey = startOfMonth(prevMonth).getTime();
     
     queryClient.prefetchQuery({
-      queryKey: ["meetings", prevMonth.toISOString()],
-      queryFn: async () => {
-        const result = await getMeetings({
-          timeMin: prevMonthRange.start,
-          timeMax: prevMonthRange.end,
-        });
-        return result?.data ?? [];
-      },
+      queryKey: ["meetings", prevMonthKey],
+      queryFn: () => fetchMeetingsForRange(prevMonthRange.start, prevMonthRange.end),
       staleTime: 5 * 60 * 1000,
     });
-  }, [query.isSuccess, monthStart, queryClient, enabled]);
+  }, [query.isSuccess, monthKey, queryClient, enabled, monthStart]);
 
   return query;
 }

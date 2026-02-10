@@ -24,7 +24,19 @@ export const getCalendars = authorizedActionClient
     // Check if user has Google connection
     const hasConnection = await GoogleOAuthService.hasConnection(user.id);
 
-    if (hasConnection.isErr() || !hasConnection.value) {
+    if (hasConnection.isErr()) {
+      logger.error("Failed to check Google connection", {
+        userId: user.id,
+        error: hasConnection.error,
+      });
+      throw ActionErrors.internal(
+        "Failed to check Google account connection",
+        hasConnection.error,
+        "get-calendars"
+      );
+    }
+
+    if (!hasConnection.value) {
       throw ActionErrors.badRequest(
         "Google account not connected. Please connect in settings first."
       );
