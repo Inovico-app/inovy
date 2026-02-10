@@ -25,7 +25,8 @@ function validateEnvironment() {
 export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/gmail.compose", // Create drafts
-  "https://www.googleapis.com/auth/calendar.events", // Create calendar events
+  "https://www.googleapis.com/auth/calendar.readonly", // Read calendar metadata (list calendars)
+  "https://www.googleapis.com/auth/calendar.events", // Create/update/delete calendar events
   "https://www.googleapis.com/auth/drive.readonly", // Read Drive files and folders
 ];
 
