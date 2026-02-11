@@ -56,13 +56,13 @@ variable "postgresql_admin_password" {
 variable "postgresql_sku_name" {
   description = "PostgreSQL SKU name (e.g., Standard_B2s, Standard_D2s_v3)"
   type        = string
-  default     = "Standard_B2s"
+  default     = "B_Standard_B1ms"
 }
 
 variable "postgresql_storage_mb" {
   description = "PostgreSQL storage size in MB"
   type        = number
-  default     = 131072 # 128GB
+  default     = 32768 # 32GB
 }
 
 variable "postgresql_zone" {
@@ -74,7 +74,7 @@ variable "postgresql_zone" {
 variable "postgresql_high_availability_mode" {
   description = "High availability mode for PostgreSQL (SameZone, ZoneRedundant, or Disabled)"
   type        = string
-  default     = "ZoneRedundant"
+  default     = "Disabled"
 }
 
 variable "postgresql_standby_zone" {
