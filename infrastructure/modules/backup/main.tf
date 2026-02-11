@@ -17,18 +17,27 @@ resource "azurerm_data_protection_backup_vault" "inovy" {
   })
 }
 
-# Backup Policy for PostgreSQL
-resource "azurerm_data_protection_backup_policy_postgresql" "inovy" {
-  name                = "postgresql-backup-policy-${var.environment}"
-  resource_group_name = var.resource_group_name
-  vault_name          = azurerm_data_protection_backup_vault.inovy.name
+# Backup Policy for PostgreSQL Flexible Server
+resource "azurerm_data_protection_backup_policy_postgresql_flexible_server" "inovy" {
+  name     = "postgresql-backup-policy-${var.environment}"
+  vault_id = azurerm_data_protection_backup_vault.inovy.id
 
   backup_repeating_time_intervals = ["R/2024-01-01T02:00:00+00:00/P7D"]
-  default_retention_duration      = "P30D"
+
+  default_retention_rule {
+    life_cycle {
+      duration        = "P30D"
+      data_store_type = "VaultStore"
+    }
+  }
+
   retention_rule {
     name     = "Weekly"
-    duration = "P30D"
     priority = 25
+    life_cycle {
+      duration        = "P30D"
+      data_store_type = "VaultStore"
+    }
     criteria {
       absolute_criteria = "FirstOfWeek"
     }
@@ -42,9 +51,9 @@ resource "azurerm_data_protection_backup_instance_postgresql" "inovy" {
   location = var.location
 
   database_id      = var.postgresql_server_id
-  backup_policy_id = azurerm_data_protection_backup_policy_postgresql.inovy.id
+  backup_policy_id = azurerm_data_protection_backup_policy_postgresql_flexible_server.inovy.id
 
   depends_on = [
-    azurerm_data_protection_backup_policy_postgresql.inovy
+    azurerm_data_protection_backup_policy_postgresql_flexible_server.inovy
   ]
 }
