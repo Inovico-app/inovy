@@ -23,14 +23,14 @@ resource "azurerm_data_protection_backup_policy_postgresql" "inovy" {
   resource_group_name = var.resource_group_name
   vault_name          = azurerm_data_protection_backup_vault.inovy.name
 
-  backup_repeating_time_intervals = ["R/2024-01-01T02:00:00+00:00/P1D"]
+  backup_repeating_time_intervals = ["R/2024-01-01T02:00:00+00:00/P7D"]
   default_retention_duration      = "P30D"
   retention_rule {
-    name     = "Daily"
+    name     = "Weekly"
     duration = "P30D"
     priority = 25
     criteria {
-      absolute_criteria = "FirstOfDay"
+      absolute_criteria = "FirstOfWeek"
     }
   }
 }
