@@ -9,9 +9,10 @@ import { getRecallApiKey } from "./recall-api.utils";
 /**
  * Recall.ai API Service
  * Handles interactions with Recall.ai API for bot session management
+ * Uses EU Central region (eu-central-1)
  */
 export class RecallApiService {
-  static readonly API_BASE_URL = "https://api.recall.ai/api/v1";
+  static readonly API_BASE_URL = "https://eu-central-1.recall.ai/api/v1";
 
   private static getWebhookBaseUrl(): string {
     const webhookBaseUrl =
@@ -40,10 +41,12 @@ export class RecallApiService {
 
       logger.info("Creating Recall.ai bot session", {
         component: "RecallApiService.createBotSession",
+        region: "eu-central-1",
+        apiBaseUrl: RecallApiService.API_BASE_URL,
         customMetadata,
       });
 
-      const response = await fetch(`${this.API_BASE_URL}/bot/`, {
+      const response = await fetch(`${RecallApiService.API_BASE_URL}/bot/`, {
         method: "POST",
         headers: {
           Authorization: `Token ${apiKey}`,
@@ -128,13 +131,16 @@ export class RecallApiService {
     try {
       const apiKey = getRecallApiKey();
 
-      const response = await fetch(`${this.API_BASE_URL}/bot/${botId}/`, {
-        method: "GET",
-        headers: {
-          Authorization: `Token ${apiKey}`,
-        },
-        signal: AbortSignal.timeout(30000), // 30 second timeout
-      });
+      const response = await fetch(
+        `${RecallApiService.API_BASE_URL}/bot/${botId}/`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Token ${apiKey}`,
+          },
+          signal: AbortSignal.timeout(30000), // 30 second timeout
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -187,13 +193,16 @@ export class RecallApiService {
     try {
       const apiKey = getRecallApiKey();
 
-      const response = await fetch(`${this.API_BASE_URL}/bot/${botId}/`, {
-        method: "GET",
-        headers: {
-          Authorization: `Token ${apiKey}`,
-        },
-        signal: AbortSignal.timeout(30000), // 30 second timeout
-      });
+      const response = await fetch(
+        `${RecallApiService.API_BASE_URL}/bot/${botId}/`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Token ${apiKey}`,
+          },
+          signal: AbortSignal.timeout(30000), // 30 second timeout
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
