@@ -75,6 +75,13 @@ jobs:
         working-directory: infrastructure
         run: terraform init
 
+      - name: Create terraform.tfvars from TF_VARS
+        working-directory: infrastructure
+        run: |
+          # Write TF_VARS environment variable content to terraform.tfvars file
+          echo "${{ vars.TF_VARS }}" > terraform.tfvars
+          echo "Created terraform.tfvars from TF_VARS environment variable"
+
       - name: Terraform Force Unlock
         if: ${{ inputs.terraform_unlock != '' }}
         working-directory: infrastructure
@@ -85,12 +92,17 @@ jobs:
       - name: Terraform Plan
         if: ${{ inputs.terraform_action == 'plan' }}
         working-directory: infrastructure
+        env:
+          TF_VAR_postgresql_admin_login: ${{ secrets.POSTGRESQL_ADMIN_LOGIN }}
+          TF_VAR_postgresql_admin_password: ${{ secrets.POSTGRESQL_ADMIN_PASSWORD }}
         run: |
           terraform plan \
             -input=false \
             -out=tfplan \
             -var="environment=${{ inputs.environment }}" \
-            -var="location=${{ inputs.location }}"
+            -var="location=${{ inputs.location }}" \
+            -var="entra_tenant_id=${{ vars.ENTRA_TENANT_ID }}" \
+            -var-file=terraform.tfvars
 
       - name: Upload Plan to Storage Account
         if: ${{ inputs.terraform_action == 'plan' }}
@@ -145,3 +157,6 @@ jobs:
             echo "ERROR: Plan file not found. Cannot apply without a plan."
             exit 1
           fi
+        env:
+          TF_VAR_postgresql_admin_login: ${{ secrets.POSTGRESQL_ADMIN_LOGIN }}
+          TF_VAR_postgresql_admin_password: ${{ secrets.POSTGRESQL_ADMIN_PASSWORD }}
