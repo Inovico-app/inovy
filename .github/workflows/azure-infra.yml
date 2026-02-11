@@ -71,9 +71,11 @@ jobs:
         with:
           terraform_version: "1.6.0"
 
-      - name: Terraform Init
+      - name: Terraform Init and Validate
         working-directory: infrastructure
-        run: terraform init
+        run: |
+          terraform init
+          terraform validate
 
       - name: Create terraform.tfvars from TF_VARS
         working-directory: infrastructure
