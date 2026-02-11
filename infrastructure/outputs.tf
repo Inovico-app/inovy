@@ -1,3 +1,4 @@
+# Resource Group outputs
 output "resource_group_name" {
   description = "Name of the Inovy application resource group"
   value       = azurerm_resource_group.inovy.name
@@ -16,87 +17,87 @@ output "resource_group_location" {
 # Networking outputs
 output "vnet_id" {
   description = "ID of the Virtual Network"
-  value       = azurerm_virtual_network.inovy.id
+  value       = module.networking.vnet_id
 }
 
 output "vnet_name" {
   description = "Name of the Virtual Network"
-  value       = azurerm_virtual_network.inovy.name
+  value       = module.networking.vnet_name
 }
 
 output "subnet_container_apps_id" {
   description = "ID of the Container Apps subnet"
-  value       = azurerm_subnet.container_apps.id
+  value       = module.networking.subnet_container_apps_id
 }
 
 output "subnet_postgresql_id" {
   description = "ID of the PostgreSQL subnet"
-  value       = azurerm_subnet.postgresql.id
+  value       = module.networking.subnet_postgresql_id
 }
 
 output "subnet_redis_id" {
   description = "ID of the Redis subnet"
-  value       = azurerm_subnet.redis.id
+  value       = module.networking.subnet_redis_id
 }
 
 # Database outputs
 output "postgresql_server_id" {
   description = "ID of the PostgreSQL Flexible Server"
-  value       = azurerm_postgresql_flexible_server.inovy.id
+  value       = module.database.postgresql_server_id
 }
 
 output "postgresql_server_fqdn" {
   description = "FQDN of the PostgreSQL Flexible Server"
-  value       = azurerm_postgresql_flexible_server.inovy.fqdn
+  value       = module.database.postgresql_server_fqdn
 }
 
 output "postgresql_database_name" {
   description = "Name of the PostgreSQL database"
-  value       = azurerm_postgresql_flexible_server_database.inovy.name
+  value       = module.database.postgresql_database_name
 }
 
 output "postgresql_connection_string" {
   description = "PostgreSQL connection string (without password)"
-  value       = "postgresql://${azurerm_postgresql_flexible_server.inovy.administrator_login}@${azurerm_postgresql_flexible_server.inovy.fqdn}:5432/${azurerm_postgresql_flexible_server_database.inovy.name}?sslmode=require"
+  value       = module.database.postgresql_connection_string
   sensitive   = true
 }
 
 # Backup outputs
 output "backup_vault_id" {
   description = "ID of the Backup Vault"
-  value       = azurerm_data_protection_backup_vault.inovy.id
+  value       = module.backup.backup_vault_id
 }
 
 output "backup_vault_name" {
   description = "Name of the Backup Vault"
-  value       = azurerm_data_protection_backup_vault.inovy.name
+  value       = module.backup.backup_vault_name
 }
 
 # Redis outputs
 output "redis_cache_hostname" {
   description = "Hostname of the Redis Cache"
-  value       = azurerm_redis_cache.inovy.hostname
+  value       = module.redis.redis_cache_hostname
 }
 
 output "redis_cache_port" {
   description = "Port of the Redis Cache"
-  value       = azurerm_redis_cache.inovy.port
+  value       = module.redis.redis_cache_port
 }
 
 output "redis_cache_ssl_port" {
   description = "SSL port of the Redis Cache"
-  value       = azurerm_redis_cache.inovy.ssl_port
+  value       = module.redis.redis_cache_ssl_port
 }
 
 output "redis_cache_primary_access_key" {
   description = "Primary access key for Redis Cache"
-  value       = azurerm_redis_cache.inovy.primary_access_key
+  value       = module.redis.redis_cache_primary_access_key
   sensitive   = true
 }
 
 output "redis_cache_secondary_access_key" {
   description = "Secondary access key for Redis Cache"
-  value       = azurerm_redis_cache.inovy.secondary_access_key
+  value       = module.redis.redis_cache_secondary_access_key
   sensitive   = true
 }
 
@@ -107,17 +108,17 @@ output "redis_cache_secondary_access_key" {
 # Qdrant outputs
 output "qdrant_url" {
   description = "Qdrant API URL"
-  value       = var.qdrant_ip_address_type == "Public" ? "http://${azurerm_container_group.qdrant.fqdn}:6333" : "http://${azurerm_container_group.qdrant.ip_address}:6333"
+  value       = module.qdrant.qdrant_url
 }
 
 output "qdrant_grpc_url" {
   description = "Qdrant gRPC URL"
-  value       = var.qdrant_ip_address_type == "Public" ? "${azurerm_container_group.qdrant.fqdn}:6334" : "${azurerm_container_group.qdrant.ip_address}:6334"
+  value       = module.qdrant.qdrant_grpc_url
 }
 
 output "qdrant_fqdn" {
   description = "FQDN of the Qdrant container group"
-  value       = azurerm_container_group.qdrant.fqdn
+  value       = module.qdrant.qdrant_fqdn
 }
 
 output "qdrant_api_key" {
@@ -129,58 +130,58 @@ output "qdrant_api_key" {
 # Storage outputs
 output "storage_account_name" {
   description = "Name of the storage account"
-  value       = azurerm_storage_account.recordings.name
+  value       = module.storage.storage_account_name
 }
 
 output "storage_account_primary_connection_string" {
   description = "Primary connection string for the storage account"
-  value       = azurerm_storage_account.recordings.primary_connection_string
+  value       = module.storage.storage_account_primary_connection_string
   sensitive   = true
 }
 
 output "storage_account_primary_access_key" {
   description = "Primary access key for the storage account"
-  value       = azurerm_storage_account.recordings.primary_access_key
+  value       = module.storage.storage_account_primary_access_key
   sensitive   = true
 }
 
 output "storage_container_name" {
   description = "Name of the recordings container"
-  value       = azurerm_storage_container.recordings.name
+  value       = module.storage.storage_container_name
 }
 
 output "storage_account_primary_blob_endpoint" {
   description = "Primary blob endpoint URL"
-  value       = azurerm_storage_account.recordings.primary_blob_endpoint
+  value       = module.storage.storage_account_primary_blob_endpoint
 }
 
 # Container App outputs
 output "container_app_environment_id" {
   description = "ID of the Container App Environment"
-  value       = azurerm_container_app_environment.inovy.id
+  value       = module.container_app.container_app_environment_id
 }
 
 output "container_app_id" {
   description = "ID of the Container App"
-  value       = azurerm_container_app.inovy.id
+  value       = module.container_app.container_app_id
 }
 
 output "container_app_fqdn" {
   description = "FQDN of the Container App"
-  value       = azurerm_container_app.inovy.latest_revision_fqdn
+  value       = module.container_app.container_app_fqdn
 }
 
 output "container_app_url" {
   description = "URL of the Container App"
-  value       = var.container_app_external_ingress ? "https://${azurerm_container_app.inovy.latest_revision_fqdn}" : "http://${azurerm_container_app.inovy.latest_revision_fqdn}"
+  value       = module.container_app.container_app_url
 }
 
 output "container_app_managed_identity_id" {
   description = "ID of the Container App managed identity"
-  value       = azurerm_user_assigned_identity.container_app.id
+  value       = module.container_app.container_app_managed_identity_id
 }
 
 output "container_app_managed_identity_principal_id" {
   description = "Principal ID of the Container App managed identity"
-  value       = azurerm_user_assigned_identity.container_app.principal_id
+  value       = module.container_app.container_app_managed_identity_principal_id
 }
