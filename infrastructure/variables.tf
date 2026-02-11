@@ -74,7 +74,7 @@ variable "postgresql_zone" {
 variable "postgresql_high_availability_mode" {
   description = "High availability mode for PostgreSQL (SameZone, ZoneRedundant, or Disabled)"
   type        = string
-  default     = "Disabled"
+  default     = "SameZone"
 }
 
 variable "postgresql_standby_zone" {
