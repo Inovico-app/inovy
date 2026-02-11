@@ -128,19 +128,6 @@ resource "azurerm_network_security_group" "postgresql" {
     destination_address_prefix = "*"
   }
 
-  # Allow Azure services
-  security_rule {
-    name                       = "AllowAzureServices"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "*"
-    source_port_range          = "*"
-    destination_port_range     = "*"
-    source_address_prefix      = "AzureServices"
-    destination_address_prefix = "*"
-  }
-
   tags = merge(var.tags, {
     Environment = var.environment
     Application = "inovy"
