@@ -44,14 +44,6 @@ resource "azurerm_subnet" "postgresql" {
   }
 }
 
-# Subnet for Redis Cache
-resource "azurerm_subnet" "redis" {
-  name                 = "snet-redis"
-  resource_group_name  = var.resource_group_name
-  virtual_network_name = azurerm_virtual_network.inovy.name
-  address_prefixes     = [var.subnet_redis_address_prefix]
-}
-
 # Network Security Group for Container Apps subnet
 resource "azurerm_network_security_group" "container_apps" {
   name                = "nsg-container-apps-${var.environment}"
@@ -139,49 +131,4 @@ resource "azurerm_network_security_group" "postgresql" {
 resource "azurerm_subnet_network_security_group_association" "postgresql" {
   subnet_id                 = azurerm_subnet.postgresql.id
   network_security_group_id = azurerm_network_security_group.postgresql.id
-}
-
-# Network Security Group for Redis subnet
-resource "azurerm_network_security_group" "redis" {
-  name                = "nsg-redis-${var.environment}"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-
-  # Allow Redis from Container Apps subnet only
-  security_rule {
-    name                       = "AllowRedisFromContainerApps"
-    priority                   = 1000
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "6379"
-    source_address_prefix      = var.subnet_container_apps_address_prefix
-    destination_address_prefix = "*"
-  }
-
-  # Allow Redis REST API (if using REST)
-  security_rule {
-    name                       = "AllowRedisREST"
-    priority                   = 1001
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "6380"
-    source_address_prefix      = var.subnet_container_apps_address_prefix
-    destination_address_prefix = "*"
-  }
-
-  tags = merge(var.tags, {
-    Environment = var.environment
-    Application = "inovy"
-    ManagedBy   = "terraform"
-  })
-}
-
-# Associate NSG with Redis subnet
-resource "azurerm_subnet_network_security_group_association" "redis" {
-  subnet_id                 = azurerm_subnet.redis.id
-  network_security_group_id = azurerm_network_security_group.redis.id
 }

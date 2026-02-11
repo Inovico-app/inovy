@@ -17,8 +17,3 @@ output "subnet_postgresql_id" {
   description = "ID of the PostgreSQL subnet"
   value       = azurerm_subnet.postgresql.id
 }
-
-output "subnet_redis_id" {
-  description = "ID of the Redis subnet"
-  value       = azurerm_subnet.redis.id
-}

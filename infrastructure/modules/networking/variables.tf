@@ -31,12 +31,6 @@ variable "subnet_postgresql_address_prefix" {
   default     = "10.0.2.0/24"
 }
 
-variable "subnet_redis_address_prefix" {
-  description = "Address prefix for Redis subnet (CIDR notation)"
-  type        = string
-  default     = "10.0.3.0/24"
-}
-
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

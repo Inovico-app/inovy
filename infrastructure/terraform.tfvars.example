@@ -44,7 +44,6 @@ entra_administrators = [
 # Subnet Address Prefixes
 # subnet_container_apps_address_prefix = "10.0.1.0/24"
 # subnet_postgresql_address_prefix    = "10.0.2.0/24"
-# subnet_redis_address_prefix         = "10.0.3.0/24"
 
 # ============================================================================
 # POSTGRESQL VARIABLES (Optional - defaults provided)
@@ -75,16 +74,7 @@ entra_administrators = [
 # ============================================================================
 
 # Redis Cache Configuration
-# redis_capacity            = 0  # B10 tier = capacity 0
-# redis_family              = "C"  # C for Basic/Standard, P for Premium
-# redis_sku_name           = "Basic"  # Basic, Standard, Premium
-# redis_enable_non_ssl_port = true  # Required for Basic tier
-# redis_minimum_tls_version  = "1.2"  # 1.0, 1.1, 1.2
-
-# Redis Memory Configuration
-# redis_maxmemory_reserved = 50  # MB
-# redis_maxmemory_delta    = 50  # MB
-# redis_maxmemory_policy   = "allkeys-lru"  # allkeys-lru, volatile-lru, etc.
+# redis_sku_name = "Balanced_B0"  # Managed Redis SKU (e.g., Balanced_B0, EnterpriseFlash_F300)
 
 # ============================================================================
 # QDRANT VARIABLES (Optional - defaults provided)

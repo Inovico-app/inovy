@@ -35,11 +35,6 @@ output "subnet_postgresql_id" {
   value       = module.networking.subnet_postgresql_id
 }
 
-output "subnet_redis_id" {
-  description = "ID of the Redis subnet"
-  value       = module.networking.subnet_redis_id
-}
-
 # Database outputs
 output "postgresql_server_id" {
   description = "ID of the PostgreSQL Flexible Server"

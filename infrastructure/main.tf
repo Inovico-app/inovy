@@ -34,7 +34,6 @@ module "networking" {
   vnet_address_space                   = var.vnet_address_space
   subnet_container_apps_address_prefix = var.subnet_container_apps_address_prefix
   subnet_postgresql_address_prefix     = var.subnet_postgresql_address_prefix
-  subnet_redis_address_prefix          = var.subnet_redis_address_prefix
 
   tags = {
     Environment = var.environment
@@ -101,11 +100,10 @@ module "backup" {
 module "redis" {
   source = "./modules/redis"
 
-  environment               = var.environment
-  location                  = var.location
-  resource_group_name       = azurerm_resource_group.inovy.name
-  subnet_redis_id           = module.networking.subnet_redis_id
-  redis_minimum_tls_version = var.redis_minimum_tls_version
+  environment         = var.environment
+  location            = var.location
+  resource_group_name = azurerm_resource_group.inovy.name
+  redis_sku_name      = var.redis_sku_name
 
   depends_on = [
     module.networking
