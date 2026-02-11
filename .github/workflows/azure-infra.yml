@@ -101,7 +101,7 @@ jobs:
             -out=tfplan \
             -var="environment=${{ inputs.environment }}" \
             -var="location=${{ inputs.location }}" \
-            -var="entra_tenant_id=${{ vars.ENTRA_TENANT_ID }}" \
+            -var="entra_tenant_id=${{ vars.AZURE_TENANT_ID }}" \
             -var-file=terraform.tfvars
 
       - name: Upload Plan to Storage Account
