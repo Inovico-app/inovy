@@ -78,9 +78,9 @@ jobs:
       - name: Create terraform.tfvars from TF_VARS
         working-directory: infrastructure
         run: |
-          # Write TF_VARS environment variable content to terraform.tfvars file
-          echo "${{ vars.TF_VARS }}" > terraform.tfvars
-          echo "Created terraform.tfvars from TF_VARS environment variable"
+          # Decode base64-encoded TF_VARS and write to terraform.tfvars file
+          echo "${{ vars.TF_VARS }}" | base64 -d > terraform.tfvars
+          echo "Created terraform.tfvars from decoded TF_VARS environment variable"
 
       - name: Terraform Force Unlock
         if: ${{ inputs.terraform_unlock != '' }}
