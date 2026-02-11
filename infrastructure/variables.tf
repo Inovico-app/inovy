@@ -114,18 +114,6 @@ variable "entra_administrators" {
     principal_name = string
     principal_type = optional(string, "User")
   }))
-  default = [
-    {
-      object_id      = "57774c6c-a23e-4734-82f9-c131a2fe540f"
-      principal_name = "" # Set via terraform.tfvars or environment variable
-      principal_type = "User"
-    },
-    {
-      object_id      = "03aa94f9-e09b-4b66-b89b-9b6a3e30526b"
-      principal_name = "" # Set via terraform.tfvars or environment variable
-      principal_type = "User"
-    }
-  ]
 }
 
 # Backup variables

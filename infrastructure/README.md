@@ -7,6 +7,7 @@ This directory contains Terraform configuration files for managing Azure infrast
 ## Documentation
 
 - **[WORKFLOWS.md](./WORKFLOWS.md)** - Detailed explanation of GitHub Actions workflows and Terraform deployment process
+- **[TERRAFORM_VARIABLES.md](./TERRAFORM_VARIABLES.md)** - GitHub Environment variables and secrets configuration
 - **[README.md](./README.md)** - This file (quick reference)
 
 ## Structure
@@ -73,6 +74,8 @@ The infrastructure is organized into reusable modules:
   - Version: 15 or 16 (configurable)
   - High Availability: Zone Redundant
   - Private endpoint in dedicated subnet
+  - **Authentication**: Both PostgreSQL password and Microsoft Entra (Azure AD) authentication enabled
+  - **Entra Administrators**: Configurable list of Entra users with administrator access
 - **Database** (`inovy`) - Application database
 - **Private DNS Zone** - For PostgreSQL private endpoint resolution
 
@@ -173,8 +176,19 @@ Terraform state is stored in Azure Blob Storage:
 
 The infrastructure is deployed via GitHub Actions workflow (`.github/workflows/azure-infra.yml`):
 
+**Required Configuration**:
+- GitHub Environment variables: `TF_VARS` (contains HCL-formatted variables file content)
+- GitHub Secrets: `POSTGRESQL_ADMIN_LOGIN`, `POSTGRESQL_ADMIN_PASSWORD`
+- See [TERRAFORM_VARIABLES.md](./TERRAFORM_VARIABLES.md) for complete setup instructions
+
+**Deployment Process**:
 1. **Plan**: Run workflow with `terraform_action: plan` to preview changes
+   - Creates `terraform.tfvars` from `TF_VARS` environment variable
+   - Uses `TF_VAR_*` environment variables for secrets
+   - Uses `-var` flags for workflow inputs (`environment`, `location`)
 2. **Apply**: Run workflow with `terraform_action: apply` to deploy changes
+   - Downloads plan file from Azure Storage
+   - Applies the saved plan
 
 ## Adding Resources
 

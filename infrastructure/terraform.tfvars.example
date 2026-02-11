@@ -1,0 +1,31 @@
+# Terraform Variables Example
+# Copy this file to terraform.tfvars and fill in the values
+# Never commit terraform.tfvars to git - it contains sensitive information
+
+# PostgreSQL Configuration
+postgresql_admin_login    = "adminuser"
+postgresql_admin_password = "YourSecurePassword123!"
+
+# Microsoft Entra (Azure AD) Authentication
+entra_tenant_id = "your-tenant-id-here"
+
+# Microsoft Entra Administrators
+# Each administrator needs object_id and principal_name (email/UPN)
+entra_administrators = [
+  {
+    object_id      = "00000000-0000-0000-0000-000000000001"
+    principal_name = "admin1@example.com"
+    principal_type = "User"
+  },
+  {
+    object_id      = "00000000-0000-0000-0000-000000000002"
+    principal_name = "admin2@example.com"
+    principal_type = "User"
+  }
+]
+
+# Optional: Override defaults if needed
+# postgresql_version = "16"
+# postgresql_sku_name = "Standard_B2s"
+# container_app_image = "your-registry.azurecr.io/inovy-app:latest"
+# qdrant_api_key = "your-qdrant-api-key"
