@@ -119,11 +119,61 @@ jobs:
           fi
 
   terraform-apply:
-    if: ${{ inputs.environment == 'prd' }}
-    needs: terraform-plan
-    # Uses workflow from current branch/commit automatically
-    uses: ./.github/workflows/terraform-apply.yml
-    with:
-      environment: ${{ inputs.environment }}
-      location: ${{ inputs.location }}
-    secrets: inherit
+    environment: ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.6.0"
+
+      - name: Terraform Init
+        working-directory: infrastructure
+        run: terraform init
+
+      - name: Download Plan from Storage Account
+        run: |
+          STORAGE_ACCOUNT_NAME="sttf${{ inputs.environment }}inovy"
+          PLAN_FILE="infrastructure/tfplan"
+          PLAN_BLOB_NAME="${{ inputs.environment }}/tfplan"
+
+          echo "Downloading plan file from storage account..."
+          if az storage blob download \
+            --account-name "$STORAGE_ACCOUNT_NAME" \
+            --container-name tfstate \
+            --name "$PLAN_BLOB_NAME" \
+            --file "$PLAN_FILE" \
+            --auth-mode login 2>/dev/null; then
+            echo "Plan file downloaded successfully"
+          else
+            echo "ERROR: Plan file not found in storage account. Plan job must complete successfully first."
+            exit 1
+          fi
+
+      - name: Terraform Apply
+        working-directory: infrastructure
+        run: |
+          if [ -f "tfplan" ]; then
+            echo "Applying plan from saved tfplan file..."
+            terraform apply tfplan --auto-approve
+          else
+            echo "ERROR: Plan file not found. Cannot apply without a plan."
+            exit 1
+          fi
+        env:
+          TF_VAR_postgresql_admin_login: ${{ secrets.POSTGRESQL_ADMIN_LOGIN }}
+          TF_VAR_postgresql_admin_password: ${{ secrets.POSTGRESQL_ADMIN_PASSWORD }}
