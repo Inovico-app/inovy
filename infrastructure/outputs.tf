@@ -156,32 +156,32 @@ output "storage_account_primary_blob_endpoint" {
 }
 
 # Container App outputs
-output "container_app_environment_id" {
-  description = "ID of the Container App Environment"
-  value       = module.container_app.container_app_environment_id
-}
+# output "container_app_environment_id" {
+#   description = "ID of the Container App Environment"
+#   value       = module.container_app.container_app_environment_id
+# }
 
-output "container_app_id" {
-  description = "ID of the Container App"
-  value       = module.container_app.container_app_id
-}
+# output "container_app_id" {
+#   description = "ID of the Container App"
+#   value       = module.container_app.container_app_id
+# }
 
-output "container_app_fqdn" {
-  description = "FQDN of the Container App"
-  value       = module.container_app.container_app_fqdn
-}
+# output "container_app_fqdn" {
+#   description = "FQDN of the Container App"
+#   value       = module.container_app.container_app_fqdn
+# }
 
-output "container_app_url" {
-  description = "URL of the Container App"
-  value       = module.container_app.container_app_url
-}
+# output "container_app_url" {
+#   description = "URL of the Container App"
+#   value       = module.container_app.container_app_url
+# }
 
-output "container_app_managed_identity_id" {
-  description = "ID of the Container App managed identity"
-  value       = module.container_app.container_app_managed_identity_id
-}
+# output "container_app_managed_identity_id" {
+#   description = "ID of the Container App managed identity"
+#   value       = module.container_app.container_app_managed_identity_id
+# }
 
-output "container_app_managed_identity_principal_id" {
-  description = "Principal ID of the Container App managed identity"
-  value       = module.container_app.container_app_managed_identity_principal_id
-}
+# output "container_app_managed_identity_principal_id" {
+#   description = "Principal ID of the Container App managed identity"
+#   value       = module.container_app.container_app_managed_identity_principal_id
+# }
