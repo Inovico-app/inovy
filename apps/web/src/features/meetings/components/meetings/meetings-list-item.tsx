@@ -3,6 +3,7 @@
 import { format, formatDistanceToNow } from "date-fns";
 import { CalendarIcon, ClockIcon, UsersIcon } from "lucide-react";
 import { BotStatusBadge } from "@/features/bot/components/bot-status-badge";
+import { AddBotButton } from "@/features/meetings/components/add-bot-button";
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
 import {
   formatTimeRange,
@@ -66,10 +67,14 @@ export function MeetingsListItem({ meeting }: MeetingsListItemProps) {
             </div>
           </div>
 
-          {/* Bot Status Badge */}
+          {/* Bot Status Badge or Add Bot */}
           <div className="flex items-start sm:items-center">
             {botStatus === "no_bot" ? (
-              <span className="text-xs text-muted-foreground">No bot</span>
+              isUpcoming ? (
+                <AddBotButton meeting={meeting} variant="button" />
+              ) : (
+                <span className="text-xs text-muted-foreground">No bot</span>
+              )
             ) : (
               <BotStatusBadge status={botStatus} />
             )}
