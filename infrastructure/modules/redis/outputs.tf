@@ -1,26 +1,18 @@
 output "redis_cache_hostname" {
-  description = "Hostname of the Managed Redis Cache"
+  description = "Hostname/FQDN of the Managed Redis Cache"
   value       = azurerm_managed_redis.inovy.hostname
 }
 
-output "redis_cache_port" {
-  description = "Port of the Managed Redis Cache"
-  value       = azurerm_managed_redis.inovy.port
+output "redis_cache_id" {
+  description = "ID of the Managed Redis Cache"
+  value       = azurerm_managed_redis.inovy.id
 }
 
-output "redis_cache_ssl_port" {
-  description = "SSL port of the Managed Redis Cache"
-  value       = azurerm_managed_redis.inovy.ssl_port
+output "redis_cache_name" {
+  description = "Name of the Managed Redis Cache"
+  value       = azurerm_managed_redis.inovy.name
 }
 
-output "redis_cache_primary_access_key" {
-  description = "Primary access key for Managed Redis Cache"
-  value       = azurerm_managed_redis.inovy.primary_access_key
-  sensitive   = true
-}
-
-output "redis_cache_secondary_access_key" {
-  description = "Secondary access key for Managed Redis Cache"
-  value       = azurerm_managed_redis.inovy.secondary_access_key
-  sensitive   = true
-}
+# Note: azurerm_managed_redis doesn't expose port, ssl_port, or access keys directly
+# These may need to be retrieved via Azure CLI or data sources, or configured separately
+# Default Redis SSL port is typically 6380

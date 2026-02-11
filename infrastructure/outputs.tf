@@ -70,35 +70,19 @@ output "backup_vault_name" {
 
 # Redis outputs
 output "redis_cache_hostname" {
-  description = "Hostname of the Redis Cache"
+  description = "Hostname/FQDN of the Managed Redis Cache"
   value       = module.redis.redis_cache_hostname
 }
 
-output "redis_cache_port" {
-  description = "Port of the Redis Cache"
-  value       = module.redis.redis_cache_port
+output "redis_cache_id" {
+  description = "ID of the Managed Redis Cache"
+  value       = module.redis.redis_cache_id
 }
 
-output "redis_cache_ssl_port" {
-  description = "SSL port of the Redis Cache"
-  value       = module.redis.redis_cache_ssl_port
+output "redis_cache_name" {
+  description = "Name of the Managed Redis Cache"
+  value       = module.redis.redis_cache_name
 }
-
-output "redis_cache_primary_access_key" {
-  description = "Primary access key for Redis Cache"
-  value       = module.redis.redis_cache_primary_access_key
-  sensitive   = true
-}
-
-output "redis_cache_secondary_access_key" {
-  description = "Secondary access key for Redis Cache"
-  value       = module.redis.redis_cache_secondary_access_key
-  sensitive   = true
-}
-
-# Note: Application uses @upstash/redis SDK which expects REST API
-# Azure Redis Cache Basic tier does not provide REST API
-# Consider upgrading to Standard/Premium tier or updating application to use Azure Redis SDK
 
 # Qdrant outputs
 output "qdrant_url" {
