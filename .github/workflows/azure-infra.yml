@@ -43,9 +43,6 @@ jobs:
     if: ${{ inputs.environment == 'prd' }}
     environment: prd
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
 
     steps:
       - name: Checkout repository
@@ -122,9 +119,6 @@ jobs:
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     needs: terraform-plan
-    permissions:
-      contents: read
-      id-token: write
 
     steps:
       - name: Checkout repository
@@ -170,7 +164,7 @@ jobs:
         run: |
           if [ -f "tfplan" ]; then
             echo "Applying plan from saved tfplan file..."
-            terraform apply tfplan --auto-approve
+            terraform apply -auto-approve tfplan 
           else
             echo "ERROR: Plan file not found. Cannot apply without a plan."
             exit 1
