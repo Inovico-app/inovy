@@ -1,6 +1,7 @@
 "use client";
 
 import { BotStatusBadge } from "@/features/bot/components/bot-status-badge";
+import { AddBotButton } from "@/features/meetings/components/add-bot-button";
 import { formatTimeRange } from "@/features/meetings/lib/calendar-utils";
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
 import { cn } from "@/lib/utils";
@@ -37,11 +38,13 @@ export function CalendarEventItem({
         </div>
         <div className="mt-0.5 flex items-center gap-1.5">
           <span className="text-muted-foreground">{timeDisplay}</span>
-          {hasBotSession && meeting.botSession && (
+          {hasBotSession && meeting.botSession ? (
             <BotStatusBadge
               status={meeting.botSession.botStatus}
               className="scale-75"
             />
+          ) : (
+            <AddBotButton meeting={meeting} variant="icon" />
           )}
         </div>
       </div>
@@ -71,8 +74,10 @@ export function CalendarEventItem({
             </div>
           )}
         </div>
-        {hasBotSession && meeting.botSession && (
+        {hasBotSession && meeting.botSession ? (
           <BotStatusBadge status={meeting.botSession.botStatus} />
+        ) : (
+          <AddBotButton meeting={meeting} variant="icon" />
         )}
       </div>
     </div>
