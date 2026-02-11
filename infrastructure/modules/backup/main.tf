@@ -45,12 +45,12 @@ resource "azurerm_data_protection_backup_policy_postgresql_flexible_server" "ino
 }
 
 # Backup Instance for PostgreSQL Flexible Server
-resource "azurerm_data_protection_backup_instance_postgresql" "inovy" {
+resource "azurerm_data_protection_backup_instance_postgresql_flexible_server" "inovy" {
   name     = "postgresql-backup-instance-${var.environment}"
   vault_id = azurerm_data_protection_backup_vault.inovy.id
   location = var.location
 
-  database_id      = var.postgresql_server_id
+  server_id        = var.postgresql_server_id
   backup_policy_id = azurerm_data_protection_backup_policy_postgresql_flexible_server.inovy.id
 
   depends_on = [
