@@ -121,6 +121,7 @@ jobs:
   terraform-apply:
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
+    needs: terraform-plan
     permissions:
       contents: read
       id-token: write
