@@ -101,18 +101,11 @@ module "backup" {
 module "redis" {
   source = "./modules/redis"
 
-  environment                          = var.environment
-  location                             = var.location
-  resource_group_name                  = azurerm_resource_group.inovy.name
-  subnet_redis_id                      = module.networking.subnet_redis_id
-  subnet_container_apps_address_prefix = var.subnet_container_apps_address_prefix
-  redis_capacity                       = var.redis_capacity
-  redis_family                         = var.redis_family
-  redis_sku_name                       = var.redis_sku_name
-  redis_minimum_tls_version            = var.redis_minimum_tls_version
-  redis_maxmemory_reserved             = var.redis_maxmemory_reserved
-  redis_maxmemory_delta                = var.redis_maxmemory_delta
-  redis_maxmemory_policy               = var.redis_maxmemory_policy
+  environment               = var.environment
+  location                  = var.location
+  resource_group_name       = azurerm_resource_group.inovy.name
+  subnet_redis_id           = module.networking.subnet_redis_id
+  redis_minimum_tls_version = var.redis_minimum_tls_version
 
   depends_on = [
     module.networking

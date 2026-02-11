@@ -27,15 +27,16 @@ resource "azurerm_private_dns_zone_virtual_network_link" "postgresql" {
 
 # PostgreSQL Flexible Server
 resource "azurerm_postgresql_flexible_server" "inovy" {
-  name                   = "inovy-db-${var.environment}"
-  resource_group_name    = var.resource_group_name
-  location               = var.location
-  version                = var.postgresql_version
-  delegated_subnet_id    = var.subnet_postgresql_id
-  private_dns_zone_id    = azurerm_private_dns_zone.postgresql.id
-  administrator_login    = var.postgresql_admin_login
-  administrator_password = var.postgresql_admin_password
-  zone                   = var.postgresql_zone
+  name                          = "inovy-db-${var.environment}"
+  resource_group_name           = var.resource_group_name
+  location                      = var.location
+  version                       = var.postgresql_version
+  delegated_subnet_id           = var.subnet_postgresql_id
+  private_dns_zone_id           = azurerm_private_dns_zone.postgresql.id
+  public_network_access_enabled = false
+  administrator_login           = var.postgresql_admin_login
+  administrator_password        = var.postgresql_admin_password
+  zone                          = var.postgresql_zone
 
   storage_mb = var.postgresql_storage_mb
 

@@ -33,7 +33,7 @@ resource "azurerm_container_group" "qdrant" {
 
   container {
     name   = "qdrant"
-    image  = "qdrant/qdrant:latest"
+    image  = "ghcr.io/qdrant/qdrant:latest"
     cpu    = var.qdrant_cpu
     memory = var.qdrant_memory
 

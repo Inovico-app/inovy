@@ -18,11 +18,6 @@ variable "subnet_redis_id" {
   type        = string
 }
 
-variable "subnet_container_apps_address_prefix" {
-  description = "Address prefix for Container Apps subnet (CIDR notation)"
-  type        = string
-}
-
 variable "redis_capacity" {
   description = "Redis cache capacity (0, 1, 2, 3, 4, 5, 6 for Basic/Standard)"
   type        = number
