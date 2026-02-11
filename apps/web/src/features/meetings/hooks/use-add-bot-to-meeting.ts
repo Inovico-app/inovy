@@ -13,12 +13,12 @@ interface UseAddBotToMeetingOptions {
   onConsentRequired?: () => void;
 }
 
-export type AddBotToMeetingInput = {
+export interface AddBotToMeetingInput {
   calendarEventId: string;
   meetingUrl: string;
   meetingTitle?: string;
   consentGiven?: boolean;
-};
+}
 
 const BOT_SESSIONS_QUERY_KEY = ["bot-sessions"] as const;
 
@@ -73,6 +73,11 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
         { queryKey: BOT_SESSIONS_QUERY_KEY }
       );
 
+      // Skip optimistic update when consent may be required (avoids flicker on consent dialog)
+      if (input.consentGiven !== true) {
+        return { previousData, calendarEventId: input.calendarEventId };
+      }
+
       const optimisticSession = createOptimisticSession(input.calendarEventId);
 
       queryClient.setQueriesData<Record<string, BotSession>>(
@@ -92,8 +97,8 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
       });
 
       if (context?.previousData) {
-        context.previousData.forEach(([queryKey, data]) => {
-          queryClient.setQueryData(queryKey as QueryKey, data);
+        context.previousData.forEach(([queryKey, previousQueryData]) => {
+          queryClient.setQueryData(queryKey as QueryKey, previousQueryData);
         });
       }
     },
@@ -101,8 +106,8 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
       if ("consentRequired" in data && data.consentRequired) {
         options?.onConsentRequired?.();
         if (context?.previousData) {
-          context.previousData.forEach(([queryKey, data]) => {
-            queryClient.setQueryData(queryKey as QueryKey, data);
+          context.previousData.forEach(([queryKey, previousQueryData]) => {
+            queryClient.setQueryData(queryKey as QueryKey, previousQueryData);
           });
         }
         return;

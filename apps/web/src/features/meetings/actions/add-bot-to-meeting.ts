@@ -21,8 +21,6 @@ const addBotToMeetingSchema = z.object({
   consentGiven: z.boolean().optional().default(false),
 });
 
-const GOOGLE_MEET_URL_PATTERN = "meet.google.com";
-
 /**
  * Add bot to an existing calendar meeting
  * Creates a bot session linked to the calendar event
@@ -47,12 +45,16 @@ export const addBotToMeeting = authorizedActionClient
     const { calendarEventId, meetingUrl, meetingTitle, consentGiven } =
       parsedInput;
 
-    // Validate meeting has Google Meet URL
-    if (
-      !meetingUrl ||
-      !meetingUrl.trim() ||
-      !meetingUrl.includes(GOOGLE_MEET_URL_PATTERN)
-    ) {
+    // Validate meeting has Google Meet URL (strict hostname check)
+    let isValidMeetUrl = false;
+    try {
+      const url = new URL(meetingUrl.trim());
+      isValidMeetUrl = url.hostname === "meet.google.com";
+    } catch {
+      isValidMeetUrl = false;
+    }
+
+    if (!meetingUrl?.trim() || !isValidMeetUrl) {
       throw ActionErrors.badRequest(
         "Meeting must have a Google Meet link",
         "add-bot-to-meeting"
@@ -137,18 +139,38 @@ export const addBotToMeeting = authorizedActionClient
 
     const { providerId } = sessionResult.value;
 
-    // Persist bot session to database
-    const session = await BotSessionsQueries.insert({
-      projectId: project.id,
-      organizationId,
-      userId: user.id,
-      recallBotId: providerId,
-      recallStatus: sessionResult.value.status,
-      meetingUrl: meetingUrl.trim(),
-      meetingTitle: meetingTitle ?? null,
-      calendarEventId,
-      botStatus,
-    });
+    // Persist bot session to database (cleanup provider session on insert failure)
+    let session;
+    try {
+      session = await BotSessionsQueries.insert({
+        projectId: project.id,
+        organizationId,
+        userId: user.id,
+        recallBotId: providerId,
+        recallStatus: sessionResult.value.status,
+        meetingUrl: meetingUrl.trim(),
+        meetingTitle: meetingTitle ?? null,
+        calendarEventId,
+        botStatus,
+      });
+    } catch (insertError) {
+      const terminateResult = await provider.terminateSession(providerId);
+      if (terminateResult.isErr()) {
+        logger.error("Failed to terminate provider session after DB insert error", {
+          component: "addBotToMeeting",
+          providerId,
+          originalError: insertError,
+          terminateError: terminateResult.error.message,
+        });
+      }
+      throw createErrorForNextSafeAction(
+        ActionErrors.internal(
+          "Failed to create bot session",
+          insertError,
+          "add-bot-to-meeting"
+        )
+      );
+    }
 
     // Invalidate bot sessions cache
     CacheInvalidation.invalidateBotSessions(organizationId);

@@ -56,7 +56,7 @@ export function AddBotButton({ meeting, variant = "button" }: AddBotButtonProps)
     setPendingMeeting(null);
   };
 
-  const isUpcoming = meeting.end > new Date();
+  const isUpcoming = meeting.start > new Date();
   const hasMeetingUrl =
     meeting.meetingUrl?.trim() && meeting.meetingUrl.includes("meet.google.com");
 
@@ -64,18 +64,22 @@ export function AddBotButton({ meeting, variant = "button" }: AddBotButtonProps)
     return null;
   }
 
+  const consentDialog = (
+    <AddBotConsentDialog
+      open={isConsentDialogOpen}
+      onOpenChange={(open) => {
+        setIsConsentDialogOpen(open);
+        if (!open) setPendingMeeting(null);
+      }}
+      onAccept={handleConsentAccept}
+      meetingTitle={pendingMeeting?.title ?? meeting.title}
+    />
+  );
+
   if (variant === "icon") {
     return (
       <TooltipProvider>
-        <AddBotConsentDialog
-          open={isConsentDialogOpen}
-          onOpenChange={(open) => {
-            setIsConsentDialogOpen(open);
-            if (!open) setPendingMeeting(null);
-          }}
-          onAccept={handleConsentAccept}
-          meetingTitle={pendingMeeting?.title ?? meeting.title}
-        />
+        {consentDialog}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -104,15 +108,7 @@ export function AddBotButton({ meeting, variant = "button" }: AddBotButtonProps)
 
   return (
     <>
-      <AddBotConsentDialog
-        open={isConsentDialogOpen}
-        onOpenChange={(open) => {
-          setIsConsentDialogOpen(open);
-          if (!open) setPendingMeeting(null);
-        }}
-        onAccept={handleConsentAccept}
-        meetingTitle={pendingMeeting?.title ?? meeting.title}
-      />
+      {consentDialog}
       <Button
         variant="outline"
         size="sm"

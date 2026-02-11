@@ -17,6 +17,10 @@ export function CalendarEventItem({
 }: CalendarEventItemProps) {
   const timeDisplay = formatTimeRange(meeting.start, meeting.end);
   const hasBotSession = !!meeting.botSession;
+  const isPast = meeting.end <= new Date();
+  const NoBotFallback = (
+    <span className="text-xs text-muted-foreground">No bot</span>
+  );
 
   if (compact) {
     return (
@@ -43,6 +47,8 @@ export function CalendarEventItem({
               status={meeting.botSession.botStatus}
               className="scale-75"
             />
+          ) : isPast ? (
+            NoBotFallback
           ) : (
             <AddBotButton meeting={meeting} variant="icon" />
           )}
@@ -76,6 +82,8 @@ export function CalendarEventItem({
         </div>
         {hasBotSession && meeting.botSession ? (
           <BotStatusBadge status={meeting.botSession.botStatus} />
+        ) : isPast ? (
+          NoBotFallback
         ) : (
           <AddBotButton meeting={meeting} variant="icon" />
         )}
