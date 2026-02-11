@@ -16,7 +16,7 @@ variable "resource_group_name" {
 variable "vnet_address_space" {
   description = "Address space for the Virtual Network (CIDR notation)"
   type        = string
-  default     = "10.0.0.0/16"
+  default     = "10.0.0.0/20"
 }
 
 variable "subnet_container_apps_address_prefix" {

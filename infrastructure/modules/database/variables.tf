@@ -83,6 +83,21 @@ variable "postgresql_maintenance_hour" {
   default     = 2
 }
 
+variable "entra_tenant_id" {
+  description = "Microsoft Entra (Azure AD) tenant ID"
+  type        = string
+}
+
+variable "entra_administrators" {
+  description = "List of Microsoft Entra administrators for PostgreSQL"
+  type = list(object({
+    object_id      = string
+    principal_name = string
+    principal_type = optional(string, "User")
+  }))
+  default = []
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

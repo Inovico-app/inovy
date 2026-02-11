@@ -52,6 +52,12 @@ resource "azurerm_postgresql_flexible_server" "inovy" {
     start_minute = 0
   }
 
+  # Enable both PostgreSQL and Microsoft Entra authentication
+  authentication {
+    active_directory_auth_enabled = true
+    password_auth_enabled         = true
+  }
+
   tags = merge(var.tags, {
     Environment = var.environment
     Application = "inovy"
@@ -75,4 +81,18 @@ resource "azurerm_postgresql_flexible_server_firewall_rule" "allow_azure_service
   server_id        = azurerm_postgresql_flexible_server.inovy.id
   start_ip_address = "0.0.0.0"
   end_ip_address   = "0.0.0.0"
+}
+
+# Microsoft Entra Administrators
+resource "azurerm_postgresql_flexible_server_active_directory_administrator" "admins" {
+  for_each = {
+    for idx, admin in var.entra_administrators : admin.object_id => admin
+  }
+
+  server_name         = azurerm_postgresql_flexible_server.inovy.name
+  resource_group_name = var.resource_group_name
+  object_id           = each.value.object_id
+  principal_name      = each.value.principal_name
+  principal_type      = each.value.principal_type
+  tenant_id           = var.entra_tenant_id
 }

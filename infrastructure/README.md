@@ -2,6 +2,8 @@
 
 This directory contains Terraform configuration files for managing Azure infrastructure.
 
+**Provider Version**: Uses `azurerm` provider version `~> 4.0`
+
 ## Documentation
 
 - **[WORKFLOWS.md](./WORKFLOWS.md)** - Detailed explanation of GitHub Actions workflows and Terraform deployment process
@@ -9,18 +11,52 @@ This directory contains Terraform configuration files for managing Azure infrast
 
 ## Structure
 
-- `main.tf` - Main Terraform configuration and provider setup
-- `variables.tf` - Input variables
-- `outputs.tf` - Output values
+### Root Configuration Files
+- `main.tf` - Main Terraform configuration, provider setup, and module calls
+- `variables.tf` - Input variables for all modules
+- `outputs.tf` - Output values aggregating module outputs
 - `backend.tf` - Backend configuration for Terraform state storage
-- `networking.tf` - Virtual Network, Subnets, and Network Security Groups
-- `database.tf` - PostgreSQL Flexible Server and database
-- `backup.tf` - Backup Vault and backup policies
-- `redis.tf` - Azure Redis Cache
-- `qdrant.tf` - Qdrant Vector Database (Container Instances)
-- `storage.tf` - Azure Blob Storage for recordings
-- `container-app.tf` - Container App Environment and Container App
+- `DEPLOYMENT.md` - Deployment guide
 - `WORKFLOWS.md` - Workflow documentation
+
+### Modules (`modules/`)
+
+The infrastructure is organized into reusable modules:
+
+- **`modules/networking/`** - Virtual Network, Subnets, and Network Security Groups
+  - `main.tf` - VNET, subnets, NSGs, and associations
+  - `variables.tf` - Networking-specific variables
+  - `outputs.tf` - Network resource IDs and names
+
+- **`modules/database/`** - PostgreSQL Flexible Server and database
+  - `main.tf` - PostgreSQL server, database, DNS zone, firewall rules
+  - `variables.tf` - Database configuration variables
+  - `outputs.tf` - Database connection strings and server details
+
+- **`modules/backup/`** - Backup Vault and backup policies
+  - `main.tf` - Backup vault, policy, and instance
+  - `variables.tf` - Backup configuration variables
+  - `outputs.tf` - Backup vault details
+
+- **`modules/redis/`** - Azure Redis Cache
+  - `main.tf` - Redis cache and firewall rules
+  - `variables.tf` - Redis configuration variables
+  - `outputs.tf` - Redis connection details
+
+- **`modules/qdrant/`** - Qdrant Vector Database (Container Instances)
+  - `main.tf` - Qdrant container group and storage
+  - `variables.tf` - Qdrant configuration variables
+  - `outputs.tf` - Qdrant endpoint URLs
+
+- **`modules/storage/`** - Azure Blob Storage for recordings
+  - `main.tf` - Storage account and container
+  - `variables.tf` - Storage configuration variables
+  - `outputs.tf` - Storage connection strings and endpoints
+
+- **`modules/container-app/`** - Container App Environment and Container App
+  - `main.tf` - Container App Environment, Container App, Log Analytics, Managed Identity
+  - `variables.tf` - Container App configuration variables
+  - `outputs.tf` - Container App URLs and identity details
 
 ## Resources Deployed
 
@@ -74,6 +110,28 @@ This directory contains Terraform configuration files for managing Azure infrast
   - Managed Identity for Azure service access
   - Environment variables configured from Terraform outputs
 
+## Architecture
+
+The infrastructure uses a modular architecture where each major component is a separate Terraform module. This provides:
+
+- **Reusability**: Modules can be reused across environments
+- **Maintainability**: Each module is self-contained with its own variables and outputs
+- **Separation of Concerns**: Related resources are grouped logically
+- **Dependency Management**: Modules declare dependencies through variable passing
+
+### Module Dependencies
+
+```
+networking (no dependencies)
+    ├── database (depends on networking)
+    ├── redis (depends on networking)
+    └── container-app (depends on networking, database, redis, qdrant, storage)
+
+backup (depends on database)
+qdrant (no dependencies)
+storage (no dependencies)
+```
+
 ## Backend Configuration
 
 Terraform state is stored in Azure Blob Storage:
@@ -120,12 +178,30 @@ The infrastructure is deployed via GitHub Actions workflow (`.github/workflows/a
 
 ## Adding Resources
 
-To add new Azure resources:
+To add new Azure resources, you have two options:
 
-1. Add resource definitions to `main.tf`
-2. Add any required variables to `variables.tf`
-3. Add outputs to `outputs.tf` if needed
-4. Test locally with `terraform plan` before deploying
+### Option 1: Add to Existing Module
+
+If the resource fits logically into an existing module:
+
+1. Add resource definitions to the module's `main.tf`
+2. Add any required variables to the module's `variables.tf`
+3. Add outputs to the module's `outputs.tf`
+4. Update root `variables.tf` if new root-level variables are needed
+5. Update root `outputs.tf` to expose module outputs if needed
+6. Update root `main.tf` to pass new variables to the module
+7. Test locally with `terraform plan` before deploying
+
+### Option 2: Create New Module
+
+If the resource warrants its own module:
+
+1. Create a new directory in `modules/` (e.g., `modules/new-resource/`)
+2. Create `main.tf`, `variables.tf`, and `outputs.tf` in the new module
+3. Add module call to root `main.tf`
+4. Add any required variables to root `variables.tf`
+5. Add outputs to root `outputs.tf` if needed
+6. Test locally with `terraform plan` before deploying
 
 ## State Management
 

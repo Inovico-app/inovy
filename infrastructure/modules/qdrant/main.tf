@@ -16,9 +16,9 @@ resource "azurerm_storage_account" "qdrant" {
 
 # File share for Qdrant storage
 resource "azurerm_storage_share" "qdrant" {
-  name                 = "qdrant-storage"
-  storage_account_name = azurerm_storage_account.qdrant.name
-  quota                = var.qdrant_storage_quota_gb
+  name               = "qdrant-storage"
+  storage_account_id = azurerm_storage_account.qdrant.id
+  quota              = var.qdrant_storage_quota_gb
 }
 
 # Qdrant Vector Database

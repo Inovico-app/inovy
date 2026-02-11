@@ -33,6 +33,6 @@ resource "azurerm_storage_account" "recordings" {
 # Container for recordings
 resource "azurerm_storage_container" "recordings" {
   name                  = "recordings"
-  storage_account_name  = azurerm_storage_account.recordings.name
+  storage_account_id    = azurerm_storage_account.recordings.id
   container_access_type = "private"
 }

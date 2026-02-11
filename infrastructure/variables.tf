@@ -13,7 +13,7 @@ variable "location" {
 variable "vnet_address_space" {
   description = "Address space for the Virtual Network (CIDR notation)"
   type        = string
-  default     = "10.0.0.0/16"
+  default     = "10.0.0.0/20"
 }
 
 variable "subnet_container_apps_address_prefix" {
@@ -99,6 +99,33 @@ variable "postgresql_maintenance_hour" {
   description = "Hour of day for PostgreSQL maintenance (0-23)"
   type        = number
   default     = 2
+}
+
+# Microsoft Entra (Azure AD) authentication variables
+variable "entra_tenant_id" {
+  description = "Microsoft Entra (Azure AD) tenant ID for PostgreSQL authentication"
+  type        = string
+}
+
+variable "entra_administrators" {
+  description = "List of Microsoft Entra administrators for PostgreSQL. Each entry should have object_id and principal_name (email/UPN)"
+  type = list(object({
+    object_id      = string
+    principal_name = string
+    principal_type = optional(string, "User")
+  }))
+  default = [
+    {
+      object_id      = "57774c6c-a23e-4734-82f9-c131a2fe540f"
+      principal_name = "" # Set via terraform.tfvars or environment variable
+      principal_type = "User"
+    },
+    {
+      object_id      = "03aa94f9-e09b-4b66-b89b-9b6a3e30526b"
+      principal_name = "" # Set via terraform.tfvars or environment variable
+      principal_type = "User"
+    }
+  ]
 }
 
 # Backup variables

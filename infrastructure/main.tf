@@ -7,7 +7,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.0" # or 4.0
+      version = "~> 4.0"
     }
   }
 }
@@ -62,6 +62,12 @@ module "database" {
   postgresql_standby_zone           = var.postgresql_standby_zone
   postgresql_maintenance_day        = var.postgresql_maintenance_day
   postgresql_maintenance_hour       = var.postgresql_maintenance_hour
+  entra_tenant_id                   = var.entra_tenant_id
+  entra_administrators              = var.entra_administrators
+
+  depends_on = [
+    module.networking
+  ]
 
   tags = {
     Environment = var.environment
@@ -79,6 +85,10 @@ module "backup" {
   resource_group_name     = azurerm_resource_group.inovy.name
   postgresql_server_id    = module.database.postgresql_server_id
   backup_vault_redundancy = var.backup_vault_redundancy
+
+  depends_on = [
+    module.database
+  ]
 
   tags = {
     Environment = var.environment
@@ -103,6 +113,10 @@ module "redis" {
   redis_maxmemory_reserved             = var.redis_maxmemory_reserved
   redis_maxmemory_delta                = var.redis_maxmemory_delta
   redis_maxmemory_policy               = var.redis_maxmemory_policy
+
+  depends_on = [
+    module.networking
+  ]
 
   tags = {
     Environment = var.environment
@@ -181,6 +195,14 @@ module "container_app" {
   container_app_http_scale_concurrent_requests = var.container_app_http_scale_concurrent_requests
   container_app_additional_env_vars            = var.container_app_additional_env_vars
   log_analytics_retention_days                 = var.log_analytics_retention_days
+
+  depends_on = [
+    module.networking,
+    module.database,
+    module.redis,
+    module.qdrant,
+    module.storage
+  ]
 
   tags = {
     Environment = var.environment
