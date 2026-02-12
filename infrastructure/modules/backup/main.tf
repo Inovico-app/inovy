@@ -58,23 +58,18 @@ resource "azurerm_data_protection_backup_vault" "inovy" {
 #   }
 # }
 
-# Data source to get resource group ID for role assignment scope
-data "azurerm_resource_group" "main" {
-  name = var.resource_group_name
-}
-
 # Role Assignment: Grant backup vault identity permission to backup PostgreSQL Flexible Server
-# resource "azurerm_role_assignment" "backup_vault_postgresql" {
-#   scope                            = data.azurerm_resource_group.main.id
-#   role_definition_id               = "c088a766-074b-43ba-90d4-1fb21feae531" # PostgreSQL Flexible Server Long Term Retention Backup Role
-#   principal_id                     = azurerm_data_protection_backup_vault.inovy.identity[0].principal_id
-#   skip_service_principal_aad_check = true
+resource "azurerm_role_assignment" "backup_vault_postgresql" {
+  scope                            = data.azurerm_postgresql_flexible_server.main.id
+  role_definition_id               = "/providers/Microsoft.Authorization/roleDefinitions/c088a766-074b-43ba-90d4-1fb21feae531" # PostgreSQL Flexible Server Long Term Retention Backup Role
+  principal_id                     = azurerm_data_protection_backup_vault.inovy.identity[0].principal_id
+  skip_service_principal_aad_check = true
 
-#   depends_on = [
-#     data.azurerm_postgresql_flexible_server.main,
-#     azurerm_data_protection_backup_vault.inovy
-#   ]
-# }
+  depends_on = [
+    data.azurerm_postgresql_flexible_server.main,
+    azurerm_data_protection_backup_vault.inovy
+  ]
+}
 
 # Backup Instance for PostgreSQL Flexible Server
 # resource "azurerm_data_protection_backup_instance_postgresql_flexible_server" "inovy" {
