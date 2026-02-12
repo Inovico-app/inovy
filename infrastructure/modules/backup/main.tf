@@ -11,6 +11,7 @@ resource "azurerm_data_protection_backup_vault" "inovy" {
   location            = var.location
   datastore_type      = "VaultStore"
   redundancy          = var.backup_vault_redundancy
+  soft_delete         = "Off"
 
   # Enable system assigned managed identity
   identity {
