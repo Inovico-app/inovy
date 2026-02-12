@@ -29,6 +29,23 @@ resource "azurerm_data_protection_backup_vault" "inovy" {
   ]
 }
 
+# Data source to get resource group ID for role assignment scope
+data "azurerm_resource_group" "main" {
+  name = var.resource_group_name
+}
+
+# Role Assignment: Grant backup vault identity Reader role on resource group
+resource "azurerm_role_assignment" "backup_vault_reader" {
+  scope                            = data.azurerm_resource_group.main.id
+  role_definition_name             = "Reader"
+  principal_id                     = azurerm_data_protection_backup_vault.inovy.identity[0].principal_id
+  skip_service_principal_aad_check = true
+
+  depends_on = [
+    azurerm_data_protection_backup_vault.inovy
+  ]
+}
+
 # Role Assignment: Grant backup vault identity permission to backup PostgreSQL Flexible Server
 resource "azurerm_role_assignment" "backup_vault_postgresql" {
   scope                            = data.azurerm_postgresql_flexible_server.main.id
@@ -72,6 +89,7 @@ resource "azurerm_data_protection_backup_policy_postgresql_flexible_server" "ino
 
   depends_on = [
     azurerm_role_assignment.backup_vault_postgresql,
+    azurerm_role_assignment.backup_vault_reader,
     azurerm_data_protection_backup_vault.inovy
   ]
 }
@@ -87,6 +105,7 @@ resource "azurerm_data_protection_backup_instance_postgresql_flexible_server" "i
 
   depends_on = [
     azurerm_data_protection_backup_policy_postgresql_flexible_server.inovy,
-    azurerm_role_assignment.backup_vault_postgresql
+    azurerm_role_assignment.backup_vault_postgresql,
+    azurerm_role_assignment.backup_vault_reader
   ]
 }
