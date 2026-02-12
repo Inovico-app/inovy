@@ -18,6 +18,11 @@ variable "postgresql_server_id" {
   type        = string
 }
 
+variable "postgresql_server_name" {
+  description = "Name of the PostgreSQL Flexible Server"
+  type        = string
+}
+
 variable "backup_vault_redundancy" {
   description = "Backup vault redundancy (GeoRedundant or LocallyRedundant)"
   type        = string

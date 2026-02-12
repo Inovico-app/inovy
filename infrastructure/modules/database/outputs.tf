@@ -3,6 +3,11 @@ output "postgresql_server_id" {
   value       = azurerm_postgresql_flexible_server.inovy.id
 }
 
+output "postgresql_server_name" {
+  description = "Name of the PostgreSQL Flexible Server"
+  value       = azurerm_postgresql_flexible_server.inovy.name
+}
+
 output "postgresql_server_fqdn" {
   description = "FQDN of the PostgreSQL Flexible Server"
   value       = azurerm_postgresql_flexible_server.inovy.fqdn

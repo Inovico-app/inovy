@@ -1,3 +1,9 @@
+# Data source to reference PostgreSQL server for dependency
+data "azurerm_postgresql_flexible_server" "main" {
+  name                = var.postgresql_server_name
+  resource_group_name = var.resource_group_name
+}
+
 # Backup Vault
 resource "azurerm_data_protection_backup_vault" "inovy" {
   name                = "inovy-backup-vault-${var.environment}"
@@ -16,6 +22,10 @@ resource "azurerm_data_protection_backup_vault" "inovy" {
     Application = "inovy"
     ManagedBy   = "terraform"
   })
+
+  depends_on = [
+    data.azurerm_postgresql_flexible_server.main
+  ]
 }
 
 # Backup Policy for PostgreSQL Flexible Server
@@ -47,18 +57,20 @@ resource "azurerm_data_protection_backup_policy_postgresql_flexible_server" "ino
   }
 }
 
-# Data source to get current subscription for role assignment scope
-data "azurerm_client_config" "current" {}
+# Data source to get resource group ID for role assignment scope
+data "azurerm_resource_group" "main" {
+  name = var.resource_group_name
+}
 
 # Role Assignment: Grant backup vault identity permission to backup PostgreSQL Flexible Server
-# Note: Scope is set to subscription level since service principal has User Access Administrator at subscription level
 resource "azurerm_role_assignment" "backup_vault_postgresql" {
-  scope                            = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
+  scope                            = data.azurerm_resource_group.main.id
   role_definition_id               = "c088a766-074b-43ba-90d4-1fb21feae531" # PostgreSQL Flexible Server Long Term Retention Backup Role
   principal_id                     = azurerm_data_protection_backup_vault.inovy.identity[0].principal_id
   skip_service_principal_aad_check = true
 
   depends_on = [
+    data.azurerm_postgresql_flexible_server.main,
     azurerm_data_protection_backup_vault.inovy
   ]
 }

@@ -81,6 +81,7 @@ module "backup" {
   location                        = var.location
   resource_group_name             = azurerm_resource_group.inovy.name
   postgresql_server_id            = module.database.postgresql_server_id
+  postgresql_server_name          = module.database.postgresql_server_name
   backup_vault_redundancy         = var.backup_vault_redundancy
   backup_repeating_time_intervals = var.backup_repeating_time_intervals
   backup_time_zone                = var.backup_time_zone
