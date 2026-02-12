@@ -30,33 +30,33 @@ resource "azurerm_data_protection_backup_vault" "inovy" {
 }
 
 # Backup Policy for PostgreSQL Flexible Server
-# resource "azurerm_data_protection_backup_policy_postgresql_flexible_server" "inovy" {
-#   name     = "postgresql-backup-policy-${var.environment}"
-#   vault_id = azurerm_data_protection_backup_vault.inovy.id
+resource "azurerm_data_protection_backup_policy_postgresql_flexible_server" "inovy" {
+  name     = "postgresql-backup-policy-${var.environment}"
+  vault_id = azurerm_data_protection_backup_vault.inovy.id
 
-#   backup_repeating_time_intervals = var.backup_repeating_time_intervals
-#   time_zone                       = var.backup_time_zone
+  backup_repeating_time_intervals = var.backup_repeating_time_intervals
+  time_zone                       = var.backup_time_zone
 
-#   default_retention_rule {
-#     life_cycle {
-#       duration        = "P30D"
-#       data_store_type = "VaultStore"
-#     }
-#   }
+  default_retention_rule {
+    life_cycle {
+      duration        = "P30D"
+      data_store_type = "VaultStore"
+    }
+  }
 
-#   # Weekly retention rule - keeps first backup of each week for 30 days
-#   retention_rule {
-#     name     = "Weekly"
-#     priority = 25
-#     life_cycle {
-#       duration        = "P30D"
-#       data_store_type = "VaultStore"
-#     }
-#     criteria {
-#       absolute_criteria = "FirstOfWeek"
-#     }
-#   }
-# }
+  # Weekly retention rule - keeps first backup of each week for 30 days
+  retention_rule {
+    name     = "Weekly"
+    priority = 25
+    life_cycle {
+      duration        = "P30D"
+      data_store_type = "VaultStore"
+    }
+    criteria {
+      absolute_criteria = "FirstOfWeek"
+    }
+  }
+}
 
 # Role Assignment: Grant backup vault identity permission to backup PostgreSQL Flexible Server
 resource "azurerm_role_assignment" "backup_vault_postgresql" {
@@ -72,16 +72,16 @@ resource "azurerm_role_assignment" "backup_vault_postgresql" {
 }
 
 # Backup Instance for PostgreSQL Flexible Server
-# resource "azurerm_data_protection_backup_instance_postgresql_flexible_server" "inovy" {
-#   name     = "postgresql-backup-instance-${var.environment}"
-#   vault_id = azurerm_data_protection_backup_vault.inovy.id
-#   location = var.location
+resource "azurerm_data_protection_backup_instance_postgresql_flexible_server" "inovy" {
+  name     = "postgresql-backup-instance-${var.environment}"
+  vault_id = azurerm_data_protection_backup_vault.inovy.id
+  location = var.location
 
-#   server_id        = var.postgresql_server_id
-#   backup_policy_id = azurerm_data_protection_backup_policy_postgresql_flexible_server.inovy.id
+  server_id        = var.postgresql_server_id
+  backup_policy_id = azurerm_data_protection_backup_policy_postgresql_flexible_server.inovy.id
 
-#   depends_on = [
-#     azurerm_data_protection_backup_policy_postgresql_flexible_server.inovy,
-#     azurerm_role_assignment.backup_vault_postgresql
-#   ]
-# }
+  depends_on = [
+    azurerm_data_protection_backup_policy_postgresql_flexible_server.inovy,
+    azurerm_role_assignment.backup_vault_postgresql
+  ]
+}
