@@ -62,6 +62,7 @@ variable "postgresql_storage_mb" {
 variable "postgresql_zone" {
   description = "Availability zone for PostgreSQL primary server, optional"
   type        = string
+  default     = ""
 }
 
 variable "postgresql_geo_redundant_backup" {
