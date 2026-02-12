@@ -59,12 +59,6 @@ variable "postgresql_storage_mb" {
   default     = 32768 # 32GB
 }
 
-variable "postgresql_zone" {
-  description = "Availability zone for PostgreSQL primary server, optional"
-  type        = string
-  default     = ""
-}
-
 variable "postgresql_geo_redundant_backup" {
   description = "Enable geo-redundant backup for PostgreSQL"
   type        = bool

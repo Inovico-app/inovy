@@ -53,12 +53,6 @@ variable "postgresql_storage_mb" {
   default     = 131072 # 128GB
 }
 
-variable "postgresql_zone" {
-  description = "Availability zone for PostgreSQL primary server"
-  type        = string
-  default     = "1"
-}
-
 variable "postgresql_maintenance_day" {
   description = "Day of week for PostgreSQL maintenance (0=Sunday, 6=Saturday)"
   type        = number

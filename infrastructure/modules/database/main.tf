@@ -37,13 +37,6 @@ resource "azurerm_postgresql_flexible_server" "inovy" {
   administrator_login           = var.postgresql_admin_login
   administrator_password        = var.postgresql_admin_password
 
-  dynamic "zone" {
-    for_each = var.postgresql_zone != "" ? [var.postgresql_zone] : []
-    content {
-      zone = zone.value
-    }
-  }
-
   storage_mb = var.postgresql_storage_mb
 
   sku_name = var.postgresql_sku_name
