@@ -85,26 +85,26 @@ output "redis_cache_name" {
 }
 
 # Qdrant outputs
-output "qdrant_url" {
-  description = "Qdrant API URL"
-  value       = module.qdrant.qdrant_url
-}
+# output "qdrant_url" {
+#   description = "Qdrant API URL"
+#   value       = module.qdrant.qdrant_url
+# }
 
-output "qdrant_grpc_url" {
-  description = "Qdrant gRPC URL"
-  value       = module.qdrant.qdrant_grpc_url
-}
+# output "qdrant_grpc_url" {
+#   description = "Qdrant gRPC URL"
+#   value       = module.qdrant.qdrant_grpc_url
+# }
 
-output "qdrant_fqdn" {
-  description = "FQDN of the Qdrant container group"
-  value       = module.qdrant.qdrant_fqdn
-}
+# output "qdrant_fqdn" {
+#   description = "FQDN of the Qdrant container group"
+#   value       = module.qdrant.qdrant_fqdn
+# }
 
-output "qdrant_api_key" {
-  description = "Qdrant API key (if configured)"
-  value       = var.qdrant_api_key
-  sensitive   = true
-}
+# output "qdrant_api_key" {
+#   description = "Qdrant API key (if configured)"
+#   value       = var.qdrant_api_key
+#   sensitive   = true
+# }
 
 # Storage outputs
 output "storage_account_name" {

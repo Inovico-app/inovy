@@ -115,23 +115,23 @@ module "redis" {
 }
 
 # Qdrant Module
-module "qdrant" {
-  source = "./modules/qdrant"
+# module "qdrant" {
+#   source = "./modules/qdrant"
 
-  environment             = var.environment
-  location                = var.location
-  resource_group_name     = azurerm_resource_group.inovy.name
-  qdrant_ip_address_type  = var.qdrant_ip_address_type
-  qdrant_cpu              = var.qdrant_cpu
-  qdrant_memory           = var.qdrant_memory
-  qdrant_storage_quota_gb = var.qdrant_storage_quota_gb
+#   environment             = var.environment
+#   location                = var.location
+#   resource_group_name     = azurerm_resource_group.inovy.name
+#   qdrant_ip_address_type  = var.qdrant_ip_address_type
+#   qdrant_cpu              = var.qdrant_cpu
+#   qdrant_memory           = var.qdrant_memory
+#   qdrant_storage_quota_gb = var.qdrant_storage_quota_gb
 
-  tags = {
-    Environment = var.environment
-    Application = "inovy"
-    ManagedBy   = "terraform"
-  }
-}
+#   tags = {
+#     Environment = var.environment
+#     Application = "inovy"
+#     ManagedBy   = "terraform"
+#   }
+# }
 
 # Storage Module
 module "storage" {
