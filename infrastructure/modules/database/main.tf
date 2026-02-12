@@ -42,11 +42,6 @@ resource "azurerm_postgresql_flexible_server" "inovy" {
 
   sku_name = var.postgresql_sku_name
 
-  high_availability {
-    mode                      = var.postgresql_high_availability_mode
-    standby_availability_zone = var.postgresql_standby_zone
-  }
-
   maintenance_window {
     day_of_week  = var.postgresql_maintenance_day
     start_hour   = var.postgresql_maintenance_hour

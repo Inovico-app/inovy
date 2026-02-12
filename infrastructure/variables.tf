@@ -65,18 +65,6 @@ variable "postgresql_zone" {
   default     = "1"
 }
 
-variable "postgresql_high_availability_mode" {
-  description = "High availability mode for PostgreSQL (SameZone, ZoneRedundant, or Disabled)"
-  type        = string
-  default     = "SameZone"
-}
-
-variable "postgresql_standby_zone" {
-  description = "Availability zone for PostgreSQL standby server"
-  type        = string
-  default     = "2"
-}
-
 variable "postgresql_geo_redundant_backup" {
   description = "Enable geo-redundant backup for PostgreSQL"
   type        = bool

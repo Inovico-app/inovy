@@ -53,10 +53,8 @@ entra_administrators = [
 # postgresql_version                = "16"
 # postgresql_sku_name               = "Standard_B2s"
 # postgresql_storage_mb             = 131072  # 128GB
-# postgresql_zone                   = "1"
-# postgresql_high_availability_mode = "ZoneRedundant"
-# postgresql_standby_zone           = "2"
-# postgresql_geo_redundant_backup   = true
+# postgresql_zone                 = "1"
+# postgresql_geo_redundant_backup = true
 
 # PostgreSQL Maintenance Window
 # postgresql_maintenance_day  = 0  # 0=Sunday, 6=Saturday
