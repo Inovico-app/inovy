@@ -36,6 +36,7 @@ resource "azurerm_postgresql_flexible_server" "inovy" {
   public_network_access_enabled = false
   administrator_login           = var.postgresql_admin_login
   administrator_password        = var.postgresql_admin_password
+  zone                          = "2"
 
   storage_mb = var.postgresql_storage_mb
 
