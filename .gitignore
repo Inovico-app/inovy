@@ -4,6 +4,7 @@ node_modules
 .env
 .vercel
 .env*.local
+.vscode
 
 # Build outputs
 dist
