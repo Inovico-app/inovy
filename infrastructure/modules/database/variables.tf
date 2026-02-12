@@ -53,6 +53,12 @@ variable "postgresql_storage_mb" {
   default     = 131072 # 128GB
 }
 
+variable "postgresql_zone" {
+  description = "Availability zone for PostgreSQL primary server, optional (empty string to let Azure choose)"
+  type        = string
+  default     = "2"
+}
+
 variable "postgresql_maintenance_day" {
   description = "Day of week for PostgreSQL maintenance (0=Sunday, 6=Saturday)"
   type        = number

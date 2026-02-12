@@ -56,6 +56,7 @@ module "database" {
   postgresql_admin_password   = var.postgresql_admin_password
   postgresql_sku_name         = var.postgresql_sku_name
   postgresql_storage_mb       = var.postgresql_storage_mb
+  postgresql_zone             = var.postgresql_zone
   postgresql_maintenance_day  = var.postgresql_maintenance_day
   postgresql_maintenance_hour = var.postgresql_maintenance_hour
   entra_tenant_id             = var.entra_tenant_id
@@ -76,11 +77,13 @@ module "database" {
 module "backup" {
   source = "./modules/backup"
 
-  environment             = var.environment
-  location                = var.location
-  resource_group_name     = azurerm_resource_group.inovy.name
-  postgresql_server_id    = module.database.postgresql_server_id
-  backup_vault_redundancy = var.backup_vault_redundancy
+  environment                     = var.environment
+  location                        = var.location
+  resource_group_name             = azurerm_resource_group.inovy.name
+  postgresql_server_id            = module.database.postgresql_server_id
+  backup_vault_redundancy         = var.backup_vault_redundancy
+  backup_repeating_time_intervals = var.backup_repeating_time_intervals
+  backup_time_zone                = var.backup_time_zone
 
   depends_on = [
     module.database

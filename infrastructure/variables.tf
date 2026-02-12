@@ -59,6 +59,12 @@ variable "postgresql_storage_mb" {
   default     = 32768 # 32GB
 }
 
+variable "postgresql_zone" {
+  description = "Availability zone for PostgreSQL primary server, optional (empty string to let Azure choose)"
+  type        = string
+  default     = "2"
+}
+
 variable "postgresql_geo_redundant_backup" {
   description = "Enable geo-redundant backup for PostgreSQL"
   type        = bool
@@ -97,6 +103,18 @@ variable "backup_vault_redundancy" {
   description = "Backup vault redundancy (GeoRedundant or LocallyRedundant)"
   type        = string
   default     = "GeoRedundant"
+}
+
+variable "backup_repeating_time_intervals" {
+  description = "List of backup repeating time intervals in ISO 8601 format (e.g., [\"R/2024-04-07T13:00:00+00:00/P1W\"])"
+  type        = list(string)
+  default     = ["R/2024-04-07T13:00:00+00:00/P1W"]
+}
+
+variable "backup_time_zone" {
+  description = "Time zone for backup schedule (e.g., UTC, America/New_York)"
+  type        = string
+  default     = "UTC"
 }
 
 # Redis variables

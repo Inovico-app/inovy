@@ -24,6 +24,18 @@ variable "backup_vault_redundancy" {
   default     = "GeoRedundant"
 }
 
+variable "backup_repeating_time_intervals" {
+  description = "List of backup repeating time intervals in ISO 8601 format (e.g., [\"R/2024-04-07T13:00:00+00:00/P1W\"])"
+  type        = list(string)
+  default     = ["R/2024-04-07T13:00:00+00:00/P1W"]
+}
+
+variable "backup_time_zone" {
+  description = "Time zone for backup schedule (e.g., UTC, America/New_York)"
+  type        = string
+  default     = "UTC"
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

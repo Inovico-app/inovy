@@ -22,10 +22,8 @@ resource "azurerm_data_protection_backup_policy_postgresql_flexible_server" "ino
   name     = "postgresql-backup-policy-${var.environment}"
   vault_id = azurerm_data_protection_backup_vault.inovy.id
 
-  # Daily backup at 2:00 AM UTC
-  # backup_repeating_time_intervals = ["R/2026-02-12T02:00:00+00:00/PT24H"]
-  backup_repeating_time_intervals = ["R/2024-04-07T13:00:00+00:00/P1W"]
-  time_zone = "UTC"
+  backup_repeating_time_intervals = var.backup_repeating_time_intervals
+  time_zone                       = var.backup_time_zone
 
   default_retention_rule {
     life_cycle {

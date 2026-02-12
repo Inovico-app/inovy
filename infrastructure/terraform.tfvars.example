@@ -53,6 +53,7 @@ entra_administrators = [
 # postgresql_version                = "16"
 # postgresql_sku_name               = "Standard_B2s"
 # postgresql_storage_mb             = 131072  # 128GB
+# postgresql_zone                   = "2"  # Availability zone (1, 2, or 3), empty string to let Azure choose
 # postgresql_geo_redundant_backup = true
 
 # PostgreSQL Maintenance Window
@@ -65,6 +66,10 @@ entra_administrators = [
 
 # Backup Vault Configuration
 # backup_vault_redundancy = "GeoRedundant"  # or "LocallyRedundant"
+
+# Backup Schedule Configuration
+# backup_repeating_time_intervals = ["R/2024-04-07T13:00:00+00:00/P1W"]  # ISO 8601 recurring interval format
+# backup_time_zone = "UTC"  # Time zone for backup schedule (e.g., UTC, America/New_York)
 
 # ============================================================================
 # REDIS VARIABLES (Optional - defaults provided)
