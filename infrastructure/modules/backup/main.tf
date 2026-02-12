@@ -6,6 +6,7 @@ resource "azurerm_data_protection_backup_vault" "inovy" {
   datastore_type      = "VaultStore"
   redundancy          = var.backup_vault_redundancy
 
+  # Enable system assigned managed identity
   identity {
     type = "SystemAssigned"
   }
@@ -15,16 +16,6 @@ resource "azurerm_data_protection_backup_vault" "inovy" {
     Application = "inovy"
     ManagedBy   = "terraform"
   })
-}
-
-# Data source to get the backup vault with fully propagated identity
-data "azurerm_data_protection_backup_vault" "inovy" {
-  name                = azurerm_data_protection_backup_vault.inovy.name
-  resource_group_name = var.resource_group_name
-
-  depends_on = [
-    azurerm_data_protection_backup_vault.inovy
-  ]
 }
 
 # Backup Policy for PostgreSQL Flexible Server
@@ -60,7 +51,7 @@ resource "azurerm_data_protection_backup_policy_postgresql_flexible_server" "ino
 resource "azurerm_role_assignment" "backup_vault_postgresql" {
   scope                            = var.postgresql_server_id
   role_definition_id               = "c088a766-074b-43ba-90d4-1fb21feae531" # PostgreSQL Flexible Server Long Term Retention Backup Role
-  principal_id                     = data.azurerm_data_protection_backup_vault.inovy.object_id
+  principal_id                     = azurerm_data_protection_backup_vault.inovy.identity[0].principal_id
   skip_service_principal_aad_check = true
 
   depends_on = [
