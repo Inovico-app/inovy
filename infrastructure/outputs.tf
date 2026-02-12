@@ -68,6 +68,11 @@ output "backup_vault_name" {
   value       = module.backup.backup_vault_name
 }
 
+output "backup_vault_identity_principal_id" {
+  description = "Principal ID of the Backup Vault identity"
+  value       = module.backup.backup_vault_identity_principal_id
+}
+
 # Redis outputs
 output "redis_cache_hostname" {
   description = "Hostname/FQDN of the Managed Redis Cache"
