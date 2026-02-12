@@ -22,7 +22,8 @@ resource "azurerm_data_protection_backup_policy_postgresql_flexible_server" "ino
   name     = "postgresql-backup-policy-${var.environment}"
   vault_id = azurerm_data_protection_backup_vault.inovy.id
 
-  backup_repeating_time_intervals = ["R/2024-01-01T02:00:00+00:00/P7D"]
+  # Daily backup at 2:00 AM UTC, starting on Sunday
+  backup_repeating_time_intervals = ["R/2026-02-15T02:00:00+00:00/P1D"]
 
   default_retention_rule {
     life_cycle {
@@ -31,6 +32,7 @@ resource "azurerm_data_protection_backup_policy_postgresql_flexible_server" "ino
     }
   }
 
+  # Weekly retention rule - keeps first backup of each week for 30 days
   retention_rule {
     name     = "Weekly"
     priority = 25
