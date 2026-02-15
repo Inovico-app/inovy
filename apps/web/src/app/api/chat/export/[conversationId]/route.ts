@@ -1,5 +1,5 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { logger } from "@/lib/logger";
+import { createSafeActionErrorResponse, createSafeErrorResponse } from "@/lib/safe-error-response";
 import { ChatService } from "@/server/services/chat.service";
 import { NextResponse } from "next/server";
 
@@ -31,9 +31,9 @@ export async function GET(
       );
 
       if (result.isErr()) {
-        return NextResponse.json(
-          { error: result.error.message },
-          { status: 400 }
+        return createSafeActionErrorResponse(
+          result.error,
+          "GET /api/chat/export/[conversationId]"
         );
       }
 
@@ -53,9 +53,9 @@ export async function GET(
       );
 
       if (result.isErr()) {
-        return NextResponse.json(
-          { error: result.error.message },
-          { status: 400 }
+        return createSafeActionErrorResponse(
+          result.error,
+          "GET /api/chat/export/[conversationId]"
         );
       }
 
@@ -67,13 +67,9 @@ export async function GET(
       });
     }
   } catch (error) {
-    logger.error("Export error", {
-      component: "chat-export-route",
-      error: error instanceof Error ? error : new Error(String(error)),
-    });
-    return NextResponse.json(
-      { error: "Failed to export conversation" },
-      { status: 500 }
+    return createSafeErrorResponse(
+      error,
+      "GET /api/chat/export/[conversationId]"
     );
   }
 }

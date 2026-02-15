@@ -1,5 +1,6 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
+import { createSafeActionErrorResponse } from "@/lib/safe-error-response";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { ProjectService } from "@/server/services/project.service";
 import { RAGService } from "@/server/services/rag/rag.service";
@@ -72,10 +73,9 @@ export async function POST(request: NextRequest) {
     );
 
     if (indexResult.isErr()) {
-      logger.error("Indexing failed", { error: indexResult.error, projectId });
-      return NextResponse.json(
-        { error: "Indexing failed", details: indexResult.error.message },
-        { status: 500 }
+      return createSafeActionErrorResponse(
+        indexResult.error,
+        "POST /api/embeddings/index"
       );
     }
 

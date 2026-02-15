@@ -1,6 +1,7 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger, serializeError } from "@/lib/logger";
 import { withRateLimit } from "@/lib/rate-limit";
+import { createSafeErrorResponse } from "@/lib/safe-error-response";
 import { rateLimiter } from "@/server/services/rate-limiter.service";
 import { ConsentService } from "@/server/services/consent.service";
 import { RecordingService } from "@/server/services/recording.service";
@@ -278,17 +279,14 @@ export const POST = withRateLimit(
 
       return NextResponse.json(jsonResponse);
     } catch (error) {
-      logger.error("Error in POST /api/recordings/upload", {
-        component: "POST /api/recordings/upload",
-        error: serializeError(error),
-      });
-
-      return NextResponse.json(
+      // Use safe error response to prevent technical detail exposure
+      return createSafeErrorResponse(
+        error,
+        "POST /api/recordings/upload",
         {
-          error:
-            error instanceof Error ? error.message : "Unknown error occurred",
-        },
-        { status: 400 } // The webhook will retry 5 times waiting for a 200
+          fallbackStatus: 400, // The webhook will retry 5 times waiting for a 200
+          fallbackMessage: "Upload failed",
+        }
       );
     }
   },
