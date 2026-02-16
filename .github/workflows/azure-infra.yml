@@ -63,22 +63,28 @@ jobs:
       - name: Terraform Init and Validate
         working-directory: infrastructure
         run: |
-          terraform init
+          terraform init \
+            -backend-config="storage_account_name=sttf${{ inputs.environment }}inovy" \
+            -backend-config="key=${{ inputs.environment }}/terraform.tfstate"
           terraform validate
 
       - name: Create terraform.tfvars from TF_VARS
         working-directory: infrastructure
+        env:
+          TF_VARS_B64: ${{ vars.TF_VARS }}
         run: |
           # Decode base64-encoded TF_VARS and write to terraform.tfvars file
-          echo "${{ vars.TF_VARS }}" | base64 -d > terraform.tfvars
+          echo "$TF_VARS_B64" | base64 -d > terraform.tfvars
           echo "Created terraform.tfvars from decoded TF_VARS environment variable"
 
       - name: Terraform Force Unlock
         if: ${{ inputs.terraform_unlock != '' }}
         working-directory: infrastructure
+        env:
+          TF_UNLOCK_ID: ${{ inputs.terraform_unlock }}
         run: |
-          echo "Force unlocking Terraform state with lock ID: ${{ inputs.terraform_unlock }}"
-          terraform force-unlock -force "${{ inputs.terraform_unlock }}"
+          echo "Force unlocking Terraform state with lock ID: $TF_UNLOCK_ID"
+          terraform force-unlock -force "$TF_UNLOCK_ID"
 
       - name: Terraform Plan
         working-directory: infrastructure
@@ -138,7 +144,10 @@ jobs:
 
       - name: Terraform Init
         working-directory: infrastructure
-        run: terraform init
+        run: |
+          terraform init \
+            -backend-config="storage_account_name=sttf${{ inputs.environment }}inovy" \
+            -backend-config="key=${{ inputs.environment }}/terraform.tfstate"
 
       - name: Download Plan from Storage Account
         run: |

@@ -39,8 +39,7 @@ on:
 
 jobs:
   build-and-deploy:
-    if: ${{ inputs.environment == 'prd' }}
-    environment: prd
+    environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
