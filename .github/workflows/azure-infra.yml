@@ -65,7 +65,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="storage_account_name=sttf${{ inputs.environment }}inovy" \
-            -backend-config="key=${{ inputs.environment }}/terraform.tfstate"
+            -backend-config="key=${{ inputs.environment }}.terraform.tfstate"
           terraform validate
 
       - name: Create terraform.tfvars from TF_VARS
