@@ -105,6 +105,7 @@ module "redis" {
   location            = var.location
   resource_group_name = azurerm_resource_group.inovy.name
   redis_sku_name      = var.redis_sku_name
+  high_availability_enabled = var.high_availability_enabled
 
   depends_on = [
     module.networking

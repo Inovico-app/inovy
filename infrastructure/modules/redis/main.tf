@@ -4,7 +4,7 @@ resource "azurerm_managed_redis" "inovy" {
   resource_group_name = var.resource_group_name
   location            = var.location
   sku_name            = var.redis_sku_name
-
+  high_availability_enabled = var.high_availability_enabled
   tags = merge(var.tags, {
     Environment = var.environment
     Application = "inovy"

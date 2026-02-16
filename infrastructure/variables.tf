@@ -247,3 +247,9 @@ variable "log_analytics_retention_days" {
   type        = number
   default     = 30
 }
+
+variable "high_availability_enabled" {
+  description = "Enable high availability for Redis"
+  type        = bool
+  default     = false
+}

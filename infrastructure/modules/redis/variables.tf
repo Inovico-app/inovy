@@ -24,3 +24,8 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "high_availability_enabled" {
+  description = "Enable high availability for Redis"
+  type        = bool
+}
