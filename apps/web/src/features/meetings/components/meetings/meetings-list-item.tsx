@@ -24,8 +24,9 @@ export function MeetingsListItem({ meeting }: MeetingsListItemProps) {
   const isPast = meeting.end < new Date();
   const isUpcoming = meeting.start > new Date();
   const botSession = meeting.botSession;
-  const hasRecording =
-    botSession?.recordingId && botSession?.projectId;
+  const hasRecording = !!(
+    botSession?.recordingId && botSession?.projectId
+  );
 
   return (
     <Card

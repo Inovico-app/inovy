@@ -21,8 +21,9 @@ export function CalendarEventItem({
   const hasBotSession = !!meeting.botSession;
   const botSession = meeting.botSession;
   const isPast = meeting.end <= new Date();
-  const hasRecording =
-    botSession?.recordingId && botSession?.projectId;
+  const hasRecording = !!(
+    botSession?.recordingId && botSession?.projectId
+  );
   const NoBotFallback = (
     <span className="text-xs text-muted-foreground">No bot</span>
   );

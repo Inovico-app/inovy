@@ -2,21 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
-import type { BotSession } from "@/server/db/schema/bot-sessions";
+import type { BotSessionWithRecording } from "@/features/bot/types/bot-session.types";
 import { getBotSessionDetails } from "../actions/get-bot-session-details";
-
-export type BotSessionWithRecording = BotSession & {
-  recording?: {
-    id: string;
-    title: string;
-    fileUrl: string;
-    fileName: string;
-    fileSize: number;
-    fileMimeType: string;
-    duration: number | null;
-    recordingDate: Date;
-  } | null;
-};
 
 interface UseBotSessionDetailsOptions {
   sessionId: string | null | undefined;

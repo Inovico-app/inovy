@@ -1,6 +1,5 @@
 "use server";
 
-import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
@@ -26,11 +25,6 @@ export const getBotSessionDetails = authorizedActionClient
     }
 
     const { sessionId } = parsedInput;
-
-    logger.info("Fetching bot session details", {
-      organizationId,
-      sessionId,
-    });
 
     const session = await getCachedBotSessionDetails(sessionId, organizationId);
 

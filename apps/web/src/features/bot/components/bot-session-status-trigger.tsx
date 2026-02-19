@@ -1,7 +1,8 @@
 "use client";
 
+import { logger } from "@/lib/logger";
 import { useState } from "react";
-import type { BotSession } from "@/server/db/schema/bot-sessions";
+import type { BotSessionWithRecording } from "@/features/bot/types/bot-session.types";
 import { BotSessionDetailsModal } from "./bot-session-details-modal";
 import { BotStatusBadge } from "./bot-status-badge";
 import { useBotSessionDetails } from "../hooks/use-bot-session-details";
@@ -11,7 +12,7 @@ interface BotSessionStatusTriggerProps {
   status: MeetingBotStatus;
   sessionId?: string | null;
   /** Pre-loaded session (e.g. from bot sessions page) - skips fetch when provided */
-  session?: BotSession | null;
+  session?: BotSessionWithRecording | null;
   /** Optional error for failed status - shown in tooltip */
   error?: string | null;
   className?: string;
@@ -42,17 +43,30 @@ export function BotSessionStatusTrigger({
     : setInternalOpen;
 
   const hasSession = status !== "no_bot";
-  const canOpenDetails = hasSession && (sessionId || preloadedSession);
+  const canOpenDetails = Boolean(hasSession && (sessionId || preloadedSession));
 
-  const { data: fetchedSession, isLoading } = useBotSessionDetails({
-    sessionId: canOpenDetails && !preloadedSession ? sessionId ?? null : null,
-    enabled: showModal && !preloadedSession,
-  });
+  const { data: fetchedSession, isLoading, error: fetchError } =
+    useBotSessionDetails({
+      sessionId: canOpenDetails && !preloadedSession ? sessionId ?? null : null,
+      enabled: showModal && !preloadedSession,
+    });
+
+  if (fetchError) {
+    logger.warn("Failed to fetch bot session details", {
+      sessionId: sessionId ?? undefined,
+      error: fetchError.message,
+    });
+  }
 
   const sessionForModal = preloadedSession ?? fetchedSession ?? null;
 
   const badge = (
-    <BotStatusBadge status={status} error={error} className={className} />
+    <BotStatusBadge
+      status={status}
+      error={error}
+      className={className}
+      tabIndex={-1}
+    />
   );
 
   if (canOpenDetails) {
@@ -71,10 +85,13 @@ export function BotSessionStatusTrigger({
           open={showModal}
           onOpenChange={setShowModal}
           isLoading={!preloadedSession && isLoading}
+          error={fetchError ?? undefined}
         />
       </>
     );
   }
 
-  return badge;
+  return (
+    <BotStatusBadge status={status} error={error} className={className} />
+  );
 }
