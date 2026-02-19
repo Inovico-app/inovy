@@ -1,8 +1,8 @@
 "use client";
 
 import { format, formatDistanceToNow } from "date-fns";
-import { CalendarIcon, ClockIcon, UsersIcon } from "lucide-react";
-import { BotStatusBadge } from "@/features/bot/components/bot-status-badge";
+import { CalendarIcon, ClockIcon, FileVideoIcon, UsersIcon } from "lucide-react";
+import { BotSessionStatusTrigger } from "@/features/bot/components/bot-session-status-trigger";
 import { AddBotButton } from "@/features/meetings/components/add-bot-button";
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
 import {
@@ -13,6 +13,7 @@ import {
 } from "@/features/meetings/lib/calendar-utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface MeetingsListItemProps {
   meeting: MeetingWithSession;
@@ -22,6 +23,10 @@ export function MeetingsListItem({ meeting }: MeetingsListItemProps) {
   const botStatus = getMeetingBotStatus(meeting, meeting.botSession);
   const isPast = meeting.end < new Date();
   const isUpcoming = meeting.start > new Date();
+  const botSession = meeting.botSession;
+  const hasRecording = !!(
+    botSession?.recordingId && botSession?.projectId
+  );
 
   return (
     <Card
@@ -68,7 +73,7 @@ export function MeetingsListItem({ meeting }: MeetingsListItemProps) {
           </div>
 
           {/* Bot Status Badge or Add Bot */}
-          <div className="flex items-start sm:items-center">
+          <div className="flex min-h-[44px] items-center gap-2 sm:items-center">
             {botStatus === "no_bot" ? (
               isUpcoming ? (
                 <AddBotButton meeting={meeting} variant="button" />
@@ -76,7 +81,23 @@ export function MeetingsListItem({ meeting }: MeetingsListItemProps) {
                 <span className="text-xs text-muted-foreground">No bot</span>
               )
             ) : (
-              <BotStatusBadge status={botStatus} />
+              <>
+                <BotSessionStatusTrigger
+                  status={botStatus}
+                  sessionId={botSession?.id}
+                  error={botSession?.error}
+                />
+                {hasRecording && (
+                  <Link
+                    href={`/projects/${botSession!.projectId}/recordings/${botSession!.recordingId}`}
+                    className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-primary transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    aria-label="View recording"
+                  >
+                    <FileVideoIcon className="h-4 w-4" />
+                    <span>View Recording</span>
+                  </Link>
+                )}
+              </>
             )}
           </div>
         </div>

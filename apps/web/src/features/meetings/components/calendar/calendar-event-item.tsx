@@ -1,10 +1,12 @@
 "use client";
 
-import { BotStatusBadge } from "@/features/bot/components/bot-status-badge";
+import { FileVideoIcon } from "lucide-react";
+import { BotSessionStatusTrigger } from "@/features/bot/components/bot-session-status-trigger";
 import { AddBotButton } from "@/features/meetings/components/add-bot-button";
 import { formatTimeRange } from "@/features/meetings/lib/calendar-utils";
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface CalendarEventItemProps {
   meeting: MeetingWithSession;
@@ -17,7 +19,11 @@ export function CalendarEventItem({
 }: CalendarEventItemProps) {
   const timeDisplay = formatTimeRange(meeting.start, meeting.end);
   const hasBotSession = !!meeting.botSession;
+  const botSession = meeting.botSession;
   const isPast = meeting.end <= new Date();
+  const hasRecording = !!(
+    botSession?.recordingId && botSession?.projectId
+  );
   const NoBotFallback = (
     <span className="text-xs text-muted-foreground">No bot</span>
   );
@@ -40,13 +46,27 @@ export function CalendarEventItem({
           </div>
           <span className="truncate font-medium">{meeting.title}</span>
         </div>
-        <div className="mt-0.5 flex items-center gap-1.5">
+        <div className="mt-0.5 flex min-h-[28px] items-center gap-1.5">
           <span className="text-muted-foreground">{timeDisplay}</span>
-          {hasBotSession && meeting.botSession ? (
-            <BotStatusBadge
-              status={meeting.botSession.botStatus}
-              className="scale-75"
-            />
+          {hasBotSession && botSession ? (
+            <>
+              <BotSessionStatusTrigger
+                status={botSession.botStatus}
+                sessionId={botSession.id}
+                error={botSession.error}
+                className="scale-75"
+              />
+              {hasRecording && (
+                <Link
+                  href={`/projects/${botSession.projectId}/recordings/${botSession.recordingId}`}
+                  className="inline-flex items-center rounded p-0.5 text-primary transition-colors hover:bg-accent hover:text-accent-foreground"
+                  aria-label="View recording"
+                  title="View recording"
+                >
+                  <FileVideoIcon className="h-3.5 w-3.5" />
+                </Link>
+              )}
+            </>
           ) : isPast ? (
             NoBotFallback
           ) : (
@@ -80,13 +100,31 @@ export function CalendarEventItem({
             </div>
           )}
         </div>
-        {hasBotSession && meeting.botSession ? (
-          <BotStatusBadge status={meeting.botSession.botStatus} />
-        ) : isPast ? (
-          NoBotFallback
-        ) : (
-          <AddBotButton meeting={meeting} variant="icon" />
-        )}
+        <div className="flex min-h-[44px] flex-col items-end justify-center gap-1">
+          {hasBotSession && botSession ? (
+            <>
+              <BotSessionStatusTrigger
+                status={botSession.botStatus}
+                sessionId={botSession.id}
+                error={botSession.error}
+              />
+              {hasRecording && (
+                <Link
+                  href={`/projects/${botSession.projectId}/recordings/${botSession.recordingId}`}
+                  className="inline-flex items-center gap-1 text-xs text-primary transition-colors hover:underline"
+                  aria-label="View recording"
+                >
+                  <FileVideoIcon className="h-3.5 w-3.5" />
+                  <span>View Recording</span>
+                </Link>
+              )}
+            </>
+          ) : isPast ? (
+            NoBotFallback
+          ) : (
+            <AddBotButton meeting={meeting} variant="icon" />
+          )}
+        </div>
       </div>
     </div>
   );
