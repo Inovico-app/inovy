@@ -1,6 +1,9 @@
 import { useMemo } from "react";
-import type { MeetingWithSession, MeetingBotStatus } from "../lib/calendar-utils";
-import { getMeetingBotStatus } from "../lib/calendar-utils";
+import type { MeetingWithSession, MeetingBotStatusFilter } from "../lib/calendar-utils";
+import {
+  getMeetingBotStatus,
+  WITH_BOT_STATUSES,
+} from "../lib/calendar-utils";
 
 interface UseMeetingStatusCountsOptions {
   meetings: MeetingWithSession[];
@@ -8,28 +11,33 @@ interface UseMeetingStatusCountsOptions {
 
 export function useMeetingStatusCounts({
   meetings,
-}: UseMeetingStatusCountsOptions): Record<MeetingBotStatus | "all", number> {
+}: UseMeetingStatusCountsOptions): Record<MeetingBotStatusFilter, number> {
   return useMemo(() => {
-    const counts: Record<MeetingBotStatus | "all", number> = {
-      all: 0,
-      scheduled: 0,
-      joining: 0,
-      active: 0,
-      leaving: 0,
-      completed: 0,
-      failed: 0,
+    const counts: Record<MeetingBotStatusFilter, number> = {
+      all: meetings.length,
+      with_bot: 0,
+      without_bot: 0,
       pending_consent: 0,
-      no_bot: 0,
+      active: 0,
+      failed: 0,
     };
 
     for (const meeting of meetings) {
       const status = getMeetingBotStatus(meeting, meeting.botSession);
-      if (status in counts) {
-        counts[status]++;
+
+      if (WITH_BOT_STATUSES.includes(status)) {
+        counts.with_bot++;
+      }
+      if (status === "no_bot") {
+        counts.without_bot++;
+      } else if (status === "pending_consent") {
+        counts.pending_consent++;
+      } else if (status === "active") {
+        counts.active++;
+      } else if (status === "failed") {
+        counts.failed++;
       }
     }
-
-    counts.all = meetings.length;
 
     return counts;
   }, [meetings]);

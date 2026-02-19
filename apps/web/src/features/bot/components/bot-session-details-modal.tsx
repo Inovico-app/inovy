@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import type { BotSessionWithRecording } from "@/features/bot/types/bot-session.types";
-import { BotStatusBadge } from "./bot-status-badge";
 import Link from "next/link";
+import { BotStatusBadge } from "./bot-status-badge";
 
 function formatDate(date: Date | null) {
   if (!date) return "N/A";
@@ -69,7 +69,10 @@ export function BotSessionDetailsModal({
             {hasSession ? (
               <>
                 {session.meetingTitle || "Untitled Meeting"}
-                <BotStatusBadge status={session.botStatus} error={session.error} />
+                <BotStatusBadge
+                  status={session.botStatus}
+                  error={session.error}
+                />
               </>
             ) : (
               "Bot Session Details"
@@ -123,7 +126,9 @@ export function BotSessionDetailsModal({
                 )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Recall Bot ID:</span>
-                  <span className="font-mono text-xs">{session.recallBotId}</span>
+                  <span className="font-mono text-xs">
+                    {session.recallBotId}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Recall Status:</span>
@@ -251,3 +256,4 @@ export function BotSessionDetailsModal({
     </Dialog>
   );
 }
+

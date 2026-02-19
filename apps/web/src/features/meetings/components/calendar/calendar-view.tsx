@@ -3,9 +3,16 @@
 import { CalendarGrid } from "./calendar-grid";
 import { CalendarHeader, type CalendarView } from "./calendar-header";
 import { MeetingsList } from "../meetings/meetings-list";
-import { matchMeetingsWithSessions, filterMeetingsByBotStatus, sortMeetingsChronologically, getMonthRange } from "@/features/meetings/lib/calendar-utils";
-import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
-import type { MeetingBotStatus } from "@/features/meetings/lib/calendar-utils";
+import {
+  matchMeetingsWithSessions,
+  filterMeetingsByBotStatus,
+  getMonthRange,
+  validateBotStatus,
+} from "@/features/meetings/lib/calendar-utils";
+import type {
+  MeetingWithSession,
+  MeetingBotStatusFilter,
+} from "@/features/meetings/lib/calendar-utils";
 import { useMeetingsQuery } from "@/features/meetings/hooks/use-meetings-query";
 import { useBotSessionsQuery } from "@/features/meetings/hooks/use-bot-sessions-query";
 import { addMonths, format, parse, startOfMonth, isWithinInterval } from "date-fns";
@@ -18,11 +25,12 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useMemo } from "react";
-import { paginateMeetings } from "@/features/meetings/lib/meetings-pagination";
+import { paginateMeetingsOnly } from "@/features/meetings/lib/meetings-pagination";
+import { useMeetingStatusCounts } from "@/features/meetings/hooks/use-meeting-status-counts";
 
 interface CalendarViewProps {
   initialDate?: Date;
-  selectedStatus?: MeetingBotStatus | "all";
+  selectedStatus?: MeetingBotStatusFilter;
 }
 
 const VIEW_STORAGE_KEY = "meetings-view-preference";
@@ -52,7 +60,7 @@ export function CalendarViewComponent({
     "botStatus",
     parseAsString.withDefault(initialSelectedStatus)
   );
-  const selectedStatus = (selectedStatusParam as MeetingBotStatus | "all") || initialSelectedStatus;
+  const selectedStatus = validateBotStatus(selectedStatusParam);
 
   // Parse month from URL param or use initialDate
   const currentDate = monthParam
@@ -97,18 +105,24 @@ export function CalendarViewComponent({
     [meetingsForCurrentMonth, botSessions]
   );
 
-  // Paginate meetings for list view
+  // Filter meetings for both views
+  const filteredMeetings = useMemo(
+    () => filterMeetingsByBotStatus(meetingsWithSessions, selectedStatus),
+    [meetingsWithSessions, selectedStatus]
+  );
+
+  // Paginate meetings for list view (filteredMeetings is pre-filtered)
   const paginatedResult = useMemo(() => {
     if (view === "list") {
-      return paginateMeetings(meetingsWithSessions, {
+      return paginateMeetingsOnly(filteredMeetings, {
         page: currentPage,
         pageSize: 20,
-        botStatus: selectedStatus,
       });
     }
     return null;
-  }, [view, meetingsWithSessions, currentPage, selectedStatus]);
+  }, [view, filteredMeetings, currentPage]);
 
+  const statusCounts = useMeetingStatusCounts({ meetings: meetingsWithSessions });
   const isLoading = isLoadingMeetings || isLoadingBotSessions;
 
   // Initialize view from localStorage if URL param is missing (client-side only)
@@ -180,11 +194,10 @@ export function CalendarViewComponent({
     }
   };
 
-  const handleStatusChange = (status: MeetingBotStatus | "all") => {
+  const handleStatusChange = (status: MeetingBotStatusFilter) => {
     setSelectedStatusParam(status);
     // Reset to page 1 when changing filter
     setCurrentPage(1);
-    // No router.refresh() needed - client-side filtering
   };
 
   const handlePageChange = (page: number) => {
@@ -198,6 +211,9 @@ export function CalendarViewComponent({
     // No router.refresh() needed - client-side filtering
   };
 
+  const filteredCount = filteredMeetings.length;
+  const totalCount = meetingsWithSessions.length;
+
   return (
     <div className="space-y-4">
       <CalendarHeader
@@ -207,6 +223,12 @@ export function CalendarViewComponent({
         onPreviousMonth={handlePreviousMonth}
         onNextMonth={handleNextMonth}
         onToday={handleToday}
+        selectedStatus={selectedStatus}
+        onStatusChange={handleStatusChange}
+        statusCounts={statusCounts}
+        filteredCount={filteredCount}
+        totalCount={totalCount}
+        onClearFilters={handleClearFilters}
       />
       <div ref={viewContainerRef} className="relative min-h-[400px]">
         <AnimatePresence mode="wait">
@@ -231,7 +253,7 @@ export function CalendarViewComponent({
               ) : (
                 <CalendarGrid
                   currentDate={currentDate}
-                  meetings={meetingsWithSessions}
+                  meetings={filteredMeetings}
                   onDayClick={handleDayClick}
                 />
               )}
@@ -258,12 +280,11 @@ export function CalendarViewComponent({
               ) : paginatedResult ? (
                 <MeetingsList
                   meetings={paginatedResult.meetings}
-                  allMeetings={meetingsWithSessions}
                   currentPage={paginatedResult.currentPage}
                   totalPages={paginatedResult.totalPages}
                   total={paginatedResult.total}
-                  selectedStatus={selectedStatus}
-                  onStatusChange={handleStatusChange}
+                  allMeetingsCount={meetingsWithSessions.length}
+                  isFiltered={selectedStatus !== "all"}
                   onPageChange={handlePageChange}
                   onClearFilters={handleClearFilters}
                 />
