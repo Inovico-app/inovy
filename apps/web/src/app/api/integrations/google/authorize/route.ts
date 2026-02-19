@@ -1,7 +1,10 @@
+import {
+  getAuthorizationUrl,
+  getGoogleRedirectUri,
+} from "@/features/integrations/google/lib/google-oauth";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { logger } from "@/lib/logger";
 import { type NextRequest, NextResponse } from "next/server";
-import { getAuthorizationUrl } from "../../../../../features/integrations/google/lib/google-oauth";
-import { getBetterAuthSession } from "../../../../../lib/better-auth-session";
-import { logger } from "../../../../../lib/logger";
 
 /**
  * GET /api/integrations/google/authorize
@@ -45,12 +48,8 @@ export async function GET(request: NextRequest) {
       })
     ).toString("base64");
 
-    // Build redirect URI dynamically from request URL to avoid redirect_uri_mismatch
-    // This ensures the redirect URI matches the current request origin
-    const callbackUrl = new URL(
-      "/api/integrations/google/callback",
-      request.url
-    ).toString();
+    // Use GOOGLE_REDIRECT_URI when set (production), else derive from request (local dev)
+    const callbackUrl = getGoogleRedirectUri(request.url);
 
     // Get authorization URL with dynamic redirect URI
     const authUrl = getAuthorizationUrl(state, callbackUrl);
