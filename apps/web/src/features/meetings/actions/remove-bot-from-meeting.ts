@@ -25,7 +25,7 @@ const STATUSES_REQUIRING_TERMINATION = [
  */
 export const removeBotFromMeeting = authorizedActionClient
   .metadata({
-    permissions: policyToPermissions("recordings:create"),
+    permissions: policyToPermissions("recordings:delete"),
     name: "remove-bot-from-meeting",
   })
   .schema(removeBotFromMeetingSchema)
@@ -52,19 +52,14 @@ export const removeBotFromMeeting = authorizedActionClient
       sessionId,
     });
 
-    // Find session by calendarEventId or sessionId
+    // Find session by calendarEventId or sessionId (schema guarantees at least one)
     let session;
     if (sessionId) {
       session = await BotSessionsQueries.findById(sessionId, organizationId);
-    } else if (calendarEventId) {
-      session = await BotSessionsQueries.findByCalendarEventId(
-        calendarEventId,
-        organizationId
-      );
     } else {
-      throw ActionErrors.badRequest(
-        "Either calendarEventId or sessionId must be provided",
-        "remove-bot-from-meeting"
+      session = await BotSessionsQueries.findByCalendarEventId(
+        calendarEventId!,
+        organizationId
       );
     }
 
@@ -94,7 +89,7 @@ export const removeBotFromMeeting = authorizedActionClient
         session.recallBotId
       );
 
-      if (terminateResult?.isErr()) {
+      if (terminateResult.isErr()) {
         logger.warn("Failed to terminate bot session via provider", {
           userId: user.id,
           organizationId,

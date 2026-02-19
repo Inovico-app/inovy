@@ -8,6 +8,7 @@ import {
 import { toast } from "sonner";
 import { addBotToMeeting } from "../actions/add-bot-to-meeting";
 import type { BotSession } from "@/server/db/schema/bot-sessions";
+import { queryKeys } from "@/lib/query-keys";
 
 interface UseAddBotToMeetingOptions {
   onConsentRequired?: () => void;
@@ -19,8 +20,6 @@ export interface AddBotToMeetingInput {
   meetingTitle?: string;
   consentGiven?: boolean;
 }
-
-const BOT_SESSIONS_QUERY_KEY = ["bot-sessions"] as const;
 
 function createOptimisticSession(calendarEventId: string): BotSession {
   return {
@@ -67,10 +66,12 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
       return result.data;
     },
     onMutate: async (input) => {
-      await queryClient.cancelQueries({ queryKey: BOT_SESSIONS_QUERY_KEY });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.botSessions.all,
+      });
 
       const previousData = queryClient.getQueriesData<Record<string, BotSession>>(
-        { queryKey: BOT_SESSIONS_QUERY_KEY }
+        { queryKey: queryKeys.botSessions.all }
       );
 
       // Skip optimistic update when consent may be required (avoids flicker on consent dialog)
@@ -81,7 +82,7 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
       const optimisticSession = createOptimisticSession(input.calendarEventId);
 
       queryClient.setQueriesData<Record<string, BotSession>>(
-        { queryKey: BOT_SESSIONS_QUERY_KEY },
+        { queryKey: queryKeys.botSessions.all },
         (old) => {
           if (!old) return old;
           if (old[input.calendarEventId]) return old;
@@ -117,7 +118,9 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
         toast.success("Bot added to meeting", {
           description: "The bot will join when the meeting starts.",
         });
-        queryClient.invalidateQueries({ queryKey: BOT_SESSIONS_QUERY_KEY });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.botSessions.all,
+        });
       }
     },
   });

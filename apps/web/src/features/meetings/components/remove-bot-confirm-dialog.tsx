@@ -35,10 +35,6 @@ export function RemoveBotConfirmDialog({
   meetingTitle,
   isRemoving = false,
 }: RemoveBotConfirmDialogProps) {
-  const handleConfirm = () => {
-    onConfirm();
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -70,12 +66,15 @@ export function RemoveBotConfirmDialog({
           </Button>
           <Button
             variant="destructive"
-            onClick={handleConfirm}
+            onClick={onConfirm}
             disabled={isRemoving}
           >
             {isRemoving ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2
+                  className="h-4 w-4 mr-2 animate-spin"
+                  aria-hidden={true}
+                />
                 Removing...
               </>
             ) : (
