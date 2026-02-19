@@ -10,8 +10,25 @@ type OAuth2Client = InstanceType<typeof google.auth.OAuth2>;
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/integrations/google/callback`;
+const GOOGLE_REDIRECT_URI =
+  process.env.GOOGLE_REDIRECT_URI ||
+  `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/integrations/google/callback`;
 const OAUTH_ENCRYPTION_KEY = process.env.OAUTH_ENCRYPTION_KEY;
+
+/**
+ * Get the redirect URI for the OAuth flow.
+ * Uses GOOGLE_REDIRECT_URI when set (production with custom domain),
+ * otherwise derives from request URL (local development).
+ */
+export function getGoogleRedirectUri(requestUrl?: string): string {
+  if (process.env.GOOGLE_REDIRECT_URI) {
+    return process.env.GOOGLE_REDIRECT_URI;
+  }
+  if (requestUrl) {
+    return new URL("/api/integrations/google/callback", requestUrl).toString();
+  }
+  return `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/integrations/google/callback`;
+}
 
 function validateEnvironment() {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {

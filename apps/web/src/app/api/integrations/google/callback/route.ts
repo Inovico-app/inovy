@@ -1,3 +1,4 @@
+import { getGoogleRedirectUri } from "@/features/integrations/google/lib/google-oauth";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
@@ -94,12 +95,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Build redirect URI dynamically from request URL to match authorization
-    // This must match exactly the redirect URI used during authorization
-    const callbackUrl = new URL(
-      "/api/integrations/google/callback",
-      request.url
-    ).toString();
+    // Use GOOGLE_REDIRECT_URI when set (production), else derive from request (local dev)
+    const callbackUrl = getGoogleRedirectUri(request.url);
 
     // Store OAuth connection (must use same redirect URI as authorization)
     const result = await GoogleOAuthService.storeConnection(
