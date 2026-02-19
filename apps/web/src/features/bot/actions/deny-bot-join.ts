@@ -14,7 +14,7 @@ import { denyBotJoinSchema } from "@/server/validation/bot/deny-bot-join.schema"
  * Server action to deny/cancel a bot session requiring consent
  */
 export const denyBotJoin = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:create") })
+  .metadata({ permissions: policyToPermissions("recordings:delete") })
   .schema(denyBotJoinSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { sessionId } = parsedInput;

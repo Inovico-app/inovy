@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getBotSessions } from "../actions/get-bot-sessions";
 import type { BotSession } from "@/server/db/schema/bot-sessions";
+import { queryKeys } from "@/lib/query-keys";
 
 interface UseBotSessionsQueryOptions {
   calendarEventIds: string[];
@@ -17,7 +18,7 @@ export function useBotSessionsQuery({
   enabled = true,
 }: UseBotSessionsQueryOptions) {
   return useQuery({
-    queryKey: ["bot-sessions", [...(calendarEventIds || [])].sort().join(",")],
+    queryKey: queryKeys.botSessions.byCalendarEvents(calendarEventIds),
     queryFn: async () => {
       if (calendarEventIds.length === 0) {
         return {} as Record<string, BotSession>;
