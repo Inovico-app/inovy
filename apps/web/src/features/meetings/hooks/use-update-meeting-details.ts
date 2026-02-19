@@ -25,7 +25,7 @@ export function useUpdateMeetingDetails(
         options?.onSuccess?.();
       } else if (data !== undefined) {
         toast.error("Failed to update meeting", {
-          description: (data as { message?: string }).message || "Please try again",
+          description: "Please try again",
         });
         options?.onError?.();
       }
@@ -34,6 +34,7 @@ export function useUpdateMeetingDetails(
       toast.error("Failed to update meeting", {
         description: error.serverError || "Please try again",
       });
+      options?.onError?.();
     },
   });
 

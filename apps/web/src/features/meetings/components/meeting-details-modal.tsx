@@ -34,7 +34,6 @@ import { useUpdateBotSessionProject } from "../hooks/use-update-bot-session-proj
 import { useUpdateMeetingDetails } from "../hooks/use-update-meeting-details";
 import {
   formatMeetingDuration,
-  formatTimeRange,
   getAttendeesCount,
 } from "../lib/calendar-utils";
 import type { MeetingWithSession } from "../lib/calendar-utils";
@@ -72,6 +71,39 @@ function formatDateForInput(date: Date): string {
 
 function formatTimeForInput(date: Date): string {
   return format(date, "HH:mm");
+}
+
+function DurationAndAttendeesDisplay({
+  meeting,
+  startDate,
+  startTime,
+  endDate,
+  endTime,
+}: {
+  meeting: MeetingWithSession;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+}) {
+  const start =
+    startDate && startTime
+      ? new Date(`${startDate}T${startTime}:00`)
+      : meeting.start;
+  const end =
+    endDate && endTime ? new Date(`${endDate}T${endTime}:00`) : meeting.end;
+  const duration = formatMeetingDuration(start, end);
+  const attendeeCount = getAttendeesCount(meeting);
+  return (
+    <>
+      Duration: {duration}
+      {attendeeCount > 0 && (
+        <span className="ml-2">
+          • {attendeeCount} attendee{attendeeCount !== 1 ? "s" : ""}
+        </span>
+      )}
+    </>
+  );
 }
 
 interface MeetingDetailsModalProps {
@@ -383,17 +415,13 @@ export function MeetingDetailsModal({
                 </div>
 
                 <div className="text-sm text-muted-foreground">
-                  Duration:{" "}
-                  {formatMeetingDuration(
-                    new Date(meeting.start),
-                    new Date(meeting.end)
-                  )}
-                  {meeting.attendees && meeting.attendees.length > 0 && (
-                    <span className="ml-2">
-                      • {getAttendeesCount(meeting)} attendee
-                      {getAttendeesCount(meeting) !== 1 ? "s" : ""}
-                    </span>
-                  )}
+                  <DurationAndAttendeesDisplay
+                    meeting={meeting}
+                    startDate={watch("startDate")}
+                    startTime={watch("startTime")}
+                    endDate={watch("endDate")}
+                    endTime={watch("endTime")}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -485,7 +513,7 @@ export function MeetingDetailsModal({
                         <div className="space-y-2">
                           <Label htmlFor="bot-project">Project</Label>
                           <Select
-                            defaultValue={botSession.projectId}
+                            value={botSession.projectId ?? ""}
                             onValueChange={(projectId) =>
                               updateProject({
                                 sessionId: botSession.id,

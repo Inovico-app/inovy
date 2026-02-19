@@ -43,6 +43,12 @@ export const updateMeetingDetails = authorizedActionClient
     const { calendarEventId, title, start, end, addMeetLinkIfMissing } =
       parsedInput;
 
+    if (start !== undefined && end !== undefined && end.getTime() <= start.getTime()) {
+      throw createErrorForNextSafeAction(
+        ActionErrors.badRequest("End must be after start", "update-meeting-details")
+      );
+    }
+
     logger.info("Updating meeting details", {
       userId: user.id,
       organizationId,

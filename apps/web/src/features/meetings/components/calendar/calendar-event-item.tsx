@@ -82,7 +82,7 @@ export function CalendarEventItem({
     );
     return (
       <div
-        role={onMeetingClick ? "button" : "group"}
+        {...(onMeetingClick && { role: "button" })}
         aria-label={`${meeting.title} - ${timeDisplay}`}
         className={wrapperClassName}
         title={`${meeting.title} - ${timeDisplay}`}

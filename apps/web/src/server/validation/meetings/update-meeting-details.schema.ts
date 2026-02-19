@@ -15,6 +15,15 @@ export const updateMeetingDetailsSchema = z
       data.end !== undefined ||
       data.addMeetLinkIfMissing === true,
     { message: "At least one field to update is required" }
+  )
+  .refine(
+    (data) => {
+      if (data.start !== undefined && data.end !== undefined) {
+        return data.end.getTime() > data.start.getTime();
+      }
+      return true;
+    },
+    { message: "End must be after start" }
   );
 
 export type UpdateMeetingDetailsInput = z.infer<

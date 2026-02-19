@@ -1,4 +1,4 @@
-import { google } from "googleapis";
+import { google, type calendar_v3 } from "googleapis";
 import { err, ok } from "neverthrow";
 import { createGoogleOAuthClient } from "../../features/integrations/google/lib/google-oauth";
 import { logger } from "../../lib/logger";
@@ -387,12 +387,27 @@ export class GoogleCalendarService {
         Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       // Fetch existing event to check for Meet link and build patch
-      const existingResult = await calendar.events.get({
-        calendarId,
-        eventId,
-      });
+      let existing: calendar_v3.Schema$Event | null | undefined;
+      try {
+        const existingResult = await calendar.events.get({
+          calendarId,
+          eventId,
+        });
+        existing = existingResult.data;
+      } catch (getError) {
+        const status = (getError as { response?: { status?: number } })
+          ?.response?.status;
+        if (status === 404) {
+          return err(
+            ActionErrors.notFound(
+              "Calendar event not found",
+              "GoogleCalendarService.updateEvent"
+            )
+          );
+        }
+        throw getError;
+      }
 
-      const existing = existingResult.data;
       if (!existing) {
         return err(
           ActionErrors.notFound(

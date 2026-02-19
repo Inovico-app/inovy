@@ -25,7 +25,7 @@ export function useUpdateBotSessionMeetingUrl(
         options?.onSuccess?.();
       } else if (data !== undefined) {
         toast.error("Failed to update meeting URL", {
-          description: (data as { message?: string }).message || "Please try again",
+          description: "Please try again",
         });
         options?.onError?.();
       }
@@ -34,6 +34,7 @@ export function useUpdateBotSessionMeetingUrl(
       toast.error("Failed to update meeting URL", {
         description: error.serverError || "Please try again",
       });
+      options?.onError?.();
     },
   });
 

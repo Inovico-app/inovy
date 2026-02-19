@@ -27,7 +27,7 @@ export function useUpdateBotSessionProject(
         options?.onSuccess?.();
       } else if (data !== undefined) {
         toast.error("Failed to update project", {
-          description: (data as { message?: string }).message || "Please try again",
+          description: "Please try again",
         });
         options?.onError?.();
       }
@@ -36,6 +36,7 @@ export function useUpdateBotSessionProject(
       toast.error("Failed to update project", {
         description: error.serverError || "Please try again",
       });
+      options?.onError?.();
     },
   });
 
