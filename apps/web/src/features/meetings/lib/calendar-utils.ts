@@ -191,31 +191,50 @@ export function formatAttendeesCount(meeting: CalendarEvent): string {
 export type MeetingBotStatus = BotStatus | "no_bot";
 
 /**
- * Valid bot status values including "no_bot" and "all"
+ * Filter options for meetings (story-aligned: All, With Bot, Without Bot, Pending Consent, Active, Failed)
  */
-const VALID_BOT_STATUSES: Array<MeetingBotStatus | "all"> = [
-  "all",
+export type MeetingBotStatusFilter =
+  | "all"
+  | "with_bot"
+  | "without_bot"
+  | "pending_consent"
+  | "active"
+  | "failed";
+
+/**
+ * Statuses that count as "with bot" (has bot session)
+ */
+const WITH_BOT_STATUSES: MeetingBotStatus[] = [
   "scheduled",
   "joining",
   "active",
   "leaving",
   "completed",
-  "failed",
-  "pending_consent",
-  "no_bot",
-] as const;
+];
 
 /**
- * Validate and normalize bot status parameter
+ * Valid filter values for URL/state
+ */
+const VALID_BOT_STATUS_FILTERS: MeetingBotStatusFilter[] = [
+  "all",
+  "with_bot",
+  "without_bot",
+  "pending_consent",
+  "active",
+  "failed",
+];
+
+/**
+ * Validate and normalize bot status filter parameter
  */
 export function validateBotStatus(
   status: string | undefined
-): MeetingBotStatus | "all" {
+): MeetingBotStatusFilter {
   if (!status) {
     return "all";
   }
-  return VALID_BOT_STATUSES.includes(status as MeetingBotStatus | "all")
-    ? (status as MeetingBotStatus | "all")
+  return VALID_BOT_STATUS_FILTERS.includes(status as MeetingBotStatusFilter)
+    ? (status as MeetingBotStatusFilter)
     : "all";
 }
 
@@ -230,19 +249,43 @@ export function getMeetingBotStatus(
 }
 
 /**
+ * Check if meeting matches the given filter
+ */
+function meetingMatchesFilter(
+  meeting: MeetingWithSession,
+  filter: MeetingBotStatusFilter
+): boolean {
+  const status = getMeetingBotStatus(meeting, meeting.botSession);
+
+  switch (filter) {
+    case "all":
+      return true;
+    case "with_bot":
+      return WITH_BOT_STATUSES.includes(status);
+    case "without_bot":
+      return status === "no_bot";
+    case "pending_consent":
+      return status === "pending_consent";
+    case "active":
+      return status === "active";
+    case "failed":
+      return status === "failed";
+    default:
+      return true;
+  }
+}
+
+/**
  * Filter meetings by bot status
  */
 export function filterMeetingsByBotStatus(
   meetings: MeetingWithSession[],
-  status: MeetingBotStatus | "all"
+  status: MeetingBotStatusFilter
 ): MeetingWithSession[] {
   if (status === "all") {
     return meetings;
   }
-  return meetings.filter((meeting) => {
-    const meetingStatus = getMeetingBotStatus(meeting, meeting.botSession);
-    return meetingStatus === status;
-  });
+  return meetings.filter((meeting) => meetingMatchesFilter(meeting, status));
 }
 
 /**

@@ -2,7 +2,7 @@ import type { MeetingWithSession } from "./calendar-utils";
 import {
   filterMeetingsByBotStatus,
   sortMeetingsChronologically,
-  type MeetingBotStatus,
+  type MeetingBotStatusFilter,
 } from "./calendar-utils";
 
 export interface PaginatedMeetingsResult {
@@ -23,7 +23,7 @@ export function paginateMeetings(
   options?: {
     page?: number;
     pageSize?: number;
-    botStatus?: MeetingBotStatus | "all";
+    botStatus?: MeetingBotStatusFilter;
   }
 ): PaginatedMeetingsResult {
   const page = options?.page ?? 1;
