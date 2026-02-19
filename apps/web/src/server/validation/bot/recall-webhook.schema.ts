@@ -6,7 +6,7 @@ import { z } from "zod";
  * Per https://docs.recall.ai/docs/bot-status-change-events and https://docs.recall.ai/docs/recording-webhooks
  */
 
-const metadataSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional();
+const metadataSchema = z.record(z.string(), z.string()).optional();
 
 const svixDataSchema = z.object({
   code: z.string().optional(),
@@ -93,8 +93,10 @@ export const botRecordingReadyEventSchema = z.object({
 });
 
 /**
- * Union for all webhook event formats
- * Tries Svix first (event in data.bot), then legacy
+ * Union for all webhook event formats.
+ * z.union evaluates members in order; svixBotStatusEventSchema and svixRecordingEventSchema
+ * must come before botStatusChangeEventSchema and botRecordingReadyEventSchema to ensure
+ * correct fall-through (Svix format has data.bot discriminant; legacy has top-level bot).
  */
 export const recallWebhookEventSchema = z.union([
   svixBotStatusEventSchema,

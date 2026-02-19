@@ -1,3 +1,4 @@
+import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
 import { put } from "@vercel/blob";
 import { err, ok } from "neverthrow";
 import { start } from "workflow/api";
@@ -36,7 +37,7 @@ function getMetadata(payload: RecallWebhookEvent): Record<string, string> | unde
   return undefined;
 }
 
-function getBotId(payload: RecallWebhookEvent): string {
+export function getBotId(payload: RecallWebhookEvent): string {
   if ("data" in payload && payload.data?.bot) return payload.data.bot.id;
   if ("bot" in payload) return payload.bot.id;
   return "";
@@ -57,7 +58,7 @@ export class BotWebhookService {
    * Process bot status change event (Svix or legacy format)
    */
   static async processStatusChange(
-    event: RecallWebhookEvent & (SvixBotStatusEvent | BotStatusChangeEvent)
+    event: SvixBotStatusEvent | BotStatusChangeEvent
   ): Promise<ActionResult<void>> {
     try {
       const botId = getBotId(event);
@@ -182,7 +183,7 @@ export class BotWebhookService {
   ): Promise<ActionResult<void>> {
     try {
       const { recording, bot } = event.data;
-      const metadata = bot.metadata as Record<string, string> | undefined;
+      const metadata = getMetadata(event);
       const projectId = metadata?.projectId;
       const organizationId = metadata?.organizationId;
       const userId = metadata?.userId;
@@ -247,26 +248,10 @@ export class BotWebhookService {
           "done"
         );
         if (updatedSession) {
-          try {
-            const workflowRun = await start(convertRecordingIntoAiInsights, [
-              existingRecording.id,
-            ]);
-            logger.info("AI processing workflow triggered for existing recording", {
-              component: "BotWebhookService.processRecordingDone",
-              recordingId: existingRecording.id,
-              run: {
-                id: workflowRun.runId,
-                name: workflowRun.workflowName,
-                status: workflowRun.status,
-              },
-            });
-          } catch (error) {
-            logger.error("Failed to trigger AI processing workflow", {
-              component: "BotWebhookService.processRecordingDone",
-              recordingId: existingRecording.id,
-              error: serializeError(error),
-            });
-          }
+          await this.triggerAiWorkflow(
+            existingRecording.id,
+            "BotWebhookService.processRecordingDone"
+          );
         }
         return ok(undefined);
       }
@@ -292,10 +277,48 @@ export class BotWebhookService {
       const timestamp = Date.now();
       const blobPath = `recordings/${timestamp}-${fileName}`;
 
-      const blob = await put(blobPath, fileBuffer, {
-        access: "public",
+      const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+      let fileToUpload: Buffer = fileBuffer;
+      let encryptionMetadata: string | null = null;
+
+      if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
+        logger.error("Encryption enabled but master key not configured", {
+          component: "BotWebhookService.processRecordingDone",
+        });
+        return err(
+          ActionErrors.internal(
+            "Encryption configuration error",
+            undefined,
+            "BotWebhookService.processRecordingDone"
+          )
+        );
+      }
+
+      if (shouldEncrypt) {
+        try {
+          const encryptedBase64 = encrypt(fileBuffer);
+          const encryptedBuffer = Buffer.from(encryptedBase64, "base64");
+          fileToUpload = encryptedBuffer;
+          encryptionMetadata = JSON.stringify(generateEncryptionMetadata());
+        } catch (encryptError) {
+          logger.error("Failed to encrypt recording", {
+            component: "BotWebhookService.processRecordingDone",
+            error: serializeError(encryptError),
+          });
+          return err(
+            ActionErrors.internal(
+              "Failed to encrypt recording",
+              encryptError as Error,
+              "BotWebhookService.processRecordingDone"
+            )
+          );
+        }
+      }
+
+      const blob = await put(blobPath, fileToUpload, {
+        access: shouldEncrypt ? "private" : "public",
         contentType: mimeType,
-      });
+      } as Parameters<typeof put>[2]);
 
       const createResult = await RecordingService.createRecording(
         {
@@ -314,6 +337,8 @@ export class BotWebhookService {
           organizationId,
           createdById: userId,
           externalRecordingId: recording.id,
+          isEncrypted: shouldEncrypt,
+          encryptionMetadata,
         },
         true
       );
@@ -331,26 +356,10 @@ export class BotWebhookService {
         "done"
       );
 
-      try {
-        const workflowRun = await start(convertRecordingIntoAiInsights, [
-          finalRecordingId,
-        ]);
-        logger.info("AI processing workflow triggered", {
-          component: "BotWebhookService.processRecordingDone",
-          recordingId: finalRecordingId,
-          run: {
-            id: workflowRun.runId,
-            name: workflowRun.workflowName,
-            status: workflowRun.status,
-          },
-        });
-      } catch (error) {
-        logger.error("Failed to trigger AI processing workflow", {
-          component: "BotWebhookService.processRecordingDone",
-          recordingId: finalRecordingId,
-          error: serializeError(error),
-        });
-      }
+      await this.triggerAiWorkflow(
+        finalRecordingId,
+        "BotWebhookService.processRecordingDone"
+      );
 
       logger.info("Recording processed and bot session updated", {
         component: "BotWebhookService.processRecordingDone",
@@ -451,10 +460,48 @@ export class BotWebhookService {
         const timestamp = Date.now();
         const blobPath = `recordings/${timestamp}-${fileName}`;
 
-        const blob = await put(blobPath, fileBuffer, {
-          access: "public",
+        const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+        let fileToUpload: Buffer = fileBuffer;
+        let encryptionMetadata: string | null = null;
+
+        if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
+          logger.error("Encryption enabled but master key not configured", {
+            component: "BotWebhookService.processRecordingReady",
+          });
+          return err(
+            ActionErrors.internal(
+              "Encryption configuration error",
+              undefined,
+              "BotWebhookService.processRecordingReady"
+            )
+          );
+        }
+
+        if (shouldEncrypt) {
+          try {
+            const encryptedBase64 = encrypt(fileBuffer);
+            const encryptedBuffer = Buffer.from(encryptedBase64, "base64");
+            fileToUpload = encryptedBuffer;
+            encryptionMetadata = JSON.stringify(generateEncryptionMetadata());
+          } catch (encryptError) {
+            logger.error("Failed to encrypt recording", {
+              component: "BotWebhookService.processRecordingReady",
+              error: serializeError(encryptError),
+            });
+            return err(
+              ActionErrors.internal(
+                "Failed to encrypt recording",
+                encryptError as Error,
+                "BotWebhookService.processRecordingReady"
+              )
+            );
+          }
+        }
+
+        const blob = await put(blobPath, fileToUpload, {
+          access: shouldEncrypt ? "private" : "public",
           contentType: mimeType,
-        });
+        } as Parameters<typeof put>[2]);
 
         const recordingDate = meeting?.start_time
           ? new Date(meeting.start_time)
@@ -477,6 +524,8 @@ export class BotWebhookService {
             organizationId,
             createdById: userId,
             externalRecordingId: recording.id,
+            isEncrypted: shouldEncrypt,
+            encryptionMetadata,
           },
           true
         );
@@ -492,26 +541,10 @@ export class BotWebhookService {
         bot.status
       );
 
-      try {
-        const workflowRun = await start(convertRecordingIntoAiInsights, [
-          finalRecordingId,
-        ]);
-        logger.info("AI processing workflow triggered", {
-          component: "BotWebhookService.processRecordingReady",
-          recordingId: finalRecordingId,
-          run: {
-            id: workflowRun.runId,
-            name: workflowRun.workflowName,
-            status: workflowRun.status,
-          },
-        });
-      } catch (error) {
-        logger.error("Failed to trigger AI processing workflow", {
-          component: "BotWebhookService.processRecordingReady",
-          recordingId: finalRecordingId,
-          error: serializeError(error),
-        });
-      }
+      await this.triggerAiWorkflow(
+        finalRecordingId,
+        "BotWebhookService.processRecordingReady"
+      );
 
       return ok(undefined);
     } catch (error) {
@@ -538,7 +571,7 @@ export class BotWebhookService {
   ): Promise<ActionResult<void>> {
     try {
       const { bot, data } = event.data;
-      const metadata = bot.metadata as Record<string, string> | undefined;
+      const metadata = getMetadata(event);
       const organizationId = metadata?.organizationId;
 
       if (!organizationId || typeof organizationId !== "string") {
@@ -588,7 +621,7 @@ export class BotWebhookService {
   ): Promise<ActionResult<void>> {
     try {
       const { bot, recording } = event.data;
-      const metadata = bot.metadata as Record<string, string> | undefined;
+      const metadata = getMetadata(event);
       const organizationId = metadata?.organizationId;
 
       if (!organizationId) {
@@ -619,7 +652,39 @@ export class BotWebhookService {
         component: "BotWebhookService.processRecordingDeleted",
         error: serializeError(error),
       });
-      return ok(undefined);
+      return err(
+        ActionErrors.internal(
+          "Failed to process recording deleted",
+          error as Error,
+          "BotWebhookService.processRecordingDeleted"
+        )
+      );
+    }
+  }
+
+  private static async triggerAiWorkflow(
+    recordingId: string,
+    component: string
+  ): Promise<void> {
+    try {
+      const workflowRun = await start(convertRecordingIntoAiInsights, [
+        recordingId,
+      ]);
+      logger.info("AI processing workflow triggered", {
+        component,
+        recordingId,
+        run: {
+          id: workflowRun.runId,
+          name: workflowRun.workflowName,
+          status: workflowRun.status,
+        },
+      });
+    } catch (error) {
+      logger.error("Failed to trigger AI processing workflow", {
+        component,
+        recordingId,
+        error: serializeError(error),
+      });
     }
   }
 
@@ -627,7 +692,9 @@ export class BotWebhookService {
     url: string
   ): Promise<ActionResult<{ fileBuffer: Buffer; mimeType: string }>> {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(5 * 60 * 1000),
+      });
       if (!response.ok) {
         return err(
           ActionErrors.internal(

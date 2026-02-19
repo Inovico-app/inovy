@@ -1,10 +1,13 @@
 import { logger, serializeError } from "@/lib/logger";
+import type { ActionResult } from "@/lib/server-action-client/action-errors";
 import { verifyRequestFromRecall } from "@/server/lib/verify-recall-webhook";
-import { BotWebhookService } from "@/server/services/bot-webhook.service";
+import { BotWebhookService, getBotId } from "@/server/services/bot-webhook.service";
 import {
   recallWebhookEventSchema,
   type BotRecordingReadyEvent,
+  type BotStatusChangeEvent,
   type RecallWebhookEvent,
+  type SvixBotStatusEvent,
   type SvixRecordingEvent,
 } from "@/server/validation/bot/recall-webhook.schema";
 import { NextResponse, type NextRequest } from "next/server";
@@ -31,7 +34,7 @@ export async function POST(request: NextRequest) {
       logger.error("RECALL_WEBHOOK_SECRET not configured", {
         component: "POST /api/webhooks/recall",
       });
-      return okResponse({ success: false, error: "Webhook secret not configured" });
+      return okResponse({ success: false, error: "Unable to process request" });
     }
 
     const body = await request.text();
@@ -78,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     const eventType = payload.event;
-    const botId = "bot" in payload ? payload.bot.id : ("data" in payload ? payload.data.bot.id : "");
+    const botId = getBotId(payload);
 
     logger.info("Received Recall.ai webhook event", {
       component: "POST /api/webhooks/recall",
@@ -86,36 +89,36 @@ export async function POST(request: NextRequest) {
       botId,
     });
 
+    const eventHandlers: Record<
+      string,
+      (p: RecallWebhookEvent) => Promise<ActionResult<void>>
+    > = {
+      "bot.recording_ready": (p) =>
+        BotWebhookService.processRecordingReady(p as BotRecordingReadyEvent),
+      "recording.done": (p) =>
+        BotWebhookService.processRecordingDone(p as SvixRecordingEvent),
+      "recording.failed": (p) =>
+        BotWebhookService.processRecordingFailed(p as SvixRecordingEvent),
+      "recording.deleted": (p) =>
+        BotWebhookService.processRecordingDeleted(p as SvixRecordingEvent),
+    };
+
     let result;
 
-    if (eventType === "bot.recording_ready") {
-      result = await BotWebhookService.processRecordingReady(
-        payload as BotRecordingReadyEvent
-      );
-    } else if (eventType.startsWith("bot.")) {
-      result = await BotWebhookService.processStatusChange(
-        payload as Exclude<
-          RecallWebhookEvent,
-          BotRecordingReadyEvent | SvixRecordingEvent
-        >
-      );
-    } else if (eventType === "recording.done") {
-      result = await BotWebhookService.processRecordingDone(
-        payload as SvixRecordingEvent
-      );
-    } else if (eventType === "recording.failed") {
-      result = await BotWebhookService.processRecordingFailed(
-        payload as SvixRecordingEvent
-      );
-    } else if (eventType === "recording.processing") {
+    if (eventType === "recording.processing") {
       logger.info("Recording processing", {
         component: "POST /api/webhooks/recall",
         botId,
       });
       return okResponse();
-    } else if (eventType === "recording.deleted") {
-      result = await BotWebhookService.processRecordingDeleted(
-        payload as SvixRecordingEvent
+    }
+
+    const handler = eventHandlers[eventType];
+    if (handler) {
+      result = await handler(payload);
+    } else if (eventType.startsWith("bot.")) {
+      result = await BotWebhookService.processStatusChange(
+        payload as SvixBotStatusEvent | BotStatusChangeEvent
       );
     } else {
       logger.warn("Unknown webhook event type", {
