@@ -24,9 +24,10 @@ import {
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import { paginateMeetingsOnly } from "@/features/meetings/lib/meetings-pagination";
 import { useMeetingStatusCounts } from "@/features/meetings/hooks/use-meeting-status-counts";
+import { MeetingDetailsModal } from "../meeting-details-modal";
 
 interface CalendarViewProps {
   initialDate?: Date;
@@ -43,6 +44,9 @@ export function CalendarViewComponent({
   const viewContainerRef = useRef<HTMLDivElement>(null);
   const previousViewRef = useRef<string | null>(null);
   const hasInitializedFromStorage = useRef(false);
+  const [selectedMeeting, setSelectedMeeting] =
+    useState<MeetingWithSession | null>(null);
+  const [meetingModalOpen, setMeetingModalOpen] = useState(false);
 
   const [monthParam, setMonthParam] = useQueryState(
     "month",
@@ -211,6 +215,11 @@ export function CalendarViewComponent({
     // No router.refresh() needed - client-side filtering
   };
 
+  const handleMeetingClick = (meeting: MeetingWithSession) => {
+    setSelectedMeeting(meeting);
+    setMeetingModalOpen(true);
+  };
+
   const filteredCount = filteredMeetings.length;
   const totalCount = meetingsWithSessions.length;
 
@@ -255,6 +264,7 @@ export function CalendarViewComponent({
                   currentDate={currentDate}
                   meetings={filteredMeetings}
                   onDayClick={handleDayClick}
+                  onMeetingClick={handleMeetingClick}
                 />
               )}
             </motion.div>
@@ -287,6 +297,7 @@ export function CalendarViewComponent({
                   isFiltered={selectedStatus !== "all"}
                   onPageChange={handlePageChange}
                   onClearFilters={handleClearFilters}
+                  onMeetingClick={handleMeetingClick}
                 />
               ) : null}
             </motion.div>
@@ -319,6 +330,19 @@ export function CalendarViewComponent({
           )}
         </AnimatePresence>
       </div>
+
+      <MeetingDetailsModal
+        meeting={selectedMeeting}
+        open={meetingModalOpen}
+        onOpenChange={(open) => {
+          setMeetingModalOpen(open);
+          if (!open) setSelectedMeeting(null);
+        }}
+        onSuccess={() => {
+          setMeetingModalOpen(false);
+          setSelectedMeeting(null);
+        }}
+      />
     </div>
   );
 }

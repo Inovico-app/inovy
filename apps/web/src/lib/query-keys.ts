@@ -64,6 +64,9 @@ export const queryKeys = {
     members: (orgCode: string) =>
       [...queryKeys.organization.all, "members", orgCode] as const,
   },
+  meetings: {
+    all: ["meetings"] as const,
+  },
   botSessions: {
     all: ["bot-sessions"] as const,
     byCalendarEvents: (calendarEventIds: string[]) =>

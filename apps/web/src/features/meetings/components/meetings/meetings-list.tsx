@@ -14,6 +14,7 @@ interface MeetingsListProps {
   isFiltered: boolean;
   onPageChange: (page: number) => void;
   onClearFilters?: () => void;
+  onMeetingClick?: (meeting: MeetingWithSession) => void;
 }
 
 export function MeetingsList({
@@ -25,6 +26,7 @@ export function MeetingsList({
   isFiltered,
   onPageChange,
   onClearFilters,
+  onMeetingClick,
 }: MeetingsListProps) {
   const hasAnyMeetings = allMeetingsCount > 0;
   const hasFilteredMeetings = total > 0;
@@ -42,7 +44,11 @@ export function MeetingsList({
         <>
           <div className="space-y-3">
             {meetings.map((meeting) => (
-              <MeetingsListItem key={meeting.id} meeting={meeting} />
+              <MeetingsListItem
+                key={meeting.id}
+                meeting={meeting}
+                onMeetingClick={onMeetingClick}
+              />
             ))}
           </div>
 
