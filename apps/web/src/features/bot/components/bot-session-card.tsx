@@ -31,8 +31,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { cancelBotSession } from "../actions/cancel-bot-session";
 import { retryBotSession } from "../actions/retry-bot-session";
-import { BotSessionDetailsModal } from "./bot-session-details-modal";
-import { BotStatusBadge } from "./bot-status-badge";
+import { BotSessionStatusTrigger } from "./bot-session-status-trigger";
 
 interface BotSessionCardProps {
   session: BotSession;
@@ -128,7 +127,13 @@ export function BotSessionCard({
             </CardDescription>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <BotStatusBadge status={session.botStatus} />
+            <BotSessionStatusTrigger
+              status={session.botStatus}
+              sessionId={session.id}
+              error={session.error}
+              open={showDetailsModal}
+              onOpenChange={setShowDetailsModal}
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="flex-shrink-0">
@@ -222,11 +227,6 @@ export function BotSessionCard({
             )}
         </div>
       </CardContent>
-      <BotSessionDetailsModal
-        session={session}
-        open={showDetailsModal}
-        onOpenChange={setShowDetailsModal}
-      />
     </Card>
   );
 }

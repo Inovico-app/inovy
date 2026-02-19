@@ -68,6 +68,9 @@ export const queryKeys = {
     all: ["bot-sessions"] as const,
     byCalendarEvents: (calendarEventIds: string[]) =>
       [...queryKeys.botSessions.all, [...(calendarEventIds || [])].sort().join(",")] as const,
+    details: () => [...queryKeys.botSessions.all, "detail"] as const,
+    detail: (sessionId: string) =>
+      [...queryKeys.botSessions.details(), sessionId] as const,
   },
   agentKnowledgeBase: {
     all: ["agent", "knowledge-base"] as const,

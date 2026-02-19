@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader } from "@/components/loader";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,27 +13,31 @@ import { Separator } from "@/components/ui/separator";
 import type { BotSession } from "@/server/db/schema/bot-sessions";
 import { BotStatusBadge } from "./bot-status-badge";
 
+export type BotSessionWithRecording = BotSession & {
+  recording?: {
+    id: string;
+    title: string;
+    fileUrl: string;
+    fileName: string;
+    fileSize: number;
+    fileMimeType: string;
+    duration: number | null;
+    recordingDate: Date;
+  } | null;
+};
+
 interface BotSessionDetailsModalProps {
-  session: BotSession & {
-    recording?: {
-      id: string;
-      title: string;
-      fileUrl: string;
-      fileName: string;
-      fileSize: number;
-      fileMimeType: string;
-      duration: number | null;
-      recordingDate: Date;
-    } | null;
-  };
+  session: BotSessionWithRecording | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  isLoading?: boolean;
 }
 
 export function BotSessionDetailsModal({
   session,
   open,
   onOpenChange,
+  isLoading = false,
 }: BotSessionDetailsModalProps) {
   const formatDate = (date: Date | null) => {
     if (!date) return "N/A";
@@ -62,19 +67,40 @@ export function BotSessionDetailsModal({
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   };
 
+  const isLoadingState = isLoading;
+  const hasSession = session != null && !isLoadingState;
+  const noSession = session == null && !isLoadingState;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {session.meetingTitle || "Untitled Meeting"}
-            <BotStatusBadge status={session.botStatus} />
+            {hasSession ? (
+              <>
+                {session.meetingTitle || "Untitled Meeting"}
+                <BotStatusBadge status={session.botStatus} error={session.error} />
+              </>
+            ) : (
+              "Bot Session Details"
+            )}
           </DialogTitle>
           <DialogDescription>
-            Bot session details and timeline
+            {isLoadingState
+              ? "Loading session details..."
+              : hasSession
+                ? "Bot session details and timeline"
+                : "Session not found"}
           </DialogDescription>
         </DialogHeader>
 
+        {isLoadingState ? (
+          <Loader />
+        ) : noSession ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">
+            This bot session could not be found or you do not have access to it.
+          </p>
+        ) : hasSession ? (
         <div className="space-y-6">
           {/* Basic Information */}
           <div>
@@ -226,6 +252,7 @@ export function BotSessionDetailsModal({
             </>
           )}
         </div>
+        ) : null}
       </DialogContent>
     </Dialog>
   );
