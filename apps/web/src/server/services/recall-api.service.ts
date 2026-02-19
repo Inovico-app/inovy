@@ -244,5 +244,98 @@ export class RecallApiService {
       );
     }
   }
+
+  /**
+   * Get recording download URL from bot details
+   * Used when processing recording.done webhook (no URL in payload)
+   * @param botId - Recall.ai bot ID
+   * @param recordingId - Optional recording ID to match; if omitted, uses latest
+   */
+  static async getRecordingDownloadUrl(
+    botId: string,
+    recordingId?: string
+  ): Promise<
+    ActionResult<{
+      url: string;
+      duration?: number;
+      format?: string;
+      recordingId: string;
+    }>
+  > {
+    const detailsResult = await this.getBotDetails(botId);
+    if (detailsResult.isErr()) return err(detailsResult.error);
+
+    const { recordings } = detailsResult.value;
+    if (!recordings || !Array.isArray(recordings) || recordings.length === 0) {
+      return err(
+        ActionErrors.notFound(
+          "No recordings available yet",
+          "RecallApiService.getRecordingDownloadUrl"
+        )
+      );
+    }
+
+    const recording = recordingId
+      ? (recordings as { id?: string }[]).find((r) => r.id === recordingId)
+      : (recordings as unknown[])[recordings.length - 1];
+
+    if (!recording || typeof recording !== "object") {
+      return err(
+        ActionErrors.notFound(
+          "Recording not found",
+          "RecallApiService.getRecordingDownloadUrl"
+        )
+      );
+    }
+
+    const rec = recording as {
+      id?: string;
+      media_shortcuts?: {
+        video_mixed?: {
+          data?: { download_url?: string };
+          format?: string;
+        };
+      };
+      completed_at?: string;
+      started_at?: string;
+    };
+
+    const downloadUrl =
+      rec.media_shortcuts?.video_mixed?.data?.download_url;
+    if (!downloadUrl) {
+      return err(
+        ActionErrors.notFound(
+          "Recording download URL not available yet",
+          "RecallApiService.getRecordingDownloadUrl"
+        )
+      );
+    }
+
+    let duration: number | undefined;
+    if (rec.completed_at && rec.started_at) {
+      const start = new Date(rec.started_at).getTime();
+      const end = new Date(rec.completed_at).getTime();
+      if (Number.isFinite(start) && Number.isFinite(end)) {
+        duration = Math.round((end - start) / 1000);
+      }
+    }
+
+    const resolvedRecordingId = rec.id ?? recordingId;
+    if (!resolvedRecordingId) {
+      return err(
+        ActionErrors.notFound(
+          "Missing recording ID",
+          "RecallApiService.getRecordingDownloadUrl"
+        )
+      );
+    }
+
+    return ok({
+      url: downloadUrl,
+      duration,
+      format: rec.media_shortcuts?.video_mixed?.format,
+      recordingId: resolvedRecordingId,
+    });
+  }
 }
 
