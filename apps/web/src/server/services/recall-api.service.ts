@@ -6,6 +6,18 @@ import {
 } from "../../lib/server-action-client/action-errors";
 import { getRecallApiKey } from "./recall-api.utils";
 
+interface RecallRecording {
+  id?: string;
+  media_shortcuts?: {
+    video_mixed?: {
+      data?: { download_url?: string };
+      format?: string;
+    };
+  };
+  completed_at?: string;
+  started_at?: string;
+}
+
 /**
  * Recall.ai API Service
  * Handles interactions with Recall.ai API for bot session management
@@ -243,6 +255,100 @@ export class RecallApiService {
         )
       );
     }
+  }
+
+  /**
+   * Get recording download URL from bot details
+   * Used when processing recording.done webhook (no URL in payload)
+   * @param botId - Recall.ai bot ID
+   * @param recordingId - Optional recording ID to match; if omitted, uses latest
+   */
+  static async getRecordingDownloadUrl(
+    botId: string,
+    recordingId?: string
+  ): Promise<
+    ActionResult<{
+      url: string;
+      duration?: number;
+      format?: string;
+      recordingId: string;
+    }>
+  > {
+    const delays = [0, 200, 500, 1000];
+    let lastError: ReturnType<typeof ActionErrors.notFound> | null = null;
+
+    for (let attempt = 0; attempt < delays.length; attempt++) {
+      if (attempt > 0) {
+        await new Promise((r) => setTimeout(r, delays[attempt]));
+      }
+
+      const detailsResult = await this.getBotDetails(botId);
+      if (detailsResult.isErr()) return err(detailsResult.error);
+
+      const { recordings } = detailsResult.value;
+      if (!recordings || !Array.isArray(recordings) || recordings.length === 0) {
+        lastError = ActionErrors.notFound(
+          "No recordings available yet",
+          "RecallApiService.getRecordingDownloadUrl"
+        );
+        continue;
+      }
+
+      const recordingsTyped = recordings as RecallRecording[];
+      const recording = recordingId
+        ? recordingsTyped.find((r) => r.id === recordingId)
+        : recordingsTyped[recordingsTyped.length - 1];
+
+      if (!recording || typeof recording !== "object") {
+        lastError = ActionErrors.notFound(
+          "Recording not found",
+          "RecallApiService.getRecordingDownloadUrl"
+        );
+        continue;
+      }
+
+      const rec = recording as RecallRecording;
+
+      const downloadUrl =
+        rec.media_shortcuts?.video_mixed?.data?.download_url;
+      if (!downloadUrl) {
+        lastError = ActionErrors.notFound(
+          "Recording download URL not available yet",
+          "RecallApiService.getRecordingDownloadUrl"
+        );
+        continue;
+      }
+
+      let duration: number | undefined;
+      if (rec.completed_at && rec.started_at) {
+        const start = new Date(rec.started_at).getTime();
+        const end = new Date(rec.completed_at).getTime();
+        if (Number.isFinite(start) && Number.isFinite(end) && end >= start) {
+          duration = Math.max(0, Math.round((end - start) / 1000));
+        }
+      }
+
+      const resolvedRecordingId = rec.id ?? recordingId;
+      if (!resolvedRecordingId) {
+        lastError = ActionErrors.notFound(
+          "Missing recording ID",
+          "RecallApiService.getRecordingDownloadUrl"
+        );
+        continue;
+      }
+
+      return ok({
+        url: downloadUrl,
+        duration,
+        format: rec.media_shortcuts?.video_mixed?.format,
+        recordingId: resolvedRecordingId,
+      });
+    }
+
+    return err(lastError ?? ActionErrors.notFound(
+      "Recording not available",
+      "RecallApiService.getRecordingDownloadUrl"
+    ));
   }
 }
 
