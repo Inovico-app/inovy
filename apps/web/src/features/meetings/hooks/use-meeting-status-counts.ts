@@ -1,18 +1,9 @@
 import { useMemo } from "react";
-import type {
-  MeetingWithSession,
-  MeetingBotStatus,
-  MeetingBotStatusFilter,
+import type { MeetingWithSession, MeetingBotStatusFilter } from "../lib/calendar-utils";
+import {
+  getMeetingBotStatus,
+  WITH_BOT_STATUSES,
 } from "../lib/calendar-utils";
-import { getMeetingBotStatus } from "../lib/calendar-utils";
-
-const WITH_BOT_STATUSES: MeetingBotStatus[] = [
-  "scheduled",
-  "joining",
-  "active",
-  "leaving",
-  "completed",
-];
 
 interface UseMeetingStatusCountsOptions {
   meetings: MeetingWithSession[];

@@ -45,38 +45,40 @@ export function CalendarHeader({
   return (
     <>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          {view !== "list" && (
-            <>
-              <Button variant="outline" size="sm" onClick={onToday}>
-                Today
-              </Button>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={onPreviousMonth}
-                  aria-label="Previous month"
-                >
-                  <ChevronLeft className="h-4 w-4" />
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-2">
+          <div className="flex items-center gap-2">
+            {view !== "list" && (
+              <>
+                <Button variant="outline" size="sm" onClick={onToday}>
+                  Today
                 </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={onNextMonth}
-                  aria-label="Next month"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-              <h2 className="text-xl font-semibold">
-                {formatMonthYear(currentDate)}
-              </h2>
-            </>
-          )}
-          {view === "list" && (
-            <h2 className="text-xl font-semibold">Meetings List</h2>
-          )}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={onPreviousMonth}
+                    aria-label="Previous month"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={onNextMonth}
+                    aria-label="Next month"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                <h2 className="text-xl font-semibold">
+                  {formatMonthYear(currentDate)}
+                </h2>
+              </>
+            )}
+            {view === "list" && (
+              <h2 className="text-xl font-semibold">Meetings List</h2>
+            )}
+          </div>
           <MeetingsFilter
             selectedStatus={selectedStatus}
             onStatusChange={onStatusChange}

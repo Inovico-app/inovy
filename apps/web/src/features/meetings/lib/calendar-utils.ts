@@ -203,8 +203,9 @@ export type MeetingBotStatusFilter =
 
 /**
  * Statuses that count as "with bot" (has bot session)
+ * Shared by filterMeetingsByBotStatus and useMeetingStatusCounts
  */
-const WITH_BOT_STATUSES: MeetingBotStatus[] = [
+export const WITH_BOT_STATUSES: MeetingBotStatus[] = [
   "scheduled",
   "joining",
   "active",
@@ -248,6 +249,10 @@ export function getMeetingBotStatus(
   return botSession.botStatus;
 }
 
+function assertUnreachable(value: never): never {
+  throw new Error(`Unhandled MeetingBotStatusFilter: ${String(value)}`);
+}
+
 /**
  * Check if meeting matches the given filter
  */
@@ -271,7 +276,7 @@ function meetingMatchesFilter(
     case "failed":
       return status === "failed";
     default:
-      return true;
+      return assertUnreachable(filter);
   }
 }
 

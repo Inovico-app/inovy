@@ -25,7 +25,7 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useMemo } from "react";
-import { paginateMeetings } from "@/features/meetings/lib/meetings-pagination";
+import { paginateMeetingsOnly } from "@/features/meetings/lib/meetings-pagination";
 import { useMeetingStatusCounts } from "@/features/meetings/hooks/use-meeting-status-counts";
 
 interface CalendarViewProps {
@@ -111,13 +111,12 @@ export function CalendarViewComponent({
     [meetingsWithSessions, selectedStatus]
   );
 
-  // Paginate meetings for list view (already filtered)
+  // Paginate meetings for list view (filteredMeetings is pre-filtered)
   const paginatedResult = useMemo(() => {
     if (view === "list") {
-      return paginateMeetings(filteredMeetings, {
+      return paginateMeetingsOnly(filteredMeetings, {
         page: currentPage,
         pageSize: 20,
-        botStatus: "all",
       });
     }
     return null;

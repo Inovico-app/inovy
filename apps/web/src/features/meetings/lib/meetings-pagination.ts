@@ -16,6 +16,32 @@ export interface PaginatedMeetingsResult {
 const DEFAULT_PAGE_SIZE = 20;
 
 /**
+ * Paginate pre-filtered meetings (sort and slice only, no filtering).
+ * Use when meetings are already filtered (e.g. by filterMeetingsByBotStatus).
+ */
+export function paginateMeetingsOnly(
+  meetings: MeetingWithSession[],
+  options?: { page?: number; pageSize?: number }
+): PaginatedMeetingsResult {
+  const page = options?.page ?? 1;
+  const pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
+  const sorted = sortMeetingsChronologically(meetings);
+  const total = sorted.length;
+  const totalPages = Math.ceil(total / pageSize);
+  const offset = (page - 1) * pageSize;
+  const paginatedMeetings = sorted.slice(offset, offset + pageSize);
+  const hasMore = offset + pageSize < total;
+
+  return {
+    meetings: paginatedMeetings,
+    total,
+    hasMore,
+    currentPage: page,
+    totalPages,
+  };
+}
+
+/**
  * Paginate meetings with filtering and sorting
  */
 export function paginateMeetings(
