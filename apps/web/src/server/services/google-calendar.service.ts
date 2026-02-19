@@ -339,6 +339,202 @@ export class GoogleCalendarService {
   }
 
   /**
+   * Update a calendar event
+   * @param userId - User ID
+   * @param eventId - Calendar event ID
+   * @param updates - Fields to update (title, start, end; optionally add Meet link if missing)
+   * @returns Result containing event URL and meeting URL
+   */
+  static async updateEvent(
+    userId: string,
+    eventId: string,
+    updates: {
+      title?: string;
+      start?: Date;
+      end?: Date;
+      addMeetLinkIfMissing?: boolean;
+      calendarId?: string;
+      userTimezone?: string;
+    }
+  ): Promise<
+    ActionResult<{
+      eventUrl: string;
+      meetingUrl: string | null;
+    }>
+  > {
+    try {
+      const tokenResult = await GoogleOAuthService.getValidAccessToken(userId);
+
+      if (tokenResult.isErr()) {
+        return err(
+          ActionErrors.internal(
+            "Failed to get valid access token",
+            tokenResult.error,
+            "GoogleCalendarService.updateEvent"
+          )
+        );
+      }
+
+      const oauth2Client = createGoogleOAuthClient();
+      oauth2Client.setCredentials({
+        access_token: tokenResult.value,
+      });
+
+      const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+      const calendarId = updates.calendarId || "primary";
+      const timeZone =
+        updates.userTimezone ||
+        Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      // Fetch existing event to check for Meet link and build patch
+      const existingResult = await calendar.events.get({
+        calendarId,
+        eventId,
+      });
+
+      const existing = existingResult.data;
+      if (!existing) {
+        return err(
+          ActionErrors.notFound(
+            "Calendar event not found",
+            "GoogleCalendarService.updateEvent"
+          )
+        );
+      }
+
+      const hasMeetLink =
+        existing.hangoutLink?.includes("meet.google.com") ||
+        existing.conferenceData?.entryPoints?.some(
+          (ep) =>
+            ep.entryPointType === "video" && ep.uri?.includes("meet.google.com")
+        );
+
+      type PatchPayload = {
+        summary?: string;
+        start?: { dateTime?: string; date?: string; timeZone?: string };
+        end?: { dateTime?: string; date?: string; timeZone?: string };
+        conferenceData?: {
+          createRequest: {
+            requestId: string;
+            conferenceSolutionKey: { type: string };
+          };
+        };
+      };
+
+      const patchBody: PatchPayload = {};
+
+      if (updates.title !== undefined) {
+        patchBody.summary = updates.title;
+      }
+
+      if (updates.start !== undefined) {
+        const isAllDay = "date" in (existing.start || {});
+        if (isAllDay) {
+          patchBody.start = {
+            date: updates.start.toISOString().split("T")[0],
+          };
+        } else {
+          patchBody.start = {
+            dateTime: updates.start.toISOString(),
+            timeZone,
+          };
+        }
+      }
+
+      if (updates.end !== undefined) {
+        const isAllDay = "date" in (existing.end || {});
+        if (isAllDay) {
+          patchBody.end = {
+            date: updates.end.toISOString().split("T")[0],
+          };
+        } else {
+          patchBody.end = {
+            dateTime: updates.end.toISOString(),
+            timeZone,
+          };
+        }
+      }
+
+      if (
+        updates.addMeetLinkIfMissing &&
+        !hasMeetLink &&
+        !("date" in (existing.start || {}))
+      ) {
+        patchBody.conferenceData = {
+          createRequest: {
+            requestId: `${Date.now()}-${Math.random()}`,
+            conferenceSolutionKey: { type: "hangoutsMeet" },
+          },
+        };
+      }
+
+      if (Object.keys(patchBody).length === 0) {
+        return ok({
+          eventUrl: existing.htmlLink || "",
+          meetingUrl: hasMeetLink ? existing.hangoutLink || null : null,
+        });
+      }
+
+      const patchParams: {
+        calendarId: string;
+        eventId: string;
+        requestBody: PatchPayload;
+        conferenceDataVersion?: number;
+      } = {
+        calendarId,
+        eventId,
+        requestBody: patchBody,
+      };
+
+      if (patchBody.conferenceData) {
+        patchParams.conferenceDataVersion = 1;
+      }
+
+      const response = await calendar.events.patch(patchParams);
+
+      let meetingUrl: string | null = null;
+      if (
+        response.data.conferenceData?.entryPoints &&
+        Array.isArray(response.data.conferenceData.entryPoints)
+      ) {
+        const meetEntry = response.data.conferenceData.entryPoints.find(
+          (ep) =>
+            ep.entryPointType === "video" && ep.uri?.includes("meet.google.com")
+        );
+        if (meetEntry?.uri) meetingUrl = meetEntry.uri;
+      }
+      if (
+        !meetingUrl &&
+        response.data.hangoutLink?.includes("meet.google.com")
+      ) {
+        meetingUrl = response.data.hangoutLink;
+      }
+
+      logger.info("Updated Google Calendar event", {
+        userId,
+        eventId,
+        calendarId,
+      });
+
+      return ok({
+        eventUrl: response.data.htmlLink || "",
+        meetingUrl,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown error";
+      logger.error("Failed to update calendar event", { userId, eventId }, error as Error);
+      return err(
+        ActionErrors.internal(
+          `Failed to update calendar event: ${message}`,
+          error as Error,
+          "GoogleCalendarService.updateEvent"
+        )
+      );
+    }
+  }
+
+  /**
    * Create a calendar event
    * @param userId - User ID
    * @param eventDetails - Event details

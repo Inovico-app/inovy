@@ -32,6 +32,9 @@ export function useRemoveBotFromMeeting(
         queryClient.invalidateQueries({
           queryKey: queryKeys.botSessions.all,
         });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.meetings.all,
+        });
         options?.onSuccess?.();
       }
     },

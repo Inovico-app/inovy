@@ -12,6 +12,7 @@ import { queryKeys } from "@/lib/query-keys";
 
 interface UseAddBotToMeetingOptions {
   onConsentRequired?: () => void;
+  onSuccess?: () => void;
 }
 
 export interface AddBotToMeetingInput {
@@ -121,6 +122,10 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
         queryClient.invalidateQueries({
           queryKey: queryKeys.botSessions.all,
         });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.meetings.all,
+        });
+        options?.onSuccess?.();
       }
     },
   });

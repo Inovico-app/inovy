@@ -17,9 +17,13 @@ import Link from "next/link";
 
 interface MeetingsListItemProps {
   meeting: MeetingWithSession;
+  onMeetingClick?: (meeting: MeetingWithSession) => void;
 }
 
-export function MeetingsListItem({ meeting }: MeetingsListItemProps) {
+export function MeetingsListItem({
+  meeting,
+  onMeetingClick,
+}: MeetingsListItemProps) {
   const botStatus = getMeetingBotStatus(meeting, meeting.botSession);
   const isPast = meeting.end < new Date();
   const isUpcoming = meeting.start > new Date();
@@ -32,8 +36,27 @@ export function MeetingsListItem({ meeting }: MeetingsListItemProps) {
     <Card
       className={cn(
         "transition-all hover:shadow-md",
-        isPast && "opacity-75"
+        isPast && "opacity-75",
+        onMeetingClick && "cursor-pointer"
       )}
+      onClick={onMeetingClick ? () => onMeetingClick(meeting) : undefined}
+      onKeyDown={
+        onMeetingClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onMeetingClick(meeting);
+              }
+            }
+          : undefined
+      }
+      tabIndex={onMeetingClick ? 0 : undefined}
+      role={onMeetingClick ? "button" : undefined}
+      aria-label={
+        onMeetingClick
+          ? `View details for ${meeting.title || "Untitled Meeting"}`
+          : undefined
+      }
     >
       <CardContent className="p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -73,7 +96,10 @@ export function MeetingsListItem({ meeting }: MeetingsListItemProps) {
           </div>
 
           {/* Bot Status Badge or Add Bot */}
-          <div className="flex min-h-[44px] items-center gap-2 sm:items-center">
+          <div
+            className="flex min-h-[44px] items-center gap-2 sm:items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
             {botStatus === "no_bot" ? (
               isUpcoming ? (
                 <AddBotButton meeting={meeting} variant="button" />

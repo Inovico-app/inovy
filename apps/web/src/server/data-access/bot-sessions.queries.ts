@@ -101,6 +101,8 @@ export class BotSessionsQueries {
         | "meetingParticipants"
         | "joinedAt"
         | "leftAt"
+        | "meetingUrl"
+        | "projectId"
       >
     >
   ): Promise<BotSession | null> {

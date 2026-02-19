@@ -321,6 +321,13 @@ export const CacheInvalidation = {
   },
 
   /**
+   * Invalidate calendar meetings cache for a user
+   */
+  invalidateCalendarMeetings(userId: string, organizationId: string): void {
+    invalidateCache(CacheTags.calendarMeetings(userId, organizationId));
+  },
+
+  /**
    * Invalidate recording cache
    */
   invalidateRecording(

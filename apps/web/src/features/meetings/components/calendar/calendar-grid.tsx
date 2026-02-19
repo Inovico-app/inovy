@@ -14,6 +14,7 @@ interface CalendarGridProps {
   currentDate: Date;
   meetings: MeetingWithSession[];
   onDayClick?: (date: Date) => void;
+  onMeetingClick?: (meeting: MeetingWithSession) => void;
 }
 
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -22,6 +23,7 @@ export function CalendarGrid({
   currentDate,
   meetings,
   onDayClick,
+  onMeetingClick,
 }: CalendarGridProps) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -105,6 +107,7 @@ export function CalendarGrid({
                         key={meeting.id}
                         meeting={meeting}
                         compact
+                        onMeetingClick={onMeetingClick}
                       />
                     ))
                 )}
