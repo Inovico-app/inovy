@@ -64,7 +64,7 @@ export function useCreateCalendarEvent(
         }
 
         // Invalidate meetings query cache to show the new event immediately
-        queryClient.invalidateQueries({ queryKey: queryKeys.meetings.all });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.meetings.all });
 
         // Refresh the page to ensure all server components are updated
         router.refresh();
