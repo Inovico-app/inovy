@@ -12,6 +12,59 @@ import type { Task } from "../db/schema/tasks";
 import { GoogleOAuthService } from "./google-oauth.service";
 
 /**
+ * Regular expression pattern for extracting Google Meet URLs from text
+ * Matches URLs like: https://meet.google.com/abc-defg-hij
+ */
+const MEET_URL_REGEX = /https?:\/\/meet\.google\.com\/[a-z0-9-]+/i;
+
+/**
+ * Extract Google Meet URL from a text field using regex pattern
+ * @param text - The text to search for Google Meet URL
+ * @returns The extracted URL or null if not found
+ */
+function extractMeetUrlFromText(text: string | null | undefined): string | null {
+  if (!text?.trim()) {
+    return null;
+  }
+  const match = text.match(MEET_URL_REGEX);
+  return match ? match[0] : null;
+}
+
+/**
+ * Extract Google Meet URL from a calendar event
+ * Tries multiple sources in priority order: conferenceData, hangoutLink, location, description
+ * @param event - The Google Calendar event
+ * @returns The extracted Google Meet URL or null if not found
+ */
+function extractMeetingUrl(event: calendar_v3.Schema$Event): string | null {
+  // 1. Check conferenceData (modern Google Calendar format)
+  if (event.conferenceData?.entryPoints && Array.isArray(event.conferenceData.entryPoints)) {
+    const meetEntry = event.conferenceData.entryPoints.find(
+      (entry) =>
+        entry.entryPointType === "video" &&
+        entry.uri?.includes("meet.google.com")
+    );
+    if (meetEntry?.uri) {
+      return meetEntry.uri;
+    }
+  }
+
+  // 2. Check hangoutLink (legacy Google Calendar format)
+  if (event.hangoutLink?.includes("meet.google.com")) {
+    return event.hangoutLink;
+  }
+
+  // 3. Check location field (common in external calendar apps)
+  const locationUrl = extractMeetUrlFromText(event.location);
+  if (locationUrl) {
+    return locationUrl;
+  }
+
+  // 4. Check description field (fallback for manually entered URLs)
+  return extractMeetUrlFromText(event.description);
+}
+
+/**
  * Calendar event with Google Meet link
  */
 export interface CalendarEvent {
@@ -19,7 +72,14 @@ export interface CalendarEvent {
   title: string;
   start: Date;
   end: Date;
-  meetingUrl: string; // Extracted from conferenceData or hangoutLink
+  /**
+   * Google Meet URL extracted from one of the following sources (in priority order):
+   * 1. conferenceData.entryPoints (modern Google Calendar format)
+   * 2. hangoutLink (legacy Google Calendar format)
+   * 3. location field (common in external calendar apps)
+   * 4. description field (fallback for manually entered URLs)
+   */
+  meetingUrl: string;
   attendees?: Array<{ email: string; responseStatus: string }>;
   organizer?: { email: string };
   calendarId: string;
@@ -893,28 +953,8 @@ export class GoogleCalendarService {
               : null;
 
           for (const event of response.data.items) {
-            // Extract Google Meet URL
-            let meetingUrl: string | null = null;
-
-            // Check conferenceData (new format)
-            if (
-              event.conferenceData?.entryPoints &&
-              Array.isArray(event.conferenceData.entryPoints)
-            ) {
-              const meetEntry = event.conferenceData.entryPoints.find(
-                (entry) =>
-                  entry.entryPointType === "video" &&
-                  entry.uri?.includes("meet.google.com")
-              );
-              if (meetEntry?.uri) {
-                meetingUrl = meetEntry.uri;
-              }
-            }
-
-            // Fallback to hangoutLink (legacy format)
-            if (!meetingUrl && event.hangoutLink?.includes("meet.google.com")) {
-              meetingUrl = event.hangoutLink;
-            }
+            // Extract Google Meet URL from various sources
+            const meetingUrl = extractMeetingUrl(event);
 
             // Skip if no Google Meet link found
             if (!meetingUrl) {

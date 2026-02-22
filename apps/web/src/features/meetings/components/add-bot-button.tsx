@@ -85,7 +85,7 @@ export function AddBotButton({ meeting, variant = "button" }: AddBotButtonProps)
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="h-6 w-6 shrink-0 opacity-60 hover:opacity-100 transition-opacity"
               onClick={(e) => {
                 e.stopPropagation();
                 handleAddBot();
