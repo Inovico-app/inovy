@@ -24,7 +24,7 @@ const STATUS_CONFIG = {
     variant: "outline" as const,
     icon: <ClockIcon className="h-3 w-3" />,
     className:
-      "text-blue-700 border-blue-500/30 dark:text-blue-400 bg-blue-500/10",
+      "text-gray-700 border-gray-500/30 dark:text-gray-400 bg-gray-500/10",
     tooltip: "Bot will join when the meeting starts",
   },
   joining: {
