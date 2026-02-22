@@ -18,13 +18,17 @@ import type { BotStatus } from "../../../server/db/schema/bot-sessions";
 
 export type MeetingBotStatus = BotStatus | "no_bot";
 
+const GRAY_NEUTRAL_STATUS_CLASS =
+  "text-gray-700 border-gray-500/30 dark:text-gray-400 bg-gray-500/10";
+const GREEN_SUCCESS_STATUS_CLASS =
+  "bg-green-500/10 text-green-700 border-green-500/30 dark:text-green-400";
+
 const STATUS_CONFIG = {
   scheduled: {
     label: "Scheduled",
     variant: "outline" as const,
     icon: <ClockIcon className="h-3 w-3" />,
-    className:
-      "text-gray-700 border-gray-500/30 dark:text-gray-400 bg-gray-500/10",
+    className: GRAY_NEUTRAL_STATUS_CLASS,
     tooltip: "Bot will join when the meeting starts",
   },
   joining: {
@@ -38,24 +42,21 @@ const STATUS_CONFIG = {
     label: "Active",
     variant: "secondary" as const,
     icon: <CheckCircleIcon className="h-3 w-3" />,
-    className:
-      "bg-green-500/10 text-green-700 border-green-500/30 dark:text-green-400",
+    className: GREEN_SUCCESS_STATUS_CLASS,
     tooltip: "Bot is recording the meeting",
   },
   leaving: {
     label: "Leaving",
     variant: "outline" as const,
     icon: <LogOutIcon className="h-3 w-3" />,
-    className:
-      "text-gray-700 border-gray-500/30 dark:text-gray-400 bg-gray-500/10",
+    className: GRAY_NEUTRAL_STATUS_CLASS,
     tooltip: "Bot is leaving the meeting",
   },
   completed: {
     label: "Completed",
     variant: "outline" as const,
     icon: <CheckCircleIcon className="h-3 w-3" />,
-    className:
-      "text-gray-700 border-gray-500/30 dark:text-gray-400 bg-gray-500/10",
+    className: GREEN_SUCCESS_STATUS_CLASS,
     tooltip: "Meeting finished, recording is processing",
   },
   failed: {
