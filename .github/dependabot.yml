@@ -1,0 +1,162 @@
+version: 2
+updates:
+  # Web application dependencies
+  - package-ecosystem: "npm"
+    directory: "/apps/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "inovy-security"
+    labels:
+      - "dependencies"
+      - "security"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(dev-deps)"
+      include: "scope"
+    
+    # Security updates get higher priority
+    versioning-strategy: increase-if-necessary
+    
+    # Group non-security updates to reduce PR noise
+    groups:
+      # Development dependencies (minor and patch)
+      dev-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      
+      # Production dependencies (patch only)
+      production-patch:
+        dependency-type: "production"
+        update-types:
+          - "patch"
+        exclude-patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+      
+      # Next.js ecosystem (separate group)
+      nextjs-ecosystem:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+          - "@next/*"
+      
+      # UI libraries (separate group for easier review)
+      ui-libraries:
+        patterns:
+          - "@radix-ui/*"
+          - "tailwindcss"
+          - "@tailwindcss/*"
+          - "shadcn*"
+      
+      # AI/ML libraries
+      ai-ml-libraries:
+        patterns:
+          - "openai"
+          - "@anthropic-ai/*"
+          - "@ai-sdk/*"
+          - "ai"
+          - "@deepgram/*"
+          - "@qdrant/*"
+      
+      # Database libraries
+      database-libraries:
+        patterns:
+          - "drizzle-*"
+          - "@neondatabase/*"
+          - "@upstash/*"
+      
+      # Authentication libraries
+      auth-libraries:
+        patterns:
+          - "better-auth"
+          - "@better-auth/*"
+      
+      # Build tools
+      build-tools:
+        patterns:
+          - "typescript"
+          - "eslint"
+          - "prettier"
+          - "turbo"
+    
+    # Ignore specific dependencies (if needed)
+    # ignore:
+    #   - dependency-name: "package-name"
+    #     versions: ["1.x", "2.x"]
+
+  # Root workspace dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "inovy-security"
+    labels:
+      - "dependencies"
+      - "monorepo"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      build-system:
+        patterns:
+          - "turbo"
+          - "pnpm"
+
+  # MCP package dependencies
+  - package-ecosystem: "npm"
+    directory: "/packages/mcp"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "inovy-security"
+    labels:
+      - "dependencies"
+      - "mcp"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      mcp-dependencies:
+        patterns:
+          - "@modelcontextprotocol/*"
+          - "mcp-*"
+
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "inovy-security"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
