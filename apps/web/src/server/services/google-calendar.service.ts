@@ -916,6 +916,26 @@ export class GoogleCalendarService {
               meetingUrl = event.hangoutLink;
             }
 
+            // Check location field for Google Meet URL (common in external calendar apps)
+            if (!meetingUrl && event.location) {
+              const locationMatch = event.location.match(
+                /https?:\/\/meet\.google\.com\/[a-z0-9-]+/i
+              );
+              if (locationMatch) {
+                meetingUrl = locationMatch[0];
+              }
+            }
+
+            // Check description field for Google Meet URL (last resort)
+            if (!meetingUrl && event.description) {
+              const descriptionMatch = event.description.match(
+                /https?:\/\/meet\.google\.com\/[a-z0-9-]+/i
+              );
+              if (descriptionMatch) {
+                meetingUrl = descriptionMatch[0];
+              }
+            }
+
             // Skip if no Google Meet link found
             if (!meetingUrl) {
               continue;
