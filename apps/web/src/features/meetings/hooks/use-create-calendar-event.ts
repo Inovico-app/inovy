@@ -4,6 +4,8 @@ import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { createCalendarEventWithBot } from "../actions/create-calendar-event-with-bot";
 
 interface UseCreateCalendarEventOptions {
@@ -24,6 +26,7 @@ export function useCreateCalendarEvent(
   options?: UseCreateCalendarEventOptions
 ) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
@@ -60,7 +63,10 @@ export function useCreateCalendarEvent(
           });
         }
 
-        // Refresh the page to show the new event
+        // Invalidate meetings query cache to show the new event immediately
+        queryClient.invalidateQueries({ queryKey: queryKeys.meetings.all });
+
+        // Refresh the page to ensure all server components are updated
         router.refresh();
 
         // Call custom onSuccess callback if provided
