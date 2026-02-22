@@ -246,6 +246,16 @@ export function getMeetingBotStatus(
   if (!botSession) {
     return "no_bot";
   }
+
+  // If the meeting hasn't started yet and bot status is "joining",
+  // show "scheduled" instead to avoid confusion
+  const now = new Date();
+  const meetingHasStarted = meeting.start <= now;
+
+  if (!meetingHasStarted && botSession.botStatus === "joining") {
+    return "scheduled";
+  }
+
   return botSession.botStatus;
 }
 
