@@ -241,23 +241,21 @@ export function MeetingDetailsModal({
     });
   };
 
+  const defaultProjectId = projects.length > 0 ? projects[0].id : undefined;
+
   const handleAddBot = () => {
     if (!meeting) return;
-    addBot({
-      calendarEventId: meeting.id,
-      meetingUrl: meeting.meetingUrl,
-      meetingTitle: meeting.title,
-      consentGiven: false,
-    });
+    setIsConsentDialogOpen(true);
   };
 
-  const handleConsentAccept = () => {
+  const handleConsentAccept = (projectId: string) => {
     if (!meeting) return;
     addBot({
       calendarEventId: meeting.id,
       meetingUrl: meeting.meetingUrl,
       meetingTitle: meeting.title,
       consentGiven: true,
+      projectId,
     });
     setIsConsentDialogOpen(false);
   };
@@ -284,6 +282,9 @@ export function MeetingDetailsModal({
         }}
         onAccept={handleConsentAccept}
         meetingTitle={meeting.title}
+        projects={projects}
+        defaultProjectId={defaultProjectId}
+        isLoadingProjects={isLoadingProjects}
       />
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent

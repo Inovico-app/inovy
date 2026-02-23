@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Loader2, Plus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -12,6 +13,7 @@ import {
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
 import { AddBotConsentDialog } from "./add-bot-consent-dialog";
 import { useAddBotToMeeting } from "../hooks/use-add-bot-to-meeting";
+import { getUserProjects } from "@/features/projects/actions/get-user-projects";
 
 interface AddBotButtonProps {
   meeting: MeetingWithSession;
@@ -20,13 +22,23 @@ interface AddBotButtonProps {
 
 /**
  * Add Bot button for meetings without bot sessions
- * Handles consent flow and optimistic UI updates
+ * Handles consent flow with project selection and optimistic UI updates
  */
 export function AddBotButton({ meeting, variant = "button" }: AddBotButtonProps) {
   const [isConsentDialogOpen, setIsConsentDialogOpen] = useState(false);
   const [pendingMeeting, setPendingMeeting] = useState<MeetingWithSession | null>(
     null
   );
+
+  const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
+    queryKey: ["user-projects"],
+    queryFn: async () => {
+      const result = await getUserProjects();
+      if (!result.success || !result.data) return [];
+      return result.data;
+    },
+  });
+  const defaultProjectId = projects.length > 0 ? projects[0].id : undefined;
 
   const { execute, isExecuting } = useAddBotToMeeting({
     onConsentRequired: () => {
@@ -36,15 +48,11 @@ export function AddBotButton({ meeting, variant = "button" }: AddBotButtonProps)
   });
 
   const handleAddBot = () => {
-    execute({
-      calendarEventId: meeting.id,
-      meetingUrl: meeting.meetingUrl,
-      meetingTitle: meeting.title,
-      consentGiven: false,
-    });
+    setIsConsentDialogOpen(true);
+    setPendingMeeting(meeting);
   };
 
-  const handleConsentAccept = () => {
+  const handleConsentAccept = (projectId: string) => {
     if (!pendingMeeting) return;
 
     execute({
@@ -52,6 +60,7 @@ export function AddBotButton({ meeting, variant = "button" }: AddBotButtonProps)
       meetingUrl: pendingMeeting.meetingUrl,
       meetingTitle: pendingMeeting.title,
       consentGiven: true,
+      projectId,
     });
     setPendingMeeting(null);
   };
@@ -73,6 +82,9 @@ export function AddBotButton({ meeting, variant = "button" }: AddBotButtonProps)
       }}
       onAccept={handleConsentAccept}
       meetingTitle={pendingMeeting?.title ?? meeting.title}
+      projects={projects}
+      defaultProjectId={defaultProjectId}
+      isLoadingProjects={isLoadingProjects}
     />
   );
 

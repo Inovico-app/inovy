@@ -20,6 +20,7 @@ export interface AddBotToMeetingInput {
   meetingUrl: string;
   meetingTitle?: string;
   consentGiven?: boolean;
+  projectId?: string;
 }
 
 function createOptimisticSession(calendarEventId: string): BotSession {
