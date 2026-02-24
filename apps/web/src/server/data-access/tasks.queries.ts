@@ -163,6 +163,8 @@ export class TasksQueries {
         lastEditedAt: tasks.lastEditedAt,
         lastEditedById: tasks.lastEditedById,
         lastEditedByName: tasks.lastEditedByName,
+        isEncrypted: tasks.isEncrypted,
+        encryptionMetadata: tasks.encryptionMetadata,
         createdAt: tasks.createdAt,
         updatedAt: tasks.updatedAt,
         project: { id: projects.id, name: projects.name },

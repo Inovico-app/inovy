@@ -23,6 +23,8 @@ export interface TaskDto {
   lastEditedAt: Date | null;
   lastEditedById: string | null;
   lastEditedByName: string | null;
+  isEncrypted: boolean;
+  encryptionMetadata: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

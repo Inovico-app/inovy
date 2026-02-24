@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   jsonb,
