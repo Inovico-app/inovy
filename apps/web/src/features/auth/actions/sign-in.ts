@@ -1,7 +1,14 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import {
+  addTimingDelay,
+  checkAuthRateLimit,
+  getGenericAuthError,
+  getIpAddress,
+} from "@/lib/auth-security";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { logger } from "@/lib/logger";
 import {
   createErrorForNextSafeAction,
   publicActionClient,
@@ -19,6 +26,11 @@ import {
 /**
  * Sign in with email and password
  * Cookies are automatically handled by Better Auth's nextCookies plugin
+ * 
+ * Security measures:
+ * - Rate limiting to prevent brute force attacks
+ * - Generic error messages to prevent username enumeration
+ * - Timing attack mitigation with consistent response times
  */
 export const signInEmailAction = publicActionClient
   .metadata({
@@ -28,6 +40,24 @@ export const signInEmailAction = publicActionClient
   .inputSchema(signInEmailSchema)
   .action(async ({ parsedInput }) => {
     const { email, password } = parsedInput;
+    const requestHeaders = await headers();
+    const ipAddress = getIpAddress(requestHeaders);
+
+    // Check rate limit to prevent brute force attacks
+    const rateLimitResult = await checkAuthRateLimit(email, ipAddress);
+    if (!rateLimitResult.allowed) {
+      // Add timing delay even for rate-limited requests
+      await addTimingDelay();
+      
+      throw createErrorForNextSafeAction(
+        ActionErrors.rateLimited(
+          "Too many login attempts. Please try again later."
+        )
+      );
+    }
+
+    let signInSuccess = false;
+    let isEmailVerificationError = false;
 
     try {
       await auth.api.signInEmail({
@@ -35,24 +65,45 @@ export const signInEmailAction = publicActionClient
           email,
           password,
         },
-        headers: await headers(),
+        headers: requestHeaders,
       });
+      signInSuccess = true;
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to sign in";
 
       // Check if it's an email verification error
+      // This is a legitimate different error case that should be handled separately
       if (message.includes("email") && message.includes("verify")) {
-        throw createErrorForNextSafeAction(
-          ActionErrors.forbidden(
-            "Please verify your email address before signing in",
-            { email }
-          )
-        );
+        isEmailVerificationError = true;
       }
 
+      // Log failed authentication attempt (without password)
+      logger.security.authenticationFailure("Sign-in failed", {
+        component: "sign-in",
+        email: "[REDACTED]",
+        ipAddress: ipAddress ? "[REDACTED]" : undefined,
+        isVerificationError: isEmailVerificationError,
+      });
+    }
+
+    // Add consistent timing delay to mitigate timing attacks
+    await addTimingDelay();
+
+    // Handle email verification error separately
+    if (isEmailVerificationError) {
       throw createErrorForNextSafeAction(
-        ActionErrors.validation(message, { email })
+        ActionErrors.forbidden(
+          "Please verify your email address before signing in"
+        )
+      );
+    }
+
+    // If sign-in failed for any other reason, return generic error
+    if (!signInSuccess) {
+      // Use generic error message to prevent username enumeration
+      throw createErrorForNextSafeAction(
+        ActionErrors.validation(getGenericAuthError())
       );
     }
 
@@ -61,7 +112,6 @@ export const signInEmailAction = publicActionClient
       const sessionResult = await getBetterAuthSession();
       if (sessionResult.isOk() && sessionResult.value.user) {
         const user = sessionResult.value.user;
-        const requestHeaders = await headers();
         await OnboardingService.ensureOnboardingRecordExists(
           user.id,
           requestHeaders
@@ -69,7 +119,10 @@ export const signInEmailAction = publicActionClient
       }
     } catch (error) {
       // Log but don't fail sign-in if onboarding creation fails
-      console.error("Failed to ensure onboarding record exists:", error);
+      logger.error("Failed to ensure onboarding record exists", {
+        component: "sign-in",
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
     // Always redirect to home page after successful sign-in

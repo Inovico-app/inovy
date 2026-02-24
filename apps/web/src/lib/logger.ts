@@ -272,6 +272,14 @@ class Logger {
         action: "suspiciousActivity",
       });
     },
+
+    authenticationFailure: (message: string, context?: LogContext) => {
+      this.warn(`Authentication failure: ${message}`, {
+        ...context,
+        component: "security",
+        action: "authenticationFailure",
+      });
+    },
   };
 
   // Helper method for structured audit logging
