@@ -43,6 +43,10 @@ export const auditEventTypeEnum = pgEnum("audit_event_type", [
   "permission_updated",
   "role_assigned",
   "role_removed",
+  // Privileged access events
+  "admin_access",
+  "superadmin_access",
+  "privileged_action",
   // Export events
   "export_created",
   "export_downloaded",
@@ -75,6 +79,7 @@ export const auditResourceTypeEnum = pgEnum("audit_resource_type", [
   "consent",
   "knowledge_base",
   "chat",
+  "admin_interface",
 ]);
 
 export const auditActionEnum = pgEnum("audit_action", [
