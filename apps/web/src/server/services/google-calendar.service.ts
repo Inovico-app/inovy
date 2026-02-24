@@ -853,11 +853,12 @@ export class GoogleCalendarService {
       return ok(calendars);
     } catch (error) {
       // Check for insufficient scopes error
+      const errorCode = error && typeof error === "object" && "code" in error ? error.code : null;
       const isInsufficientScopes =
         error instanceof Error &&
         (error.message.includes("insufficient authentication scopes") ||
           error.message.includes("insufficientPermissions") ||
-          (error as any).code === 403);
+          errorCode === 403);
 
       if (isInsufficientScopes) {
         logger.error("Insufficient Google OAuth scopes for calendar list", {

@@ -53,16 +53,16 @@ export function useEventDateTimeDefaults<T extends FieldValues>({
     if (open && !startDate) {
       const defaultDate = getDefaultDate();
       const defaultTime = getDefaultTime();
-      setValue(startDatePath, defaultDate as any);
-      setValue(endDatePath, defaultDate as any);
+      setValue(startDatePath, defaultDate as unknown as T[Path<T>]);
+      setValue(endDatePath, defaultDate as unknown as T[Path<T>]);
       if (!allDay) {
-        setValue(startTimePath, defaultTime as any);
+        setValue(startTimePath, defaultTime as unknown as T[Path<T>]);
         // Set end time to start time + 30 minutes
         const [hours, minutes] = defaultTime.split(":").map(Number);
         const endTimeDate = new Date();
         endTimeDate.setHours(hours, minutes + 30, 0, 0);
         const endTimeValue = endTimeDate.toTimeString().slice(0, 5);
-        setValue(endTimePath, endTimeValue as any);
+        setValue(endTimePath, endTimeValue as unknown as T[Path<T>]);
       }
     }
   }, [open, setValue, startDate, allDay, startDatePath, endDatePath, startTimePath, endTimePath]);
@@ -70,24 +70,24 @@ export function useEventDateTimeDefaults<T extends FieldValues>({
   // When all day is toggled, clear or set times
   useEffect(() => {
     if (allDay) {
-      setValue(startTimePath, "" as any);
-      setValue(endTimePath, "" as any);
+      setValue(startTimePath, "" as unknown as T[Path<T>]);
+      setValue(endTimePath, "" as unknown as T[Path<T>]);
     } else if (!startTime || !endTime) {
       // Set default times if not all day and times are empty
       const defaultTime = getDefaultTime();
-      setValue(startTimePath, defaultTime as any);
+      setValue(startTimePath, defaultTime as unknown as T[Path<T>]);
       const [hours, minutes] = defaultTime.split(":").map(Number);
       const endTimeDate = new Date();
       endTimeDate.setHours(hours, minutes + 30, 0, 0);
       const endTimeValue = endTimeDate.toTimeString().slice(0, 5);
-      setValue(endTimePath, endTimeValue as any);
+      setValue(endTimePath, endTimeValue as unknown as T[Path<T>]);
     }
   }, [allDay, setValue, startTime, endTime, startTimePath, endTimePath]);
 
   // Sync end date with start date when start date changes (if end date is before start date)
   useEffect(() => {
     if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
-      setValue(endDatePath, startDate as any);
+      setValue(endDatePath, startDate as unknown as T[Path<T>]);
     }
   }, [startDate, endDate, setValue, endDatePath]);
 }

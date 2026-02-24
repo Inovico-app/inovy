@@ -91,20 +91,20 @@ export async function uploadRecordingFormAction(
       fileSize: file.size,
     });
 
-    // Encrypt file before upload (if encryption is enabled)
-    const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+    // Encrypt file before upload (secure by default, opt-out with DISABLE_ENCRYPTION_AT_REST)
+    const shouldEncrypt = process.env.DISABLE_ENCRYPTION_AT_REST !== "true";
     let fileToUpload: File | Buffer = file;
     let encryptionMetadata: string | null = null;
 
     // Validate encryption configuration before attempting encryption
     if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
-      logger.error("Encryption enabled but master key not configured", {
+      logger.error("Encryption is required but master key not configured", {
         component: "uploadRecordingFormAction",
       });
       return {
         success: false,
         error:
-          "Encryption is enabled but ENCRYPTION_MASTER_KEY is not configured. Please contact support.",
+          "ENCRYPTION_MASTER_KEY is not configured. Encryption at rest is required by default. Please contact support.",
       };
     }
 

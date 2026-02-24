@@ -277,17 +277,17 @@ export class BotWebhookService {
       const timestamp = Date.now();
       const blobPath = `recordings/${timestamp}-${fileName}`;
 
-      const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+      const shouldEncrypt = process.env.DISABLE_ENCRYPTION_AT_REST !== "true";
       let fileToUpload: Buffer = fileBuffer;
       let encryptionMetadata: string | null = null;
 
       if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
-        logger.error("Encryption enabled but master key not configured", {
+        logger.error("Encryption is required but master key not configured", {
           component: "BotWebhookService.processRecordingDone",
         });
         return err(
           ActionErrors.internal(
-            "Encryption configuration error",
+            "ENCRYPTION_MASTER_KEY is not configured. Encryption at rest is required by default.",
             undefined,
             "BotWebhookService.processRecordingDone"
           )
@@ -460,17 +460,17 @@ export class BotWebhookService {
         const timestamp = Date.now();
         const blobPath = `recordings/${timestamp}-${fileName}`;
 
-        const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+        const shouldEncrypt = process.env.DISABLE_ENCRYPTION_AT_REST !== "true";
         let fileToUpload: Buffer = fileBuffer;
         let encryptionMetadata: string | null = null;
 
         if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
-          logger.error("Encryption enabled but master key not configured", {
+          logger.error("Encryption is required but master key not configured", {
             component: "BotWebhookService.processRecordingReady",
           });
           return err(
             ActionErrors.internal(
-              "Encryption configuration error",
+              "ENCRYPTION_MASTER_KEY is not configured. Encryption at rest is required by default.",
               undefined,
               "BotWebhookService.processRecordingReady"
             )
