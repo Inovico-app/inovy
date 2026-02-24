@@ -50,14 +50,6 @@ export function PrivilegedAccessDashboard({
   const inactiveThresholdDays = 90;
   const now = new Date();
 
-  const inactiveUsers = privilegedUsers.filter((user) => {
-    if (!user.lastActivity) return true;
-    const daysSinceActivity = Math.floor(
-      (now.getTime() - user.lastActivity.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return daysSinceActivity > inactiveThresholdDays;
-  });
-
   const getRoleBadgeVariant = (role: string) => {
     switch (role.toLowerCase()) {
       case "superadmin":

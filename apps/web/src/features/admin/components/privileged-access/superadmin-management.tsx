@@ -70,7 +70,7 @@ export function SuperadminManagement({
       } else {
         toast.error(result?.serverError ?? "Failed to assign superadmin role");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to assign superadmin role");
     } finally {
       setIsAssignLoading(false);
@@ -94,7 +94,7 @@ export function SuperadminManagement({
       } else {
         toast.error(result?.serverError ?? "Failed to revoke superadmin role");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to revoke superadmin role");
     } finally {
       setIsRevokeLoading(false);

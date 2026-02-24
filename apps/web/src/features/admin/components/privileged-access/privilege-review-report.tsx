@@ -71,7 +71,7 @@ export function PrivilegeReviewReport() {
       } else {
         toast.error(result?.serverError ?? "Failed to generate report");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to generate report");
     } finally {
       setIsLoading(false);
