@@ -7,7 +7,8 @@ import type { BotStatus } from "@/server/db/schema/bot-sessions";
 export interface BotProviderConfig {
   meetingUrl: string;
   customMetadata?: Record<string, string>;
-  webhookUrl?: string; // Optional, provider may have default
+  webhookUrl?: string;
+  joinAt?: Date;
 }
 
 /**

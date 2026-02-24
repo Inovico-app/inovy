@@ -41,21 +41,49 @@ export class RecallApiService {
    * Create a bot session via Recall.ai API
    * @param meetingUrl - The meeting URL to join
    * @param customMetadata - Custom metadata to attach (e.g., projectId)
+   * @param joinAt - Optional scheduled time for bot to join the meeting
    * @returns Result containing bot session ID and details
    */
   static async createBotSession(
     meetingUrl: string,
-    customMetadata?: Record<string, string>
+    customMetadata?: Record<string, string>,
+    joinAt?: Date
   ): Promise<ActionResult<{ botId: string; status: string }>> {
     try {
       const apiKey = getRecallApiKey();
       const webhookUrl = `${this.getWebhookBaseUrl()}/api/webhooks/recall`;
+
+      const requestBody: {
+        meeting_url: string;
+        webhook_url: string;
+        custom_metadata: Record<string, string>;
+        automatic_leave: {
+          noone_joined_timeout: number;
+          waiting_room_timeout: number;
+          everyone_left_timeout: number;
+        };
+        join_at?: string;
+      } = {
+        meeting_url: meetingUrl,
+        webhook_url: webhookUrl,
+        custom_metadata: customMetadata ?? {},
+        automatic_leave: {
+          noone_joined_timeout: 300,
+          waiting_room_timeout: 600,
+          everyone_left_timeout: 30,
+        },
+      };
+
+      if (joinAt) {
+        requestBody.join_at = joinAt.toISOString();
+      }
 
       logger.info("Creating Recall.ai bot session", {
         component: "RecallApiService.createBotSession",
         region: "eu-central-1",
         apiBaseUrl: RecallApiService.API_BASE_URL,
         customMetadata,
+        joinAt: joinAt?.toISOString(),
       });
 
       const response = await fetch(`${RecallApiService.API_BASE_URL}/bot/`, {
@@ -64,16 +92,7 @@ export class RecallApiService {
           Authorization: `Token ${apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          meeting_url: meetingUrl,
-          webhook_url: webhookUrl,
-          custom_metadata: customMetadata ?? {},
-          automatic_leave: {
-            noone_joined_timeout: 300,
-            waiting_room_timeout: 600,
-            everyone_left_timeout: 30,
-          },
-        }),
+        body: JSON.stringify(requestBody),
         signal: AbortSignal.timeout(30000), // 30 second timeout
       });
 
