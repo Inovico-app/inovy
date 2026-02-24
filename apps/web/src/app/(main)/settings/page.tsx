@@ -18,6 +18,11 @@ const quickLinks = [
     href: "/settings/profile" as Route,
   },
   {
+    title: "Security",
+    description: "Configure authentication and security settings",
+    href: "/settings/security" as Route,
+  },
+  {
     title: "Organization",
     description: "View organization information and members",
     href: "/settings/organization" as Route,

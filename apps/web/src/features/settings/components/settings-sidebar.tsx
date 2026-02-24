@@ -4,6 +4,7 @@ import {
   BotIcon,
   Building2Icon,
   ChevronRightIcon,
+  LockIcon,
   SettingsIcon,
   UserIcon,
   VideoIcon,
@@ -27,6 +28,12 @@ const SETTINGS_MENU_ITEMS: MenuItem[] = [
     icon: UserIcon,
     title: "Profile",
     description: "Manage your personal account",
+  },
+  {
+    href: "/settings/security",
+    icon: LockIcon,
+    title: "Security",
+    description: "Authentication & security settings",
   },
   {
     href: "/settings/organization",

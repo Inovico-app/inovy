@@ -22,6 +22,7 @@ export * from "./knowledge-base-entries";
 export * from "./notifications";
 export * from "./oauth-connections";
 export * from "./onboardings";
+export * from "./organization-auth-policies";
 export * from "./organization-settings";
 export * from "./pending-team-assignments";
 export * from "./project-templates";
