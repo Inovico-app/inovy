@@ -4,6 +4,7 @@ import {
   ActionErrors,
   type ActionResult,
 } from "../../lib/server-action-client/action-errors";
+import { secureFetch, validateSecureConnection } from "../../lib/secure-http-client";
 import { getRecallApiKey } from "./recall-api.utils";
 
 interface RecallRecording {
@@ -22,9 +23,16 @@ interface RecallRecording {
  * Recall.ai API Service
  * Handles interactions with Recall.ai API for bot session management
  * Uses EU Central region (eu-central-1)
+ *
+ * Security: All connections use TLS 1.2+ and HTTPS enforcement
+ * Compliance: SSD-4.1.01 - Industry-standard secure protocols
  */
 export class RecallApiService {
   static readonly API_BASE_URL = "https://eu-central-1.recall.ai/api/v1";
+
+  static {
+    validateSecureConnection(this.API_BASE_URL, "Recall.ai API");
+  }
 
   private static getWebhookBaseUrl(): string {
     const webhookBaseUrl =
@@ -58,7 +66,7 @@ export class RecallApiService {
         customMetadata,
       });
 
-      const response = await fetch(`${RecallApiService.API_BASE_URL}/bot/`, {
+      const response = await secureFetch(`${RecallApiService.API_BASE_URL}/bot/`, {
         method: "POST",
         headers: {
           Authorization: `Token ${apiKey}`,
@@ -69,7 +77,7 @@ export class RecallApiService {
           webhook_url: webhookUrl,
           custom_metadata: customMetadata ?? {},
         }),
-        signal: AbortSignal.timeout(30000), // 30 second timeout
+        timeout: 30000,
       });
 
       if (!response.ok) {
@@ -143,14 +151,14 @@ export class RecallApiService {
     try {
       const apiKey = getRecallApiKey();
 
-      const response = await fetch(
+      const response = await secureFetch(
         `${RecallApiService.API_BASE_URL}/bot/${botId}/`,
         {
           method: "GET",
           headers: {
             Authorization: `Token ${apiKey}`,
           },
-          signal: AbortSignal.timeout(30000), // 30 second timeout
+          timeout: 30000,
         }
       );
 
@@ -205,14 +213,14 @@ export class RecallApiService {
     try {
       const apiKey = getRecallApiKey();
 
-      const response = await fetch(
+      const response = await secureFetch(
         `${RecallApiService.API_BASE_URL}/bot/${botId}/`,
         {
           method: "GET",
           headers: {
             Authorization: `Token ${apiKey}`,
           },
-          signal: AbortSignal.timeout(30000), // 30 second timeout
+          timeout: 30000,
         }
       );
 
