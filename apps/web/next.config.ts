@@ -2,6 +2,21 @@ import { withWorkflow } from "workflow/next";
 
 import type { NextConfig } from "next";
 
+const ContentSecurityPolicy = `
+  default-src 'self';
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://va.vercel-scripts.com;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' blob: data: https:;
+  font-src 'self' data:;
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self';
+  frame-ancestors 'none';
+  upgrade-insecure-requests;
+`
+  .replace(/\s{2,}/g, " ")
+  .trim();
+
 const nextConfig: NextConfig = {
   typedRoutes: true,
   cacheComponents: true,
@@ -19,6 +34,19 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "500mb",
     },
     proxyClientMaxBodySize: "500mb",
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: ContentSecurityPolicy,
+          },
+        ],
+      },
+    ];
   },
   webpack: (config, { isServer }) => {
     // Exclude pino and related Node.js-only packages from client bundle
