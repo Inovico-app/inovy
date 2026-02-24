@@ -26,6 +26,7 @@ const createCalendarEventWithBotSchema = z.object({
   allDay: z.boolean().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  recurrence: z.array(z.string()).optional(),
 });
 
 /**
@@ -54,7 +55,7 @@ export const createCalendarEventWithBot = authorizedActionClient
       );
     }
 
-    const { title, startDateTime, duration, description, location, calendarId, addBot, attendeeUserIds, attendeeEmails, allDay, startDate, endDate } =
+    const { title, startDateTime, duration, description, location, calendarId, addBot, attendeeUserIds, attendeeEmails, allDay, startDate, endDate, recurrence } =
       parsedInput;
 
     logger.info("Creating calendar event with bot", {
@@ -117,6 +118,7 @@ export const createCalendarEventWithBot = authorizedActionClient
       attendees: attendeeEmailList.length > 0 ? attendeeEmailList : undefined,
       allDay: allDay || false,
       userTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      recurrence,
     });
 
     if (eventResult.isErr()) {
