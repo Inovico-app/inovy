@@ -2,7 +2,7 @@
 
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2Icon } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -26,8 +26,10 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AttendeeSelector } from "./attendee-selector";
+import { RecurrenceForm, type RecurrenceFormData } from "./recurrence-form";
 import { useEventDateTimeDefaults } from "../hooks/use-event-datetime-defaults";
 import { useCreateCalendarEvent } from "../hooks/use-create-calendar-event";
+import { generateRRule, RECURRENCE_PRESETS, type RecurrencePattern } from "../lib/recurrence";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -134,6 +136,12 @@ export function CreateEventDialog({
   const startTime = watch("startTime");
   const endTime = watch("endTime");
 
+  // Recurrence state
+  const [recurrence, setRecurrence] = useState<RecurrenceFormData>({
+    preset: "none",
+    endType: "never",
+  });
+
   // Handle date/time defaults
   useEventDateTimeDefaults({
     open,
@@ -155,11 +163,60 @@ export function CreateEventDialog({
   useEffect(() => {
     if (!open) {
       reset();
+      setRecurrence({
+        preset: "none",
+        endType: "never",
+      });
     }
   }, [open, reset]);
 
 
   const onSubmit = async (data: FormData) => {
+    // Generate recurrence RRULE if needed
+    let rruleArray: string[] | undefined;
+    
+    if (recurrence.preset !== "none") {
+      const startDateTime = data.allDay 
+        ? new Date(`${data.startDate}T00:00:00`)
+        : new Date(`${data.startDate}T${data.startTime || "00:00"}:00`);
+
+      let pattern: RecurrencePattern;
+
+      if (recurrence.preset === "custom") {
+        // Build custom pattern
+        pattern = {
+          frequency: recurrence.customFrequency || "WEEKLY",
+          interval: recurrence.customInterval || 1,
+          endType: recurrence.endType,
+          endDate: recurrence.endDate ? new Date(recurrence.endDate) : undefined,
+          count: recurrence.count,
+          weekDays: recurrence.weekDays,
+          monthlyType: recurrence.monthlyType,
+        };
+      } else {
+        // Use preset pattern
+        const presetKey = recurrence.preset as keyof typeof RECURRENCE_PRESETS;
+        const preset = RECURRENCE_PRESETS[presetKey];
+        
+        if ("pattern" in preset) {
+          pattern = {
+            ...preset.pattern,
+            endType: recurrence.endType,
+            endDate: recurrence.endDate ? new Date(recurrence.endDate) : undefined,
+            count: recurrence.count,
+          };
+        } else {
+          pattern = {
+            frequency: "DAILY",
+            interval: 1,
+            endType: recurrence.endType,
+          };
+        }
+      }
+
+      rruleArray = generateRRule(pattern, startDateTime);
+    }
+
     if (data.allDay) {
       // All day events: pass date strings directly
       createEvent({
@@ -175,6 +232,7 @@ export function CreateEventDialog({
         allDay: true,
         startDate: data.startDate,
         endDate: data.endDate,
+        recurrence: rruleArray,
       });
     } else {
       // Timed events: combine date and time
@@ -200,6 +258,7 @@ export function CreateEventDialog({
         attendeeUserIds: data.attendeeUserIds || [],
         attendeeEmails: data.attendeeEmails || [],
         allDay: false,
+        recurrence: rruleArray,
       });
     }
   };
@@ -355,6 +414,13 @@ export function CreateEventDialog({
               placeholder="Event location"
             />
           </div>
+
+          <RecurrenceForm
+            value={recurrence}
+            onChange={setRecurrence}
+            eventStartDate={startDate}
+            disabled={isCreating}
+          />
 
           <AttendeeSelector
             selectedUserIds={watch("attendeeUserIds") || []}
