@@ -32,11 +32,14 @@ export default function RecordError({ error, reset }: RecordErrorProps) {
           The recording interface encountered an error. Please check your
           microphone permissions and try again.
         </p>
-        {process.env.NODE_ENV === "development" && error.message && (
-          <p className="text-xs text-muted-foreground font-mono bg-muted p-2 rounded">
-            {error.message}
-          </p>
-        )}
+        {/* Only show error details in development mode (localhost) */}
+        {typeof window !== "undefined" &&
+          window.location.hostname === "localhost" &&
+          error.message && (
+            <p className="text-xs text-muted-foreground font-mono bg-muted p-2 rounded">
+              {error.message}
+            </p>
+          )}
         <div className="flex gap-2 justify-center">
           <Button variant="outline" onClick={reset}>
             Try Again

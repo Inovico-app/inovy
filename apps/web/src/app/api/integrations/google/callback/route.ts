@@ -108,11 +108,12 @@ export async function GET(request: NextRequest) {
     if (result.isErr()) {
       logger.error("Failed to store Google OAuth connection", {
         userId: user.id,
-        error: result.error.message,
+        error: result.error,
       });
+      // Don't expose technical error details in the URL
       return NextResponse.redirect(
         new URL(
-          `/settings?google_error=${encodeURIComponent(result.error.message)}`,
+          `/settings?google_error=${encodeURIComponent("Connection failed")}`,
           request.url
         )
       );

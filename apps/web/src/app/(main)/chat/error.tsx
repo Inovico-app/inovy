@@ -32,11 +32,14 @@ export default function ChatError({ error, reset }: ChatErrorProps) {
           The chat interface encountered an error. Your conversation data is
           safe. Please try refreshing or starting a new conversation.
         </p>
-        {process.env.NODE_ENV === "development" && error.message && (
-          <p className="text-xs text-muted-foreground font-mono bg-muted p-2 rounded">
-            {error.message}
-          </p>
-        )}
+        {/* Only show error details in development mode (localhost) */}
+        {typeof window !== "undefined" &&
+          window.location.hostname === "localhost" &&
+          error.message && (
+            <p className="text-xs text-muted-foreground font-mono bg-muted p-2 rounded">
+              {error.message}
+            </p>
+          )}
         <div className="flex gap-2 justify-center">
           <Button variant="outline" onClick={reset}>
             Try Again
