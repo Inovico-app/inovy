@@ -127,17 +127,15 @@ export const auditLogs = pgTable("audit_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
   eventType: auditEventTypeEnum("event_type").notNull(),
   resourceType: auditResourceTypeEnum("resource_type").notNull(),
-  resourceId: uuid("resource_id"), // Can be null for system-level events
-  userId: text("user_id").notNull(), // Better Auth user ID
-  organizationId: text("organization_id").notNull(),
+  resourceId: uuid("resource_id"),
+  userId: text("user_id").notNull(),
+  organizationId: text("organization_id"),
   action: auditActionEnum("action").notNull(),
-  ipAddress: text("ip_address"), // IP address for audit trail
-  userAgent: text("user_agent"), // User agent for audit trail
-  metadata: jsonb("metadata").$type<Record<string, unknown> | null>(), // Additional context
-  // Tamper-proofing: hash of previous log entry + current log entry
-  // This creates an immutable chain that can detect tampering
-  previousHash: text("previous_hash"), // Hash of the previous audit log entry
-  hash: text("hash"), // Hash of this entry (computed from previousHash + current entry data)
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  metadata: jsonb("metadata").$type<Record<string, unknown> | null>(),
+  previousHash: text("previous_hash"),
+  hash: text("hash"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

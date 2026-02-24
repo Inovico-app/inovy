@@ -1,8 +1,8 @@
 import { logger } from "@/lib/logger";
 import { AuthAnomalyDetectionService } from "@/server/services/auth-anomaly-detection.service";
-import { createAuthMiddleware } from "better-auth";
+import { createMiddleware } from "better-auth";
 
-export const authHooks = createAuthMiddleware(async (ctx) => {
+export const authHooks = createMiddleware(async (ctx) => {
   const path = ctx.path;
 
   if (
@@ -29,10 +29,10 @@ export const authHooks = createAuthMiddleware(async (ctx) => {
               const user = result.user as { id: string };
               const headers = ctx.headers;
               const ipAddress =
-                headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-                headers.get("x-real-ip") ??
+                headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+                headers?.get("x-real-ip") ??
                 null;
-              const userAgent = headers.get("user-agent") ?? null;
+              const userAgent = headers?.get("user-agent") ?? null;
 
               try {
                 const anomalyResult =

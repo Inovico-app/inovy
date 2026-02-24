@@ -39,7 +39,9 @@ import { authHooks } from "./auth/auth-hooks";
  */
 export const auth = betterAuth({
   experimental: { joins: true },
-  hooks: [authHooks],
+  hooks: {
+    after: authHooks,
+  },
   database: drizzleAdapter(db, {
     provider: "pg",
     usePlural: true,
@@ -214,32 +216,22 @@ export const auth = betterAuth({
     additionalFields: {
       role: {
         type: "string",
-        enum: [
-          "owner",
-          "admin",
-          "superadmin",
-          "manager",
-          "user",
-          "viewer",
-        ] as const,
         defaultValue: "user",
         required: true,
         description: "The role of the user in the organization",
-        input: false, // don't allow user to change their role
+        input: false,
       },
       onboardingCompleted: {
         type: "boolean",
         defaultValue: false,
         required: true,
-        input: false, // don't allow user to change this directly
+        input: false,
       },
     },
   },
   plugins: [
     twoFactor({
       issuer: "Inovy",
-      backupCodeLength: 10,
-      backupCodeCount: 10,
     }),
     organization({
       // Access control configuration
