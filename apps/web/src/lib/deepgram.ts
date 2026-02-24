@@ -1,12 +1,17 @@
 import { createClient } from "@deepgram/sdk";
 
-const deepgram = createClient(process.env.DEEPGRAM_API_KEY ?? "");
+let deepgramInstance: ReturnType<typeof createClient> | null = null;
 
 export const getDeepgramClient = () => {
   if (!process.env.DEEPGRAM_API_KEY) {
     throw new Error("DEEPGRAM_API_KEY is not set");
   }
-  return deepgram;
+  
+  if (!deepgramInstance) {
+    deepgramInstance = createClient(process.env.DEEPGRAM_API_KEY);
+  }
+  
+  return deepgramInstance;
 };
 
 export const getTemporaryDeepgramToken = async () => {
@@ -16,6 +21,7 @@ export const getTemporaryDeepgramToken = async () => {
     throw new Error("DEEPGRAM_API_KEY is not set in environment variables");
   }
 
-  return await deepgram.auth.grantToken();
+  const client = getDeepgramClient();
+  return await client.auth.grantToken();
 };
 
