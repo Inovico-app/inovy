@@ -1,6 +1,7 @@
 import { logger } from "@/lib/logger";
 import pdfParse from "pdf-parse";
 import type { DocumentMetadata } from "./types/document-processing.types";
+import { secureFetch } from "../lib/secure-fetch";
 
 /**
  * Metadata Extractor Service
@@ -87,7 +88,12 @@ export class MetadataExtractor {
         const arrayBuffer = await file.arrayBuffer();
         buffer = Buffer.from(arrayBuffer);
       } else {
-        const response = await fetch(file.url);
+        const response = await secureFetch(file.url, {
+          certificateValidation: {
+            nearExpiryWarningDays: 30,
+            strictValidation: true,
+          },
+        });
         if (!response.ok) {
           logger.warn("Failed to fetch PDF for metadata extraction", {
             component: "MetadataExtractor",

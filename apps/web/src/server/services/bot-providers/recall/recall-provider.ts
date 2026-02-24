@@ -5,6 +5,7 @@ import {
 } from "@/lib/server-action-client/action-errors";
 import { RecallApiService } from "@/server/services/recall-api.service";
 import { getRecallApiKey } from "@/server/services/recall-api.utils";
+import { secureFetch } from "@/server/lib/secure-fetch";
 import { err, ok } from "neverthrow";
 import type {
   BotProvider,
@@ -117,7 +118,7 @@ export class RecallBotProvider implements BotProvider {
   async terminateSession(providerId: string): Promise<ActionResult<void>> {
     try {
       const apiKey = getRecallApiKey();
-      const response = await fetch(
+      const response = await secureFetch(
         `${RecallApiService.API_BASE_URL}/bot/${providerId}/`,
         {
           method: "DELETE",
@@ -125,6 +126,10 @@ export class RecallBotProvider implements BotProvider {
             Authorization: `Token ${apiKey}`,
           },
           signal: AbortSignal.timeout(30000),
+          certificateValidation: {
+            nearExpiryWarningDays: 30,
+            strictValidation: true,
+          },
         }
       );
 
@@ -174,7 +179,7 @@ export class RecallBotProvider implements BotProvider {
   ): Promise<ActionResult<string>> {
     try {
       const apiKey = getRecallApiKey();
-      const response = await fetch(
+      const response = await secureFetch(
         `${RecallApiService.API_BASE_URL}/bot/${providerId}/`,
         {
           method: "GET",
@@ -182,6 +187,10 @@ export class RecallBotProvider implements BotProvider {
             Authorization: `Token ${apiKey}`,
           },
           signal: AbortSignal.timeout(30000),
+          certificateValidation: {
+            nearExpiryWarningDays: 30,
+            strictValidation: true,
+          },
         }
       );
 

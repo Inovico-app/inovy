@@ -93,11 +93,16 @@ async function fetchJwks(jwksUrl: string): Promise<Jwks> {
   const tenMinutesMs = 10 * 60 * 1000;
   if (cached && now - cached.fetchedAtMs < tenMinutesMs) return cached.jwks;
 
-  const res = await fetch(jwksUrl, {
+  const { secureFetch } = await import("../utils/secure-fetch.js");
+
+  const res = await secureFetch(jwksUrl, {
     method: "GET",
     headers: { accept: "application/json" },
-    // Avoid caching surprises in serverless; we manage a small in-memory cache above.
     cache: "no-store",
+    certificateValidation: {
+      nearExpiryWarningDays: 30,
+      strictValidation: true,
+    },
   });
   if (!res.ok) {
     throw new Error(`Failed to fetch JWKS (${res.status})`);
