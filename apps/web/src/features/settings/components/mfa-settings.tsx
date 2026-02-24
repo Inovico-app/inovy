@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { useGetMfaStatus } from "../auth/hooks/use-mfa";
+import { useGetMfaStatus } from "../../auth/hooks/use-mfa";
 import {
   CheckCircle2Icon,
   KeyIcon,

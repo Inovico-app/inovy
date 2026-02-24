@@ -26,7 +26,7 @@ const authPolicySchema = z.object({
   sessionTimeoutMinutes: z.number().int().min(5).max(43200).optional(),
   sessionInactivityTimeoutMinutes: z.number().int().min(5).max(43200).optional(),
   allowedAuthMethods: z.array(z.string()).optional(),
-  ipWhitelist: z.array(z.string().ip()).optional(),
+  ipWhitelist: z.array(z.string()).optional(),
   allowPasswordReset: z.boolean().optional(),
   maxFailedLoginAttempts: z.number().int().min(1).max(100).optional(),
   lockoutDurationMinutes: z.number().int().min(1).max(1440).optional(),
@@ -39,9 +39,9 @@ export const updateAuthPolicy = authorizedActionClient
   .inputSchema(authPolicySchema)
   .action(async ({ parsedInput, ctx }) => {
     try {
-      if (ctx.organization?.id !== parsedInput.organizationId) {
+      if (ctx.organizationId !== parsedInput.organizationId) {
         return resultToActionResponse(
-          err(ActionErrors.FORBIDDEN("Cannot update another organization's auth policy"))
+          err(ActionErrors.forbidden("Cannot update another organization's auth policy"))
         );
       }
 
@@ -59,10 +59,11 @@ export const updateAuthPolicy = authorizedActionClient
     } catch (error) {
       return resultToActionResponse(
         err(
-          ActionErrors.INTERNAL_ERROR(
+          ActionErrors.internal(
             error instanceof Error
               ? error.message
-              : "Failed to update authentication policy"
+              : "Failed to update authentication policy",
+            error instanceof Error ? error : undefined
           )
         )
       );
@@ -80,9 +81,9 @@ export const getAuthPolicy = authorizedActionClient
   .inputSchema(getAuthPolicySchema)
   .action(async ({ parsedInput, ctx }) => {
     try {
-      if (ctx.organization?.id !== parsedInput.organizationId) {
+      if (ctx.organizationId !== parsedInput.organizationId) {
         return resultToActionResponse(
-          err(ActionErrors.FORBIDDEN("Cannot read another organization's auth policy"))
+          err(ActionErrors.forbidden("Cannot read another organization's auth policy"))
         );
       }
 
@@ -98,10 +99,11 @@ export const getAuthPolicy = authorizedActionClient
     } catch (error) {
       return resultToActionResponse(
         err(
-          ActionErrors.INTERNAL_ERROR(
+          ActionErrors.internal(
             error instanceof Error
               ? error.message
-              : "Failed to get authentication policy"
+              : "Failed to get authentication policy",
+            error instanceof Error ? error : undefined
           )
         )
       );
@@ -119,9 +121,9 @@ export const deleteAuthPolicy = authorizedActionClient
   .inputSchema(deleteAuthPolicySchema)
   .action(async ({ parsedInput, ctx }) => {
     try {
-      if (ctx.organization?.id !== parsedInput.organizationId) {
+      if (ctx.organizationId !== parsedInput.organizationId) {
         return resultToActionResponse(
-          err(ActionErrors.FORBIDDEN("Cannot delete another organization's auth policy"))
+          err(ActionErrors.forbidden("Cannot delete another organization's auth policy"))
         );
       }
 
@@ -138,10 +140,11 @@ export const deleteAuthPolicy = authorizedActionClient
     } catch (error) {
       return resultToActionResponse(
         err(
-          ActionErrors.INTERNAL_ERROR(
+          ActionErrors.internal(
             error instanceof Error
               ? error.message
-              : "Failed to delete authentication policy"
+              : "Failed to delete authentication policy",
+            error instanceof Error ? error : undefined
           )
         )
       );

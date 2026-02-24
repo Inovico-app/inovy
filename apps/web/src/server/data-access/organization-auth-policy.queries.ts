@@ -400,16 +400,17 @@ export class AccountLockoutQueries {
   }
 
   static async cleanupExpiredLockouts() {
+    const now = new Date();
     await db
       .update(accountLockouts)
       .set({
         unlocked: true,
-        unlockedAt: new Date(),
+        unlockedAt: now,
       })
       .where(
         and(
           eq(accountLockouts.unlocked, false),
-          gte(new Date(), accountLockouts.lockedUntil)
+          gte(accountLockouts.lockedUntil, now)
         )
       );
   }

@@ -21,14 +21,14 @@ export const enrollMfa = authorizedActionClient
   .inputSchema(enrollMfaSchema)
   .action(async ({ ctx }) => {
     try {
-      const userId = ctx.user.id;
-      const userEmail = ctx.user.email;
+      const userId = ctx.user!.id;
+      const userEmail = ctx.user!.email;
 
       const existingMfa = await UserMfaQueries.getByUserId(userId);
 
       if (existingMfa?.totpEnabled) {
         return resultToActionResponse(
-          err(ActionErrors.VALIDATION_ERROR("MFA is already enabled"))
+          err(ActionErrors.validation("MFA is already enabled"))
         );
       }
 
@@ -60,8 +60,9 @@ export const enrollMfa = authorizedActionClient
 
       return resultToActionResponse(
         err(
-          ActionErrors.INTERNAL_ERROR(
-            error instanceof Error ? error.message : "Failed to enroll MFA"
+          ActionErrors.internal(
+            error instanceof Error ? error.message : "Failed to enroll MFA",
+            error instanceof Error ? error : undefined
           )
         )
       );
@@ -76,20 +77,20 @@ export const verifyMfaEnrollment = authorizedActionClient
   .inputSchema(verifyMfaEnrollmentSchema)
   .action(async ({ parsedInput, ctx }) => {
     try {
-      const userId = ctx.user.id;
+      const userId = ctx.user!.id;
       const { token } = parsedInput;
 
       const mfaSettings = await UserMfaQueries.getByUserId(userId);
 
       if (!mfaSettings?.totpSecret) {
         return resultToActionResponse(
-          err(ActionErrors.VALIDATION_ERROR("MFA enrollment not initiated"))
+          err(ActionErrors.validation("MFA enrollment not initiated"))
         );
       }
 
       if (mfaSettings.totpEnabled) {
         return resultToActionResponse(
-          err(ActionErrors.VALIDATION_ERROR("MFA is already enabled"))
+          err(ActionErrors.validation("MFA is already enabled"))
         );
       }
 
@@ -101,7 +102,7 @@ export const verifyMfaEnrollment = authorizedActionClient
         });
 
         return resultToActionResponse(
-          err(ActionErrors.VALIDATION_ERROR("Invalid verification code"))
+          err(ActionErrors.validation("Invalid verification code"))
         );
       }
 
@@ -131,10 +132,11 @@ export const verifyMfaEnrollment = authorizedActionClient
 
       return resultToActionResponse(
         err(
-          ActionErrors.INTERNAL_ERROR(
+          ActionErrors.internal(
             error instanceof Error
               ? error.message
-              : "Failed to verify MFA enrollment"
+              : "Failed to verify MFA enrollment",
+            error instanceof Error ? error : undefined
           )
         )
       );
@@ -149,14 +151,14 @@ export const disableMfa = authorizedActionClient
   .inputSchema(disableMfaSchema)
   .action(async ({ parsedInput, ctx }) => {
     try {
-      const userId = ctx.user.id;
+      const userId = ctx.user!.id;
       const { password } = parsedInput;
 
       const mfaSettings = await UserMfaQueries.getByUserId(userId);
 
       if (!mfaSettings?.totpEnabled) {
         return resultToActionResponse(
-          err(ActionErrors.VALIDATION_ERROR("MFA is not enabled"))
+          err(ActionErrors.validation("MFA is not enabled"))
         );
       }
 
@@ -180,8 +182,9 @@ export const disableMfa = authorizedActionClient
 
       return resultToActionResponse(
         err(
-          ActionErrors.INTERNAL_ERROR(
-            error instanceof Error ? error.message : "Failed to disable MFA"
+          ActionErrors.internal(
+            error instanceof Error ? error.message : "Failed to disable MFA",
+            error instanceof Error ? error : undefined
           )
         )
       );
@@ -196,14 +199,14 @@ export const verifyMfaToken = authorizedActionClient
   .inputSchema(verifyMfaTokenSchema)
   .action(async ({ parsedInput, ctx }) => {
     try {
-      const userId = ctx.user.id;
+      const userId = ctx.user!.id;
       const { token } = parsedInput;
 
       const mfaSettings = await UserMfaQueries.getByUserId(userId);
 
       if (!mfaSettings?.totpEnabled || !mfaSettings.totpSecret) {
         return resultToActionResponse(
-          err(ActionErrors.VALIDATION_ERROR("MFA is not enabled"))
+          err(ActionErrors.validation("MFA is not enabled"))
         );
       }
 
@@ -228,7 +231,7 @@ export const verifyMfaToken = authorizedActionClient
         });
 
         return resultToActionResponse(
-          err(ActionErrors.VALIDATION_ERROR("Invalid verification code"))
+          err(ActionErrors.validation("Invalid verification code"))
         );
       }
 
@@ -250,10 +253,11 @@ export const verifyMfaToken = authorizedActionClient
 
       return resultToActionResponse(
         err(
-          ActionErrors.INTERNAL_ERROR(
+          ActionErrors.internal(
             error instanceof Error
               ? error.message
-              : "Failed to verify MFA token"
+              : "Failed to verify MFA token",
+            error instanceof Error ? error : undefined
           )
         )
       );
@@ -268,13 +272,13 @@ export const regenerateBackupCodes = authorizedActionClient
   .inputSchema(regenerateBackupCodesSchema)
   .action(async ({ parsedInput, ctx }) => {
     try {
-      const userId = ctx.user.id;
+      const userId = ctx.user!.id;
 
       const mfaSettings = await UserMfaQueries.getByUserId(userId);
 
       if (!mfaSettings?.totpEnabled) {
         return resultToActionResponse(
-          err(ActionErrors.VALIDATION_ERROR("MFA is not enabled"))
+          err(ActionErrors.validation("MFA is not enabled"))
         );
       }
 
@@ -304,10 +308,11 @@ export const regenerateBackupCodes = authorizedActionClient
 
       return resultToActionResponse(
         err(
-          ActionErrors.INTERNAL_ERROR(
+          ActionErrors.internal(
             error instanceof Error
               ? error.message
-              : "Failed to regenerate backup codes"
+              : "Failed to regenerate backup codes",
+            error instanceof Error ? error : undefined
           )
         )
       );
@@ -320,13 +325,13 @@ export const getMfaStatus = authorizedActionClient
   .inputSchema(getMfaStatusSchema)
   .action(async ({ ctx }) => {
     try {
-      const userId = ctx.user.id;
+      const userId = ctx.user!.id;
 
       const mfaSettings = await UserMfaQueries.getByUserId(userId);
 
       const organizationPolicy =
         await OrganizationAuthPolicyQueries.getByOrganizationId(
-          ctx.organization!.id
+          ctx.organizationId!
         );
 
       return resultToActionResponse(
@@ -345,10 +350,11 @@ export const getMfaStatus = authorizedActionClient
 
       return resultToActionResponse(
         err(
-          ActionErrors.INTERNAL_ERROR(
+          ActionErrors.internal(
             error instanceof Error
               ? error.message
-              : "Failed to get MFA status"
+              : "Failed to get MFA status",
+            error instanceof Error ? error : undefined
           )
         )
       );

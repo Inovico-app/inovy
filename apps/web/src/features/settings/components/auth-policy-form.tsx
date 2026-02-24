@@ -9,7 +9,7 @@ import { getBetterAuthSession } from "@/lib/better-auth-session";
 import {
   useGetAuthPolicy,
   useUpdateAuthPolicy,
-} from "../auth/hooks/use-auth-policy";
+} from "../../auth/hooks/use-auth-policy";
 import { AlertCircleIcon, InfoIcon, SaveIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -56,7 +56,7 @@ export function AuthPolicyForm() {
   }, [getPolicy]);
 
   useEffect(() => {
-    const policy = policyResult?.data?.data?.policy;
+    const policy = policyResult?.data?.policy;
     if (policy) {
       setRequireEmailVerification(policy.requireEmailVerification);
       setRequireMfa(policy.requireMfa);

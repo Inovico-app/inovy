@@ -11,8 +11,8 @@ import {
 export function useUpdateAuthPolicy() {
   return useAction(updateAuthPolicy, {
     onSuccess: ({ data }) => {
-      if (data?.data?.message) {
-        toast.success(data.data.message);
+      if (data?.message) {
+        toast.success(data.message);
       }
     },
     onError: ({ error }) => {
@@ -32,8 +32,8 @@ export function useGetAuthPolicy() {
 export function useDeleteAuthPolicy() {
   return useAction(deleteAuthPolicy, {
     onSuccess: ({ data }) => {
-      if (data?.data?.message) {
-        toast.success(data.data.message);
+      if (data?.message) {
+        toast.success(data.message);
       }
     },
     onError: ({ error }) => {

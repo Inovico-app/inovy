@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useEnrollMfa, useVerifyMfaEnrollment } from "../auth/hooks/use-mfa";
+import { Separator } from "@/components/ui/separator";
+import { useEnrollMfa, useVerifyMfaEnrollment } from "../../auth/hooks/use-mfa";
 import { CopyIcon, DownloadIcon, KeyIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -47,9 +48,9 @@ export function MfaEnrollmentDialog({
   const handleEnroll = async () => {
     const result = await enroll({});
 
-    if (result?.data?.data) {
-      setQrCodeUrl(result.data.data.qrCodeUrl);
-      setManualKey(result.data.data.manualEntryKey);
+    if (result?.data) {
+      setQrCodeUrl(result.data.qrCodeUrl);
+      setManualKey(result.data.manualEntryKey);
       setStep("verify");
     }
   };
@@ -57,8 +58,8 @@ export function MfaEnrollmentDialog({
   const handleVerify = async () => {
     const result = await verify({ token: verificationCode });
 
-    if (result?.data?.data?.backupCodes) {
-      setBackupCodes(result.data.data.backupCodes);
+    if (result?.data?.backupCodes) {
+      setBackupCodes(result.data.backupCodes);
       setStep("backup");
     }
   };
