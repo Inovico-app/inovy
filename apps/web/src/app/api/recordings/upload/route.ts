@@ -4,6 +4,9 @@ import { withRateLimit } from "@/lib/rate-limit";
 import { rateLimiter } from "@/server/services/rate-limiter.service";
 import { ConsentService } from "@/server/services/consent.service";
 import { RecordingService } from "@/server/services/recording.service";
+import { EncryptionPolicyService } from "@/server/services/encryption-policy.service";
+import { DataClassificationService } from "@/server/services/data-classification.service";
+import { type DataClassificationLevel } from "@/server/db/schema/data-classification";
 import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE,
@@ -147,6 +150,39 @@ export const POST = withRateLimit(
               ? authResult.value.user
               : null;
 
+          // Determine data classification and encryption policy
+          const encryptionDecision = await EncryptionPolicyService.determineEncryptionPolicy({
+            dataType: "recording",
+            organizationId: payload.organizationId,
+            metadata: {
+              fileName: payload.fileName,
+              fileSize: payload.fileSize,
+              fileMimeType: payload.fileMimeType,
+              projectId: payload.projectId,
+              consentGiven: payload.consentGiven,
+            },
+          });
+
+          let classificationLevel: DataClassificationLevel = "confidential";
+          let classificationMetadata: unknown = null;
+
+          if (encryptionDecision.isOk()) {
+            const { classification } = encryptionDecision.value;
+            classificationLevel = classification.level;
+            classificationMetadata = classification.metadata;
+
+            logger.info("Data classification determined", {
+              component: "POST /api/recordings/upload - onUploadCompleted",
+              classificationLevel: classification.level,
+              reason: classification.reason,
+            });
+          } else {
+            logger.warn("Failed to determine classification, using default", {
+              component: "POST /api/recordings/upload - onUploadCompleted",
+              error: encryptionDecision.error,
+            });
+          }
+
           const result = await RecordingService.createRecording(
             {
               projectId: payload.projectId,
@@ -169,6 +205,12 @@ export const POST = withRateLimit(
                 payload.consentGiven && payload.consentGivenAt
                   ? new Date(payload.consentGivenAt)
                   : null,
+              dataClassificationLevel: classificationLevel,
+              classificationMetadata: classificationMetadata as unknown as Record<
+                string,
+                unknown
+              >,
+              classifiedAt: new Date(),
             },
             false
           );
@@ -188,11 +230,23 @@ export const POST = withRateLimit(
 
           const recording = result.value;
 
-          logger.info("Recording created successfully", {
+          // Store classification in separate table for audit purposes
+          if (encryptionDecision.isOk()) {
+            await DataClassificationService.storeClassification(
+              recording.id,
+              "recording",
+              encryptionDecision.value.classification,
+              payload.organizationId,
+              payload.userId
+            );
+          }
+
+          logger.info("Recording created successfully with classification", {
             component: "POST /api/recordings/upload - onUploadCompleted",
             recordingId: recording.id,
             projectId: payload.projectId,
             recordingMode: payload.recordingMode,
+            classificationLevel: recording.dataClassificationLevel,
           });
 
           // Save participants' consent if provided

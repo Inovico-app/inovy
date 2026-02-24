@@ -11,9 +11,12 @@ import { convertRecordingIntoAiInsights } from "../../workflows/convert-recordin
 import { BotSessionsQueries } from "../data-access/bot-sessions.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { type BotStatus } from "../db/schema/bot-sessions";
+import { type DataClassificationLevel } from "../db/schema/data-classification";
 import { RecallApiService } from "./recall-api.service";
 import { mapRecallEventToBotStatus, mapRecallStatusToBotStatus } from "./bot-providers/recall/status-mapper";
 import { RecordingService } from "./recording.service";
+import { EncryptionPolicyService } from "./encryption-policy.service";
+import { DataClassificationService } from "./data-classification.service";
 import type {
   BotRecordingReadyEvent,
   BotStatusChangeEvent,
@@ -277,13 +280,51 @@ export class BotWebhookService {
       const timestamp = Date.now();
       const blobPath = `recordings/${timestamp}-${fileName}`;
 
-      const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+      // Determine data classification and encryption policy
+      const encryptionDecision = await EncryptionPolicyService.determineEncryptionPolicy({
+        dataType: "recording",
+        organizationId,
+        metadata: {
+          fileName,
+          fileSize: fileBuffer.length,
+          fileMimeType: mimeType,
+          projectId,
+          recordingMode: "bot",
+          botSession: session.id,
+        },
+      });
+
+      let classificationLevel: DataClassificationLevel = "confidential";
+      let classificationMetadata: unknown = null;
+      let shouldEncrypt = false;
+
+      if (encryptionDecision.isOk()) {
+        const { policy, classification } = encryptionDecision.value;
+        classificationLevel = classification.level;
+        classificationMetadata = classification.metadata;
+        shouldEncrypt = policy.shouldEncrypt;
+
+        logger.info("Data classification determined for bot recording", {
+          component: "BotWebhookService.processRecordingDone",
+          classificationLevel: classification.level,
+          shouldEncrypt: policy.shouldEncrypt,
+          reason: classification.reason,
+        });
+      } else {
+        logger.warn("Failed to determine classification, using default", {
+          component: "BotWebhookService.processRecordingDone",
+          error: encryptionDecision.error,
+        });
+        shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+      }
+
       let fileToUpload: Buffer = fileBuffer;
       let encryptionMetadata: string | null = null;
 
       if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
-        logger.error("Encryption enabled but master key not configured", {
+        logger.error("Encryption required but master key not configured", {
           component: "BotWebhookService.processRecordingDone",
+          classificationLevel,
         });
         return err(
           ActionErrors.internal(
@@ -339,6 +380,12 @@ export class BotWebhookService {
           externalRecordingId: recording.id,
           isEncrypted: shouldEncrypt,
           encryptionMetadata,
+          dataClassificationLevel: classificationLevel,
+          classificationMetadata: classificationMetadata as unknown as Record<
+            string,
+            unknown
+          >,
+          classifiedAt: new Date(),
         },
         true
       );
@@ -348,6 +395,17 @@ export class BotWebhookService {
       }
 
       const finalRecordingId = createResult.value.id;
+
+      // Store classification in separate table for audit purposes
+      if (encryptionDecision.isOk()) {
+        await DataClassificationService.storeClassification(
+          finalRecordingId,
+          "recording",
+          encryptionDecision.value.classification,
+          organizationId,
+          userId
+        );
+      }
 
       await BotSessionsQueries.updateRecordingId(
         bot.id,
@@ -460,13 +518,51 @@ export class BotWebhookService {
         const timestamp = Date.now();
         const blobPath = `recordings/${timestamp}-${fileName}`;
 
-        const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+        // Determine data classification and encryption policy
+        const encryptionDecision = await EncryptionPolicyService.determineEncryptionPolicy({
+          dataType: "recording",
+          organizationId,
+          metadata: {
+            fileName,
+            fileSize: fileBuffer.length,
+            fileMimeType: mimeType,
+            projectId,
+            recordingMode: "bot",
+            botSession: session.id,
+          },
+        });
+
+        let classificationLevel: DataClassificationLevel = "confidential";
+        let classificationMetadata: unknown = null;
+        let shouldEncrypt = false;
+
+        if (encryptionDecision.isOk()) {
+          const { policy, classification } = encryptionDecision.value;
+          classificationLevel = classification.level;
+          classificationMetadata = classification.metadata;
+          shouldEncrypt = policy.shouldEncrypt;
+
+          logger.info("Data classification determined for bot recording", {
+            component: "BotWebhookService.processRecordingReady",
+            classificationLevel: classification.level,
+            shouldEncrypt: policy.shouldEncrypt,
+            reason: classification.reason,
+          });
+        } else {
+          logger.warn("Failed to determine classification, using default", {
+            component: "BotWebhookService.processRecordingReady",
+            error: encryptionDecision.error,
+          });
+          shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+        }
+
         let fileToUpload: Buffer = fileBuffer;
         let encryptionMetadata: string | null = null;
 
         if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
-          logger.error("Encryption enabled but master key not configured", {
+          logger.error("Encryption required but master key not configured", {
             component: "BotWebhookService.processRecordingReady",
+            classificationLevel,
           });
           return err(
             ActionErrors.internal(
@@ -526,12 +622,29 @@ export class BotWebhookService {
             externalRecordingId: recording.id,
             isEncrypted: shouldEncrypt,
             encryptionMetadata,
+            dataClassificationLevel: classificationLevel,
+            classificationMetadata: classificationMetadata as unknown as Record<
+              string,
+              unknown
+            >,
+            classifiedAt: new Date(),
           },
           true
         );
 
         if (createResult.isErr()) return err(createResult.error);
         finalRecordingId = createResult.value.id;
+
+        // Store classification in separate table for audit purposes
+        if (encryptionDecision.isOk()) {
+          await DataClassificationService.storeClassification(
+            finalRecordingId,
+            "recording",
+            encryptionDecision.value.classification,
+            organizationId,
+            userId
+          );
+        }
       }
 
       await BotSessionsQueries.updateRecordingId(

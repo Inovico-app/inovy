@@ -766,6 +766,10 @@ export class RecordingService {
       consentRevokedAt: recording.consentRevokedAt,
       isEncrypted: recording.isEncrypted ?? false,
       encryptionMetadata: recording.encryptionMetadata ?? null,
+      dataClassificationLevel: recording.dataClassificationLevel,
+      classificationMetadata:
+        recording.classificationMetadata as Record<string, unknown> | null,
+      classifiedAt: recording.classifiedAt,
       createdAt: recording.createdAt,
       updatedAt: recording.updatedAt,
     };

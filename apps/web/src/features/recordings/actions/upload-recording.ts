@@ -4,6 +4,8 @@ import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 import { RecordingService } from "@/server/services/recording.service";
+import { EncryptionPolicyService } from "@/server/services/encryption-policy.service";
+import { DataClassificationService } from "@/server/services/data-classification.service";
 import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE,
@@ -91,20 +93,54 @@ export async function uploadRecordingFormAction(
       fileSize: file.size,
     });
 
-    // Encrypt file before upload (if encryption is enabled)
-    const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+    // Determine data classification and encryption policy
+    const encryptionDecision = await EncryptionPolicyService.determineEncryptionPolicy({
+      dataType: "recording",
+      organizationId,
+      metadata: {
+        fileName: file.name,
+        fileSize: file.size,
+        fileMimeType: file.type,
+        projectId,
+        consentGiven,
+      },
+    });
+
+    if (encryptionDecision.isErr()) {
+      logger.error("Failed to determine encryption policy", {
+        component: "uploadRecordingFormAction",
+        error: encryptionDecision.error,
+      });
+      return {
+        success: false,
+        error: "Failed to determine data classification",
+      };
+    }
+
+    const { policy, classification } = encryptionDecision.value;
+
+    logger.info("Data classification determined", {
+      component: "uploadRecordingFormAction",
+      classificationLevel: classification.level,
+      shouldEncrypt: policy.shouldEncrypt,
+      reason: classification.reason,
+    });
+
+    // Encrypt file before upload (if required by classification)
+    const shouldEncrypt = policy.shouldEncrypt;
     let fileToUpload: File | Buffer = file;
     let encryptionMetadata: string | null = null;
 
     // Validate encryption configuration before attempting encryption
     if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
-      logger.error("Encryption enabled but master key not configured", {
+      logger.error("Encryption required but master key not configured", {
         component: "uploadRecordingFormAction",
+        classificationLevel: classification.level,
       });
       return {
         success: false,
         error:
-          "Encryption is enabled but ENCRYPTION_MASTER_KEY is not configured. Please contact support.",
+          "Encryption is required for this data classification but ENCRYPTION_MASTER_KEY is not configured. Please contact support.",
       };
     }
 
@@ -120,6 +156,7 @@ export async function uploadRecordingFormAction(
           component: "uploadRecordingFormAction",
           originalSize: file.size,
           encryptedSize: encryptedBuffer.length,
+          classificationLevel: classification.level,
         });
       } catch (error) {
         logger.error("Failed to encrypt file", {
@@ -152,7 +189,7 @@ export async function uploadRecordingFormAction(
       url: blob.url,
     });
 
-    // Create recording in database with consent information
+    // Create recording in database with consent information and classification
     const result = await RecordingService.createRecording({
       projectId,
       title,
@@ -172,6 +209,12 @@ export async function uploadRecordingFormAction(
       consentGivenAt: consentGiven && consentGivenAt ? consentGivenAt : null,
       isEncrypted: shouldEncrypt,
       encryptionMetadata: encryptionMetadata,
+      dataClassificationLevel: classification.level,
+      classificationMetadata: classification.metadata as unknown as Record<
+        string,
+        unknown
+      >,
+      classifiedAt: new Date(),
     });
 
     if (result.isErr()) {
@@ -184,10 +227,21 @@ export async function uploadRecordingFormAction(
 
     const recording = result.value;
 
-    logger.info("Recording created successfully", {
+    // Store classification in separate table for audit purposes
+    await DataClassificationService.storeClassification(
+      recording.id,
+      "recording",
+      classification,
+      organizationId,
+      user.id
+    );
+
+    logger.info("Recording created successfully with classification", {
       component: "uploadRecordingFormAction",
       recordingId: recording.id,
       projectId,
+      classificationLevel: classification.level,
+      encrypted: shouldEncrypt,
     });
 
     // Revalidate the project page
