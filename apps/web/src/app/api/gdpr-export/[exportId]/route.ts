@@ -1,6 +1,7 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { DataExportsQueries } from "@/server/data-access/data-exports.queries";
+import { AuditLogService } from "@/server/services/audit-log.service";
 import { GdprExportService } from "@/server/services/gdpr-export.service";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -91,6 +92,27 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    // Audit log: GDPR export download (SSD-4.4.01)
+    const { ipAddress, userAgent } =
+      AuditLogService.extractRequestInfo(request.headers);
+    
+    await AuditLogService.createAuditLog({
+      eventType: "data_export",
+      resourceType: "data_export",
+      resourceId: exportId,
+      userId,
+      organizationId,
+      action: "download",
+      ipAddress,
+      userAgent,
+      metadata: {
+        fileSize: export_.fileSize ?? fileData.length,
+        recordingsCount: export_.recordingsCount,
+        tasksCount: export_.tasksCount,
+        conversationsCount: export_.conversationsCount,
+      },
+    });
 
     // Stream file data as response
     // Convert Buffer to Uint8Array for NextResponse compatibility
