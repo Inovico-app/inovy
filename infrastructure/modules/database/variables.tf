@@ -86,6 +86,18 @@ variable "entra_administrators" {
   default = []
 }
 
+variable "container_app_managed_identity_principal_id" {
+  description = "Principal ID of the Container App managed identity to add as Entra administrator (optional)"
+  type        = string
+  default     = ""
+}
+
+variable "container_app_managed_identity_client_id" {
+  description = "Client ID of the Container App managed identity (used as principal_name for Entra admin)"
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

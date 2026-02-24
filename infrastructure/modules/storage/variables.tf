@@ -37,6 +37,12 @@ variable "storage_blob_restore_days" {
   default     = 6
 }
 
+variable "managed_identity_principal_id" {
+  description = "Principal ID of the managed identity to assign Storage Blob Data Contributor role (optional)"
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

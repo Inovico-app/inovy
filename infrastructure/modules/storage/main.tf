@@ -36,3 +36,12 @@ resource "azurerm_storage_container" "recordings" {
   storage_account_id    = azurerm_storage_account.recordings.id
   container_access_type = "private"
 }
+
+# Role assignment for Storage Blob Data Contributor (if managed_identity_principal_id is provided)
+resource "azurerm_role_assignment" "storage_blob_data_contributor" {
+  count                = var.managed_identity_principal_id != "" ? 1 : 0
+  scope                = azurerm_storage_account.recordings.id
+  role_definition_id   = "/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe" # Storage Blob Data Contributor
+  principal_id         = var.managed_identity_principal_id
+  skip_service_principal_aad_check = true
+}

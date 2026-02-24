@@ -29,3 +29,9 @@ variable "high_availability_enabled" {
   description = "Enable high availability for Redis"
   type        = bool
 }
+
+variable "container_app_managed_identity_principal_id" {
+  description = "Principal ID of the Container App managed identity for Entra authentication (optional)"
+  type        = string
+  default     = ""
+}

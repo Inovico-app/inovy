@@ -42,28 +42,46 @@ module "networking" {
   }
 }
 
+# Container App Managed Identity Module (must be created first)
+module "container_app_identity" {
+  source = "./modules/container-app-identity"
+
+  environment         = var.environment
+  location            = var.location
+  resource_group_name = azurerm_resource_group.inovy.name
+
+  tags = {
+    Environment = var.environment
+    Application = "inovy"
+    ManagedBy   = "terraform"
+  }
+}
+
 # Database Module
 module "database" {
   source = "./modules/database"
 
-  environment                 = var.environment
-  location                    = var.location
-  resource_group_name         = azurerm_resource_group.inovy.name
-  vnet_id                     = module.networking.vnet_id
-  subnet_postgresql_id        = module.networking.subnet_postgresql_id
-  postgresql_version          = var.postgresql_version
-  postgresql_admin_login      = var.postgresql_admin_login
-  postgresql_admin_password   = var.postgresql_admin_password
-  postgresql_sku_name         = var.postgresql_sku_name
-  postgresql_storage_mb       = var.postgresql_storage_mb
-  postgresql_zone             = var.postgresql_zone
-  postgresql_maintenance_day  = var.postgresql_maintenance_day
-  postgresql_maintenance_hour = var.postgresql_maintenance_hour
-  entra_tenant_id             = var.entra_tenant_id
-  entra_administrators        = var.entra_administrators
+  environment                                 = var.environment
+  location                                    = var.location
+  resource_group_name                         = azurerm_resource_group.inovy.name
+  vnet_id                                     = module.networking.vnet_id
+  subnet_postgresql_id                        = module.networking.subnet_postgresql_id
+  postgresql_version                          = var.postgresql_version
+  postgresql_admin_login                      = var.postgresql_admin_login
+  postgresql_admin_password                   = var.postgresql_admin_password
+  postgresql_sku_name                         = var.postgresql_sku_name
+  postgresql_storage_mb                       = var.postgresql_storage_mb
+  postgresql_zone                             = var.postgresql_zone
+  postgresql_maintenance_day                  = var.postgresql_maintenance_day
+  postgresql_maintenance_hour                 = var.postgresql_maintenance_hour
+  entra_tenant_id                             = var.entra_tenant_id
+  entra_administrators                        = var.entra_administrators
+  container_app_managed_identity_principal_id = module.container_app_identity.managed_identity_principal_id
+  container_app_managed_identity_client_id    = module.container_app_identity.managed_identity_client_id
 
   depends_on = [
-    module.networking
+    module.networking,
+    module.container_app_identity
   ]
 
   tags = {
@@ -101,14 +119,16 @@ module "backup" {
 module "redis" {
   source = "./modules/redis"
 
-  environment         = var.environment
-  location            = var.location
-  resource_group_name = azurerm_resource_group.inovy.name
-  redis_sku_name      = var.redis_sku_name
-  high_availability_enabled = var.high_availability_enabled
+  environment                                 = var.environment
+  location                                    = var.location
+  resource_group_name                         = azurerm_resource_group.inovy.name
+  redis_sku_name                              = var.redis_sku_name
+  high_availability_enabled                   = var.high_availability_enabled
+  container_app_managed_identity_principal_id = module.container_app_identity.managed_identity_principal_id
 
   depends_on = [
-    module.networking
+    module.networking,
+    module.container_app_identity
   ]
 
   tags = {
@@ -141,13 +161,18 @@ module "redis" {
 module "storage" {
   source = "./modules/storage"
 
-  environment                      = var.environment
-  location                         = var.location
-  resource_group_name              = azurerm_resource_group.inovy.name
-  storage_account_tier             = var.storage_account_tier
-  storage_account_replication_type = var.storage_account_replication_type
-  storage_blob_retention_days      = var.storage_blob_retention_days
-  storage_blob_restore_days        = var.storage_blob_restore_days
+  environment                         = var.environment
+  location                            = var.location
+  resource_group_name                 = azurerm_resource_group.inovy.name
+  storage_account_tier                 = var.storage_account_tier
+  storage_account_replication_type    = var.storage_account_replication_type
+  storage_blob_retention_days          = var.storage_blob_retention_days
+  storage_blob_restore_days           = var.storage_blob_restore_days
+  managed_identity_principal_id       = module.container_app_identity.managed_identity_principal_id
+
+  depends_on = [
+    module.container_app_identity
+  ]
 
   tags = {
     Environment = var.environment

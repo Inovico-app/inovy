@@ -139,6 +139,22 @@ output "storage_account_primary_blob_endpoint" {
   value       = module.storage.storage_account_primary_blob_endpoint
 }
 
+# Container App Identity outputs
+output "container_app_managed_identity_id" {
+  description = "ID of the Container App managed identity"
+  value       = module.container_app_identity.managed_identity_id
+}
+
+output "container_app_managed_identity_principal_id" {
+  description = "Principal ID of the Container App managed identity"
+  value       = module.container_app_identity.managed_identity_principal_id
+}
+
+output "container_app_managed_identity_client_id" {
+  description = "Client ID of the Container App managed identity"
+  value       = module.container_app_identity.managed_identity_client_id
+}
+
 # Container App outputs
 # output "container_app_environment_id" {
 #   description = "ID of the Container App Environment"
@@ -158,14 +174,4 @@ output "storage_account_primary_blob_endpoint" {
 # output "container_app_url" {
 #   description = "URL of the Container App"
 #   value       = module.container_app.container_app_url
-# }
-
-# output "container_app_managed_identity_id" {
-#   description = "ID of the Container App managed identity"
-#   value       = module.container_app.container_app_managed_identity_id
-# }
-
-# output "container_app_managed_identity_principal_id" {
-#   description = "Principal ID of the Container App managed identity"
-#   value       = module.container_app.container_app_managed_identity_principal_id
 # }

@@ -92,3 +92,19 @@ resource "azurerm_postgresql_flexible_server_active_directory_administrator" "ad
   principal_type      = each.value.principal_type
   tenant_id           = var.entra_tenant_id
 }
+
+# Container App Managed Identity as Entra Administrator (if provided)
+resource "azurerm_postgresql_flexible_server_active_directory_administrator" "container_app" {
+  count = var.container_app_managed_identity_principal_id != "" && var.container_app_managed_identity_client_id != "" ? 1 : 0
+
+  server_name         = azurerm_postgresql_flexible_server.inovy.name
+  resource_group_name = var.resource_group_name
+  object_id           = var.container_app_managed_identity_principal_id
+  principal_name      = var.container_app_managed_identity_client_id
+  principal_type      = "ServicePrincipal"
+  tenant_id           = var.entra_tenant_id
+
+  depends_on = [
+    azurerm_postgresql_flexible_server.inovy
+  ]
+}
