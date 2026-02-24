@@ -1,6 +1,7 @@
 "use client";
 
 import { passkeyClient } from "@better-auth/passkey/client";
+import { ssoClient } from "@better-auth/sso/client";
 import {
   magicLinkClient,
   organizationClient,
@@ -21,6 +22,7 @@ export const authClient = createAuthClient({
       ? "http://localhost:3000"
       : process.env.NEXT_PUBLIC_APP_URL,
   plugins: [
+    ssoClient(),
     magicLinkClient(),
     passkeyClient(),
     organizationClient({

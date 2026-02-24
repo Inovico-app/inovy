@@ -98,15 +98,20 @@ Inovy is a modern web application that helps organizations manage meeting record
 - **Better Auth** - Complete authentication platform
   - Email/password authentication with email verification
   - OAuth providers (Google, Microsoft)
+  - **SSO/SAML 2.0** - Enterprise Single Sign-On integration
+  - **Enterprise Directory Integration** - Azure AD and Google Workspace
   - Magic link authentication
   - Passkey/WebAuthn support
   - Organization management with multi-tenancy
+  - **Just-in-Time (JIT) User Provisioning**
   - Stripe subscription integration
 - **RBAC** - Custom role-based access control system
   - Organization-level permissions
   - Project-level access control
   - Policy-based authorization
   - Audit logging for all access
+
+> 📖 For comprehensive enterprise authentication setup, see [Enterprise Authentication Guide](./docs/ENTERPRISE_AUTHENTICATION.md)
 
 ### Development Tools
 
@@ -352,10 +357,10 @@ Notification Dispatch
    GOOGLE_CLIENT_ID="your-google-client-id"
    GOOGLE_CLIENT_SECRET="your-google-client-secret"
 
-   # Microsoft 365
+   # Microsoft 365 / Azure AD
    MICROSOFT_CLIENT_ID="your-microsoft-client-id"
    MICROSOFT_CLIENT_SECRET="your-microsoft-client-secret"
-   MICROSOFT_TENANT_ID="common"  # or your specific tenant ID
+   MICROSOFT_TENANT_ID="common"  # or your specific tenant ID for enterprise SSO
 
    # AI Services
    # OpenAI

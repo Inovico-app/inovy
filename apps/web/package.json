@@ -26,8 +26,9 @@
     "@ai-sdk/openai": "^2.0.60",
     "@ai-sdk/react": "^2.0.86",
     "@anthropic-ai/sdk": "^0.32.1",
-    "@better-auth/passkey": "^1.4.6",
-    "@better-auth/stripe": "^1.4.6",
+    "@better-auth/passkey": "^1.4.19",
+    "@better-auth/sso": "^1.4.19",
+    "@better-auth/stripe": "^1.4.19",
     "@deepgram/sdk": "^4.11.2",
     "@hookform/resolvers": "^5.2.2",
     "@inovy/mcp": "workspace:*",
@@ -67,7 +68,7 @@
     "@xyflow/react": "^12.9.2",
     "ai": "6.0.0-beta.118",
     "archiver": "^7.0.1",
-    "better-auth": "^1.4.6",
+    "better-auth": "^1.4.19",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -139,4 +140,3 @@
     "typescript-eslint": "^8.44.0"
   }
 }
-

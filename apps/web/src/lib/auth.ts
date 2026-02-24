@@ -11,6 +11,7 @@ import { UserQueries } from "@/server/data-access/user.queries";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema/auth";
 import { passkey } from "@better-auth/passkey";
+import { sso } from "@better-auth/sso";
 import type {
   AuthContext,
   BetterAuthOptions,
@@ -53,6 +54,7 @@ export const auth = betterAuth({
       magicLinks: schema.magicLinks,
       teams: schema.teams,
       teamMembers: schema.teamMembers,
+      ssoProviders: schema.ssoProviders,
     },
   }),
   baseURL:
@@ -233,6 +235,7 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    sso(),
     organization({
       // Access control configuration
       ac,

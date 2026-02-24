@@ -215,6 +215,39 @@ export const magicLinks = pgTable(
   ],
 );
 
+export const ssoProviders = pgTable(
+  "sso_providers",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id"),
+    providerId: text("provider_id").notNull(),
+    type: text("type").notNull(),
+    issuer: text("issuer"),
+    clientId: text("client_id"),
+    clientSecret: text("client_secret"),
+    scopes: text("scopes"),
+    domain: text("domain"),
+    discoveryUrl: text("discovery_url"),
+    authorizationUrl: text("authorization_url"),
+    tokenUrl: text("token_url"),
+    userinfoUrl: text("userinfo_url"),
+    jwksUrl: text("jwks_url"),
+    certificate: text("certificate"),
+    entityId: text("entity_id"),
+    signatureAlgorithm: text("signature_algorithm"),
+    mapping: text("mapping"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("sso_providers_organizationId_idx").on(table.organizationId),
+    index("sso_providers_domain_idx").on(table.domain),
+  ],
+);
+
 export const userRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   accounts: many(accounts),
@@ -242,6 +275,7 @@ export const organizationRelations = relations(organizations, ({ many }) => ({
   teams: many(teams),
   members: many(members),
   invitations: many(invitations),
+  ssoProviders: many(ssoProviders),
 }));
 
 export const teamRelations = relations(teams, ({ one, many }) => ({
@@ -289,5 +323,12 @@ export const passkeyRelations = relations(passkeys, ({ one }) => ({
   users: one(users, {
     fields: [passkeys.userId],
     references: [users.id],
+  }),
+}));
+
+export const ssoProviderRelations = relations(ssoProviders, ({ one }) => ({
+  organizations: one(organizations, {
+    fields: [ssoProviders.organizationId],
+    references: [organizations.id],
   }),
 }));
