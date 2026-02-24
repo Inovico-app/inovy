@@ -27,8 +27,6 @@ export class PrivilegedAccessQueries {
   static async getAllPrivilegedUsers(
     organizationId?: string
   ): Promise<PrivilegedUser[]> {
-    const privilegedRoles = ["superadmin", "admin", "manager", "owner"];
-
     if (organizationId) {
       const orgMembers = await db
         .select({
