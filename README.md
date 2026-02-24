@@ -965,6 +965,50 @@ Better Auth manages its own schema for:
 - **Passkeys** - WebAuthn passkey credentials
 - **Magic Links** - Magic link authentication tokens
 
+## 🔒 Security & Compliance
+
+Inovy follows comprehensive security standards for healthcare applications:
+
+### Security Standards Compliance
+
+- **BIO (Baseline Informatiebeveiliging Overheid)** - Dutch government security baseline
+- **NEN 7510** - Healthcare information security standard
+- **AVG/GDPR** - European data protection regulation
+- **OWASP Top 10** - Web application security best practices
+- **CIS Benchmarks** - Infrastructure security baselines
+
+### Security Documentation
+
+Complete security documentation is available in the `docs/security/` directory:
+
+- **[Security Baselines](./docs/security/SECURITY_BASELINES.md)** - Hardening guidelines and compliance standards
+- **[Hardening Deviation Process](./docs/security/HARDENING_DEVIATION_PROCESS.md)** - Process for documenting security deviations
+- **[Hardening Deviations Registry](./docs/security/HARDENING_DEVIATIONS_REGISTRY.md)** - Central tracking of all deviations
+- **[Security Documentation Index](./docs/security/README.md)** - Complete security documentation overview
+
+### Hardening Deviations
+
+When components cannot fully comply with hardening guidelines, we follow a formal deviation process:
+
+1. Document the deviation with risk assessment
+2. Submit for approval via PR with required reviewers
+3. Track in the central deviations registry
+4. Review periodically for continued appropriateness
+
+See [Hardening Deviation Process](./docs/security/HARDENING_DEVIATION_PROCESS.md) for complete details.
+
+### Security Features
+
+- **Authentication:** Multi-factor auth with OAuth, passkeys, and magic links (Better Auth)
+- **Authorization:** Role-based access control (RBAC) with organization isolation
+- **Encryption:** TLS 1.3 for all communications, encryption at rest for data
+- **Audit Logging:** Comprehensive audit trails for compliance
+- **Security Headers:** Strict-Transport-Security, CSP, X-Frame-Options, etc.
+- **Input Validation:** Server-side validation with Zod schemas
+- **Rate Limiting:** Tier-based API rate limiting
+- **Dependency Security:** Automated security updates and vulnerability scanning
+- **Secret Management:** Secure environment-based secrets management
+
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -972,7 +1016,11 @@ Better Auth manages its own schema for:
 3. Follow the established architecture patterns
 4. Add proper DTOs and type safety
 5. Include comprehensive error handling
-6. Submit a pull request
+6. Follow security baselines (see `docs/security/SECURITY_BASELINES.md`)
+7. Document any hardening deviations if needed
+8. Submit a pull request
+
+For security-related changes, see [Hardening Deviation Process](./docs/security/HARDENING_DEVIATION_PROCESS.md).
 
 ## 📄 License
 
@@ -981,4 +1029,8 @@ This project is private and proprietary.
 ## 🙋‍♂️ Support
 
 For questions and support, please refer to the project documentation or contact the development team.
+
+### Security Issues
+
+For security vulnerabilities or concerns, contact: security@inovy.nl
 
