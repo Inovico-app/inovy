@@ -20,7 +20,7 @@ import type {
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
-import { magicLink, organization } from "better-auth/plugins";
+import { magicLink, organization, twoFactor } from "better-auth/plugins";
 import { nanoid } from "nanoid";
 import { headers } from "next/headers";
 import { ac, roles } from "./auth/access-control";
@@ -51,6 +51,7 @@ export const auth = betterAuth({
       invitations: schema.invitations,
       passkeys: schema.passkeys,
       magicLinks: schema.magicLinks,
+      twoFactor: schema.twoFactor,
       teams: schema.teams,
       teamMembers: schema.teamMembers,
     },
@@ -233,6 +234,11 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    twoFactor({
+      issuer: "Inovy",
+      backupCodeLength: 10,
+      backupCodeCount: 10,
+    }),
     organization({
       // Access control configuration
       ac,
