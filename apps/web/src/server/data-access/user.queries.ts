@@ -368,5 +368,14 @@ export class UserQueries {
 
     return member?.organizationId ?? null;
   }
+
+  /**
+   * Permanently delete a user account from the database
+   * Note: This is for cleanup after GDPR deletion request recovery period
+   * Better Auth handles cascading deletes for sessions, accounts, etc.
+   */
+  static async permanentlyDeleteUser(userId: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, userId));
+  }
 }
 

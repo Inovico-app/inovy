@@ -255,5 +255,79 @@ export class AuditLogsQueries {
         )
       );
   }
+
+  /**
+   * Get audit logs older than the specified retention period for archival
+   * Returns logs older than retentionYears for export to long-term storage
+   */
+  static async getLogsForArchival(retentionYears: number): Promise<AuditLog[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setFullYear(cutoffDate.getFullYear() - retentionYears);
+
+    return db
+      .select()
+      .from(auditLogs)
+      .where(lte(auditLogs.createdAt, cutoffDate))
+      .orderBy(auditLogs.createdAt);
+  }
+
+  /**
+   * Delete audit logs older than the retention period
+   * Note: Should only be called after logs have been archived to long-term storage
+   */
+  static async deleteArchivedLogs(retentionYears: number): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setFullYear(cutoffDate.getFullYear() - retentionYears);
+
+    const result = await db
+      .delete(auditLogs)
+      .where(lte(auditLogs.createdAt, cutoffDate));
+
+    return result.rowCount ?? 0;
+  }
+
+  /**
+   * Get audit log statistics
+   */
+  static async getAuditLogStats(organizationId?: string): Promise<{
+    totalLogs: number;
+    oldestLog: Date | null;
+    newestLog: Date | null;
+    logsByEventType: Record<string, number>;
+  }> {
+    const conditions = organizationId
+      ? [eq(auditLogs.organizationId, organizationId)]
+      : [];
+
+    const [stats] = await db
+      .select({
+        totalLogs: sql<number>`count(*)`,
+        oldestLog: sql<Date | null>`min(${auditLogs.createdAt})`,
+        newestLog: sql<Date | null>`max(${auditLogs.createdAt})`,
+      })
+      .from(auditLogs)
+      .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+    const eventTypeStats = await db
+      .select({
+        eventType: auditLogs.eventType,
+        count: sql<number>`count(*)`,
+      })
+      .from(auditLogs)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .groupBy(auditLogs.eventType);
+
+    const logsByEventType: Record<string, number> = {};
+    for (const row of eventTypeStats) {
+      logsByEventType[row.eventType] = Number(row.count);
+    }
+
+    return {
+      totalLogs: Number(stats.totalLogs),
+      oldestLog: stats.oldestLog,
+      newestLog: stats.newestLog,
+      logsByEventType,
+    };
+  }
 }
 

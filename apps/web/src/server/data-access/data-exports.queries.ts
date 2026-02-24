@@ -5,7 +5,7 @@ import {
   type ExportStatus,
   type NewDataExport,
 } from "@/server/db/schema/data-exports";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, lte } from "drizzle-orm";
 
 export class DataExportsQueries {
   static async createExport(data: NewDataExport): Promise<DataExport> {
@@ -69,6 +69,36 @@ export class DataExportsQueries {
       .where(eq(dataExports.id, id))
       .limit(1);
     return export_?.fileData ?? null;
+  }
+
+  /**
+   * Delete expired data exports
+   * Deletes exports that have passed their expiration date
+   */
+  static async deleteExpiredExports(): Promise<number> {
+    const now = new Date();
+    const result = await db
+      .delete(dataExports)
+      .where(and(eq(dataExports.status, "completed"), lte(dataExports.expiresAt, now)));
+    return result.rowCount ?? 0;
+  }
+
+  /**
+   * Delete all exports for a specific user
+   */
+  static async deleteByUserId(
+    userId: string,
+    organizationId: string
+  ): Promise<number> {
+    const result = await db
+      .delete(dataExports)
+      .where(
+        and(
+          eq(dataExports.userId, userId),
+          eq(dataExports.organizationId, organizationId)
+        )
+      );
+    return result.rowCount ?? 0;
   }
 }
 
