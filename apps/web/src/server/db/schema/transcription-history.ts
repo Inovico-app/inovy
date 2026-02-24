@@ -1,4 +1,5 @@
 import {
+  boolean,
   integer,
   jsonb,
   pgTable,
@@ -33,6 +34,9 @@ export const transcriptionHistory = pgTable("transcription_history", {
     .defaultNow(),
   versionNumber: integer("version_number").notNull(), // Sequential version number
   changeDescription: text("change_description"), // Optional description of changes
+  // Encryption fields (SSD-4.2.02: HIGHLY_CONFIDENTIAL data)
+  isEncrypted: boolean("is_encrypted").notNull().default(false),
+  encryptionMetadata: text("encryption_metadata"),
 });
 
 export type TranscriptionHistory = typeof transcriptionHistory.$inferSelect;

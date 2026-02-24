@@ -1,4 +1,10 @@
-import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
+import { DataClassification } from "@/lib/data-classification";
+import {
+  encrypt,
+  generateEncryptionMetadata,
+  isEncryptionEnabled,
+  validateEncryptionConfig,
+} from "@/lib/encryption";
 import { put } from "@vercel/blob";
 import { err, ok } from "neverthrow";
 import { start } from "workflow/api";
@@ -277,18 +283,26 @@ export class BotWebhookService {
       const timestamp = Date.now();
       const blobPath = `recordings/${timestamp}-${fileName}`;
 
-      const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+      // Recording files are HIGHLY_CONFIDENTIAL - encryption is mandatory by default (SSD-4.2.02)
+      const shouldEncrypt = isEncryptionEnabled(
+        DataClassification.HIGHLY_CONFIDENTIAL
+      );
       let fileToUpload: Buffer = fileBuffer;
       let encryptionMetadata: string | null = null;
 
-      if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
-        logger.error("Encryption enabled but master key not configured", {
+      try {
+        validateEncryptionConfig(DataClassification.HIGHLY_CONFIDENTIAL);
+      } catch (configError) {
+        logger.error("Encryption configuration validation failed", {
           component: "BotWebhookService.processRecordingDone",
+          error: serializeError(configError),
         });
         return err(
           ActionErrors.internal(
-            "Encryption configuration error",
-            undefined,
+            configError instanceof Error
+              ? configError.message
+              : "Encryption configuration error",
+            configError as Error,
             "BotWebhookService.processRecordingDone"
           )
         );
@@ -300,6 +314,13 @@ export class BotWebhookService {
           const encryptedBuffer = Buffer.from(encryptedBase64, "base64");
           fileToUpload = encryptedBuffer;
           encryptionMetadata = JSON.stringify(generateEncryptionMetadata());
+
+          logger.info("Recording encrypted (default for classified data)", {
+            component: "BotWebhookService.processRecordingDone",
+            classification: DataClassification.HIGHLY_CONFIDENTIAL,
+            originalSize: fileBuffer.length,
+            encryptedSize: encryptedBuffer.length,
+          });
         } catch (encryptError) {
           logger.error("Failed to encrypt recording", {
             component: "BotWebhookService.processRecordingDone",
@@ -460,18 +481,26 @@ export class BotWebhookService {
         const timestamp = Date.now();
         const blobPath = `recordings/${timestamp}-${fileName}`;
 
-        const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+        // Recording files are HIGHLY_CONFIDENTIAL - encryption is mandatory by default (SSD-4.2.02)
+        const shouldEncrypt = isEncryptionEnabled(
+          DataClassification.HIGHLY_CONFIDENTIAL
+        );
         let fileToUpload: Buffer = fileBuffer;
         let encryptionMetadata: string | null = null;
 
-        if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
-          logger.error("Encryption enabled but master key not configured", {
+        try {
+          validateEncryptionConfig(DataClassification.HIGHLY_CONFIDENTIAL);
+        } catch (configError) {
+          logger.error("Encryption configuration validation failed", {
             component: "BotWebhookService.processRecordingReady",
+            error: serializeError(configError),
           });
           return err(
             ActionErrors.internal(
-              "Encryption configuration error",
-              undefined,
+              configError instanceof Error
+                ? configError.message
+                : "Encryption configuration error",
+              configError as Error,
               "BotWebhookService.processRecordingReady"
             )
           );
@@ -483,6 +512,13 @@ export class BotWebhookService {
             const encryptedBuffer = Buffer.from(encryptedBase64, "base64");
             fileToUpload = encryptedBuffer;
             encryptionMetadata = JSON.stringify(generateEncryptionMetadata());
+
+            logger.info("Recording encrypted (default for classified data)", {
+              component: "BotWebhookService.processRecordingReady",
+              classification: DataClassification.HIGHLY_CONFIDENTIAL,
+              originalSize: fileBuffer.length,
+              encryptedSize: encryptedBuffer.length,
+            });
           } catch (encryptError) {
             logger.error("Failed to encrypt recording", {
               component: "BotWebhookService.processRecordingReady",

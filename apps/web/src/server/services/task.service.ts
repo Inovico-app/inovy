@@ -632,6 +632,8 @@ export class TaskService {
       lastEditedAt: task.lastEditedAt,
       lastEditedById: task.lastEditedById,
       lastEditedByName: task.lastEditedByName,
+      isEncrypted: task.isEncrypted,
+      encryptionMetadata: task.encryptionMetadata,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
     };
@@ -660,6 +662,8 @@ export class TaskService {
       lastEditedAt: task.lastEditedAt,
       lastEditedById: task.lastEditedById,
       lastEditedByName: task.lastEditedByName,
+      isEncrypted: task.isEncrypted,
+      encryptionMetadata: task.encryptionMetadata,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       project: task.project,

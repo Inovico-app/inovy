@@ -65,6 +65,9 @@ export const aiInsights = pgTable("ai_insights", {
   lastEditedById: text("last_edited_by_id"), // Better Auth user ID who last edited
   lastEditedAt: timestamp("last_edited_at", { withTimezone: true }), // Last manual edit timestamp
   userNotes: text("user_notes"), // User-written markdown notes
+  // Encryption fields (SSD-4.2.02: CONFIDENTIAL data)
+  isEncrypted: boolean("is_encrypted").notNull().default(false),
+  encryptionMetadata: text("encryption_metadata"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

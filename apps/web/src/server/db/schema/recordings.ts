@@ -85,9 +85,11 @@ export const recordings = pgTable(
     consentGivenBy: text("consent_given_by"), // Better Auth user ID
     consentGivenAt: timestamp("consent_given_at", { withTimezone: true }),
     consentRevokedAt: timestamp("consent_revoked_at", { withTimezone: true }),
-    // Encryption fields
-    isEncrypted: boolean("is_encrypted").notNull().default(false),
-    encryptionMetadata: text("encryption_metadata"), // JSON metadata
+    // Encryption fields (SSD-4.2.02)
+    isEncrypted: boolean("is_encrypted").notNull().default(false), // For recording file
+    encryptionMetadata: text("encryption_metadata"), // JSON metadata for file
+    transcriptionEncrypted: boolean("transcription_encrypted").notNull().default(false), // For transcription text
+    transcriptionEncryptionMetadata: text("transcription_encryption_metadata"), // JSON metadata for transcription
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

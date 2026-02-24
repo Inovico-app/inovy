@@ -1,7 +1,13 @@
 "use server";
 
 import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
+import { DataClassification } from "@/lib/data-classification";
+import {
+  encrypt,
+  generateEncryptionMetadata,
+  isEncryptionEnabled,
+  validateEncryptionConfig,
+} from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 import { RecordingService } from "@/server/services/recording.service";
 import {
@@ -91,20 +97,27 @@ export async function uploadRecordingFormAction(
       fileSize: file.size,
     });
 
-    // Encrypt file before upload (if encryption is enabled)
-    const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+    // Recording files are HIGHLY_CONFIDENTIAL - encryption is mandatory by default (SSD-4.2.02)
+    const shouldEncrypt = isEncryptionEnabled(
+      DataClassification.HIGHLY_CONFIDENTIAL
+    );
     let fileToUpload: File | Buffer = file;
     let encryptionMetadata: string | null = null;
 
     // Validate encryption configuration before attempting encryption
-    if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
-      logger.error("Encryption enabled but master key not configured", {
+    try {
+      validateEncryptionConfig(DataClassification.HIGHLY_CONFIDENTIAL);
+    } catch (error) {
+      logger.error("Encryption configuration validation failed", {
         component: "uploadRecordingFormAction",
+        error,
       });
       return {
         success: false,
         error:
-          "Encryption is enabled but ENCRYPTION_MASTER_KEY is not configured. Please contact support.",
+          error instanceof Error
+            ? error.message
+            : "Encryption configuration is invalid. Please contact support.",
       };
     }
 
@@ -116,8 +129,9 @@ export async function uploadRecordingFormAction(
         fileToUpload = encryptedBuffer;
         encryptionMetadata = JSON.stringify(generateEncryptionMetadata());
 
-        logger.info("File encrypted before upload", {
+        logger.info("File encrypted before upload (default for classified data)", {
           component: "uploadRecordingFormAction",
+          classification: DataClassification.HIGHLY_CONFIDENTIAL,
           originalSize: file.size,
           encryptedSize: encryptedBuffer.length,
         });
