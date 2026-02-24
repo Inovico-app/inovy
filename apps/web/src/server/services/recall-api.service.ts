@@ -5,6 +5,7 @@ import {
   type ActionResult,
 } from "../../lib/server-action-client/action-errors";
 import { getRecallApiKey } from "./recall-api.utils";
+import { secureFetch } from "../lib/secure-fetch";
 
 interface RecallRecording {
   id?: string;
@@ -58,7 +59,7 @@ export class RecallApiService {
         customMetadata,
       });
 
-      const response = await fetch(`${RecallApiService.API_BASE_URL}/bot/`, {
+      const response = await secureFetch(`${RecallApiService.API_BASE_URL}/bot/`, {
         method: "POST",
         headers: {
           Authorization: `Token ${apiKey}`,
@@ -69,7 +70,11 @@ export class RecallApiService {
           webhook_url: webhookUrl,
           custom_metadata: customMetadata ?? {},
         }),
-        signal: AbortSignal.timeout(30000), // 30 second timeout
+        signal: AbortSignal.timeout(30000),
+        certificateValidation: {
+          nearExpiryWarningDays: 30,
+          strictValidation: true,
+        },
       });
 
       if (!response.ok) {
@@ -205,14 +210,18 @@ export class RecallApiService {
     try {
       const apiKey = getRecallApiKey();
 
-      const response = await fetch(
+      const response = await secureFetch(
         `${RecallApiService.API_BASE_URL}/bot/${botId}/`,
         {
           method: "GET",
           headers: {
             Authorization: `Token ${apiKey}`,
           },
-          signal: AbortSignal.timeout(30000), // 30 second timeout
+          signal: AbortSignal.timeout(30000),
+          certificateValidation: {
+            nearExpiryWarningDays: 30,
+            strictValidation: true,
+          },
         }
       );
 
