@@ -32,23 +32,24 @@ export const getDeepgramClientTokenAction = publicActionClient
       organizationId: organization.id,
     });
 
-    const { result: tokenResult, error: tokenError } =
-      await getTemporaryDeepgramToken();
+    const tokenResult = await getTemporaryDeepgramToken();
 
-    if (tokenError) {
+    if (tokenResult.isErr()) {
       logger.error("Failed to generate temporary Deepgram token", {
-        error: tokenError.message,
+        error: tokenResult.error.message,
         component: "getDeepgramClientTokenAction",
       });
 
       throw ActionErrors.internal(
         "Failed to generate temporary Deepgram token",
-        tokenError,
+        tokenResult.error,
         "getDeepgramClientTokenAction"
       );
     }
 
-    if (!tokenResult) {
+    const token = tokenResult.value;
+
+    if (!token?.access_token) {
       throw ActionErrors.internal(
         "Failed to generate temporary token. Make sure the API key is of scope Member or higher.",
         undefined,
@@ -56,6 +57,6 @@ export const getDeepgramClientTokenAction = publicActionClient
       );
     }
 
-    return { data: { token: tokenResult.access_token, success: true } };
+    return { data: { token: token.access_token, success: true } };
   });
 

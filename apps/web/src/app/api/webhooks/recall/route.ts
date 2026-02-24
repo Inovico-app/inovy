@@ -1,4 +1,5 @@
 import { logger, serializeError } from "@/lib/logger";
+import { checkRateLimit, webhookRateLimit } from "@/lib/rate-limit";
 import type { ActionResult } from "@/lib/server-action-client/action-errors";
 import { verifyRequestFromRecall } from "@/server/lib/verify-recall-webhook";
 import { BotWebhookService, getBotId } from "@/server/services/bot-webhook.service";
@@ -56,6 +57,18 @@ export async function POST(request: NextRequest) {
         error: serializeError(verifyError),
       });
       return okResponse({ success: false, error: "Verification failed" });
+    }
+
+    const clientIp = request.headers.get("x-forwarded-for") ?? "unknown";
+    try {
+      await checkRateLimit(`webhook:recall:${clientIp}`, webhookRateLimit);
+    } catch (error) {
+      logger.warn("Rate limit exceeded for Recall webhook", {
+        component: "POST /api/webhooks/recall",
+        clientIp,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return okResponse({ success: false, error: "Rate limit exceeded" });
     }
 
     let parsedBody: unknown;

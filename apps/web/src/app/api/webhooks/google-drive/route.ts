@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
+import { sanitizeString } from "@/lib/external-api-validation";
+import { checkRateLimit, webhookRateLimit } from "@/lib/rate-limit";
 import { DriveWatchesQueries } from "@/server/data-access/drive-watches.queries";
 import { GoogleDriveService } from "@/server/services/google-drive.service";
 // Note: DriveWatchesService will be available after PR #216 is merged
@@ -25,11 +27,27 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Extract Google Drive notification headers
-    const channelId = request.headers.get("x-goog-channel-id");
-    const resourceId = request.headers.get("x-goog-resource-id");
-    const resourceState = request.headers.get("x-goog-resource-state");
-    const messageNumber = request.headers.get("x-goog-message-number");
+    const clientIp = request.headers.get("x-forwarded-for") ?? "unknown";
+    try {
+      await checkRateLimit(`webhook:google-drive:${clientIp}`, webhookRateLimit);
+    } catch (error) {
+      logger.warn("Rate limit exceeded for Google Drive webhook", {
+        component: "POST /api/webhooks/google-drive",
+        clientIp,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return NextResponse.json({ success: true });
+    }
+
+    const rawChannelId = request.headers.get("x-goog-channel-id");
+    const rawResourceId = request.headers.get("x-goog-resource-id");
+    const rawResourceState = request.headers.get("x-goog-resource-state");
+    const rawMessageNumber = request.headers.get("x-goog-message-number");
+
+    const channelId = rawChannelId ? sanitizeString(rawChannelId) : null;
+    const resourceId = rawResourceId ? sanitizeString(rawResourceId) : null;
+    const resourceState = rawResourceState ? sanitizeString(rawResourceState) : null;
+    const messageNumber = rawMessageNumber ? sanitizeString(rawMessageNumber) : null;
 
     logger.info("Received Google Drive notification", {
       component: "POST /api/webhooks/google-drive",
