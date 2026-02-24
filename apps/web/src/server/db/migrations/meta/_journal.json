@@ -365,6 +365,13 @@
       "when": 1770370196062,
       "tag": "0057_add_bot_consent_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1771962676371,
+      "tag": "0058_add_data_classification",
+      "breakpoints": true
     }
   ]
 }

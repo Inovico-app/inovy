@@ -1,6 +1,7 @@
 import {
   boolean,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -8,6 +9,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
+import { dataClassificationLevelEnum } from "./data-classification";
 
 export const recordingStatusEnum = [
   "pending",
@@ -88,6 +90,14 @@ export const recordings = pgTable(
     // Encryption fields
     isEncrypted: boolean("is_encrypted").notNull().default(false),
     encryptionMetadata: text("encryption_metadata"), // JSON metadata
+    // Data classification fields
+    dataClassificationLevel: text("data_classification_level", {
+      enum: dataClassificationLevelEnum,
+    })
+      .notNull()
+      .default("confidential"),
+    classificationMetadata: jsonb("classification_metadata"),
+    classifiedAt: timestamp("classified_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

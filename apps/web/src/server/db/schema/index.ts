@@ -12,6 +12,7 @@ export * from "./chat-embeddings";
 export * from "./chat-messages";
 export * from "./consent";
 export * from "./consent-audit-log";
+export * from "./data-classification";
 export * from "./data-exports";
 export * from "./drive-watches";
 export * from "./embedding-cache";

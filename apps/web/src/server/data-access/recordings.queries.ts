@@ -432,6 +432,9 @@ export class RecordingsQueries {
         consentRevokedAt: recordings.consentRevokedAt,
         isEncrypted: recordings.isEncrypted,
         encryptionMetadata: recordings.encryptionMetadata,
+        dataClassificationLevel: recordings.dataClassificationLevel,
+        classificationMetadata: recordings.classificationMetadata,
+        classifiedAt: recordings.classifiedAt,
         projectName: projects.name,
       })
       .from(recordings)

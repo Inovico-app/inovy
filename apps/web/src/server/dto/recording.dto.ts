@@ -4,6 +4,7 @@ import type {
   RecordingStatus,
   WorkflowStatus,
 } from "../db/schema/recordings";
+import type { DataClassificationLevel } from "../db/schema/data-classification";
 
 export interface RecordingDto {
   id: string;
@@ -37,6 +38,9 @@ export interface RecordingDto {
   consentRevokedAt: Date | null;
   isEncrypted: boolean;
   encryptionMetadata: string | null;
+  dataClassificationLevel: DataClassificationLevel;
+  classificationMetadata: Record<string, unknown> | null;
+  classifiedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
