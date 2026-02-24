@@ -8,6 +8,7 @@ import {
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { AuditLogService } from "@/server/services/audit-log.service";
 import { APIError } from "better-auth/api";
 import { err, ok } from "neverthrow";
 import { revalidatePath } from "next/cache";
@@ -115,7 +116,7 @@ export const removeMember = authorizedActionClient
   )
   .action(async ({ parsedInput, ctx }) => {
     const { memberIdOrEmail } = parsedInput;
-    const { organizationId } = ctx;
+    const { organizationId, user } = ctx;
 
     if (!organizationId) {
       throw ActionErrors.forbidden(
@@ -145,6 +146,26 @@ export const removeMember = authorizedActionClient
           )
         );
       }
+
+      // Log member removal for audit trail
+      const headersList = await headers();
+      const { ipAddress, userAgent } =
+        AuditLogService.extractRequestInfo(headersList);
+
+      await AuditLogService.createAuditLog({
+        eventType: "user_deleted",
+        resourceType: "user",
+        resourceId: memberIdOrEmail,
+        userId: user?.id ?? "unknown",
+        organizationId,
+        action: "delete",
+        ipAddress,
+        userAgent,
+        metadata: {
+          removedMember: memberIdOrEmail,
+          removedBy: user?.email,
+        },
+      });
 
       // Invalidate cache
       CacheInvalidation.invalidateOrganization(organizationId);
@@ -183,7 +204,7 @@ export const updateMemberRole = authorizedActionClient
   )
   .action(async ({ parsedInput, ctx }) => {
     const { memberId, role } = parsedInput;
-    const { organizationId } = ctx;
+    const { organizationId, user } = ctx;
 
     if (!organizationId) {
       throw ActionErrors.forbidden(
@@ -214,6 +235,27 @@ export const updateMemberRole = authorizedActionClient
           )
         );
       }
+
+      // Log role change for audit trail
+      const headersList = await headers();
+      const { ipAddress, userAgent } =
+        AuditLogService.extractRequestInfo(headersList);
+
+      await AuditLogService.createAuditLog({
+        eventType: "role_assigned",
+        resourceType: "role",
+        resourceId: memberId,
+        userId: user?.id ?? "unknown",
+        organizationId,
+        action: "assign",
+        ipAddress,
+        userAgent,
+        metadata: {
+          targetUserId: memberId,
+          newRole: role,
+          changedBy: user?.email,
+        },
+      });
 
       // Invalidate cache
       CacheInvalidation.invalidateOrganization(organizationId);

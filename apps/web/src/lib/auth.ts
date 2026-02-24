@@ -203,6 +203,39 @@ export const auth = betterAuth({
             });
             return undefined;
           }
+
+          // Log user creation for audit trail
+          try {
+            const { AuditLogService } = await import(
+              "@/server/services/audit-log.service"
+            );
+
+            const headersList = await headers();
+            const { ipAddress, userAgent } =
+              AuditLogService.extractRequestInfo(headersList);
+
+            await AuditLogService.createAuditLog({
+              eventType: "user_created",
+              resourceType: "user",
+              resourceId: user.id,
+              userId: user.id,
+              organizationId,
+              action: "create",
+              ipAddress,
+              userAgent,
+              metadata: {
+                email: user.email,
+                name: user.name,
+                role: user.role,
+                createdVia: ctx?.path ?? "unknown",
+              },
+            });
+          } catch (error) {
+            logger.error("Failed to create audit log for user creation", {
+              userId: user.id,
+              error: error instanceof Error ? error : new Error(String(error)),
+            });
+          }
         },
       },
     },
@@ -302,6 +335,41 @@ export const auth = betterAuth({
             role: invitation.role,
             expiresAt: invitation.expiresAt,
           });
+
+          // Log invitation creation for audit trail
+          try {
+            const { AuditLogService } = await import(
+              "@/server/services/audit-log.service"
+            );
+
+            const headersList = await headers();
+            const { ipAddress, userAgent } =
+              AuditLogService.extractRequestInfo(headersList);
+
+            await AuditLogService.createAuditLog({
+              eventType: "user_created",
+              resourceType: "user",
+              resourceId: invitation.id,
+              userId: inviter.id,
+              organizationId: organization.id,
+              action: "create",
+              ipAddress,
+              userAgent,
+              metadata: {
+                invitationId: invitation.id,
+                invitedEmail: invitation.email,
+                invitedRole: invitation.role,
+                inviterId: inviter.id,
+                inviterEmail: inviter.user.email,
+                action: "invitation_created",
+              },
+            });
+          } catch (error) {
+            logger.error("Failed to create audit log for invitation creation", {
+              invitationId: invitation.id,
+              error: error instanceof Error ? error : new Error(String(error)),
+            });
+          }
         },
 
         /**
@@ -341,6 +409,60 @@ export const auth = betterAuth({
             memberId: member.id,
             role: member.role,
           });
+
+          // Log invitation acceptance and role assignment for audit trail
+          try {
+            const { AuditLogService } = await import(
+              "@/server/services/audit-log.service"
+            );
+
+            const headersList = await headers();
+            const { ipAddress, userAgent } =
+              AuditLogService.extractRequestInfo(headersList);
+
+            // Log the user joining the organization
+            await AuditLogService.createAuditLog({
+              eventType: "user_created",
+              resourceType: "user",
+              resourceId: user.id,
+              userId: user.id,
+              organizationId: organization.id,
+              action: "create",
+              ipAddress,
+              userAgent,
+              metadata: {
+                invitationId: invitation.id,
+                email: user.email,
+                joinedVia: "invitation",
+                inviterId: invitation.inviterId,
+              },
+            });
+
+            // Log role assignment
+            await AuditLogService.createAuditLog({
+              eventType: "role_assigned",
+              resourceType: "role",
+              resourceId: member.id,
+              userId: user.id,
+              organizationId: organization.id,
+              action: "assign",
+              ipAddress,
+              userAgent,
+              metadata: {
+                targetUserId: user.id,
+                role: member.role,
+                assignedVia: "invitation",
+                inviterId: invitation.inviterId,
+              },
+            });
+          } catch (error) {
+            logger.error("Failed to create audit log for invitation acceptance", {
+              invitationId: invitation.id,
+              userId: user.id,
+              organizationId: organization.id,
+              error: error instanceof Error ? error : new Error(String(error)),
+            });
+          }
 
           try {
             // Get pending team assignments for this invitation
