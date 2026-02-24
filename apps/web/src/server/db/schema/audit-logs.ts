@@ -37,6 +37,19 @@ export const auditEventTypeEnum = pgEnum("audit_event_type", [
   "user_deleted",
   "user_deactivated",
   "user_activated",
+  // Authentication events
+  "session_created",
+  "session_revoked",
+  "session_revoked_all",
+  "password_changed",
+  "password_reset",
+  "email_verified",
+  "two_factor_enabled",
+  "two_factor_disabled",
+  "two_factor_verified",
+  "account_linked",
+  "account_unlinked",
+  "login_anomaly_detected",
   // Permission events
   "permission_granted",
   "permission_revoked",
@@ -75,6 +88,8 @@ export const auditResourceTypeEnum = pgEnum("audit_resource_type", [
   "consent",
   "knowledge_base",
   "chat",
+  "session",
+  "authentication",
 ]);
 
 export const auditActionEnum = pgEnum("audit_action", [
@@ -93,6 +108,14 @@ export const auditActionEnum = pgEnum("audit_action", [
   "connect",
   "disconnect",
   "sync",
+  "login_success",
+  "login_failed",
+  "logout",
+  "verify",
+  "enable",
+  "disable",
+  "link",
+  "unlink",
 ]);
 
 /**

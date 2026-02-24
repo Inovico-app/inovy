@@ -24,6 +24,7 @@ import { magicLink, organization, twoFactor } from "better-auth/plugins";
 import { nanoid } from "nanoid";
 import { headers } from "next/headers";
 import { ac, roles } from "./auth/access-control";
+import { authHooks } from "./auth/auth-hooks";
 
 /**
  * Better Auth instance configuration
@@ -38,6 +39,7 @@ import { ac, roles } from "./auth/access-control";
  */
 export const auth = betterAuth({
   experimental: { joins: true },
+  hooks: [authHooks],
   database: drizzleAdapter(db, {
     provider: "pg",
     usePlural: true,
