@@ -36,8 +36,7 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
     audioBlob: Blob,
     _transcription: string,
     consentGranted: boolean,
-    consentGrantedAt: Date,
-    participants: Array<{ id: string; email: string; name?: string }>
+    consentGrantedAt: Date
   ) => {
     if (!selectedProjectId) {
       toast.error("Selecteer eerst een project");
@@ -62,13 +61,6 @@ export function RecordPageClient({ projects }: RecordPageClientProps) {
         fileMimeType: audioFile.type,
         consentGiven: consentGranted,
         consentGivenAt: consentGranted ? consentGrantedAt.toISOString() : undefined,
-        participants:
-          participants.length > 0
-            ? participants.map((p) => ({
-                email: p.email,
-                name: p.name,
-              }))
-            : undefined,
       });
 
       // Upload directly to Vercel Blob using the client upload pattern
