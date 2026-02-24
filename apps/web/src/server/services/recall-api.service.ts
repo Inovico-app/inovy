@@ -68,6 +68,11 @@ export class RecallApiService {
           meeting_url: meetingUrl,
           webhook_url: webhookUrl,
           custom_metadata: customMetadata ?? {},
+          automatic_leave: {
+            noone_joined_timeout: 300,
+            waiting_room_timeout: 600,
+            everyone_left_timeout: 30,
+          },
         }),
         signal: AbortSignal.timeout(30000), // 30 second timeout
       });
