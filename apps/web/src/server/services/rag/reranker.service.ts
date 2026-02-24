@@ -12,6 +12,7 @@ import {
 } from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
 import type { SearchResult } from "./types";
+import { secureFetch } from "@/lib/security";
 
 export class RerankerService {
   private model = "cross-encoder/ms-marco-MiniLM-L-6-v2";
@@ -134,13 +135,14 @@ export class RerankerService {
     apiKey: string
   ): Promise<ActionResult<number[]>> {
     try {
-      const response = await fetch(`${this.apiUrl}${this.model}`, {
+      const response = await secureFetch(`${this.apiUrl}${this.model}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ inputs: pairs }),
+        logRequest: true,
       });
 
       if (!response.ok) {

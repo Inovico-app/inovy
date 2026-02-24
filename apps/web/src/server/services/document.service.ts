@@ -18,6 +18,7 @@ import type {
   DocumentMetadata,
   ProcessedDocument,
 } from "./types/document-processing.types";
+import { secureFetch } from "@/lib/security";
 
 /**
  * Document Service
@@ -294,7 +295,9 @@ export class DocumentService {
         if (file instanceof File) {
           return ok(await file.text());
         } else {
-          const response = await fetch(file.url);
+          const response = await secureFetch(file.url, {
+            logRequest: true,
+          });
           if (!response.ok) {
             return err(
               ActionErrors.internal(
@@ -329,7 +332,9 @@ export class DocumentService {
           const arrayBuffer = await file.arrayBuffer();
           buffer = Buffer.from(arrayBuffer);
         } else {
-          const response = await fetch(file.url);
+          const response = await secureFetch(file.url, {
+            logRequest: true,
+          });
           if (!response.ok) {
             return err(
               ActionErrors.internal(
@@ -372,7 +377,9 @@ export class DocumentService {
           const arrayBuffer = await file.arrayBuffer();
           buffer = Buffer.from(arrayBuffer);
         } else {
-          const response = await fetch(file.url);
+          const response = await secureFetch(file.url, {
+            logRequest: true,
+          });
           if (!response.ok) {
             return err(
               ActionErrors.internal(
