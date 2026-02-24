@@ -7,7 +7,7 @@ import {
   type TaskHistory,
 } from "@/server/db/schema/task-history";
 import { tasks, type NewTask, type Task } from "@/server/db/schema/tasks";
-import { and, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, lte, or } from "drizzle-orm";
 import type { TaskStatsDto } from "../dto/task.dto";
 import { TeamQueries } from "./teams.queries";
 
@@ -323,6 +323,20 @@ export class TasksQueries {
           eq(tasks.organizationId, organizationId)
         )
       );
+  }
+
+  /**
+   * Delete task history older than the specified number of days
+   */
+  static async deleteOldTaskHistory(retentionDays: number): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+    const result = await db
+      .delete(taskHistory)
+      .where(lte(taskHistory.changedAt, cutoffDate));
+
+    return result.rowCount ?? 0;
   }
 }
 

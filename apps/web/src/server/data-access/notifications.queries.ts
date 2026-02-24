@@ -4,7 +4,7 @@ import {
   type NewNotification,
   type Notification,
 } from "@/server/db/schema/notifications";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, lte, sql } from "drizzle-orm";
 import type { NotificationFiltersDto } from "../dto/notification.dto";
 
 /**
@@ -117,6 +117,39 @@ export class NotificationsQueries {
       .where(eq(notifications.id, notificationId))
       .limit(1);
     return notification ?? null;
+  }
+
+  /**
+   * Delete notifications older than the specified number of days
+   */
+  static async deleteOldNotifications(retentionDays: number): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+    const result = await db
+      .delete(notifications)
+      .where(lte(notifications.createdAt, cutoffDate));
+
+    return result.rowCount ?? 0;
+  }
+
+  /**
+   * Delete all notifications for a specific user
+   */
+  static async deleteByUserId(
+    userId: string,
+    organizationId: string
+  ): Promise<number> {
+    const result = await db
+      .delete(notifications)
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.organizationId, organizationId)
+        )
+      );
+
+    return result.rowCount ?? 0;
   }
 }
 
