@@ -19,6 +19,7 @@ export * from "./integration-settings";
 export * from "./integration-templates";
 export * from "./knowledge-base-documents";
 export * from "./knowledge-base-entries";
+export * from "./login-attempts";
 export * from "./notifications";
 export * from "./oauth-connections";
 export * from "./onboardings";
