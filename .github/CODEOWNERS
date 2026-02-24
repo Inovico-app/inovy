@@ -1,0 +1,23 @@
+# Code Owners
+# These owners will be requested for review when someone opens a PR
+
+# Security and dependency-related files require security team review
+/DEPENDENCY_LIFECYCLE.md @engineering-team @security-team
+/SECURITY.md @engineering-team @security-team
+/.github/dependabot.yml @engineering-team @security-team
+/.github/workflows/security-scan.yml @engineering-team @security-team
+/.github/workflows/dependency-check.yml @engineering-team @security-team
+/scripts/verify-dependencies.sh @engineering-team @security-team
+
+# Package files require review
+/package.json @engineering-team
+/pnpm-lock.yaml @engineering-team
+/apps/*/package.json @engineering-team
+/packages/*/package.json @engineering-team
+
+# Infrastructure and deployment
+/.github/workflows/*.yml @devops-team @engineering-team
+/turbo.json @engineering-team
+
+# Default owners for everything else
+* @engineering-team
