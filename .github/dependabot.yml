@@ -1,0 +1,99 @@
+# Dependabot configuration for automated dependency updates
+# SSD-3.1.01: Automated security and version updates
+
+version: 2
+
+updates:
+  # Main workspace dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "engineering-team"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "security"
+    groups:
+      # Group development dependencies together
+      dev-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      # Group production dependencies by category
+      next-ecosystem:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+      ai-sdk:
+        patterns:
+          - "@ai-sdk/*"
+          - "ai"
+          - "openai"
+          - "@anthropic-ai/*"
+          - "@deepgram/*"
+      ui-libraries:
+        patterns:
+          - "@radix-ui/*"
+          - "tailwindcss"
+          - "lucide-react"
+      auth-security:
+        patterns:
+          - "better-auth"
+          - "@better-auth/*"
+
+  # Web app dependencies
+  - package-ecosystem: "npm"
+    directory: "/apps/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "engineering-team"
+    commit-message:
+      prefix: "chore(web/deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "web-app"
+    # Security updates get immediate PRs
+    allow:
+      - dependency-type: "all"
+
+  # MCP package dependencies
+  - package-ecosystem: "npm"
+    directory: "/packages/mcp"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(mcp/deps)"
+    labels:
+      - "dependencies"
+      - "mcp"
+
+  # GitHub Actions security updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - "ci-cd"
+      - "security"

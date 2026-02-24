@@ -965,6 +965,94 @@ Better Auth manages its own schema for:
 - **Passkeys** - WebAuthn passkey credentials
 - **Magic Links** - Magic link authentication tokens
 
+## 🔒 Security and Compliance
+
+Inovy is designed for healthcare organizations and implements enterprise-grade security measures compliant with Dutch and European standards.
+
+### Security Standards
+
+- **NEN 7510** - Dutch healthcare information security standard
+- **BIO** - Baseline Informatiebeveiliging Overheid (Government baseline)
+- **AVG/GDPR** - General Data Protection Regulation
+- **ISO 27001** - Information security management
+
+### Supply Chain Security (SSD-3.1.01)
+
+We maintain strict control over external components to ensure supply chain security:
+
+#### Dependency Lifecycle Management
+
+All dependencies are managed through a comprehensive lifecycle process:
+
+- **Origin Verification**: All packages from verified npm registry with integrity hashes
+- **Security Scanning**: Automated vulnerability scanning in CI/CD pipeline
+- **Update Management**: Structured patching and update process
+- **Continuous Monitoring**: Daily vulnerability checks via Dependabot
+
+📄 **[Dependency Lifecycle Management Plan](./DEPENDENCY_LIFECYCLE.md)** - Complete lifecycle documentation
+
+#### Automated Security Scanning
+
+Our CI/CD pipeline includes comprehensive security checks:
+
+- **Dependency Audit**: `pnpm audit` on every push
+- **License Compliance**: Automated license verification
+- **Lockfile Verification**: Ensures reproducible builds
+- **Vulnerability Review**: GitHub Dependabot with daily scans
+- **SBOM Generation**: Software Bill of Materials for main branch
+
+🔧 **[Security Scanning Workflow](.github/workflows/security-scan.yml)** - CI/CD security pipeline
+
+#### Security Measures
+
+**Package Security:**
+- ✅ All dependencies from official npm registry
+- ✅ Cryptographic integrity verification (SHA-512 hashes)
+- ✅ Verified publishers with two-factor authentication
+- ✅ No git or local file dependencies in production
+- ✅ Frozen lockfile installations
+
+**Vulnerability Management:**
+- Critical patches: <24 hours response time
+- High severity: <1 week response time
+- Automated security updates via Dependabot
+- Quarterly manual security audits
+
+**Monitoring:**
+- Daily automated vulnerability scans
+- Weekly dependency health checks
+- Monthly compliance reviews
+- Annual third-party security audits
+
+### Security Documentation
+
+- **[Security Policy](./SECURITY.md)** - Comprehensive security practices and incident response
+- **[Dependency Lifecycle Plan](./DEPENDENCY_LIFECYCLE.md)** - Complete dependency management lifecycle
+- **[Dependabot Configuration](.github/dependabot.yml)** - Automated dependency updates
+
+### Verify Dependencies
+
+Run the verification script to check dependency security:
+
+```bash
+./scripts/verify-dependencies.sh
+```
+
+This script verifies:
+- Lockfile integrity
+- Security vulnerabilities (0 critical/high tolerance)
+- License compliance
+- Package origin and integrity
+- No unauthorized dependencies
+
+### Reporting Security Issues
+
+If you discover a security vulnerability:
+
+- **Email**: security@[company-domain]
+- **DO NOT** create public GitHub issues for security vulnerabilities
+- See [SECURITY.md](./SECURITY.md) for responsible disclosure process
+
 ## 🤝 Contributing
 
 1. Fork the repository
