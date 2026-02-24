@@ -198,6 +198,7 @@ Multi-tenant access control with strict data isolation:
 - **Policy-Based Access**: Centralized access control policies
 - **Audit Logging**: All access attempts and actions logged
 - **Data Isolation**: Database-level organization filtering
+- **Authorization Matrix**: See [AUTHORIZATION_MATRIX.md](./AUTHORIZATION_MATRIX.md) for complete role-permission mapping
 
 #### RAG with Hybrid Search
 
@@ -928,6 +929,7 @@ Inovy uses Better Auth for comprehensive authentication and authorization:
    - Policy-based authorization
    - Protected routes with middleware
    - Audit logging for all access
+   - **[Authorization Matrix](./AUTHORIZATION_MATRIX.md)** - Complete role-permission mapping with function separation (SSD-7.3.02 compliance)
 
 5. **User Profile**
    - User data synchronized from Better Auth

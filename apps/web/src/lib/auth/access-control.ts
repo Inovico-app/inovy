@@ -1,6 +1,9 @@
 /**
  * Better Auth Access Control Configuration
  * Defines resources, actions, and roles for RBAC using Better Auth's access control plugin
+ * 
+ * IMPORTANT: When modifying this file, you must update the authorization matrix documentation
+ * at /workspace/AUTHORIZATION_MATRIX.md to maintain compliance with SSD-7.3.02
  */
 
 import { createAccessControl } from "better-auth/plugins/access";
