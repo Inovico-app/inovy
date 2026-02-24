@@ -1,8 +1,15 @@
 import crypto from "crypto";
+import {
+  DataClassification,
+  isEncryptionRequired,
+  canDisableEncryption,
+} from "./data-classification";
 
 /**
  * Encryption utilities for data at rest
  * Uses AES-256-GCM for authenticated encryption
+ * 
+ * As per SSD-4.2.02: Encryption is applied by default for classified data
  */
 
 const ALGORITHM = "aes-256-gcm";
@@ -36,6 +43,52 @@ function getMasterKey(): string {
     );
   }
   return masterKey;
+}
+
+/**
+ * Check if encryption is enabled for a given data classification
+ * Default behavior: encryption is ON for CONFIDENTIAL and HIGHLY_CONFIDENTIAL data
+ * Can be overridden with DISABLE_ENCRYPTION_AT_REST=true (only for non-mandatory classifications)
+ * 
+ * @param classification - The data classification level
+ * @returns true if encryption should be applied
+ */
+export function isEncryptionEnabled(
+  classification: DataClassification = DataClassification.CONFIDENTIAL
+): boolean {
+  // Check if encryption is required for this classification
+  const required = isEncryptionRequired(classification);
+  
+  // If required, always encrypt (cannot be disabled)
+  if (required) {
+    return true;
+  }
+  
+  // For non-required classifications, check if it can be disabled
+  const canDisable = canDisableEncryption(classification);
+  
+  // If it can be disabled, respect the environment variable
+  if (canDisable) {
+    return process.env.DISABLE_ENCRYPTION_AT_REST !== "true";
+  }
+  
+  // Default to encryption (secure by default)
+  return true;
+}
+
+/**
+ * Validate encryption configuration
+ * Throws error if encryption is required but master key is not set
+ */
+export function validateEncryptionConfig(
+  classification: DataClassification = DataClassification.CONFIDENTIAL
+): void {
+  if (isEncryptionEnabled(classification) && !process.env.ENCRYPTION_MASTER_KEY) {
+    throw new Error(
+      `Encryption is required for ${classification} data but ENCRYPTION_MASTER_KEY is not configured. ` +
+      "Please set the ENCRYPTION_MASTER_KEY environment variable."
+    );
+  }
 }
 
 /**

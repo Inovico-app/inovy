@@ -40,6 +40,11 @@ export const consentParticipants = pgTable(
     ipAddress: text("ip_address"), // For audit purposes
     userAgent: text("user_agent"), // For audit purposes
     userId: text("user_id"), // Better Auth user ID if participant is a registered user
+    // Encryption fields (SSD-4.2.02: HIGHLY_CONFIDENTIAL - PII data)
+    emailEncrypted: boolean("email_encrypted").notNull().default(false),
+    emailEncryptionMetadata: text("email_encryption_metadata"),
+    nameEncrypted: boolean("name_encrypted").notNull().default(false),
+    nameEncryptionMetadata: text("name_encryption_metadata"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

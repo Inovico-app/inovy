@@ -50,6 +50,9 @@ export const chatMessages = pgTable(
     sources: jsonb("sources").$type<SourceReference[]>(), // Source citations for assistant messages
     toolCalls: jsonb("tool_calls").$type<ToolCall[]>(), // Tool calls made by assistant
     tokenCount: integer("token_count"), // Cached token count for optimization (optional)
+    // Encryption fields (SSD-4.2.02: CONFIDENTIAL data)
+    isEncrypted: boolean("is_encrypted").notNull().default(false),
+    encryptionMetadata: text("encryption_metadata"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

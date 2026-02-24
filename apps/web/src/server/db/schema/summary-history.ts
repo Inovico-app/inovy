@@ -25,6 +25,9 @@ export const summaryHistory = pgTable("summary_history", {
     .defaultNow(),
   versionNumber: integer("version_number").notNull(), // Sequential version number
   changeDescription: text("change_description"), // Optional description of changes
+  // Encryption fields (SSD-4.2.02: CONFIDENTIAL data)
+  isEncrypted: boolean("is_encrypted").notNull().default(false),
+  encryptionMetadata: text("encryption_metadata"),
 });
 
 export type SummaryHistory = typeof summaryHistory.$inferSelect;
