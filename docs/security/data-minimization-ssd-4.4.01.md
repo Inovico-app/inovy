@@ -202,15 +202,55 @@ anonymizeEmail(email) // Returns HMAC-SHA256 hash
 
 ## Testing Checklist
 
-- [ ] Verify non-admin users cannot see full transcriptions
-- [ ] Verify non-admin users see redacted emails for other users
-- [ ] Verify non-admin users can see their own email
-- [ ] Verify admin users can see all data
-- [ ] Verify audit logs created for recording playback
-- [ ] Verify audit logs created for data exports
-- [ ] Verify audit logs created for full transcription access
-- [ ] Verify cache isolation between roles
-- [ ] Verify internal operations still have full data access
+- [x] TypeScript compilation passes with no errors
+- [x] Code follows ESLint standards (no new errors introduced)
+- [ ] Verify non-admin users cannot see full transcriptions (manual testing required)
+- [ ] Verify non-admin users see redacted emails for other users (manual testing required)
+- [ ] Verify non-admin users can see their own email (manual testing required)
+- [ ] Verify admin users can see all data (manual testing required)
+- [ ] Verify audit logs created for recording playback (manual testing required)
+- [ ] Verify audit logs created for data exports (manual testing required)
+- [ ] Verify audit logs created for full transcription access (manual testing required)
+- [ ] Verify cache isolation between roles (manual testing required)
+- [ ] Verify internal operations still have full data access (code review confirmed)
+
+### Automated Testing
+
+All changes pass TypeScript type checking:
+```bash
+pnpm run typecheck
+```
+
+### Manual Testing Required
+
+To complete compliance verification, perform the following manual tests:
+
+1. **Test as Viewer Role**:
+   - Login as a viewer user
+   - View recordings list - verify `transcriptionText` is undefined
+   - View recording detail - verify only `redactedTranscriptionText` is shown
+   - View user profiles - verify email addresses are redacted
+
+2. **Test as Admin Role**:
+   - Login as an admin user
+   - View recordings list - verify `transcriptionText` is present
+   - View recording detail - verify full transcription is shown
+   - View user profiles - verify full email addresses are shown
+   - Check audit logs for `view_full_transcription` events
+
+3. **Test Recording Playback**:
+   - Play a recording file
+   - Check audit logs for `playback` event with proper metadata
+
+4. **Test Data Exports**:
+   - Request GDPR export
+   - Check audit logs for `create` event
+   - Download export
+   - Check audit logs for `download` event with file statistics
+
+5. **Test Chat Export**:
+   - Export a chat conversation
+   - Check audit logs for `export` event
 
 ## Compliance Notes
 
