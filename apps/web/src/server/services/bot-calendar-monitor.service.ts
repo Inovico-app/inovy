@@ -121,14 +121,15 @@ export class BotCalendarMonitorService {
         return ok({ sessionsCreated: 0 });
       }
 
-      // Get upcoming meetings
+      // Get upcoming meetings (15-20 minutes window to allow scheduled bot creation)
       const now = new Date();
-      const timeMax = new Date(now.getTime() + 30 * 60 * 1000); // 30 minutes from now
+      const timeMin = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes from now (minimum for scheduled bots)
+      const timeMax = new Date(now.getTime() + 20 * 60 * 1000); // 20 minutes from now
 
       const meetingsResult = await GoogleCalendarService.getUpcomingMeetings(
         settings.userId,
         {
-          timeMin: now,
+          timeMin,
           timeMax,
           calendarIds: settings.calendarIds ?? undefined,
         }
@@ -180,10 +181,14 @@ export class BotCalendarMonitorService {
           const botStatus: "scheduled" | "pending_consent" =
             settings.requirePerMeetingConsent ? "pending_consent" : "scheduled";
 
+          // Calculate join time: 15 seconds before meeting start for precision
+          const joinAt = new Date(meeting.start.getTime() - 15 * 1000);
+
           // Create bot session via provider
           const provider = BotProviderFactory.getDefault();
           const sessionResult = await provider.createSession({
             meetingUrl: meeting.meetingUrl,
+            joinAt,
             customMetadata: {
               projectId: project.id,
               organizationId: settings.organizationId,
