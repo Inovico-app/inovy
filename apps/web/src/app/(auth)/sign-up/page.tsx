@@ -303,11 +303,11 @@ export default function SignUpPage() {
         {/* Terms and Privacy Policy */}
         <p className="mt-8 text-center text-xs text-muted-foreground">
           Door een account aan te maken ga je akkoord met onze{" "}
-          <Link href="#" className="text-primary hover:underline">
+          <Link href="/terms-of-service" className="text-primary hover:underline">
             algemene voorwaarden
           </Link>{" "}
           en ons{" "}
-          <Link href="#" className="text-primary hover:underline">
+          <Link href="/privacy-policy" className="text-primary hover:underline">
             privacy beleid
           </Link>
         </p>
