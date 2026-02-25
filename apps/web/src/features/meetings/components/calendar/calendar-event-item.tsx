@@ -1,11 +1,18 @@
 "use client";
 
-import { FileVideoIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { BotSessionStatusTrigger } from "@/features/bot/components/bot-session-status-trigger";
 import { AddBotButton } from "@/features/meetings/components/add-bot-button";
-import { formatTimeRange } from "@/features/meetings/lib/calendar-utils";
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
+import { formatTimeRange } from "@/features/meetings/lib/calendar-utils";
 import { cn } from "@/lib/utils";
+import { FileVideoIcon } from "lucide-react";
 import Link from "next/link";
 
 interface CalendarEventItemProps {
@@ -23,9 +30,7 @@ export function CalendarEventItem({
   const hasBotSession = !!meeting.botSession;
   const botSession = meeting.botSession;
   const isPast = meeting.end <= new Date();
-  const hasRecording = !!(
-    botSession?.recordingId && botSession?.projectId
-  );
+  const hasRecording = !!(botSession?.recordingId && botSession?.projectId);
   const NoBotFallback = (
     <span className="text-xs text-muted-foreground">No bot</span>
   );
@@ -37,6 +42,21 @@ export function CalendarEventItem({
           <div className="h-2 w-2 rounded-full bg-primary" />
         </div>
         <span className="truncate font-medium">{meeting.title}</span>
+        {meeting.isOrganizer === false && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="secondary"
+                  className="shrink-0 text-[10px] px-1.5 py-0"
+                >
+                  Invited
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>You were invited to this meeting</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
       <div className="mt-0.5 flex min-h-[28px] items-center gap-1.5">
         <span className="text-muted-foreground">{timeDisplay}</span>
@@ -114,10 +134,24 @@ export function CalendarEventItem({
   const nonCompactContent = (
     <div className="flex items-start justify-between gap-2">
       <div className="flex-1 min-w-0">
-        <div className="font-medium truncate">{meeting.title}</div>
-        <div className="mt-1 text-xs text-muted-foreground">
-          {timeDisplay}
+        <div className="flex items-center gap-1.5 font-medium truncate">
+          <span className="truncate">{meeting.title}</span>
+          {meeting.isOrganizer === false && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="secondary" className="shrink-0">
+                    Invited
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  You were invited to this meeting
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
+        <div className="mt-1 text-xs text-muted-foreground">{timeDisplay}</div>
         {meeting.attendees && meeting.attendees.length > 0 && (
           <div className="mt-1 text-xs text-muted-foreground">
             {meeting.attendees.length} attendee
@@ -192,3 +226,4 @@ export function CalendarEventItem({
     </div>
   );
 }
+

@@ -1,18 +1,30 @@
 "use client";
 
-import { format, formatDistanceToNow } from "date-fns";
-import { CalendarIcon, ClockIcon, FileVideoIcon, UsersIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { BotSessionStatusTrigger } from "@/features/bot/components/bot-session-status-trigger";
 import { AddBotButton } from "@/features/meetings/components/add-bot-button";
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
 import {
-  formatTimeRange,
-  formatMeetingDuration,
   formatAttendeesCount,
+  formatMeetingDuration,
+  formatTimeRange,
   getMeetingBotStatus,
 } from "@/features/meetings/lib/calendar-utils";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { format, formatDistanceToNow } from "date-fns";
+import {
+  CalendarIcon,
+  ClockIcon,
+  FileVideoIcon,
+  UsersIcon,
+} from "lucide-react";
 import Link from "next/link";
 
 interface MeetingsListItemProps {
@@ -28,9 +40,7 @@ export function MeetingsListItem({
   const isPast = meeting.end < new Date();
   const isUpcoming = meeting.start > new Date();
   const botSession = meeting.botSession;
-  const hasRecording = !!(
-    botSession?.recordingId && botSession?.projectId
-  );
+  const hasRecording = !!(botSession?.recordingId && botSession?.projectId);
 
   const titleDateContent = (
     <>
@@ -39,6 +49,18 @@ export function MeetingsListItem({
         <h3 className="font-semibold text-base leading-tight">
           {meeting.title || "Untitled Meeting"}
         </h3>
+        {meeting.isOrganizer === false && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="secondary" className="shrink-0">
+                  Invited
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>You were invited to this meeting</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       {/* Date and Time */}
@@ -128,3 +150,4 @@ export function MeetingsListItem({
     </Card>
   );
 }
+
