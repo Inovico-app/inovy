@@ -160,7 +160,7 @@ export function MeetingSettingsMenu({
                   Transcribe speech to text during recording
                 </p>
               </Label>
-              {isRecording && liveTranscriptionEnabled && (
+              {isRecording && (
                 <p
                   className="text-xs text-muted-foreground italic flex items-center gap-1.5"
                   role="status"
@@ -220,3 +220,4 @@ export function MeetingSettingsMenu({
     </Popover>
   );
 }
+
