@@ -1,16 +1,16 @@
-import type { CalendarEvent } from "@/server/services/google-calendar.service";
 import type { BotSession, BotStatus } from "@/server/db/schema/bot-sessions";
+import type { CalendarEvent } from "@/server/services/google-calendar.service";
 import {
-  startOfMonth,
-  endOfMonth,
-  startOfWeek,
-  endOfWeek,
+  addMonths,
+  differenceInMinutes,
   eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
   isSameMonth,
   isToday,
-  format,
-  differenceInMinutes,
-  addMonths,
+  startOfMonth,
+  startOfWeek,
   subMonths,
 } from "date-fns";
 
@@ -143,6 +143,15 @@ export function formatDayHeader(date: Date): string {
  */
 export function formatMonthYear(date: Date): string {
   return format(date, "MMMM yyyy");
+}
+
+/**
+ * Format month date range for display (e.g., "Feb 1 – Feb 28, 2026")
+ */
+export function formatDateRange(date: Date): string {
+  const monthStart = startOfMonth(date);
+  const monthEnd = endOfMonth(date);
+  return `${format(monthStart, "MMM d")} – ${format(monthEnd, "MMM d, yyyy")}`;
 }
 
 /**
@@ -346,3 +355,4 @@ export function filterMeetingsByTimePeriod(
     }
   }
 }
+

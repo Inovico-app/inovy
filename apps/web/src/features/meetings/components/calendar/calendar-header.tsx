@@ -1,19 +1,20 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { formatMonthYear } from "@/features/meetings/lib/calendar-utils";
 import type {
   MeetingBotStatusFilter,
   TimePeriod,
 } from "@/features/meetings/lib/calendar-utils";
+import {
+  formatDateRange,
+  formatMonthYear,
+} from "@/features/meetings/lib/calendar-utils";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { CalendarViewToggle } from "./calendar-view-toggle";
+import { useState } from "react";
 import { CreateEventDialog } from "../create-event-dialog";
 import { MeetingsFilter } from "../meetings/meetings-filter";
 import { MeetingsTimePeriodToggle } from "../meetings/meetings-time-period-toggle";
-import { format, startOfMonth, endOfMonth } from "date-fns";
-
+import { CalendarViewToggle } from "./calendar-view-toggle";
 export type CalendarView = "month" | "week" | "day" | "list";
 
 interface CalendarHeaderProps {
@@ -31,12 +32,6 @@ interface CalendarHeaderProps {
   onClearFilters?: () => void;
   timePeriod?: TimePeriod;
   onTimePeriodChange?: (period: TimePeriod) => void;
-}
-
-function formatDateRange(date: Date): string {
-  const monthStart = startOfMonth(date);
-  const monthEnd = endOfMonth(date);
-  return `${format(monthStart, "MMM d")} – ${format(monthEnd, "MMM d, yyyy")}`;
 }
 
 export function CalendarHeader({
@@ -127,3 +122,4 @@ export function CalendarHeader({
     </>
   );
 }
+

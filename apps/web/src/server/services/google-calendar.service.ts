@@ -954,6 +954,15 @@ export class GoogleCalendarService {
           ? connectionResult.value.email.toLowerCase()
           : null;
 
+      if (!userEmail) {
+        return err(
+          ActionErrors.badRequest(
+            "Could not resolve Google account email. Please reconnect your Google account in settings.",
+            "GoogleCalendarService.getUpcomingMeetings"
+          )
+        );
+      }
+
       // Fetch events from each calendar, paginating through all results
       for (const calendarId of calendarIds) {
         try {

@@ -1,9 +1,9 @@
 "use client";
 
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
+import { MeetingsEmpty } from "./meetings-empty";
 import { MeetingsListItem } from "./meetings-list-item";
 import { MeetingsPagination } from "./meetings-pagination";
-import { MeetingsEmpty } from "./meetings-empty";
 
 interface MeetingsListProps {
   meetings: MeetingWithSession[];
@@ -12,6 +12,7 @@ interface MeetingsListProps {
   allMeetingsCount: number;
   isFiltered: boolean;
   onLoadMore: () => void;
+  isLoading?: boolean;
   onClearFilters?: () => void;
   onMeetingClick?: (meeting: MeetingWithSession) => void;
 }
@@ -23,6 +24,7 @@ export function MeetingsList({
   allMeetingsCount,
   isFiltered,
   onLoadMore,
+  isLoading,
   onClearFilters,
   onMeetingClick,
 }: MeetingsListProps) {
@@ -34,10 +36,7 @@ export function MeetingsList({
       {!hasAnyMeetings ? (
         <MeetingsEmpty variant="no-meetings" />
       ) : !hasFilteredMeetings && isFiltered ? (
-        <MeetingsEmpty
-          variant="no-results"
-          onClearFilters={onClearFilters}
-        />
+        <MeetingsEmpty variant="no-results" onClearFilters={onClearFilters} />
       ) : (
         <>
           <div className="space-y-3">
@@ -56,9 +55,11 @@ export function MeetingsList({
             total={total}
             hasMore={hasMore}
             onLoadMore={onLoadMore}
+            isLoading={isLoading}
           />
         </>
       )}
     </div>
   );
 }
+

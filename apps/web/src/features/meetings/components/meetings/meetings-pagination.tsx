@@ -57,11 +57,12 @@ function LoadMorePagination({
           variant="outline"
           onClick={onLoadMore}
           disabled={isLoading}
+          aria-busy={isLoading}
           className="min-w-[140px]"
         >
-          {isLoading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : null}
+          <span className="inline-flex h-4 w-4 items-center justify-center mr-2">
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          </span>
           Load More
         </Button>
       )}
@@ -132,3 +133,4 @@ function PagesPagination({
     </div>
   );
 }
+

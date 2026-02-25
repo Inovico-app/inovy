@@ -71,7 +71,7 @@ export function loadMoreMeetings(
     total,
     hasMore,
     currentPage: 1,
-    totalPages: Math.ceil(total / DEFAULT_PAGE_SIZE),
+    totalPages: Math.ceil(total / (limit || DEFAULT_PAGE_SIZE)),
   };
 }
 
@@ -108,3 +108,4 @@ export function paginateMeetings(
     totalPages,
   };
 }
+

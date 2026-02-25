@@ -1,35 +1,37 @@
 "use client";
 
-import { CalendarGrid } from "./calendar-grid";
-import { CalendarHeader, type CalendarView } from "./calendar-header";
-import { MeetingsList } from "../meetings/meetings-list";
+import { useBotSessionsQuery } from "@/features/meetings/hooks/use-bot-sessions-query";
+import { useMeetingStatusCounts } from "@/features/meetings/hooks/use-meeting-status-counts";
+import { useMeetingsQuery } from "@/features/meetings/hooks/use-meetings-query";
+import type {
+  MeetingBotStatusFilter,
+  MeetingWithSession,
+  TimePeriod,
+} from "@/features/meetings/lib/calendar-utils";
 import {
-  matchMeetingsWithSessions,
   filterMeetingsByBotStatus,
   filterMeetingsByTimePeriod,
   getMonthRange,
+  matchMeetingsWithSessions,
   validateBotStatus,
 } from "@/features/meetings/lib/calendar-utils";
-import type {
-  MeetingWithSession,
-  MeetingBotStatusFilter,
-  TimePeriod,
-} from "@/features/meetings/lib/calendar-utils";
-import { useMeetingsQuery } from "@/features/meetings/hooks/use-meetings-query";
-import { useBotSessionsQuery } from "@/features/meetings/hooks/use-bot-sessions-query";
-import { addMonths, format, parse, startOfMonth, isWithinInterval } from "date-fns";
-import {
-  parseAsString,
-  parseAsInteger,
-  useQueryState,
-} from "nuqs";
-import { useSearchParams } from "next/navigation";
-import { toast } from "sonner";
-import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useRef, useMemo, useState } from "react";
 import { loadMoreMeetings } from "@/features/meetings/lib/meetings-pagination";
-import { useMeetingStatusCounts } from "@/features/meetings/hooks/use-meeting-status-counts";
+import {
+  addMonths,
+  format,
+  isWithinInterval,
+  parse,
+  startOfMonth,
+} from "date-fns";
+import { AnimatePresence, motion } from "motion/react";
+import { useSearchParams } from "next/navigation";
+import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { MeetingDetailsModal } from "../meeting-details-modal";
+import { MeetingsList } from "../meetings/meetings-list";
+import { CalendarGrid } from "./calendar-grid";
+import { CalendarHeader, type CalendarView } from "./calendar-header";
 
 interface CalendarViewProps {
   initialDate?: Date;
@@ -38,6 +40,7 @@ interface CalendarViewProps {
 
 const VIEW_STORAGE_KEY = "meetings-view-preference";
 const PAGE_SIZE = 20;
+const MAX_VISIBLE_LIMIT = 500;
 
 function validateTimePeriod(value: string | undefined): TimePeriod {
   if (value === "upcoming" || value === "past") {
@@ -91,13 +94,17 @@ export function CalendarViewComponent({
     : startOfMonth(initialDate);
 
   // Fetch meetings for current month (with padding)
-  const { data: meetings = [], isLoading: isLoadingMeetings } = useMeetingsQuery({
-    month: currentDate,
-    enabled: view === "month" || view === "list",
-  });
+  const { data: meetings = [], isLoading: isLoadingMeetings } =
+    useMeetingsQuery({
+      month: currentDate,
+      enabled: view === "month" || view === "list",
+    });
 
   // Filter meetings to current month range for calendar view
-  const currentMonthRange = useMemo(() => getMonthRange(currentDate), [currentDate]);
+  const currentMonthRange = useMemo(
+    () => getMonthRange(currentDate),
+    [currentDate]
+  );
   const meetingsForCurrentMonth = useMemo(() => {
     return meetings.filter((meeting) =>
       isWithinInterval(meeting.start, currentMonthRange)
@@ -144,13 +151,19 @@ export function CalendarViewComponent({
   // Load-more result for list view
   const loadMoreResult = useMemo(() => {
     if (view !== "list") return null;
+    const clampedLimit = Math.max(
+      1,
+      Math.min(visibleLimit ?? PAGE_SIZE, MAX_VISIBLE_LIMIT)
+    );
     return loadMoreMeetings(listFilteredMeetings, {
-      limit: visibleLimit,
+      limit: clampedLimit,
       timePeriod,
     });
   }, [view, listFilteredMeetings, visibleLimit, timePeriod]);
 
-  const statusCounts = useMeetingStatusCounts({ meetings: meetingsWithSessions });
+  const statusCounts = useMeetingStatusCounts({
+    meetings: meetingsWithSessions,
+  });
   const isLoading = isLoadingMeetings || isLoadingBotSessions;
 
   // Initialize view from localStorage if URL param is missing (client-side only)
@@ -170,7 +183,10 @@ export function CalendarViewComponent({
 
   // Persist view preference to localStorage
   useEffect(() => {
-    if (typeof window !== "undefined" && (view === "month" || view === "list")) {
+    if (
+      typeof window !== "undefined" &&
+      (view === "month" || view === "list")
+    ) {
       localStorage.setItem(VIEW_STORAGE_KEY, view);
     }
   }, [view]);
@@ -178,7 +194,10 @@ export function CalendarViewComponent({
   // Scroll to top when view changes
   useEffect(() => {
     if (previousViewRef.current && previousViewRef.current !== view) {
-      viewContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      viewContainerRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
     previousViewRef.current = view;
@@ -215,34 +234,49 @@ export function CalendarViewComponent({
     }
   };
 
-  const handleStatusChange = (status: MeetingBotStatusFilter) => {
-    setSelectedStatusParam(status);
-    setCurrentPage(1);
-    setVisibleLimit(PAGE_SIZE);
-  };
+  const handleStatusChange = useCallback(
+    (status: MeetingBotStatusFilter) => {
+      setSelectedStatusParam(status);
+      setCurrentPage(1);
+      setVisibleLimit(PAGE_SIZE);
+    },
+    [setSelectedStatusParam, setCurrentPage, setVisibleLimit]
+  );
 
-  const handleTimePeriodChange = (period: TimePeriod) => {
-    setTimePeriodParam(period);
-    setCurrentPage(1);
-    setVisibleLimit(PAGE_SIZE);
-  };
+  const handleTimePeriodChange = useCallback(
+    (period: TimePeriod) => {
+      setTimePeriodParam(period);
+      setCurrentPage(1);
+      setVisibleLimit(PAGE_SIZE);
+    },
+    [setTimePeriodParam, setCurrentPage, setVisibleLimit]
+  );
 
   const handleLoadMore = useCallback(() => {
     setVisibleLimit((prev) => (prev ?? PAGE_SIZE) + PAGE_SIZE);
   }, [setVisibleLimit]);
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setSelectedStatusParam("all");
+    setTimePeriodParam("upcoming");
     setCurrentPage(1);
     setVisibleLimit(PAGE_SIZE);
-  };
+  }, [
+    setSelectedStatusParam,
+    setTimePeriodParam,
+    setCurrentPage,
+    setVisibleLimit,
+  ]);
 
   const handleMeetingClick = (meeting: MeetingWithSession) => {
     setSelectedMeeting(meeting);
     setMeetingModalOpen(true);
   };
 
-  const filteredCount = statusFilteredMeetings.length;
+  const filteredCount =
+    view === "list"
+      ? listFilteredMeetings.length
+      : statusFilteredMeetings.length;
   const totalCount = meetingsWithSessions.length;
 
   return (
@@ -317,7 +351,9 @@ export function CalendarViewComponent({
                   total={loadMoreResult.total}
                   hasMore={loadMoreResult.hasMore}
                   allMeetingsCount={meetingsWithSessions.length}
-                  isFiltered={selectedStatus !== "all" || timePeriod !== "upcoming"}
+                  isFiltered={
+                    selectedStatus !== "all" || timePeriod !== "upcoming"
+                  }
                   onLoadMore={handleLoadMore}
                   onClearFilters={handleClearFilters}
                   onMeetingClick={handleMeetingClick}
@@ -369,3 +405,4 @@ export function CalendarViewComponent({
     </div>
   );
 }
+
