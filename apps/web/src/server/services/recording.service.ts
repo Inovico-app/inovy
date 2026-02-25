@@ -34,25 +34,32 @@ export class RecordingService {
     });
 
     try {
-      // Prevent adding recordings to archived projects
-      if (data.organizationId) {
-        const project = await ProjectQueries.findById(
-          data.projectId,
-          data.organizationId
+      if (!data.organizationId) {
+        return err(
+          ActionErrors.badRequest(
+            "Missing organizationId",
+            "RecordingService.createRecording"
+          )
         );
-        if (project?.status === "archived") {
-          logger.warn("Attempted to add recording to archived project", {
-            component: "RecordingService.createRecording",
-            projectId: data.projectId,
-          });
-          return err(
-            ActionErrors.forbidden(
-              "Cannot add recordings to an archived project",
-              undefined,
-              "RecordingService.createRecording"
-            )
-          );
-        }
+      }
+
+      // Prevent adding recordings to archived projects
+      const project = await ProjectQueries.findById(
+        data.projectId,
+        data.organizationId
+      );
+      if (project?.status === "archived") {
+        logger.warn("Attempted to add recording to archived project", {
+          component: "RecordingService.createRecording",
+          projectId: data.projectId,
+        });
+        return err(
+          ActionErrors.forbidden(
+            "Cannot add recordings to an archived project",
+            undefined,
+            "RecordingService.createRecording"
+          )
+        );
       }
 
       let recording: Recording;
@@ -669,6 +676,21 @@ export class RecordingService {
         return err(
           ActionErrors.notFound(
             "Target project",
+            "RecordingService.moveRecording"
+          )
+        );
+      }
+
+      if (targetProject.status === "archived") {
+        logger.warn("Attempted to move recording to archived project", {
+          component: "RecordingService.moveRecording",
+          targetProjectId,
+          organizationId,
+        });
+        return err(
+          ActionErrors.forbidden(
+            "Target project is archived",
+            undefined,
             "RecordingService.moveRecording"
           )
         );

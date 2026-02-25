@@ -44,6 +44,7 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
   }
 
   const project = projectResult.value;
+  const isArchived = project.status === "archived";
 
   // Get recording statistics
   const statisticsResult =
@@ -103,7 +104,7 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
           <ProjectActions
             projectId={project.id}
             projectName={project.name}
-            isArchived={project.status === "archived"}
+            isArchived={isArchived}
             recordingCount={statistics.totalCount}
           />
         </div>
@@ -214,7 +215,7 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
                 projectId={project.id}
                 organizationId={project.organizationId}
                 searchQuery={search}
-                isArchived={project.status === "archived"}
+                isArchived={isArchived}
               />
             </Suspense>
           </CardContent>
