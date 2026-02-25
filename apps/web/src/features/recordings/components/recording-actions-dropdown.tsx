@@ -44,7 +44,7 @@ export function RecordingActionsDropdown({
         <DropdownMenuContent align="end" className="w-56">
           {/* Live Recording */}
           <DropdownMenuItem asChild>
-            <Link href="/record">
+            <Link href={`/record?projectId=${encodeURIComponent(projectId)}`}>
               <MicIcon className="h-4 w-4 mr-2" />
               Live
             </Link>

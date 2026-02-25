@@ -5,7 +5,6 @@ import { useMicrophone } from "@/providers/microphone/MicrophoneProvider";
 import { AudioSourceSelector } from "./audio-source-selector";
 import { BrowserCompatibilityWarning } from "./browser-compatibility-warning";
 import { MicrophoneDeviceSelector } from "./microphone-device-selector";
-import { MicrophoneGainControl } from "./microphone-gain-control";
 import { RecordingControls } from "./recording-controls";
 import { RecordingErrors } from "./recording-errors";
 import { SystemAudioStatus } from "./system-audio-status";
@@ -62,7 +61,7 @@ export function RecordingSection({
   onResume,
   onStop,
 }: RecordingSectionProps) {
-  const { gain, setGain, deviceId, setDeviceId } = useMicrophone();
+  const { deviceId, setDeviceId } = useMicrophone();
 
   return (
     <div
@@ -124,20 +123,11 @@ export function RecordingSection({
             disabled={isRecording}
           />
           {audioSource === "microphone" || audioSource === "both" ? (
-            <>
-              <MicrophoneDeviceSelector
-                deviceId={deviceId}
-                onDeviceChange={setDeviceId}
-                disabled={isRecording}
-              />
-              {stream && (
-                <MicrophoneGainControl
-                  gain={gain}
-                  onGainChange={setGain}
-                  disabled={false}
-                />
-              )}
-            </>
+            <MicrophoneDeviceSelector
+              deviceId={deviceId}
+              onDeviceChange={setDeviceId}
+              disabled={isRecording}
+            />
           ) : null}
         </div>
 

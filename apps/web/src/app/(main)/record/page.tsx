@@ -2,12 +2,20 @@ import { ProtectedPage } from "@/components/protected-page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RecordPageClient } from "@/features/recordings/components/record-page-client";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+import type { ProjectWithCreatorDto } from "@/server/dto/project.dto";
 import { ProjectService } from "@/server/services/project.service";
 import { InfoIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
-async function RecordPageContent() {
+interface RecordPageContentProps {
+  searchParamsPromise: Promise<{ projectId?: string }>;
+}
+
+async function RecordPageContent({
+  searchParamsPromise,
+}: RecordPageContentProps) {
+  const { projectId: projectIdParam } = await searchParamsPromise;
   const authResult = await getBetterAuthSession();
 
   if (authResult.isErr() || !authResult.value.isAuthenticated) {
@@ -51,6 +59,11 @@ async function RecordPageContent() {
   }
 
   const projects = projectsResult.value;
+  const projectIdFromParams =
+    projectIdParam &&
+    projects.some((p: ProjectWithCreatorDto) => p.id === projectIdParam)
+      ? projectIdParam
+      : undefined;
 
   if (projects.length === 0) {
     return (
@@ -82,10 +95,19 @@ async function RecordPageContent() {
     );
   }
 
-  return <RecordPageClient projects={projects} />;
+  return (
+    <RecordPageClient
+      projects={projects}
+      projectIdFromParams={projectIdFromParams}
+    />
+  );
 }
 
-export default function RecordPage() {
+interface RecordPageProps {
+  searchParams: Promise<{ projectId?: string }>;
+}
+
+export default function RecordPage({ searchParams }: RecordPageProps) {
   return (
     <Suspense
       fallback={
@@ -107,7 +129,7 @@ export default function RecordPage() {
               </div>
             }
           >
-            <RecordPageContent />
+            <RecordPageContent searchParamsPromise={searchParams} />
           </Suspense>
         </div>
       </ProtectedPage>
