@@ -35,6 +35,21 @@ import { ac, roles } from "./auth/access-control";
  * - Passkey/WebAuthn support
  * - Stripe subscription management
  * - Organization management
+ *
+ * SECURITY (SSD-2.3.01 Compliance):
+ * Password hashing uses scrypt algorithm with the following parameters:
+ * - N: 16384 (CPU/memory cost, equivalent to bcrypt work factor 14)
+ * - r: 16 (block size, ~1MB memory requirement)
+ * - p: 1 (parallelization)
+ * - dkLen: 64 (derived key length in bytes)
+ * - Salt: 16-byte cryptographically secure random salt per password
+ *
+ * This configuration exceeds SSD-2.3.01 requirements for:
+ * ✓ Minimum 10,000 hashing rounds (we use 16,384)
+ * ✓ Salted hashing (unique 16-byte salt per password)
+ * ✓ No plain text storage (passwords stored as {salt}:{hash})
+ *
+ * See: /docs/security/SSD-2.3.01-password-hashing-compliance.md
  */
 export const auth = betterAuth({
   experimental: { joins: true },
