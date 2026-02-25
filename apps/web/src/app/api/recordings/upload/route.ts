@@ -1,8 +1,9 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger, serializeError } from "@/lib/logger";
 import { withRateLimit } from "@/lib/rate-limit";
-import { rateLimiter } from "@/server/services/rate-limiter.service";
+import { ProjectQueries } from "@/server/data-access/projects.queries";
 import { ConsentService } from "@/server/services/consent.service";
+import { rateLimiter } from "@/server/services/rate-limiter.service";
 import { RecordingService } from "@/server/services/recording.service";
 import {
   ALLOWED_MIME_TYPES,
@@ -10,8 +11,8 @@ import {
 } from "@/server/validation/recordings/upload-recording";
 import { convertRecordingIntoAiInsights } from "@/workflows/convert-recording";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { start } from "workflow/api";
 
@@ -105,6 +106,15 @@ export const POST = withRateLimit(
             );
           }
 
+          // Prevent adding recordings to archived projects
+          const project = await ProjectQueries.findById(
+            metadata.projectId,
+            organization.id
+          );
+          if (project?.status === "archived") {
+            throw new Error("Cannot add recordings to an archived project");
+          }
+
           // Store metadata in tokenPayload for onUploadCompleted
           const tokenPayload: TokenPayload = {
             ...metadata,
@@ -183,7 +193,11 @@ export const POST = withRateLimit(
                 context: result.error.context,
               },
             });
-            throw new Error("Failed to create recording");
+            throw new Error(
+              result.error.code === "FORBIDDEN"
+                ? result.error.message
+                : "Failed to create recording"
+            );
           }
 
           const recording = result.value;

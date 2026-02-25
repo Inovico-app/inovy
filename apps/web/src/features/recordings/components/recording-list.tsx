@@ -7,12 +7,14 @@ interface RecordingListProps {
   projectId: string;
   organizationId: string;
   searchQuery?: string;
+  isArchived?: boolean;
 }
 
 export async function RecordingList({
   projectId,
   organizationId,
   searchQuery,
+  isArchived = false,
 }: RecordingListProps) {
   const recordings = await getCachedRecordingsByProjectId(
     projectId,
@@ -30,12 +32,14 @@ export async function RecordingList({
             ? "No recordings found matching your search"
             : "No recordings yet"}
         </p>
-        <UploadRecordingModal
-          projectId={projectId}
-          trigger={
-            <Button variant="outline">Upload Your First Recording</Button>
-          }
-        />
+        {!isArchived && (
+          <UploadRecordingModal
+            projectId={projectId}
+            trigger={
+              <Button variant="outline">Upload Your First Recording</Button>
+            }
+          />
+        )}
       </div>
     );
   }

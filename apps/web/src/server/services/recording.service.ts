@@ -34,6 +34,27 @@ export class RecordingService {
     });
 
     try {
+      // Prevent adding recordings to archived projects
+      if (data.organizationId) {
+        const project = await ProjectQueries.findById(
+          data.projectId,
+          data.organizationId
+        );
+        if (project?.status === "archived") {
+          logger.warn("Attempted to add recording to archived project", {
+            component: "RecordingService.createRecording",
+            projectId: data.projectId,
+          });
+          return err(
+            ActionErrors.forbidden(
+              "Cannot add recordings to an archived project",
+              undefined,
+              "RecordingService.createRecording"
+            )
+          );
+        }
+      }
+
       let recording: Recording;
 
       // If externalRecordingId is provided, check for existing recording first
