@@ -9,7 +9,7 @@ interface RecentRecording {
   projectId: string;
   projectName: string;
   createdAt: Date;
-  transcriptionStatus: string;
+  transcriptionStatus: RecordingStatus;
 }
 
 interface DashboardRecentRecordingsProps {
@@ -17,8 +17,8 @@ interface DashboardRecentRecordingsProps {
 }
 
 function formatRelativeDate(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - new Date(date).getTime();
+  const d = date instanceof Date ? date : new Date(date);
+  const diffMs = Date.now() - d.getTime();
   const diffMin = Math.round(diffMs / 60_000);
 
   if (diffMin < 1) return "Just now";
@@ -28,10 +28,7 @@ function formatRelativeDate(date: Date): string {
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) return `${diffDays}d ago`;
-  return new Date(date).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function RecordingRow({ recording }: { recording: RecentRecording }) {
@@ -56,7 +53,7 @@ function RecordingRow({ recording }: { recording: RecentRecording }) {
         </div>
       </div>
       <StatusBadge
-        status={recording.transcriptionStatus as RecordingStatus}
+        status={recording.transcriptionStatus}
         className="shrink-0"
       />
     </Link>

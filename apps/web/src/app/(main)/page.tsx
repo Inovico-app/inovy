@@ -1,12 +1,5 @@
 import { ProtectedPage } from "@/components/protected-page";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { DashboardGetStarted } from "@/features/dashboard/components/dashboard-get-started";
 import { DashboardGreeting } from "@/features/dashboard/components/dashboard-greeting";
 import { DashboardPendingTasks } from "@/features/dashboard/components/dashboard-pending-tasks";
 import { DashboardRecentRecordings } from "@/features/dashboard/components/dashboard-recent-recordings";
@@ -22,7 +15,6 @@ import {
   getCachedTasksWithContext,
 } from "@/server/cache/task.cache";
 import { OnboardingService } from "@/server/services/onboarding.service";
-import Link from "next/link";
 
 async function DashboardContent() {
   const authResult = await getBetterAuthSession();
@@ -125,7 +117,7 @@ async function DashboardContent() {
       <div className="space-y-8">
         {/* Hero: Greeting + primary CTA */}
         <DashboardGreeting
-          userName={user.name ?? user.email}
+          userName={user.name ?? user.email ?? "there"}
           pendingTaskCount={pendingTaskCount}
           upcomingMeetingCount={upcomingMeetings.length}
         />
@@ -149,57 +141,7 @@ async function DashboardContent() {
         </div>
       </div>
 
-      {/* Conditional: Get Started for new users */}
-      {isNewUser && (
-        <Card className="mt-10">
-          <CardHeader>
-            <CardTitle>Get Started</CardTitle>
-            <CardDescription>
-              Follow these steps to start managing your meeting recordings and
-              tasks
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-6 h-6 bg-primary text-primary-foreground rounded-full text-xs font-medium">
-                  1
-                </div>
-                <span className="text-sm">
-                  Create your first project to organize recordings
-                </span>
-                <Button size="sm" asChild>
-                  <Link href="/projects/create">Create Project</Link>
-                </Button>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-6 h-6 bg-muted text-muted-foreground rounded-full text-xs font-medium">
-                  2
-                </div>
-                <span className="text-sm">
-                  Upload a meeting recording for AI processing
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-6 h-6 bg-muted text-muted-foreground rounded-full text-xs font-medium">
-                  3
-                </div>
-                <span className="text-sm">
-                  Review AI-generated summaries and action items
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-6 h-6 bg-muted text-muted-foreground rounded-full text-xs font-medium">
-                  4
-                </div>
-                <span className="text-sm">
-                  Track and manage your tasks across all projects
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {isNewUser && <DashboardGetStarted />}
     </div>
   );
 }

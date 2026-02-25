@@ -156,7 +156,9 @@ function EmptyState() {
 export function DashboardUpcomingMeetings({
   meetings,
 }: DashboardUpcomingMeetingsProps) {
+  const now = Date.now();
   const sorted = [...meetings]
+    .filter((m) => new Date(m.end).getTime() >= now)
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
     .slice(0, 3);
 
