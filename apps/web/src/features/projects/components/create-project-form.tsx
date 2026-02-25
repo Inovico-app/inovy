@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createProjectAction } from "@/features/projects/actions/create-project";
+import { PROJECT_DESCRIPTION_MAX_LENGTH } from "@/lib/constants/project-constants";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -104,7 +105,20 @@ export function CreateProjectForm({
           placeholder="Enter project description (optional)"
           disabled={isExecuting}
           rows={3}
+          maxLength={PROJECT_DESCRIPTION_MAX_LENGTH}
         />
+        <p
+          className={`text-right text-xs ${
+            description.length >= PROJECT_DESCRIPTION_MAX_LENGTH
+              ? "text-red-500"
+              : description.length >= PROJECT_DESCRIPTION_MAX_LENGTH - 100
+                ? "text-yellow-500"
+                : "text-muted-foreground"
+          }`}
+          aria-live="polite"
+        >
+          {description.length} / {PROJECT_DESCRIPTION_MAX_LENGTH}
+        </p>
       </div>
 
       {result?.serverError && (

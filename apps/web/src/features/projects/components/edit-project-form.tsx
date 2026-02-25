@@ -1,5 +1,6 @@
 "use client";
 
+import { PROJECT_DESCRIPTION_MAX_LENGTH } from "@/lib/constants/project-constants";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -18,7 +19,10 @@ const formSchema = z.object({
     .max(100, "Project name must be less than 100 characters"),
   description: z
     .string()
-    .max(500, "Description must be less than 500 characters")
+    .max(
+      PROJECT_DESCRIPTION_MAX_LENGTH,
+      `Description must be less than ${PROJECT_DESCRIPTION_MAX_LENGTH} characters`
+    )
     .optional(),
 });
 
@@ -43,6 +47,7 @@ export function EditProjectForm({
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: standardSchemaResolver(formSchema),
@@ -51,6 +56,15 @@ export function EditProjectForm({
       description: initialData.description ?? "",
     },
   });
+
+  const descriptionValue = watch("description") ?? "";
+  const descriptionLength = descriptionValue.length;
+  const descriptionCounterColor =
+    descriptionLength >= PROJECT_DESCRIPTION_MAX_LENGTH
+      ? "text-red-500"
+      : descriptionLength >= PROJECT_DESCRIPTION_MAX_LENGTH - 100
+        ? "text-yellow-500"
+        : "text-muted-foreground";
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -105,10 +119,17 @@ export function EditProjectForm({
         <textarea
           id="description"
           placeholder="Enter project description (optional)"
+          maxLength={PROJECT_DESCRIPTION_MAX_LENGTH}
           className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           {...register("description")}
           aria-invalid={errors.description ? "true" : "false"}
         />
+        <p
+          className={`text-right text-xs ${descriptionCounterColor}`}
+          aria-live="polite"
+        >
+          {descriptionLength} / {PROJECT_DESCRIPTION_MAX_LENGTH}
+        </p>
         {errors.description && (
           <p className="text-sm text-red-500">{errors.description.message}</p>
         )}
