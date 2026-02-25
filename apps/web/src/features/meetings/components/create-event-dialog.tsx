@@ -1,12 +1,7 @@
 "use client";
 
-import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
-import { Loader2Icon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -24,60 +18,78 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { Loader2Icon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import { useCreateCalendarEvent } from "../hooks/use-create-calendar-event";
+import { useEventDateTimeDefaults } from "../hooks/use-event-datetime-defaults";
+import {
+  generateRRule,
+  RECURRENCE_PRESETS,
+  type RecurrencePattern,
+} from "../lib/recurrence";
 import { AttendeeSelector } from "./attendee-selector";
 import { RecurrenceForm, type RecurrenceFormData } from "./recurrence-form";
-import { useEventDateTimeDefaults } from "../hooks/use-event-datetime-defaults";
-import { useCreateCalendarEvent } from "../hooks/use-create-calendar-event";
-import { generateRRule, RECURRENCE_PRESETS, type RecurrencePattern } from "../lib/recurrence";
 
-const formSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  startDate: z.string().min(1, "Start date is required"),
-  startTime: z.string().optional(),
-  endDate: z.string().min(1, "End date is required"),
-  endTime: z.string().optional(),
-  allDay: z.boolean(),
-  location: z.string().optional(),
-  description: z.string().optional(),
-  addBot: z.boolean(),
-  attendeeUserIds: z.array(z.string()),
-  attendeeEmails: z.array(z.string().email()),
-}).refine(
-  (data) => {
-    // If not all day, times must be provided
-    if (!data.allDay) {
-      return !!(data.startTime && data.endTime);
-    }
-    return true;
-  },
-  {
-    message: "Start and end times are required when not all day",
-    path: ["startTime"],
-  }
-).refine(
-  (data) => {
-    // End date must be after or equal to start date
-    if (data.startDate && data.endDate) {
-      const start = new Date(data.startDate);
-      const end = new Date(data.endDate);
-      if (end < start) {
-        return false;
+const formSchema = z
+  .object({
+    title: z.string().min(1, "Title is required"),
+    startDate: z.string().min(1, "Start date is required"),
+    startTime: z.string().optional(),
+    endDate: z.string().min(1, "End date is required"),
+    endTime: z.string().optional(),
+    allDay: z.boolean(),
+    location: z.string().optional(),
+    description: z.string().optional(),
+    addBot: z.boolean(),
+    attendeeUserIds: z.array(z.string()),
+    attendeeEmails: z.array(z.string().email()),
+  })
+  .refine(
+    (data) => {
+      // If not all day, times must be provided
+      if (!data.allDay) {
+        return !!(data.startTime && data.endTime);
       }
-      // If same date and not all day, end time must be after start time
-      if (end.getTime() === start.getTime() && !data.allDay && data.startTime && data.endTime) {
-        const startDateTime = new Date(`${data.startDate}T${data.startTime}`);
-        const endDateTime = new Date(`${data.endDate}T${data.endTime}`);
-        return endDateTime > startDateTime;
-      }
+      return true;
+    },
+    {
+      message: "Start and end times are required when not all day",
+      path: ["startTime"],
     }
-    return true;
-  },
-  {
-    message: "End date/time must be after start date/time",
-    path: ["endDate"],
-  }
-);
+  )
+  .refine(
+    (data) => {
+      // End date must be after or equal to start date
+      if (data.startDate && data.endDate) {
+        const start = new Date(data.startDate);
+        const end = new Date(data.endDate);
+        if (end < start) {
+          return false;
+        }
+        // If same date and not all day, end time must be after start time
+        if (
+          end.getTime() === start.getTime() &&
+          !data.allDay &&
+          data.startTime &&
+          data.endTime
+        ) {
+          const startDateTime = new Date(`${data.startDate}T${data.startTime}`);
+          const endDateTime = new Date(`${data.endDate}T${data.endTime}`);
+          return endDateTime > startDateTime;
+        }
+      }
+      return true;
+    },
+    {
+      message: "End date/time must be after start date/time",
+      path: ["endDate"],
+    }
+  );
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -85,7 +97,6 @@ interface CreateEventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
 
 // Generate time options (every 15 minutes from 00:00 to 23:45)
 const TIME_OPTIONS = Array.from({ length: 96 }, (_, i) => {
@@ -105,7 +116,6 @@ export function CreateEventDialog({
   open,
   onOpenChange,
 }: CreateEventDialogProps) {
-
   const {
     register,
     handleSubmit,
@@ -150,7 +160,6 @@ export function CreateEventDialog({
     watch,
   });
 
-
   const { createEvent, isCreating } = useCreateCalendarEvent({
     onSuccess: () => {
       // Reset form and close dialog
@@ -170,13 +179,12 @@ export function CreateEventDialog({
     }
   }, [open, reset]);
 
-
   const onSubmit = async (data: FormData) => {
     // Generate recurrence RRULE if needed
     let rruleArray: string[] | undefined;
-    
+
     if (recurrence.preset !== "none") {
-      const startDateTime = data.allDay 
+      const startDateTime = data.allDay
         ? new Date(`${data.startDate}T00:00:00`)
         : new Date(`${data.startDate}T${data.startTime || "00:00"}:00`);
 
@@ -188,34 +196,43 @@ export function CreateEventDialog({
           frequency: recurrence.customFrequency || "WEEKLY",
           interval: recurrence.customInterval || 1,
           endType: recurrence.endType,
-          endDate: recurrence.endDate ? new Date(recurrence.endDate) : undefined,
+          endDate: recurrence.endDate
+            ? new Date(recurrence.endDate)
+            : undefined,
           count: recurrence.count,
           weekDays: recurrence.weekDays,
           monthlyType: recurrence.monthlyType,
         };
       } else {
-        // Use preset pattern
+        // Use preset pattern (all preset keys except custom/none have pattern)
         const presetKey = recurrence.preset as keyof typeof RECURRENCE_PRESETS;
         const preset = RECURRENCE_PRESETS[presetKey];
-        
-        if ("pattern" in preset) {
-          pattern = {
-            ...preset.pattern,
-            endType: recurrence.endType,
-            endDate: recurrence.endDate ? new Date(recurrence.endDate) : undefined,
-            count: recurrence.count,
-          };
-        } else {
-          pattern = {
-            frequency: "DAILY",
-            interval: 1,
-            endType: recurrence.endType,
-          };
+        if (!preset || !("pattern" in preset)) {
+          throw new Error(
+            `Unexpected preset ${String(presetKey)} without pattern`
+          );
         }
+        pattern = {
+          ...preset.pattern,
+          endType: recurrence.endType,
+          endDate: recurrence.endDate
+            ? new Date(recurrence.endDate)
+            : undefined,
+          count: recurrence.count,
+        };
+      }
+
+      if (recurrence.endType === "on" && !recurrence.endDate?.trim()) {
+        toast.error(
+          "End date is required when recurrence ends on a specific date"
+        );
+        return;
       }
 
       rruleArray = generateRRule(pattern, startDateTime);
     }
+
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     if (data.allDay) {
       // All day events: pass date strings directly
@@ -233,14 +250,19 @@ export function CreateEventDialog({
         startDate: data.startDate,
         endDate: data.endDate,
         recurrence: rruleArray,
+        userTimezone,
       });
     } else {
       // Timed events: combine date and time
-      const start = new Date(`${data.startDate}T${data.startTime || "00:00"}:00`);
+      const start = new Date(
+        `${data.startDate}T${data.startTime || "00:00"}:00`
+      );
       const end = new Date(`${data.endDate}T${data.endTime || "00:00"}:00`);
 
       // Calculate duration in minutes
-      const calculatedDuration = Math.round((end.getTime() - start.getTime()) / (60 * 1000));
+      const calculatedDuration = Math.round(
+        (end.getTime() - start.getTime()) / (60 * 1000)
+      );
 
       if (calculatedDuration < 15) {
         toast.error("Duration must be at least 15 minutes");
@@ -259,10 +281,10 @@ export function CreateEventDialog({
         attendeeEmails: data.attendeeEmails || [],
         allDay: false,
         recurrence: rruleArray,
+        userTimezone,
       });
     }
   };
-
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -318,7 +340,8 @@ export function CreateEventDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="startTime">
-                  Start Time {!allDay && <span className="text-destructive">*</span>}
+                  Start Time{" "}
+                  {!allDay && <span className="text-destructive">*</span>}
                 </Label>
                 <Select
                   value={startTime || ""}
@@ -326,7 +349,9 @@ export function CreateEventDialog({
                   disabled={allDay}
                 >
                   <SelectTrigger id="startTime" className="w-full">
-                    <SelectValue placeholder={allDay ? "All day" : "Select time"} />
+                    <SelectValue
+                      placeholder={allDay ? "All day" : "Select time"}
+                    />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px]">
                     {TIME_OPTIONS.map((option) => (
@@ -365,7 +390,8 @@ export function CreateEventDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="endTime">
-                  End Time {!allDay && <span className="text-destructive">*</span>}
+                  End Time{" "}
+                  {!allDay && <span className="text-destructive">*</span>}
                 </Label>
                 <Select
                   value={endTime || ""}
@@ -373,7 +399,9 @@ export function CreateEventDialog({
                   disabled={allDay}
                 >
                   <SelectTrigger id="endTime" className="w-full">
-                    <SelectValue placeholder={allDay ? "All day" : "Select time"} />
+                    <SelectValue
+                      placeholder={allDay ? "All day" : "Select time"}
+                    />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px]">
                     {TIME_OPTIONS.map((option) => (
@@ -395,7 +423,9 @@ export function CreateEventDialog({
               <Checkbox
                 id="allDay"
                 checked={allDay}
-                onCheckedChange={(checked) => setValue("allDay", checked === true)}
+                onCheckedChange={(checked) =>
+                  setValue("allDay", checked === true)
+                }
               />
               <Label
                 htmlFor="allDay"
@@ -474,3 +504,4 @@ export function CreateEventDialog({
     </Dialog>
   );
 }
+
