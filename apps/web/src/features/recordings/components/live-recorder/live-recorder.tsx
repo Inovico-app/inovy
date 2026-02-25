@@ -2,7 +2,7 @@
 
 import { useLiveRecording } from "@/features/recordings/hooks/use-live-recording";
 import { useLiveTranscription } from "@/features/recordings/hooks/use-live-transcription";
-import { useAudioSource } from "@/features/recordings/hooks/use-audio-source";
+import type { UseAudioSourceReturn } from "@/features/recordings/hooks/use-audio-source";
 import { logger } from "@/lib/logger";
 import { useEffect, useEffectEvent, useState } from "react";
 import { ConsentManager } from "./consent-manager";
@@ -11,6 +11,7 @@ import { StopConfirmationDialog } from "./stop-confirmation-dialog";
 import { TranscriptionDisplay } from "./transcription-display";
 
 interface LiveRecorderProps {
+  audioSource: UseAudioSourceReturn;
   onRecordingComplete: (
     audioBlob: Blob,
     transcription: string,
@@ -23,6 +24,7 @@ interface LiveRecorderProps {
 }
 
 export function LiveRecorder({
+  audioSource,
   onRecordingComplete,
   liveTranscriptionEnabled: externalLiveTranscriptionEnabled,
   onTranscriptionToggle: _onTranscriptionToggle,
@@ -32,12 +34,6 @@ export function LiveRecorder({
   const [showConsentBanner, setShowConsentBanner] = useState(false);
   const [consentGranted, setConsentGranted] = useState(false);
   const [consentGrantedAt, setConsentGrantedAt] = useState<Date | null>(null);
-
-  // Audio source management
-  const audioSource = useAudioSource();
-  
-  // Don't auto-setup audio sources - only setup when user starts recording
-  // This prevents permission prompts from appearing when user hasn't explicitly requested system audio
 
   // Custom hooks
   const recording = useLiveRecording({
@@ -211,7 +207,6 @@ export function LiveRecorder({
             wakeLockActive={recording.wakeLockActive}
             formattedDuration={formattedDuration}
             audioSource={audioSource.audioSource}
-            onAudioSourceChange={audioSource.setAudioSource}
             compatibility={audioSource.compatibility}
             isSystemAudioActive={
               (audioSource.audioSource === "system" ||

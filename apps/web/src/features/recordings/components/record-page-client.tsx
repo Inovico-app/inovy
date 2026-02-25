@@ -1,6 +1,7 @@
 "use client";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -11,10 +12,11 @@ import {
 import { LiveRecorder } from "@/features/recordings/components/live-recorder/live-recorder";
 import { MeetingSettingsMenu } from "@/features/recordings/components/meeting-settings-menu";
 import { convertBlobToMp3 } from "@/features/recordings/lib/audio-utils";
+import { useAudioSource } from "@/features/recordings/hooks/use-audio-source";
 import { useRecordingPreferences } from "@/features/recordings/hooks/use-recording-preferences";
 import { uploadRecordingToBlob } from "@/lib/vercel-blob";
 import type { ProjectWithCreatorDto } from "@/server/dto/project.dto";
-import { InfoIcon } from "lucide-react";
+import { FolderIcon, InfoIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -35,6 +37,8 @@ export function RecordPageClient({
   const showProjectSelector = projectIdFromParams === undefined;
   const effectiveProjectId = projectIdFromParams ?? selectedProjectId;
   const [isRecording, setIsRecording] = useState(false);
+
+  const audioSource = useAudioSource();
 
   const {
     autoProcessEnabled,
@@ -104,35 +108,48 @@ export function RecordPageClient({
         </div>
         <div className="flex items-center gap-3 shrink-0">
           {showProjectSelector && (
-            <Select
-              value={selectedProjectId}
-              onValueChange={setSelectedProjectId}
-            >
-              <SelectTrigger
-                id="project-select"
-                className="w-[200px] sm:w-[240px]"
+            <div className="flex items-center gap-2">
+              <Label
+                htmlFor="project-select"
+                className="text-sm font-medium flex items-center gap-1.5 text-muted-foreground whitespace-nowrap"
               >
-                <SelectValue placeholder="Select a project" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    <div className="flex flex-col items-start gap-0.5">
-                      <span className="font-medium leading-tight">
-                        {project.name}
-                      </span>
-                      {project.description && (
-                        <span className="text-muted-foreground text-xs leading-tight">
-                          {project.description}
+                <FolderIcon className="w-4 h-4" />
+                Project
+              </Label>
+              <Select
+                value={selectedProjectId}
+                onValueChange={setSelectedProjectId}
+              >
+                <SelectTrigger
+                  id="project-select"
+                  className="w-[200px] sm:w-[240px]"
+                  aria-label="Select a project for this recording"
+                >
+                  <SelectValue placeholder="Select a project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      <div className="flex flex-col items-start gap-0.5">
+                        <span className="font-medium leading-tight">
+                          {project.name}
                         </span>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                        {project.description && (
+                          <span className="text-muted-foreground text-xs leading-tight">
+                            {project.description}
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
           <MeetingSettingsMenu
+            audioSource={audioSource.audioSource}
+            onAudioSourceChange={audioSource.setAudioSource}
+            isSystemAudioSupported={audioSource.compatibility.isAudioSupported}
             liveTranscriptionEnabled={liveTranscriptionEnabled}
             onTranscriptionToggle={handleToggleTranscription}
             autoProcessEnabled={autoProcessEnabled}
@@ -147,6 +164,7 @@ export function RecordPageClient({
       <div className="flex-1 min-w-0">
         {effectiveProjectId ? (
           <LiveRecorder
+            audioSource={audioSource}
             onRecordingComplete={handleLiveRecordingComplete}
             liveTranscriptionEnabled={liveTranscriptionEnabled}
             onTranscriptionToggle={handleToggleTranscription}

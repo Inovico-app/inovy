@@ -1,10 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { LiveWaveform } from "@/components/ui/live-waveform";
 import { ConsentStatus } from "@/features/recordings/components/consent-status";
-import { useMicrophone } from "@/providers/microphone/MicrophoneProvider";
-import { AudioSourceSelector } from "./audio-source-selector";
 import { BrowserCompatibilityWarning } from "./browser-compatibility-warning";
-import { MicrophoneDeviceSelector } from "./microphone-device-selector";
 import { RecordingControls } from "./recording-controls";
 import { RecordingErrors } from "./recording-errors";
 import { SystemAudioStatus } from "./system-audio-status";
@@ -27,7 +24,6 @@ interface RecordingSectionProps {
   wakeLockActive: boolean;
   formattedDuration: string;
   audioSource: AudioSourceType;
-  onAudioSourceChange: (source: AudioSourceType) => void;
   compatibility: SystemAudioCompatibility;
   isSystemAudioActive?: boolean;
   systemAudioSetupError?: string | null;
@@ -52,7 +48,6 @@ export function RecordingSection({
   wakeLockActive,
   formattedDuration,
   audioSource,
-  onAudioSourceChange,
   compatibility,
   isSystemAudioActive = false,
   systemAudioSetupError,
@@ -61,8 +56,6 @@ export function RecordingSection({
   onResume,
   onStop,
 }: RecordingSectionProps) {
-  const { deviceId, setDeviceId } = useMicrophone();
-
   return (
     <div
       className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card via-card to-card/50 transition-all duration-500 h-full flex flex-col ${
@@ -112,23 +105,6 @@ export function RecordingSection({
             isSaving={isSaving}
           />
           <BrowserCompatibilityWarning compatibility={compatibility} />
-        </div>
-
-        {/* Audio Source Selection */}
-        <div className="flex-shrink-0 rounded-lg border bg-muted/30 p-4 space-y-4">
-          <AudioSourceSelector
-            audioSource={audioSource}
-            onAudioSourceChange={onAudioSourceChange}
-            isSystemAudioSupported={compatibility.isAudioSupported}
-            disabled={isRecording}
-          />
-          {audioSource === "microphone" || audioSource === "both" ? (
-            <MicrophoneDeviceSelector
-              deviceId={deviceId}
-              onDeviceChange={setDeviceId}
-              disabled={isRecording}
-            />
-          ) : null}
         </div>
 
         {/* Live Waveform - Large and prominent */}
