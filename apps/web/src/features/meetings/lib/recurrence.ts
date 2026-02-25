@@ -27,9 +27,9 @@ export interface RecurrencePattern {
  * Convert a Date to RRULE UNTIL format (YYYYMMDDTHHMMSSZ)
  */
 function dateToRRuleUntil(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
   return `${year}${month}${day}T235959Z`;
 }
 
@@ -87,8 +87,11 @@ export function generateRRule(
     case "MONTHLY": {
       if (pattern.monthlyType === "day-of-week") {
         // e.g., "2nd Tuesday of every month"
-        const nthWeekday = pattern.monthlyDayOfWeek ?? getNthWeekdayOfMonth(eventStartDate);
-        const weekDay = pattern.monthlyWeekDay ?? jsWeekDayToRRule(getDayOfWeek(eventStartDate));
+        const nthWeekday =
+          pattern.monthlyDayOfWeek ?? getNthWeekdayOfMonth(eventStartDate);
+        const weekDay =
+          pattern.monthlyWeekDay ??
+          jsWeekDayToRRule(getDayOfWeek(eventStartDate));
         parts.push(`BYDAY=${nthWeekday}${weekDay}`);
       } else {
         // Default: same day of month (e.g., "15th of every month")
@@ -132,68 +135,70 @@ export function generateRRule(
 export const RECURRENCE_PRESETS = {
   none: {
     label: "Does not repeat",
-    value: "none" as const,
+    value: "none",
   },
   daily: {
     label: "Daily",
-    value: "daily" as const,
+    value: "daily",
     pattern: {
-      frequency: "DAILY" as const,
+      frequency: "DAILY",
       interval: 1,
-      endType: "never" as const,
+      endType: "never",
     },
   },
   weekdays: {
     label: "Every weekday (Monday to Friday)",
-    value: "weekdays" as const,
+    value: "weekdays",
     pattern: {
-      frequency: "WEEKLY" as const,
+      frequency: "WEEKLY",
       interval: 1,
       weekDays: ["MO", "TU", "WE", "TH", "FR"] as WeekDay[],
-      endType: "never" as const,
+      endType: "never",
     },
   },
   weekly: {
     label: "Weekly",
-    value: "weekly" as const,
+    value: "weekly",
     pattern: {
-      frequency: "WEEKLY" as const,
+      frequency: "WEEKLY",
       interval: 1,
-      endType: "never" as const,
+      endType: "never",
     },
   },
   biweekly: {
     label: "Every 2 weeks",
-    value: "biweekly" as const,
+    value: "biweekly",
     pattern: {
-      frequency: "WEEKLY" as const,
+      frequency: "WEEKLY",
       interval: 2,
-      endType: "never" as const,
+      endType: "never",
     },
   },
   monthly: {
     label: "Monthly",
-    value: "monthly" as const,
+    value: "monthly",
     pattern: {
-      frequency: "MONTHLY" as const,
+      frequency: "MONTHLY",
       interval: 1,
-      monthlyType: "day-of-month" as const,
-      endType: "never" as const,
+      monthlyType: "day-of-month",
+      endType: "never",
     },
   },
   yearly: {
     label: "Annually",
-    value: "yearly" as const,
+    value: "yearly",
     pattern: {
-      frequency: "YEARLY" as const,
+      frequency: "YEARLY",
       interval: 1,
-      endType: "never" as const,
+      endType: "never",
     },
   },
   custom: {
     label: "Custom...",
-    value: "custom" as const,
+    value: "custom",
   },
 } as const;
 
-export type RecurrencePresetValue = typeof RECURRENCE_PRESETS[keyof typeof RECURRENCE_PRESETS]["value"];
+export type RecurrencePresetValue =
+  (typeof RECURRENCE_PRESETS)[keyof typeof RECURRENCE_PRESETS]["value"];
+

@@ -1,6 +1,8 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -8,20 +10,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   RECURRENCE_PRESETS,
+  type MonthlyRecurrenceType,
+  type RecurrenceEndType,
+  type RecurrenceFrequency,
   type RecurrencePresetValue,
   type WeekDay,
-  type RecurrenceEndType,
-  type MonthlyRecurrenceType,
 } from "../lib/recurrence";
 
 export interface RecurrenceFormData {
   preset: RecurrencePresetValue;
   customInterval?: number;
-  customFrequency?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+  customFrequency?: RecurrenceFrequency;
   weekDays?: WeekDay[];
   monthlyType?: MonthlyRecurrenceType;
   endType: RecurrenceEndType;
@@ -38,12 +39,12 @@ interface RecurrenceFormProps {
 
 const WEEK_DAYS: Array<{ value: WeekDay; label: string; short: string }> = [
   { value: "MO", label: "Monday", short: "M" },
-  { value: "TU", label: "Tuesday", short: "T" },
+  { value: "TU", label: "Tuesday", short: "Tu" },
   { value: "WE", label: "Wednesday", short: "W" },
-  { value: "TH", label: "Thursday", short: "T" },
+  { value: "TH", label: "Thursday", short: "Th" },
   { value: "FR", label: "Friday", short: "F" },
-  { value: "SA", label: "Saturday", short: "S" },
-  { value: "SU", label: "Sunday", short: "S" },
+  { value: "SA", label: "Saturday", short: "Sa" },
+  { value: "SU", label: "Sunday", short: "Su" },
 ];
 
 export function RecurrenceForm({
@@ -78,6 +79,10 @@ export function RecurrenceForm({
   };
 
   const handleCustomIntervalChange = (interval: string) => {
+    if (interval === "") {
+      onChange({ ...value, customInterval: undefined });
+      return;
+    }
     const num = parseInt(interval, 10);
     if (!isNaN(num) && num > 0) {
       onChange({ ...value, customInterval: num });
@@ -101,6 +106,10 @@ export function RecurrenceForm({
   };
 
   const handleCountChange = (countStr: string) => {
+    if (countStr === "") {
+      onChange({ ...value, count: undefined });
+      return;
+    }
     const num = parseInt(countStr, 10);
     if (!isNaN(num) && num > 0) {
       onChange({ ...value, count: num });
@@ -113,7 +122,9 @@ export function RecurrenceForm({
         <Label htmlFor="recurrence-preset">Repeat</Label>
         <Select
           value={value.preset}
-          onValueChange={(val) => handlePresetChange(val as RecurrencePresetValue)}
+          onValueChange={(val) =>
+            handlePresetChange(val as RecurrencePresetValue)
+          }
           disabled={disabled}
         >
           <SelectTrigger id="recurrence-preset">
@@ -139,7 +150,7 @@ export function RecurrenceForm({
                 type="number"
                 min="1"
                 max="99"
-                value={value.customInterval || 1}
+                value={value.customInterval ?? ""}
                 onChange={(e) => handleCustomIntervalChange(e.target.value)}
                 disabled={disabled}
               />
@@ -151,7 +162,7 @@ export function RecurrenceForm({
                 onValueChange={(freq) =>
                   onChange({
                     ...value,
-                    customFrequency: freq as "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY",
+                    customFrequency: freq as RecurrenceFrequency,
                   })
                 }
                 disabled={disabled}
@@ -174,7 +185,8 @@ export function RecurrenceForm({
               <Label>Repeat on</Label>
               <div className="flex gap-2">
                 {WEEK_DAYS.map((day) => {
-                  const isSelected = value.weekDays?.includes(day.value) || false;
+                  const isSelected =
+                    value.weekDays?.includes(day.value) || false;
                   return (
                     <button
                       key={day.value}
@@ -244,7 +256,9 @@ export function RecurrenceForm({
           <Label>Ends</Label>
           <RadioGroup
             value={value.endType}
-            onValueChange={(val) => handleEndTypeChange(val as RecurrenceEndType)}
+            onValueChange={(val) =>
+              handleEndTypeChange(val as RecurrenceEndType)
+            }
             disabled={disabled}
           >
             <div className="flex items-center space-x-2">
@@ -278,7 +292,7 @@ export function RecurrenceForm({
                 type="number"
                 min="1"
                 max="999"
-                value={value.count || ""}
+                value={value.count ?? ""}
                 onChange={(e) => handleCountChange(e.target.value)}
                 disabled={disabled || value.endType !== "after"}
                 className="w-24"
@@ -291,3 +305,4 @@ export function RecurrenceForm({
     </div>
   );
 }
+
