@@ -7,24 +7,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { TaskCard } from "@/features/tasks/components/task-card";
+import { DashboardGreeting } from "@/features/dashboard/components/dashboard-greeting";
+import { DashboardPendingTasks } from "@/features/dashboard/components/dashboard-pending-tasks";
+import { DashboardRecentRecordings } from "@/features/dashboard/components/dashboard-recent-recordings";
+import { DashboardStats } from "@/features/dashboard/components/dashboard-stats";
+import { DashboardUpcomingMeetings } from "@/features/dashboard/components/dashboard-upcoming-meetings";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { filterTasksByStatus } from "@/lib/filters/task-filters";
 import { logger } from "@/lib/logger";
+import { getCachedCalendarMeetings } from "@/server/cache/calendar-meetings.cache";
 import { getCachedDashboardOverview } from "@/server/cache/dashboard.cache";
 import {
   getCachedTaskStats,
   getCachedTasksWithContext,
 } from "@/server/cache/task.cache";
 import { OnboardingService } from "@/server/services/onboarding.service";
-import {
-  Building2,
-  FolderIcon,
-  ListTodoIcon,
-  MicIcon,
-  PlusIcon,
-} from "lucide-react";
-import type { Route } from "next";
 import Link from "next/link";
 
 async function DashboardContent() {
@@ -36,9 +33,8 @@ async function DashboardContent() {
       error: authResult.error,
     });
 
-    // Show error state in dashboard
     return (
-      <div className="container mx-auto max-w-6xl px-4 py-8">
+      <div className="container mx-auto max-w-4xl px-4 py-8">
         <div className="text-center space-y-4">
           <h1 className="text-3xl font-bold text-destructive">
             Unable to Load Dashboard
@@ -47,7 +43,6 @@ async function DashboardContent() {
             We encountered an error loading your user information. Please try
             refreshing the page.
           </p>
-          <Button onClick={() => window.location.reload()}>Refresh Page</Button>
         </div>
       </div>
     );
@@ -59,9 +54,8 @@ async function DashboardContent() {
       component: "DashboardContent",
     });
 
-    // This shouldn't happen in a protected page, but handle gracefully
     return (
-      <div className="container mx-auto max-w-6xl px-4 py-8">
+      <div className="container mx-auto max-w-4xl px-4 py-8">
         <div className="text-center space-y-4">
           <h1 className="text-3xl font-bold">Welcome to Inovy</h1>
           <p className="text-muted-foreground">
@@ -75,7 +69,6 @@ async function DashboardContent() {
   try {
     await OnboardingService.ensureOnboardingRecordExists(user.id);
   } catch (error) {
-    // Log but don't fail dashboard load
     logger.error("Failed to ensure onboarding record exists", {
       userId: user.id,
       error,
@@ -89,7 +82,7 @@ async function DashboardContent() {
     });
 
     return (
-      <div className="container mx-auto max-w-6xl px-4 py-8">
+      <div className="container mx-auto max-w-4xl px-4 py-8">
         <div className="text-center space-y-4">
           <h1 className="text-3xl font-bold">Organization Required</h1>
           <p className="text-muted-foreground">
@@ -101,173 +94,64 @@ async function DashboardContent() {
   }
 
   const organizationId = organization.id;
+  const now = new Date();
+  const endOfDay = new Date(now);
+  endOfDay.setHours(23, 59, 59, 999);
 
-  // Get dashboard overview (cached)
-  const dashboardStats = await getCachedDashboardOverview(organizationId);
+  const [dashboardStats, taskStats, recentTasks, upcomingMeetings] =
+    await Promise.all([
+      getCachedDashboardOverview(organizationId),
+      getCachedTaskStats(user.id, organizationId),
+      getCachedTasksWithContext(user.id, organizationId),
+      getCachedCalendarMeetings(user.id, organizationId, now, endOfDay).catch(
+        () => []
+      ),
+    ]);
 
-  // Get task statistics (cached)
-  const taskStats = await getCachedTaskStats(user.id, organizationId);
-
-  // Get recent tasks (limit to 3 for dashboard) - cached
-  const recentTasks = await getCachedTasksWithContext(user.id, organizationId);
-
-  // Filter by status and limit to 3
   const filteredTasks = filterTasksByStatus(recentTasks, [
     "pending",
     "in_progress",
   ]).slice(0, 3);
 
+  const totalProjects = dashboardStats?.stats.totalProjects ?? 0;
+  const totalRecordings = dashboardStats?.stats.totalRecordings ?? 0;
+  const pendingTaskCount = taskStats
+    ? taskStats.byStatus.pending + taskStats.byStatus.in_progress
+    : 0;
+  const isNewUser = totalProjects === 0 && totalRecordings === 0;
+
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8">
+    <div className="container mx-auto max-w-4xl px-4 py-8">
       <div className="space-y-8">
-        {/* Welcome Section */}
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold">
-            Welcome back, {user?.name ?? user?.email}
-          </h1>
-          <p className="text-muted-foreground">
-            Manage your projects, recordings, and AI-generated tasks in one
-            place.
-          </p>
+        {/* Hero: Greeting + primary CTA */}
+        <DashboardGreeting
+          userName={user.name ?? user.email}
+          pendingTaskCount={pendingTaskCount}
+          upcomingMeetingCount={upcomingMeetings.length}
+        />
+
+        {/* Overview statistics */}
+        <DashboardStats
+          totalProjects={totalProjects}
+          totalRecordings={totalRecordings}
+          taskStats={taskStats}
+        />
+
+        {/* Today's meetings */}
+        <DashboardUpcomingMeetings meetings={upcomingMeetings} />
+
+        {/* Tasks and recordings side by side */}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <DashboardPendingTasks tasks={filteredTasks} />
+          <DashboardRecentRecordings
+            recordings={dashboardStats?.recentRecordings ?? []}
+          />
         </div>
+      </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link href="/projects/create">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  New Project
-                </CardTitle>
-                <PlusIcon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">Create</div>
-                <p className="text-xs text-muted-foreground">
-                  Start organizing your recordings
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/projects">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Projects</CardTitle>
-                <FolderIcon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {dashboardStats?.stats.totalProjects ?? 0}
-                </div>
-                <p className="text-xs text-muted-foreground">Active projects</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href={"/recordings" as Route}>
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Recordings
-                </CardTitle>
-                <MicIcon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {dashboardStats?.stats.totalRecordings ?? 0}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Total recordings
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/tasks">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Pending Tasks
-                </CardTitle>
-                <ListTodoIcon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {taskStats
-                    ? taskStats.byStatus.pending +
-                      taskStats.byStatus.in_progress
-                    : 0}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Action items to review
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
-
-        {/* Organization Chat Feature */}
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Building2 className="h-6 w-6 text-primary" />
-              </div>
-              <div className="flex-1">
-                <CardTitle className="flex items-center gap-2">
-                  Organization-Wide Chat
-                  <span className="text-xs font-normal bg-primary/10 text-primary px-2 py-1 rounded-full">
-                    New
-                  </span>
-                </CardTitle>
-                <CardDescription>
-                  Search and ask questions across all projects
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Get instant answers from all your recordings, transcriptions, and
-              tasks across the entire organization. Perfect for finding
-              cross-project insights and patterns.
-            </p>
-            <Button asChild className="w-full sm:w-auto">
-              <Link href="/chat">
-                <Building2 className="mr-2 h-4 w-4" />
-                Open Organization Chat
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Recent Tasks Section */}
-        {filteredTasks.length > 0 && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Recent Tasks</CardTitle>
-                  <CardDescription>
-                    Your most recent pending action items
-                  </CardDescription>
-                </div>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/tasks">View All Tasks</Link>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {filteredTasks.map((task) => (
-                <TaskCard key={task.id} task={task} showContext />
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Get Started Section */}
-        <Card>
+      {/* Conditional: Get Started for new users */}
+      {isNewUser && (
+        <Card className="mt-10">
           <CardHeader>
             <CardTitle>Get Started</CardTitle>
             <CardDescription>
@@ -315,7 +199,7 @@ async function DashboardContent() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      )}
     </div>
   );
 }

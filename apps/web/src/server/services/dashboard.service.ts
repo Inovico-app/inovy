@@ -28,6 +28,7 @@ interface DashboardOverview {
     title: string;
     description: string | null;
     projectId: string;
+    projectName: string;
     createdAt: Date;
     transcriptionStatus: string;
   }>;
