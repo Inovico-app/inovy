@@ -19,6 +19,7 @@ const addBotToMeetingSchema = z.object({
   meetingUrl: z.string().min(1, "Meeting URL is required"),
   meetingTitle: z.string().optional(),
   consentGiven: z.boolean().optional().default(false),
+  projectId: z.string().uuid("Invalid project ID").optional(),
 });
 
 /**
@@ -42,7 +43,7 @@ export const addBotToMeeting = authorizedActionClient
       throw ActionErrors.forbidden("Organization context required");
     }
 
-    const { calendarEventId, meetingUrl, meetingTitle, consentGiven } =
+    const { calendarEventId, meetingUrl, meetingTitle, consentGiven, projectId } =
       parsedInput;
 
     // Validate meeting has Google Meet URL (strict hostname check)
@@ -75,15 +76,35 @@ export const addBotToMeeting = authorizedActionClient
       );
     }
 
-    // Get active project
-    const project =
-      await ProjectQueries.findFirstActiveByOrganization(organizationId);
+    // Get project - use provided projectId or fallback to first active project
+    let project;
+    if (projectId) {
+      const projectById = await ProjectQueries.findById(projectId, organizationId);
+      if (!projectById) {
+        throw ActionErrors.badRequest(
+          "Selected project not found",
+          "add-bot-to-meeting"
+        );
+      }
+      // Verify project is active
+      if (projectById.status !== "active") {
+        throw ActionErrors.badRequest(
+          "Selected project is not active",
+          "add-bot-to-meeting"
+        );
+      }
+      project = projectById;
+    } else {
+      // Fallback to first active project
+      project =
+        await ProjectQueries.findFirstActiveByOrganization(organizationId);
 
-    if (!project) {
-      throw ActionErrors.badRequest(
-        "No active project found. Please create or activate a project first.",
-        "add-bot-to-meeting"
-      );
+      if (!project) {
+        throw ActionErrors.badRequest(
+          "No active project found. Please create or activate a project first.",
+          "add-bot-to-meeting"
+        );
+      }
     }
 
     // Get bot settings for consent check
