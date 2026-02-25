@@ -24,7 +24,7 @@ export function useEventRecurrence() {
   }, []);
 
   const buildRecurrenceRules = useCallback(
-    (data: CreateEventFormData): string[] | undefined => {
+    (data: CreateEventFormData): string[] | null | undefined => {
       if (recurrence.preset === "none") return undefined;
 
       const startDateTime = data.allDay
@@ -67,7 +67,7 @@ export function useEventRecurrence() {
         toast.error(
           "End date is required when recurrence ends on a specific date"
         );
-        return undefined;
+        return null;
       }
 
       if (
@@ -79,7 +79,7 @@ export function useEventRecurrence() {
         toast.error(
           "A positive occurrence count is required when recurrence ends after a number of times"
         );
-        return undefined;
+        return null;
       }
 
       return generateRRule(pattern, startDateTime);
