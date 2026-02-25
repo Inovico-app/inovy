@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { formatMonthYear } from "@/features/meetings/lib/calendar-utils";
-import type { MeetingBotStatusFilter } from "@/features/meetings/lib/calendar-utils";
+import type {
+  MeetingBotStatusFilter,
+  TimePeriod,
+} from "@/features/meetings/lib/calendar-utils";
+import {
+  formatDateRange,
+  formatMonthYear,
+} from "@/features/meetings/lib/calendar-utils";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { CalendarViewToggle } from "./calendar-view-toggle";
+import { useState } from "react";
 import { CreateEventDialog } from "../create-event-dialog";
 import { MeetingsFilter } from "../meetings/meetings-filter";
-
+import { MeetingsTimePeriodToggle } from "../meetings/meetings-time-period-toggle";
+import { CalendarViewToggle } from "./calendar-view-toggle";
 export type CalendarView = "month" | "week" | "day" | "list";
 
 interface CalendarHeaderProps {
@@ -24,6 +30,8 @@ interface CalendarHeaderProps {
   filteredCount?: number;
   totalCount?: number;
   onClearFilters?: () => void;
+  timePeriod?: TimePeriod;
+  onTimePeriodChange?: (period: TimePeriod) => void;
 }
 
 export function CalendarHeader({
@@ -39,46 +47,54 @@ export function CalendarHeader({
   filteredCount,
   totalCount,
   onClearFilters,
+  timePeriod = "upcoming",
+  onTimePeriodChange,
 }: CalendarHeaderProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
     <>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-2">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
           <div className="flex items-center gap-2">
-            {view !== "list" && (
-              <>
-                <Button variant="outline" size="sm" onClick={onToday}>
-                  Today
-                </Button>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={onPreviousMonth}
-                    aria-label="Previous month"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={onNextMonth}
-                    aria-label="Next month"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-                <h2 className="text-xl font-semibold">
-                  {formatMonthYear(currentDate)}
-                </h2>
-              </>
-            )}
-            {view === "list" && (
-              <h2 className="text-xl font-semibold">Meetings List</h2>
-            )}
+            <Button variant="outline" size="sm" onClick={onToday}>
+              Today
+            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onPreviousMonth}
+                aria-label="Previous month"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onNextMonth}
+                aria-label="Next month"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">
+                {formatMonthYear(currentDate)}
+              </h2>
+              {view === "list" && (
+                <p className="text-xs text-muted-foreground">
+                  {formatDateRange(currentDate)}
+                </p>
+              )}
+            </div>
           </div>
+          {view === "list" && onTimePeriodChange && (
+            <MeetingsTimePeriodToggle
+              value={timePeriod}
+              onChange={onTimePeriodChange}
+            />
+          )}
           <MeetingsFilter
             selectedStatus={selectedStatus}
             onStatusChange={onStatusChange}
@@ -106,3 +122,4 @@ export function CalendarHeader({
     </>
   );
 }
+

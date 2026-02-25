@@ -1,30 +1,30 @@
 "use client";
 
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
+import { MeetingsEmpty } from "./meetings-empty";
 import { MeetingsListItem } from "./meetings-list-item";
 import { MeetingsPagination } from "./meetings-pagination";
-import { MeetingsEmpty } from "./meetings-empty";
 
 interface MeetingsListProps {
   meetings: MeetingWithSession[];
-  currentPage: number;
-  totalPages: number;
   total: number;
+  hasMore: boolean;
   allMeetingsCount: number;
   isFiltered: boolean;
-  onPageChange: (page: number) => void;
+  onLoadMore: () => void;
+  isLoading?: boolean;
   onClearFilters?: () => void;
   onMeetingClick?: (meeting: MeetingWithSession) => void;
 }
 
 export function MeetingsList({
   meetings,
-  currentPage,
-  totalPages,
   total,
+  hasMore,
   allMeetingsCount,
   isFiltered,
-  onPageChange,
+  onLoadMore,
+  isLoading,
   onClearFilters,
   onMeetingClick,
 }: MeetingsListProps) {
@@ -36,10 +36,7 @@ export function MeetingsList({
       {!hasAnyMeetings ? (
         <MeetingsEmpty variant="no-meetings" />
       ) : !hasFilteredMeetings && isFiltered ? (
-        <MeetingsEmpty
-          variant="no-results"
-          onClearFilters={onClearFilters}
-        />
+        <MeetingsEmpty variant="no-results" onClearFilters={onClearFilters} />
       ) : (
         <>
           <div className="space-y-3">
@@ -53,13 +50,16 @@ export function MeetingsList({
           </div>
 
           <MeetingsPagination
-            currentPage={currentPage}
-            totalPages={totalPages}
+            variant="load-more"
+            visibleCount={meetings.length}
             total={total}
-            onPageChange={onPageChange}
+            hasMore={hasMore}
+            onLoadMore={onLoadMore}
+            isLoading={isLoading}
           />
         </>
       )}
     </div>
   );
 }
+

@@ -6,11 +6,13 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Loader2,
 } from "lucide-react";
 
 const PAGE_SIZE = 20;
 
-interface MeetingsPaginationProps {
+interface PagesPaginationProps {
+  variant?: "pages";
   currentPage: number;
   totalPages: number;
   total: number;
@@ -18,13 +20,63 @@ interface MeetingsPaginationProps {
   onPageChange: (page: number) => void;
 }
 
-export function MeetingsPagination({
+interface LoadMorePaginationProps {
+  variant: "load-more";
+  visibleCount: number;
+  total: number;
+  hasMore: boolean;
+  onLoadMore: () => void;
+  isLoading?: boolean;
+}
+
+type MeetingsPaginationProps = PagesPaginationProps | LoadMorePaginationProps;
+
+export function MeetingsPagination(props: MeetingsPaginationProps) {
+  if (props.variant === "load-more") {
+    return <LoadMorePagination {...props} />;
+  }
+  return <PagesPagination {...props} />;
+}
+
+function LoadMorePagination({
+  visibleCount,
+  total,
+  hasMore,
+  onLoadMore,
+  isLoading,
+}: LoadMorePaginationProps) {
+  if (total === 0) return null;
+
+  return (
+    <div className="flex flex-col items-center gap-3 border-t pt-4">
+      <p className="text-sm text-muted-foreground">
+        Showing {Math.min(visibleCount, total)} of {total} meetings
+      </p>
+      {hasMore && (
+        <Button
+          variant="outline"
+          onClick={onLoadMore}
+          disabled={isLoading}
+          aria-busy={isLoading}
+          className="min-w-[140px]"
+        >
+          <span className="inline-flex h-4 w-4 items-center justify-center mr-2">
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          </span>
+          Load More
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function PagesPagination({
   currentPage,
   totalPages,
   total,
   pageSize = PAGE_SIZE,
   onPageChange,
-}: MeetingsPaginationProps) {
+}: PagesPaginationProps) {
   if (totalPages <= 1) {
     return null;
   }
@@ -81,3 +133,4 @@ export function MeetingsPagination({
     </div>
   );
 }
+
