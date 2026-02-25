@@ -47,11 +47,11 @@ export function ArchiveProjectDialog({
 }: ArchiveProjectDialogProps) {
   const router = useRouter();
   const [internalOpen, setInternalOpen] = useState(false);
-  
+
   // Use controlled state if provided, otherwise use internal state
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = controlledOnOpenChange || setInternalOpen;
-  
+
   const [isLoading, setIsLoading] = useState(false);
 
   const handleArchive = async () => {
@@ -97,23 +97,27 @@ export function ArchiveProjectDialog({
     }
   };
 
+  const isControlled = controlledOpen !== undefined;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant={variant} size="sm">
-          {isArchived ? (
-            <>
-              <ArchiveRestoreIcon className="h-4 w-4 mr-2" />
-              Restore Project
-            </>
-          ) : (
-            <>
-              <ArchiveIcon className="h-4 w-4 mr-2" />
-              Archive Project
-            </>
-          )}
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button variant={variant} size="sm">
+            {isArchived ? (
+              <>
+                <ArchiveRestoreIcon className="h-4 w-4 mr-2" />
+                Restore Project
+              </>
+            ) : (
+              <>
+                <ArchiveIcon className="h-4 w-4 mr-2" />
+                Archive Project
+              </>
+            )}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
@@ -162,3 +166,4 @@ export function ArchiveProjectDialog({
     </Dialog>
   );
 }
+

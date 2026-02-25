@@ -59,8 +59,8 @@ export function ProjectActions({
         {/* Ask AI Button */}
         <ChatButton projectId={projectId} projectName={projectName} />
 
-        {/* Recording Actions Dropdown */}
-        <RecordingActionsDropdown projectId={projectId} />
+        {/* Recording Actions Dropdown - hidden for archived projects */}
+        {!isArchived && <RecordingActionsDropdown projectId={projectId} />}
 
         {/* More Actions Dropdown */}
         <DropdownMenu>
@@ -142,3 +142,4 @@ export function ProjectActions({
     </>
   );
 }
+

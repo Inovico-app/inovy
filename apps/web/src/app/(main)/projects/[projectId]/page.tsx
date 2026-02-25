@@ -5,6 +5,7 @@ import { ProjectActions } from "@/features/projects/components/project-actions";
 import { RecordingList } from "@/features/recordings/components/recording-list";
 import { ProjectService } from "@/server/services/project.service";
 import { RecordingService } from "@/server/services/recording.service";
+import { differenceInCalendarDays } from "date-fns";
 import {
   ActivityIcon,
   CalendarIcon,
@@ -15,7 +16,6 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { differenceInCalendarDays } from "date-fns";
 
 interface ProjectDetailPageProps {
   params: Promise<{ projectId: string }>;
@@ -44,11 +44,11 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
   }
 
   const project = projectResult.value;
+  const isArchived = project.status === "archived";
 
   // Get recording statistics
-  const statisticsResult = await RecordingService.getProjectRecordingStatistics(
-    projectId
-  );
+  const statisticsResult =
+    await RecordingService.getProjectRecordingStatistics(projectId);
   const statistics = statisticsResult.isOk()
     ? statisticsResult.value
     : { totalCount: 0, lastRecordingDate: null, recentCount: 0 };
@@ -104,7 +104,7 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
           <ProjectActions
             projectId={project.id}
             projectName={project.name}
-            isArchived={project.status === "archived"}
+            isArchived={isArchived}
             recordingCount={statistics.totalCount}
           />
         </div>
@@ -215,6 +215,7 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
                 projectId={project.id}
                 organizationId={project.organizationId}
                 searchQuery={search}
+                isArchived={isArchived}
               />
             </Suspense>
           </CardContent>
@@ -253,3 +254,4 @@ export default async function ProjectDetailPage({
     </Suspense>
   );
 }
+
