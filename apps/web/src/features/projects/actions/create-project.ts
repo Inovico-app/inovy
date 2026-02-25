@@ -12,7 +12,7 @@ import {
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { ProjectService } from "@/server/services/project.service";
-import { createProjectSchema } from "@/server/validation/create-project";
+import { createProjectSchema } from "@/server/validation/projects/create-project";
 
 /**
  * Project creation using Result types throughout

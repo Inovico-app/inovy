@@ -1,3 +1,4 @@
+import { PROJECT_DESCRIPTION_MAX_LENGTH } from "@/lib/constants/project-constants";
 import { z } from "zod";
 
 export const updateProjectSchema = z.object({
@@ -8,7 +9,10 @@ export const updateProjectSchema = z.object({
     .max(100, "Project name must be less than 100 characters"),
   description: z
     .string()
-    .max(500, "Description must be less than 500 characters")
+    .max(
+      PROJECT_DESCRIPTION_MAX_LENGTH,
+      `Description must be less than ${PROJECT_DESCRIPTION_MAX_LENGTH} characters`
+    )
     .optional(),
 });
 
