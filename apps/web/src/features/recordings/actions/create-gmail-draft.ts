@@ -47,7 +47,15 @@ export const createGmailDraft = authorizedActionClient
 
     const hasScopeResult = await GoogleOAuthService.hasScopes(user.id, "gmail");
 
-    if (hasScopeResult.isErr() || !hasScopeResult.value) {
+    if (hasScopeResult.isErr()) {
+      throw ActionErrors.internal(
+        "Failed to verify Gmail scopes",
+        hasScopeResult.error,
+        "createGmailDraft"
+      );
+    }
+
+    if (!hasScopeResult.value) {
       throw ActionErrors.badRequest(
         "Missing permission: Gmail (create drafts). Please grant this permission in Settings > Integrations."
       );

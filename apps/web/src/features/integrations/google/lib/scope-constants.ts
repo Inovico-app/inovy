@@ -18,3 +18,5 @@ export const SCOPE_TIERS = {
 
 export type ScopeTier = keyof typeof SCOPE_TIERS;
 
+export type GoogleScope = (typeof SCOPE_TIERS)[ScopeTier][number];
+

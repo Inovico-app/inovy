@@ -50,7 +50,15 @@ export const startDriveWatchAction = authorizedActionClient
     // Check for drive scope
     const hasScopeResult = await GoogleOAuthService.hasScopes(user.id, "drive");
 
-    if (hasScopeResult.isErr() || !hasScopeResult.value) {
+    if (hasScopeResult.isErr()) {
+      throw ActionErrors.internal(
+        "Failed to verify Google Drive scopes",
+        hasScopeResult.error,
+        "startDriveWatchAction"
+      );
+    }
+
+    if (!hasScopeResult.value) {
       throw ActionErrors.badRequest(
         "Missing permission: Google Drive (read files). Please grant this permission in Settings > Integrations."
       );

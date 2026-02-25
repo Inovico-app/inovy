@@ -48,7 +48,15 @@ export const createCalendarEvent = authorizedActionClient
       "calendarWrite"
     );
 
-    if (hasScopeResult.isErr() || !hasScopeResult.value) {
+    if (hasScopeResult.isErr()) {
+      throw ActionErrors.internal(
+        "Failed to verify calendar scopes",
+        hasScopeResult.error,
+        "createCalendarEvent"
+      );
+    }
+
+    if (!hasScopeResult.value) {
       throw ActionErrors.badRequest(
         "Missing permission: Calendar (create & edit events). Please grant this permission in Settings > Integrations."
       );
@@ -148,7 +156,15 @@ export const createCalendarEventsForTasks = authorizedActionClient
       "calendarWrite"
     );
 
-    if (hasScopeResult.isErr() || !hasScopeResult.value) {
+    if (hasScopeResult.isErr()) {
+      throw ActionErrors.internal(
+        "Failed to verify calendar scopes",
+        hasScopeResult.error,
+        "createCalendarEventsForTasks"
+      );
+    }
+
+    if (!hasScopeResult.value) {
       throw ActionErrors.badRequest(
         "Missing permission: Calendar (create & edit events). Please grant this permission in Settings > Integrations."
       );

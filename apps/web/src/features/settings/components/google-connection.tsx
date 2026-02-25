@@ -70,21 +70,34 @@ export function GoogleConnection() {
     loadStatus();
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("google_success") === "true") {
+      loadStatus();
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
   async function loadStatus() {
     setStatus((prev) => ({ ...prev, loading: true }));
 
-    const result = await getGoogleConnectionStatus();
+    try {
+      const result = await getGoogleConnectionStatus();
 
-    if (result && result.data) {
-      setStatus({
-        connected: result.data.connected,
-        email: result.data.email,
-        scopes: result.data.scopes,
-        loading: false,
-      });
-    } else {
+      if (result?.data) {
+        setStatus({
+          connected: result.data.connected,
+          email: result.data.email,
+          scopes: result.data.scopes,
+          loading: false,
+        });
+      } else {
+        setStatus((prev) => ({ ...prev, loading: false }));
+        toast.error(result?.serverError ?? "Failed to load connection status");
+      }
+    } catch {
       setStatus((prev) => ({ ...prev, loading: false }));
-      toast.error(result.serverError || "Failed to load connection status");
+      toast.error("Failed to load connection status");
     }
   }
 

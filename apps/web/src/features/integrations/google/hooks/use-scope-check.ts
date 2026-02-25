@@ -39,7 +39,8 @@ export function useScopeCheck(requiredTier: ScopeTier): UseScopeCheckResult {
         } else {
           setHasScope(false);
         }
-      } catch {
+      } catch (error) {
+        console.error("useScopeCheck fetch failed", { requiredTier, error });
         if (!cancelled) setHasScope(false);
       } finally {
         if (!cancelled) setIsChecking(false);

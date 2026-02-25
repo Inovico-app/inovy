@@ -36,10 +36,9 @@ export function IncrementalPermissionDialog({
   tier,
   returnUrl,
 }: IncrementalPermissionDialogProps) {
-  const redirect = returnUrl ?? window.location.pathname;
-  const authUrl = getIncrementalAuthUrl(tier, redirect);
-
   function handleGrant() {
+    const redirect = returnUrl ?? window.location.pathname;
+    const authUrl = getIncrementalAuthUrl(tier, redirect);
     window.location.href = authUrl;
   }
 

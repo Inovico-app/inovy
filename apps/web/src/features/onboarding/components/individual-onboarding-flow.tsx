@@ -25,7 +25,7 @@ export function IndividualOnboardingFlow({
     checkingGoogleStatus,
     handleConnectGoogle,
     showPermissionDialog,
-    handlePermissionDialogChange,
+    setShowPermissionDialog,
   } = useGoogleConnection(currentStep);
 
   return (
@@ -55,7 +55,7 @@ export function IndividualOnboardingFlow({
             checkingGoogleStatus={checkingGoogleStatus}
             onConnectGoogle={handleConnectGoogle}
             showPermissionDialog={showPermissionDialog}
-            onPermissionDialogChange={handlePermissionDialogChange}
+            onPermissionDialogChange={setShowPermissionDialog}
           />
         </StepTransition>
       )}

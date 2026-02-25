@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Calendar, Eye, HardDrive, Mail, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
-import { SCOPE_TIERS, type ScopeTier } from "../lib/scope-constants";
+import type { ScopeTier } from "../lib/scope-constants";
 import { tierToDescription, tierToLabel } from "../lib/scope-utils";
 
 const TIER_ICONS: Record<ScopeTier, ReactNode> = {
@@ -34,9 +34,8 @@ export function PermissionExplanationDialog({
   tiers,
   redirectUrl,
 }: PermissionExplanationDialogProps) {
-  const scopes = tiers.flatMap((t) => [...SCOPE_TIERS[t]]);
-  const scopeParam = tiers.join(",");
-  const connectUrl = `/api/integrations/google/authorize?scopes=${encodeURIComponent(scopeParam)}&redirect=${encodeURIComponent(redirectUrl)}`;
+  const tierParam = tiers.join(",");
+  const connectUrl = `/api/integrations/google/authorize?tier=${encodeURIComponent(tierParam)}&redirect=${encodeURIComponent(redirectUrl)}`;
 
   function handleConnect() {
     window.location.href = connectUrl;
@@ -50,6 +49,7 @@ export function PermissionExplanationDialog({
           <DialogHeader className="gap-3">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white dark:bg-background shadow-sm border">
               <svg
+                aria-hidden="true"
                 className="h-6 w-6"
                 viewBox="0 0 24 24"
                 fill="none"

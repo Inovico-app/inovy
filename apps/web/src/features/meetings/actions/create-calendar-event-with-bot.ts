@@ -61,7 +61,15 @@ export const createCalendarEventWithBot = authorizedActionClient
       "calendarWrite"
     );
 
-    if (hasScopeResult.isErr() || !hasScopeResult.value) {
+    if (hasScopeResult.isErr()) {
+      throw ActionErrors.internal(
+        "Failed to verify calendar scopes",
+        hasScopeResult.error,
+        "createCalendarEventWithBot"
+      );
+    }
+
+    if (!hasScopeResult.value) {
       throw ActionErrors.badRequest(
         "Missing permission: Calendar (create & edit events). Please grant this permission in Settings > Integrations."
       );

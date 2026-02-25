@@ -62,11 +62,13 @@ export function createGoogleOAuthClient(): OAuth2Client {
  * @param state - Optional state parameter for CSRF protection
  * @param redirectUri - Optional redirect URI (defaults to GOOGLE_REDIRECT_URI)
  * @param scopes - Specific scopes to request (defaults to base tier)
+ * @param forceConsent - Force the consent screen (needed for initial connection to get a refresh token, skipped for incremental grants)
  */
 export function getAuthorizationUrl(
   state?: string,
   redirectUri?: string,
-  scopes?: readonly string[]
+  scopes?: readonly string[],
+  forceConsent = true
 ): string {
   const oauth2Client = redirectUri
     ? new google.auth.OAuth2(
@@ -79,7 +81,7 @@ export function getAuthorizationUrl(
   return oauth2Client.generateAuthUrl({
     access_type: "offline",
     scope: scopes ? [...scopes] : [...SCOPE_TIERS.base],
-    prompt: "consent",
+    ...(forceConsent ? { prompt: "consent" } : {}),
     include_granted_scopes: true,
     state: state || "",
   });

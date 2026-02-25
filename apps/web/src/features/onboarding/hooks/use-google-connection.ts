@@ -1,3 +1,5 @@
+"use client";
+
 import { getGoogleConnectionStatus } from "@/features/settings/actions/google-connection";
 import { useCallback, useEffect, useEffectEvent, useState } from "react";
 
@@ -24,10 +26,6 @@ export function useGoogleConnection(currentStep: number) {
     setShowPermissionDialog(true);
   }, []);
 
-  const handlePermissionDialogChange = useCallback((open: boolean) => {
-    setShowPermissionDialog(open);
-  }, []);
-
   useEffect(() => {
     if (currentStep === 4) {
       checkGoogleConnectionEffect();
@@ -46,7 +44,7 @@ export function useGoogleConnection(currentStep: number) {
     checkingGoogleStatus,
     handleConnectGoogle,
     showPermissionDialog,
-    handlePermissionDialogChange,
+    setShowPermissionDialog,
   };
 }
 

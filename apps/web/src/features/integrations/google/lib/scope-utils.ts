@@ -1,4 +1,8 @@
-import { SCOPE_TIERS, type ScopeTier } from "./scope-constants";
+import {
+  SCOPE_TIERS,
+  type GoogleScope,
+  type ScopeTier,
+} from "./scope-constants";
 
 /**
  * Check whether the user's granted scopes satisfy a given tier.
@@ -33,13 +37,13 @@ export function getIncrementalAuthUrl(
   redirectUrl: string
 ): string {
   const params = new URLSearchParams({
-    scopes: tier,
+    tier,
     redirect: redirectUrl,
   });
   return `/api/integrations/google/authorize?${params.toString()}`;
 }
 
-const HUMAN_LABELS: Record<string, string> = {
+const HUMAN_LABELS = {
   "https://www.googleapis.com/auth/userinfo.email": "View your email address",
   "https://www.googleapis.com/auth/calendar.readonly":
     "View your calendar events",
@@ -48,21 +52,21 @@ const HUMAN_LABELS: Record<string, string> = {
   "https://www.googleapis.com/auth/gmail.compose": "Create Gmail drafts",
   "https://www.googleapis.com/auth/drive.readonly":
     "Read Google Drive files and folders",
-};
+} satisfies Record<GoogleScope, string>;
 
 /**
  * Convert a raw Google scope URL to a human-readable label.
  */
 export function scopeToLabel(scope: string): string {
-  return HUMAN_LABELS[scope] ?? scope;
+  return (HUMAN_LABELS as Record<string, string>)[scope] ?? scope;
 }
 
-const TIER_LABELS: Record<ScopeTier, string> = {
+const TIER_LABELS = {
   base: "Calendar (read-only)",
   calendarWrite: "Calendar (create & edit events)",
   gmail: "Gmail (create drafts)",
   drive: "Google Drive (read files)",
-};
+} satisfies Record<ScopeTier, string>;
 
 /**
  * Get a human-readable label for a scope tier.
@@ -71,7 +75,7 @@ export function tierToLabel(tier: ScopeTier): string {
   return TIER_LABELS[tier];
 }
 
-const TIER_DESCRIPTIONS: Record<ScopeTier, string> = {
+const TIER_DESCRIPTIONS = {
   base: "View your upcoming meetings so Inovy can record and process them.",
   calendarWrite:
     "Create and update calendar events directly from extracted tasks and action items.",
@@ -79,7 +83,7 @@ const TIER_DESCRIPTIONS: Record<ScopeTier, string> = {
     "Generate follow-up email drafts from meeting summaries — nothing is sent without your explicit approval.",
   drive:
     "Watch shared Drive folders for new recordings to process automatically.",
-};
+} satisfies Record<ScopeTier, string>;
 
 /**
  * Get a user-facing explanation of why a scope tier is needed.
@@ -87,4 +91,3 @@ const TIER_DESCRIPTIONS: Record<ScopeTier, string> = {
 export function tierToDescription(tier: ScopeTier): string {
   return TIER_DESCRIPTIONS[tier];
 }
-
