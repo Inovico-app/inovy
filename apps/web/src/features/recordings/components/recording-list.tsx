@@ -1,7 +1,8 @@
 import { Button } from "../../../components/ui/button";
 import { getCachedRecordingsByProjectId } from "../../../server/cache/recording.cache";
 import { RecordingListClient } from "./recording-list-client";
-import { UploadRecordingModal } from "./upload-recording-modal";
+import { MicIcon } from "lucide-react";
+import Link from "next/link";
 
 interface RecordingListProps {
   projectId: string;
@@ -33,12 +34,15 @@ export async function RecordingList({
             : "No recordings yet"}
         </p>
         {!isArchived && (
-          <UploadRecordingModal
-            projectId={projectId}
-            trigger={
-              <Button variant="outline">Upload Your First Recording</Button>
-            }
-          />
+          <Button variant="outline" asChild>
+            <Link
+              href={`/record?projectId=${encodeURIComponent(projectId)}`}
+              className="inline-flex items-center gap-2"
+            >
+              <MicIcon className="h-4 w-4" />
+              Start Live Recording
+            </Link>
+          </Button>
         )}
       </div>
     );
