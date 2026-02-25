@@ -23,7 +23,9 @@ export interface CreateEventInput {
 
 interface UseCreateEventSubmitProps {
   createEvent: (input: CreateEventInput) => void;
-  buildRecurrenceRules: (data: CreateEventFormData) => string[] | undefined;
+  buildRecurrenceRules: (
+    data: CreateEventFormData
+  ) => string[] | null | undefined;
 }
 
 export function useCreateEventSubmit({
@@ -32,7 +34,10 @@ export function useCreateEventSubmit({
 }: UseCreateEventSubmitProps) {
   const onSubmit = useCallback(
     (data: CreateEventFormData) => {
-      const rruleArray = buildRecurrenceRules(data);
+      const recurrenceResult = buildRecurrenceRules(data);
+      if (recurrenceResult === null) return;
+
+      const rruleArray = recurrenceResult;
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       if (data.allDay) {
