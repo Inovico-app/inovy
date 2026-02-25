@@ -1,12 +1,5 @@
 "use client";
 
-import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
-import { format } from "date-fns";
-import { ExternalLinkIcon, Loader2Icon, Trash2Icon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,19 +19,25 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { BotStatusBadge } from "@/features/bot/components/bot-status-badge";
-import { AddBotConsentDialog } from "./add-bot-consent-dialog";
+import { useUserProjects } from "@/features/projects/hooks/use-user-projects";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { format } from "date-fns";
+import { ExternalLinkIcon, Loader2Icon, Trash2Icon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { useAddBotToMeeting } from "../hooks/use-add-bot-to-meeting";
 import { useRemoveBotFromMeeting } from "../hooks/use-remove-bot-from-meeting";
 import { useUpdateBotSessionMeetingUrl } from "../hooks/use-update-bot-session-meeting-url";
 import { useUpdateBotSessionProject } from "../hooks/use-update-bot-session-project";
 import { useUpdateMeetingDetails } from "../hooks/use-update-meeting-details";
+import type { MeetingWithSession } from "../lib/calendar-utils";
 import {
   formatMeetingDuration,
   getAttendeesCount,
 } from "../lib/calendar-utils";
-import type { MeetingWithSession } from "../lib/calendar-utils";
-import { getUserProjects } from "@/features/projects/actions/get-user-projects";
-import { useQuery } from "@tanstack/react-query";
+import { AddBotConsentDialog } from "./add-bot-consent-dialog";
 
 const EDITABLE_BOT_STATUSES = ["scheduled", "failed"] as const;
 
@@ -127,12 +126,12 @@ export function MeetingDetailsModal({
   });
   const { updateMeetingUrl, isUpdating: isUpdatingUrl } =
     useUpdateBotSessionMeetingUrl({
-    onSuccess,
-  });
+      onSuccess,
+    });
   const { updateProject, isUpdating: isUpdatingProject } =
     useUpdateBotSessionProject({
-    onSuccess,
-  });
+      onSuccess,
+    });
   const { execute: removeBot, isExecuting: isRemovingBot } =
     useRemoveBotFromMeeting({
       onSuccess: () => {
@@ -148,13 +147,7 @@ export function MeetingDetailsModal({
     },
   });
 
-  const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
-    queryKey: ["user-projects"],
-    queryFn: async () => {
-      const result = await getUserProjects();
-      if (!result.success || !result.data) return [];
-      return result.data;
-    },
+  const { projects, isLoadingProjects, defaultProjectId } = useUserProjects({
     enabled: open && !!meeting?.botSession,
   });
 
@@ -225,7 +218,9 @@ export function MeetingDetailsModal({
 
     const trimmed = botMeetingUrl.trim();
     try {
-      const url = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
+      const url = new URL(
+        trimmed.startsWith("http") ? trimmed : `https://${trimmed}`
+      );
       if (url.hostname !== "meet.google.com") {
         toast.error("Meeting URL must be a Google Meet link");
         return;
@@ -240,8 +235,6 @@ export function MeetingDetailsModal({
       meetingUrl: trimmed.startsWith("http") ? trimmed : `https://${trimmed}`,
     });
   };
-
-  const defaultProjectId = projects.length > 0 ? projects[0].id : undefined;
 
   const handleAddBot = () => {
     if (!meeting) return;
@@ -309,10 +302,7 @@ export function MeetingDetailsModal({
           <div className="space-y-6">
             {/* Section 1: Meeting Details */}
             <section aria-labelledby="meeting-details-heading">
-              <h3
-                id="meeting-details-heading"
-                className="font-semibold mb-3"
-              >
+              <h3 id="meeting-details-heading" className="font-semibold mb-3">
                 Meeting Details
               </h3>
               <form
@@ -488,9 +478,7 @@ export function MeetingDetailsModal({
                             type="url"
                             placeholder="https://meet.google.com/..."
                             value={botMeetingUrl}
-                            onChange={(e) =>
-                              setBotMeetingUrl(e.target.value)
-                            }
+                            onChange={(e) => setBotMeetingUrl(e.target.value)}
                             className="font-mono text-sm"
                           />
                           <Button
@@ -541,9 +529,7 @@ export function MeetingDetailsModal({
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() =>
-                        removeBot({ sessionId: botSession.id })
-                      }
+                      onClick={() => removeBot({ sessionId: botSession.id })}
                       disabled={isRemovingBot}
                     >
                       {isRemovingBot ? (
@@ -569,10 +555,7 @@ export function MeetingDetailsModal({
                   <p className="text-sm text-muted-foreground mb-3">
                     Add a recording bot to join this meeting when it starts.
                   </p>
-                  <Button
-                    onClick={handleAddBot}
-                    disabled={isAddingBot}
-                  >
+                  <Button onClick={handleAddBot} disabled={isAddingBot}>
                     {isAddingBot ? (
                       <>
                         <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
@@ -591,3 +574,4 @@ export function MeetingDetailsModal({
     </>
   );
 }
+

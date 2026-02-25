@@ -1,8 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, Plus } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -11,9 +8,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
-import { AddBotConsentDialog } from "./add-bot-consent-dialog";
+import { useUserProjects } from "@/features/projects/hooks/use-user-projects";
+import { Loader2, Plus } from "lucide-react";
+import { useState } from "react";
 import { useAddBotToMeeting } from "../hooks/use-add-bot-to-meeting";
-import { getUserProjects } from "@/features/projects/actions/get-user-projects";
+import { AddBotConsentDialog } from "./add-bot-consent-dialog";
 
 interface AddBotButtonProps {
   meeting: MeetingWithSession;
@@ -24,21 +23,15 @@ interface AddBotButtonProps {
  * Add Bot button for meetings without bot sessions
  * Handles consent flow with project selection and optimistic UI updates
  */
-export function AddBotButton({ meeting, variant = "button" }: AddBotButtonProps) {
+export function AddBotButton({
+  meeting,
+  variant = "button",
+}: AddBotButtonProps) {
   const [isConsentDialogOpen, setIsConsentDialogOpen] = useState(false);
-  const [pendingMeeting, setPendingMeeting] = useState<MeetingWithSession | null>(
-    null
-  );
+  const [pendingMeeting, setPendingMeeting] =
+    useState<MeetingWithSession | null>(null);
 
-  const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
-    queryKey: ["user-projects"],
-    queryFn: async () => {
-      const result = await getUserProjects();
-      if (!result.success || !result.data) return [];
-      return result.data;
-    },
-  });
-  const defaultProjectId = projects.length > 0 ? projects[0].id : undefined;
+  const { projects, isLoadingProjects, defaultProjectId } = useUserProjects();
 
   const { execute, isExecuting } = useAddBotToMeeting({
     onConsentRequired: () => {
@@ -67,7 +60,8 @@ export function AddBotButton({ meeting, variant = "button" }: AddBotButtonProps)
 
   const isUpcoming = meeting.start > new Date();
   const hasMeetingUrl =
-    meeting.meetingUrl?.trim() && meeting.meetingUrl.includes("meet.google.com");
+    meeting.meetingUrl?.trim() &&
+    meeting.meetingUrl.includes("meet.google.com");
 
   if (!isUpcoming || !hasMeetingUrl) {
     return null;
@@ -139,3 +133,4 @@ export function AddBotButton({ meeting, variant = "button" }: AddBotButtonProps)
     </>
   );
 }
+
