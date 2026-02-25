@@ -60,6 +60,9 @@ export function getUserDisplayName({
   if (given_name) {
     return given_name;
   }
+  if (family_name) {
+    return family_name;
+  }
   return email || "Unknown";
 }
 

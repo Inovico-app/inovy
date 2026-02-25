@@ -12,6 +12,7 @@ import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/comp
 import { getOrganizationSettings } from "@/features/settings/actions/organization-settings";
 import { OrganizationInstructionsSection } from "@/features/settings/components/organization-instructions-section";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { getUserDisplayName } from "@/lib/formatters/display-formatters";
 import { logger } from "@/lib/logger";
 import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import {
@@ -194,9 +195,11 @@ async function OrganizationContent() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-medium">
-                        {member.given_name && member.family_name
-                          ? `${member.given_name} ${member.family_name}`
-                          : (member.given_name ?? member.email ?? "Unknown")}
+                        {getUserDisplayName({
+                          email: member.email,
+                          given_name: member.given_name,
+                          family_name: member.family_name,
+                        })}
                       </p>
                       {member.roles && member.roles.length > 0 && (
                         <div className="flex gap-1">

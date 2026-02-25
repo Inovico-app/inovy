@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { getUserDisplayName } from "@/lib/formatters/display-formatters";
 import { logger } from "@/lib/logger";
 import { getCachedTeamsByOrganization } from "@/server/cache/team.cache";
 import { OrganizationService } from "@/server/services/organization.service";
@@ -116,11 +117,11 @@ export async function UserManagementTable() {
                   >
                     <td className="py-3 px-4">
                       <div className="font-medium">
-                        {member.given_name && member.family_name
-                          ? `${member.given_name} ${member.family_name}`
-                          : member.given_name ||
-                            member.family_name ||
-                            "Unknown"}
+                        {getUserDisplayName({
+                          email: member.email,
+                          given_name: member.given_name,
+                          family_name: member.family_name,
+                        })}
                       </div>
                     </td>
                     <td className="py-3 px-4 text-muted-foreground">
@@ -175,14 +176,11 @@ export async function UserManagementTable() {
                         <UserActionsMenu
                           memberId={member.id}
                           memberEmail={member.email || ""}
-                          memberName={
-                            member.given_name && member.family_name
-                              ? `${member.given_name} ${member.family_name}`
-                              : member.given_name ||
-                                member.family_name ||
-                                member.email ||
-                                "Unknown"
-                          }
+                          memberName={getUserDisplayName({
+                            email: member.email,
+                            given_name: member.given_name,
+                            family_name: member.family_name,
+                          })}
                           currentRole={member.roles?.[0]}
                         />
                       </div>

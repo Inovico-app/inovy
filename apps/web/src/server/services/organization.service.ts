@@ -33,7 +33,8 @@ export class OrganizationService {
     });
 
     try {
-      const membersData = await OrganizationQueries.getMembers(organizationId);
+      const membersData =
+        await OrganizationQueries.getMembersDirect(organizationId);
 
       const members: OrganizationMemberDto[] = membersData.map((member) => {
         const roles = member.role ? [member.role] : [];
@@ -41,8 +42,8 @@ export class OrganizationService {
         return {
           id: member.id,
           email: member.email ?? null,
-          given_name: nameParts[0] ?? null,
-          family_name: nameParts.slice(1).join(" ") || null,
+          given_name: (nameParts[0]?.trim() || null) ?? null,
+          family_name: (nameParts.slice(1).join(" ").trim() || null) ?? null,
           roles,
         };
       });
