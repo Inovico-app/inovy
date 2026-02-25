@@ -1,4 +1,9 @@
 import { err, ok } from "neverthrow";
+import type { BetterAuthUser } from "../../lib/auth";
+import {
+  canAccessUserEmails,
+  redactEmail,
+} from "../../lib/data-minimization";
 import { logger } from "../../lib/logger";
 import {
   ActionErrors,
@@ -6,6 +11,13 @@ import {
 } from "../../lib/server-action-client/action-errors";
 import { UserQueries } from "../data-access/user.queries";
 
+/**
+ * User DTO with data minimization
+ * 
+ * Data Minimization (SSD-4.4.01):
+ * - email: Only included in full for organization admins or own user
+ * - For non-admins viewing other users, email is redacted (e.g., j***@example.com)
+ */
 export interface UserDto {
   id: string;
   email: string | null;
@@ -24,10 +36,14 @@ export interface UserDto {
  */
 export class UserService {
   /**
-   * Get user by ID
+   * Get user by ID with data minimization
    * @param userId - Better Auth user ID
+   * @param requestingUser - Optional user making the request (for role-based filtering)
    */
-  static async getUserById(userId: string): Promise<ActionResult<UserDto>> {
+  static async getUserById(
+    userId: string,
+    requestingUser?: BetterAuthUser
+  ): Promise<ActionResult<UserDto>> {
     logger.info("Fetching user by ID", {
       component: "UserService.getUserById",
       userId,
@@ -45,20 +61,31 @@ export class UserService {
       }
 
       const nameParts = userData.name?.split(" ") ?? [];
+      
+      // Apply data minimization: redact email for non-admin users
+      const canSeeEmail = requestingUser
+        ? canAccessUserEmails(requestingUser, userId)
+        : false;
+      
+      const email = canSeeEmail
+        ? (userData.email ?? null)
+        : redactEmail(userData.email);
+
       const userDto: UserDto = {
         id: userData.id,
-        email: userData.email ?? null,
+        email,
         given_name: nameParts[0] ?? null,
         family_name: nameParts.slice(1).join(" ") || null,
         picture: userData.image ?? null,
         emailVerified: userData.emailVerified,
         created_on: userData.createdAt?.toISOString(),
-        last_signed_in: undefined, // Better Auth doesn't track last sign-in separately
+        last_signed_in: undefined,
       };
 
       logger.info("Successfully fetched user", {
         component: "UserService.getUserById",
         userId,
+        emailRedacted: !canSeeEmail,
       });
 
       return ok(userDto);
@@ -80,11 +107,13 @@ export class UserService {
   }
 
   /**
-   * Get multiple users by IDs
+   * Get multiple users by IDs with data minimization
    * @param userIds - Array of Better Auth user IDs
+   * @param requestingUser - Optional user making the request (for role-based filtering)
    */
   static async getUsersByIds(
-    userIds: string[]
+    userIds: string[],
+    requestingUser?: BetterAuthUser
   ): Promise<ActionResult<UserDto[]>> {
     logger.info("Fetching users by IDs", {
       component: "UserService.getUsersByIds",
@@ -96,9 +125,19 @@ export class UserService {
 
       const usersDto: UserDto[] = usersData.map((userData) => {
         const nameParts = userData.name?.split(" ") ?? [];
+        
+        // Apply data minimization: redact email for non-admin users
+        const canSeeEmail = requestingUser
+          ? canAccessUserEmails(requestingUser, userData.id)
+          : false;
+        
+        const email = canSeeEmail
+          ? (userData.email ?? null)
+          : redactEmail(userData.email);
+
         return {
           id: userData.id,
-          email: userData.email ?? null,
+          email,
           given_name: nameParts[0] ?? null,
           family_name: nameParts.slice(1).join(" ") || null,
           picture: userData.image ?? null,

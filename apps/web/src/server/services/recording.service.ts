@@ -1,5 +1,10 @@
 import { err, ok } from "neverthrow";
+import type { BetterAuthUser } from "../../lib/auth";
 import { CacheInvalidation } from "../../lib/cache-utils";
+import {
+  canAccessFullTranscription,
+  canAccessSensitiveFields,
+} from "../../lib/data-minimization";
 import { logger, serializeError } from "../../lib/logger";
 import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
 import {
@@ -10,6 +15,7 @@ import { ProjectQueries } from "../data-access/projects.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { type NewRecording, type Recording } from "../db/schema/recordings";
 import { type RecordingDto } from "../dto/recording.dto";
+import { AuditLogService } from "./audit-log.service";
 import { RAGService } from "./rag/rag.service";
 
 /**
@@ -21,10 +27,14 @@ export class RecordingService {
    * Create a new recording
    * If externalRecordingId is provided, checks for existing recording first
    * and returns it if found (idempotency)
+   * @param data - Recording data
+   * @param invalidateCache - Whether to invalidate cache
+   * @param user - Optional user for role-based filtering in response
    */
   static async createRecording(
     data: NewRecording,
-    invalidateCache: boolean = true
+    invalidateCache: boolean = true,
+    user?: BetterAuthUser
   ): Promise<ActionResult<RecordingDto>> {
     logger.info("Creating new recording", {
       component: "RecordingService.createRecording",
@@ -36,7 +46,6 @@ export class RecordingService {
     try {
       let recording: Recording;
 
-      // If externalRecordingId is provided, check for existing recording first
       if (data.externalRecordingId && data.organizationId) {
         const existing = await RecordingsQueries.selectRecordingByExternalId(
           data.externalRecordingId,
@@ -51,15 +60,12 @@ export class RecordingService {
           });
           recording = existing;
         } else {
-          // Create new recording
           recording = await RecordingsQueries.insertRecording(data);
         }
       } else {
-        // Create new recording without external ID check
         recording = await RecordingsQueries.insertRecording(data);
       }
 
-      // Invalidate recordings cache for this project
       if (invalidateCache) {
         CacheInvalidation.invalidateProjectRecordings(
           recording.projectId,
@@ -73,7 +79,7 @@ export class RecordingService {
         projectId: recording.projectId,
       });
 
-      return ok(this.toDto(recording));
+      return ok(this.toDto(recording, user));
     } catch (error) {
       logger.error("Failed to create recording in database", {
         component: "RecordingService.createRecording",
@@ -92,10 +98,15 @@ export class RecordingService {
   }
 
   /**
-   * Get a recording by ID
+   * Get a recording by ID with data minimization
+   * @param id - Recording ID
+   * @param user - Optional user for role-based filtering
+   * @param auditContext - Optional audit context (ipAddress, userAgent)
    */
   static async getRecordingById(
-    id: string
+    id: string,
+    user?: BetterAuthUser,
+    auditContext?: { ipAddress?: string; userAgent?: string }
   ): Promise<ActionResult<RecordingDto | null>> {
     logger.info("Fetching recording by ID", {
       component: "RecordingService.getRecordingById",
@@ -113,7 +124,29 @@ export class RecordingService {
         return ok(null);
       }
 
-      return ok(this.toDto(recording));
+      // Audit log when full transcription is accessed by admin
+      if (user && recording.transcriptionText) {
+        const hasFullAccess = canAccessFullTranscription(user);
+        
+        if (hasFullAccess) {
+          await AuditLogService.createAuditLog({
+            eventType: "data_access",
+            resourceType: "recording",
+            resourceId: id,
+            userId: user.id,
+            organizationId: recording.organizationId,
+            action: "view_full_transcription",
+            ipAddress: auditContext?.ipAddress ?? null,
+            userAgent: auditContext?.userAgent ?? null,
+            metadata: {
+              transcriptionLength: recording.transcriptionText?.length ?? 0,
+              hasRedaction: !!recording.redactedTranscriptionText,
+            },
+          });
+        }
+      }
+
+      return ok(this.toDto(recording, user));
     } catch (error) {
       logger.error("Failed to fetch recording from database", {
         component: "RecordingService.getRecordingById",
@@ -132,14 +165,19 @@ export class RecordingService {
   }
 
   /**
-   * Get all recordings for a project
+   * Get all recordings for a project with data minimization
+   * @param projectId - Project ID
+   * @param organizationId - Organization ID
+   * @param options - Query options
+   * @param user - Optional user for role-based filtering
    */
   static async getRecordingsByProjectId(
     projectId: string,
     organizationId: string,
     options?: {
       search?: string;
-    }
+    },
+    user?: BetterAuthUser
   ): Promise<ActionResult<RecordingDto[]>> {
     logger.info("Fetching recordings for project", {
       component: "RecordingService.getRecordingsByProjectId",
@@ -148,7 +186,6 @@ export class RecordingService {
     });
 
     try {
-      // Verify project belongs to organization
       const project = await ProjectQueries.findById(projectId, organizationId);
       if (!project) {
         return err(
@@ -171,7 +208,7 @@ export class RecordingService {
         count: recordings.length,
       });
 
-      return ok(recordings.map((recording) => this.toDto(recording)));
+      return ok(recordings.map((recording) => this.toDto(recording, user)));
     } catch (error) {
       logger.error("Failed to fetch recordings from database", {
         component: "RecordingService.getRecordingsByProjectId",
@@ -190,7 +227,10 @@ export class RecordingService {
   }
 
   /**
-   * Get all recordings for an organization
+   * Get all recordings for an organization with data minimization
+   * @param organizationId - Organization ID
+   * @param options - Query options
+   * @param user - Optional user for role-based filtering
    */
   static async getRecordingsByOrganization(
     organizationId: string,
@@ -198,7 +238,8 @@ export class RecordingService {
       statusFilter?: "active" | "archived";
       search?: string;
       projectIds?: string[];
-    }
+    },
+    user?: BetterAuthUser
   ): Promise<ActionResult<Array<RecordingDto & { projectName: string }>>> {
     logger.info("Fetching recordings for organization", {
       component: "RecordingService.getRecordingsByOrganization",
@@ -222,10 +263,9 @@ export class RecordingService {
 
       return ok(
         recordings.map((recording) => {
-          // Extract projectName before converting to DTO
           const { projectName, ...recordingWithoutProjectName } = recording;
           return {
-            ...this.toDto(recordingWithoutProjectName as Recording),
+            ...this.toDto(recordingWithoutProjectName as Recording, user),
             projectName,
           };
         })
@@ -249,6 +289,10 @@ export class RecordingService {
 
   /**
    * Update recording metadata
+   * @param id - Recording ID
+   * @param organizationId - Organization ID
+   * @param data - Metadata to update
+   * @param user - Optional user for role-based filtering in response
    */
   static async updateRecordingMetadata(
     id: string,
@@ -257,7 +301,8 @@ export class RecordingService {
       title: string;
       description?: string | null;
       recordingDate: Date;
-    }
+    },
+    user?: BetterAuthUser
   ): Promise<ActionResult<RecordingDto>> {
     logger.info("Updating recording metadata", {
       component: "RecordingService.updateRecordingMetadata",
@@ -281,14 +326,13 @@ export class RecordingService {
         );
       }
 
-      // Use centralized organization isolation check
       try {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
           "RecordingService.updateRecordingMetadata"
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -312,7 +356,6 @@ export class RecordingService {
         );
       }
 
-      // Invalidate cache for this recording
       CacheInvalidation.invalidateRecording(
         id,
         updatedRecording.projectId,
@@ -324,7 +367,7 @@ export class RecordingService {
         recordingId: id,
       });
 
-      return ok(this.toDto(updatedRecording));
+      return ok(this.toDto(updatedRecording, user));
     } catch (error) {
       logger.error("Failed to update recording in database", {
         component: "RecordingService.updateRecordingMetadata",
@@ -528,7 +571,7 @@ export class RecordingService {
           orgCode,
           "RecordingService.deleteRecording"
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -620,7 +663,7 @@ export class RecordingService {
           organizationId,
           "RecordingService.moveRecording"
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -731,10 +774,59 @@ export class RecordingService {
   }
 
   /**
-   * Convert database recording to DTO
+   * Get a recording with full transcription for admin users only
+   * Includes comprehensive audit logging
+   * @param id - Recording ID
+   * @param user - User requesting access
+   * @param auditContext - Audit context (ipAddress, userAgent)
    */
-  private static toDto(recording: Recording): RecordingDto {
-    return {
+  static async getRecordingWithFullTranscription(
+    id: string,
+    user: BetterAuthUser,
+    auditContext: { ipAddress?: string; userAgent?: string }
+  ): Promise<ActionResult<RecordingDto | null>> {
+    if (!canAccessFullTranscription(user)) {
+      logger.security.unauthorizedAccess({
+        userId: user.id,
+        resource: "recording_full_transcription",
+        action: "view",
+        reason: `User role ${user.role} does not have access to full transcriptions`,
+      });
+
+      return err(
+        ActionErrors.forbidden(
+          "Access denied: insufficient permissions to view full transcription",
+          { resourceId: id, userRole: user.role },
+          "RecordingService.getRecordingWithFullTranscription"
+        )
+      );
+    }
+
+    return this.getRecordingById(id, user, auditContext);
+  }
+
+  /**
+   * Convert database recording to DTO with role-based data minimization
+   * 
+   * Data Minimization (SSD-4.4.01):
+   * - When user is provided: Non-admin users receive only redactedTranscriptionText
+   * - When user is provided: Admin users receive both transcriptionText and redactedTranscriptionText
+   * - When user is NOT provided: Full data returned (for internal operations)
+   * - Sensitive fields (workflowError, encryptionMetadata) filtered for non-admins
+   * 
+   * @param recording - Database recording object
+   * @param user - Optional user for role-based filtering. If not provided, returns full data.
+   */
+  private static toDto(
+    recording: Recording,
+    user?: BetterAuthUser
+  ): RecordingDto {
+    // If no user provided, return full data (internal operation)
+    // If user provided, apply role-based filtering
+    const hasFullAccess = user ? canAccessFullTranscription(user) : true;
+    const hasSensitiveAccess = user ? canAccessSensitiveFields(user) : true;
+
+    const dto: RecordingDto = {
       id: recording.id,
       projectId: recording.projectId,
       title: recording.title,
@@ -747,14 +839,12 @@ export class RecordingService {
       recordingDate: recording.recordingDate,
       recordingMode: recording.recordingMode,
       transcriptionStatus: recording.transcriptionStatus,
-      transcriptionText: recording.transcriptionText,
       redactedTranscriptionText: recording.redactedTranscriptionText ?? null,
       isTranscriptionManuallyEdited: recording.isTranscriptionManuallyEdited,
       transcriptionLastEditedById: recording.transcriptionLastEditedById,
       transcriptionLastEditedAt: recording.transcriptionLastEditedAt,
       status: recording.status,
       workflowStatus: recording.workflowStatus,
-      workflowError: recording.workflowError,
       workflowRetryCount: recording.workflowRetryCount,
       lastReprocessedAt: recording.lastReprocessedAt,
       reprocessingTriggeredById: recording.reprocessingTriggeredById,
@@ -765,10 +855,22 @@ export class RecordingService {
       consentGivenAt: recording.consentGivenAt,
       consentRevokedAt: recording.consentRevokedAt,
       isEncrypted: recording.isEncrypted ?? false,
-      encryptionMetadata: recording.encryptionMetadata ?? null,
       createdAt: recording.createdAt,
       updatedAt: recording.updatedAt,
     };
+
+    // Include full transcription only for admin users or internal operations
+    if (hasFullAccess) {
+      dto.transcriptionText = recording.transcriptionText;
+    }
+
+    // Include sensitive fields only for admin users or internal operations
+    if (hasSensitiveAccess) {
+      dto.workflowError = recording.workflowError;
+      dto.encryptionMetadata = recording.encryptionMetadata ?? null;
+    }
+
+    return dto;
   }
 }
 

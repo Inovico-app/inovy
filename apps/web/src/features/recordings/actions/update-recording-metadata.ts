@@ -36,7 +36,7 @@ export const updateRecordingMetadataAction = authorizedActionClient
       recordingId: id,
     });
 
-    // Update recording via service
+    // Update recording via service with user context for data minimization
     const result = await RecordingService.updateRecordingMetadata(
       id,
       organizationId,
@@ -44,7 +44,8 @@ export const updateRecordingMetadataAction = authorizedActionClient
         title,
         description: description ?? null,
         recordingDate,
-      }
+      },
+      user
     );
 
     const response = resultToActionResponse(result);
