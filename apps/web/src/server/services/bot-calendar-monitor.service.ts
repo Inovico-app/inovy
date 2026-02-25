@@ -121,14 +121,16 @@ export class BotCalendarMonitorService {
         return ok({ sessionsCreated: 0 });
       }
 
-      // Get upcoming meetings
+      // Get upcoming meetings (10-20 minutes window to allow scheduled bot creation)
       const now = new Date();
-      const timeMax = new Date(now.getTime() + 30 * 60 * 1000); // 30 minutes from now
+      // timeMin = now + 10min + 15s (join_at offset) + 5s (safety margin) so joinAt is always > 10min from API call (Recall.ai threshold)
+      const timeMin = new Date(now.getTime() + (10 * 60 + 15 + 5) * 1000);
+      const timeMax = new Date(now.getTime() + 20 * 60 * 1000); // 20 minutes from now
 
       const meetingsResult = await GoogleCalendarService.getUpcomingMeetings(
         settings.userId,
         {
-          timeMin: now,
+          timeMin,
           timeMax,
           calendarIds: settings.calendarIds ?? undefined,
         }
@@ -180,10 +182,22 @@ export class BotCalendarMonitorService {
           const botStatus: "scheduled" | "pending_consent" =
             settings.requirePerMeetingConsent ? "pending_consent" : "scheduled";
 
+          // Calculate join time: 15 seconds before meeting start for precision
+          if (!meeting.start) {
+            logger.warn("Skipping meeting without start time", {
+              component: "BotCalendarMonitorService.processUserCalendar",
+              userId: settings.userId,
+              calendarEventId: meeting.id,
+            });
+            continue;
+          }
+          const joinAt = new Date(meeting.start.getTime() - 15 * 1000);
+
           // Create bot session via provider
           const provider = BotProviderFactory.getDefault();
           const sessionResult = await provider.createSession({
             meetingUrl: meeting.meetingUrl,
+            joinAt,
             customMetadata: {
               projectId: project.id,
               organizationId: settings.organizationId,
