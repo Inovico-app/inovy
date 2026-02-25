@@ -1,6 +1,10 @@
 "use client";
 
 import {
+  getSystemAudioErrorInfo,
+  type RecordingDeviceErrorInfo,
+} from "@/features/recordings/lib/recording-device-errors";
+import {
   createContext,
   type ReactNode,
   useContext,
@@ -8,6 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { toast } from "sonner";
 
 // ============================================================================
 // Types & Enums
@@ -30,8 +35,14 @@ interface SystemAudioContextType {
   videoStream: MediaStream | null; // Video track is required by getDisplayMedia
   startSystemAudio: () => void;
   stopSystemAudio: () => void;
-  setupSystemAudio: () => Promise<void>;
+  /** Resolves when setup completes. Returns success, optional stream, and error info (toast shown on failure, never throws). */
+  setupSystemAudio: () => Promise<
+    | { success: true; stream: MediaStream }
+    | { success: false; error: RecordingDeviceErrorInfo }
+  >;
   systemAudioState: SystemAudioState;
+  /** User-friendly error info when setup fails */
+  setupError: RecordingDeviceErrorInfo | null;
 }
 
 interface SystemAudioContextProviderProps {
@@ -59,6 +70,9 @@ const SystemAudioContextProvider: React.FC<
 
   const [systemAudioState, setSystemAudioState] = useState<SystemAudioState>(
     SystemAudioState.NotSetup
+  );
+  const [setupError, setSetupError] = useState<RecordingDeviceErrorInfo | null>(
+    null
   );
   const [systemAudio, setSystemAudio] = useState<MediaRecorder | null>(null);
   const [systemAudioStream, setSystemAudioStream] =
@@ -108,6 +122,7 @@ const SystemAudioContextProvider: React.FC<
 
   const setupSystemAudio = async () => {
     setSystemAudioState(SystemAudioState.SettingUp);
+    setSetupError(null);
 
     // Cleanup any existing resources before setting up new ones
     cleanupResources();
@@ -142,8 +157,6 @@ const SystemAudioContextProvider: React.FC<
 
       // Check if audio track is available
       if (audioTracks.length === 0) {
-        // User might have selected a screen without audio
-        // Stop the stream and throw error
         displayStream.getTracks().forEach((track) => track.stop());
         throw new Error(
           "No audio track available. Please ensure 'Share system audio' is selected when sharing your screen."
@@ -193,11 +206,21 @@ const SystemAudioContextProvider: React.FC<
 
       setSystemAudioState(SystemAudioState.Ready);
       setSystemAudio(mediaRecorder);
+      return { success: true as const, stream: audioOnlyStream };
     } catch (err: unknown) {
       console.error("Failed to setup system audio:", err);
       cleanupResources();
       setSystemAudioState(SystemAudioState.Error);
-      throw err;
+
+      const errorInfo = getSystemAudioErrorInfo(err);
+      setSetupError(errorInfo);
+
+      // Stay on page: show notification instead of error screen
+      toast.error(errorInfo.title, {
+        description: errorInfo.message,
+        duration: 8000,
+      });
+      return { success: false as const, error: errorInfo };
     }
   };
 
@@ -323,6 +346,7 @@ const SystemAudioContextProvider: React.FC<
         stopSystemAudio,
         setupSystemAudio,
         systemAudioState,
+        setupError,
       }}
     >
       {children}

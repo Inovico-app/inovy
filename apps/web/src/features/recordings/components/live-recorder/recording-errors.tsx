@@ -16,26 +16,29 @@ export function RecordingErrors({
 }: RecordingErrorsProps) {
   return (
     <>
-      {/* Permission Denied Error */}
-      {permissionDenied && (
+      {/* Permission / Recording device errors - stay on page with clear notification */}
+      {(permissionDenied || recorderError) && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Toegang tot microfoon geweigerd. Sta microfoontoegang toe in je
-            browserinstellingen om op te kunnen nemen.
+            <p className="font-semibold">
+              {permissionDenied ? "Microfoontoegang nodig" : "Opname niet mogelijk"}
+            </p>
+            <p className="text-sm mt-1">
+              {recorderError ??
+                "Sta microfoontoegang toe in je browser om te kunnen opnemen. Klik op het slot- of camera‑icoon in de adresbalk en kies 'Toestaan'."}
+            </p>
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Recording/Transcription Errors */}
-      {(recorderError ?? transcriptionError) && (
+      {/* Transcription errors (when no device error) */}
+      {transcriptionError && !permissionDenied && !recorderError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             <p className="font-semibold">Fout opgetreden:</p>
-            <p className="text-sm mt-1">
-              {recorderError ?? transcriptionError}
-            </p>
+            <p className="text-sm mt-1">{transcriptionError}</p>
           </AlertDescription>
         </Alert>
       )}

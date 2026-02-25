@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  getRecordingDeviceErrorInfo,
+  type RecordingDeviceErrorInfo,
+} from "@/features/recordings/lib/recording-device-errors";
 import { getMicrophoneGainPreferenceClient } from "@/features/recordings/lib/microphone-gain-preferences";
 import {
   getMicrophoneDevicePreferenceClient,
@@ -13,6 +17,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { toast } from "sonner";
 import {
   cleanupAudioProcessor,
   createAudioProcessor,
@@ -54,8 +59,14 @@ interface MicrophoneContextType {
   stream: MediaStream | null;
   startMicrophone: () => void;
   stopMicrophone: () => void;
-  setupMicrophone: () => Promise<void>;
+  /** Resolves when setup completes. Returns success, optional stream, and error info (toast shown on failure, never throws). */
+  setupMicrophone: () => Promise<
+    | { success: true; stream: MediaStream }
+    | { success: false; error: RecordingDeviceErrorInfo }
+  >;
   microphoneState: MicrophoneState | null;
+  /** User-friendly error info when setup fails (e.g. permission denied, device not found) */
+  setupError: RecordingDeviceErrorInfo | null;
   gain: number;
   setGain: (gain: number) => void;
   deviceId: string | null;
@@ -87,6 +98,9 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
 
   const [microphoneState, setMicrophoneState] = useState<MicrophoneState>(
     MicrophoneState.NotSetup
+  );
+  const [setupError, setSetupError] = useState<RecordingDeviceErrorInfo | null>(
+    null
   );
   const [microphone, setMicrophone] = useState<MediaRecorder | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -139,6 +153,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
 
   const setupMicrophone = async () => {
     setMicrophoneState(MicrophoneState.SettingUp);
+    setSetupError(null);
 
     // Cleanup any existing resources before setting up new ones
     cleanupResources();
@@ -168,11 +183,21 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
       setMicrophoneState(MicrophoneState.Ready);
       setMicrophone(mediaRecorder);
       setStream(processor.processedStream);
+      return { success: true as const, stream: processor.processedStream };
     } catch (err: unknown) {
       console.error("Failed to setup microphone:", err);
       cleanupResources();
       setMicrophoneState(MicrophoneState.Error);
-      throw err;
+
+      const errorInfo = getRecordingDeviceErrorInfo(err);
+      setSetupError(errorInfo);
+
+      // Stay on page: show notification instead of error screen
+      toast.error(errorInfo.title, {
+        description: errorInfo.message,
+        duration: 8000,
+      });
+      return { success: false as const, error: errorInfo };
     }
   };
 
@@ -303,8 +328,6 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
 
   // Re-setup microphone when deviceId changes (if microphone is already set up)
   useEffect(() => {
-    // Only re-setup if microphone was previously initialized and not actively recording
-    // Skip if NotSetup (initial mount) or SettingUp (already in progress)
     if (
       microphoneState === MicrophoneState.Ready ||
       microphoneState === MicrophoneState.Paused
@@ -327,6 +350,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
         stopMicrophone,
         setupMicrophone,
         microphoneState,
+        setupError,
         gain,
         setGain,
         deviceId,
