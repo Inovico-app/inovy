@@ -45,6 +45,7 @@ export async function getRecentRecordingsForDashboard(
       title: recordings.title,
       description: recordings.description,
       projectId: recordings.projectId,
+      projectName: projects.name,
       createdAt: recordings.createdAt,
       transcriptionStatus: recordings.transcriptionStatus,
     })

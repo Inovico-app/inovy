@@ -10,6 +10,7 @@ import {
   getRecentProjectsForDashboard,
   getRecentRecordingsForDashboard,
 } from "../data-access/dashboard.queries";
+import type { RecordingStatus } from "../db/schema/recordings";
 
 interface DashboardOverview {
   stats: {
@@ -28,8 +29,9 @@ interface DashboardOverview {
     title: string;
     description: string | null;
     projectId: string;
+    projectName: string;
     createdAt: Date;
-    transcriptionStatus: string;
+    transcriptionStatus: RecordingStatus;
   }>;
 }
 
