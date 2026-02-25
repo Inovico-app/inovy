@@ -4,13 +4,13 @@ import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
 import { BotSessionsQueries } from "@/server/data-access/bot-sessions.queries";
-import { ProjectQueries } from "@/server/data-access/projects.queries";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
+import { ProjectQueries } from "@/server/data-access/projects.queries";
 import { BotProviderFactory } from "@/server/services/bot-providers/factory";
 import { GoogleCalendarService } from "@/server/services/google-calendar.service";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
-import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
 import { z } from "zod";
 
 const createCalendarEventWithBotSchema = z.object({
@@ -26,6 +26,8 @@ const createCalendarEventWithBotSchema = z.object({
   allDay: z.boolean().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  recurrence: z.array(z.string()).optional(),
+  userTimezone: z.string().optional(),
 });
 
 /**
@@ -54,8 +56,22 @@ export const createCalendarEventWithBot = authorizedActionClient
       );
     }
 
-    const { title, startDateTime, duration, description, location, calendarId, addBot, attendeeUserIds, attendeeEmails, allDay, startDate, endDate } =
-      parsedInput;
+    const {
+      title,
+      startDateTime,
+      duration,
+      description,
+      location,
+      calendarId,
+      addBot,
+      attendeeUserIds,
+      attendeeEmails,
+      allDay,
+      startDate,
+      endDate,
+      recurrence,
+      userTimezone,
+    } = parsedInput;
 
     logger.info("Creating calendar event with bot", {
       userId: user.id,
@@ -68,7 +84,7 @@ export const createCalendarEventWithBot = authorizedActionClient
     // Calculate end time or use date strings for all-day events
     let start: Date;
     let end: Date;
-    
+
     if (allDay && startDate && endDate) {
       // All-day events: use date strings (YYYY-MM-DD format)
       start = new Date(`${startDate}T00:00:00`);
@@ -81,15 +97,13 @@ export const createCalendarEventWithBot = authorizedActionClient
 
     // Collect attendee emails
     const attendeeEmailList: string[] = [...(attendeeEmails || [])];
-    
+
     // Get emails for organization user IDs
     if (attendeeUserIds && attendeeUserIds.length > 0) {
       try {
         const members = await OrganizationQueries.getMembers(organizationId);
-        const userIdToEmail = new Map(
-          members.map((m) => [m.id, m.email])
-        );
-        
+        const userIdToEmail = new Map(members.map((m) => [m.id, m.email]));
+
         for (const attendeeUserId of attendeeUserIds) {
           const email = userIdToEmail.get(attendeeUserId);
           if (email) {
@@ -97,11 +111,14 @@ export const createCalendarEventWithBot = authorizedActionClient
           }
         }
       } catch (error) {
-        logger.warn("Failed to fetch organization member emails for attendees", {
-          userId: user.id,
-          organizationId,
-          error,
-        });
+        logger.warn(
+          "Failed to fetch organization member emails for attendees",
+          {
+            userId: user.id,
+            organizationId,
+            error,
+          }
+        );
         // Continue without organization user emails - custom emails will still be added
       }
     }
@@ -116,7 +133,9 @@ export const createCalendarEventWithBot = authorizedActionClient
       calendarId,
       attendees: attendeeEmailList.length > 0 ? attendeeEmailList : undefined,
       allDay: allDay || false,
-      userTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      userTimezone:
+        userTimezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+      recurrence,
     });
 
     if (eventResult.isErr()) {
@@ -163,9 +182,10 @@ export const createCalendarEventWithBot = authorizedActionClient
             });
           } else {
             // Get active project for organization
-            const project = await ProjectQueries.findFirstActiveByOrganization(
-              organizationId
-            );
+            const project =
+              await ProjectQueries.findFirstActiveByOrganization(
+                organizationId
+              );
 
             if (!project) {
               botError =
@@ -240,3 +260,4 @@ export const createCalendarEventWithBot = authorizedActionClient
       error: botError,
     };
   });
+

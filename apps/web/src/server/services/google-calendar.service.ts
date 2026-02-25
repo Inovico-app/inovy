@@ -627,6 +627,7 @@ export class GoogleCalendarService {
       attendees?: string[]; // Array of email addresses
       allDay?: boolean;
       userTimezone?: string;
+      recurrence?: string[]; // RRULE strings for recurring events
     }
   ): Promise<
     ActionResult<{
@@ -684,6 +685,7 @@ export class GoogleCalendarService {
             conferenceSolutionKey: { type: string };
           };
         };
+        recurrence?: string[];
       };
 
       let event: EventPayload;
@@ -699,6 +701,7 @@ export class GoogleCalendarService {
           attendees,
           start: { date: startDate },
           end: { date: endDate },
+          recurrence: eventDetails.recurrence,
         };
       } else {
         // Timed events use dateTime with timezone
@@ -724,6 +727,7 @@ export class GoogleCalendarService {
               },
             },
           },
+          recurrence: eventDetails.recurrence,
         };
       }
 

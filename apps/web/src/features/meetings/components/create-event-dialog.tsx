@@ -1,12 +1,7 @@
 "use client";
 
-import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
-import { Loader2Icon } from "lucide-react";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -24,186 +18,42 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2Icon } from "lucide-react";
+import { useCreateEventForm } from "../hooks/use-create-event-form";
+import { TIME_OPTIONS } from "../lib/create-event-schema";
 import { AttendeeSelector } from "./attendee-selector";
-import { useEventDateTimeDefaults } from "../hooks/use-event-datetime-defaults";
-import { useCreateCalendarEvent } from "../hooks/use-create-calendar-event";
-
-const formSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  startDate: z.string().min(1, "Start date is required"),
-  startTime: z.string().optional(),
-  endDate: z.string().min(1, "End date is required"),
-  endTime: z.string().optional(),
-  allDay: z.boolean(),
-  location: z.string().optional(),
-  description: z.string().optional(),
-  addBot: z.boolean(),
-  attendeeUserIds: z.array(z.string()),
-  attendeeEmails: z.array(z.string().email()),
-}).refine(
-  (data) => {
-    // If not all day, times must be provided
-    if (!data.allDay) {
-      return !!(data.startTime && data.endTime);
-    }
-    return true;
-  },
-  {
-    message: "Start and end times are required when not all day",
-    path: ["startTime"],
-  }
-).refine(
-  (data) => {
-    // End date must be after or equal to start date
-    if (data.startDate && data.endDate) {
-      const start = new Date(data.startDate);
-      const end = new Date(data.endDate);
-      if (end < start) {
-        return false;
-      }
-      // If same date and not all day, end time must be after start time
-      if (end.getTime() === start.getTime() && !data.allDay && data.startTime && data.endTime) {
-        const startDateTime = new Date(`${data.startDate}T${data.startTime}`);
-        const endDateTime = new Date(`${data.endDate}T${data.endTime}`);
-        return endDateTime > startDateTime;
-      }
-    }
-    return true;
-  },
-  {
-    message: "End date/time must be after start date/time",
-    path: ["endDate"],
-  }
-);
-
-type FormData = z.infer<typeof formSchema>;
+import { RecurrenceForm } from "./recurrence-form";
 
 interface CreateEventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-
-// Generate time options (every 15 minutes from 00:00 to 23:45)
-const TIME_OPTIONS = Array.from({ length: 96 }, (_, i) => {
-  const hours = Math.floor(i / 4);
-  const minutes = (i % 4) * 15;
-  const timeString = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
-  const date = new Date(`2000-01-01T${timeString}`);
-  const formatted = date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-  return { value: timeString, label: formatted };
-});
-
 export function CreateEventDialog({
   open,
   onOpenChange,
 }: CreateEventDialogProps) {
+  const {
+    form,
+    addBot,
+    allDay,
+    startDate,
+    startTime,
+    endTime,
+    recurrence,
+    setRecurrence,
+    isCreating,
+    onSubmit,
+    handleCancel,
+  } = useCreateEventForm({ open, onOpenChange });
 
   const {
     register,
-    handleSubmit,
     formState: { errors },
     setValue,
     watch,
-    reset,
-  } = useForm<FormData>({
-    resolver: standardSchemaResolver(formSchema),
-    defaultValues: {
-      title: "",
-      startDate: "",
-      startTime: "",
-      endDate: "",
-      endTime: "",
-      allDay: false,
-      location: "",
-      description: "",
-      addBot: true,
-      attendeeUserIds: [],
-      attendeeEmails: [],
-    },
-  });
-
-  const addBot = watch("addBot");
-  const allDay = watch("allDay");
-  const startDate = watch("startDate");
-  const startTime = watch("startTime");
-  const endTime = watch("endTime");
-
-  // Handle date/time defaults
-  useEventDateTimeDefaults({
-    open,
-    allDay,
-    setValue,
-    watch,
-  });
-
-
-  const { createEvent, isCreating } = useCreateCalendarEvent({
-    onSuccess: () => {
-      // Reset form and close dialog
-      reset();
-      onOpenChange(false);
-    },
-  });
-
-  // Reset form when dialog closes
-  useEffect(() => {
-    if (!open) {
-      reset();
-    }
-  }, [open, reset]);
-
-
-  const onSubmit = async (data: FormData) => {
-    if (data.allDay) {
-      // All day events: pass date strings directly
-      createEvent({
-        title: data.title,
-        startDateTime: new Date(`${data.startDate}T00:00:00`),
-        duration: 1440, // 24 hours in minutes
-        description: data.description || undefined,
-        location: data.location || undefined,
-        calendarId: "primary",
-        addBot: data.addBot,
-        attendeeUserIds: data.attendeeUserIds || [],
-        attendeeEmails: data.attendeeEmails || [],
-        allDay: true,
-        startDate: data.startDate,
-        endDate: data.endDate,
-      });
-    } else {
-      // Timed events: combine date and time
-      const start = new Date(`${data.startDate}T${data.startTime || "00:00"}:00`);
-      const end = new Date(`${data.endDate}T${data.endTime || "00:00"}:00`);
-
-      // Calculate duration in minutes
-      const calculatedDuration = Math.round((end.getTime() - start.getTime()) / (60 * 1000));
-
-      if (calculatedDuration < 15) {
-        toast.error("Duration must be at least 15 minutes");
-        return;
-      }
-
-      createEvent({
-        title: data.title,
-        startDateTime: start,
-        duration: calculatedDuration,
-        description: data.description || undefined,
-        location: data.location || undefined,
-        calendarId: "primary",
-        addBot: data.addBot,
-        attendeeUserIds: data.attendeeUserIds || [],
-        attendeeEmails: data.attendeeEmails || [],
-        allDay: false,
-      });
-    }
-  };
-
+  } = form;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -212,7 +62,7 @@ export function CreateEventDialog({
           <DialogTitle>Create Event</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">
               Title <span className="text-destructive">*</span>
@@ -259,7 +109,8 @@ export function CreateEventDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="startTime">
-                  Start Time {!allDay && <span className="text-destructive">*</span>}
+                  Start Time{" "}
+                  {!allDay && <span className="text-destructive">*</span>}
                 </Label>
                 <Select
                   value={startTime || ""}
@@ -267,7 +118,9 @@ export function CreateEventDialog({
                   disabled={allDay}
                 >
                   <SelectTrigger id="startTime" className="w-full">
-                    <SelectValue placeholder={allDay ? "All day" : "Select time"} />
+                    <SelectValue
+                      placeholder={allDay ? "All day" : "Select time"}
+                    />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px]">
                     {TIME_OPTIONS.map((option) => (
@@ -306,7 +159,8 @@ export function CreateEventDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="endTime">
-                  End Time {!allDay && <span className="text-destructive">*</span>}
+                  End Time{" "}
+                  {!allDay && <span className="text-destructive">*</span>}
                 </Label>
                 <Select
                   value={endTime || ""}
@@ -314,7 +168,9 @@ export function CreateEventDialog({
                   disabled={allDay}
                 >
                   <SelectTrigger id="endTime" className="w-full">
-                    <SelectValue placeholder={allDay ? "All day" : "Select time"} />
+                    <SelectValue
+                      placeholder={allDay ? "All day" : "Select time"}
+                    />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px]">
                     {TIME_OPTIONS.map((option) => (
@@ -336,7 +192,9 @@ export function CreateEventDialog({
               <Checkbox
                 id="allDay"
                 checked={allDay}
-                onCheckedChange={(checked) => setValue("allDay", checked === true)}
+                onCheckedChange={(checked) =>
+                  setValue("allDay", checked === true)
+                }
               />
               <Label
                 htmlFor="allDay"
@@ -355,6 +213,13 @@ export function CreateEventDialog({
               placeholder="Event location"
             />
           </div>
+
+          <RecurrenceForm
+            value={recurrence}
+            onChange={setRecurrence}
+            eventStartDate={startDate}
+            disabled={isCreating}
+          />
 
           <AttendeeSelector
             selectedUserIds={watch("attendeeUserIds") || []}
@@ -384,10 +249,7 @@ export function CreateEventDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                reset();
-                onOpenChange(false);
-              }}
+              onClick={handleCancel}
               disabled={isCreating}
             >
               Cancel
