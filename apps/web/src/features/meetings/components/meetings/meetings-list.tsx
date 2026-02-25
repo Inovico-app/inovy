@@ -7,24 +7,22 @@ import { MeetingsEmpty } from "./meetings-empty";
 
 interface MeetingsListProps {
   meetings: MeetingWithSession[];
-  currentPage: number;
-  totalPages: number;
   total: number;
+  hasMore: boolean;
   allMeetingsCount: number;
   isFiltered: boolean;
-  onPageChange: (page: number) => void;
+  onLoadMore: () => void;
   onClearFilters?: () => void;
   onMeetingClick?: (meeting: MeetingWithSession) => void;
 }
 
 export function MeetingsList({
   meetings,
-  currentPage,
-  totalPages,
   total,
+  hasMore,
   allMeetingsCount,
   isFiltered,
-  onPageChange,
+  onLoadMore,
   onClearFilters,
   onMeetingClick,
 }: MeetingsListProps) {
@@ -53,10 +51,11 @@ export function MeetingsList({
           </div>
 
           <MeetingsPagination
-            currentPage={currentPage}
-            totalPages={totalPages}
+            variant="load-more"
+            visibleCount={meetings.length}
             total={total}
-            onPageChange={onPageChange}
+            hasMore={hasMore}
+            onLoadMore={onLoadMore}
           />
         </>
       )}

@@ -22,7 +22,9 @@ const MEET_URL_REGEX = /https?:\/\/meet\.google\.com\/[a-z0-9-]+/i;
  * @param text - The text to search for Google Meet URL
  * @returns The extracted URL or null if not found
  */
-function extractMeetUrlFromText(text: string | null | undefined): string | null {
+function extractMeetUrlFromText(
+  text: string | null | undefined
+): string | null {
   if (!text?.trim()) {
     return null;
   }
@@ -38,7 +40,10 @@ function extractMeetUrlFromText(text: string | null | undefined): string | null 
  */
 function extractMeetingUrl(event: calendar_v3.Schema$Event): string | null {
   // 1. Check conferenceData (modern Google Calendar format)
-  if (event.conferenceData?.entryPoints && Array.isArray(event.conferenceData.entryPoints)) {
+  if (
+    event.conferenceData?.entryPoints &&
+    Array.isArray(event.conferenceData.entryPoints)
+  ) {
     const meetEntry = event.conferenceData.entryPoints.find(
       (entry) =>
         entry.entryPointType === "video" &&
@@ -82,9 +87,11 @@ export interface CalendarEvent {
   meetingUrl: string;
   attendees?: Array<{ email: string; responseStatus: string }>;
   organizer?: { email: string };
+  /**
+   * True if the current user is the event organizer, false if invited.
+   */
+  isOrganizer?: boolean;
   calendarId: string;
-  /** True if the current user is the event organizer (vs invited attendee) */
-  isOrganizer: boolean;
 }
 
 /**
@@ -598,9 +605,12 @@ export class GoogleCalendarService {
         meetingUrl,
       });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unknown error";
-      logger.error("Failed to update calendar event", { userId, eventId }, error as Error);
+      const message = error instanceof Error ? error.message : "Unknown error";
+      logger.error(
+        "Failed to update calendar event",
+        { userId, eventId },
+        error as Error
+      );
       return err(
         ActionErrors.internal(
           `Failed to update calendar event: ${message}`,
@@ -666,12 +676,15 @@ export class GoogleCalendarService {
       const calendarId = eventDetails.calendarId || "primary";
 
       // Prepare attendees array
-      const attendees = eventDetails.attendees && eventDetails.attendees.length > 0
-        ? eventDetails.attendees.map((email) => ({ email }))
-        : undefined;
+      const attendees =
+        eventDetails.attendees && eventDetails.attendees.length > 0
+          ? eventDetails.attendees.map((email) => ({ email }))
+          : undefined;
 
       // Use user's timezone or fallback to server timezone
-      const timeZone = eventDetails.userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const timeZone =
+        eventDetails.userTimezone ||
+        Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       // Create event with Google Meet conference data
       type EventPayload = {
@@ -890,89 +903,6 @@ export class GoogleCalendarService {
   }
 
   /**
-   * Get list of calendars where the user can read events (reader or higher)
-   * Includes calendars with invited meetings that live on secondary/shared calendars
-   * Use this for fetching meetings to display; use getCalendarsList for write operations
-   */
-  static async getReadableCalendarsList(
-    userId: string
-  ): Promise<
-    ActionResult<Array<{ id: string; summary: string; accessRole: string }>>
-  > {
-    try {
-      const tokenResult = await GoogleOAuthService.getValidAccessToken(userId);
-
-      if (tokenResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get valid access token",
-            tokenResult.error,
-            "GoogleCalendarService.getReadableCalendarsList"
-          )
-        );
-      }
-
-      const oauth2Client = createGoogleOAuthClient();
-      oauth2Client.setCredentials({
-        access_token: tokenResult.value,
-      });
-
-      const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-
-      const response = await calendar.calendarList.list({
-        minAccessRole: "reader", // Include calendars where user can only read (invited meetings)
-      });
-
-      if (!response.data.items) {
-        return ok([]);
-      }
-
-      const calendars = response.data.items
-        .filter((cal) => cal.id)
-        .map((cal) => ({
-          id: cal.id!,
-          summary: cal.summary || cal.id || "Unnamed Calendar",
-          accessRole: cal.accessRole || "reader",
-        }));
-
-      logger.info("Fetched readable calendars", {
-        userId,
-        count: calendars.length,
-      });
-
-      return ok(calendars);
-    } catch (error) {
-      const isInsufficientScopes =
-        error instanceof Error &&
-        (error.message.includes("insufficient authentication scopes") ||
-          error.message.includes("insufficientPermissions") ||
-          (error as any).code === 403);
-
-      if (isInsufficientScopes) {
-        logger.error("Insufficient Google OAuth scopes for calendar list", {
-          userId,
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-        return err(
-          ActionErrors.badRequest(
-            "Your Google account connection is missing required permissions. Please disconnect and reconnect your Google account in settings to grant calendar access.",
-            "GoogleCalendarService.getReadableCalendarsList"
-          )
-        );
-      }
-
-      logger.error("Failed to get readable calendars list", { userId }, error as Error);
-      return err(
-        ActionErrors.internal(
-          "Failed to get readable calendars list",
-          error as Error,
-          "GoogleCalendarService.getReadableCalendarsList"
-        )
-      );
-    }
-  }
-
-  /**
    * Get upcoming Google Meet meetings for a user
    * @param userId - User ID
    * @param options - Options for filtering meetings
@@ -1013,112 +943,93 @@ export class GoogleCalendarService {
       const timeMin = options?.timeMin ?? now;
       const timeMax =
         options?.timeMax ?? new Date(now.getTime() + 30 * 60 * 1000);
+      const calendarIds = options?.calendarIds ?? ["primary"];
 
-      // Determine which calendars to fetch: use provided IDs, or all readable calendars for invited meetings
-      let calendarIdsToFetch: string[];
-      const providedCalendarIds = options?.calendarIds;
-      if (
-        Array.isArray(providedCalendarIds) &&
-        providedCalendarIds.length > 0
-      ) {
-        calendarIdsToFetch = providedCalendarIds;
-      } else {
-        const calendarsResult = await this.getReadableCalendarsList(userId);
-        if (calendarsResult.isErr()) {
-          return err(calendarsResult.error);
-        }
-        calendarIdsToFetch = calendarsResult.value.map((cal) => cal.id);
-      }
+      const meetings: CalendarEvent[] = [];
 
-      // Get user's email once outside the loop for attendance filtering
-      const connectionResult =
-        await GoogleOAuthService.getConnection(userId);
+      // Resolve user email once for attendance filtering across all calendars
+      const connectionResult = await GoogleOAuthService.getConnection(userId);
       const userEmail =
         connectionResult.isOk() && connectionResult.value?.email
           ? connectionResult.value.email.toLowerCase()
           : null;
 
-      const meetingsMap = new Map<string, CalendarEvent>();
-
-      // Fetch events from each calendar
-      for (const calendarId of calendarIdsToFetch) {
+      // Fetch events from each calendar, paginating through all results
+      for (const calendarId of calendarIds) {
         try {
-          const response = await calendar.events.list({
-            calendarId,
-            timeMin: timeMin.toISOString(),
-            timeMax: timeMax.toISOString(),
-            singleEvents: true, // Expand recurring events
-            orderBy: "startTime",
-            maxResults: 100,
-          });
+          let pageToken: string | undefined;
 
-          if (!response.data.items) {
-            continue;
-          }
-
-          for (const event of response.data.items) {
-            // Extract Google Meet URL from various sources
-            const meetingUrl = extractMeetingUrl(event);
-
-            // Skip if no Google Meet link found
-            if (!meetingUrl) {
-              continue;
-            }
-
-            // Filter by user attendance
-            // User must be organizer or have accepted the invitation
-            const isOrganizer =
-              event.organizer?.email?.toLowerCase() === userEmail;
-            const isAttending =
-              event.attendees?.some(
-                (attendee) =>
-                  attendee.email?.toLowerCase() === userEmail &&
-                  (attendee.responseStatus === "accepted" ||
-                    attendee.responseStatus === "tentative")
-              ) ?? false;
-
-            if (!isOrganizer && !isAttending) {
-              continue;
-            }
-
-            // Extract event details
-            const startDate = event.start?.dateTime
-              ? new Date(event.start.dateTime)
-              : event.start?.date
-                ? new Date(event.start.date)
-                : null;
-            const endDate = event.end?.dateTime
-              ? new Date(event.end.dateTime)
-              : event.end?.date
-                ? new Date(event.end.date)
-                : null;
-
-            if (!startDate || !endDate || !event.id) {
-              continue;
-            }
-
-            // Deduplicate: same event can appear in multiple calendars (e.g. primary + shared)
-            if (meetingsMap.has(event.id)) {
-              continue;
-            }
-
-            meetingsMap.set(event.id, {
-              id: event.id,
-              title: event.summary || "Untitled Event",
-              start: startDate,
-              end: endDate,
-              meetingUrl,
-              attendees: event.attendees?.map((a) => ({
-                email: a.email || "",
-                responseStatus: a.responseStatus || "needsAction",
-              })),
-              organizer: event.organizer
-                ? { email: event.organizer.email || "" }
-                : undefined,
+          do {
+            const response = await calendar.events.list({
               calendarId,
-              isOrganizer,
+              timeMin: timeMin.toISOString(),
+              timeMax: timeMax.toISOString(),
+              singleEvents: true,
+              orderBy: "startTime",
+              maxResults: 250,
+              pageToken,
             });
-          }
+
+            pageToken = response.data.nextPageToken ?? undefined;
+
+            if (!response.data.items) {
+              continue;
+            }
+
+            for (const event of response.data.items) {
+              const meetingUrl = extractMeetingUrl(event);
+
+              if (!meetingUrl) {
+                continue;
+              }
+
+              const isOrganizer =
+                event.organizer?.email?.toLowerCase() === userEmail;
+              const isAttending =
+                event.attendees?.some(
+                  (attendee) =>
+                    attendee.email?.toLowerCase() === userEmail &&
+                    (attendee.responseStatus === "accepted" ||
+                      attendee.responseStatus === "tentative")
+                ) ?? false;
+
+              if (!isOrganizer && !isAttending) {
+                continue;
+              }
+
+              const startDate = event.start?.dateTime
+                ? new Date(event.start.dateTime)
+                : event.start?.date
+                  ? new Date(event.start.date)
+                  : null;
+              const endDate = event.end?.dateTime
+                ? new Date(event.end.dateTime)
+                : event.end?.date
+                  ? new Date(event.end.date)
+                  : null;
+
+              if (!startDate || !endDate || !event.id) {
+                continue;
+              }
+
+              meetings.push({
+                id: event.id,
+                title: event.summary || "Untitled Event",
+                start: startDate,
+                end: endDate,
+                meetingUrl,
+                attendees: event.attendees?.map((a) => ({
+                  email: a.email || "",
+                  responseStatus: a.responseStatus || "needsAction",
+                })),
+                organizer: event.organizer
+                  ? { email: event.organizer.email || "" }
+                  : undefined,
+                isOrganizer,
+                calendarId,
+              });
+            }
+          } while (pageToken);
         } catch (calendarError) {
           logger.error(
             "Failed to fetch events from calendar",
@@ -1129,11 +1040,8 @@ export class GoogleCalendarService {
             },
             calendarError as Error
           );
-          // Continue with other calendars
         }
       }
-
-      const meetings = Array.from(meetingsMap.values());
 
       logger.info("Fetched upcoming Google Meet meetings", {
         userId,
