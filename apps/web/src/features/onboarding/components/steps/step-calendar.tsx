@@ -1,16 +1,21 @@
 import { Button } from "@/components/ui/button";
+import { PermissionExplanationDialog } from "@/features/integrations/google/components/permission-explanation-dialog";
 import { Calendar, CheckCircle2, Loader2 } from "lucide-react";
 
 interface StepCalendarProps {
   googleConnected: boolean;
   checkingGoogleStatus: boolean;
   onConnectGoogle: () => void;
+  showPermissionDialog: boolean;
+  onPermissionDialogChange: (open: boolean) => void;
 }
 
 export function StepCalendar({
   googleConnected,
   checkingGoogleStatus,
   onConnectGoogle,
+  showPermissionDialog,
+  onPermissionDialogChange,
 }: StepCalendarProps) {
   return (
     <div className="space-y-6">
@@ -73,6 +78,13 @@ export function StepCalendar({
           </Button>
         )}
       </div>
+
+      <PermissionExplanationDialog
+        open={showPermissionDialog}
+        onOpenChange={onPermissionDialogChange}
+        tiers={["base"]}
+        redirectUrl="/onboarding?google_connected=true"
+      />
     </div>
   );
 }

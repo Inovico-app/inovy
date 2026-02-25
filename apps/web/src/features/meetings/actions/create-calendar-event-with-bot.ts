@@ -47,12 +47,23 @@ export const createCalendarEventWithBot = authorizedActionClient
       throw ActionErrors.unauthenticated("User context required");
     }
 
-    // Check if user has Google connection
+    // Check if user has Google connection with calendarWrite scope
     const hasConnection = await GoogleOAuthService.hasConnection(user.id);
 
     if (hasConnection.isErr() || !hasConnection.value) {
       throw ActionErrors.badRequest(
         "Google account not connected. Please connect in settings first."
+      );
+    }
+
+    const hasScopeResult = await GoogleOAuthService.hasScopes(
+      user.id,
+      "calendarWrite"
+    );
+
+    if (hasScopeResult.isErr() || !hasScopeResult.value) {
+      throw ActionErrors.badRequest(
+        "Missing permission: Calendar (create & edit events). Please grant this permission in Settings > Integrations."
       );
     }
 

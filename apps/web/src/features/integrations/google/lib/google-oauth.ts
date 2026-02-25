@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { google } from "googleapis";
+import { SCOPE_TIERS } from "./scope-constants";
 
 type OAuth2Client = InstanceType<typeof google.auth.OAuth2>;
 
@@ -38,14 +39,10 @@ function validateEnvironment() {
   }
 }
 
-// Scopes for Google Workspace integration
-export const GOOGLE_SCOPES = [
-  "https://www.googleapis.com/auth/userinfo.email",
-  "https://www.googleapis.com/auth/gmail.compose", // Create drafts
-  "https://www.googleapis.com/auth/calendar.readonly", // Read calendar metadata (list calendars)
-  "https://www.googleapis.com/auth/calendar.events", // Create/update/delete calendar events
-  "https://www.googleapis.com/auth/drive.readonly", // Read Drive files and folders
-];
+export { SCOPE_TIERS, type ScopeTier } from "./scope-constants";
+
+/** @deprecated Use SCOPE_TIERS instead. Kept for backward-compat references. */
+export const GOOGLE_SCOPES = Object.values(SCOPE_TIERS).flat();
 
 /**
  * Create OAuth2 client for Google
@@ -60,13 +57,16 @@ export function createGoogleOAuthClient(): OAuth2Client {
 }
 
 /**
- * Generate authorization URL for OAuth flow
+ * Generate authorization URL for OAuth flow.
+ * Supports incremental authorization via `include_granted_scopes`.
  * @param state - Optional state parameter for CSRF protection
  * @param redirectUri - Optional redirect URI (defaults to GOOGLE_REDIRECT_URI)
+ * @param scopes - Specific scopes to request (defaults to base tier)
  */
 export function getAuthorizationUrl(
   state?: string,
-  redirectUri?: string
+  redirectUri?: string,
+  scopes?: readonly string[]
 ): string {
   const oauth2Client = redirectUri
     ? new google.auth.OAuth2(
@@ -77,10 +77,11 @@ export function getAuthorizationUrl(
     : createGoogleOAuthClient();
 
   return oauth2Client.generateAuthUrl({
-    access_type: "offline", // Request refresh token
-    scope: GOOGLE_SCOPES,
-    prompt: "consent", // Force consent screen to ensure refresh token
-    state: state || "", // Optional state for CSRF protection
+    access_type: "offline",
+    scope: scopes ? [...scopes] : [...SCOPE_TIERS.base],
+    prompt: "consent",
+    include_granted_scopes: true,
+    state: state || "",
   });
 }
 
@@ -126,7 +127,7 @@ export async function exchangeCodeForTokens(
     accessToken: tokens.access_token,
     refreshToken: tokens.refresh_token,
     expiresAt,
-    scopes: tokens.scope?.split(" ") || GOOGLE_SCOPES,
+    scopes: tokens.scope?.split(" ") || [...SCOPE_TIERS.base],
   };
 }
 
