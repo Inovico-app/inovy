@@ -6,6 +6,18 @@ import {
 } from "../../lib/server-action-client/action-errors";
 import { getRecallApiKey } from "./recall-api.utils";
 
+interface CreateMeetingRequest {
+  meeting_url: string;
+  webhook_url: string;
+  custom_metadata: Record<string, string>;
+  automatic_leave: {
+    noone_joined_timeout: number;
+    waiting_room_timeout: number;
+    everyone_left_timeout: number;
+  };
+  join_at?: string;
+}
+
 interface RecallRecording {
   id?: string;
   media_shortcuts?: {
@@ -53,17 +65,7 @@ export class RecallApiService {
       const apiKey = getRecallApiKey();
       const webhookUrl = `${this.getWebhookBaseUrl()}/api/webhooks/recall`;
 
-      const requestBody: {
-        meeting_url: string;
-        webhook_url: string;
-        custom_metadata: Record<string, string>;
-        automatic_leave: {
-          noone_joined_timeout: number;
-          waiting_room_timeout: number;
-          everyone_left_timeout: number;
-        };
-        join_at?: string;
-      } = {
+      const requestBody: CreateMeetingRequest = {
         meeting_url: meetingUrl,
         webhook_url: webhookUrl,
         custom_metadata: customMetadata ?? {},
@@ -310,7 +312,11 @@ export class RecallApiService {
       if (detailsResult.isErr()) return err(detailsResult.error);
 
       const { recordings } = detailsResult.value;
-      if (!recordings || !Array.isArray(recordings) || recordings.length === 0) {
+      if (
+        !recordings ||
+        !Array.isArray(recordings) ||
+        recordings.length === 0
+      ) {
         lastError = ActionErrors.notFound(
           "No recordings available yet",
           "RecallApiService.getRecordingDownloadUrl"
@@ -333,8 +339,7 @@ export class RecallApiService {
 
       const rec = recording as RecallRecording;
 
-      const downloadUrl =
-        rec.media_shortcuts?.video_mixed?.data?.download_url;
+      const downloadUrl = rec.media_shortcuts?.video_mixed?.data?.download_url;
       if (!downloadUrl) {
         lastError = ActionErrors.notFound(
           "Recording download URL not available yet",
@@ -369,10 +374,13 @@ export class RecallApiService {
       });
     }
 
-    return err(lastError ?? ActionErrors.notFound(
-      "Recording not available",
-      "RecallApiService.getRecordingDownloadUrl"
-    ));
+    return err(
+      lastError ??
+        ActionErrors.notFound(
+          "Recording not available",
+          "RecallApiService.getRecordingDownloadUrl"
+        )
+    );
   }
 }
 
