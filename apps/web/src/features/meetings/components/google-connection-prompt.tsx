@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -6,11 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PermissionExplanationDialog } from "@/features/integrations/google/components/permission-explanation-dialog";
 import { Calendar } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 export function GoogleConnectionPrompt() {
-  const connectUrl = `/api/integrations/google/authorize?redirect=${encodeURIComponent("/meetings")}`;
+  const [showDialog, setShowDialog] = useState(false);
 
   return (
     <div className="container mx-auto max-w-2xl py-12 px-4">
@@ -29,9 +33,7 @@ export function GoogleConnectionPrompt() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              Once connected, you&apos;ll be able to:
-            </p>
+            <p>Once connected, you&apos;ll be able to:</p>
             <ul className="list-disc list-inside space-y-1 ml-4">
               <li>View all your Google Calendar meetings</li>
               <li>See bot session status for each meeting</li>
@@ -39,17 +41,23 @@ export function GoogleConnectionPrompt() {
             </ul>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 pt-4">
-            <Button asChild className="flex-1">
-              <a href={connectUrl}>Connect Google Calendar</a>
+            <Button className="flex-1" onClick={() => setShowDialog(true)}>
+              Connect Google Calendar
             </Button>
             <Button variant="outline" asChild className="flex-1">
-              <Link href="/settings/integrations">
-                Manage Integrations
-              </Link>
+              <Link href="/settings/integrations">Manage Integrations</Link>
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      <PermissionExplanationDialog
+        open={showDialog}
+        onOpenChange={setShowDialog}
+        tiers={["base"]}
+        redirectUrl="/meetings"
+      />
     </div>
   );
 }
+

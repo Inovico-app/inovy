@@ -1,9 +1,12 @@
+"use client";
+
 import { getGoogleConnectionStatus } from "@/features/settings/actions/google-connection";
-import { useEffect, useEffectEvent, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useState } from "react";
 
 export function useGoogleConnection(currentStep: number) {
   const [googleConnected, setGoogleConnected] = useState(false);
   const [checkingGoogleStatus, setCheckingGoogleStatus] = useState(false);
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
 
   const checkGoogleConnectionEffect = useEffectEvent(async () => {
     setCheckingGoogleStatus(true);
@@ -19,10 +22,9 @@ export function useGoogleConnection(currentStep: number) {
     }
   });
 
-  function handleConnectGoogle() {
-    const redirectUrl = `/api/integrations/google/authorize?redirect=${encodeURIComponent("/onboarding?google_connected=true")}`;
-    window.location.href = redirectUrl;
-  }
+  const handleConnectGoogle = useCallback(() => {
+    setShowPermissionDialog(true);
+  }, []);
 
   useEffect(() => {
     if (currentStep === 4) {
@@ -41,6 +43,8 @@ export function useGoogleConnection(currentStep: number) {
     googleConnected,
     checkingGoogleStatus,
     handleConnectGoogle,
+    showPermissionDialog,
+    setShowPermissionDialog,
   };
 }
 

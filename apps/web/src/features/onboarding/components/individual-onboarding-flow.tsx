@@ -3,13 +3,13 @@
 import { AnimatePresence } from "motion/react";
 import { useGoogleConnection } from "../hooks/use-google-connection";
 import type { Step } from "../hooks/use-onboarding-steps";
+import { StepTransition } from "./step-transition";
 import { StepAccountType } from "./steps/step-account-type";
 import { StepCalendar } from "./steps/step-calendar";
 import { StepName } from "./steps/step-name";
 import { StepNewsletter } from "./steps/step-newsletter";
 import { StepReferralSource } from "./steps/step-referral-source";
 import { StepResearchQuestion } from "./steps/step-research-question";
-import { StepTransition } from "./step-transition";
 
 interface IndividualOnboardingFlowProps {
   currentStep: Step;
@@ -20,8 +20,13 @@ export function IndividualOnboardingFlow({
   currentStep,
   isLoading,
 }: IndividualOnboardingFlowProps) {
-  const { googleConnected, checkingGoogleStatus, handleConnectGoogle } =
-    useGoogleConnection(currentStep);
+  const {
+    googleConnected,
+    checkingGoogleStatus,
+    handleConnectGoogle,
+    showPermissionDialog,
+    setShowPermissionDialog,
+  } = useGoogleConnection(currentStep);
 
   return (
     <AnimatePresence mode="wait">
@@ -49,6 +54,8 @@ export function IndividualOnboardingFlow({
             googleConnected={googleConnected}
             checkingGoogleStatus={checkingGoogleStatus}
             onConnectGoogle={handleConnectGoogle}
+            showPermissionDialog={showPermissionDialog}
+            onPermissionDialogChange={setShowPermissionDialog}
           />
         </StepTransition>
       )}

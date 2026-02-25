@@ -4,6 +4,31 @@ import { logger } from "@/lib/logger";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { type NextRequest, NextResponse } from "next/server";
 
+const SAFE_REDIRECT_FALLBACK = "/settings?google_success=true";
+
+function validateRedirectUrl(
+  redirectUrl: string,
+  requestUrl: string
+): string {
+  try {
+    const resolved = new URL(redirectUrl, requestUrl);
+    const origin = new URL(requestUrl).origin;
+
+    if (resolved.origin !== origin) {
+      logger.warn("Rejected off-origin redirect URL in OAuth callback", {
+        redirectUrl,
+        resolvedOrigin: resolved.origin,
+        expectedOrigin: origin,
+      });
+      return SAFE_REDIRECT_FALLBACK;
+    }
+
+    return redirectUrl;
+  } catch {
+    return SAFE_REDIRECT_FALLBACK;
+  }
+}
+
 /**
  * GET /api/integrations/google/callback
  * Handles OAuth callback from Google
@@ -83,9 +108,8 @@ export async function GET(request: NextRequest) {
           );
         }
 
-        // Use redirect URL from state if provided
         if (stateData.redirectUrl) {
-          redirectUrl = stateData.redirectUrl;
+          redirectUrl = validateRedirectUrl(stateData.redirectUrl, request.url);
         }
       } catch (stateError) {
         logger.error("Invalid state parameter", {}, stateError as Error);
