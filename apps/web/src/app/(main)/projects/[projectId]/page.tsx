@@ -104,6 +104,7 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
           <ProjectActions
             projectId={project.id}
             projectName={project.name}
+            projectDescription={project.description}
             isArchived={isArchived}
             recordingCount={statistics.totalCount}
           />
