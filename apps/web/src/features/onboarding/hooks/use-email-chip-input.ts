@@ -39,26 +39,23 @@ export function useEmailChipInput({
         return false;
       }
 
-      setEmails((prev) => {
-        if (prev.includes(email)) {
-          setError(messages.duplicateEmail(email));
-          return prev;
-        }
+      if (emails.includes(email)) {
+        setError(messages.duplicateEmail(email));
+        return false;
+      }
 
-        if (prev.length >= maxEmails) {
-          setError(messages.maxEmails(maxEmails));
-          return prev;
-        }
+      if (emails.length >= maxEmails) {
+        setError(messages.maxEmails(maxEmails));
+        return false;
+      }
 
-        setError(null);
-        const next = [...prev, email];
-        onChange?.(next);
-        return next;
-      });
-
+      setError(null);
+      const next = [...emails, email];
+      setEmails(next);
+      onChange?.(next);
       return true;
     },
-    [maxEmails, onChange, messages]
+    [emails, maxEmails, onChange, messages]
   );
 
   const addEmails = useCallback(

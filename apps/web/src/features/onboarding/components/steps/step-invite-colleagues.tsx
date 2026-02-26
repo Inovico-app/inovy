@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useFormContext } from "react-hook-form";
 import { useEmailChipInput } from "../../hooks/use-email-chip-input";
 import type { OnboardingFormValues } from "../../schemas/onboarding-form.schema";
@@ -56,8 +56,22 @@ export function StepInviteColleagues({ isLoading }: StepInviteColleaguesProps) {
   } = useEmailChipInput();
 
   useEffect(() => {
-    setValue("inviteEmails", emails.join(", "));
+    if (emails.length > 0) {
+      setValue("inviteEmails", emails.join(", "));
+    }
   }, [emails, setValue]);
+
+  const handleContainerClick = useCallback(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleRemoveEmail = useCallback(
+    (email: string) => (e: React.MouseEvent) => {
+      e.stopPropagation();
+      removeEmail(email);
+    },
+    [removeEmail]
+  );
 
   return (
     <div className="space-y-6">
@@ -84,7 +98,7 @@ export function StepInviteColleagues({ isLoading }: StepInviteColleaguesProps) {
             "focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]",
             error && "border-destructive focus-within:ring-destructive/20"
           )}
-          onClick={() => inputRef.current?.focus()}
+          onClick={handleContainerClick}
           role="presentation"
         >
           <div className="flex flex-wrap items-center gap-1.5">
@@ -114,10 +128,7 @@ export function StepInviteColleagues({ isLoading }: StepInviteColleaguesProps) {
                     <span className="max-w-[180px] truncate">{email}</span>
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeEmail(email);
-                      }}
+                      onClick={handleRemoveEmail(email)}
                       className="ml-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                       aria-label={`${email} verwijderen`}
                     >
@@ -158,7 +169,9 @@ export function StepInviteColleagues({ isLoading }: StepInviteColleaguesProps) {
               spellCheck={false}
               className="h-7 min-w-[180px] flex-1 border-0 bg-transparent px-0 py-0 shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60"
               aria-invalid={Boolean(error)}
-              aria-describedby={error ? "invite-hint invite-error" : "invite-hint"}
+              aria-describedby={
+                error ? "invite-hint invite-error" : "invite-hint"
+              }
             />
           </div>
         </div>
