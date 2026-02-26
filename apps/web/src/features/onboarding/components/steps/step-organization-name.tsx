@@ -1,7 +1,7 @@
 "use client";
 
-import { Controller, useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
+import { Controller, useFormContext } from "react-hook-form";
 import type { OnboardingFormValues } from "../../schemas/onboarding-form.schema";
 
 interface StepOrganizationNameProps {
@@ -47,9 +47,8 @@ export function StepOrganizationName({ isLoading }: StepOrganizationNameProps) {
       </fieldset>
       <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5">🎉</div>
           <p className="text-sm text-foreground">
-            Je krijgt 14 dagen gratis toegang tot alle functies!
+            Welkom! Ontdek alle functies en maak Inovy helemaal van jou.
           </p>
         </div>
       </div>

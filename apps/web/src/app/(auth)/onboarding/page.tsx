@@ -125,7 +125,7 @@ async function OnboardingContent({
               <div>
                 <h3 className="mb-1 font-semibold">Snel aan de slag</h3>
                 <p className="text-sm text-primary-foreground/80">
-                  In minder dan 2 minuten kun je je eerste opname starten
+                  Start een opname, en Inovy doet de rest
                 </p>
               </div>
             </div>
@@ -148,9 +148,10 @@ async function OnboardingContent({
                 </svg>
               </div>
               <div>
-                <h3 className="mb-1 font-semibold">Volledig AVG-proof</h3>
+                <h3 className="mb-1 font-semibold">Privacy voorop</h3>
                 <p className="text-sm text-primary-foreground/80">
-                  Alle gespreksdata blijft veilig op je eigen apparaat
+                  Jouw gespreksdata wordt versleuteld opgeslagen en nooit
+                  gedeeld met derden
                 </p>
               </div>
             </div>
