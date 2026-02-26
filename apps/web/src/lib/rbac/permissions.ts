@@ -1,6 +1,12 @@
 /**
  * Type-safe permission types and presets
  * Shared between server and client
+ *
+ * These permission presets are organized according to authorization groups
+ * defined in authorization-groups.ts for SSD-7.1.01 compliance.
+ *
+ * @see authorization-groups.ts for the complete authorization group structure
+ * @see AUTHORIZATION_GROUPS.md for detailed documentation
  */
 
 import type { Action, Resource } from "../auth/access-control";
@@ -23,16 +29,32 @@ export type Permissions = {
 /**
  * Common permission presets for convenience
  * These are type-safe and match the access control configuration
+ *
+ * Permission presets are used in server actions to declare required permissions.
+ * They map to authorization groups which provide the organizational structure
+ * required by SSD-7.1.01.
  */
 export const Permissions = {
-  // Superadmin
+  /**
+   * System Administration Permissions
+   * Part of: System Administration authorization groups
+   */
+
+  // Superadmin (system-wide access)
   superadmin: {
     all: { superadmin: ["all"] } as Permissions,
   },
-  // Admin
+
+  // Admin (organization-scoped access)
   admin: {
     all: { admin: ["all"] } as Permissions,
   },
+
+  /**
+   * Content Management Permissions
+   * Part of: Content Management authorization groups
+   */
+
   // Project permissions
   project: {
     create: { project: ["create"] } as Permissions,
@@ -57,6 +79,11 @@ export const Permissions = {
     delete: { task: ["delete"] } as Permissions,
   },
 
+  /**
+   * Organization Administration Permissions
+   * Part of: Organization Administration authorization groups
+   */
+
   // Organization permissions
   organization: {
     create: { organization: ["create"] } as Permissions,
@@ -64,41 +91,6 @@ export const Permissions = {
     read: { organization: ["read"] } as Permissions,
     update: { organization: ["update"] } as Permissions,
     delete: { organization: ["delete"] } as Permissions,
-  },
-
-  // User permissions
-  user: {
-    read: { user: ["read"] } as Permissions,
-    update: { user: ["update"] } as Permissions,
-    delete: { user: ["delete"] } as Permissions,
-  },
-
-  // Chat permissions
-  chat: {
-    project: { chat: ["project"] } as Permissions,
-    organization: { chat: ["organization"] } as Permissions,
-  },
-
-  // Organization instruction permissions
-  orgInstruction: {
-    read: { orgInstruction: ["read"] } as Permissions,
-    write: { orgInstruction: ["write"] } as Permissions,
-  },
-
-  // Deepgram permissions
-  deepgram: {
-    token: { deepgram: ["token"] } as Permissions,
-  },
-
-  // Settings permissions
-  setting: {
-    read: { setting: ["read"] } as Permissions,
-    update: { setting: ["update"] } as Permissions,
-  },
-
-  // Integration permissions
-  integration: {
-    manage: { integration: ["manage"] } as Permissions,
   },
 
   // Team permissions
@@ -109,6 +101,62 @@ export const Permissions = {
     delete: { team: ["delete"] } as Permissions,
   },
 
+  // Settings permissions
+  setting: {
+    read: { setting: ["read"] } as Permissions,
+    update: { setting: ["update"] } as Permissions,
+  },
+
+  // Organization instruction permissions
+  orgInstruction: {
+    read: { orgInstruction: ["read"] } as Permissions,
+    write: { orgInstruction: ["write"] } as Permissions,
+  },
+
+  /**
+   * User Management Permissions
+   * Part of: User Management authorization groups
+   */
+
+  // User permissions
+  user: {
+    read: { user: ["read"] } as Permissions,
+    update: { user: ["update"] } as Permissions,
+    delete: { user: ["delete"] } as Permissions,
+  },
+
+  /**
+   * Communication Permissions
+   * Part of: Communication authorization groups
+   */
+
+  // Chat permissions
+  chat: {
+    project: { chat: ["project"] } as Permissions,
+    organization: { chat: ["organization"] } as Permissions,
+  },
+
+  /**
+   * Integration Management Permissions
+   * Part of: Integration Management authorization groups
+   */
+
+  // Deepgram permissions (restricted to superadmin)
+  deepgram: {
+    token: { deepgram: ["token"] } as Permissions,
+  },
+
+  // Integration permissions
+  integration: {
+    manage: { integration: ["manage"] } as Permissions,
+  },
+
+  /**
+   * Audit & Compliance Permissions
+   * Part of: Audit authorization groups
+   */
+
+  // Audit log permissions
   "audit-log": {
     read: { "audit-log": ["read"] } as Permissions,
   },
