@@ -3,6 +3,11 @@ provider "azurerm" {
   use_oidc = true
 }
 
+# RFC 4122 DNS namespace for deterministic UUID v5 generation (role assignment names)
+locals {
+  uuid_namespace_dns = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+}
+
 terraform {
   required_providers {
     azurerm = {
@@ -103,6 +108,7 @@ module "backup" {
   backup_vault_redundancy         = var.backup_vault_redundancy
   backup_repeating_time_intervals = var.backup_repeating_time_intervals
   backup_time_zone                = var.backup_time_zone
+  uuid_namespace                  = local.uuid_namespace_dns
 
   depends_on = [
     module.database
@@ -193,6 +199,7 @@ module "storage" {
   storage_blob_retention_days          = var.storage_blob_retention_days
   storage_blob_restore_days           = var.storage_blob_restore_days
   managed_identity_principal_id       = module.container_app_identity.managed_identity_principal_id
+  uuid_namespace                      = local.uuid_namespace_dns
 
   depends_on = [
     module.container_app_identity
@@ -213,6 +220,7 @@ module "storage" {
 #   location                                     = var.location
 #   resource_group_name                          = azurerm_resource_group.inovy.name
 #   container_app_environment_id                  = module.container_app_environment.container_app_environment_id
+#   uuid_namespace                                = local.uuid_namespace_dns
 #   storage_account_id                           = module.storage.storage_account_id
 #   postgresql_admin_login                       = module.database.postgresql_administrator_login
 #   postgresql_admin_password                    = module.database.postgresql_administrator_password

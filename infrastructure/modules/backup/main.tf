@@ -36,6 +36,7 @@ data "azurerm_resource_group" "main" {
 
 # Role Assignment: Grant backup vault identity Reader role on resource group
 resource "azurerm_role_assignment" "backup_vault_reader" {
+  name                             = uuidv5(var.uuid_namespace, "inovy-${var.environment}-backup-vault-reader")
   scope                            = data.azurerm_resource_group.main.id
   role_definition_name             = "Reader"
   principal_id                     = azurerm_data_protection_backup_vault.inovy.identity[0].principal_id
@@ -48,6 +49,7 @@ resource "azurerm_role_assignment" "backup_vault_reader" {
 
 # Role Assignment: Grant backup vault identity permission to backup PostgreSQL Flexible Server
 resource "azurerm_role_assignment" "backup_vault_postgresql" {
+  name                             = uuidv5(var.uuid_namespace, "inovy-${var.environment}-backup-vault-postgresql")
   scope                            = data.azurerm_postgresql_flexible_server.main.id
   role_definition_id               = "/providers/Microsoft.Authorization/roleDefinitions/c088a766-074b-43ba-90d4-1fb21feae531" # PostgreSQL Flexible Server Long Term Retention Backup Role
   principal_id                     = azurerm_data_protection_backup_vault.inovy.identity[0].principal_id

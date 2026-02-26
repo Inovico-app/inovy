@@ -43,6 +43,11 @@ variable "managed_identity_principal_id" {
   default     = ""
 }
 
+variable "uuid_namespace" {
+  description = "UUID namespace for deterministic role assignment names (e.g., RFC 4122 DNS namespace)"
+  type        = string
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

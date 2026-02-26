@@ -25,6 +25,12 @@ variable "container_app_environment_id" {
   default     = ""
 }
 
+variable "uuid_namespace" {
+  description = "UUID namespace for deterministic role assignment names (e.g., RFC 4122 DNS namespace)"
+  type        = string
+  default     = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+}
+
 variable "storage_account_id" {
   description = "ID of the storage account"
   type        = string

@@ -45,6 +45,7 @@ resource "azurerm_user_assigned_identity" "container_app" {
 
 # Role assignment for Managed Identity to access Storage Account
 resource "azurerm_role_assignment" "storage_blob_data_contributor" {
+  name                 = uuidv5(var.uuid_namespace, "inovy-${var.environment}-container-app-storage-blob")
   scope                = var.storage_account_id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azurerm_user_assigned_identity.container_app.principal_id
