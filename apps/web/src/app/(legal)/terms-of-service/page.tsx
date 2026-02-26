@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { LegalSection } from "../components/legal-section";
+
 export const metadata = {
   title: "Algemene Voorwaarden | inovy",
   description:
@@ -10,22 +12,6 @@ export const metadata = {
 const EFFECTIVE_DATE = "25 februari 2026";
 
 const KVK_NUMBER = process.env.NEXT_PUBLIC_KVK_NUMBER;
-
-interface SectionProps {
-  title: string;
-  children: React.ReactNode;
-}
-
-function Section({ title, children }: SectionProps) {
-  return (
-    <section>
-      <h2 className="mb-4 text-xl font-semibold tracking-tight text-foreground">
-        {title}
-      </h2>
-      <div className="space-y-3">{children}</div>
-    </section>
-  );
-}
 
 export default function TermsOfServicePage() {
   return (
@@ -40,7 +26,7 @@ export default function TermsOfServicePage() {
       </header>
 
       <div className="space-y-10 text-[0.938rem] leading-relaxed text-foreground/90">
-        <Section title="1. Definities">
+        <LegalSection title="1. Definities">
           <ul className="list-disc space-y-2 pl-6">
             <li>
               <strong>Dienst:</strong> de Inovy-applicatie en alle bijbehorende
@@ -64,8 +50,8 @@ export default function TermsOfServicePage() {
               .
             </li>
             <li>
-              <strong>Gebruiker:</strong> iedere natuurlijke of rechtspersoon die
-              een account aanmaakt en/of gebruikmaakt van de Dienst.
+              <strong>Gebruiker:</strong> iedere natuurlijke of rechtspersoon
+              die een account aanmaakt en/of gebruikmaakt van de Dienst.
             </li>
             <li>
               <strong>Account:</strong> de persoonlijke toegang tot de Dienst,
@@ -77,9 +63,9 @@ export default function TermsOfServicePage() {
               geüpload, aangemaakt of gegenereerd binnen de Dienst.
             </li>
           </ul>
-        </Section>
+        </LegalSection>
 
-        <Section title="2. Toepasselijkheid">
+        <LegalSection title="2. Toepasselijkheid">
           <p>
             Deze Algemene Voorwaarden zijn van toepassing op elk gebruik van de
             Dienst. Door een account aan te maken of de Dienst te gebruiken, ga
@@ -88,34 +74,30 @@ export default function TermsOfServicePage() {
           </p>
           <p>
             Wij kunnen deze voorwaarden van tijd tot tijd wijzigen. Bij
-            wezenlijke wijzigingen stellen wij je hiervan ten minste 30 dagen van
-            tevoren op de hoogte. Voortgezet gebruik na de ingangsdatum van de
-            wijziging geldt als aanvaarding van de gewijzigde voorwaarden.
+            wezenlijke wijzigingen stellen wij je hiervan ten minste 30 dagen
+            van tevoren op de hoogte. Voortgezet gebruik na de ingangsdatum van
+            de wijziging geldt als aanvaarding van de gewijzigde voorwaarden.
           </p>
-        </Section>
+        </LegalSection>
 
-        <Section title="3. Account en registratie">
+        <LegalSection title="3. Account en registratie">
           <p>
             Om de Dienst te gebruiken, dien je een account aan te maken. Je bent
             verantwoordelijk voor:
           </p>
           <ul className="mt-3 list-disc space-y-1 pl-6">
-            <li>
-              Het verstrekken van juiste en actuele registratiegegevens
-            </li>
+            <li>Het verstrekken van juiste en actuele registratiegegevens</li>
             <li>Het vertrouwelijk houden van je inloggegevens</li>
-            <li>
-              Alle activiteiten die plaatsvinden onder jouw account
-            </li>
+            <li>Alle activiteiten die plaatsvinden onder jouw account</li>
           </ul>
           <p className="mt-3">
-            Je dient ons onmiddellijk op de hoogte te stellen van ongeautoriseerd
-            gebruik van je account. Wij zijn niet aansprakelijk voor schade als
-            gevolg van ongeautoriseerd gebruik van jouw account.
+            Je dient ons onmiddellijk op de hoogte te stellen van
+            ongeautoriseerd gebruik van je account. Wij zijn niet aansprakelijk
+            voor schade als gevolg van ongeautoriseerd gebruik van jouw account.
           </p>
-        </Section>
+        </LegalSection>
 
-        <Section title="4. Gebruik van de Dienst">
+        <LegalSection title="4. Gebruik van de Dienst">
           <h3 className="mt-4 font-semibold text-foreground">
             4.1 Toegestaan gebruik
           </h3>
@@ -140,8 +122,8 @@ export default function TermsOfServicePage() {
               partijen, waar dit wettelijk vereist is
             </li>
             <li>
-              De Dienst te gebruiken om schadelijke, beledigende, discriminerende
-              of anderszins onrechtmatige content te verspreiden
+              De Dienst te gebruiken om schadelijke, beledigende,
+              discriminerende of anderszins onrechtmatige content te verspreiden
             </li>
             <li>
               De beveiliging van de Dienst te omzeilen, te testen of te
@@ -159,9 +141,9 @@ export default function TermsOfServicePage() {
               Accountgegevens te delen met of beschikbaar te stellen aan derden
             </li>
           </ul>
-        </Section>
+        </LegalSection>
 
-        <Section title="5. Content en intellectueel eigendom">
+        <LegalSection title="5. Content en intellectueel eigendom">
           <h3 className="mt-4 font-semibold text-foreground">
             5.1 Jouw Content
           </h3>
@@ -193,9 +175,9 @@ export default function TermsOfServicePage() {
             dezelfde eigendomsrechten als jouw Content. Wij garanderen niet dat
             AI-gegenereerde output foutloos of volledig is.
           </p>
-        </Section>
+        </LegalSection>
 
-        <Section title="6. Beschikbaarheid en onderhoud">
+        <LegalSection title="6. Beschikbaarheid en onderhoud">
           <p>
             Wij streven ernaar de Dienst zo beschikbaar mogelijk te houden, maar
             garanderen geen ononderbroken beschikbaarheid. Wij behouden ons het
@@ -206,9 +188,9 @@ export default function TermsOfServicePage() {
             Bij gepland onderhoud stellen wij je waar mogelijk vooraf op de
             hoogte.
           </p>
-        </Section>
+        </LegalSection>
 
-        <Section title="7. Privacy">
+        <LegalSection title="7. Privacy">
           <p>
             Wij verwerken jouw persoonsgegevens in overeenstemming met ons{" "}
             <Link
@@ -220,9 +202,9 @@ export default function TermsOfServicePage() {
             . Door gebruik te maken van de Dienst, ga je akkoord met de
             verwerking van jouw gegevens zoals beschreven in het Privacybeleid.
           </p>
-        </Section>
+        </LegalSection>
 
-        <Section title="8. Aansprakelijkheid">
+        <LegalSection title="8. Aansprakelijkheid">
           <h3 className="mt-4 font-semibold text-foreground">
             8.1 Beperking van aansprakelijkheid
           </h3>
@@ -239,27 +221,25 @@ export default function TermsOfServicePage() {
           </h3>
           <p>
             Wij zijn in geen geval aansprakelijk voor indirecte, incidentele,
-            bijzondere of gevolgschade, waaronder maar niet beperkt tot
-            gederfde winst, verlies van gegevens of bedrijfsonderbreking.
+            bijzondere of gevolgschade, waaronder maar niet beperkt tot gederfde
+            winst, verlies van gegevens of bedrijfsonderbreking.
           </p>
 
-          <h3 className="mt-4 font-semibold text-foreground">
-            8.3 AI-output
-          </h3>
+          <h3 className="mt-4 font-semibold text-foreground">8.3 AI-output</h3>
           <p>
             AI-gegenereerde transcripties, samenvattingen en analyses zijn
-            ondersteunend van aard. Wij zijn niet aansprakelijk voor beslissingen
-            die worden genomen op basis van AI-gegenereerde output. De Gebruiker
-            is verantwoordelijk voor het verifiëren van de juistheid van de
-            output.
+            ondersteunend van aard. Wij zijn niet aansprakelijk voor
+            beslissingen die worden genomen op basis van AI-gegenereerde output.
+            De Gebruiker is verantwoordelijk voor het verifiëren van de
+            juistheid van de output.
           </p>
-        </Section>
+        </LegalSection>
 
-        <Section title="9. Beëindiging">
+        <LegalSection title="9. Beëindiging">
           <p>
             Je kunt je account op elk moment verwijderen via de
-            accountinstellingen. Na verwijdering worden jouw gegevens
-            verwijderd in overeenstemming met ons{" "}
+            accountinstellingen. Na verwijdering worden jouw gegevens verwijderd
+            in overeenstemming met ons{" "}
             <Link
               href="/privacy-policy"
               className="text-primary underline underline-offset-2"
@@ -280,17 +260,17 @@ export default function TermsOfServicePage() {
             </li>
             <li>Wij daartoe wettelijk verplicht zijn</li>
           </ul>
-        </Section>
+        </LegalSection>
 
-        <Section title="10. Vrijwaring">
+        <LegalSection title="10. Vrijwaring">
           <p>
             Je vrijwaart Inovico B.V. tegen alle aanspraken van derden die
             verband houden met jouw gebruik van de Dienst of schending van deze
             voorwaarden, inclusief redelijke juridische kosten.
           </p>
-        </Section>
+        </LegalSection>
 
-        <Section title="11. Overmacht">
+        <LegalSection title="11. Overmacht">
           <p>
             Wij zijn niet aansprakelijk voor het niet nakomen van onze
             verplichtingen als gevolg van omstandigheden buiten onze redelijke
@@ -298,17 +278,17 @@ export default function TermsOfServicePage() {
             stroomuitval, internetproblemen, overheidsmaatregelen of
             cyberaanvallen.
           </p>
-        </Section>
+        </LegalSection>
 
-        <Section title="12. Toepasselijk recht en geschillen">
+        <LegalSection title="12. Toepasselijk recht en geschillen">
           <p>
             Op deze Algemene Voorwaarden is Nederlands recht van toepassing.
             Geschillen die voortvloeien uit of verband houden met deze
             voorwaarden worden voorgelegd aan de bevoegde rechter in Nederland.
           </p>
-        </Section>
+        </LegalSection>
 
-        <Section title="13. Deelbaarheid">
+        <LegalSection title="13. Deelbaarheid">
           <p>
             Indien een bepaling van deze voorwaarden ongeldig of niet
             afdwingbaar is, blijven de overige bepalingen onverminderd van
@@ -316,9 +296,9 @@ export default function TermsOfServicePage() {
             bepaling die de oorspronkelijke bedoeling zo dicht mogelijk
             benadert.
           </p>
-        </Section>
+        </LegalSection>
 
-        <Section title="14. Contact">
+        <LegalSection title="14. Contact">
           <p>
             Voor vragen over deze Algemene Voorwaarden kun je contact met ons
             opnemen:
@@ -334,8 +314,9 @@ export default function TermsOfServicePage() {
               info@inovico.nl
             </Link>
           </address>
-        </Section>
+        </LegalSection>
       </div>
     </article>
   );
 }
+

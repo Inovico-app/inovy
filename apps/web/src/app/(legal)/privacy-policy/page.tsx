@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { LegalSection } from "../components/legal-section";
+
 export const metadata = {
   title: "Privacybeleid | inovy",
   description:
@@ -22,22 +24,6 @@ function PrivacyEmailLink() {
   );
 }
 
-interface SectionProps {
-  title: string;
-  children: React.ReactNode;
-}
-
-function Section({ title, children }: SectionProps) {
-  return (
-    <section>
-      <h2 className="mb-4 text-xl font-semibold tracking-tight text-foreground">
-        {title}
-      </h2>
-      <div className="space-y-3">{children}</div>
-    </section>
-  );
-}
-
 export default function PrivacyPolicyPage() {
   return (
     <article>
@@ -51,7 +37,7 @@ export default function PrivacyPolicyPage() {
       </header>
 
       <div className="space-y-10 text-[0.938rem] leading-relaxed text-foreground/90">
-        <Section title="1. Inleiding">
+        <LegalSection title="1. Inleiding">
           <p>
             Inovico B.V. (hierna &ldquo;Inovy&rdquo;, &ldquo;wij&rdquo;,
             &ldquo;ons&rdquo; of &ldquo;onze&rdquo;) hecht veel waarde aan de
@@ -71,9 +57,9 @@ export default function PrivacyPolicyPage() {
             </Link>
             .
           </p>
-        </Section>
+        </LegalSection>
 
-        <Section title="2. Verwerkingsverantwoordelijke">
+        <LegalSection title="2. Verwerkingsverantwoordelijke">
           <p>
             De verwerkingsverantwoordelijke voor de verwerking van jouw
             persoonsgegevens is:
@@ -89,9 +75,9 @@ export default function PrivacyPolicyPage() {
               </>
             )}
           </address>
-        </Section>
+        </LegalSection>
 
-        <Section title="3. Welke gegevens verzamelen wij?">
+        <LegalSection title="3. Welke gegevens verzamelen wij?">
           <p>Wij verwerken de volgende categorieën persoonsgegevens:</p>
 
           <h3 className="mt-4 font-semibold text-foreground">
@@ -133,21 +119,30 @@ export default function PrivacyPolicyPage() {
               bijbehorende metadata
             </li>
           </ul>
-        </Section>
+        </LegalSection>
 
-        <Section title="4. Doeleinden en grondslagen">
+        <LegalSection title="4. Doeleinden en grondslagen">
           <p>
             Wij verwerken jouw persoonsgegevens voor de volgende doeleinden:
           </p>
 
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm">
+              <caption className="sr-only">
+                Overzicht van verwerkingsdoeleinden en juridische grondslagen
+              </caption>
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className="pb-3 pr-4 font-semibold text-foreground">
+                  <th
+                    scope="col"
+                    className="pb-3 pr-4 font-semibold text-foreground"
+                  >
                     Doeleinde
                   </th>
-                  <th className="pb-3 font-semibold text-foreground">
+                  <th
+                    scope="col"
+                    className="pb-3 font-semibold text-foreground"
+                  >
                     Grondslag
                   </th>
                 </tr>
@@ -172,9 +167,7 @@ export default function PrivacyPolicyPage() {
                   <td className="py-3">Toestemming</td>
                 </tr>
                 <tr>
-                  <td className="py-3 pr-4">
-                    Beveiliging en fraudepreventie
-                  </td>
+                  <td className="py-3 pr-4">Beveiliging en fraudepreventie</td>
                   <td className="py-3">Gerechtvaardigd belang</td>
                 </tr>
                 <tr>
@@ -192,9 +185,9 @@ export default function PrivacyPolicyPage() {
               </tbody>
             </table>
           </div>
-        </Section>
+        </LegalSection>
 
-        <Section title="5. Derde partijen en subverwerkers">
+        <LegalSection title="5. Derde partijen en subverwerkers">
           <p>
             Wij delen jouw persoonsgegevens uitsluitend met derde partijen
             wanneer dit noodzakelijk is voor de dienstverlening. Wij hebben met
@@ -203,15 +196,27 @@ export default function PrivacyPolicyPage() {
 
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm">
+              <caption className="sr-only">
+                Overzicht van derde partijen en subverwerkers
+              </caption>
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className="pb-3 pr-4 font-semibold text-foreground">
+                  <th
+                    scope="col"
+                    className="pb-3 pr-4 font-semibold text-foreground"
+                  >
                     Partij
                   </th>
-                  <th className="pb-3 pr-4 font-semibold text-foreground">
+                  <th
+                    scope="col"
+                    className="pb-3 pr-4 font-semibold text-foreground"
+                  >
                     Doel
                   </th>
-                  <th className="pb-3 font-semibold text-foreground">
+                  <th
+                    scope="col"
+                    className="pb-3 font-semibold text-foreground"
+                  >
                     Locatie
                   </th>
                 </tr>
@@ -219,9 +224,7 @@ export default function PrivacyPolicyPage() {
               <tbody className="divide-y divide-border/60">
                 <tr>
                   <td className="py-3 pr-4">Deepgram</td>
-                  <td className="py-3 pr-4">
-                    Spraak-naar-tekst transcriptie
-                  </td>
+                  <td className="py-3 pr-4">Spraak-naar-tekst transcriptie</td>
                   <td className="py-3">VS (EU-adequaatbesluit / SCC)</td>
                 </tr>
                 <tr>
@@ -244,9 +247,9 @@ export default function PrivacyPolicyPage() {
             Wij verkopen jouw persoonsgegevens niet aan derden en gebruiken ze
             niet voor direct-marketingdoeleinden van derden.
           </p>
-        </Section>
+        </LegalSection>
 
-        <Section title="6. Bewaartermijnen">
+        <LegalSection title="6. Bewaartermijnen">
           <p>
             Wij bewaren jouw persoonsgegevens niet langer dan noodzakelijk voor
             de doeleinden waarvoor ze zijn verzameld:
@@ -268,13 +271,13 @@ export default function PrivacyPolicyPage() {
               <strong>Audit logs:</strong> maximaal 12 maanden
             </li>
           </ul>
-        </Section>
+        </LegalSection>
 
-        <Section title="7. Beveiliging">
+        <LegalSection title="7. Beveiliging">
           <p>
-            Wij nemen passende technische en organisatorische maatregelen om jouw
-            persoonsgegevens te beschermen tegen ongeoorloofde toegang, verlies
-            of misbruik. Dit omvat onder meer:
+            Wij nemen passende technische en organisatorische maatregelen om
+            jouw persoonsgegevens te beschermen tegen ongeoorloofde toegang,
+            verlies of misbruik. Dit omvat onder meer:
           </p>
           <ul className="mt-3 list-disc space-y-1 pl-6">
             <li>256-bit SSL/TLS-versleuteling voor data in transit</li>
@@ -282,9 +285,9 @@ export default function PrivacyPolicyPage() {
             <li>Toegangscontrole op basis van rollen (RBAC)</li>
             <li>Regelmatige beveiligingsaudits</li>
           </ul>
-        </Section>
+        </LegalSection>
 
-        <Section title="8. Jouw rechten">
+        <LegalSection title="8. Jouw rechten">
           <p>
             Op grond van de AVG heb je de volgende rechten met betrekking tot
             jouw persoonsgegevens:
@@ -307,8 +310,8 @@ export default function PrivacyPolicyPage() {
               beperken
             </li>
             <li>
-              <strong>Recht op overdraagbaarheid:</strong> je kunt je gegevens in
-              een gestructureerd formaat ontvangen
+              <strong>Recht op overdraagbaarheid:</strong> je kunt je gegevens
+              in een gestructureerd formaat ontvangen
             </li>
             <li>
               <strong>Recht van bezwaar:</strong> je kunt bezwaar maken tegen
@@ -324,9 +327,9 @@ export default function PrivacyPolicyPage() {
             Om je rechten uit te oefenen, neem contact met ons op via{" "}
             <PrivacyEmailLink />. Wij reageren binnen 30 dagen op je verzoek.
           </p>
-        </Section>
+        </LegalSection>
 
-        <Section title="9. Cookies en vergelijkbare technologieën">
+        <LegalSection title="9. Cookies en vergelijkbare technologieën">
           <p>
             Inovy maakt gebruik van functionele cookies die noodzakelijk zijn
             voor het functioneren van de applicatie, zoals sessiecookies en
@@ -338,12 +341,10 @@ export default function PrivacyPolicyPage() {
             geanonimiseerd verwerkt en zijn niet herleidbaar tot individuele
             gebruikers.
           </p>
-          <p>
-            Wij plaatsen geen tracking- of marketingcookies van derden.
-          </p>
-        </Section>
+          <p>Wij plaatsen geen tracking- of marketingcookies van derden.</p>
+        </LegalSection>
 
-        <Section title="10. Internationale doorgifte">
+        <LegalSection title="10. Internationale doorgifte">
           <p>
             Sommige van onze subverwerkers zijn gevestigd buiten de Europese
             Economische Ruimte (EER). In die gevallen waarborgen wij een passend
@@ -355,18 +356,18 @@ export default function PrivacyPolicyPage() {
             </li>
             <li>Standaard contractbepalingen (SCC&apos;s) van de EU</li>
           </ul>
-        </Section>
+        </LegalSection>
 
-        <Section title="11. Wijzigingen">
+        <LegalSection title="11. Wijzigingen">
           <p>
             Wij kunnen dit privacybeleid van tijd tot tijd bijwerken. Bij
             wezenlijke wijzigingen stellen wij je hiervan op de hoogte via de
             applicatie of per e-mail. De meest recente versie is altijd
             beschikbaar op deze pagina.
           </p>
-        </Section>
+        </LegalSection>
 
-        <Section title="12. Klachten">
+        <LegalSection title="12. Klachten">
           <p>
             Heb je een klacht over de verwerking van jouw persoonsgegevens? Neem
             dan eerst contact met ons op via <PrivacyEmailLink />. Je hebt
@@ -382,9 +383,9 @@ export default function PrivacyPolicyPage() {
             </Link>
             .
           </p>
-        </Section>
+        </LegalSection>
 
-        <Section title="13. Contact">
+        <LegalSection title="13. Contact">
           <p>
             Voor vragen over dit privacybeleid of over de verwerking van jouw
             gegevens kun je contact met ons opnemen:
@@ -394,8 +395,9 @@ export default function PrivacyPolicyPage() {
             <br />
             E-mail: <PrivacyEmailLink />
           </address>
-        </Section>
+        </LegalSection>
       </div>
     </article>
   );
 }
+
