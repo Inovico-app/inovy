@@ -1,6 +1,8 @@
+import { CopyrightYear } from "@/components/copyright-year";
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export const metadata = {
   robots: {
@@ -14,8 +16,6 @@ export default function LegalLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const year = new Date().getFullYear();
-
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b border-border/60 bg-background/95 backdrop-blur-sm">
@@ -40,7 +40,12 @@ export default function LegalLayout({
       <footer className="border-t border-border/60">
         <div className="mx-auto max-w-3xl px-6 py-8 sm:px-8">
           <div className="flex flex-col gap-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <p>&copy; {year} Inovico B.V.</p>
+            <p>
+              <Suspense fallback={<span>&copy; \u00A0</span>}>
+                &copy; <CopyrightYear />
+              </Suspense>{" "}
+              Inovico B.V.
+            </p>
             <nav aria-label="Juridische pagina's" className="flex gap-6">
               <Link
                 href="/privacy-policy"
