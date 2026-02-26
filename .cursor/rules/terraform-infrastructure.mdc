@@ -1,0 +1,52 @@
+---
+description: "Guidelines for Terraform and Azure infrastructure code"
+globs:
+  - "infrastructure/**/*.tf"
+  - "infrastructure/**/*.tfvars*"
+  - ".github/workflows/azure-infra.yml"
+  - ".github/workflows/terraform-storage-setup.yml"
+alwaysApply: false
+---
+
+# Terraform and Infrastructure Guidelines
+
+You are an expert in Terraform and Azure infrastructure. Follow these guidelines when working with infrastructure code.
+
+## General Principles
+
+- Use the HashiCorp `azurerm` provider (~> 4.0)
+- Prefer modules for reusable components; keep `main.tf` as orchestration
+- Use `terraform validate` and `terraform plan` before applying
+- Never run `db:push` or `db:migrate` manually; use GitHub Actions for migrations
+
+## Terraform Best Practices
+
+- Keep resources focused; use `depends_on` for explicit ordering
+- Use `data` sources for external lookups when it avoids replacement (e.g. `azurerm_container_app_environment`)
+- Use `lifecycle` blocks sparingly; prefer `ignore_changes` over `prevent_destroy` when appropriate
+- Use `uuidv5()` with a stable namespace for deterministic role assignment names (avoids destroy/create cycles)
+- Use full `role_definition_id` paths (subscription-scoped) to prevent replacement
+
+## Azure Provider Conventions
+
+- Use `azurerm_container_app_environment_storage` before mounting Azure Files in Container Apps
+- For `azurerm_container_app` volume mounts: use `name` and `path` (not `volume_name`/`mount_path`)
+- When `infrastructure_resource_group_name` is set, `workload_profile` is required on `azurerm_container_app_environment`
+
+## Module Structure
+
+- Each module: `main.tf`, `variables.tf`, `outputs.tf`
+- Pass `tags` for consistent tagging
+- Use `sensitive = true` for outputs containing secrets
+
+## GitHub Workflows
+
+- `azure-infra.yml`: Terraform plan/apply for Azure resources
+- `terraform-storage-setup.yml`: One-time setup for Terraform state storage
+- Workflows use OIDC for Azure auth; no long-lived secrets
+
+## Error Handling
+
+- Run `terraform validate` after changes
+- Check `gh run view <id> --log-failed` for pipeline errors
+- Use `terraform plan` output to verify no unintended replacements
