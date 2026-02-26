@@ -16,10 +16,12 @@ import {
   ChevronLeft,
   ChevronRight,
   FileAudio,
+  FileText,
   FolderKanban,
   LayoutDashboard,
   MessageSquare,
   Plus,
+  Scale,
   Settings,
   ShieldAlert,
 } from "lucide-react";
@@ -221,8 +223,8 @@ export function Sidebar() {
         )}
       </nav>
 
-      {/* Footer with New Recording Button */}
-      <div className="border-t p-2">
+      {/* Footer */}
+      <div className="border-t p-2 space-y-2">
         <Link href="/record" as={"/record" as Route}>
           <Button
             className={cn("w-full justify-start gap-2", collapsed && "px-2")}
@@ -234,6 +236,56 @@ export function Sidebar() {
             {!collapsed && <span>New Recording</span>}
           </Button>
         </Link>
+
+        {!collapsed ? (
+          <nav
+            aria-label="Legal"
+            className="flex items-center justify-center gap-3 px-1 pt-1"
+          >
+            <Link
+              href="/privacy-policy"
+              className="text-[11px] text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+            >
+              Privacy
+            </Link>
+            <span className="text-muted-foreground/40 text-[11px]">
+              &middot;
+            </span>
+            <Link
+              href="/terms-of-service"
+              className="text-[11px] text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+            >
+              Voorwaarden
+            </Link>
+          </nav>
+        ) : (
+          <div className="flex flex-col items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/privacy-policy"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+                  aria-label="Privacybeleid"
+                >
+                  <Scale className="h-3.5 w-3.5" />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right">Privacy</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/terms-of-service"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+                  aria-label="Algemene Voorwaarden"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right">Voorwaarden</TooltipContent>
+            </Tooltip>
+          </div>
+        )}
       </div>
     </aside>
   );
