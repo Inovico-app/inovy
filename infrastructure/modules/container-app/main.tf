@@ -30,6 +30,9 @@ resource "azurerm_container_app_environment" "inovy" {
   })
 }
 
+# Data source for subscription ID (used for full role definition path to prevent replacement)
+data "azurerm_client_config" "current" {}
+
 # Managed Identity for Container App
 resource "azurerm_user_assigned_identity" "container_app" {
   name                = "id-container-app-${var.environment}"
@@ -47,7 +50,7 @@ resource "azurerm_user_assigned_identity" "container_app" {
 resource "azurerm_role_assignment" "storage_blob_data_contributor" {
   name                 = uuidv5(var.uuid_namespace, "inovy-${var.environment}-container-app-storage-blob")
   scope                = var.storage_account_id
-  role_definition_name = "Storage Blob Data Contributor"
+  role_definition_id   = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe" # Storage Blob Data Contributor
   principal_id         = azurerm_user_assigned_identity.container_app.principal_id
 }
 

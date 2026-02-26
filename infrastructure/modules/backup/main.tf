@@ -1,3 +1,6 @@
+# Data source for subscription ID (used for full role definition path to prevent replacement)
+data "azurerm_client_config" "current" {}
+
 # Data source to reference PostgreSQL server for dependency
 data "azurerm_postgresql_flexible_server" "main" {
   name                = var.postgresql_server_name
@@ -38,7 +41,7 @@ data "azurerm_resource_group" "main" {
 resource "azurerm_role_assignment" "backup_vault_reader" {
   name                             = uuidv5(var.uuid_namespace, "inovy-${var.environment}-backup-vault-reader")
   scope                            = data.azurerm_resource_group.main.id
-  role_definition_name             = "Reader"
+  role_definition_id               = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/providers/Microsoft.Authorization/roleDefinitions/acdd72a7-3385-48ef-bd42-f606fba81ae7" # Reader
   principal_id                     = azurerm_data_protection_backup_vault.inovy.identity[0].principal_id
   skip_service_principal_aad_check = true
 
@@ -51,7 +54,7 @@ resource "azurerm_role_assignment" "backup_vault_reader" {
 resource "azurerm_role_assignment" "backup_vault_postgresql" {
   name                             = uuidv5(var.uuid_namespace, "inovy-${var.environment}-backup-vault-postgresql")
   scope                            = data.azurerm_postgresql_flexible_server.main.id
-  role_definition_id               = "/providers/Microsoft.Authorization/roleDefinitions/c088a766-074b-43ba-90d4-1fb21feae531" # PostgreSQL Flexible Server Long Term Retention Backup Role
+  role_definition_id               = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/providers/Microsoft.Authorization/roleDefinitions/c088a766-074b-43ba-90d4-1fb21feae531" # PostgreSQL Flexible Server Long Term Retention Backup Role
   principal_id                     = azurerm_data_protection_backup_vault.inovy.identity[0].principal_id
   skip_service_principal_aad_check = true
 
