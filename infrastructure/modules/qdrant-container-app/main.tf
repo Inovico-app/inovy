@@ -39,6 +39,7 @@ resource "azurerm_container_app" "qdrant" {
   container_app_environment_id  = var.container_app_environment_id
   resource_group_name           = var.resource_group_name
   revision_mode                 = "Single"
+  workload_profile_name         = "Consumption"
 
   template {
     min_replicas = var.qdrant_min_replicas
