@@ -61,6 +61,17 @@ jobs:
             az provider register --namespace "$RESOURCE_PROVIDER"
           fi
 
+      - name: Register Microsoft.App resource provider
+        run: |
+          RESOURCE_PROVIDER="Microsoft.App"
+          registration_state=$(az provider show --namespace "$RESOURCE_PROVIDER" | jq '.registrationState' -r)
+          echo "Current state $RESOURCE_PROVIDER: ${registration_state}"
+          if [[ $registration_state == "NotRegistered" ]]
+          then
+            echo "Registering $RESOURCE_PROVIDER"
+            az provider register --namespace "$RESOURCE_PROVIDER"
+          fi
+
       - name: Generate Storage Account Name
         id: generate-name
         run: |
