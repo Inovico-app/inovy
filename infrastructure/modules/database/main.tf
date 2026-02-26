@@ -52,6 +52,7 @@ resource "azurerm_postgresql_flexible_server" "inovy" {
   authentication {
     active_directory_auth_enabled = true
     password_auth_enabled         = true
+    tenant_id                     = var.entra_tenant_id
   }
 
   tags = merge(var.tags, {

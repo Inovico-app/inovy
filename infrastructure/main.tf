@@ -142,6 +142,16 @@ module "container_app_environment" {
   }
 }
 
+# Look up Container App Environment by name to get a stable ID.
+# Using a data source avoids "known after apply" when the managed resource is replaced,
+# preventing unnecessary replacement of dependent resources (Redis, container app).
+data "azurerm_container_app_environment" "current" {
+  name                = "inovy-env-${var.environment}"
+  resource_group_name = azurerm_resource_group.inovy.name
+
+  depends_on = [module.container_app_environment]
+}
+
 # Redis Container App Module
 module "redis" {
   source = "./modules/redis-container-app"
@@ -149,7 +159,7 @@ module "redis" {
   environment                    = var.environment
   location                       = var.location
   resource_group_name            = azurerm_resource_group.inovy.name
-  container_app_environment_id   = module.container_app_environment.container_app_environment_id
+  container_app_environment_id   = data.azurerm_container_app_environment.current.id
   redis_password                 = var.redis_password
   redis_image                    = var.redis_image
   redis_cpu                      = var.redis_cpu
@@ -219,7 +229,7 @@ module "storage" {
 #   environment                                  = var.environment
 #   location                                     = var.location
 #   resource_group_name                          = azurerm_resource_group.inovy.name
-#   container_app_environment_id                  = module.container_app_environment.container_app_environment_id
+#   container_app_environment_id                  = data.azurerm_container_app_environment.current.id
 #   uuid_namespace                                = local.uuid_namespace_dns
 #   storage_account_id                           = module.storage.storage_account_id
 #   postgresql_admin_login                       = module.database.postgresql_administrator_login

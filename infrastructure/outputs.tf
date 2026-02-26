@@ -92,7 +92,7 @@ output "redis_url" {
 
 output "container_app_environment_id" {
   description = "ID of the Container App Environment"
-  value       = module.container_app_environment.container_app_environment_id
+  value       = data.azurerm_container_app_environment.current.id
 }
 
 # Qdrant outputs
