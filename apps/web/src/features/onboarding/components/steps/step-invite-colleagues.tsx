@@ -53,12 +53,11 @@ export function StepInviteColleagues({ isLoading }: StepInviteColleaguesProps) {
     handleKeyDown,
     handlePaste,
     removeEmail,
-    toCommaSeparated,
   } = useEmailChipInput();
 
   useEffect(() => {
-    setValue("inviteEmails", toCommaSeparated());
-  }, [emails, setValue, toCommaSeparated]);
+    setValue("inviteEmails", emails.join(", "));
+  }, [emails, setValue]);
 
   return (
     <div className="space-y-6">
@@ -158,7 +157,8 @@ export function StepInviteColleagues({ isLoading }: StepInviteColleaguesProps) {
               autoComplete="off"
               spellCheck={false}
               className="h-7 min-w-[180px] flex-1 border-0 bg-transparent px-0 py-0 shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60"
-              aria-describedby="invite-hint"
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? "invite-hint invite-error" : "invite-hint"}
             />
           </div>
         </div>
@@ -167,6 +167,7 @@ export function StepInviteColleagues({ isLoading }: StepInviteColleaguesProps) {
         <AnimatePresence>
           {error && (
             <motion.p
+              id="invite-error"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}

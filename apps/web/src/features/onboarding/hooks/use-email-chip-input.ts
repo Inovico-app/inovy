@@ -2,13 +2,13 @@ import { useCallback, useState } from "react";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-interface UseEmailChipInputMessages {
+export interface UseEmailChipInputMessages {
   invalidEmail: (email: string) => string;
   duplicateEmail: (email: string) => string;
   maxEmails: (max: number) => string;
 }
 
-interface UseEmailChipInputOptions {
+export interface UseEmailChipInputOptions {
   onChange?: (emails: string[]) => void;
   maxEmails?: number;
   messages?: UseEmailChipInputMessages;
@@ -39,33 +39,81 @@ export function useEmailChipInput({
         return false;
       }
 
-      if (emails.includes(email)) {
-        setError(messages.duplicateEmail(email));
-        return false;
-      }
+      setEmails((prev) => {
+        if (prev.includes(email)) {
+          setError(messages.duplicateEmail(email));
+          return prev;
+        }
 
-      if (emails.length >= maxEmails) {
-        setError(messages.maxEmails(maxEmails));
-        return false;
-      }
+        if (prev.length >= maxEmails) {
+          setError(messages.maxEmails(maxEmails));
+          return prev;
+        }
 
-      setError(null);
-      const next = [...emails, email];
-      setEmails(next);
-      onChange?.(next);
+        setError(null);
+        const next = [...prev, email];
+        onChange?.(next);
+        return next;
+      });
+
       return true;
     },
-    [emails, maxEmails, onChange, messages]
+    [maxEmails, onChange, messages]
+  );
+
+  const addEmails = useCallback(
+    (parts: string[]) => {
+      setEmails((prev) => {
+        const next = [...prev];
+        let lastError: string | null = null;
+        let modified = false;
+
+        for (const part of parts) {
+          const email = part.trim().toLowerCase();
+          if (!email) continue;
+
+          if (!EMAIL_REGEX.test(email)) {
+            lastError = messages.invalidEmail(email);
+            continue;
+          }
+
+          if (next.includes(email)) {
+            lastError = messages.duplicateEmail(email);
+            continue;
+          }
+
+          if (next.length >= maxEmails) {
+            lastError = messages.maxEmails(maxEmails);
+            break;
+          }
+
+          next.push(email);
+          modified = true;
+        }
+
+        if (modified) {
+          setError(null);
+          onChange?.(next);
+        } else if (lastError) {
+          setError(lastError);
+        }
+
+        return next;
+      });
+    },
+    [maxEmails, onChange, messages]
   );
 
   const removeEmail = useCallback(
     (email: string) => {
       setError(null);
-      const next = emails.filter((e) => e !== email);
-      setEmails(next);
-      onChange?.(next);
+      setEmails((prev) => {
+        const next = prev.filter((e) => e !== email);
+        onChange?.(next);
+        return next;
+      });
     },
-    [emails, onChange]
+    [onChange]
   );
 
   const handleInputChange = useCallback(
@@ -74,17 +122,14 @@ export function useEmailChipInput({
 
       if (value.includes(",") || value.includes("\n")) {
         const parts = value.split(/[,\n]/);
-        for (const part of parts) {
-          const trimmed = part.trim();
-          if (trimmed) addEmail(trimmed);
-        }
+        addEmails(parts);
         setInputValue("");
         return;
       }
 
       setInputValue(value);
     },
-    [addEmail, error]
+    [addEmails, error]
   );
 
   const handleKeyDown = useCallback(
@@ -115,13 +160,10 @@ export function useEmailChipInput({
       ) {
         e.preventDefault();
         const parts = pasted.split(/[,\n\s]+/);
-        for (const part of parts) {
-          const trimmed = part.trim();
-          if (trimmed) addEmail(trimmed);
-        }
+        addEmails(parts);
       }
     },
-    [addEmail]
+    [addEmails]
   );
 
   const clear = useCallback(() => {
