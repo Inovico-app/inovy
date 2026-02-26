@@ -1,5 +1,5 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 interface RecordingErrorsProps {
   permissionDenied: boolean;
@@ -46,7 +46,7 @@ export function RecordingErrors({
       {/* Saving Status */}
       {isSaving && (
         <Alert>
-          <CheckCircle2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin" />
           <AlertDescription>
             Opname wordt opgeslagen en geüpload...
           </AlertDescription>

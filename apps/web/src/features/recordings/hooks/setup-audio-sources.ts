@@ -60,7 +60,7 @@ async function setupMicrophoneSource(
 ): Promise<void> {
   if (states.micNotSetup || states.micError) {
     const result = await microphoneHook.setupMicrophone();
-    if (!result.success && result.error) {
+    if (!result.success) {
       throw new Error(result.error.message);
     }
   }
@@ -76,7 +76,7 @@ async function setupSystemAudioSource(
 ): Promise<void> {
   if (states.sysNotSetup || states.sysError) {
     const result = await systemAudioHook.setupSystemAudio();
-    if (!result.success && result.error) {
+    if (!result.success) {
       throw new Error(result.error.message);
     }
   }
@@ -98,14 +98,14 @@ async function setupBothSources({
 }): Promise<void> {
   if (states.micNotSetup || states.micError) {
     const micResult = await microphoneHook.setupMicrophone();
-    if (!micResult.success && micResult.error) {
+    if (!micResult.success) {
       throw new Error(micResult.error.message);
     }
   }
 
   if (states.sysNotSetup || states.sysError) {
     const sysResult = await systemAudioHook.setupSystemAudio();
-    if (!sysResult.success && sysResult.error) {
+    if (!sysResult.success) {
       throw new Error(sysResult.error.message);
     }
   }

@@ -54,7 +54,7 @@ export function getRecordingDeviceErrorInfo(error: unknown): RecordingDeviceErro
   if (!(error instanceof DOMException)) {
     return {
       type: "unknown",
-      title: "Recording error",
+      title: "Opnamefout",
       message:
         error instanceof Error
           ? error.message

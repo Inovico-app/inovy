@@ -17,6 +17,9 @@
     },
     "vercel": {
       "enabled": true
+    },
+    "neon-postgres": {
+      "enabled": true
     }
   }
 }

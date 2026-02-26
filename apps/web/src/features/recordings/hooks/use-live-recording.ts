@@ -1,10 +1,12 @@
-import { useWakeLock } from "@/hooks/use-wake-lock";
 import type { AudioSourceType } from "@/features/recordings/lib/audio-source-preferences";
+import { useWakeLock } from "@/hooks/use-wake-lock";
 import { logger } from "@/lib/logger";
 import { useMicrophone } from "@/providers/microphone/MicrophoneProvider";
 import { useSystemAudio } from "@/providers/system-audio/SystemAudioProvider";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffectEvent, useRef, useState } from "react";
+import { useInitialAudioSetup } from "./use-initial-audio-setup";
 import { useRecordingDuration } from "./use-recording-duration";
+import { useRecordingSetupErrors } from "./use-recording-setup-errors";
 
 export interface UseLiveRecordingOptions {
   audioSource?: AudioSourceType;
@@ -16,8 +18,6 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [recorderError, setRecorderError] = useState<string | null>(null);
-  const [permissionDenied, setPermissionDenied] = useState(false);
 
   // Hooks
   const {
@@ -38,37 +38,31 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
   } = useSystemAudio();
   const { duration, startTimer, stopTimer, resetTimer } =
     useRecordingDuration();
-  const wakeLock = useWakeLock(); // Prevent screen from locking during recording
+  const wakeLock = useWakeLock();
+
+  const {
+    recorderError,
+    permissionDenied,
+    setRecorderError,
+    setPermissionDenied,
+    clearErrors,
+  } = useRecordingSetupErrors({
+    microphoneSetupError,
+    systemAudioSetupError,
+    audioSource: options?.audioSource || "microphone",
+  });
+
+  useInitialAudioSetup({
+    audioSource: options?.audioSource,
+    combinedStream: options?.combinedStream,
+    setupMicrophone,
+    stopMicrophone,
+    stopSystemAudio,
+  });
 
   // Refs
   const audioChunksRef = useRef<Blob[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-
-  // Sync permission/error state from provider (setup no longer throws)
-  useEffect(() => {
-    const err = microphoneSetupError ?? systemAudioSetupError;
-    if (err) {
-      setPermissionDenied(err.type === "permission_denied");
-      setRecorderError(err.message);
-    }
-  }, [microphoneSetupError, systemAudioSetupError]);
-
-  // Only setup microphone on mount (default behavior)
-  // Don't setup system audio automatically - only when user explicitly selects it and starts recording
-  useEffect(() => {
-    if (
-      (!options?.audioSource || options.audioSource === "microphone") &&
-      !options?.combinedStream
-    ) {
-      void setupMicrophone();
-    }
-
-    return () => {
-      stopMicrophone();
-      stopSystemAudio();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Handler: Start recording
   const handleStart = useEffectEvent(
@@ -77,8 +71,7 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
       onTranscriptionReady?: () => void | Promise<void>
     ) => {
       try {
-        setPermissionDenied(false);
-        setRecorderError(null);
+        clearErrors();
         audioChunksRef.current = [];
 
         const currentAudioSource = options?.audioSource || "microphone";
@@ -100,7 +93,10 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
           }
         }
 
-        if (currentAudioSource === "microphone" || currentAudioSource === "both") {
+        if (
+          currentAudioSource === "microphone" ||
+          currentAudioSource === "both"
+        ) {
           if (!microphoneStream) {
             const result = await setupMicrophone();
             if (!result.success && result.error) {
@@ -116,8 +112,8 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
         const finalActiveStream =
           options?.combinedStream ||
           (currentAudioSource === "system"
-            ? sysStreamFromSetup ?? systemAudioStream
-            : micStreamFromSetup ?? microphoneStream);
+            ? (sysStreamFromSetup ?? systemAudioStream)
+            : (micStreamFromSetup ?? microphoneStream));
         const finalActiveRecorder =
           currentAudioSource === "system" ? systemAudio : microphone;
 
@@ -145,7 +141,10 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
           recorder.onerror = (event) => {
             logger.error("MediaRecorder error", {
               component: "use-live-recording",
-              error: event instanceof ErrorEvent ? event.error : new Error(String(event)),
+              error:
+                event instanceof ErrorEvent
+                  ? event.error
+                  : new Error(String(event)),
             });
 
             // Stop recording and transition to error state
@@ -156,7 +155,10 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
             } catch (stopError) {
               logger.error("Error stopping MediaRecorder after error", {
                 component: "use-live-recording",
-                error: stopError instanceof Error ? stopError : new Error(String(stopError)),
+                error:
+                  stopError instanceof Error
+                    ? stopError
+                    : new Error(String(stopError)),
               });
             }
 
@@ -175,10 +177,16 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
 
             // Release wake lock
             wakeLock.release().catch((releaseError) => {
-              logger.error("Error releasing wake lock after MediaRecorder error", {
-                component: "use-live-recording",
-                error: releaseError instanceof Error ? releaseError : new Error(String(releaseError)),
-              });
+              logger.error(
+                "Error releasing wake lock after MediaRecorder error",
+                {
+                  component: "use-live-recording",
+                  error:
+                    releaseError instanceof Error
+                      ? releaseError
+                      : new Error(String(releaseError)),
+                }
+              );
             });
           };
         }
@@ -269,7 +277,7 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
       if (options?.combinedStream) {
         // Capture recorder reference atomically to avoid race conditions
         const recorder = mediaRecorderRef.current;
-        
+
         if (recorder && recorder.state === "recording") {
           // Wait for final data with atomic handler setup
           await new Promise<void>((resolve) => {
