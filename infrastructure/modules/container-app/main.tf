@@ -16,12 +16,13 @@ resource "azurerm_log_analytics_workspace" "inovy" {
 
 # Container App Environment
 resource "azurerm_container_app_environment" "inovy" {
-  count                       = var.container_app_environment_id == "" ? 1 : 0
-  name                        = "inovy-env-${var.environment}"
-  location                    = var.location
-  resource_group_name         = var.resource_group_name
-  log_analytics_workspace_id  = azurerm_log_analytics_workspace.inovy[0].id
-  infrastructure_subnet_id    = var.subnet_container_apps_id
+  count                            = var.container_app_environment_id == "" ? 1 : 0
+  name                             = "inovy-env-${var.environment}"
+  location                         = var.location
+  resource_group_name              = var.resource_group_name
+  log_analytics_workspace_id       = azurerm_log_analytics_workspace.inovy[0].id
+  infrastructure_subnet_id         = var.subnet_container_apps_id
+  infrastructure_resource_group_name = "ME_inovy-env-${var.environment}_${var.resource_group_name}_${replace(lower(var.location), " ", "")}"
 
   tags = merge(var.tags, {
     Environment = var.environment
