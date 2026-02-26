@@ -1,9 +1,11 @@
 # Redis Container App - internal only, TCP port 6379
+# - external_enabled = false: no public access; only reachable from within the Container App Environment VNet
+# - Other Container Apps in the same environment can connect via redis_url (internal FQDN)
 resource "azurerm_container_app" "redis" {
   name                         = "redis-${var.environment}"
-  container_app_environment_id = var.container_app_environment_id
-  resource_group_name          = var.resource_group_name
-  revision_mode                = "Single"
+  container_app_environment_id  = var.container_app_environment_id
+  resource_group_name           = var.resource_group_name
+  revision_mode                 = "Single"
 
   template {
     min_replicas = var.redis_min_replicas
@@ -26,10 +28,11 @@ resource "azurerm_container_app" "redis" {
     }
   }
 
+  # Internal ingress only: no public access; accessible from other apps in same Container App Environment
   ingress {
     external_enabled = false
-    target_port     = 6379
-    transport       = "tcp"
+    target_port      = 6379
+    transport        = "tcp"
     traffic_weight {
       percentage      = 100
       latest_revision = true
