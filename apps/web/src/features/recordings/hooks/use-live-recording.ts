@@ -1,10 +1,12 @@
+import type { AudioSourceType } from "@/features/recordings/lib/audio-source-preferences";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { logger } from "@/lib/logger";
 import { useMicrophone } from "@/providers/microphone/MicrophoneProvider";
 import { useSystemAudio } from "@/providers/system-audio/SystemAudioProvider";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
-import type { AudioSourceType } from "@/features/recordings/lib/audio-source-preferences";
+import { useEffectEvent, useRef, useState } from "react";
+import { useInitialAudioSetup } from "./use-initial-audio-setup";
 import { useRecordingDuration } from "./use-recording-duration";
+import { useRecordingSetupErrors } from "./use-recording-setup-errors";
 
 export interface UseLiveRecordingOptions {
   audioSource?: AudioSourceType;
@@ -16,58 +18,51 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [recorderError, setRecorderError] = useState<string | null>(null);
-  const [permissionDenied, setPermissionDenied] = useState(false);
 
   // Hooks
   const {
     microphone,
     stream: microphoneStream,
     setupMicrophone,
+    setupError: microphoneSetupError,
     startMicrophone,
     stopMicrophone,
   } = useMicrophone();
   const {
     systemAudio,
     systemAudioStream,
+    setupSystemAudio,
+    setupError: systemAudioSetupError,
     startSystemAudio,
     stopSystemAudio,
-    setupSystemAudio,
   } = useSystemAudio();
   const { duration, startTimer, stopTimer, resetTimer } =
     useRecordingDuration();
-  const wakeLock = useWakeLock(); // Prevent screen from locking during recording
+  const wakeLock = useWakeLock();
+
+  const {
+    recorderError,
+    permissionDenied,
+    setRecorderError,
+    setPermissionDenied,
+    clearErrors,
+  } = useRecordingSetupErrors({
+    microphoneSetupError,
+    systemAudioSetupError,
+    audioSource: options?.audioSource || "microphone",
+  });
+
+  useInitialAudioSetup({
+    audioSource: options?.audioSource,
+    combinedStream: options?.combinedStream,
+    setupMicrophone,
+    stopMicrophone,
+    stopSystemAudio,
+  });
 
   // Refs
   const audioChunksRef = useRef<Blob[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-
-  // Only setup microphone on mount (default behavior)
-  // Don't setup system audio automatically - only when user explicitly selects it and starts recording
-  useEffect(() => {
-    // Only setup microphone if it's the selected audio source and not using combined stream
-    if (
-      (!options?.audioSource || options.audioSource === "microphone") &&
-      !options?.combinedStream
-    ) {
-      void setupMicrophone().catch((error) => {
-        logger.error("Error setting up microphone", {
-          component: "use-live-recording",
-          error: error instanceof Error ? error : new Error(String(error)),
-        });
-        if (error instanceof Error && error.name === "NotAllowedError") {
-          setPermissionDenied(true);
-        }
-        setRecorderError("Kon microfoon niet initialiseren");
-      });
-    }
-
-    return () => {
-      stopMicrophone();
-      stopSystemAudio();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Handler: Start recording
   const handleStart = useEffectEvent(
@@ -76,62 +71,57 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
       onTranscriptionReady?: () => void | Promise<void>
     ) => {
       try {
-        setPermissionDenied(false);
-        setRecorderError(null);
+        clearErrors();
         audioChunksRef.current = [];
 
         const currentAudioSource = options?.audioSource || "microphone";
 
         // Setup audio sources if needed (this is when we request permissions)
-        // Only setup system audio if user has explicitly selected it
+        // Capture streams from setup results (state may not have updated yet)
+        let micStreamFromSetup: MediaStream | null = null;
+        let sysStreamFromSetup: MediaStream | null = null;
+
         if (currentAudioSource === "system" || currentAudioSource === "both") {
           if (!systemAudioStream) {
-            try {
-              await setupSystemAudio();
-            } catch (error) {
-              logger.error("Error setting up system audio", {
-                component: "use-live-recording",
-                error:
-                  error instanceof Error ? error : new Error(String(error)),
-              });
-              if (error instanceof Error && error.name === "NotAllowedError") {
-                setPermissionDenied(true);
-              }
-              setRecorderError("Kon systeem audio niet initialiseren");
-              throw error;
+            const result = await setupSystemAudio();
+            if (!result.success && result.error) {
+              setPermissionDenied(result.error.type === "permission_denied");
+              setRecorderError(result.error.message);
+              return;
             }
+            if (result.success) sysStreamFromSetup = result.stream;
           }
         }
 
-        if (currentAudioSource === "microphone" || currentAudioSource === "both") {
+        if (
+          currentAudioSource === "microphone" ||
+          currentAudioSource === "both"
+        ) {
           if (!microphoneStream) {
-            try {
-              await setupMicrophone();
-            } catch (error) {
-              logger.error("Error setting up microphone", {
-                component: "use-live-recording",
-                error:
-                  error instanceof Error ? error : new Error(String(error)),
-              });
-              if (error instanceof Error && error.name === "NotAllowedError") {
-                setPermissionDenied(true);
-              }
-              setRecorderError("Kon microfoon niet initialiseren");
-              throw error;
+            const result = await setupMicrophone();
+            if (!result.success && result.error) {
+              setPermissionDenied(result.error.type === "permission_denied");
+              setRecorderError(result.error.message);
+              return;
             }
+            if (result.success) micStreamFromSetup = result.stream;
           }
         }
 
-        // Re-determine active stream after setup
+        // Re-determine active stream (use freshly-set-up streams when state hasn't propagated yet)
         const finalActiveStream =
           options?.combinedStream ||
-          (currentAudioSource === "system" ? systemAudioStream : microphoneStream);
+          (currentAudioSource === "system"
+            ? (sysStreamFromSetup ?? systemAudioStream)
+            : (micStreamFromSetup ?? microphoneStream));
         const finalActiveRecorder =
           currentAudioSource === "system" ? systemAudio : microphone;
 
-        // Ensure we have the active stream
         if (!finalActiveStream) {
-          throw new Error("No audio stream available");
+          setRecorderError(
+            "Geen audio stream beschikbaar. Controleer je microfoon of systeemaudio-instellingen."
+          );
+          return;
         }
 
         // Create MediaRecorder from the active stream (if using combined stream)
@@ -151,7 +141,10 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
           recorder.onerror = (event) => {
             logger.error("MediaRecorder error", {
               component: "use-live-recording",
-              error: event instanceof ErrorEvent ? event.error : new Error(String(event)),
+              error:
+                event instanceof ErrorEvent
+                  ? event.error
+                  : new Error(String(event)),
             });
 
             // Stop recording and transition to error state
@@ -162,7 +155,10 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
             } catch (stopError) {
               logger.error("Error stopping MediaRecorder after error", {
                 component: "use-live-recording",
-                error: stopError instanceof Error ? stopError : new Error(String(stopError)),
+                error:
+                  stopError instanceof Error
+                    ? stopError
+                    : new Error(String(stopError)),
               });
             }
 
@@ -181,10 +177,16 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
 
             // Release wake lock
             wakeLock.release().catch((releaseError) => {
-              logger.error("Error releasing wake lock after MediaRecorder error", {
-                component: "use-live-recording",
-                error: releaseError instanceof Error ? releaseError : new Error(String(releaseError)),
-              });
+              logger.error(
+                "Error releasing wake lock after MediaRecorder error",
+                {
+                  component: "use-live-recording",
+                  error:
+                    releaseError instanceof Error
+                      ? releaseError
+                      : new Error(String(releaseError)),
+                }
+              );
             });
           };
         }
@@ -275,7 +277,7 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
       if (options?.combinedStream) {
         // Capture recorder reference atomically to avoid race conditions
         const recorder = mediaRecorderRef.current;
-        
+
         if (recorder && recorder.state === "recording") {
           // Wait for final data with atomic handler setup
           await new Promise<void>((resolve) => {

@@ -51,26 +51,34 @@ function getAudioSourceStates(
 }
 
 /**
- * Sets up microphone-only audio source
+ * Sets up microphone-only audio source.
+ * Throws with user-friendly message if setup fails (provider shows toast, does not throw).
  */
 async function setupMicrophoneSource(
   microphoneHook: MicrophoneHook,
   states: ReturnType<typeof getAudioSourceStates>
 ): Promise<void> {
   if (states.micNotSetup || states.micError) {
-    await microphoneHook.setupMicrophone();
+    const result = await microphoneHook.setupMicrophone();
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
   }
 }
 
 /**
- * Sets up system-audio-only source
+ * Sets up system-audio-only source.
+ * Throws with user-friendly message if setup fails (provider shows toast, does not throw).
  */
 async function setupSystemAudioSource(
   systemAudioHook: SystemAudioHook,
   states: ReturnType<typeof getAudioSourceStates>
 ): Promise<void> {
   if (states.sysNotSetup || states.sysError) {
-    await systemAudioHook.setupSystemAudio();
+    const result = await systemAudioHook.setupSystemAudio();
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
   }
 }
 
@@ -88,14 +96,18 @@ async function setupBothSources({
 }: SetupAudioSourcesParams & {
   states: ReturnType<typeof getAudioSourceStates>;
 }): Promise<void> {
-  // Setup microphone if needed
   if (states.micNotSetup || states.micError) {
-    await microphoneHook.setupMicrophone();
+    const micResult = await microphoneHook.setupMicrophone();
+    if (!micResult.success) {
+      throw new Error(micResult.error.message);
+    }
   }
 
-  // Setup system audio if needed
   if (states.sysNotSetup || states.sysError) {
-    await systemAudioHook.setupSystemAudio();
+    const sysResult = await systemAudioHook.setupSystemAudio();
+    if (!sysResult.success) {
+      throw new Error(sysResult.error.message);
+    }
   }
 
   // Wait for streams to be ready
@@ -128,15 +140,8 @@ async function setupBothSources({
 export async function setupAudioSources(
   params: SetupAudioSourcesParams
 ): Promise<void> {
-  const {
-    audioSource,
-    microphoneHook,
-    systemAudioHook,
-    getMicrophoneStream,
-    getSystemAudioStream,
-    audioMixerRef,
-    setCombinedStream,
-  } = params;
+  const { audioSource, microphoneHook, systemAudioHook, audioMixerRef, setCombinedStream } =
+    params;
 
   const states = getAudioSourceStates(
     microphoneHook.microphoneState,
