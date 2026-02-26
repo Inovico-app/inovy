@@ -27,6 +27,7 @@ import { EditProjectModal } from "./edit-project-modal";
 interface ProjectActionsProps {
   projectId: string;
   projectName: string;
+  projectDescription: string | null;
   isArchived: boolean;
   recordingCount: number;
 }
@@ -39,6 +40,7 @@ interface ProjectActionsProps {
  *
  * @param projectId - The project's unique identifier used for actions and navigation
  * @param projectName - The project's display name shown in dialogs and passed to modals
+ * @param projectDescription - The project's current description value
  * @param isArchived - Whether the project is currently archived; controls archive menu label and dialog behavior
  * @param recordingCount - Number of recordings in the project; passed to the delete confirmation dialog
  * @returns The React element containing the project action controls and any conditionally rendered modals/dialogs
@@ -46,6 +48,7 @@ interface ProjectActionsProps {
 export function ProjectActions({
   projectId,
   projectName,
+  projectDescription,
   isArchived,
   recordingCount,
 }: ProjectActionsProps) {
@@ -110,7 +113,7 @@ export function ProjectActions({
           projectId={projectId}
           initialData={{
             name: projectName,
-            description: null,
+            description: projectDescription,
           }}
           variant="ghost"
           open={showEditModal}
