@@ -154,23 +154,35 @@ variable "redis_max_replicas" {
   default     = 1
 }
 
-# Qdrant variables
-variable "qdrant_ip_address_type" {
-  description = "IP address type for Qdrant Container Group (Public or Private)"
+# Qdrant variables (Container App)
+variable "qdrant_image" {
+  description = "Qdrant container image (use stable version tag)"
   type        = string
-  default     = "Public"
+  default     = "qdrant/qdrant:v1.17.0"
 }
 
 variable "qdrant_cpu" {
   description = "CPU cores for Qdrant container"
   type        = number
-  default     = 1.0
+  default     = 0.5
 }
 
 variable "qdrant_memory" {
-  description = "Memory in GB for Qdrant container"
+  description = "Memory for Qdrant container (e.g., 1Gi)"
+  type        = string
+  default     = "1Gi"
+}
+
+variable "qdrant_min_replicas" {
+  description = "Minimum number of Qdrant replicas"
   type        = number
-  default     = 2.0
+  default     = 1
+}
+
+variable "qdrant_max_replicas" {
+  description = "Maximum number of Qdrant replicas"
+  type        = number
+  default     = 1
 }
 
 variable "qdrant_storage_quota_gb" {

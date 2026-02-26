@@ -89,10 +89,12 @@ entra_administrators = [
 # QDRANT VARIABLES (Optional - defaults provided)
 # ============================================================================
 
-# Qdrant Container Configuration
-# qdrant_ip_address_type = "Public"  # Public or Private
-# qdrant_cpu            = 1.0
-# qdrant_memory         = 2.0  # GB
+# Qdrant Container App Configuration
+# qdrant_image          = "qdrant/qdrant:v1.17.0"  # Use stable version tag
+# qdrant_cpu            = 0.5
+# qdrant_memory         = "1Gi"
+# qdrant_min_replicas   = 1
+# qdrant_max_replicas   = 1
 # qdrant_storage_quota_gb = 100
 
 # Qdrant API Key (if using cloud-hosted Qdrant)

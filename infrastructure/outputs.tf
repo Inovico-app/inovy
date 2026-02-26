@@ -95,27 +95,21 @@ output "container_app_environment_id" {
   value       = data.azurerm_container_app_environment.current.id
 }
 
-# Qdrant outputs
-# output "qdrant_url" {
-#   description = "Qdrant API URL"
-#   value       = module.qdrant.qdrant_url
-# }
+# Qdrant outputs (Container App)
+output "qdrant_url" {
+  description = "Qdrant REST API URL (internal)"
+  value       = module.qdrant.qdrant_url
+}
 
-# output "qdrant_grpc_url" {
-#   description = "Qdrant gRPC URL"
-#   value       = module.qdrant.qdrant_grpc_url
-# }
+output "qdrant_grpc_url" {
+  description = "Qdrant gRPC URL (host:port, internal)"
+  value       = module.qdrant.qdrant_grpc_url
+}
 
-# output "qdrant_fqdn" {
-#   description = "FQDN of the Qdrant container group"
-#   value       = module.qdrant.qdrant_fqdn
-# }
-
-# output "qdrant_api_key" {
-#   description = "Qdrant API key (if configured)"
-#   value       = var.qdrant_api_key
-#   sensitive   = true
-# }
+output "qdrant_hostname" {
+  description = "Hostname/FQDN of the Qdrant Container App"
+  value       = module.qdrant.qdrant_hostname
+}
 
 # Storage outputs
 output "storage_account_name" {
