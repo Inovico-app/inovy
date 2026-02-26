@@ -50,10 +50,10 @@ export default function PrivacyPolicyPage() {
             Dit beleid is van toepassing op het gebruik van de Inovy-applicatie
             en bijbehorende diensten, beschikbaar via{" "}
             <Link
-              href="https://inovy.app"
+              href="https://app.inovico.nl"
               className="text-primary underline underline-offset-2"
             >
-              inovy.app
+              app.inovico.nl
             </Link>
             .
           </p>

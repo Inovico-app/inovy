@@ -32,10 +32,10 @@ export default function TermsOfServicePage() {
               <strong>Dienst:</strong> de Inovy-applicatie en alle bijbehorende
               functionaliteiten, beschikbaar via{" "}
               <Link
-                href="https://inovy.app"
+                href="https://app.inovico.nl"
                 className="text-primary underline underline-offset-2"
               >
-                inovy.app
+                app.inovico.nl
               </Link>
               .
             </li>
