@@ -61,8 +61,8 @@ resource "azurerm_container_app" "qdrant" {
       }
 
       volume_mounts {
-        volume_name = "qdrant-storage"
-        mount_path  = "/qdrant/storage"
+        name = "qdrant-storage"
+        path = "/qdrant/storage"
       }
 
       liveness_probe {
