@@ -1,5 +1,6 @@
 # Log Analytics Workspace for Container Apps
 resource "azurerm_log_analytics_workspace" "inovy" {
+  count               = var.container_app_environment_id == "" ? 1 : 0
   name                = "log-inovy-${var.environment}"
   location            = var.location
   resource_group_name = var.resource_group_name
@@ -15,11 +16,12 @@ resource "azurerm_log_analytics_workspace" "inovy" {
 
 # Container App Environment
 resource "azurerm_container_app_environment" "inovy" {
-  name                       = "inovy-env-${var.environment}"
-  location                   = var.location
-  resource_group_name        = var.resource_group_name
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.inovy.id
-  infrastructure_subnet_id   = var.subnet_container_apps_id
+  count                       = var.container_app_environment_id == "" ? 1 : 0
+  name                        = "inovy-env-${var.environment}"
+  location                    = var.location
+  resource_group_name         = var.resource_group_name
+  log_analytics_workspace_id  = azurerm_log_analytics_workspace.inovy[0].id
+  infrastructure_subnet_id    = var.subnet_container_apps_id
 
   tags = merge(var.tags, {
     Environment = var.environment
@@ -51,7 +53,7 @@ resource "azurerm_role_assignment" "storage_blob_data_contributor" {
 # Container App
 resource "azurerm_container_app" "inovy" {
   name                         = "inovy-app-${var.environment}"
-  container_app_environment_id = azurerm_container_app_environment.inovy.id
+  container_app_environment_id = var.container_app_environment_id != "" ? var.container_app_environment_id : azurerm_container_app_environment.inovy[0].id
   resource_group_name          = var.resource_group_name
   revision_mode                = var.container_app_revision_mode
 
@@ -86,13 +88,8 @@ resource "azurerm_container_app" "inovy" {
       }
 
       env {
-        name  = "UPSTASH_REDIS_REST_URL"
-        value = "https://${var.redis_hostname}:${var.redis_ssl_port}"
-      }
-
-      env {
-        name  = "UPSTASH_REDIS_REST_TOKEN"
-        value = var.redis_primary_access_key
+        name  = "REDIS_URL"
+        value = var.redis_url
       }
 
       env {

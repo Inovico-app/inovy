@@ -72,11 +72,18 @@ entra_administrators = [
 # backup_time_zone = "UTC"  # Time zone for backup schedule (e.g., UTC, America/New_York)
 
 # ============================================================================
-# REDIS VARIABLES (Optional - defaults provided)
+# REDIS VARIABLES (Container App)
 # ============================================================================
 
-# Redis Cache Configuration
-# redis_sku_name = "Balanced_B0"  # Managed Redis SKU (e.g., Balanced_B0, EnterpriseFlash_F300)
+# Redis password (required - use secret REDIS_PASSWORD in GitHub Actions)
+# redis_password = "YourRedisPassword123!"
+
+# Redis Container Configuration (Optional - defaults provided)
+# redis_image       = "redis:7-alpine"
+# redis_cpu         = 0.25
+# redis_memory      = "0.5Gi"
+# redis_min_replicas = 1
+# redis_max_replicas = 1
 
 # ============================================================================
 # QDRANT VARIABLES (Optional - defaults provided)

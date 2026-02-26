@@ -91,6 +91,7 @@ jobs:
         env:
           TF_VAR_postgresql_admin_login: ${{ secrets.POSTGRESQL_ADMIN_LOGIN }}
           TF_VAR_postgresql_admin_password: ${{ secrets.POSTGRESQL_ADMIN_PASSWORD }}
+          TF_VAR_redis_password: ${{ secrets.REDIS_PASSWORD }}
         run: |
           terraform plan \
             -input=false \
@@ -181,3 +182,4 @@ jobs:
         env:
           TF_VAR_postgresql_admin_login: ${{ secrets.POSTGRESQL_ADMIN_LOGIN }}
           TF_VAR_postgresql_admin_password: ${{ secrets.POSTGRESQL_ADMIN_PASSWORD }}
+          TF_VAR_redis_password: ${{ secrets.REDIS_PASSWORD }}

@@ -13,25 +13,19 @@ variable "resource_group_name" {
   type        = string
 }
 
-variable "redis_sku_name" {
-  description = "Redis SKU name"
+variable "subnet_container_apps_id" {
+  description = "ID of the Container Apps subnet"
   type        = string
-  default     = "Balanced_B0"
+}
+
+variable "log_analytics_retention_days" {
+  description = "Log Analytics retention in days"
+  type        = number
+  default     = 30
 }
 
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)
   default     = {}
-}
-
-variable "high_availability_enabled" {
-  description = "Enable high availability for Redis"
-  type        = bool
-}
-
-variable "container_app_managed_identity_principal_id" {
-  description = "Principal ID of the Container App managed identity for Entra authentication (optional)"
-  type        = string
-  default     = ""
 }

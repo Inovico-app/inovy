@@ -14,8 +14,15 @@ variable "resource_group_name" {
 }
 
 variable "subnet_container_apps_id" {
-  description = "ID of the Container Apps subnet"
+  description = "ID of the Container Apps subnet (required when creating own environment)"
   type        = string
+  default     = ""
+}
+
+variable "container_app_environment_id" {
+  description = "ID of the Container App Environment (use shared environment from container-app-environment module)"
+  type        = string
+  default     = ""
 }
 
 variable "storage_account_id" {
@@ -45,18 +52,8 @@ variable "postgresql_database_name" {
   type        = string
 }
 
-variable "redis_hostname" {
-  description = "Hostname of the Redis Cache"
-  type        = string
-}
-
-variable "redis_ssl_port" {
-  description = "SSL port of the Redis Cache"
-  type        = number
-}
-
-variable "redis_primary_access_key" {
-  description = "Primary access key for Redis Cache"
+variable "redis_url" {
+  description = "Redis connection URL (redis://:password@host:port) for standard Redis"
   type        = string
   sensitive   = true
 }

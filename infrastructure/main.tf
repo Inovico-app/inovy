@@ -115,20 +115,44 @@ module "backup" {
   }
 }
 
-# Redis Module
-module "redis" {
-  source = "./modules/redis"
+# Container App Environment (shared by Redis and main app)
+module "container_app_environment" {
+  source = "./modules/container-app-environment"
 
-  environment                                 = var.environment
-  location                                    = var.location
-  resource_group_name                         = azurerm_resource_group.inovy.name
-  redis_sku_name                              = var.redis_sku_name
-  high_availability_enabled                   = var.high_availability_enabled
-  container_app_managed_identity_principal_id = module.container_app_identity.managed_identity_principal_id
+  environment                  = var.environment
+  location                     = var.location
+  resource_group_name          = azurerm_resource_group.inovy.name
+  subnet_container_apps_id     = module.networking.subnet_container_apps_id
+  log_analytics_retention_days  = var.log_analytics_retention_days
 
   depends_on = [
-    module.networking,
-    module.container_app_identity
+    module.networking
+  ]
+
+  tags = {
+    Environment = var.environment
+    Application = "inovy"
+    ManagedBy   = "terraform"
+  }
+}
+
+# Redis Container App Module
+module "redis" {
+  source = "./modules/redis-container-app"
+
+  environment                    = var.environment
+  location                       = var.location
+  resource_group_name            = azurerm_resource_group.inovy.name
+  container_app_environment_id   = module.container_app_environment.container_app_environment_id
+  redis_password                 = var.redis_password
+  redis_image                    = var.redis_image
+  redis_cpu                      = var.redis_cpu
+  redis_memory                   = var.redis_memory
+  redis_min_replicas             = var.redis_min_replicas
+  redis_max_replicas             = var.redis_max_replicas
+
+  depends_on = [
+    module.container_app_environment
   ]
 
   tags = {
@@ -188,15 +212,13 @@ module "storage" {
 #   environment                                  = var.environment
 #   location                                     = var.location
 #   resource_group_name                          = azurerm_resource_group.inovy.name
-#   subnet_container_apps_id                     = module.networking.subnet_container_apps_id
+#   container_app_environment_id                  = module.container_app_environment.container_app_environment_id
 #   storage_account_id                           = module.storage.storage_account_id
 #   postgresql_admin_login                       = module.database.postgresql_administrator_login
 #   postgresql_admin_password                    = module.database.postgresql_administrator_password
 #   postgresql_fqdn                              = module.database.postgresql_server_fqdn
 #   postgresql_database_name                     = module.database.postgresql_database_name
-#   redis_hostname                               = module.redis.redis_cache_hostname
-#   redis_ssl_port                               = module.redis.redis_cache_ssl_port
-#   redis_primary_access_key                     = module.redis.redis_cache_primary_access_key
+#   redis_url                                    = module.redis.redis_url
 #   qdrant_url                                   = module.qdrant.qdrant_url
 #   qdrant_api_key                               = var.qdrant_api_key
 #   storage_account_name                         = module.storage.storage_account_name

@@ -73,20 +73,26 @@ output "backup_vault_identity_principal_id" {
   value       = module.backup.backup_vault_identity_principal_id
 }
 
-# Redis outputs
-output "redis_cache_hostname" {
-  description = "Hostname/FQDN of the Managed Redis Cache"
-  value       = module.redis.redis_cache_hostname
+# Redis outputs (Container App)
+output "redis_hostname" {
+  description = "Hostname/FQDN of the Redis Container App"
+  value       = module.redis.redis_hostname
 }
 
-output "redis_cache_id" {
-  description = "ID of the Managed Redis Cache"
-  value       = module.redis.redis_cache_id
+output "redis_port" {
+  description = "Redis port"
+  value       = module.redis.redis_port
 }
 
-output "redis_cache_name" {
-  description = "Name of the Managed Redis Cache"
-  value       = module.redis.redis_cache_name
+output "redis_url" {
+  description = "Redis connection URL"
+  value       = module.redis.redis_url
+  sensitive   = true
+}
+
+output "container_app_environment_id" {
+  description = "ID of the Container App Environment"
+  value       = module.container_app_environment.container_app_environment_id
 }
 
 # Qdrant outputs

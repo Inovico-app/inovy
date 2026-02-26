@@ -117,11 +117,41 @@ variable "backup_time_zone" {
   default     = "UTC"
 }
 
-# Redis variables
-variable "redis_sku_name" {
-  description = "Redis SKU name for Managed Redis (e.g., Balanced_B0, EnterpriseFlash_F300)"
+# Redis variables (Container App)
+variable "redis_password" {
+  description = "Redis password (requirepass) for the Redis Container App"
   type        = string
-  default     = "Balanced_B0"
+  sensitive   = true
+}
+
+variable "redis_image" {
+  description = "Redis container image"
+  type        = string
+  default     = "redis:7-alpine"
+}
+
+variable "redis_cpu" {
+  description = "CPU cores for Redis container"
+  type        = number
+  default     = 0.25
+}
+
+variable "redis_memory" {
+  description = "Memory for Redis container (e.g., 0.5Gi)"
+  type        = string
+  default     = "0.5Gi"
+}
+
+variable "redis_min_replicas" {
+  description = "Minimum number of Redis replicas"
+  type        = number
+  default     = 1
+}
+
+variable "redis_max_replicas" {
+  description = "Maximum number of Redis replicas"
+  type        = number
+  default     = 1
 }
 
 # Qdrant variables
@@ -246,10 +276,4 @@ variable "log_analytics_retention_days" {
   description = "Log Analytics workspace retention in days"
   type        = number
   default     = 30
-}
-
-variable "high_availability_enabled" {
-  description = "Enable high availability for Redis"
-  type        = bool
-  default     = false
 }
