@@ -64,6 +64,7 @@ export function TranscriptionMessageView({
     container.addEventListener(
       "pointerleave",
       () => {
+        if (activeSpeaker === null) return;
         activeSpeaker = null;
         clearHighlight();
       },
