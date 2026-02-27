@@ -59,7 +59,13 @@ export function AcceptInvitationClient({
 
   // Check if user email matches invitation email
   if (userEmail && userEmail !== invitation.email) {
-    return <InvitationEmailMismatch userEmail={userEmail} />;
+    return (
+      <InvitationEmailMismatch
+        userEmail={userEmail}
+        invitationId={invitation.id}
+        invitationEmail={invitation.email}
+      />
+    );
   }
 
   // User is authenticated and email matches - show accept button
