@@ -53,7 +53,7 @@ export const TranscriptionMessage = ({
 }: TranscriptionMessageProps) => (
   <div
     className={cn(
-      "group flex w-full items-end py-2 gap-2",
+      "group flex w-full items-end py-2 gap-2 transition-opacity duration-200",
       isLeftAligned ? "justify-start" : "justify-end flex-row-reverse",
       className
     )}
@@ -136,7 +136,7 @@ export function TranscriptionMessageBubble({
   };
 
   return (
-    <TranscriptionMessage isLeftAligned={isLeftAligned}>
+    <TranscriptionMessage isLeftAligned={isLeftAligned} data-speaker={groupedUtterance.speaker}>
       {viewMode === "detailed" && (
         <Avatar className="flex-shrink-0 w-8 h-8">
           {speakerInfo.image ? (
