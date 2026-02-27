@@ -8,6 +8,7 @@ import { getRecallApiKey } from "./recall-api.utils";
 
 interface CreateMeetingRequest {
   meeting_url: string;
+  bot_name?: string;
   webhook_url: string;
   custom_metadata: Record<string, string>;
   automatic_leave: {
@@ -15,8 +16,25 @@ interface CreateMeetingRequest {
     waiting_room_timeout: number;
     everyone_left_timeout: number;
   };
+  recording_config?: {
+    realtime_endpoints?: Array<{
+      type: "webhook";
+      url: string;
+      events: string[];
+    }>;
+  };
+  chat?: {
+    on_bot_join?: {
+      send_to: "host" | "everyone" | "everyone_except_host";
+      message: string;
+      pin?: boolean;
+    };
+  };
   join_at?: string;
 }
+
+const DEFAULT_BOT_JOIN_MESSAGE =
+  "Hi! I'm recording this meeting. If you'd like me to leave, type /stop or /kick in the chat.";
 
 interface RecallRecording {
   id?: string;
@@ -54,25 +72,45 @@ export class RecallApiService {
    * @param meetingUrl - The meeting URL to join
    * @param customMetadata - Custom metadata to attach (e.g., projectId)
    * @param joinAt - Optional scheduled time for bot to join the meeting
+   * @param options - Optional bot display name and join message
    * @returns Result containing bot session ID and details
    */
   static async createBotSession(
     meetingUrl: string,
     customMetadata?: Record<string, string>,
-    joinAt?: Date
+    joinAt?: Date,
+    options?: { botDisplayName?: string; botJoinMessage?: string | null }
   ): Promise<ActionResult<{ botId: string; status: string }>> {
     try {
       const apiKey = getRecallApiKey();
       const webhookUrl = `${this.getWebhookBaseUrl()}/api/webhooks/recall`;
 
+      const joinMessage = options?.botJoinMessage ?? DEFAULT_BOT_JOIN_MESSAGE;
+
       const requestBody: CreateMeetingRequest = {
         meeting_url: meetingUrl,
+        bot_name: options?.botDisplayName || "Inovy Recording Bot",
         webhook_url: webhookUrl,
         custom_metadata: customMetadata ?? {},
         automatic_leave: {
           noone_joined_timeout: 300,
           waiting_room_timeout: 600,
           everyone_left_timeout: 30,
+        },
+        recording_config: {
+          realtime_endpoints: [
+            {
+              type: "webhook",
+              url: webhookUrl,
+              events: ["participant_events.chat_message"],
+            },
+          ],
+        },
+        chat: {
+          on_bot_join: {
+            send_to: "everyone",
+            message: joinMessage,
+          },
         },
       };
 
@@ -381,6 +419,67 @@ export class RecallApiService {
           "RecallApiService.getRecordingDownloadUrl"
         )
     );
+  }
+
+  /**
+   * Gracefully remove a bot from a call via POST /bot/{id}/leave_call/
+   * Preferred over DELETE /bot/{id}/ because it allows the recording to finalize.
+   * @param botId - The Recall.ai bot ID
+   */
+  static async leaveCall(botId: string): Promise<ActionResult<void>> {
+    try {
+      const apiKey = getRecallApiKey();
+
+      const response = await fetch(
+        `${RecallApiService.API_BASE_URL}/bot/${botId}/leave_call/`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Token ${apiKey}`,
+          },
+          signal: AbortSignal.timeout(30000),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error("Failed to remove bot from call", {
+          component: "RecallApiService.leaveCall",
+          botId,
+          status: response.status,
+          error: errorText,
+        });
+
+        return err(
+          ActionErrors.internal(
+            `Failed to remove bot from call: ${response.statusText}`,
+            new Error(errorText),
+            "RecallApiService.leaveCall"
+          )
+        );
+      }
+
+      logger.info("Successfully removed bot from call", {
+        component: "RecallApiService.leaveCall",
+        botId,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Failed to remove bot from call", {
+        component: "RecallApiService.leaveCall",
+        botId,
+        error: serializeError(error),
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to remove bot from call",
+          error as Error,
+          "RecallApiService.leaveCall"
+        )
+      );
+    }
   }
 }
 

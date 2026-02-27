@@ -53,6 +53,51 @@ export const svixRecordingEventSchema = z.object({
 });
 
 /**
+ * Real-time participant event: chat message
+ * Per https://docs.recall.ai/docs/receiving-chat-messages
+ * Sent via recording_config.realtime_endpoints with event "participant_events.chat_message"
+ */
+export const participantEventChatMessageSchema = z.object({
+  event: z.literal("participant_events.chat_message"),
+  data: z.object({
+    data: z.object({
+      participant: z.object({
+        id: z.number(),
+        name: z.string().nullable(),
+        is_host: z.boolean(),
+        platform: z.string().nullable().optional(),
+        extra_data: z.record(z.unknown()).optional(),
+        email: z.string().nullable().optional(),
+      }),
+      timestamp: z.object({
+        absolute: z.string(),
+        relative: z.number(),
+      }),
+      data: z.object({
+        text: z.string(),
+        to: z.string().nullable().optional(),
+      }).nullable(),
+    }),
+    realtime_endpoint: z.object({
+      id: z.string(),
+      metadata: z.record(z.unknown()).optional(),
+    }).optional(),
+    participant_events: z.object({
+      id: z.string(),
+      metadata: z.record(z.unknown()).optional(),
+    }).optional(),
+    recording: z.object({
+      id: z.string(),
+      metadata: z.record(z.unknown()).optional(),
+    }).optional(),
+    bot: z.object({
+      id: z.string(),
+      metadata: metadataSchema,
+    }).optional(),
+  }),
+});
+
+/**
  * Legacy bot status change event (if Recall still sends it)
  */
 export const botStatusChangeEventSchema = z.object({
@@ -94,17 +139,20 @@ export const botRecordingReadyEventSchema = z.object({
 
 /**
  * Union for all webhook event formats.
- * z.union evaluates members in order; svixBotStatusEventSchema and svixRecordingEventSchema
- * must come before botStatusChangeEventSchema and botRecordingReadyEventSchema to ensure
- * correct fall-through (Svix format has data.bot discriminant; legacy has top-level bot).
+ * z.union evaluates members in order:
+ * - participantEventChatMessageSchema first (literal "participant_events.chat_message" discriminant)
+ * - svixBotStatusEventSchema and svixRecordingEventSchema next (Svix format with data.bot)
+ * - Legacy schemas last (top-level bot)
  */
 export const recallWebhookEventSchema = z.union([
+  participantEventChatMessageSchema,
   svixBotStatusEventSchema,
   svixRecordingEventSchema,
   botStatusChangeEventSchema,
   botRecordingReadyEventSchema,
 ]);
 
+export type ParticipantEventChatMessage = z.infer<typeof participantEventChatMessageSchema>;
 export type SvixBotStatusEvent = z.infer<typeof svixBotStatusEventSchema>;
 export type SvixRecordingEvent = z.infer<typeof svixRecordingEventSchema>;
 export type BotStatusChangeEvent = z.infer<typeof botStatusChangeEventSchema>;

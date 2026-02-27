@@ -123,7 +123,8 @@ export const addBotToMeeting = authorizedActionClient
       );
     }
 
-    const { requirePerMeetingConsent } = settingsResult.value;
+    const { requirePerMeetingConsent, botDisplayName, botJoinMessage } =
+      settingsResult.value;
 
     // If consent required and not given, return consentRequired for client to show dialog
     if (requirePerMeetingConsent && !consentGiven) {
@@ -147,6 +148,8 @@ export const addBotToMeeting = authorizedActionClient
         userId: user.id,
         calendarEventId,
       },
+      botDisplayName,
+      botJoinMessage,
     });
 
     if (sessionResult.isErr()) {

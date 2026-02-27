@@ -9,6 +9,8 @@ export interface BotProviderConfig {
   customMetadata?: Record<string, string>;
   webhookUrl?: string;
   joinAt?: Date;
+  botDisplayName?: string;
+  botJoinMessage?: string | null;
 }
 
 /**
