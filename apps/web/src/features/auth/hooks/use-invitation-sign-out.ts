@@ -10,14 +10,18 @@ export function useInvitationSignOut(invitationId: string) {
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
-    await signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          router.push(`/accept-invitation/${invitationId}`);
-          router.refresh();
+    try {
+      await signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            router.push(`/accept-invitation/${invitationId}`);
+            router.refresh();
+          },
         },
-      },
-    });
+      });
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
   return { handleSignOut, isSigningOut };
