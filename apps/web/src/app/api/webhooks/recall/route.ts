@@ -6,6 +6,7 @@ import {
   recallWebhookEventSchema,
   type BotRecordingReadyEvent,
   type BotStatusChangeEvent,
+  type ParticipantEventChatMessage,
   type RecallWebhookEvent,
   type SvixBotStatusEvent,
   type SvixRecordingEvent,
@@ -93,6 +94,8 @@ export async function POST(request: NextRequest) {
       string,
       (p: RecallWebhookEvent) => Promise<ActionResult<void>>
     > = {
+      "participant_events.chat_message": (p) =>
+        BotWebhookService.processChatMessage(p as ParticipantEventChatMessage),
       "bot.recording_ready": (p) =>
         BotWebhookService.processRecordingReady(p as BotRecordingReadyEvent),
       "recording.done": (p) =>

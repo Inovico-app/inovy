@@ -1,3 +1,4 @@
+import { CacheInvalidation } from "@/lib/cache-utils";
 import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
 import { put } from "@vercel/blob";
 import { err, ok } from "neverthrow";
@@ -13,14 +14,31 @@ import { RecordingsQueries } from "../data-access/recordings.queries";
 import { type BotStatus } from "../db/schema/bot-sessions";
 import { RecallApiService } from "./recall-api.service";
 import { mapRecallEventToBotStatus, mapRecallStatusToBotStatus } from "./bot-providers/recall/status-mapper";
+import { NotificationService } from "./notification.service";
 import { RecordingService } from "./recording.service";
 import type {
   BotRecordingReadyEvent,
   BotStatusChangeEvent,
+  ParticipantEventChatMessage,
   RecallWebhookEvent,
   SvixBotStatusEvent,
   SvixRecordingEvent,
 } from "../validation/bot/recall-webhook.schema";
+
+const KICK_COMMANDS = new Set([
+  "/stop",
+  "/kick",
+  "/leave",
+  "!stop",
+  "!kick",
+  "!leave",
+]);
+
+const TERMINAL_BOT_STATUSES = new Set<BotStatus>([
+  "leaving",
+  "completed",
+  "failed",
+]);
 
 function getMetadata(payload: RecallWebhookEvent): Record<string, string> | undefined {
   if ("data" in payload && payload.data?.bot?.metadata) {
@@ -170,6 +188,150 @@ export class BotWebhookService {
           "Failed to process status change",
           error as Error,
           "BotWebhookService.processStatusChange"
+        )
+      );
+    }
+  }
+
+  /**
+   * Process participant_events.chat_message from real-time webhook.
+   * Checks if the message matches a kick command and removes the bot from the call.
+   */
+  static async processChatMessage(
+    event: ParticipantEventChatMessage
+  ): Promise<ActionResult<void>> {
+    try {
+      const chatData = event.data.data;
+      const text = chatData.data?.text?.trim().toLowerCase() ?? "";
+      const senderName = chatData.participant.name ?? "Unknown participant";
+      const botId = event.data.bot?.id;
+      const metadata = event.data.bot?.metadata;
+      const organizationId = metadata?.organizationId;
+
+      if (!KICK_COMMANDS.has(text)) {
+        return ok(undefined);
+      }
+
+      logger.info("Kick command detected in meeting chat", {
+        component: "BotWebhookService.processChatMessage",
+        command: text,
+        senderName,
+        botId,
+      });
+
+      if (!botId) {
+        logger.warn("Chat message event missing bot ID", {
+          component: "BotWebhookService.processChatMessage",
+        });
+        return ok(undefined);
+      }
+
+      if (!organizationId || typeof organizationId !== "string") {
+        logger.warn("Chat message event missing organizationId in bot metadata", {
+          component: "BotWebhookService.processChatMessage",
+          botId,
+        });
+        return ok(undefined);
+      }
+
+      const session = await BotSessionsQueries.findByRecallBotId(
+        botId,
+        organizationId
+      );
+
+      if (!session) {
+        logger.warn("Bot session not found for chat kick command", {
+          component: "BotWebhookService.processChatMessage",
+          botId,
+          organizationId,
+        });
+        return ok(undefined);
+      }
+
+      if (TERMINAL_BOT_STATUSES.has(session.botStatus as BotStatus)) {
+        logger.info("Bot already in terminal state, ignoring kick command", {
+          component: "BotWebhookService.processChatMessage",
+          botId,
+          sessionId: session.id,
+          currentStatus: session.botStatus,
+        });
+        return ok(undefined);
+      }
+
+      const leaveResult = await RecallApiService.leaveCall(botId);
+
+      if (leaveResult.isErr()) {
+        logger.warn("Failed to remove bot via leave_call API, continuing with status update", {
+          component: "BotWebhookService.processChatMessage",
+          botId,
+          sessionId: session.id,
+          error: leaveResult.error,
+        });
+      }
+
+      await BotSessionsQueries.updateByRecallBotId(botId, organizationId, {
+        botStatus: "leaving",
+        recallStatus: "kicked_by_participant",
+        error: `Bot removed via chat command by ${senderName}`,
+        leftAt: new Date(),
+      });
+
+      try {
+        const notificationResult = await NotificationService.createNotification({
+          recordingId: session.recordingId ?? null,
+          projectId: session.projectId,
+          userId: session.userId,
+          organizationId,
+          type: "bot_session_update",
+          title: "Bot removed from meeting",
+          message: `Bot was removed from "${session.meetingTitle || "meeting"}" by ${senderName} via chat command.`,
+          metadata: {
+            sessionId: session.id,
+            action: "kicked",
+            kickedBy: senderName,
+            command: text,
+          },
+        });
+
+        if (notificationResult.isErr()) {
+          logger.warn("Failed to create kick notification", {
+            component: "BotWebhookService.processChatMessage",
+            sessionId: session.id,
+            error: notificationResult.error.message,
+          });
+        }
+      } catch (notifyError) {
+        logger.error("Unexpected error creating kick notification", {
+          component: "BotWebhookService.processChatMessage",
+          sessionId: session.id,
+          error: serializeError(notifyError),
+        });
+      }
+
+      CacheInvalidation.invalidateBotSessions(organizationId);
+      CacheInvalidation.invalidateBotSession(session.id, organizationId);
+      CacheInvalidation.invalidateNotifications(session.userId, organizationId);
+
+      logger.info("Bot successfully kicked via chat command", {
+        component: "BotWebhookService.processChatMessage",
+        botId,
+        sessionId: session.id,
+        kickedBy: senderName,
+        command: text,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Failed to process chat message event", {
+        component: "BotWebhookService.processChatMessage",
+        error: serializeError(error),
+        botId: event.data.bot?.id,
+      });
+      return err(
+        ActionErrors.internal(
+          "Failed to process chat message",
+          error as Error,
+          "BotWebhookService.processChatMessage"
         )
       );
     }

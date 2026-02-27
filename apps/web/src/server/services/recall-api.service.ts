@@ -15,6 +15,13 @@ interface CreateMeetingRequest {
     waiting_room_timeout: number;
     everyone_left_timeout: number;
   };
+  recording_config?: {
+    realtime_endpoints?: Array<{
+      type: "webhook";
+      url: string;
+      events: string[];
+    }>;
+  };
   join_at?: string;
 }
 
@@ -73,6 +80,15 @@ export class RecallApiService {
           noone_joined_timeout: 300,
           waiting_room_timeout: 600,
           everyone_left_timeout: 30,
+        },
+        recording_config: {
+          realtime_endpoints: [
+            {
+              type: "webhook",
+              url: webhookUrl,
+              events: ["participant_events.chat_message"],
+            },
+          ],
         },
       };
 
@@ -381,6 +397,67 @@ export class RecallApiService {
           "RecallApiService.getRecordingDownloadUrl"
         )
     );
+  }
+
+  /**
+   * Gracefully remove a bot from a call via POST /bot/{id}/leave_call/
+   * Preferred over DELETE /bot/{id}/ because it allows the recording to finalize.
+   * @param botId - The Recall.ai bot ID
+   */
+  static async leaveCall(botId: string): Promise<ActionResult<void>> {
+    try {
+      const apiKey = getRecallApiKey();
+
+      const response = await fetch(
+        `${RecallApiService.API_BASE_URL}/bot/${botId}/leave_call/`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Token ${apiKey}`,
+          },
+          signal: AbortSignal.timeout(30000),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error("Failed to remove bot from call", {
+          component: "RecallApiService.leaveCall",
+          botId,
+          status: response.status,
+          error: errorText,
+        });
+
+        return err(
+          ActionErrors.internal(
+            `Failed to remove bot from call: ${response.statusText}`,
+            new Error(errorText),
+            "RecallApiService.leaveCall"
+          )
+        );
+      }
+
+      logger.info("Successfully removed bot from call", {
+        component: "RecallApiService.leaveCall",
+        botId,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Failed to remove bot from call", {
+        component: "RecallApiService.leaveCall",
+        botId,
+        error: serializeError(error),
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to remove bot from call",
+          error as Error,
+          "RecallApiService.leaveCall"
+        )
+      );
+    }
   }
 }
 
