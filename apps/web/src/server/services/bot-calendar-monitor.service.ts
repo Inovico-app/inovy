@@ -106,6 +106,8 @@ export class BotCalendarMonitorService {
     organizationId: string;
     calendarIds?: string[] | null;
     requirePerMeetingConsent: boolean;
+    botDisplayName: string;
+    botJoinMessage: string | null;
   }): Promise<ActionResult<{ sessionsCreated: number }>> {
     try {
       // Verify user has Google OAuth connection
@@ -204,6 +206,8 @@ export class BotCalendarMonitorService {
               userId: settings.userId,
               calendarEventId: meeting.id,
             },
+            botDisplayName: settings.botDisplayName,
+            botJoinMessage: settings.botJoinMessage,
           });
 
           if (sessionResult.isErr()) {

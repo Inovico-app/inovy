@@ -7,6 +7,7 @@ import {
   createErrorForNextSafeAction,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
 import { BotSessionsQueries } from "@/server/data-access/bot-sessions.queries";
 import { ProjectQueries } from "@/server/data-access/projects.queries";
 import { RecallApiService } from "@/server/services/recall-api.service";
@@ -51,12 +52,27 @@ export const startBotSessionAction = authorizedActionClient
       throw ActionErrors.notFound("Project not found", "start-bot-session");
     }
 
+    // Load bot settings for display name and join message
+    const settingsResult = await getCachedBotSettings(user.id, organizationId);
+    let botDisplayName: string | undefined;
+    let botJoinMessage: string | null | undefined;
+
+    if (settingsResult.isOk()) {
+      botDisplayName = settingsResult.value.botDisplayName;
+      botJoinMessage = settingsResult.value.botJoinMessage;
+    }
+
     // Create bot session via Recall.ai API
-    const botResult = await RecallApiService.createBotSession(meetingUrl, {
-      projectId,
-      organizationId,
-      userId: user.id,
-    });
+    const botResult = await RecallApiService.createBotSession(
+      meetingUrl,
+      {
+        projectId,
+        organizationId,
+        userId: user.id,
+      },
+      undefined,
+      { botDisplayName, botJoinMessage }
+    );
 
     if (botResult.isErr()) {
       throw createErrorForNextSafeAction(botResult.error);

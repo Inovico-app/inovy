@@ -31,7 +31,11 @@ export class RecallBotProvider implements BotProvider {
       const result = await RecallApiService.createBotSession(
         config.meetingUrl,
         config.customMetadata,
-        config.joinAt
+        config.joinAt,
+        {
+          botDisplayName: config.botDisplayName,
+          botJoinMessage: config.botJoinMessage,
+        }
       );
 
       if (result.isErr()) {

@@ -8,6 +8,7 @@ import { getRecallApiKey } from "./recall-api.utils";
 
 interface CreateMeetingRequest {
   meeting_url: string;
+  bot_name?: string;
   webhook_url: string;
   custom_metadata: Record<string, string>;
   automatic_leave: {
@@ -22,8 +23,18 @@ interface CreateMeetingRequest {
       events: string[];
     }>;
   };
+  chat?: {
+    on_bot_join?: {
+      send_to: "host" | "everyone" | "everyone_except_host";
+      message: string;
+      pin?: boolean;
+    };
+  };
   join_at?: string;
 }
+
+const DEFAULT_BOT_JOIN_MESSAGE =
+  "Hi! I'm recording this meeting. If you'd like me to leave, type /stop or /kick in the chat.";
 
 interface RecallRecording {
   id?: string;
@@ -61,19 +72,24 @@ export class RecallApiService {
    * @param meetingUrl - The meeting URL to join
    * @param customMetadata - Custom metadata to attach (e.g., projectId)
    * @param joinAt - Optional scheduled time for bot to join the meeting
+   * @param options - Optional bot display name and join message
    * @returns Result containing bot session ID and details
    */
   static async createBotSession(
     meetingUrl: string,
     customMetadata?: Record<string, string>,
-    joinAt?: Date
+    joinAt?: Date,
+    options?: { botDisplayName?: string; botJoinMessage?: string | null }
   ): Promise<ActionResult<{ botId: string; status: string }>> {
     try {
       const apiKey = getRecallApiKey();
       const webhookUrl = `${this.getWebhookBaseUrl()}/api/webhooks/recall`;
 
+      const joinMessage = options?.botJoinMessage ?? DEFAULT_BOT_JOIN_MESSAGE;
+
       const requestBody: CreateMeetingRequest = {
         meeting_url: meetingUrl,
+        bot_name: options?.botDisplayName || "Inovy Recording Bot",
         webhook_url: webhookUrl,
         custom_metadata: customMetadata ?? {},
         automatic_leave: {
@@ -89,6 +105,12 @@ export class RecallApiService {
               events: ["participant_events.chat_message"],
             },
           ],
+        },
+        chat: {
+          on_bot_join: {
+            send_to: "everyone",
+            message: joinMessage,
+          },
         },
       };
 
