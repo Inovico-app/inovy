@@ -19,7 +19,7 @@ export const signUpEmailAction = publicActionClient
   })
   .inputSchema(signUpEmailSchema)
   .action(async ({ parsedInput }) => {
-    const { email, password, name } = parsedInput;
+    const { email, password, name, callbackUrl } = parsedInput;
 
     const headers = await nextHeaders();
 
@@ -29,7 +29,7 @@ export const signUpEmailAction = publicActionClient
           email,
           password,
           name,
-          callbackURL: "/sign-in",
+          callbackURL: callbackUrl || "/sign-in",
         },
         headers,
       });

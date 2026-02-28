@@ -27,7 +27,7 @@ export const signInEmailAction = publicActionClient
   })
   .inputSchema(signInEmailSchema)
   .action(async ({ parsedInput }) => {
-    const { email, password } = parsedInput;
+    const { email, password, redirectTo } = parsedInput;
 
     try {
       await auth.api.signInEmail({
@@ -72,8 +72,7 @@ export const signInEmailAction = publicActionClient
       console.error("Failed to ensure onboarding record exists:", error);
     }
 
-    // Always redirect to home page after successful sign-in
-    redirect("/");
+    redirect((redirectTo || "/") as "/");
   });
 
 /**
@@ -86,13 +85,13 @@ export const getSocialSignInUrlAction = publicActionClient
   })
   .inputSchema(socialSignInSchema)
   .action(async ({ parsedInput }) => {
-    const { provider } = parsedInput;
+    const { provider, callbackUrl } = parsedInput;
 
     try {
       const result = await auth.api.signInSocial({
         body: {
           provider,
-          callbackURL: "/", // Will be handled by home page to check onboarding
+          callbackURL: callbackUrl || "/",
         },
         headers: await headers(),
       });

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
   invitations,
@@ -115,7 +115,7 @@ export class InvitationsQueries {
       .from(invitations)
       .where(
         and(
-          eq(invitations.email, email.toLowerCase()),
+          eq(sql`lower(${invitations.email})`, email.toLowerCase()),
           eq(invitations.organizationId, organizationId),
           eq(invitations.status, "pending")
         )
@@ -123,6 +123,25 @@ export class InvitationsQueries {
       .limit(1);
 
     return invitation ?? null;
+  }
+
+  /**
+   * Check whether any pending, non-expired invitations exist for the given email
+   */
+  static async hasPendingInvitationsByEmail(email: string): Promise<boolean> {
+    const [result] = await db
+      .select({ id: invitations.id })
+      .from(invitations)
+      .where(
+        and(
+          eq(sql`lower(${invitations.email})`, email.toLowerCase()),
+          eq(invitations.status, "pending"),
+          gt(invitations.expiresAt, new Date())
+        )
+      )
+      .limit(1);
+
+    return !!result;
   }
 
   /**

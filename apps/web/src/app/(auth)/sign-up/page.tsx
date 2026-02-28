@@ -8,11 +8,22 @@ import { Label } from "@/components/ui/label";
 import { useSignUp } from "@/features/auth/hooks/use-sign-up";
 import { AlertCircle, ArrowLeft, Mail, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
 export default function SignUpPage() {
+  return (
+    <Suspense>
+      <SignUpPageContent />
+    </Suspense>
+  );
+}
+
+function SignUpPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || undefined;
+
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -29,17 +40,17 @@ export default function SignUpPage() {
     isSigningUp,
     signUpError,
     magicLinkError,
-  } = useSignUp();
+  } = useSignUp(redirectUrl);
 
   const isLoading = isSignUpLoading || isSendingMagicLink;
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    signUpEmail({ email, password, name });
+    signUpEmail({ email, password, name, callbackUrl: redirectUrl });
   };
 
   const handleSocialSignUp = (provider: "google" | "microsoft") => {
-    signUpSocial({ provider });
+    signUpSocial({ provider, callbackUrl: redirectUrl });
   };
 
   const handleMagicLink = async (e: React.FormEvent) => {
@@ -303,7 +314,10 @@ export default function SignUpPage() {
         {/* Terms and Privacy Policy */}
         <p className="mt-8 text-center text-xs text-muted-foreground">
           Door een account aan te maken ga je akkoord met onze{" "}
-          <Link href="/terms-of-service" className="text-primary hover:underline">
+          <Link
+            href="/terms-of-service"
+            className="text-primary hover:underline"
+          >
             algemene voorwaarden
           </Link>{" "}
           en ons{" "}
@@ -315,7 +329,14 @@ export default function SignUpPage() {
         {/* Sign In Link */}
         <p className="mt-4 text-center text-sm text-muted-foreground">
           Heb je al een account?{" "}
-          <Link href="/sign-in" className="text-primary hover:underline">
+          <Link
+            href={
+              redirectUrl
+                ? `/sign-in?redirect=${encodeURIComponent(redirectUrl)}`
+                : "/sign-in"
+            }
+            className="text-primary hover:underline"
+          >
             Klik hier om in te loggen
           </Link>
         </p>
