@@ -345,83 +345,103 @@ export class ReprocessingService {
       const reprocessingHistory =
         await ReprocessingQueries.createReprocessingHistory(historyData);
 
-      // Reset recording statuses and update reprocessing info
-      await RecordingsQueries.updateRecording(recordingId, {
-        lastReprocessedAt: new Date(),
-        reprocessingTriggeredById: triggeredById,
-        workflowStatus: "idle",
-        workflowError: null,
-        transcriptionStatus: "pending",
-      });
+      try {
+        // Reset recording statuses and update reprocessing info
+        await RecordingsQueries.updateRecording(recordingId, {
+          lastReprocessedAt: new Date(),
+          reprocessingTriggeredById: triggeredById,
+          workflowStatus: "idle",
+          workflowError: null,
+          transcriptionStatus: "pending",
+        });
 
-      CacheInvalidation.invalidateRecording(
-        recordingId,
-        recording.projectId,
-        recording.organizationId
-      );
+        CacheInvalidation.invalidateRecording(
+          recordingId,
+          recording.projectId,
+          recording.organizationId
+        );
 
-      // Trigger AI processing workflow (fire and forget)
-      const workflowRun = await start(convertRecordingIntoAiInsights, [
-        recordingId,
-        true,
-      ]);
+        const workflowRun = await start(convertRecordingIntoAiInsights, [
+          recordingId,
+          true,
+        ]);
 
-      logger.info("AI processing workflow triggered from reprocessing", {
-        component: "ReprocessingService.triggerReprocessing",
-        recordingId,
-        run: {
-          id: workflowRun.runId,
-          name: workflowRun.workflowName,
-          status: workflowRun.status,
-        },
-      });
+        logger.info("AI processing workflow triggered from reprocessing", {
+          component: "ReprocessingService.triggerReprocessing",
+          recordingId,
+          run: {
+            id: workflowRun.runId,
+            name: workflowRun.workflowName,
+            status: workflowRun.status,
+          },
+        });
 
-      // Update reprocessing history asynchronously when workflow completes
-      workflowRun.returnValue
-        .then(async (workflowResult) => {
-          if (
-            workflowResult?.success &&
-            workflowResult.value.status === "completed"
-          ) {
-            await ReprocessingQueries.updateReprocessingHistory(
-              reprocessingHistory.id,
-              { status: "completed", completedAt: new Date() }
-            );
-            logger.info("Reprocessing completed successfully", {
-              component: "ReprocessingService.triggerReprocessing",
-              recordingId,
-              reprocessingId: reprocessingHistory.id,
-            });
-          } else {
-            const errorMessage = workflowResult?.success
-              ? (workflowResult.value.error ?? "Unknown workflow error")
-              : (workflowResult?.error || "Workflow execution failed");
-            await ReprocessingQueries.updateReprocessingHistory(
-              reprocessingHistory.id,
-              { status: "failed", completedAt: new Date(), errorMessage }
-            );
-            logger.error("Reprocessing workflow failed", {
-              component: "ReprocessingService.triggerReprocessing",
-              recordingId,
-              reprocessingId: reprocessingHistory.id,
-              error: errorMessage,
-            });
-          }
-        })
-        .catch(async (error: unknown) => {
-          const errorMessage =
-            error instanceof Error ? error.message : "Workflow execution failed";
+        const workflowResult = await workflowRun.returnValue;
+
+        if (
+          workflowResult?.success &&
+          workflowResult.value.status === "completed"
+        ) {
+          await ReprocessingQueries.updateReprocessingHistory(
+            reprocessingHistory.id,
+            { status: "completed", completedAt: new Date() }
+          );
+          logger.info("Reprocessing completed successfully", {
+            component: "ReprocessingService.triggerReprocessing",
+            recordingId,
+            reprocessingId: reprocessingHistory.id,
+          });
+        } else {
+          const errorMessage = workflowResult?.success
+            ? (workflowResult.value.error ?? "Unknown workflow error")
+            : (workflowResult?.error || "Workflow execution failed");
           await ReprocessingQueries.updateReprocessingHistory(
             reprocessingHistory.id,
             { status: "failed", completedAt: new Date(), errorMessage }
           );
-          logger.error("Reprocessing workflow threw an error", {
+          logger.error("Reprocessing workflow failed", {
             component: "ReprocessingService.triggerReprocessing",
             recordingId,
             reprocessingId: reprocessingHistory.id,
-            error,
+            error: errorMessage,
           });
+        }
+      } catch (workflowError) {
+        const errorMessage =
+          workflowError instanceof Error
+            ? workflowError.message
+            : String(workflowError);
+
+        try {
+          await RecordingsQueries.updateRecording(recordingId, {
+            workflowStatus: "failed",
+            workflowError: errorMessage,
+          });
+          await ReprocessingQueries.updateReprocessingHistory(
+            reprocessingHistory.id,
+            { status: "failed", completedAt: new Date(), errorMessage }
+          );
+          CacheInvalidation.invalidateRecording(
+            recordingId,
+            recording.projectId,
+            recording.organizationId
+          );
+        } catch (persistError) {
+          logger.error("Failed to persist reprocessing failure state", {
+            component: "ReprocessingService.triggerReprocessing",
+            recordingId,
+            reprocessingId: reprocessingHistory.id,
+            persistError,
+          });
+        }
+
+        logger.error("Reprocessing workflow threw an error", {
+          component: "ReprocessingService.triggerReprocessing",
+          recordingId,
+          reprocessingId: reprocessingHistory.id,
+          error: workflowError,
         });
+      }
 
       return ok({ reprocessingId: reprocessingHistory.id });
     } catch (error) {
