@@ -67,6 +67,7 @@ jobs:
           context: .
           file: ./apps/web/Dockerfile
           push: true
+          provenance: false
           tags: |
             ${{ inputs.acr_name }}.azurecr.io/inovy-app:${{ inputs.git_sha != '' && inputs.git_sha || github.sha }}
             ${{ inputs.acr_name }}.azurecr.io/inovy-app:latest

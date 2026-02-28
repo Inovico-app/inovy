@@ -13,7 +13,17 @@ RUN mkdir -p apps/web/public
 
 RUN pnpm install --frozen-lockfile
 
+# Build-time env vars (placeholders; real values injected at runtime)
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
+ENV NEXT_PUBLIC_APP_URL="https://placeholder.inovico.nl"
+ENV BETTER_AUTH_SECRET="build-placeholder-32-chars-minimum-required"
+ENV DEEPGRAM_API_KEY="build-placeholder-not-used-at-runtime"
+
+# Increase Node memory for CI (GitHub Actions has 7GB)
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 RUN pnpm build --filter=web
 
 # Stage 3: Runner
