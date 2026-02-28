@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/card";
 import { InviteUserDialog } from "@/features/admin/components/organization/invite-user-dialog";
 import { TeamManagement } from "@/features/admin/components/team/team-management";
+import { GuardrailsPolicySection } from "@/features/guardrails/components/guardrails-policy-section";
+import { GuardrailsViolationsSection } from "@/features/guardrails/components/guardrails-violations-section";
 import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/components/organization-knowledge-base-section";
 import { getOrganizationSettings } from "@/features/settings/actions/organization-settings";
 import { OrganizationInstructionsSection } from "@/features/settings/components/organization-instructions-section";
@@ -154,6 +156,23 @@ async function OrganizationContent() {
           organizationId={organizationId}
           canEdit={canEdit}
         />
+      )}
+
+      {/* AI Safety / Guardrails */}
+      {organizationId && (
+        <Suspense fallback={<div className="h-48 animate-pulse rounded-lg bg-muted" />}>
+          <GuardrailsPolicySection
+            organizationId={organizationId}
+            canEdit={canEdit}
+          />
+        </Suspense>
+      )}
+
+      {/* Violations Log */}
+      {organizationId && canEdit && (
+        <Suspense fallback={<div className="h-48 animate-pulse rounded-lg bg-muted" />}>
+          <GuardrailsViolationsSection organizationId={organizationId} />
+        </Suspense>
       )}
 
       {/* Knowledge Base */}
