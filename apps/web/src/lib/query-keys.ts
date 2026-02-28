@@ -59,6 +59,13 @@ export const queryKeys = {
     unreadCount: () =>
       [...queryKeys.notifications.all, "unread-count"] as const,
   },
+  auth: {
+    all: ["auth"] as const,
+    activeMemberRole: () =>
+      [...queryKeys.auth.all, "activeMemberRole"] as const,
+    userOrganizations: () =>
+      [...queryKeys.auth.all, "userOrganizations"] as const,
+  },
   organization: {
     all: ["organization"] as const,
     members: (orgCode: string) =>
@@ -70,7 +77,10 @@ export const queryKeys = {
   botSessions: {
     all: ["bot-sessions"] as const,
     byCalendarEvents: (calendarEventIds: string[]) =>
-      [...queryKeys.botSessions.all, [...(calendarEventIds || [])].sort().join(",")] as const,
+      [
+        ...queryKeys.botSessions.all,
+        [...(calendarEventIds || [])].sort().join(","),
+      ] as const,
     details: () => [...queryKeys.botSessions.all, "detail"] as const,
     detail: (sessionId: string) =>
       [...queryKeys.botSessions.details(), sessionId] as const,
