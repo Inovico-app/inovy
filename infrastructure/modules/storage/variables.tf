@@ -1,0 +1,55 @@
+variable "environment" {
+  description = "Environment name (e.g., prd, dev, staging)"
+  type        = string
+}
+
+variable "location" {
+  description = "Azure region for resources"
+  type        = string
+}
+
+variable "resource_group_name" {
+  description = "Name of the resource group"
+  type        = string
+}
+
+variable "storage_account_tier" {
+  description = "Storage account tier (Standard or Premium)"
+  type        = string
+  default     = "Standard"
+}
+
+variable "storage_account_replication_type" {
+  description = "Storage account replication type (LRS, GRS, RAGRS, ZRS)"
+  type        = string
+  default     = "LRS"
+}
+
+variable "storage_blob_retention_days" {
+  description = "Number of days to retain deleted blobs"
+  type        = number
+  default     = 7
+}
+
+variable "storage_blob_restore_days" {
+  description = "Number of days for blob restore policy (must be less than retention days)"
+  type        = number
+  default     = 6
+}
+
+variable "managed_identity_principal_id" {
+  description = "Principal ID of the managed identity to assign Storage Blob Data Contributor role (optional)"
+  type        = string
+  default     = ""
+}
+
+variable "uuid_namespace" {
+  description = "UUID namespace for deterministic role assignment names (e.g., RFC 4122 DNS namespace)"
+  type        = string
+}
+
+variable "tags" {
+  description = "Tags to apply to resources"
+  type        = map(string)
+  default     = {}
+}

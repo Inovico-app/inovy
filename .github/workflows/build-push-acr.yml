@@ -1,0 +1,88 @@
+name: Build and Push to ACR
+
+on:
+  workflow_call:
+    inputs:
+      acr_name:
+        description: "Azure Container Registry name"
+        required: true
+        type: string
+      environment:
+        description: "Environment (e.g., prd)"
+        required: true
+        type: string
+      build_image:
+        description: "Whether to build and push (false = use container_image)"
+        required: true
+        type: boolean
+      container_image:
+        description: "Pre-built image to use when build_image is false"
+        required: false
+        type: string
+      git_sha:
+        description: "Git SHA for image tag (defaults to github.sha)"
+        required: false
+        type: string
+        default: ""
+    outputs:
+      image_tag:
+        description: "Full image reference (registry/repo:tag)"
+        value: ${{ jobs.build-and-push.outputs.image_tag }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      image_tag: ${{ steps.set-output.outputs.image_tag }}
+
+    steps:
+      - name: Checkout repository
+        if: ${{ inputs.build_image }}
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        if: ${{ inputs.build_image }}
+        uses: azure/login@v2
+        with:
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to ACR
+        if: ${{ inputs.build_image }}
+        run: az acr login --name ${{ inputs.acr_name }}
+
+      - name: Setup Docker Buildx
+        if: ${{ inputs.build_image }}
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Docker Image
+        if: ${{ inputs.build_image }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/web/Dockerfile
+          push: true
+          provenance: false
+          tags: |
+            ${{ inputs.acr_name }}.azurecr.io/inovy-app:${{ inputs.git_sha != '' && inputs.git_sha || github.sha }}
+            ${{ inputs.acr_name }}.azurecr.io/inovy-app:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Set image tag output
+        id: set-output
+        run: |
+          if [ "${{ inputs.build_image }}" == "true" ]; then
+            echo "image_tag=${{ inputs.acr_name }}.azurecr.io/inovy-app:${{ inputs.git_sha != '' && inputs.git_sha || github.sha }}" >> $GITHUB_OUTPUT
+          else
+            if [ -z "${{ inputs.container_image }}" ]; then
+              echo "Error: container_image must be provided when build_image is false"
+              exit 1
+            fi
+            echo "image_tag=${{ inputs.container_image }}" >> $GITHUB_OUTPUT
+          fi

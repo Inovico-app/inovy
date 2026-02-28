@@ -17,6 +17,7 @@ on:
         description: "Optional suffix for storage account name (for uniqueness). If not provided, will use subscription ID hash"
         required: false
         type: string
+        default: "inovy"
       location:
         description: "Azure region for resources"
         required: true
@@ -48,6 +49,28 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Register Microsoft.Storage resource provider
+        run: |
+          RESOURCE_PROVIDER="Microsoft.Storage"
+          registration_state=$(az provider show  --namespace "$RESOURCE_PROVIDER"|jq '.registrationState' -r)
+          echo "Current state "$RESOURCE_PROVIDER": ${registration_state}"
+          if [[ $registration_state == "NotRegistered" ]]
+          then
+            echo 'Registering "$RESOURCE_PROVIDER"'
+            az provider register --namespace "$RESOURCE_PROVIDER"
+          fi
+
+      - name: Register Microsoft.App resource provider
+        run: |
+          RESOURCE_PROVIDER="Microsoft.App"
+          registration_state=$(az provider show --namespace "$RESOURCE_PROVIDER" | jq '.registrationState' -r)
+          echo "Current state $RESOURCE_PROVIDER: ${registration_state}"
+          if [[ $registration_state == "NotRegistered" ]]
+          then
+            echo "Registering $RESOURCE_PROVIDER"
+            az provider register --namespace "$RESOURCE_PROVIDER"
+          fi
 
       - name: Generate Storage Account Name
         id: generate-name
@@ -121,7 +144,39 @@ jobs:
             --delete-retention-days 7 \
             --enable-change-feed true \
             --enable-restore-policy true \
-            --restore-days 7
+            --restore-days 6
+
+      - name: Assign Storage Blob Data Contributor Role
+        run: |
+          STORAGE_NAME="${{ steps.generate-name.outputs.name }}"
+          SP_CLIENT_ID="${{ vars.AZURE_CLIENT_ID }}"
+          ROLE_NAME="Storage Blob Data Contributor"
+
+          # Get storage account resource ID
+          STORAGE_ACCOUNT_ID=$(az storage account show \
+            --name "$STORAGE_NAME" \
+            --resource-group "${{ inputs.resource_group_name }}" \
+            --query id \
+            --output tsv)
+
+          # Check if role assignment already exists
+          EXISTING_ASSIGNMENT=$(az role assignment list \
+            --assignee "$SP_CLIENT_ID" \
+            --scope "$STORAGE_ACCOUNT_ID" \
+            --role "$ROLE_NAME" \
+            --query "[].id" \
+            --output tsv 2>/dev/null || echo "")
+
+          if [ -z "$EXISTING_ASSIGNMENT" ]; then
+            echo "Assigning role '$ROLE_NAME' to service principal $SP_CLIENT_ID"
+            az role assignment create \
+              --assignee "$SP_CLIENT_ID" \
+              --role "$ROLE_NAME" \
+              --scope "$STORAGE_ACCOUNT_ID"
+            echo "Role assignment created successfully"
+          else
+            echo "Role assignment already exists, skipping"
+          fi
 
       - name: Create Terraform State Container (if not exists)
         run: |

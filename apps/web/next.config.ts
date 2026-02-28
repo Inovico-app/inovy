@@ -1,8 +1,16 @@
+import path from "path";
+
 import { withWorkflow } from "workflow/next";
 
 import type { NextConfig } from "next";
 
+const isDockerBuild = process.env.DOCKER_BUILD === "true";
+
 const nextConfig: NextConfig = {
+  ...(isDockerBuild && {
+    output: "standalone",
+    outputFileTracingRoot: path.join(__dirname, "../../"),
+  }),
   typedRoutes: true,
   cacheComponents: true,
   reactCompiler: true,

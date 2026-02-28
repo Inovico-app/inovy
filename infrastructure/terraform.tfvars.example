@@ -1,0 +1,156 @@
+# Terraform Variables Example
+# Copy this file to terraform.tfvars and fill in the values
+# Never commit terraform.tfvars to git - it contains sensitive information
+
+# ============================================================================
+# REQUIRED VARIABLES (must be provided)
+# ============================================================================
+
+# Environment Configuration (if not provided in github workflow)
+# These values will be overridden by the GitHub Actions workflow if set as workflow inputs
+environment = "prd"
+location    = "westeurope"
+
+# PostgreSQL Configuration (Required)
+# These values may be overridden by the GitHub Actions workflow via repository secrets
+postgresql_admin_login    = "adminuser"
+postgresql_admin_password = "YourSecurePassword123!"
+
+# Microsoft Entra (Azure AD) Authentication (Required)
+entra_tenant_id = "your-tenant-id-here"
+
+# Microsoft Entra Administrators (Required)
+# Each administrator needs object_id and principal_name (email/UPN)
+entra_administrators = [
+  {
+    object_id      = "00000000-0000-0000-0000-000000000001"
+    principal_name = "admin1@example.com"
+    principal_type = "User"
+  },
+  {
+    object_id      = "00000000-0000-0000-0000-000000000002"
+    principal_name = "admin2@example.com"
+    principal_type = "User"
+  }
+]
+
+# ============================================================================
+# NETWORKING VARIABLES (Optional - defaults provided)
+# ============================================================================
+
+# Virtual Network Configuration
+# vnet_address_space = "10.0.0.0/20"
+
+# Subnet Address Prefixes
+# subnet_container_apps_address_prefix = "10.0.1.0/24"
+# subnet_postgresql_address_prefix    = "10.0.2.0/24"
+
+# ============================================================================
+# POSTGRESQL VARIABLES (Optional - defaults provided)
+# ============================================================================
+
+# PostgreSQL Server Configuration
+# postgresql_version                = "16"
+# postgresql_sku_name               = "Standard_B2s"
+# postgresql_storage_mb             = 131072  # 128GB
+# postgresql_zone                   = "2"  # Availability zone (1, 2, or 3), empty string to let Azure choose
+# postgresql_geo_redundant_backup = true
+
+# PostgreSQL Maintenance Window
+# postgresql_maintenance_day  = 0  # 0=Sunday, 6=Saturday
+# postgresql_maintenance_hour = 2  # 0-23
+
+# ============================================================================
+# BACKUP VARIABLES (Optional - defaults provided)
+# ============================================================================
+
+# Backup Vault Configuration
+# backup_vault_redundancy = "GeoRedundant"  # or "LocallyRedundant"
+
+# Backup Schedule Configuration
+# backup_repeating_time_intervals = ["R/2024-04-07T13:00:00+00:00/P1W"]  # ISO 8601 recurring interval format
+# backup_time_zone = "UTC"  # Time zone for backup schedule (e.g., UTC, America/New_York)
+
+# ============================================================================
+# REDIS VARIABLES (Container App)
+# ============================================================================
+
+# Redis password (required - use secret REDIS_PASSWORD in GitHub Actions)
+# redis_password = "YourRedisPassword123!"
+
+# Redis Container Configuration (Optional - defaults provided)
+# redis_image       = "redis:7-alpine"
+# redis_cpu         = 0.25
+# redis_memory      = "0.5Gi"
+# redis_min_replicas = 1
+# redis_max_replicas = 1
+
+# ============================================================================
+# QDRANT VARIABLES (Optional - defaults provided)
+# ============================================================================
+
+# Qdrant Container App Configuration
+# qdrant_image          = "qdrant/qdrant:v1.17.0"  # Use stable version tag
+# qdrant_cpu            = 0.5
+# qdrant_memory         = "1Gi"
+# qdrant_min_replicas   = 1
+# qdrant_max_replicas   = 1
+# qdrant_storage_quota_gb = 100
+
+# Qdrant API Key (if using cloud-hosted Qdrant)
+# qdrant_api_key = "your-qdrant-api-key"
+
+# ============================================================================
+# STORAGE VARIABLES (Optional - defaults provided)
+# ============================================================================
+
+# Azure Blob Storage Configuration
+# storage_account_tier              = "Standard"  # Standard or Premium
+# storage_account_replication_type = "LRS"  # LRS, GRS, RAGRS, ZRS
+# storage_blob_retention_days      = 7
+# storage_blob_restore_days        = 6  # Must be less than retention_days
+
+# ============================================================================
+# AZURE CONTAINER REGISTRY VARIABLES (Required for image hosting)
+# ============================================================================
+
+# ACR name must be globally unique, 5-50 alphanumeric characters
+# acr_name = "inovyacrprd"
+
+# ============================================================================
+# CONTAINER APP VARIABLES (Optional - defaults provided)
+# ============================================================================
+
+# Container Image
+# container_app_image = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
+# Example: "your-registry.azurecr.io/inovy-app:latest"
+
+# Container Scaling
+# container_app_min_replicas = 1
+# container_app_max_replicas = 3
+
+# Container Resources
+# container_app_cpu    = 0.5
+# container_app_memory = "1.0Gi"  # e.g., "1.0Gi", "2.0Gi"
+
+# Container Networking
+# container_app_target_port     = 3000
+# container_app_external_ingress = true
+
+# Container Revision Mode
+# container_app_revision_mode = "Single"  # Single or Multiple
+
+# Container Scaling Rules
+# container_app_http_scale_concurrent_requests = 10
+
+# Additional Environment Variables
+# container_app_additional_env_vars = {
+#   "CUSTOM_VAR" = "value"
+# }
+
+# ============================================================================
+# LOG ANALYTICS VARIABLES (Optional - defaults provided)
+# ============================================================================
+
+# Log Analytics Workspace Retention
+# log_analytics_retention_days = 30

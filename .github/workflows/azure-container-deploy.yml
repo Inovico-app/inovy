@@ -1,0 +1,96 @@
+name: Deploy Container to Azure Container Apps
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+env:
+  ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  ARM_USE_OIDC: true
+
+defaults:
+  run:
+    shell: bash
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        type: string
+        default: "prd"
+      container_image:
+        description: "Container image to deploy (overrides build when set)"
+        required: false
+        type: string
+      build_image:
+        description: "Build and push new image"
+        required: true
+        type: boolean
+        default: true
+      acr_name:
+        description: "Azure Container Registry name (defaults to inovyacr<env>)"
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  build-and-push:
+    uses: ./.github/workflows/build-push-acr.yml
+    with:
+      acr_name: ${{ inputs.acr_name != '' && inputs.acr_name || format('inovyacr{0}', inputs.environment) }}
+      environment: ${{ inputs.environment }}
+      build_image: ${{ inputs.build_image }}
+      container_image: ${{ inputs.container_image }}
+    secrets: inherit
+
+  deploy:
+    needs: build-and-push
+    environment: ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Update Container App Image
+        run: |
+          APP_NAME="inovy-app-${{ inputs.environment }}"
+          IMAGE_TAG="${{ needs.build-and-push.outputs.image_tag }}"
+
+          echo "Updating Container App '$APP_NAME' with image '$IMAGE_TAG'"
+
+          az containerapp update \
+            --name "$APP_NAME" \
+            --resource-group "rg-inovy-${{ inputs.environment }}" \
+            --image "$IMAGE_TAG"
+
+      - name: Verify Deployment
+        run: |
+          APP_NAME="inovy-app-${{ inputs.environment }}"
+          echo "Waiting for Container App to be ready..."
+          sleep 30
+
+          STATUS=$(az containerapp show \
+            --name "$APP_NAME" \
+            --resource-group "rg-inovy-${{ inputs.environment }}" \
+            --query "properties.runningStatus" \
+            --output tsv)
+
+          echo "Container App status: $STATUS"
+
+          if [ "$STATUS" != "Running" ]; then
+            echo "Warning: Container App is not in Running state"
+            exit 1
+          fi
