@@ -11,6 +11,7 @@ export interface BotProviderConfig {
   joinAt?: Date;
   botDisplayName?: string;
   botJoinMessage?: string | null;
+  inactivityTimeoutMinutes?: number;
 }
 
 /**
