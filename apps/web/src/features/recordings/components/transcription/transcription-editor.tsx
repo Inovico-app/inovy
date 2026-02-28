@@ -31,6 +31,9 @@ export function TranscriptionEditor({
     content: { utterances: contentUtterances },
   } = transcriptionInsights;
 
+  const resolvedUtterances =
+    utterances ?? (contentUtterances as Utterance[]) ?? [];
+
   if (!transcriptionText) {
     return (
       <Card>
@@ -48,7 +51,7 @@ export function TranscriptionEditor({
           <TranscriptionEditView
             recordingId={recording.id}
             transcriptionText={transcriptionText}
-            utterances={utterances ?? (contentUtterances as Utterance[]) ?? []}
+            utterances={resolvedUtterances}
             speakerNames={speakerNames}
             speakerUserIds={speakerUserIds}
             isManuallyEdited={isTranscriptionManuallyEdited}
@@ -65,7 +68,7 @@ export function TranscriptionEditor({
 
   return (
     <TranscriptionTabs
-      utterances={utterances ?? (contentUtterances as Utterance[]) ?? []}
+      utterances={resolvedUtterances}
       transcriptionText={transcriptionText}
       recordingId={recording.id}
       isManuallyEdited={isTranscriptionManuallyEdited}

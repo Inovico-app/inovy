@@ -62,12 +62,14 @@ export function TranscriptionTabs({
               </Badge>
             )}
 
-            <ExportTranscriptionButton
-              utterances={utterances}
-              recordingId={recordingId}
-              speakerNames={speakerNames ?? undefined}
-              speakerUserIds={speakerUserIds}
-            />
+            {hasUtterances && (
+              <ExportTranscriptionButton
+                utterances={utterances}
+                recordingId={recordingId}
+                speakerNames={speakerNames ?? undefined}
+                speakerUserIds={speakerUserIds}
+              />
+            )}
             <TranscriptionHistoryDialog recordingId={recordingId} />
             <Button variant="outline" size="sm" onClick={onEditStart}>
               <Edit2 className="h-4 w-4 mr-1" />
