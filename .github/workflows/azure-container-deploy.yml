@@ -24,7 +24,7 @@ on:
         type: string
         default: "prd"
       container_image:
-        description: "Container image to deploy (e.g., docker.io/username/inovy:latest)"
+        description: "Container image to deploy (overrides build when set)"
         required: false
         type: string
       build_image:
@@ -33,12 +33,24 @@ on:
         type: boolean
         default: true
       acr_name:
-        description: "Azure Container Registry name (if using ACR)"
+        description: "Azure Container Registry name (defaults to inovyacr<env>)"
         required: false
         type: string
+        default: ""
 
 jobs:
-  build-and-deploy:
+  build-and-push:
+    uses: ./.github/workflows/build-push-acr.yml
+    environment: ${{ inputs.environment }}
+    with:
+      acr_name: ${{ inputs.acr_name != '' && inputs.acr_name || format('inovyacr{0}', inputs.environment) }}
+      environment: ${{ inputs.environment }}
+      build_image: ${{ inputs.build_image }}
+      container_image: ${{ inputs.container_image }}
+    secrets: inherit
+
+  deploy:
+    needs: build-and-push
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     permissions:
@@ -46,9 +58,6 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -56,31 +65,10 @@ jobs:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and Push Docker Image
-        if: ${{ inputs.build_image }}
-        uses: docker/build-push-action@v5
-        with:
-          context: ./apps/web
-          file: ./apps/web/Dockerfile
-          push: ${{ inputs.acr_name != '' }}
-          tags: |
-            ${{ inputs.acr_name != '' && format('{0}.azurecr.io/inovy-app:{1}', inputs.acr_name, github.sha) || format('docker.io/inovy/inovy-app:{0}', github.sha) }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Get Container App Name
-        id: get-app-name
-        run: |
-          APP_NAME="inovy-app-${{ inputs.environment }}"
-          echo "name=$APP_NAME" >> $GITHUB_OUTPUT
-
       - name: Update Container App Image
         run: |
-          APP_NAME="${{ steps.get-app-name.outputs.name }}"
-          IMAGE_TAG="${{ inputs.container_image != '' && inputs.container_image || (inputs.acr_name != '' && format('{0}.azurecr.io/inovy-app:{1}', inputs.acr_name, github.sha) || format('docker.io/inovy/inovy-app:{0}', github.sha)) }}"
+          APP_NAME="inovy-app-${{ inputs.environment }}"
+          IMAGE_TAG="${{ needs.build-and-push.outputs.image_tag }}"
 
           echo "Updating Container App '$APP_NAME' with image '$IMAGE_TAG'"
 
@@ -91,11 +79,10 @@ jobs:
 
       - name: Verify Deployment
         run: |
-          APP_NAME="${{ steps.get-app-name.outputs.name }}"
+          APP_NAME="inovy-app-${{ inputs.environment }}"
           echo "Waiting for Container App to be ready..."
           sleep 30
 
-          # Get Container App status
           STATUS=$(az containerapp show \
             --name "$APP_NAME" \
             --resource-group "rg-inovy-${{ inputs.environment }}" \

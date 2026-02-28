@@ -1,8 +1,12 @@
+import path from "path";
+
 import { withWorkflow } from "workflow/next";
 
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
+  outputFileTracingRoot: path.join(__dirname, "../../"),
   typedRoutes: true,
   cacheComponents: true,
   reactCompiler: true,

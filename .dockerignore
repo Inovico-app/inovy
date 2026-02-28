@@ -1,0 +1,39 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+.next
+dist
+.turbo
+
+# Git
+.git
+.gitignore
+
+# IDE
+.cursor
+.vscode
+.idea
+
+# Env files (secrets injected at runtime)
+.env
+.env.*
+!.env.example
+
+# Tests and dev
+coverage
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__
+__mocks__
+
+# Infrastructure (not needed for app build)
+infrastructure
+
+# Misc
+*.md
+*.log
+.DS_Store

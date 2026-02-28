@@ -262,50 +262,48 @@ module "storage" {
 }
 
 # Container App Module
-# module "container_app" {
-#   source = "./modules/container-app"
+module "container_app" {
+  source = "./modules/container-app"
 
-#   environment                                  = var.environment
-#   location                                     = var.location
-#   resource_group_name                          = azurerm_resource_group.inovy.name
-#   container_app_environment_id                  = data.azurerm_container_app_environment.current.id
-#   uuid_namespace                                = local.uuid_namespace_dns
-#   storage_account_id                           = module.storage.storage_account_id
-#   postgresql_admin_login                       = module.database.postgresql_administrator_login
-#   postgresql_admin_password                    = module.database.postgresql_administrator_password
-#   postgresql_fqdn                              = module.database.postgresql_server_fqdn
-#   postgresql_database_name                     = module.database.postgresql_database_name
-#   redis_url                                    = module.redis.redis_url
-#   qdrant_url                                   = module.qdrant.qdrant_url
-#   qdrant_api_key                               = var.qdrant_api_key
-#   storage_account_name                         = module.storage.storage_account_name
-#   storage_connection_string                    = module.storage.storage_account_primary_connection_string
-#   storage_container_name                       = module.storage.storage_container_name
-#   container_app_image                          = "${module.container_registry.acr_login_server}/inovy-app:latest"
-#   acr_login_server                             = module.container_registry.acr_login_server
-#   acr_id                                       = module.container_registry.acr_id
-#   container_app_min_replicas                   = var.container_app_min_replicas
-#   container_app_max_replicas                   = var.container_app_max_replicas
-#   container_app_cpu                            = var.container_app_cpu
-#   container_app_memory                         = var.container_app_memory
-#   container_app_target_port                    = var.container_app_target_port
-#   container_app_external_ingress               = var.container_app_external_ingress
-#   container_app_revision_mode                  = var.container_app_revision_mode
-#   container_app_http_scale_concurrent_requests = var.container_app_http_scale_concurrent_requests
-#   container_app_additional_env_vars            = var.container_app_additional_env_vars
-#   log_analytics_retention_days                 = var.log_analytics_retention_days
+  environment                                  = var.environment
+  location                                     = var.location
+  resource_group_name                          = azurerm_resource_group.inovy.name
+  container_app_environment_id                  = data.azurerm_container_app_environment.current.id
+  managed_identity_id                          = module.container_app_identity.managed_identity_id
+  postgresql_admin_login                       = module.database.postgresql_administrator_login
+  postgresql_admin_password                    = var.postgresql_admin_password
+  postgresql_fqdn                              = module.database.postgresql_server_fqdn
+  postgresql_database_name                     = module.database.postgresql_database_name
+  redis_url                                    = module.redis.redis_url
+  qdrant_url                                   = module.qdrant.qdrant_url
+  qdrant_api_key                               = var.qdrant_api_key
+  storage_account_name                         = module.storage.storage_account_name
+  storage_connection_string                    = module.storage.storage_account_primary_connection_string
+  storage_container_name                       = module.storage.storage_container_name
+  container_app_image                          = "${module.container_registry.acr_login_server}/inovy-app:latest"
+  acr_login_server                             = module.container_registry.acr_login_server
+  container_app_min_replicas                   = var.container_app_min_replicas
+  container_app_max_replicas                   = var.container_app_max_replicas
+  container_app_cpu                            = var.container_app_cpu
+  container_app_memory                         = var.container_app_memory
+  container_app_target_port                    = var.container_app_target_port
+  container_app_external_ingress               = var.container_app_external_ingress
+  container_app_revision_mode                  = var.container_app_revision_mode
+  container_app_http_scale_concurrent_requests = var.container_app_http_scale_concurrent_requests
+  container_app_additional_env_vars            = var.container_app_additional_env_vars
 
-#   depends_on = [
-#     module.networking,
-#     module.database,
-#     module.redis,
-#     module.qdrant,
-#     module.storage
-#   ]
+  depends_on = [
+    module.networking,
+    module.database,
+    module.redis,
+    module.qdrant,
+    module.storage,
+    module.container_registry
+  ]
 
-#   tags = {
-#     Environment = var.environment
-#     Application = "inovy"
-#     ManagedBy   = "terraform"
-#   }
-# }
+  tags = {
+    Environment = var.environment
+    Application = "inovy"
+    ManagedBy   = "terraform"
+  }
+}

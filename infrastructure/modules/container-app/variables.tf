@@ -13,26 +13,13 @@ variable "resource_group_name" {
   type        = string
 }
 
-variable "subnet_container_apps_id" {
-  description = "ID of the Container Apps subnet (required when creating own environment)"
-  type        = string
-  default     = ""
-}
-
 variable "container_app_environment_id" {
-  description = "ID of the Container App Environment (use shared environment from container-app-environment module)"
+  description = "ID of the Container App Environment (from container-app-environment module)"
   type        = string
-  default     = ""
 }
 
-variable "uuid_namespace" {
-  description = "UUID namespace for deterministic role assignment names (e.g., RFC 4122 DNS namespace)"
-  type        = string
-  default     = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
-}
-
-variable "storage_account_id" {
-  description = "ID of the storage account"
+variable "managed_identity_id" {
+  description = "ID of the user-assigned managed identity for the container app (from container-app-identity module)"
   type        = string
 }
 
@@ -104,12 +91,6 @@ variable "acr_login_server" {
   default     = ""
 }
 
-variable "acr_id" {
-  description = "ID of the Azure Container Registry. When set with acr_login_server, grants AcrPull to the container app identity."
-  type        = string
-  default     = ""
-}
-
 variable "container_app_min_replicas" {
   description = "Minimum number of replicas for Container App"
   type        = number
@@ -162,12 +143,6 @@ variable "container_app_additional_env_vars" {
   description = "Additional environment variables for Container App"
   type        = map(string)
   default     = {}
-}
-
-variable "log_analytics_retention_days" {
-  description = "Log Analytics workspace retention in days"
-  type        = number
-  default     = 30
 }
 
 variable "tags" {
