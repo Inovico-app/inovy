@@ -22,7 +22,7 @@ export default function SignUpPage() {
 function SignUpPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect") ?? undefined;
+  const redirectUrl = searchParams.get("redirect") || undefined;
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");

@@ -22,7 +22,7 @@ export default function SignInPage() {
 
 function SignInPageContent() {
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect") ?? undefined;
+  const redirectUrl = searchParams.get("redirect") || undefined;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

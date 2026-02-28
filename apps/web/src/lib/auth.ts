@@ -620,7 +620,7 @@ const ensureUserHasOrganization = async (
     logger.error("Failed to check pending invitations, proceeding with org creation", {
       userId,
       emailHash: userEmail ? anonymizeEmail(userEmail) : "[no-email]",
-      error: error instanceof Error ? error.message : String(error),
+      error: error instanceof Error ? error : new Error(String(error)),
     });
   }
 
