@@ -269,6 +269,7 @@ module "container_app" {
   location                                     = var.location
   resource_group_name                          = azurerm_resource_group.inovy.name
   container_app_environment_id                  = data.azurerm_container_app_environment.current.id
+  container_app_environment_default_domain      = data.azurerm_container_app_environment.current.default_domain
   managed_identity_id                          = module.container_app_identity.managed_identity_id
   postgresql_admin_login                       = module.database.postgresql_administrator_login
   postgresql_admin_password                    = var.postgresql_admin_password

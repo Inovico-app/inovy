@@ -18,6 +18,11 @@ variable "container_app_environment_id" {
   type        = string
 }
 
+variable "container_app_environment_default_domain" {
+  description = "Default domain of the Container App Environment (e.g., from data.azurerm_container_app_environment.default_domain). Used to construct app URL without self-reference."
+  type        = string
+}
+
 variable "managed_identity_id" {
   description = "ID of the user-assigned managed identity for the container app (from container-app-identity module)"
   type        = string

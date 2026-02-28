@@ -86,12 +86,12 @@ resource "azurerm_container_app" "inovy" {
 
       env {
         name  = "BETTER_AUTH_URL"
-        value = var.container_app_external_ingress ? "https://${azurerm_container_app.inovy.latest_revision_fqdn}" : "http://${azurerm_container_app.inovy.latest_revision_fqdn}"
+        value = var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${var.container_app_environment_default_domain}" : "http://inovy-app-${var.environment}.${var.container_app_environment_default_domain}"
       }
 
       env {
         name  = "NEXT_PUBLIC_APP_URL"
-        value = var.container_app_external_ingress ? "https://${azurerm_container_app.inovy.latest_revision_fqdn}" : "http://${azurerm_container_app.inovy.latest_revision_fqdn}"
+        value = var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${var.container_app_environment_default_domain}" : "http://inovy-app-${var.environment}.${var.container_app_environment_default_domain}"
       }
 
       dynamic "env" {
