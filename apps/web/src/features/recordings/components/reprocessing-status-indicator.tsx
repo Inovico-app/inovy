@@ -18,7 +18,9 @@ export function ReprocessingStatusIndicator({
 }: ReprocessingStatusIndicatorProps) {
   const { reprocessingStatus, isPolling } = useReprocessingStatus({
     recordingId,
-    enabled: initialWorkflowStatus === "running",
+    enabled:
+      initialWorkflowStatus === "running" ||
+      initialWorkflowStatus === "failed",
   });
 
   // Determine the current status to display

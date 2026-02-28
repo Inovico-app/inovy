@@ -1,3 +1,4 @@
+import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import {
@@ -344,13 +345,22 @@ export class ReprocessingService {
       const reprocessingHistory =
         await ReprocessingQueries.createReprocessingHistory(historyData);
 
-      // Update recording with reprocessing info
+      // Reset recording statuses and update reprocessing info
       await RecordingsQueries.updateRecording(recordingId, {
         lastReprocessedAt: new Date(),
         reprocessingTriggeredById: triggeredById,
+        workflowStatus: "idle",
+        workflowError: null,
+        transcriptionStatus: "pending",
       });
 
-      // Trigger AI processing workflow in the background (fire and forget)
+      CacheInvalidation.invalidateRecording(
+        recordingId,
+        recording.projectId,
+        recording.organizationId
+      );
+
+      // Trigger AI processing workflow (fire and forget)
       const workflowRun = await start(convertRecordingIntoAiInsights, [
         recordingId,
         true,
@@ -366,55 +376,52 @@ export class ReprocessingService {
         },
       });
 
-      const workflowResult = await workflowRun?.returnValue;
-
-      if (
-        workflowResult &&
-        workflowResult.success &&
-        workflowResult.value.status === "completed"
-      ) {
-        // Update reprocessing history to completed
-        await ReprocessingQueries.updateReprocessingHistory(
-          reprocessingHistory.id,
-          {
-            status: "completed",
-            completedAt: new Date(),
+      // Update reprocessing history asynchronously when workflow completes
+      workflowRun.returnValue
+        .then(async (workflowResult) => {
+          if (
+            workflowResult?.success &&
+            workflowResult.value.status === "completed"
+          ) {
+            await ReprocessingQueries.updateReprocessingHistory(
+              reprocessingHistory.id,
+              { status: "completed", completedAt: new Date() }
+            );
+            logger.info("Reprocessing completed successfully", {
+              component: "ReprocessingService.triggerReprocessing",
+              recordingId,
+              reprocessingId: reprocessingHistory.id,
+            });
+          } else {
+            const errorMessage = workflowResult?.success
+              ? (workflowResult.value.error ?? "Unknown workflow error")
+              : (workflowResult?.error || "Workflow execution failed");
+            await ReprocessingQueries.updateReprocessingHistory(
+              reprocessingHistory.id,
+              { status: "failed", completedAt: new Date(), errorMessage }
+            );
+            logger.error("Reprocessing workflow failed", {
+              component: "ReprocessingService.triggerReprocessing",
+              recordingId,
+              reprocessingId: reprocessingHistory.id,
+              error: errorMessage,
+            });
           }
-        );
-
-        logger.info("Reprocessing completed successfully", {
-          component: "ReprocessingService.triggerReprocessing",
-          recordingId,
-          reprocessingId: reprocessingHistory.id,
+        })
+        .catch(async (error: unknown) => {
+          const errorMessage =
+            error instanceof Error ? error.message : "Workflow execution failed";
+          await ReprocessingQueries.updateReprocessingHistory(
+            reprocessingHistory.id,
+            { status: "failed", completedAt: new Date(), errorMessage }
+          );
+          logger.error("Reprocessing workflow threw an error", {
+            component: "ReprocessingService.triggerReprocessing",
+            recordingId,
+            reprocessingId: reprocessingHistory.id,
+            error,
+          });
         });
-      } else {
-        // Update reprocessing history to failed
-        const errorMessage = workflowResult?.success
-          ? (workflowResult.value.error ?? "Unknown workflow error")
-          : workflowResult?.error || "Workflow execution failed";
-
-        await ReprocessingQueries.updateReprocessingHistory(
-          reprocessingHistory.id,
-          {
-            status: "failed",
-            completedAt: new Date(),
-            errorMessage,
-          }
-        );
-
-        logger.error("Reprocessing failed", {
-          component: "ReprocessingService.triggerReprocessing",
-          recordingId,
-          reprocessingId: reprocessingHistory.id,
-          error: errorMessage,
-        });
-      }
-
-      logger.info("Reprocessing completed successfully", {
-        component: "ReprocessingService.triggerReprocessing",
-        recordingId,
-        reprocessingId: reprocessingHistory.id,
-      });
 
       return ok({ reprocessingId: reprocessingHistory.id });
     } catch (error) {
