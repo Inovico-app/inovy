@@ -111,6 +111,13 @@ entra_administrators = [
 # storage_blob_restore_days        = 6  # Must be less than retention_days
 
 # ============================================================================
+# AZURE CONTAINER REGISTRY VARIABLES (Required for image hosting)
+# ============================================================================
+
+# ACR name must be globally unique, 5-50 alphanumeric characters
+# acr_name = "inovyacrprd"
+
+# ============================================================================
 # CONTAINER APP VARIABLES (Optional - defaults provided)
 # ============================================================================
 

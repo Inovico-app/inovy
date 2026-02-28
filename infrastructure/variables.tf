@@ -223,6 +223,13 @@ variable "storage_blob_restore_days" {
   default     = 6
 }
 
+# Azure Container Registry variables
+variable "acr_name" {
+  description = "Name of the Azure Container Registry (must be globally unique, 5-50 alphanumeric characters). Defaults to inovyacr<env> when empty."
+  type        = string
+  default     = ""
+}
+
 # Container App variables
 variable "container_app_image" {
   description = "Container image for the application (e.g., docker.io/username/inovy:latest)"

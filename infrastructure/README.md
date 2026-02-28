@@ -39,6 +39,7 @@ The infrastructure is organized into reusable modules:
   - `variables.tf` - Backup configuration variables
   - `outputs.tf` - Backup vault details
 
+- **`modules/container-registry/`** - Azure Container Registry for application images
 - **`modules/redis/`** - Azure Redis Cache
   - `main.tf` - Redis cache and firewall rules
   - `variables.tf` - Redis configuration variables
@@ -96,6 +97,11 @@ The infrastructure is organized into reusable modules:
   - gRPC API on port 6334
   - Persistent storage via Azure File Share
 
+### Azure Container Registry
+- **ACR** (`inovyacr<env>` or custom via `acr_name`) - For hosting Inovy application container images
+  - Container App managed identity has AcrPull role for image pull
+  - Use `acr_login_server` output for push/pull (e.g., `inovyacrprd.azurecr.io`)
+
 ### Storage
 - **Azure Blob Storage** (`inovyblob<env>`) - For recording file storage
   - Container: `recordings`
@@ -133,6 +139,7 @@ networking (no dependencies)
 backup (depends on database)
 qdrant (no dependencies)
 storage (no dependencies)
+container-registry (no dependencies)
 ```
 
 ## Backend Configuration

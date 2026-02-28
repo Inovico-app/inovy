@@ -61,6 +61,16 @@ resource "azurerm_role_assignment" "storage_blob_data_contributor" {
   principal_id         = azurerm_user_assigned_identity.container_app.principal_id
 }
 
+# Role assignment for Managed Identity to pull images from ACR
+resource "azurerm_role_assignment" "acr_pull" {
+  count                = var.acr_id != "" ? 1 : 0
+  name                 = uuidv5(var.uuid_namespace, "inovy-${var.environment}-container-app-acr-pull")
+  scope                = var.acr_id
+  role_definition_id   = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/providers/Microsoft.Authorization/roleDefinitions/7f951dda-4ed3-4680-a7ca-43fe172d538d" # AcrPull
+  principal_id         = azurerm_user_assigned_identity.container_app.principal_id
+  skip_service_principal_aad_check = true
+}
+
 # Container App
 resource "azurerm_container_app" "inovy" {
   name                         = "inovy-app-${var.environment}"
@@ -71,6 +81,14 @@ resource "azurerm_container_app" "inovy" {
   identity {
     type         = "UserAssigned"
     identity_ids = [azurerm_user_assigned_identity.container_app.id]
+  }
+
+  dynamic "registry" {
+    for_each = var.acr_login_server != "" ? [1] : []
+    content {
+      server               = var.acr_login_server
+      identity             = azurerm_user_assigned_identity.container_app.id
+    }
   }
 
   ingress {

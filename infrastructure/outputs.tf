@@ -111,6 +111,17 @@ output "qdrant_hostname" {
   value       = module.qdrant.qdrant_hostname
 }
 
+# Azure Container Registry outputs
+output "acr_name" {
+  description = "Name of the Azure Container Registry"
+  value       = module.container_registry.acr_name
+}
+
+output "acr_login_server" {
+  description = "ACR login server URL for pushing/pulling images (e.g., inovyacrprd.azurecr.io)"
+  value       = module.container_registry.acr_login_server
+}
+
 # Storage outputs
 output "storage_account_name" {
   description = "Name of the storage account"

@@ -93,9 +93,21 @@ variable "storage_container_name" {
 }
 
 variable "container_app_image" {
-  description = "Container image for the application (e.g., docker.io/username/inovy:latest)"
+  description = "Container image for the application (e.g., yourregistry.azurecr.io/inovy-app:latest)"
   type        = string
   default     = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
+}
+
+variable "acr_login_server" {
+  description = "ACR login server for registry authentication (e.g., inovyacrprd.azurecr.io). When set, adds registry block for managed identity pull."
+  type        = string
+  default     = ""
+}
+
+variable "acr_id" {
+  description = "ID of the Azure Container Registry. When set with acr_login_server, grants AcrPull to the container app identity."
+  type        = string
+  default     = ""
 }
 
 variable "container_app_min_replicas" {

@@ -17,6 +17,8 @@ terraform {
   }
 }
 
+data "azurerm_client_config" "current" {}
+
 # Resource Group
 resource "azurerm_resource_group" "inovy" {
   name     = "rg-inovy-${var.environment}"
@@ -204,6 +206,36 @@ module "qdrant" {
   }
 }
 
+# Azure Container Registry for Inovy application images
+module "container_registry" {
+  source = "./modules/container-registry"
+
+  environment         = var.environment
+  location            = var.location
+  resource_group_name = azurerm_resource_group.inovy.name
+  acr_name            = var.acr_name != "" ? var.acr_name : "inovyacr${replace(var.environment, "-", "")}"
+
+  tags = {
+    Environment = var.environment
+    Application = "inovy"
+    ManagedBy   = "terraform"
+  }
+}
+
+# Grant Container App managed identity AcrPull on ACR so it can pull images
+resource "azurerm_role_assignment" "container_app_acr_pull" {
+  name                             = uuidv5(local.uuid_namespace_dns, "inovy-${var.environment}-container-app-acr-pull")
+  scope                            = module.container_registry.acr_id
+  role_definition_id                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/providers/Microsoft.Authorization/roleDefinitions/7f951dda-4ed3-4680-a7ca-43fe172d538d" # AcrPull
+  principal_id                     = module.container_app_identity.managed_identity_principal_id
+  skip_service_principal_aad_check = true
+
+  depends_on = [
+    module.container_registry,
+    module.container_app_identity
+  ]
+}
+
 # Storage Module
 module "storage" {
   source = "./modules/storage"
@@ -249,7 +281,9 @@ module "storage" {
 #   storage_account_name                         = module.storage.storage_account_name
 #   storage_connection_string                    = module.storage.storage_account_primary_connection_string
 #   storage_container_name                       = module.storage.storage_container_name
-#   container_app_image                          = var.container_app_image
+#   container_app_image                          = "${module.container_registry.acr_login_server}/inovy-app:latest"
+#   acr_login_server                             = module.container_registry.acr_login_server
+#   acr_id                                       = module.container_registry.acr_id
 #   container_app_min_replicas                   = var.container_app_min_replicas
 #   container_app_max_replicas                   = var.container_app_max_replicas
 #   container_app_cpu                            = var.container_app_cpu

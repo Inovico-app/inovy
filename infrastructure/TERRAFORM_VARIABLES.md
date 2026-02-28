@@ -17,6 +17,7 @@ Configure these in the GitHub repository's `prd` environment:
   2. **HCL content** that will be written to a file and used as `-var-file`
   
   If using HCL content, it should include all non-sensitive variables like:
+  - `acr_name` - (optional) Azure Container Registry name; defaults to `inovyacr<env>` when empty
   - `entra_tenant_id` - Microsoft Entra tenant ID for PostgreSQL authentication
   - `entra_administrators` - List of Entra administrators with object IDs and principal names
   - Any other non-sensitive configuration variables
