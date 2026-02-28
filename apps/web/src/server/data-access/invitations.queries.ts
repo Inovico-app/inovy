@@ -1,4 +1,4 @@
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
   invitations,
@@ -115,7 +115,7 @@ export class InvitationsQueries {
       .from(invitations)
       .where(
         and(
-          eq(invitations.email, email.toLowerCase()),
+          eq(sql`lower(${invitations.email})`, email.toLowerCase()),
           eq(invitations.organizationId, organizationId),
           eq(invitations.status, "pending")
         )
@@ -134,7 +134,7 @@ export class InvitationsQueries {
       .from(invitations)
       .where(
         and(
-          eq(invitations.email, email.toLowerCase()),
+          eq(sql`lower(${invitations.email})`, email.toLowerCase()),
           eq(invitations.status, "pending"),
           gt(invitations.expiresAt, new Date())
         )
