@@ -40,11 +40,16 @@ resource "azurerm_storage_container" "recordings" {
   container_access_type = "private"
 }
 
+locals {
+  mi_present = var.managed_identity_principal_id != "" ? [var.managed_identity_principal_id] : []
+}
+
 # Role assignment for Storage Blob Data Contributor (if managed_identity_principal_id is provided)
 resource "azurerm_role_assignment" "storage_blob_data_contributor" {
+  for_each             = toset(local.mi_present)
   name                 = uuidv5(var.uuid_namespace, "inovy-${var.environment}-storage-blob-container-app")
   scope                = azurerm_storage_account.recordings.id
   role_definition_id   = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe" # Storage Blob Data Contributor
-  principal_id         = var.managed_identity_principal_id
+  principal_id         = each.value
   skip_service_principal_aad_check = true
 }

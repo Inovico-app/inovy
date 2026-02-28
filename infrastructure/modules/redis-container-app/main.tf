@@ -3,10 +3,10 @@
 # - Other Container Apps in the same environment can connect via redis_url (internal FQDN)
 resource "azurerm_container_app" "redis" {
   name                         = "redis-${var.environment}"
-  container_app_environment_id  = var.container_app_environment_id
-  resource_group_name           = var.resource_group_name
-  revision_mode                 = "Single"
-  workload_profile_name         = "Consumption"
+  container_app_environment_id = var.container_app_environment_id
+  resource_group_name          = var.resource_group_name
+  revision_mode                = "Single"
+  workload_profile_name        = "Consumption"
 
   template {
     min_replicas = var.redis_min_replicas
@@ -18,6 +18,11 @@ resource "azurerm_container_app" "redis" {
       cpu    = var.redis_cpu
       memory = var.redis_memory
 
+      env {
+        name        = "REDIS_PASSWORD"
+        secret_name = "redis-password"
+      }
+
       liveness_probe {
         transport        = "TCP"
         port             = 6379
@@ -25,8 +30,13 @@ resource "azurerm_container_app" "redis" {
         interval_seconds = 10
       }
 
-      command = ["redis-server", "--requirepass", var.redis_password]
+      command = ["sh", "-c", "redis-server --requirepass $REDIS_PASSWORD"]
     }
+  }
+
+  secret {
+    name  = "redis-password"
+    value = var.redis_password
   }
 
   # Internal ingress only: no public access; accessible from other apps in same Container App Environment

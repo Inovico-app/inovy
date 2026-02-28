@@ -134,12 +134,6 @@ output "storage_account_primary_connection_string" {
   sensitive   = true
 }
 
-output "storage_account_primary_access_key" {
-  description = "Primary access key for the storage account"
-  value       = module.storage.storage_account_primary_access_key
-  sensitive   = true
-}
-
 output "storage_container_name" {
   description = "Name of the recordings container"
   value       = module.storage.storage_container_name

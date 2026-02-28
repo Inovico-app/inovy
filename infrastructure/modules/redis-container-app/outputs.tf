@@ -10,7 +10,7 @@ output "redis_port" {
 
 output "redis_url" {
   description = "Redis connection URL (redis://:password@host:port)"
-  value       = "redis://:${var.redis_password}@${azurerm_container_app.redis.latest_revision_fqdn}:6379"
+  value       = "redis://:${urlencode(var.redis_password)}@${azurerm_container_app.redis.latest_revision_fqdn}:6379"
   sensitive   = true
 }
 
