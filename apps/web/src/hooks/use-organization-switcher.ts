@@ -1,11 +1,9 @@
 "use client";
 
+import { fetchActiveMemberRoleData } from "@/hooks/use-active-member-role";
 import { authClient } from "@/lib/auth-client";
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 export interface Organization {
@@ -15,7 +13,7 @@ export interface Organization {
   logo: string | null;
 }
 
-interface OrganizationWithRole extends Organization {
+export interface OrganizationWithRole extends Organization {
   role: string;
 }
 
@@ -31,27 +29,18 @@ interface OrganizationSwitcherActions {
   switchOrganization: (orgId: string) => Promise<void>;
 }
 
-const QUERY_KEY = ["userOrganizations"] as const;
+type OrgFromApi = {
+  id: string;
+  name: string;
+  slug?: string | null;
+  logo?: string | null;
+  role?: string;
+};
 
-async function fetchOrganizationsAndActiveMember(): Promise<{
-  organizations: OrganizationWithRole[];
-  activeOrganization: Organization | null;
-  activeMemberRole: string | null;
-}> {
-  const [orgsResult, activeMemberResult] = await Promise.all([
-    authClient.organization.list({}),
-    authClient.organization.getActiveMember({}),
-  ]);
-
+async function fetchOrganizations(): Promise<OrganizationWithRole[]> {
+  const orgsResult = await authClient.organization.list({});
   const orgsList = orgsResult?.data ?? [];
-  type OrgFromApi = {
-    id: string;
-    name: string;
-    slug?: string | null;
-    logo?: string | null;
-    role?: string;
-  };
-  const organizations: OrganizationWithRole[] = Array.isArray(orgsList)
+  return Array.isArray(orgsList)
     ? orgsList.map((org: OrgFromApi) => ({
         id: org.id,
         name: org.name,
@@ -60,10 +49,23 @@ async function fetchOrganizationsAndActiveMember(): Promise<{
         role: org.role ?? "member",
       }))
     : [];
+}
 
-  const activeMember = activeMemberResult?.data ?? null;
-  const activeMemberRole = activeMember?.role ?? null;
+function toOrgWithRole(
+  org: OrganizationWithRole,
+  role: string
+): OrganizationWithRole {
+  return { ...org, role };
+}
 
+function resolveActiveOrgAndRoles(
+  organizations: OrganizationWithRole[],
+  activeMember: { organizationId: string; role: string } | null
+): {
+  organizations: OrganizationWithRole[];
+  activeOrganization: Organization | null;
+  activeMemberRole: string | null;
+} {
   if (organizations.length === 0) {
     return {
       organizations: [],
@@ -72,34 +74,34 @@ async function fetchOrganizationsAndActiveMember(): Promise<{
     };
   }
 
+  const resolvedRole = activeMember?.role ?? "member";
   let activeOrg: Organization | null = null;
+  let organizationsWithRoles = organizations;
+
   if (activeMember?.organizationId) {
-    const matched = organizations.find((o) => o.id === activeMember.organizationId);
+    const matched = organizations.find(
+      (o) => o.id === activeMember.organizationId
+    );
     if (matched) {
-      activeOrg = {
-        id: matched.id,
-        name: matched.name,
-        slug: matched.slug,
-        logo: matched.logo,
-      };
-      matched.role = activeMemberRole ?? "member";
+      activeOrg = { ...matched };
+      organizationsWithRoles = organizations.map((o) =>
+        o.id === matched.id ? toOrgWithRole(o, resolvedRole) : o
+      );
     }
   }
 
   if (!activeOrg && organizations.length > 0) {
-    activeOrg = {
-      id: organizations[0].id,
-      name: organizations[0].name,
-      slug: organizations[0].slug,
-      logo: organizations[0].logo,
-    };
-    organizations[0].role = activeMemberRole ?? "member";
+    const first = organizations[0];
+    activeOrg = { ...first };
+    organizationsWithRoles = organizations.map((o, i) =>
+      i === 0 ? toOrgWithRole(o, resolvedRole) : o
+    );
   }
 
   return {
-    organizations,
+    organizations: organizationsWithRoles,
     activeOrganization: activeOrg,
-    activeMemberRole,
+    activeMemberRole: activeMember?.role ?? null,
   };
 }
 
@@ -110,14 +112,33 @@ export function useOrganizationSwitcher(): {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
-    queryKey: QUERY_KEY,
-    queryFn: fetchOrganizationsAndActiveMember,
+  const { data: activeMemberData } = useQuery({
+    queryKey: queryKeys.auth.activeMemberRole(),
+    queryFn: fetchActiveMemberRoleData,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     retry: 1,
     refetchOnWindowFocus: false,
   });
+
+  const { data: orgsData, isLoading: isOrgsLoading } = useQuery({
+    queryKey: queryKeys.auth.userOrganizations(),
+    queryFn: fetchOrganizations,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+
+  const resolved =
+    orgsData && activeMemberData
+      ? resolveActiveOrgAndRoles(orgsData, activeMemberData.activeMember)
+      : null;
+
+  const organizations = resolved?.organizations ?? [];
+  const activeOrganization = resolved?.activeOrganization ?? null;
+  const activeMemberRole = resolved?.activeMemberRole ?? null;
+  const isLoading = isOrgsLoading;
 
   const switchMutation = useMutation({
     mutationFn: async (orgId: string) => {
@@ -129,15 +150,15 @@ export function useOrganizationSwitcher(): {
         throw new Error(error.message ?? "Failed to switch organization");
       }
 
-      await queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      await queryClient.invalidateQueries({ queryKey: ["activeMemberRole"] });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.auth.userOrganizations(),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.auth.activeMemberRole(),
+      });
       router.refresh();
     },
   });
-
-  const organizations = data?.organizations ?? [];
-  const activeOrganization = data?.activeOrganization ?? null;
-  const activeMemberRole = data?.activeMemberRole ?? null;
 
   return {
     state: {
@@ -152,3 +173,4 @@ export function useOrganizationSwitcher(): {
     },
   };
 }
+

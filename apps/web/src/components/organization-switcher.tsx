@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/tooltip";
 import {
   useOrganizationSwitcher,
-  type Organization,
+  type OrganizationWithRole,
 } from "@/hooks/use-organization-switcher";
 import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
@@ -51,7 +51,9 @@ interface OrganizationSwitcherProps {
   collapsed?: boolean;
 }
 
-export function OrganizationSwitcher({ collapsed = false }: OrganizationSwitcherProps) {
+export function OrganizationSwitcher({
+  collapsed = false,
+}: OrganizationSwitcherProps) {
   const { state, actions } = useOrganizationSwitcher();
   const [open, setOpen] = useState(false);
 
@@ -64,7 +66,7 @@ export function OrganizationSwitcher({ collapsed = false }: OrganizationSwitcher
   } = state;
 
   const handleSelect = useCallback(
-    async (org: Organization) => {
+    async (org: OrganizationWithRole) => {
       if (org.id === activeOrganization?.id) {
         setOpen(false);
         return;
@@ -172,7 +174,10 @@ export function OrganizationSwitcher({ collapsed = false }: OrganizationSwitcher
       );
     }
     return (
-      <div className="px-3 py-2" aria-label={`Organization: ${activeOrganization.name}`}>
+      <div
+        className="px-3 py-2"
+        aria-label={`Organization: ${activeOrganization.name}`}
+      >
         {triggerContent}
       </div>
     );
@@ -190,24 +195,17 @@ export function OrganizationSwitcher({ collapsed = false }: OrganizationSwitcher
           aria-expanded={open}
           aria-haspopup="listbox"
           aria-label={`Switch organization. Current: ${activeOrganization.name}`}
+          title={
+            collapsed
+              ? `${activeOrganization.name}. Click to switch.`
+              : undefined
+          }
         >
-          {collapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild>{triggerContent}</TooltipTrigger>
-              <TooltipContent side="right">
-                <p>{activeOrganization.name}</p>
-                <p className="text-muted-foreground text-xs">
-                  Click to switch organization
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            triggerContent
-          )}
+          {triggerContent}
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[var(--radix-popover-trigger-width)] p-0"
+        className="min-w-64 w-[var(--radix-popover-trigger-width)] p-0"
         align="start"
         side="right"
       >
@@ -251,3 +249,4 @@ export function OrganizationSwitcher({ collapsed = false }: OrganizationSwitcher
     </Popover>
   );
 }
+

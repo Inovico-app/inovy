@@ -2,6 +2,7 @@
 
 import { authClient } from "@/lib/auth-client";
 import type { RoleName } from "@/lib/auth/access-control";
+import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
 
 interface ActiveMember {
@@ -50,23 +51,43 @@ function mapMemberRoleToAppRoles(
 }
 
 /**
- * Fetch active member from Better Auth API
+ * Fetch active member from Better Auth API.
+ * Shared by useActiveMemberRole and useOrganizationSwitcher to avoid duplicate API calls.
  */
-async function fetchActiveMember() {
-  try {
-    return await authClient.organization.getActiveMember();
-  } catch {
-    // If there's an error fetching active member, return null
-    // This can happen if user is not part of an organization
-    return null;
-  }
-}
-
-interface ActiveMemberRoleData {
+export async function fetchActiveMemberRoleData(): Promise<{
   activeMember: ActiveMember | null;
   roles: RoleName[];
   isSuperAdmin: boolean;
   isAdmin: boolean;
+}> {
+  try {
+    const result = await authClient.organization.getActiveMember();
+    const activeMember = result?.data ?? null;
+
+    if (!activeMember) {
+      return {
+        activeMember: null,
+        roles: ["user"],
+        isSuperAdmin: false,
+        isAdmin: false,
+      };
+    }
+
+    const roles = mapMemberRoleToAppRoles(activeMember);
+    return {
+      activeMember,
+      roles,
+      isSuperAdmin: roles.includes("superadmin"),
+      isAdmin: roles.includes("admin") || roles.includes("superadmin"),
+    };
+  } catch {
+    return {
+      activeMember: null,
+      roles: ["user"],
+      isSuperAdmin: false,
+      isAdmin: false,
+    };
+  }
 }
 
 /**
@@ -76,28 +97,9 @@ interface ActiveMemberRoleData {
  * @param enabled - Whether to enable the query (default: true)
  */
 export function useActiveMemberRole(enabled = true) {
-  return useQuery<ActiveMemberRoleData>({
-    queryKey: ["activeMemberRole"],
-    queryFn: async () => {
-      const activeMember = await fetchActiveMember();
-
-      if (!activeMember?.data) {
-        return {
-          activeMember: null,
-          roles: ["user"],
-          isSuperAdmin: false,
-          isAdmin: false,
-        };
-      }
-
-      const roles = mapMemberRoleToAppRoles(activeMember.data);
-      return {
-        activeMember: activeMember.data,
-        roles,
-        isSuperAdmin: roles.includes("superadmin"),
-        isAdmin: roles.includes("admin") || roles.includes("superadmin"),
-      };
-    },
+  return useQuery({
+    queryKey: queryKeys.auth.activeMemberRole(),
+    queryFn: fetchActiveMemberRoleData,
     enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
