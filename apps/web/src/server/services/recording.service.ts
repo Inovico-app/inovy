@@ -789,6 +789,7 @@ export class RecordingService {
       duration: recording.duration,
       recordingDate: recording.recordingDate,
       recordingMode: recording.recordingMode,
+      language: recording.language,
       transcriptionStatus: recording.transcriptionStatus,
       transcriptionText: recording.transcriptionText,
       redactedTranscriptionText: recording.redactedTranscriptionText ?? null,

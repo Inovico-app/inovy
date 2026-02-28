@@ -24,7 +24,8 @@ export class SummaryService {
   static async generateSummary(
     recordingId: string,
     transcriptionText: string,
-    utterances?: Array<{ speaker: number; text: string }>
+    utterances?: Array<{ speaker: number; text: string }>,
+    language?: string
   ): Promise<ActionResult<SummaryResult>> {
     try {
       logger.info("Starting summary generation", {
@@ -90,10 +91,12 @@ export class SummaryService {
         .join("\n");
 
       // Build prompt using PromptBuilder
+      const resolvedLanguage = language ?? existingRecording.language ?? "nl";
       const promptResult = PromptBuilder.Summaries.buildPrompt({
         transcriptionText,
         utterances,
         knowledgeContext: knowledgeContext || undefined,
+        language: resolvedLanguage,
       });
 
       // Call OpenAI API with retry logic

@@ -90,7 +90,8 @@ export const POST = withRateLimit(
         recording.transcriptionText,
         recording.organizationId,
         user.id,
-        utterances
+        utterances,
+        recording.language ?? "nl"
       );
 
       if (result.isErr()) {
