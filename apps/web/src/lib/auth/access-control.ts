@@ -57,6 +57,9 @@ const statement = {
 
   // Invitation management
   invitation: ["create", "cancel"],
+
+  // Guardrails policy management
+  guardrails: ["read", "update"],
 } as const;
 
 /**
@@ -87,6 +90,7 @@ export const superAdmin = ac.newRole({
   "audit-log": ["read"],
   onboarding: ["create", "read", "update", "complete"],
   invitation: ["create", "cancel"],
+  guardrails: ["read", "update"],
 });
 
 // Admin - Full access except super admin features
@@ -106,6 +110,7 @@ export const admin = ac.newRole({
   "audit-log": ["read"],
   onboarding: ["create", "read", "update", "complete"],
   invitation: ["create", "cancel"],
+  guardrails: ["read", "update"],
 });
 
 // Manager - Limited admin access
@@ -123,6 +128,7 @@ export const manager = ac.newRole({
   team: ["read"],
   onboarding: ["create", "read", "update", "complete"],
   invitation: ["create", "cancel"],
+  guardrails: ["read", "update"],
 });
 
 // User - Standard user permissions
@@ -140,6 +146,7 @@ export const user = ac.newRole({
   integration: [], // No integration management
   team: ["read"],
   onboarding: ["create", "read", "update", "complete"],
+  guardrails: ["read"],
 });
 
 // Viewer - Read-only access
@@ -156,6 +163,7 @@ export const viewer = ac.newRole({
   setting: ["read"],
   integration: [], // No integration management
   team: ["read"],
+  guardrails: ["read"],
 });
 
 /**
