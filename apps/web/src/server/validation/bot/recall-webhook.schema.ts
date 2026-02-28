@@ -66,34 +66,44 @@ export const participantEventChatMessageSchema = z.object({
         name: z.string().nullable(),
         is_host: z.boolean(),
         platform: z.string().nullable().optional(),
-        extra_data: z.record(z.unknown()).optional(),
+        extra_data: z.record(z.string(), z.unknown()).optional(),
         email: z.string().nullable().optional(),
       }),
       timestamp: z.object({
         absolute: z.string(),
         relative: z.number(),
       }),
-      data: z.object({
-        text: z.string(),
-        to: z.string().nullable().optional(),
-      }).nullable(),
+      data: z
+        .object({
+          text: z.string(),
+          to: z.string().nullable().optional(),
+        })
+        .nullable(),
     }),
-    realtime_endpoint: z.object({
-      id: z.string(),
-      metadata: z.record(z.unknown()).optional(),
-    }).optional(),
-    participant_events: z.object({
-      id: z.string(),
-      metadata: z.record(z.unknown()).optional(),
-    }).optional(),
-    recording: z.object({
-      id: z.string(),
-      metadata: z.record(z.unknown()).optional(),
-    }).optional(),
-    bot: z.object({
-      id: z.string(),
-      metadata: metadataSchema,
-    }).optional(),
+    realtime_endpoint: z
+      .object({
+        id: z.string(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
+      })
+      .optional(),
+    participant_events: z
+      .object({
+        id: z.string(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
+      })
+      .optional(),
+    recording: z
+      .object({
+        id: z.string(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
+      })
+      .optional(),
+    bot: z
+      .object({
+        id: z.string(),
+        metadata: metadataSchema,
+      })
+      .optional(),
   }),
 });
 
@@ -152,9 +162,14 @@ export const recallWebhookEventSchema = z.union([
   botRecordingReadyEventSchema,
 ]);
 
-export type ParticipantEventChatMessage = z.infer<typeof participantEventChatMessageSchema>;
+export type ParticipantEventChatMessage = z.infer<
+  typeof participantEventChatMessageSchema
+>;
 export type SvixBotStatusEvent = z.infer<typeof svixBotStatusEventSchema>;
 export type SvixRecordingEvent = z.infer<typeof svixRecordingEventSchema>;
 export type BotStatusChangeEvent = z.infer<typeof botStatusChangeEventSchema>;
-export type BotRecordingReadyEvent = z.infer<typeof botRecordingReadyEventSchema>;
+export type BotRecordingReadyEvent = z.infer<
+  typeof botRecordingReadyEventSchema
+>;
 export type RecallWebhookEvent = z.infer<typeof recallWebhookEventSchema>;
+

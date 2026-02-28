@@ -28,6 +28,7 @@ export interface TranscriptionMessageBubbleProps {
   speakerNames?: Record<string, string> | null;
   speakerUserIds?: Record<string, string> | null;
   recordingId: string;
+  isActive?: boolean;
 }
 
 export interface TranscriptionMessageViewProps {
