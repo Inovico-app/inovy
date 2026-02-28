@@ -1,0 +1,5 @@
+guardrails-ai[api]==0.6.5
+guardrails-hub-detect-pii==0.1.0
+guardrails-hub-toxic-language==0.1.0
+guardrails-hub-jailbreak-detection==0.1.0
+guardrails-hub-provenance-v1==0.1.0

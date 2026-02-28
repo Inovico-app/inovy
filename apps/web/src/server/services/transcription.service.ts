@@ -8,6 +8,7 @@ import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { createClient } from "@deepgram/sdk";
 import { err, ok } from "neverthrow";
 import { connectionPool } from "./connection-pool.service";
+import { GuardrailsService } from "./guardrails.service";
 import { KnowledgeBaseService } from "./knowledge-base.service";
 import { NotificationService } from "./notification.service";
 import { PromptBuilder } from "./prompt-builder.service";
@@ -432,8 +433,28 @@ export class TranscriptionService {
         knowledgeContext: knowledgeContext || undefined,
       });
 
-      // Call OpenAI API with retry logic
-      // Each retry attempt gets a fresh client from the pool for better round-robin and recovery
+      // Guardrails: validate transcription input before LLM call
+      const guardrailsInput = await GuardrailsService.validateInput({
+        text: transcriptionText,
+        orgId: organizationId,
+        projectId,
+        userId: "system",
+      });
+
+      if (guardrailsInput.blocked) {
+        logger.warn("Transcription correction input blocked by guardrails", {
+          component: "TranscriptionService.correctTranscriptionWithKnowledge",
+          recordingId,
+        });
+        return err(
+          ActionErrors.forbidden(
+            "Transcription content was blocked by the safety policy",
+            undefined,
+            "TranscriptionService.correctTranscriptionWithKnowledge"
+          )
+        );
+      }
+
       const completion = await connectionPool.executeWithRetry(
         async () =>
           connectionPool.getRawOpenAIClient().chat.completions.create({
