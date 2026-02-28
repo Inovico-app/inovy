@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProjectGuardrailsSection } from "@/features/guardrails/components/project-guardrails-section";
 import { ProjectKnowledgeBaseSection } from "@/features/knowledge-base/components/project-knowledge-base-section";
 import { ProjectTemplateSection } from "@/features/projects/components/project-templates/project-template-section";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
@@ -95,6 +96,15 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
               </Suspense>
             </CardContent>
           </Card>
+
+          {/* AI Safety */}
+          <Suspense fallback={<div className="h-48 animate-pulse rounded-lg bg-muted" />}>
+            <ProjectGuardrailsSection
+              projectId={projectId}
+              organizationId={project.organizationId}
+              canEdit={canEdit}
+            />
+          </Suspense>
 
           {/* Knowledge Base Section */}
           <ProjectKnowledgeBaseSection
