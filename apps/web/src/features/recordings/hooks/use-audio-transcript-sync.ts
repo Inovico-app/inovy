@@ -69,12 +69,12 @@ export function useAudioTranscriptSync(
     return unsubscribe;
   }, [subscribe, updateActiveIndex]);
 
-  // When playback stops, do one final sync
+  // When playback stops or groupedUtterances changes while paused, recompute active index
   useEffect(() => {
     if (!isPlaying) {
       updateActiveIndex(currentTimeRef.current);
     }
-  }, [isPlaying, updateActiveIndex, currentTimeRef]);
+  }, [isPlaying, groupedUtterances, updateActiveIndex, currentTimeRef]);
 
   return { activeGroupIndex };
 }

@@ -84,6 +84,7 @@ export function useAutoScrollPause({
 
       const isManual = wheelDetected || touchDetected;
       wheelDetected = false;
+      touchDetected = false;
 
       if (isManual) {
         const scrollDelta = Math.abs(container.scrollTop - lastScrollTop);

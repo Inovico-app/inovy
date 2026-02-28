@@ -90,6 +90,8 @@ export function AudioPlaybackProvider({ children }: { children: ReactNode }) {
         notify();
       };
       const handleEnded = () => {
+        currentTimeRef.current = el.currentTime;
+        notify();
         setIsPlaying(false);
         stopLoop();
       };

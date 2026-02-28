@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { createRef, useCallback, useEffect, useRef } from "react";
+import { createRef, useCallback, useEffect, useRef, useState } from "react";
 import { useAudioTranscriptSync } from "../../hooks/use-audio-transcript-sync";
 import { useAutoScrollPause } from "../../hooks/use-auto-scroll-pause";
 import { useGroupedUtterances } from "../../hooks/use-grouped-utterances";
@@ -24,6 +24,20 @@ export function TranscriptionMessageView({
     Map<number, React.RefObject<HTMLDivElement | null>>
   >(new Map());
 
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mq.matches);
+    const handler = () => setPrefersReducedMotion(mq.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   const getBubbleRef = useCallback((index: number) => {
     const map = bubbleRefsRef.current;
     if (!map.has(index)) {
@@ -31,6 +45,16 @@ export function TranscriptionMessageView({
     }
     return map.get(index)!;
   }, []);
+
+  useEffect(() => {
+    const validIndexes = new Set(groupedUtterances.map((_, i) => i));
+    const map = bubbleRefsRef.current;
+    for (const key of map.keys()) {
+      if (!validIndexes.has(key)) {
+        map.delete(key);
+      }
+    }
+  }, [groupedUtterances]);
 
   const { activeGroupIndex } = useAudioTranscriptSync(groupedUtterances);
   const { isAutoScrollPaused, resumeAutoScroll, markProgrammaticScroll } =
@@ -46,15 +70,16 @@ export function TranscriptionMessageView({
 
     markProgrammaticScroll();
 
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-
     el.scrollIntoView({
       behavior: prefersReducedMotion ? "instant" : "smooth",
       block: "center",
     });
-  }, [activeGroupIndex, isAutoScrollPaused, markProgrammaticScroll]);
+  }, [
+    activeGroupIndex,
+    isAutoScrollPaused,
+    markProgrammaticScroll,
+    prefersReducedMotion,
+  ]);
 
   // Speaker hover highlight (existing behavior)
   useEffect(() => {
@@ -154,7 +179,7 @@ export function TranscriptionMessageView({
               "bg-primary text-primary-foreground shadow-lg",
               "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2",
               "hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              "touch-action-manipulation"
+              "touch-manipulation"
             )}
             aria-label="Hervat automatisch scrollen"
           >
