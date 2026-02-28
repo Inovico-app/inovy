@@ -214,6 +214,12 @@ export const createCalendarEventWithBot = authorizedActionClient
                 organizationId,
               });
             } else {
+              const {
+                botDisplayName,
+                botJoinMessage,
+                inactivityTimeoutMinutes,
+              } = settingsResult.value;
+
               // Create bot session via provider
               const provider = BotProviderFactory.getDefault();
               const sessionResult = await provider.createSession({
@@ -224,6 +230,9 @@ export const createCalendarEventWithBot = authorizedActionClient
                   userId: user.id,
                   calendarEventId: eventId,
                 },
+                botDisplayName,
+                botJoinMessage,
+                inactivityTimeoutMinutes,
               });
 
               if (sessionResult.isErr()) {

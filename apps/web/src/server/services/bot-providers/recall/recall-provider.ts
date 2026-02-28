@@ -35,6 +35,7 @@ export class RecallBotProvider implements BotProvider {
         {
           botDisplayName: config.botDisplayName,
           botJoinMessage: config.botJoinMessage,
+          inactivityTimeoutMinutes: config.inactivityTimeoutMinutes,
         }
       );
 

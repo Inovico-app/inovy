@@ -79,7 +79,11 @@ export class RecallApiService {
     meetingUrl: string,
     customMetadata?: Record<string, string>,
     joinAt?: Date,
-    options?: { botDisplayName?: string; botJoinMessage?: string | null }
+    options?: {
+      botDisplayName?: string;
+      botJoinMessage?: string | null;
+      inactivityTimeoutMinutes?: number;
+    }
   ): Promise<ActionResult<{ botId: string; status: string }>> {
     try {
       const apiKey = getRecallApiKey();
@@ -93,7 +97,8 @@ export class RecallApiService {
         webhook_url: webhookUrl,
         custom_metadata: customMetadata ?? {},
         automatic_leave: {
-          noone_joined_timeout: 300,
+          noone_joined_timeout:
+            (options?.inactivityTimeoutMinutes ?? 5) * 60,
           waiting_room_timeout: 600,
           everyone_left_timeout: 30,
         },
