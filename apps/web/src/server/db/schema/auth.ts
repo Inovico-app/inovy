@@ -236,6 +236,23 @@ export const magicLinks = pgTable(
   ]
 );
 
+export const twoFactor = pgTable(
+  "two_factor",
+  {
+    id: text("id").primaryKey(),
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at"),
+    updatedAt: timestamp("updated_at").$onUpdate(
+      () => /* @__PURE__ */ new Date()
+    ),
+  },
+  (table) => [index("two_factor_userId_idx").on(table.userId)]
+);
+
 export const userRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   accounts: many(accounts),
@@ -243,6 +260,7 @@ export const userRelations = relations(users, ({ many }) => ({
   members: many(members),
   invitations: many(invitations),
   passkeys: many(passkeys),
+  twoFactor: many(twoFactor),
 }));
 
 export const sessionRelations = relations(sessions, ({ one }) => ({
@@ -309,6 +327,13 @@ export const invitationRelations = relations(invitations, ({ one }) => ({
 export const passkeyRelations = relations(passkeys, ({ one }) => ({
   users: one(users, {
     fields: [passkeys.userId],
+    references: [users.id],
+  }),
+}));
+
+export const twoFactorRelations = relations(twoFactor, ({ one }) => ({
+  users: one(users, {
+    fields: [twoFactor.userId],
     references: [users.id],
   }),
 }));
