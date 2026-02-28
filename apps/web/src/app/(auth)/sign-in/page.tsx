@@ -7,12 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSignIn } from "@/features/auth/hooks/use-sign-in";
 import { AlertCircle, Mail, Sparkles } from "lucide-react";
-import type { Route } from "next";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export default function SignInPage() {
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") ?? undefined;
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [magicLinkEmail, setMagicLinkEmail] = useState("");
@@ -36,11 +39,11 @@ export default function SignInPage() {
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    signInEmail({ email, password });
+    signInEmail({ email, password, redirectTo: redirectUrl });
   };
 
   const handleSocialSignIn = (provider: "google" | "microsoft") => {
-    signInSocial({ provider });
+    signInSocial({ provider, callbackUrl: redirectUrl });
   };
 
   const handleMagicLink = async (e: React.FormEvent) => {
@@ -305,7 +308,11 @@ export default function SignInPage() {
         <p className="mt-8 text-center text-sm text-muted-foreground">
           Nog geen account?{" "}
           <Link
-            href={"/sign-up" as Route}
+            href={
+              redirectUrl
+                ? `/sign-up?redirect=${encodeURIComponent(redirectUrl)}`
+                : "/sign-up"
+            }
             className="text-primary hover:underline font-medium"
           >
             Registreer je hier

@@ -5,6 +5,7 @@ import PasswordResetEmail from "@/emails/templates/password-reset-email";
 import VerificationEmail from "@/emails/templates/verification-email";
 import { logger } from "@/lib/logger";
 import { anonymizeEmail } from "@/lib/pii-utils";
+import { InvitationsQueries } from "@/server/data-access/invitations.queries";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
 import { PendingTeamAssignmentsQueries } from "@/server/data-access/pending-team-assignments.queries";
 import { UserQueries } from "@/server/data-access/user.queries";
@@ -590,6 +591,37 @@ const ensureUserHasOrganization = async (
       organizationId: existingOrganizationId,
     });
     return existingOrganizationId;
+  }
+
+  // Resolve email for the pending-invitation check (session hooks may not pass it).
+  // Wrapped in try-catch so DB errors fail-open (proceed with org creation).
+  try {
+    let resolvedEmail = userEmail;
+    if (!resolvedEmail) {
+      const existingUser = await UserQueries.findById(userId);
+      resolvedEmail = existingUser?.email;
+    }
+
+    if (resolvedEmail) {
+      const hasPendingInvitation =
+        await InvitationsQueries.hasPendingInvitationsByEmail(resolvedEmail);
+      if (hasPendingInvitation) {
+        logger.info(
+          "Skipping personal org creation - user has pending invitation(s)",
+          {
+            userId,
+            emailHash: anonymizeEmail(resolvedEmail),
+          }
+        );
+        return null;
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to check pending invitations, proceeding with org creation", {
+      userId,
+      emailHash: userEmail ? anonymizeEmail(userEmail) : "[no-email]",
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 
   try {
