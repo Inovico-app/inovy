@@ -110,7 +110,7 @@ export class ProjectQueries {
       .where(eq(projects.id, projectId))
       .limit(1);
 
-    return result.length > 0 ? result[0]?.organizationId ?? null : null;
+    return result.length > 0 ? (result[0]?.organizationId ?? null) : null;
   }
 
   /**
@@ -165,6 +165,35 @@ export class ProjectQueries {
     if (result.length === 0) return null;
 
     return result[0];
+  }
+
+  /**
+   * Get first active project for an organization
+   * Used for bot session project assignment
+   */
+  static async findFirstActiveByOrganization(
+    organizationId: string
+  ): Promise<ProjectDto | null> {
+    const result = await db
+      .select({
+        id: projects.id,
+        name: projects.name,
+        description: projects.description,
+        status: projects.status,
+        organizationId: projects.organizationId,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt,
+      })
+      .from(projects)
+      .where(
+        and(
+          eq(projects.organizationId, organizationId),
+          eq(projects.status, "active")
+        )
+      )
+      .limit(1);
+
+    return result[0] ?? null;
   }
 
   /**

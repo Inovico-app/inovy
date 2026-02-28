@@ -20,13 +20,35 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { IncrementalPermissionDialog } from "@/features/integrations/google/components/incremental-permission-dialog";
+import { PermissionExplanationDialog } from "@/features/integrations/google/components/permission-explanation-dialog";
+import { type ScopeTier } from "@/features/integrations/google/lib/scope-constants";
+import {
+  hasRequiredScopes,
+  tierToLabel,
+} from "@/features/integrations/google/lib/scope-utils";
+import {
+  Calendar,
+  CheckCircle2,
+  HardDrive,
+  Loader2,
+  Mail,
+  Plus,
+  XCircle,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   disconnectGoogleAccount,
   getGoogleConnectionStatus,
 } from "../actions/google-connection";
+
+const FEATURE_TIERS: { tier: ScopeTier; icon: typeof Calendar }[] = [
+  { tier: "base", icon: Calendar },
+  { tier: "calendarWrite", icon: Calendar },
+  { tier: "gmail", icon: Mail },
+  { tier: "drive", icon: HardDrive },
+];
 
 export function GoogleConnection() {
   const [status, setStatus] = useState<{
@@ -39,27 +61,43 @@ export function GoogleConnection() {
     loading: true,
   });
   const [disconnecting, setDisconnecting] = useState(false);
+  const [showConnectDialog, setShowConnectDialog] = useState(false);
+  const [incrementalTier, setIncrementalTier] = useState<ScopeTier | null>(
+    null
+  );
 
-  // Load connection status on mount
   useEffect(() => {
     loadStatus();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("google_success") === "true") {
+      loadStatus();
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   }, []);
 
   async function loadStatus() {
     setStatus((prev) => ({ ...prev, loading: true }));
 
-    const result = await getGoogleConnectionStatus();
+    try {
+      const result = await getGoogleConnectionStatus();
 
-    if (result && result.data) {
-      setStatus({
-        connected: result.data.connected,
-        email: result.data.email,
-        scopes: result.data.scopes,
-        loading: false,
-      });
-    } else {
+      if (result?.data) {
+        setStatus({
+          connected: result.data.connected,
+          email: result.data.email,
+          scopes: result.data.scopes,
+          loading: false,
+        });
+      } else {
+        setStatus((prev) => ({ ...prev, loading: false }));
+        toast.error(result?.serverError ?? "Failed to load connection status");
+      }
+    } catch {
       setStatus((prev) => ({ ...prev, loading: false }));
-      toast.error(result.serverError || "Failed to load connection status");
+      toast.error("Failed to load connection status");
     }
   }
 
@@ -70,20 +108,12 @@ export function GoogleConnection() {
 
     if (result.data) {
       toast.success("Google account disconnected successfully");
-      setStatus({
-        connected: false,
-        loading: false,
-      });
+      setStatus({ connected: false, loading: false });
     } else {
       toast.error(result.serverError || "Failed to disconnect account");
     }
 
     setDisconnecting(false);
-  }
-
-  function handleConnect() {
-    // Redirect to OAuth authorization endpoint
-    window.location.href = "/api/integrations/google/authorize";
   }
 
   if (status.loading) {
@@ -103,6 +133,8 @@ export function GoogleConnection() {
       </Card>
     );
   }
+
+  const userScopes = status.scopes ?? [];
 
   return (
     <Card>
@@ -131,27 +163,53 @@ export function GoogleConnection() {
 
         {/* Connected Account Info */}
         {status.connected && status.email && (
+          <div className="text-sm">
+            <span className="font-medium">Account:</span>{" "}
+            <span className="text-muted-foreground">{status.email}</span>
+          </div>
+        )}
+
+        {/* Granular permissions display */}
+        {status.connected && (
           <div className="space-y-2">
-            <div className="text-sm">
-              <span className="font-medium">Account:</span>{" "}
-              <span className="text-muted-foreground">{status.email}</span>
+            <span className="text-sm font-medium">Permissions:</span>
+            <div className="grid gap-2">
+              {FEATURE_TIERS.map(({ tier, icon: Icon }) => {
+                const granted = hasRequiredScopes(userScopes, tier);
+                return (
+                  <div
+                    key={tier}
+                    className="flex items-center justify-between rounded-lg border px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="text-sm truncate">
+                        {tierToLabel(tier)}
+                      </span>
+                    </div>
+                    {granted ? (
+                      <Badge
+                        variant="secondary"
+                        className="shrink-0 gap-1 text-xs"
+                      >
+                        <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                        Granted
+                      </Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0 h-7 text-xs gap-1"
+                        onClick={() => setIncrementalTier(tier)}
+                      >
+                        <Plus className="h-3 w-3" />
+                        Grant
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            {status.scopes && status.scopes.length > 0 && (
-              <div className="text-sm">
-                <span className="font-medium">Permissions:</span>
-                <ul className="mt-1 ml-4 list-disc text-muted-foreground">
-                  {status.scopes.includes(
-                    "https://www.googleapis.com/auth/gmail.compose"
-                  ) && <li>Create Gmail drafts</li>}
-                  {status.scopes.includes(
-                    "https://www.googleapis.com/auth/calendar.events"
-                  ) && <li>Create calendar events</li>}
-                  {status.scopes.includes(
-                    "https://www.googleapis.com/auth/drive.readonly"
-                  ) && <li>Read Drive files and folders</li>}
-                </ul>
-              </div>
-            )}
           </div>
         )}
 
@@ -173,7 +231,7 @@ export function GoogleConnection() {
                     Disconnect Google Account?
                   </AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will revoke Inovy's access to your Google account.
+                    This will revoke Inovy&apos;s access to your Google account.
                     Automatic calendar events and email drafts will be disabled.
                     Your existing recordings and tasks will not be affected.
                   </AlertDialogDescription>
@@ -190,7 +248,9 @@ export function GoogleConnection() {
               </AlertDialogContent>
             </AlertDialog>
           ) : (
-            <Button onClick={handleConnect}>Connect Google Account</Button>
+            <Button onClick={() => setShowConnectDialog(true)}>
+              Connect Google Account
+            </Button>
           )}
         </div>
 
@@ -198,13 +258,35 @@ export function GoogleConnection() {
         <div className="mt-4 rounded-lg border bg-muted/50 p-4">
           <h4 className="text-sm font-medium mb-2">Available Features:</h4>
           <ul className="space-y-1 text-sm text-muted-foreground">
-            <li>• Automatically create calendar events from extracted tasks</li>
-            <li>• Generate Gmail drafts from meeting summaries</li>
-            <li>• Customize email templates and event details</li>
-            <li>• Configure automation preferences</li>
+            <li>
+              &bull; Automatically create calendar events from extracted tasks
+            </li>
+            <li>&bull; Generate Gmail drafts from meeting summaries</li>
+            <li>&bull; Customize email templates and event details</li>
+            <li>&bull; Configure automation preferences</li>
           </ul>
         </div>
       </CardContent>
+
+      {/* Initial connection dialog (base scopes only) */}
+      <PermissionExplanationDialog
+        open={showConnectDialog}
+        onOpenChange={setShowConnectDialog}
+        tiers={["base"]}
+        redirectUrl="/settings/integrations?google_success=true"
+      />
+
+      {/* Incremental permission dialog */}
+      {incrementalTier && (
+        <IncrementalPermissionDialog
+          open
+          onOpenChange={(open: boolean) => {
+            if (!open) setIncrementalTier(null);
+          }}
+          tier={incrementalTier}
+          returnUrl="/settings/integrations?google_success=true"
+        />
+      )}
     </Card>
   );
 }

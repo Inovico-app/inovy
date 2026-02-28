@@ -10,14 +10,18 @@ import {
 import { useActiveMemberRole } from "@/hooks/use-active-member-role";
 import { cn } from "@/lib/utils";
 import {
+  Bot,
+  Calendar,
   CheckSquare,
   ChevronLeft,
   ChevronRight,
   FileAudio,
+  FileText,
   FolderKanban,
   LayoutDashboard,
   MessageSquare,
   Plus,
+  Scale,
   Settings,
   ShieldAlert,
 } from "lucide-react";
@@ -40,6 +44,8 @@ const navLinks: NavLink[] = [
   { to: "/chat", label: "Chat", icon: MessageSquare },
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
+  { to: "/meetings", label: "Meetings", icon: Calendar },
+  { to: "/bot/sessions", label: "Bot Sessions", icon: Bot },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -92,7 +98,7 @@ export function Sidebar() {
           <Skeleton className="h-6 w-20" />
         </div>
         <nav className="flex-1 space-y-1 p-2">
-          {[...Array(6)].map((_, i) => (
+          {[...Array(navLinks.length)].map((_, i) => (
             <Skeleton key={i} className="h-10 w-full mb-2" />
           ))}
         </nav>
@@ -217,8 +223,8 @@ export function Sidebar() {
         )}
       </nav>
 
-      {/* Footer with New Recording Button */}
-      <div className="border-t p-2">
+      {/* Footer */}
+      <div className="border-t p-2 space-y-2">
         <Link href="/record" as={"/record" as Route}>
           <Button
             className={cn("w-full justify-start gap-2", collapsed && "px-2")}
@@ -230,6 +236,56 @@ export function Sidebar() {
             {!collapsed && <span>New Recording</span>}
           </Button>
         </Link>
+
+        {!collapsed ? (
+          <nav
+            aria-label="Legal"
+            className="flex items-center justify-center gap-3 px-1 pt-1"
+          >
+            <Link
+              href="/privacy-policy"
+              className="text-[11px] text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+            >
+              Privacy
+            </Link>
+            <span className="text-muted-foreground/40 text-[11px]">
+              &middot;
+            </span>
+            <Link
+              href="/terms-of-service"
+              className="text-[11px] text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+            >
+              Voorwaarden
+            </Link>
+          </nav>
+        ) : (
+          <div className="flex flex-col items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/privacy-policy"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+                  aria-label="Privacybeleid"
+                >
+                  <Scale className="h-3.5 w-3.5" />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right">Privacy</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/terms-of-service"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+                  aria-label="Algemene Voorwaarden"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right">Voorwaarden</TooltipContent>
+            </Tooltip>
+          </div>
+        )}
       </div>
     </aside>
   );

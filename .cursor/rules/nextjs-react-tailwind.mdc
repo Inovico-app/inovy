@@ -49,6 +49,12 @@ Before responding to any request, follow these steps:
 - Create new hooks instead of defining them in the component file, even if it's a small or single use hook
 - If a component is too big, split it into smaller components with proper naming and folder structure
 - NEVER use inline imports
+- Separation of concerns: logic, UI, and data parsing are separated
+- Reusability: hook and helper can be reused elsewhere
+- Testability: each piece can be tested independently
+- Maintainability: smaller, focused files are easier to understand
+- Type safety: proper TypeScript types throughout
+- Consistency: follows project conventions (hooks in separate files, structured logging)
 
 ### Naming Conventions
 
@@ -86,6 +92,7 @@ Before responding to any request, follow these steps:
 ### Server Actions
 
 - Use the Next-safe-action library for all server actions
+- Use useAction from next-safe-action library for all server actions mutations and extract it into a custom hook, e.g. const { execute: updateUser, isExecuting: isUpdatingUser } = useAction(updateUserAction, { onSuccess: ({ data }) => { toast.success("User updated successfully"); }, onError: ({ error }) => { toast.error(error.serverError || "Failed to update user"); }, });
 - Use server actions for all database mutations
 - Use server actions for all API calls if it makes sense, e.g. createProject, updateProject, deleteProject, etc.
 - Do not use server actions for data fetching, e.g. getProject, getProjects, etc. but rather use cache components functionality, e.g. 'use cache' directive in Server Components for cached data fetching in combination with cacheTag, updateTag, revalidatePath, revalidateTag, etc.
@@ -166,10 +173,17 @@ const searchParams = await props.searchParams;
 - ALWAYS check if there are any best practices violations in the code after you are done with the code.
 - ALWAYS check if there are any code smells in the code after you are done with the code.
 - ALWAYS check if there are any code smells in the code after you are done with the code.
+- ALWAYS check if code follows single responsibility principle.
+- ALWAYS check if code follows open/closed principle.
+- ALWAYS check if code follows Liskov substitution principle.
+- ALWAYS check if code follows interface segregation principle.
+- ALWAYS check if code follows dependency inversion principle.
+- ALWAYS check if code follows separation of concerns principle.
+- ALWAYS check if code follows don't repeat yourself principle.
 
 ## AI Code Review Guidelines
 
-- After commiting the code if lint, typecheck , build and run tests are successful, run an AI code review to check if the code is ready to be committed and pushed using CodeRabbit.ai command: `coderrabit --prompt-only -t uncommitted`. This runs a full code review of the uncommitted code. You are then expected to fix the issues reported by the AI code review and continue with the commit and push process.
+- After checking the development guidelines and best practices, checking for linting errors, type errors, build errors, runtime errors, security vulnerabilities, performance issues, accessibility issues, best practices violations, code smells, and code follows single responsibility principle, open/closed principle, Liskov substitution principle, interface segregation principle, dependency inversion principle, separation of concerns principle, and don't repeat yourself principle, run an AI code review to check if the code is ready to be committed and pushed using CodeRabbit.ai command: `coderrabit --prompt-only -t uncommitted`. This runs a full code review of the uncommitted code. You are then expected to fix the issues reported by the AI code review and continue with the commit and push process.
 
 ```bash
 coderrabit --prompt-only -t uncommitted

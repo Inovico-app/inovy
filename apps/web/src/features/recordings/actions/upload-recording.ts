@@ -3,6 +3,7 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
+import { ProjectQueries } from "@/server/data-access/projects.queries";
 import { RecordingService } from "@/server/services/recording.service";
 import {
   ALLOWED_MIME_TYPES,
@@ -80,6 +81,15 @@ export async function uploadRecordingFormAction(
       return {
         success: false,
         error: `File size exceeds maximum of ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+      };
+    }
+
+    // Prevent adding recordings to archived projects
+    const project = await ProjectQueries.findById(projectId, organizationId);
+    if (project?.status === "archived") {
+      return {
+        success: false,
+        error: "Cannot add recordings to an archived project",
       };
     }
 
@@ -179,7 +189,13 @@ export async function uploadRecordingFormAction(
         component: "uploadRecordingFormAction",
         error: result.error.message,
       });
-      return { success: false, error: "Failed to create recording" };
+      return {
+        success: false,
+        error:
+          result.error.code === "FORBIDDEN"
+            ? result.error.message
+            : "Failed to create recording",
+      };
     }
 
     const recording = result.value;

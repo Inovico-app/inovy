@@ -1,0 +1,136 @@
+"use client";
+
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
+import { useUserProjects } from "@/features/projects/hooks/use-user-projects";
+import { Loader2, Plus } from "lucide-react";
+import { useState } from "react";
+import { useAddBotToMeeting } from "../hooks/use-add-bot-to-meeting";
+import { AddBotConsentDialog } from "./add-bot-consent-dialog";
+
+interface AddBotButtonProps {
+  meeting: MeetingWithSession;
+  variant?: "button" | "icon";
+}
+
+/**
+ * Add Bot button for meetings without bot sessions
+ * Handles consent flow with project selection and optimistic UI updates
+ */
+export function AddBotButton({
+  meeting,
+  variant = "button",
+}: AddBotButtonProps) {
+  const [isConsentDialogOpen, setIsConsentDialogOpen] = useState(false);
+  const [pendingMeeting, setPendingMeeting] =
+    useState<MeetingWithSession | null>(null);
+
+  const { projects, isLoadingProjects, defaultProjectId } = useUserProjects();
+
+  const { execute, isExecuting } = useAddBotToMeeting({
+    onConsentRequired: () => {
+      setPendingMeeting(meeting);
+      setIsConsentDialogOpen(true);
+    },
+  });
+
+  const handleAddBot = () => {
+    setIsConsentDialogOpen(true);
+    setPendingMeeting(meeting);
+  };
+
+  const handleConsentAccept = (projectId: string) => {
+    if (!pendingMeeting) return;
+
+    execute({
+      calendarEventId: pendingMeeting.id,
+      meetingUrl: pendingMeeting.meetingUrl,
+      meetingTitle: pendingMeeting.title,
+      consentGiven: true,
+      projectId,
+    });
+    setPendingMeeting(null);
+  };
+
+  const isUpcoming = meeting.start > new Date();
+  const hasMeetingUrl =
+    meeting.meetingUrl?.trim() &&
+    meeting.meetingUrl.includes("meet.google.com");
+
+  if (!isUpcoming || !hasMeetingUrl) {
+    return null;
+  }
+
+  const consentDialog = (
+    <AddBotConsentDialog
+      open={isConsentDialogOpen}
+      onOpenChange={(open) => {
+        setIsConsentDialogOpen(open);
+        if (!open) setPendingMeeting(null);
+      }}
+      onAccept={handleConsentAccept}
+      meetingTitle={pendingMeeting?.title ?? meeting.title}
+      projects={projects}
+      defaultProjectId={defaultProjectId}
+      isLoadingProjects={isLoadingProjects}
+    />
+  );
+
+  if (variant === "icon") {
+    return (
+      <TooltipProvider>
+        {consentDialog}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddBot();
+              }}
+              disabled={isExecuting}
+              aria-label="Add bot to meeting"
+            >
+              {isExecuting ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Plus className="h-3 w-3" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Add bot to meeting</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return (
+    <>
+      {consentDialog}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleAddBot}
+        disabled={isExecuting}
+      >
+        {isExecuting ? (
+          <>
+            <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+            Adding...
+          </>
+        ) : (
+          "Add Bot"
+        )}
+      </Button>
+    </>
+  );
+}
+

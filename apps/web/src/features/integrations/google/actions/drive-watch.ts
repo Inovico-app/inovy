@@ -10,6 +10,7 @@ import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { DriveWatchesQueries } from "@/server/data-access/drive-watches.queries";
 import { ProjectQueries } from "@/server/data-access/projects.queries";
 import { DriveWatchesService } from "@/server/services/drive-watches.service";
+import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import {
   deleteDriveWatchSchema,
   startDriveWatchSchema,
@@ -43,6 +44,23 @@ export const startDriveWatchAction = authorizedActionClient
         "Organization context required",
         undefined,
         "startDriveWatchAction"
+      );
+    }
+
+    // Check for drive scope
+    const hasScopeResult = await GoogleOAuthService.hasScopes(user.id, "drive");
+
+    if (hasScopeResult.isErr()) {
+      throw ActionErrors.internal(
+        "Failed to verify Google Drive scopes",
+        hasScopeResult.error,
+        "startDriveWatchAction"
+      );
+    }
+
+    if (!hasScopeResult.value) {
+      throw ActionErrors.badRequest(
+        "Missing permission: Google Drive (read files). Please grant this permission in Settings > Integrations."
       );
     }
 

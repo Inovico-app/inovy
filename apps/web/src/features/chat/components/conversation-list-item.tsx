@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ChatConversation } from "@/server/db/schema/chat-conversations";
 import { Building2, FolderOpen, MoreVertical } from "lucide-react";
+import { differenceInCalendarDays } from "date-fns";
 import { ConversationActionsMenu } from "./conversation-actions-menu";
 
 interface ConversationListItemProps {
@@ -25,14 +26,19 @@ export function ConversationListItem({
     const now = new Date();
     const diffInMs = now.getTime() - date.getTime();
     const diffInHours = diffInMs / (1000 * 60 * 60);
-    const diffInDays = diffInHours / 24;
 
+    // For recent times (< 24 hours), use time-based display
     if (diffInHours < 1) {
       return "Just now";
     } else if (diffInHours < 24) {
       return `${Math.floor(diffInHours)}h ago`;
-    } else if (diffInDays < 7) {
-      return `${Math.floor(diffInDays)}d ago`;
+    }
+
+    // For older dates, use calendar days
+    const diffInDays = differenceInCalendarDays(now, date);
+
+    if (diffInDays < 7) {
+      return `${diffInDays}d ago`;
     } else {
       return date.toLocaleDateString();
     }

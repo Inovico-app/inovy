@@ -6,7 +6,7 @@ import type { NotificationType } from "@/server/db/schema/notifications";
 
 export interface Notification {
   id: string;
-  recordingId: string;
+  recordingId: string | null; // Nullable for bot_consent_request notifications
   projectId: string;
   userId: string;
   organizationId: string;

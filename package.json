@@ -19,5 +19,14 @@
   },
   "devDependencies": {
     "turbo": "^2.6.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "@tailwindcss/oxide",
+      "@vercel/speed-insights",
+      "esbuild",
+      "sharp"
+    ]
   }
 }

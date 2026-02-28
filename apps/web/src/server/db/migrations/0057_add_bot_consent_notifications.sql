@@ -1,0 +1,1 @@
+ALTER TABLE "notifications" ALTER COLUMN "recording_id" DROP NOT NULL;

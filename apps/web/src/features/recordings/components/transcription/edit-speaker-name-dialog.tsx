@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { updateSpeakerNames } from "@/features/recordings/actions/update-speaker-names";
-import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
+import { useOrganizationMembers } from "@/features/tasks/hooks/use-organization-members";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -45,8 +45,8 @@ export function EditSpeakerNameDialog({
     currentUserId || null
   );
   const [isSaving, setIsSaving] = useState(false);
-  const { data: users = [], isLoading: isLoadingUsers } =
-    useOrganizationUsersQuery();
+  const { members: users = [], isLoading: isLoadingUsers } =
+    useOrganizationMembers();
 
   // Update state when props change
   useEffect(() => {
@@ -56,15 +56,12 @@ export function EditSpeakerNameDialog({
     }
   }, [isOpen, currentName, currentUserId]);
 
-  // Auto-fill name when user is selected
+  // Auto-fill name when user is selected (only if name field is empty)
   useEffect(() => {
-    if (selectedUserId && !name) {
+    if (selectedUserId && !name.trim()) {
       const selectedUser = users.find((u) => u.id === selectedUserId);
       if (selectedUser) {
-        const fullName = [
-          selectedUser.given_name,
-          selectedUser.family_name,
-        ]
+        const fullName = [selectedUser.given_name, selectedUser.family_name]
           .filter(Boolean)
           .join(" ");
         if (fullName) {
@@ -149,12 +146,11 @@ export function EditSpeakerNameDialog({
                 <SelectValue placeholder="Selecteer gebruiker (optioneel)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">Geen gebruiker</SelectItem>
+                <SelectItem value="__none__">
+                  Geen gebruiker (externe spreker)
+                </SelectItem>
                 {users.map((user) => {
-                  const fullName = [
-                    user.given_name,
-                    user.family_name,
-                  ]
+                  const fullName = [user.given_name, user.family_name]
                     .filter(Boolean)
                     .join(" ");
                   const displayName = fullName || user.email || user.id;
@@ -175,7 +171,11 @@ export function EditSpeakerNameDialog({
               id="speaker-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Voer spreker naam in"
+              placeholder={
+                selectedUserId
+                  ? "Naam wordt automatisch ingevuld"
+                  : "Voer spreker naam in (bijv. externe spreker)"
+              }
               className="col-span-4 sm:col-span-3"
               maxLength={50}
             />
@@ -183,6 +183,12 @@ export function EditSpeakerNameDialog({
           <p className="text-xs text-muted-foreground">
             {name.length}/50 karakters (alleen letters, cijfers, spaties, - en
             .)
+            {!selectedUserId && (
+              <span className="block mt-1">
+                Selecteer "Geen gebruiker" om een externe spreker toe te voegen
+                met alleen een naam.
+              </span>
+            )}
           </p>
         </div>
         <DialogFooter>

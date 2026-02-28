@@ -3,48 +3,25 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
-import { Copy, UserCog } from "lucide-react";
-import type { HTMLAttributes } from "react";
-import { useState } from "react";
-import { toast } from "sonner";
-import type { TranscriptionMessageBubbleProps } from "./types";
-import { ChangeUtteranceSpeakerDialog } from "./change-utterance-speaker-dialog";
+import { useJumpToTimestamp } from "@/features/recordings/hooks/use-jump-to-timestamp";
 import {
-  formatTimestampRange,
+  getSpeakerAvatarColor,
+  getSpeakerBgColor,
+  getSpeakerMessageColor,
+} from "@/features/recordings/lib/speaker-colors";
+import { useOrganizationMembers } from "@/features/tasks/hooks/use-organization-members";
+import { cn } from "@/lib/utils";
+import { Copy, UserCog } from "lucide-react";
+import { forwardRef, useState, type HTMLAttributes } from "react";
+import { toast } from "sonner";
+import { ChangeUtteranceSpeakerDialog } from "./change-utterance-speaker-dialog";
+import { getSpeakerInfo, getUserInitials } from "./speaker-helpers";
+import type { TranscriptionMessageBubbleProps } from "./types";
+import {
   formatCopyText,
+  formatTimestampRange,
   getUtteranceCountLabel,
 } from "./utterance-helpers";
-import { getSpeakerInfo, getUserInitials } from "./speaker-helpers";
-import { useJumpToTimestamp } from "@/features/recordings/hooks/use-jump-to-timestamp";
-
-const SPEAKER_COLORS = [
-  "bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100",
-  "bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100",
-  "bg-purple-100 text-purple-900 dark:bg-purple-900 dark:text-purple-100",
-  "bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100",
-  "bg-pink-100 text-pink-900 dark:bg-pink-900 dark:text-pink-100",
-  "bg-indigo-100 text-indigo-900 dark:bg-indigo-900 dark:text-indigo-100",
-];
-
-const SPEAKER_BG_COLORS = [
-  "bg-blue-50 dark:bg-blue-950",
-  "bg-green-50 dark:bg-green-950",
-  "bg-purple-50 dark:bg-purple-950",
-  "bg-amber-50 dark:bg-amber-950",
-  "bg-pink-50 dark:bg-pink-950",
-  "bg-indigo-50 dark:bg-indigo-950",
-];
-
-const SPEAKER_AVATAR_COLORS = [
-  "bg-blue-200 dark:bg-blue-800",
-  "bg-green-200 dark:bg-green-800",
-  "bg-purple-200 dark:bg-purple-800",
-  "bg-amber-200 dark:bg-amber-800",
-  "bg-pink-200 dark:bg-pink-800",
-  "bg-indigo-200 dark:bg-indigo-800",
-];
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -57,32 +34,35 @@ function getSpeakerColor(speakerIndex: number): {
   bg: string;
   avatar: string;
 } {
-  const colorIndex = speakerIndex % SPEAKER_COLORS.length;
   return {
-    text: SPEAKER_COLORS[colorIndex],
-    bg: SPEAKER_BG_COLORS[colorIndex],
-    avatar: SPEAKER_AVATAR_COLORS[colorIndex],
+    text: getSpeakerMessageColor(speakerIndex),
+    bg: getSpeakerBgColor(speakerIndex),
+    avatar: getSpeakerAvatarColor(speakerIndex),
   };
 }
 
 export type TranscriptionMessageProps = HTMLAttributes<HTMLDivElement> & {
   isLeftAligned?: boolean;
+  isActive?: boolean;
 };
 
-export const TranscriptionMessage = ({
-  className,
-  isLeftAligned = false,
-  ...props
-}: TranscriptionMessageProps) => (
+export const TranscriptionMessage = forwardRef<
+  HTMLDivElement,
+  TranscriptionMessageProps
+>(({ className, isLeftAligned = false, isActive = false, ...props }, ref) => (
   <div
+    ref={ref}
     className={cn(
-      "group flex w-full items-end py-2 gap-2",
+      "group flex w-full items-end py-2 gap-2 border-l-4 pl-2 motion-safe:transition-all motion-safe:duration-300",
       isLeftAligned ? "justify-start" : "justify-end flex-row-reverse",
+      isActive ? "border-l-primary/70 bg-primary/5" : "border-l-transparent",
       className
     )}
+    aria-current={isActive ? "true" : undefined}
     {...props}
   />
-);
+));
+TranscriptionMessage.displayName = "TranscriptionMessage";
 
 export type TranscriptionMessageContentProps =
   HTMLAttributes<HTMLDivElement> & {
@@ -108,18 +88,25 @@ export const TranscriptionMessageContent = ({
   </div>
 );
 
-export function TranscriptionMessageBubble({
-  groupedUtterance,
-  viewMode,
-  speakersDetected,
-  speakerNames,
-  speakerUserIds,
-  recordingId,
-}: TranscriptionMessageBubbleProps) {
+export const TranscriptionMessageBubble = forwardRef<
+  HTMLDivElement,
+  TranscriptionMessageBubbleProps
+>(function TranscriptionMessageBubble(
+  {
+    groupedUtterance,
+    viewMode,
+    speakersDetected,
+    speakerNames,
+    speakerUserIds,
+    recordingId,
+    isActive = false,
+  },
+  ref
+) {
   const speakerColor = getSpeakerColor(groupedUtterance.speaker);
   const isLeftAligned =
     groupedUtterance.speaker % 2 === 0 && viewMode === "detailed";
-  const { data: users = [] } = useOrganizationUsersQuery();
+  const { members: users = [] } = useOrganizationMembers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Get speaker display info (React 19 handles optimization automatically)
@@ -159,7 +146,14 @@ export function TranscriptionMessageBubble({
   };
 
   return (
-    <TranscriptionMessage isLeftAligned={isLeftAligned}>
+    <TranscriptionMessage
+      ref={ref}
+      isLeftAligned={isLeftAligned}
+      isActive={isActive}
+      data-speaker={groupedUtterance.speaker}
+      data-utterance-start={groupedUtterance.start}
+      data-utterance-end={groupedUtterance.end}
+    >
       {viewMode === "detailed" && (
         <Avatar className="flex-shrink-0 w-8 h-8">
           {speakerInfo.image ? (
@@ -263,5 +257,5 @@ export function TranscriptionMessageBubble({
       />
     </TranscriptionMessage>
   );
-}
+});
 

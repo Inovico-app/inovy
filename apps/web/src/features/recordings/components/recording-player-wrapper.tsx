@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { useAudioPlaybackContext } from "../context/audio-playback-context";
 
 interface RecordingPlayerWrapperProps {
   fileUrl: string;
@@ -26,8 +27,16 @@ export function RecordingPlayerWrapper({
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const searchParams = useSearchParams();
+  const { registerMediaElement } = useAudioPlaybackContext();
 
-  // Handle timestamp navigation from URL
+  useEffect(() => {
+    const el = isVideo ? videoRef.current : audioRef.current;
+    if (el) {
+      registerMediaElement(el);
+    }
+    return () => registerMediaElement(null);
+  }, [isVideo, isAudio, registerMediaElement]);
+
   useEffect(() => {
     const timestamp = searchParams.get("t");
     if (timestamp) {
@@ -59,9 +68,10 @@ export function RecordingPlayerWrapper({
   }, [searchParams, isVideo, isAudio]);
 
   // Use playback endpoint for encrypted recordings
-  const playbackUrl = isEncrypted && recordingId
-    ? `/api/recordings/${recordingId}/playback`
-    : fileUrl;
+  const playbackUrl =
+    isEncrypted && recordingId
+      ? `/api/recordings/${recordingId}/playback`
+      : fileUrl;
 
   if (isVideo) {
     return (

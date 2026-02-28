@@ -8,6 +8,7 @@ import { Download, Edit2 } from "lucide-react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { TranscriptionHistoryDialog } from "../transcription-history-dialog";
 import { TranscriptionMessageView } from "./transcription-message-view";
+import { SpeakerLegend } from "./speaker-legend";
 import type { TranscriptionTabsProps } from "./types";
 
 const getDefaultTab = (speakersDetected?: number) =>
@@ -97,18 +98,28 @@ export function TranscriptionTabs({
           </p>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        <div className="pb-4 border-b border-border">
+          <SpeakerLegend
+            speakersDetected={speakersDetected ?? 0}
+            utterances={utterances}
+            speakerNames={speakerNames}
+            speakerUserIds={speakerUserIds}
+            recordingId={recordingId}
+          />
+        </div>
         {hasUtterances ? (
-          <Tabs
-            value={activeTab || "simple"}
-            onValueChange={(value) =>
-              setActiveTab(value as "simple" | "detailed")
-            }
-          >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="simple">Simpel</TabsTrigger>
-              <TabsTrigger value="detailed">Gedetailleerd</TabsTrigger>
-            </TabsList>
+          <>
+            <Tabs
+              value={activeTab || "simple"}
+              onValueChange={(value) =>
+                setActiveTab(value as "simple" | "detailed")
+              }
+            >
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="simple">Simpel</TabsTrigger>
+                <TabsTrigger value="detailed">Gedetailleerd</TabsTrigger>
+              </TabsList>
 
             <TabsContent value="simple" className="mt-4">
               <TranscriptionMessageView
@@ -131,7 +142,8 @@ export function TranscriptionTabs({
                 recordingId={recordingId}
               />
             </TabsContent>
-          </Tabs>
+            </Tabs>
+          </>
         ) : (
           <div className="p-4 rounded-lg bg-muted/50">
             <p className="text-sm whitespace-pre-wrap">{transcriptionText}</p>

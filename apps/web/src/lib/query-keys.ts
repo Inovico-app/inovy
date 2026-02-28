@@ -64,6 +64,17 @@ export const queryKeys = {
     members: (orgCode: string) =>
       [...queryKeys.organization.all, "members", orgCode] as const,
   },
+  meetings: {
+    all: ["meetings"] as const,
+  },
+  botSessions: {
+    all: ["bot-sessions"] as const,
+    byCalendarEvents: (calendarEventIds: string[]) =>
+      [...queryKeys.botSessions.all, [...(calendarEventIds || [])].sort().join(",")] as const,
+    details: () => [...queryKeys.botSessions.all, "detail"] as const,
+    detail: (sessionId: string) =>
+      [...queryKeys.botSessions.details(), sessionId] as const,
+  },
   agentKnowledgeBase: {
     all: ["agent", "knowledge-base"] as const,
     documents: (filters?: Record<string, unknown>) =>

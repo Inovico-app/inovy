@@ -1,5 +1,6 @@
+import { CacheInvalidation } from "@/lib/cache-utils";
+import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
 import { put } from "@vercel/blob";
-import { and, eq } from "drizzle-orm";
 import { err, ok } from "neverthrow";
 import { start } from "workflow/api";
 import { logger, serializeError } from "../../lib/logger";
@@ -10,52 +11,173 @@ import {
 import { convertRecordingIntoAiInsights } from "../../workflows/convert-recording";
 import { BotSessionsQueries } from "../data-access/bot-sessions.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
-import { db } from "../db";
-import { botSessions } from "../db/schema/bot-sessions";
+import { type BotStatus } from "../db/schema/bot-sessions";
 import type {
   BotRecordingReadyEvent,
   BotStatusChangeEvent,
+  ParticipantEventChatMessage,
+  RecallWebhookEvent,
+  SvixBotStatusEvent,
+  SvixRecordingEvent,
 } from "../validation/bot/recall-webhook.schema";
+import {
+  mapRecallEventToBotStatus,
+  mapRecallStatusToBotStatus,
+} from "./bot-providers/recall/status-mapper";
+import { NotificationService } from "./notification.service";
+import { RecallApiService } from "./recall-api.service";
 import { RecordingService } from "./recording.service";
+
+const KICK_COMMANDS = new Set([
+  "/stop",
+  "/kick",
+  "/leave",
+  "!stop",
+  "!kick",
+  "!leave",
+]);
+
+const TERMINAL_BOT_STATUSES = new Set<BotStatus>([
+  "leaving",
+  "completed",
+  "failed",
+]);
+
+function getMetadata(
+  payload: RecallWebhookEvent
+): Record<string, string> | undefined {
+  if ("data" in payload && payload.data?.bot?.metadata) {
+    const meta = payload.data.bot.metadata;
+    if (meta && typeof meta === "object") {
+      return Object.fromEntries(
+        Object.entries(meta).filter(
+          (v): v is [string, string] => typeof v[1] === "string"
+        )
+      ) as Record<string, string>;
+    }
+  }
+  if ("custom_metadata" in payload) return payload.custom_metadata;
+  return undefined;
+}
+
+export function getBotId(payload: RecallWebhookEvent): string {
+  if ("data" in payload && payload.data?.bot) return payload.data.bot.id;
+  if ("bot" in payload) return payload.bot.id;
+  return "";
+}
+
+function getRecallStatus(payload: RecallWebhookEvent): string {
+  if ("bot" in payload && "status" in payload.bot) return payload.bot.status;
+  if (
+    "data" in payload &&
+    payload.data &&
+    "data" in payload.data &&
+    payload.data.data &&
+    typeof payload.data.data === "object" &&
+    "code" in payload.data.data &&
+    typeof payload.data.data.code === "string"
+  ) {
+    return payload.data.data.code;
+  }
+  return "";
+}
 
 /**
  * Bot Webhook Service
- * Handles processing of Recall.ai webhook events
+ * Handles processing of Recall.ai webhook events (Svix and legacy formats)
  */
 export class BotWebhookService {
   /**
-   * Process bot status change event
+   * Process bot status change event (Svix or legacy format)
    */
   static async processStatusChange(
-    event: BotStatusChangeEvent
+    event: SvixBotStatusEvent | BotStatusChangeEvent
   ): Promise<ActionResult<void>> {
     try {
-      const { bot, custom_metadata } = event;
-      const organizationId = custom_metadata?.organizationId as
-        | string
-        | undefined;
+      const botId = getBotId(event);
+      const metadata = getMetadata(event);
+      const organizationId = metadata?.organizationId;
 
       if (!organizationId || typeof organizationId !== "string") {
         logger.warn("Status change event missing organizationId", {
           component: "BotWebhookService.processStatusChange",
-          botId: bot.id,
+          botId,
         });
         return ok(undefined);
       }
 
-      // Update bot session status
-      const session = await BotSessionsQueries.updateByRecallBotId(
-        bot.id,
-        organizationId,
-        {
-          recallStatus: bot.status,
+      const existingSession = await BotSessionsQueries.findByRecallBotId(
+        botId,
+        organizationId
+      );
+
+      if (!existingSession) {
+        logger.warn("Bot session not found for status update", {
+          component: "BotWebhookService.processStatusChange",
+          botId,
+          organizationId,
+        });
+        return ok(undefined);
+      }
+
+      const eventType = event.event;
+      const internalStatus =
+        eventType.startsWith("bot.") && eventType !== "bot.status_change"
+          ? mapRecallEventToBotStatus(eventType)
+          : mapRecallStatusToBotStatus(getRecallStatus(event));
+
+      const updates: Partial<{
+        recallStatus: string;
+        botStatus: BotStatus;
+        joinedAt: Date | null;
+        leftAt: Date | null;
+        error: string | null;
+      }> = {
+        recallStatus: getRecallStatus(event) || eventType,
+        botStatus: internalStatus,
+      };
+
+      if (internalStatus === "active" && !existingSession.joinedAt) {
+        updates.joinedAt = new Date();
+      }
+
+      if (
+        (internalStatus === "leaving" || internalStatus === "completed") &&
+        !existingSession.leftAt
+      ) {
+        updates.leftAt = new Date();
+      }
+
+      if (internalStatus === "failed") {
+        const subCode =
+          "data" in event && event.data?.data?.sub_code
+            ? String(event.data.data.sub_code)
+            : "";
+        updates.error = subCode
+          ? `Bot failed: ${eventType} (sub_code: ${subCode})`
+          : `Bot failed: ${eventType}`;
+      }
+
+      if (internalStatus === "pending_consent") {
+        const subCode =
+          "data" in event && event.data?.data?.sub_code
+            ? String(event.data.data.sub_code)
+            : "";
+        if (subCode) {
+          updates.error = `Recording permission denied (sub_code: ${subCode})`;
         }
+      }
+
+      const session = await BotSessionsQueries.updateByRecallBotId(
+        botId,
+        organizationId,
+        updates
       );
 
       if (!session) {
-        logger.warn("Bot session not found for status update", {
+        logger.warn("Failed to update bot session", {
           component: "BotWebhookService.processStatusChange",
-          botId: bot.id,
+          botId,
           organizationId,
         });
         return ok(undefined);
@@ -64,8 +186,9 @@ export class BotWebhookService {
       logger.info("Updated bot session status", {
         component: "BotWebhookService.processStatusChange",
         sessionId: session.id,
-        botId: bot.id,
-        status: bot.status,
+        botId,
+        recallStatus: updates.recallStatus,
+        botStatus: internalStatus,
       });
 
       return ok(undefined);
@@ -73,9 +196,8 @@ export class BotWebhookService {
       logger.error("Failed to process status change event", {
         component: "BotWebhookService.processStatusChange",
         error: serializeError(error),
-        botId: event.bot.id,
+        botId: getBotId(event),
       });
-
       return err(
         ActionErrors.internal(
           "Failed to process status change",
@@ -87,8 +209,370 @@ export class BotWebhookService {
   }
 
   /**
-   * Process bot recording ready event
-   * Downloads recording, uploads to Vercel Blob, creates Recording entry, and triggers workflow
+   * Process participant_events.chat_message from real-time webhook.
+   * Checks if the message matches a kick command and removes the bot from the call.
+   */
+  static async processChatMessage(
+    event: ParticipantEventChatMessage
+  ): Promise<ActionResult<void>> {
+    try {
+      const chatData = event.data.data;
+      const text = chatData.data?.text?.trim().toLowerCase() ?? "";
+      const senderName = chatData.participant.name ?? "Unknown participant";
+      const botId = event.data.bot?.id;
+      const metadata = event.data.bot?.metadata;
+      const organizationId = metadata?.organizationId;
+
+      if (!KICK_COMMANDS.has(text)) {
+        return ok(undefined);
+      }
+
+      logger.info("Kick command detected in meeting chat", {
+        component: "BotWebhookService.processChatMessage",
+        command: text,
+        senderName,
+        botId,
+      });
+
+      if (!botId) {
+        logger.warn("Chat message event missing bot ID", {
+          component: "BotWebhookService.processChatMessage",
+        });
+        return ok(undefined);
+      }
+
+      if (!organizationId || typeof organizationId !== "string") {
+        logger.warn(
+          "Chat message event missing organizationId in bot metadata",
+          {
+            component: "BotWebhookService.processChatMessage",
+            botId,
+          }
+        );
+        return ok(undefined);
+      }
+
+      const session = await BotSessionsQueries.findByRecallBotId(
+        botId,
+        organizationId
+      );
+
+      if (!session) {
+        logger.warn("Bot session not found for chat kick command", {
+          component: "BotWebhookService.processChatMessage",
+          botId,
+          organizationId,
+        });
+        return ok(undefined);
+      }
+
+      if (TERMINAL_BOT_STATUSES.has(session.botStatus as BotStatus)) {
+        logger.info("Bot already in terminal state, ignoring kick command", {
+          component: "BotWebhookService.processChatMessage",
+          botId,
+          sessionId: session.id,
+          currentStatus: session.botStatus,
+        });
+        return ok(undefined);
+      }
+
+      const leaveResult = await RecallApiService.leaveCall(botId);
+
+      if (leaveResult.isErr()) {
+        logger.warn(
+          "Failed to remove bot via leave_call API, continuing with status update",
+          {
+            component: "BotWebhookService.processChatMessage",
+            botId,
+            sessionId: session.id,
+            error: leaveResult.error,
+          }
+        );
+      }
+
+      await BotSessionsQueries.updateByRecallBotId(botId, organizationId, {
+        botStatus: "leaving",
+        recallStatus: "kicked_by_participant",
+        error: `Bot removed via chat command by ${senderName}`,
+        leftAt: new Date(),
+      });
+
+      try {
+        const notificationResult = await NotificationService.createNotification(
+          {
+            recordingId: session.recordingId ?? null,
+            projectId: session.projectId,
+            userId: session.userId,
+            organizationId,
+            type: "bot_session_update",
+            title: "Bot removed from meeting",
+            message: `Bot was removed from "${session.meetingTitle || "meeting"}" by ${senderName} via chat command.`,
+            metadata: {
+              sessionId: session.id,
+              action: "kicked",
+              kickedBy: senderName,
+              command: text,
+            },
+          }
+        );
+
+        if (notificationResult.isErr()) {
+          logger.warn("Failed to create kick notification", {
+            component: "BotWebhookService.processChatMessage",
+            sessionId: session.id,
+            error: notificationResult.error.message,
+          });
+        }
+      } catch (notifyError) {
+        logger.error("Unexpected error creating kick notification", {
+          component: "BotWebhookService.processChatMessage",
+          sessionId: session.id,
+          error: serializeError(notifyError),
+        });
+      }
+
+      CacheInvalidation.invalidateBotSessions(organizationId);
+      CacheInvalidation.invalidateBotSession(session.id, organizationId);
+      CacheInvalidation.invalidateNotifications(session.userId, organizationId);
+
+      logger.info("Bot successfully kicked via chat command", {
+        component: "BotWebhookService.processChatMessage",
+        botId,
+        sessionId: session.id,
+        kickedBy: senderName,
+        command: text,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Failed to process chat message event", {
+        component: "BotWebhookService.processChatMessage",
+        error: serializeError(error),
+        botId: event.data.bot?.id,
+      });
+      return err(
+        ActionErrors.internal(
+          "Failed to process chat message",
+          error as Error,
+          "BotWebhookService.processChatMessage"
+        )
+      );
+    }
+  }
+
+  /**
+   * Process recording.done (Svix format) - no URL in payload, fetch via API
+   */
+  static async processRecordingDone(
+    event: SvixRecordingEvent
+  ): Promise<ActionResult<void>> {
+    try {
+      const { recording, bot } = event.data;
+      const metadata = getMetadata(event);
+      const projectId = metadata?.projectId;
+      const organizationId = metadata?.organizationId;
+      const userId = metadata?.userId;
+
+      if (
+        !projectId ||
+        !organizationId ||
+        !userId ||
+        typeof projectId !== "string" ||
+        typeof organizationId !== "string" ||
+        typeof userId !== "string"
+      ) {
+        logger.error("Recording done event missing required metadata", {
+          component: "BotWebhookService.processRecordingDone",
+          botId: bot.id,
+          metadata,
+        });
+        return err(
+          ActionErrors.internal(
+            "Missing required metadata in webhook event",
+            undefined,
+            "BotWebhookService.processRecordingDone"
+          )
+        );
+      }
+
+      const session = await BotSessionsQueries.findByRecallBotId(
+        bot.id,
+        organizationId
+      );
+
+      if (!session) {
+        logger.error("Bot session not found for recording", {
+          component: "BotWebhookService.processRecordingDone",
+          botId: bot.id,
+          organizationId,
+        });
+        return err(
+          ActionErrors.internal(
+            "Bot session not found",
+            undefined,
+            "BotWebhookService.processRecordingDone"
+          )
+        );
+      }
+
+      const existingRecording =
+        await RecordingsQueries.selectRecordingByExternalId(
+          recording.id,
+          organizationId
+        );
+
+      if (existingRecording) {
+        logger.info("Recording already exists with external ID", {
+          component: "BotWebhookService.processRecordingDone",
+          recordingId: existingRecording.id,
+          externalRecordingId: recording.id,
+        });
+        const updatedSession = await BotSessionsQueries.updateRecordingId(
+          bot.id,
+          organizationId,
+          existingRecording.id,
+          "done"
+        );
+        if (updatedSession) {
+          await this.triggerAiWorkflow(
+            existingRecording.id,
+            "BotWebhookService.processRecordingDone"
+          );
+        }
+        return ok(undefined);
+      }
+
+      const urlResult = await RecallApiService.getRecordingDownloadUrl(
+        bot.id,
+        recording.id
+      );
+
+      if (urlResult.isErr()) {
+        return err(urlResult.error);
+      }
+
+      const { url, duration } = urlResult.value;
+      const downloadResult = await this.downloadRecording(url);
+
+      if (downloadResult.isErr()) {
+        return err(downloadResult.error);
+      }
+
+      const { fileBuffer, mimeType } = downloadResult.value;
+      const fileName = `recall-${recording.id}.${this.getFileExtension(mimeType)}`;
+      const timestamp = Date.now();
+      const blobPath = `recordings/${timestamp}-${fileName}`;
+
+      const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+      let fileToUpload: Buffer = fileBuffer;
+      let encryptionMetadata: string | null = null;
+
+      if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
+        logger.error("Encryption enabled but master key not configured", {
+          component: "BotWebhookService.processRecordingDone",
+        });
+        return err(
+          ActionErrors.internal(
+            "Encryption configuration error",
+            undefined,
+            "BotWebhookService.processRecordingDone"
+          )
+        );
+      }
+
+      if (shouldEncrypt) {
+        try {
+          const encryptedBase64 = encrypt(fileBuffer);
+          const encryptedBuffer = Buffer.from(encryptedBase64, "base64");
+          fileToUpload = encryptedBuffer;
+          encryptionMetadata = JSON.stringify(generateEncryptionMetadata());
+        } catch (encryptError) {
+          logger.error("Failed to encrypt recording", {
+            component: "BotWebhookService.processRecordingDone",
+            error: serializeError(encryptError),
+          });
+          return err(
+            ActionErrors.internal(
+              "Failed to encrypt recording",
+              encryptError as Error,
+              "BotWebhookService.processRecordingDone"
+            )
+          );
+        }
+      }
+
+      const blob = await put(blobPath, fileToUpload, {
+        access: shouldEncrypt ? "private" : "public",
+        contentType: mimeType,
+      } as Parameters<typeof put>[2]);
+
+      const createResult = await RecordingService.createRecording(
+        {
+          projectId,
+          title: session.meetingTitle ?? "Bot Recording",
+          description: null,
+          fileUrl: blob.url,
+          fileName,
+          fileSize: fileBuffer.length,
+          fileMimeType: mimeType,
+          duration: duration ?? null,
+          recordingDate: new Date(),
+          recordingMode: "bot",
+          transcriptionStatus: "pending",
+          transcriptionText: null,
+          organizationId,
+          createdById: userId,
+          externalRecordingId: recording.id,
+          isEncrypted: shouldEncrypt,
+          encryptionMetadata,
+        },
+        true
+      );
+
+      if (createResult.isErr()) {
+        return err(createResult.error);
+      }
+
+      const finalRecordingId = createResult.value.id;
+
+      await BotSessionsQueries.updateRecordingId(
+        bot.id,
+        organizationId,
+        finalRecordingId,
+        "done"
+      );
+
+      await this.triggerAiWorkflow(
+        finalRecordingId,
+        "BotWebhookService.processRecordingDone"
+      );
+
+      logger.info("Recording processed and bot session updated", {
+        component: "BotWebhookService.processRecordingDone",
+        recordingId: finalRecordingId,
+        sessionId: session.id,
+        externalRecordingId: recording.id,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Failed to process recording done event", {
+        component: "BotWebhookService.processRecordingDone",
+        error: serializeError(error),
+        botId: event.data?.bot?.id,
+      });
+      return err(
+        ActionErrors.internal(
+          "Failed to process recording",
+          error as Error,
+          "BotWebhookService.processRecordingDone"
+        )
+      );
+    }
+  }
+
+  /**
+   * Process legacy bot.recording_ready (has URL in payload)
    */
   static async processRecordingReady(
     event: BotRecordingReadyEvent
@@ -114,7 +598,6 @@ export class BotWebhookService {
           botId: bot.id,
           custom_metadata,
         });
-
         return err(
           ActionErrors.internal(
             "Missing required metadata in webhook event",
@@ -124,7 +607,6 @@ export class BotWebhookService {
         );
       }
 
-      // Find bot session
       const session = await BotSessionsQueries.findByRecallBotId(
         bot.id,
         organizationId
@@ -136,7 +618,6 @@ export class BotWebhookService {
           botId: bot.id,
           organizationId,
         });
-
         return err(
           ActionErrors.internal(
             "Bot session not found",
@@ -146,14 +627,6 @@ export class BotWebhookService {
         );
       }
 
-      logger.info("Processing recording ready event", {
-        component: "BotWebhookService.processRecordingReady",
-        botId: bot.id,
-        recordingId: recording.id,
-        projectId,
-      });
-
-      // Check if recording already exists by externalRecordingId (idempotency)
       const existingRecording =
         await RecordingsQueries.selectRecordingByExternalId(
           recording.id,
@@ -163,51 +636,66 @@ export class BotWebhookService {
       let finalRecordingId: string;
 
       if (existingRecording) {
-        // Recording already exists, use it
-        logger.info("Recording already exists with external ID", {
-          component: "BotWebhookService.processRecordingReady",
-          recordingId: existingRecording.id,
-          externalRecordingId: recording.id,
-          sessionId: session.id,
-        });
         finalRecordingId = existingRecording.id;
       } else {
-        // Download recording from Recall.ai
         const downloadResult = await this.downloadRecording(recording.url);
-
-        if (downloadResult.isErr()) {
-          return err(downloadResult.error);
-        }
+        if (downloadResult.isErr()) return err(downloadResult.error);
 
         const { fileBuffer, mimeType } = downloadResult.value;
-
-        // Determine file name
-        const fileName = `recall-${recording.id}.${this.getFileExtension(
-          mimeType
-        )}`;
+        const fileName = `recall-${recording.id}.${this.getFileExtension(mimeType)}`;
         const timestamp = Date.now();
         const blobPath = `recordings/${timestamp}-${fileName}`;
 
-        // Upload to Vercel Blob
-        const blob = await put(blobPath, fileBuffer, {
-          access: "public",
+        const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
+        let fileToUpload: Buffer = fileBuffer;
+        let encryptionMetadata: string | null = null;
+
+        if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
+          logger.error("Encryption enabled but master key not configured", {
+            component: "BotWebhookService.processRecordingReady",
+          });
+          return err(
+            ActionErrors.internal(
+              "Encryption configuration error",
+              undefined,
+              "BotWebhookService.processRecordingReady"
+            )
+          );
+        }
+
+        if (shouldEncrypt) {
+          try {
+            const encryptedBase64 = encrypt(fileBuffer);
+            const encryptedBuffer = Buffer.from(encryptedBase64, "base64");
+            fileToUpload = encryptedBuffer;
+            encryptionMetadata = JSON.stringify(generateEncryptionMetadata());
+          } catch (encryptError) {
+            logger.error("Failed to encrypt recording", {
+              component: "BotWebhookService.processRecordingReady",
+              error: serializeError(encryptError),
+            });
+            return err(
+              ActionErrors.internal(
+                "Failed to encrypt recording",
+                encryptError as Error,
+                "BotWebhookService.processRecordingReady"
+              )
+            );
+          }
+        }
+
+        const blob = await put(blobPath, fileToUpload, {
+          access: shouldEncrypt ? "private" : "public",
           contentType: mimeType,
-        });
+        } as Parameters<typeof put>[2]);
 
-        logger.info("Recording uploaded to Vercel Blob", {
-          component: "BotWebhookService.processRecordingReady",
-          blobUrl: blob.url,
-          fileName,
-        });
-
-        // Create Recording entry with externalRecordingId
         const recordingDate = meeting?.start_time
           ? new Date(meeting.start_time)
           : new Date();
 
         const createResult = await RecordingService.createRecording(
           {
-            projectId: projectId as string,
+            projectId,
             title: meeting?.title ?? session.meetingTitle ?? "Bot Recording",
             description: null,
             fileUrl: blob.url,
@@ -219,74 +707,30 @@ export class BotWebhookService {
             recordingMode: "bot",
             transcriptionStatus: "pending",
             transcriptionText: null,
-            organizationId: organizationId as string,
-            createdById: userId as string,
-            externalRecordingId: recording.id, // Use Recall.ai's stable recording.id
+            organizationId,
+            createdById: userId,
+            externalRecordingId: recording.id,
+            isEncrypted: shouldEncrypt,
+            encryptionMetadata,
           },
-          true // Don't invalidate cache yet
+          true
         );
 
-        if (createResult.isErr()) {
-          logger.error("Failed to create recording", {
-            component: "BotWebhookService.processRecordingReady",
-            error: createResult.error,
-          });
-          return err(createResult.error);
-        }
-
+        if (createResult.isErr()) return err(createResult.error);
         finalRecordingId = createResult.value.id;
       }
 
-      // Update bot session with recording ID in a transaction to ensure atomicity
-      await db.transaction(async (tx) => {
-        // Re-check session exists and update recordingId
-        const [updatedSession] = await tx
-          .update(botSessions)
-          .set({
-            recordingId: finalRecordingId,
-            recallStatus: bot.status,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(botSessions.recallBotId, bot.id),
-              eq(botSessions.organizationId, organizationId)
-            )
-          )
-          .returning();
-
-        if (!updatedSession) {
-          throw new Error("Failed to update bot session");
-        }
-
-        return updatedSession;
-      });
-
-      logger.info("Recording processed and bot session updated", {
-        component: "BotWebhookService.processRecordingReady",
-        recordingId: finalRecordingId,
-        sessionId: session.id,
-        externalRecordingId: recording.id,
-      });
-
-      // Trigger AI processing workflow
-      const workflowRun = await start(convertRecordingIntoAiInsights, [
+      await BotSessionsQueries.updateRecordingId(
+        bot.id,
+        organizationId,
         finalRecordingId,
-      ]).catch((error) => {
-        logger.error("Failed to trigger AI processing workflow", {
-          component: "BotWebhookService.processRecordingReady",
-          recordingId: finalRecordingId,
-          error: serializeError(error),
-        });
-      });
+        bot.status
+      );
 
-      if (workflowRun) {
-        logger.info("AI processing workflow triggered", {
-          component: "BotWebhookService.processRecordingReady",
-          recordingId: finalRecordingId,
-          workflowRunId: workflowRun.runId,
-        });
-      }
+      await this.triggerAiWorkflow(
+        finalRecordingId,
+        "BotWebhookService.processRecordingReady"
+      );
 
       return ok(undefined);
     } catch (error) {
@@ -295,7 +739,6 @@ export class BotWebhookService {
         error: serializeError(error),
         botId: event.bot.id,
       });
-
       return err(
         ActionErrors.internal(
           "Failed to process recording",
@@ -307,14 +750,138 @@ export class BotWebhookService {
   }
 
   /**
-   * Download recording file from Recall.ai URL
+   * Process recording.failed - update bot session with failure
    */
+  static async processRecordingFailed(
+    event: SvixRecordingEvent
+  ): Promise<ActionResult<void>> {
+    try {
+      const { bot, data } = event.data;
+      const metadata = getMetadata(event);
+      const organizationId = metadata?.organizationId;
+
+      if (!organizationId || typeof organizationId !== "string") {
+        logger.warn("Recording failed event missing organizationId", {
+          component: "BotWebhookService.processRecordingFailed",
+          botId: bot.id,
+        });
+        return ok(undefined);
+      }
+
+      const subCode = data?.sub_code ? String(data.sub_code) : "unknown";
+      const errorMsg = `Recording failed (sub_code: ${subCode})`;
+
+      await BotSessionsQueries.updateByRecallBotId(bot.id, organizationId, {
+        botStatus: "failed",
+        recallStatus: "recording_failed",
+        error: errorMsg,
+      });
+
+      logger.info("Updated bot session for recording failure", {
+        component: "BotWebhookService.processRecordingFailed",
+        botId: bot.id,
+        subCode,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Failed to process recording failed event", {
+        component: "BotWebhookService.processRecordingFailed",
+        error: serializeError(error),
+      });
+      return err(
+        ActionErrors.internal(
+          "Failed to process recording failure",
+          error as Error,
+          "BotWebhookService.processRecordingFailed"
+        )
+      );
+    }
+  }
+
+  /**
+   * Process recording.deleted - soft-delete or cleanup
+   */
+  static async processRecordingDeleted(
+    event: SvixRecordingEvent
+  ): Promise<ActionResult<void>> {
+    try {
+      const { bot, recording } = event.data;
+      const metadata = getMetadata(event);
+      const organizationId = metadata?.organizationId;
+
+      if (!organizationId) {
+        logger.warn("Recording deleted event missing organizationId", {
+          component: "BotWebhookService.processRecordingDeleted",
+          botId: bot.id,
+        });
+        return ok(undefined);
+      }
+
+      const existingRecording =
+        await RecordingsQueries.selectRecordingByExternalId(
+          recording.id,
+          organizationId
+        );
+
+      if (existingRecording) {
+        logger.info("Recording deleted from Recall - marking for cleanup", {
+          component: "BotWebhookService.processRecordingDeleted",
+          recordingId: existingRecording.id,
+          externalRecordingId: recording.id,
+        });
+        // Could add soft-delete or status field if needed; for now just log
+      }
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Failed to process recording deleted event", {
+        component: "BotWebhookService.processRecordingDeleted",
+        error: serializeError(error),
+      });
+      return err(
+        ActionErrors.internal(
+          "Failed to process recording deleted",
+          error as Error,
+          "BotWebhookService.processRecordingDeleted"
+        )
+      );
+    }
+  }
+
+  private static async triggerAiWorkflow(
+    recordingId: string,
+    component: string
+  ): Promise<void> {
+    try {
+      const workflowRun = await start(convertRecordingIntoAiInsights, [
+        recordingId,
+      ]);
+      logger.info("AI processing workflow triggered", {
+        component,
+        recordingId,
+        run: {
+          id: workflowRun.runId,
+          name: workflowRun.workflowName,
+          status: workflowRun.status,
+        },
+      });
+    } catch (error) {
+      logger.error("Failed to trigger AI processing workflow", {
+        component,
+        recordingId,
+        error: serializeError(error),
+      });
+    }
+  }
+
   private static async downloadRecording(
     url: string
   ): Promise<ActionResult<{ fileBuffer: Buffer; mimeType: string }>> {
     try {
-      const response = await fetch(url);
-
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(5 * 60 * 1000),
+      });
       if (!response.ok) {
         return err(
           ActionErrors.internal(
@@ -324,11 +891,9 @@ export class BotWebhookService {
           )
         );
       }
-
       const arrayBuffer = await response.arrayBuffer();
       const fileBuffer = Buffer.from(arrayBuffer);
       const mimeType = response.headers.get("content-type") ?? "video/mp4";
-
       return ok({ fileBuffer, mimeType });
     } catch (error) {
       return err(
@@ -341,9 +906,6 @@ export class BotWebhookService {
     }
   }
 
-  /**
-   * Get file extension from MIME type
-   */
   private static getFileExtension(mimeType: string): string {
     const mimeToExt: Record<string, string> = {
       "video/mp4": "mp4",
@@ -353,7 +915,6 @@ export class BotWebhookService {
       "audio/wav": "wav",
       "audio/m4a": "m4a",
     };
-
     return mimeToExt[mimeType] || "mp4";
   }
 }

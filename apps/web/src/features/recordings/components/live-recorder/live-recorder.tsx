@@ -2,21 +2,21 @@
 
 import { useLiveRecording } from "@/features/recordings/hooks/use-live-recording";
 import { useLiveTranscription } from "@/features/recordings/hooks/use-live-transcription";
+import type { UseAudioSourceReturn } from "@/features/recordings/hooks/use-audio-source";
 import { logger } from "@/lib/logger";
 import { useEffect, useEffectEvent, useState } from "react";
-import type { Participant } from "@/features/recordings/hooks/use-consent-banner";
 import { ConsentManager } from "./consent-manager";
 import { RecordingSection } from "./recording-section";
 import { StopConfirmationDialog } from "./stop-confirmation-dialog";
 import { TranscriptionDisplay } from "./transcription-display";
 
 interface LiveRecorderProps {
+  audioSource: UseAudioSourceReturn;
   onRecordingComplete: (
     audioBlob: Blob,
     transcription: string,
     consentGranted: boolean,
-    consentGrantedAt: Date,
-    participants: Participant[]
+    consentGrantedAt: Date
   ) => Promise<void>;
   liveTranscriptionEnabled: boolean;
   onTranscriptionToggle: (enabled: boolean) => void;
@@ -24,6 +24,7 @@ interface LiveRecorderProps {
 }
 
 export function LiveRecorder({
+  audioSource,
   onRecordingComplete,
   liveTranscriptionEnabled: externalLiveTranscriptionEnabled,
   onTranscriptionToggle: _onTranscriptionToggle,
@@ -33,10 +34,12 @@ export function LiveRecorder({
   const [showConsentBanner, setShowConsentBanner] = useState(false);
   const [consentGranted, setConsentGranted] = useState(false);
   const [consentGrantedAt, setConsentGrantedAt] = useState<Date | null>(null);
-  const [participants, setParticipants] = useState<Participant[]>([]);
 
   // Custom hooks
-  const recording = useLiveRecording();
+  const recording = useLiveRecording({
+    audioSource: audioSource.audioSource,
+    combinedStream: audioSource.combinedStream,
+  });
   const transcription = useLiveTranscription({
     microphone: recording.microphone,
     isRecording: recording.isRecording,
@@ -68,6 +71,12 @@ export function LiveRecorder({
     }
 
     try {
+      // Setup audio sources if needed (this requests permissions only when user starts recording)
+      // This ensures we only ask for system audio permission when user explicitly wants it
+      if (audioSource.audioSource === "system" || audioSource.audioSource === "both") {
+        await audioSource.setupAudioSources();
+      }
+
       if (externalLiveTranscriptionEnabled) {
         // Start recording with transcription
         await recording.handleStart(true, async () => {
@@ -88,27 +97,26 @@ export function LiveRecorder({
       }
     } catch (error) {
       logger.warn(
-        "Failed to start recording with transcription:",
+        "Failed to start recording:",
         error instanceof Error ? { error } : { error: String(error) }
       );
-      recording.setRecorderError(
-        "Failed to start recording with transcription"
-      );
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to start recording";
+      recording.setRecorderError(errorMessage);
     }
   });
 
   // Handle consent granted
-  const handleConsentGranted = useEffectEvent(
-    (consentParticipants: Participant[]) => {
-      const now = new Date();
-      setConsentGranted(true);
-      setConsentGrantedAt(now);
-      setParticipants(consentParticipants);
-      setShowConsentBanner(false);
-      // Start recording after consent is granted
-      void handleStart();
-    }
-  );
+  const handleConsentGranted = useEffectEvent(() => {
+    const now = new Date();
+    setConsentGranted(true);
+    setConsentGrantedAt(now);
+    setShowConsentBanner(false);
+    // Start recording after consent is granted
+    void handleStart();
+  });
 
   // Handle consent denied
   const handleConsentDenied = useEffectEvent(() => {
@@ -145,8 +153,7 @@ export function LiveRecorder({
         audioBlob,
         fullTranscript,
         consentGranted,
-        consentGrantedAt ?? new Date(),
-        participants
+        consentGrantedAt ?? new Date()
       );
 
       // Clear transcripts
@@ -199,6 +206,14 @@ export function LiveRecorder({
             consentGranted={consentGranted}
             wakeLockActive={recording.wakeLockActive}
             formattedDuration={formattedDuration}
+            audioSource={audioSource.audioSource}
+            compatibility={audioSource.compatibility}
+            isSystemAudioActive={
+              (audioSource.audioSource === "system" ||
+                audioSource.audioSource === "both") &&
+              !!audioSource.systemAudioStream
+            }
+            systemAudioSetupError={audioSource.setupError}
             onStart={handleStart}
             onPause={recording.handlePause}
             onResume={recording.handleResume}

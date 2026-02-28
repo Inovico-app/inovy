@@ -13,6 +13,7 @@ import { DashboardService } from "../services/dashboard.service";
  * Get complete dashboard overview (cached)
  * Includes stats, recent projects, and recent recordings
  * Calls DashboardService which aggregates data from multiple sources
+ * @param organizationId - Must be fetched outside cache scope (e.g., from session in page component)
  */
 export async function getCachedDashboardOverview(organizationId: string) {
   "use cache";
@@ -22,7 +23,7 @@ export async function getCachedDashboardOverview(organizationId: string) {
     CacheTags.recentRecordings(organizationId)
   );
 
-  const result = await DashboardService.getDashboardOverview();
+  const result = await DashboardService.getDashboardOverview(organizationId);
   if (result.isErr()) {
     return null;
   }

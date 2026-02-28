@@ -3,6 +3,7 @@ import { ConsentManager } from "@/features/recordings/components/consent-manager
 import { EnhancedSummarySection } from "@/features/recordings/components/enhanced-summary-section";
 import { RecordingDetailActionsDropdown } from "@/features/recordings/components/recording-detail-actions-dropdown";
 import { RecordingDetailStatus } from "@/features/recordings/components/recording-detail-status";
+import { AudioTranscriptSyncWrapper } from "@/features/recordings/components/recording-detail/audio-transcript-sync-wrapper";
 import { RecordingActionItemsCard } from "@/features/recordings/components/recording-detail/recording-action-items-card";
 import { RecordingDetailBreadcrumb } from "@/features/recordings/components/recording-detail/recording-detail-breadcrumb";
 import { RecordingDetailSkeleton } from "@/features/recordings/components/recording-detail/recording-detail-skeleton";
@@ -89,14 +90,17 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
         />
 
         <RecordingInfoCard recording={recording} />
-        <RecordingMediaPlayer recording={recording} />
 
-        {/* Transcription */}
-        <TranscriptionSection
-          recording={recording}
-          knowledgeUsed={knowledgeUsed ?? []}
-          transcriptionInsights={transcriptionInsights}
-        />
+        <AudioTranscriptSyncWrapper>
+          <RecordingMediaPlayer recording={recording} />
+
+          {/* Transcription */}
+          <TranscriptionSection
+            recording={recording}
+            knowledgeUsed={knowledgeUsed ?? []}
+            transcriptionInsights={transcriptionInsights}
+          />
+        </AudioTranscriptSyncWrapper>
 
         {/* AI-Generated Summary */}
         <EnhancedSummarySection

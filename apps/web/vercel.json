@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/renew-drive-watches",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/monitor-calendar",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/poll-bot-status",
+      "schedule": "0 0 * * *"
     }
   ]
 }

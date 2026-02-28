@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getUserDisplayName } from "@/lib/formatters/display-formatters";
 import type { TeamWithMemberCount } from "@/server/cache/team.cache";
 import type { OrganizationMemberDto } from "@/server/services/organization.service";
 import { MailIcon, ShieldCheckIcon, UserIcon } from "lucide-react";
@@ -98,9 +99,11 @@ export function OrganizationMembersList({
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-semibold text-foreground">
-                        {member.given_name && member.family_name
-                          ? `${member.given_name} ${member.family_name}`
-                          : member.given_name ?? member.email ?? "Unknown"}
+                        {getUserDisplayName({
+                          email: member.email,
+                          given_name: member.given_name,
+                          family_name: member.family_name,
+                        })}
                       </p>
                       {member.roles && member.roles.length > 0 && (
                         <div className="flex gap-1.5 flex-wrap">

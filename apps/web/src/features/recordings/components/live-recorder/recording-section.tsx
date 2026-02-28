@@ -1,12 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { LiveWaveform } from "@/components/ui/live-waveform";
 import { ConsentStatus } from "@/features/recordings/components/consent-status";
-import { useMicrophone } from "@/providers/microphone/MicrophoneProvider";
-import { MicrophoneDeviceSelector } from "./microphone-device-selector";
-import { MicrophoneGainControl } from "./microphone-gain-control";
+import { BrowserCompatibilityWarning } from "./browser-compatibility-warning";
 import { RecordingControls } from "./recording-controls";
 import { RecordingErrors } from "./recording-errors";
+import { SystemAudioStatus } from "./system-audio-status";
 import { TranscriptionStatus } from "./transcription-status";
+import type { AudioSourceType } from "@/features/recordings/lib/audio-source-preferences";
+import type { SystemAudioCompatibility } from "@/features/recordings/lib/system-audio-detection";
 
 interface RecordingSectionProps {
   isRecording: boolean;
@@ -22,6 +23,10 @@ interface RecordingSectionProps {
   consentGranted: boolean;
   wakeLockActive: boolean;
   formattedDuration: string;
+  audioSource: AudioSourceType;
+  compatibility: SystemAudioCompatibility;
+  isSystemAudioActive?: boolean;
+  systemAudioSetupError?: string | null;
   onStart: () => void;
   onPause: () => void;
   onResume: () => void;
@@ -42,13 +47,15 @@ export function RecordingSection({
   consentGranted,
   wakeLockActive,
   formattedDuration,
+  audioSource,
+  compatibility,
+  isSystemAudioActive = false,
+  systemAudioSetupError,
   onStart,
   onPause,
   onResume,
   onStop,
 }: RecordingSectionProps) {
-  const { gain, setGain, deviceId, setDeviceId } = useMicrophone();
-
   return (
     <div
       className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card via-card to-card/50 transition-all duration-500 h-full flex flex-col ${
@@ -90,29 +97,14 @@ export function RecordingSection({
         </div>
 
         {/* Errors and Status - Compact */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 space-y-2">
           <RecordingErrors
             permissionDenied={permissionDenied}
             recorderError={recorderError}
             transcriptionError={transcriptionError}
             isSaving={isSaving}
           />
-        </div>
-
-        {/* Microphone Device Selector and Gain Control */}
-        <div className="flex-shrink-0 rounded-lg border bg-muted/30 p-4 space-y-4">
-          <MicrophoneDeviceSelector
-            deviceId={deviceId}
-            onDeviceChange={setDeviceId}
-            disabled={isRecording}
-          />
-          {stream && (
-            <MicrophoneGainControl
-              gain={gain}
-              onGainChange={setGain}
-              disabled={false}
-            />
-          )}
+          <BrowserCompatibilityWarning compatibility={compatibility} />
         </div>
 
         {/* Live Waveform - Large and prominent */}
@@ -181,6 +173,12 @@ export function RecordingSection({
               </svg>
               <span>Screen lock active</span>
             </div>
+          )}
+          {(audioSource === "system" || audioSource === "both") && (
+            <SystemAudioStatus
+              isActive={isSystemAudioActive}
+              hasError={!!systemAudioSetupError}
+            />
           )}
           <TranscriptionStatus
             isRecording={isRecording}

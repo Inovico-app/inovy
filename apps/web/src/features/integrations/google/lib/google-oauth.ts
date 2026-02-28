@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { google } from "googleapis";
+import { SCOPE_TIERS } from "./scope-constants";
 
 type OAuth2Client = InstanceType<typeof google.auth.OAuth2>;
 
@@ -10,8 +11,25 @@ type OAuth2Client = InstanceType<typeof google.auth.OAuth2>;
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/integrations/google/callback`;
+const GOOGLE_REDIRECT_URI =
+  process.env.GOOGLE_REDIRECT_URI ||
+  `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/integrations/google/callback`;
 const OAUTH_ENCRYPTION_KEY = process.env.OAUTH_ENCRYPTION_KEY;
+
+/**
+ * Get the redirect URI for the OAuth flow.
+ * Uses GOOGLE_REDIRECT_URI when set (production with custom domain),
+ * otherwise derives from request URL (local development).
+ */
+export function getGoogleRedirectUri(requestUrl?: string): string {
+  if (process.env.GOOGLE_REDIRECT_URI) {
+    return process.env.GOOGLE_REDIRECT_URI;
+  }
+  if (requestUrl) {
+    return new URL("/api/integrations/google/callback", requestUrl).toString();
+  }
+  return `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/integrations/google/callback`;
+}
 
 function validateEnvironment() {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
@@ -21,13 +39,10 @@ function validateEnvironment() {
   }
 }
 
-// Scopes for Google Workspace integration
-export const GOOGLE_SCOPES = [
-  "https://www.googleapis.com/auth/userinfo.email",
-  "https://www.googleapis.com/auth/gmail.compose", // Create drafts
-  "https://www.googleapis.com/auth/calendar.events", // Create calendar events
-  "https://www.googleapis.com/auth/drive.readonly", // Read Drive files and folders
-];
+export { SCOPE_TIERS, type ScopeTier } from "./scope-constants";
+
+/** @deprecated Use SCOPE_TIERS instead. Kept for backward-compat references. */
+export const GOOGLE_SCOPES = Object.values(SCOPE_TIERS).flat();
 
 /**
  * Create OAuth2 client for Google
@@ -42,29 +57,57 @@ export function createGoogleOAuthClient(): OAuth2Client {
 }
 
 /**
- * Generate authorization URL for OAuth flow
+ * Generate authorization URL for OAuth flow.
+ * Supports incremental authorization via `include_granted_scopes`.
+ * @param state - Optional state parameter for CSRF protection
+ * @param redirectUri - Optional redirect URI (defaults to GOOGLE_REDIRECT_URI)
+ * @param scopes - Specific scopes to request (defaults to base tier)
+ * @param forceConsent - Force the consent screen (needed for initial connection to get a refresh token, skipped for incremental grants)
  */
-export function getAuthorizationUrl(state?: string): string {
-  const oauth2Client = createGoogleOAuthClient();
+export function getAuthorizationUrl(
+  state?: string,
+  redirectUri?: string,
+  scopes?: readonly string[],
+  forceConsent = true
+): string {
+  const oauth2Client = redirectUri
+    ? new google.auth.OAuth2(
+        GOOGLE_CLIENT_ID,
+        GOOGLE_CLIENT_SECRET,
+        redirectUri
+      )
+    : createGoogleOAuthClient();
 
   return oauth2Client.generateAuthUrl({
-    access_type: "offline", // Request refresh token
-    scope: GOOGLE_SCOPES,
-    prompt: "consent", // Force consent screen to ensure refresh token
-    state: state || "", // Optional state for CSRF protection
+    access_type: "offline",
+    scope: scopes ? [...scopes] : [...SCOPE_TIERS.base],
+    ...(forceConsent ? { prompt: "consent" } : {}),
+    include_granted_scopes: true,
+    state: state || "",
   });
 }
 
 /**
  * Exchange authorization code for tokens
+ * @param code - Authorization code from Google
+ * @param redirectUri - Redirect URI used during authorization (must match exactly)
  */
-export async function exchangeCodeForTokens(code: string): Promise<{
+export async function exchangeCodeForTokens(
+  code: string,
+  redirectUri?: string
+): Promise<{
   accessToken: string;
   refreshToken: string;
   expiresAt: Date;
   scopes: string[];
 }> {
-  const oauth2Client = createGoogleOAuthClient();
+  const oauth2Client = redirectUri
+    ? new google.auth.OAuth2(
+        GOOGLE_CLIENT_ID,
+        GOOGLE_CLIENT_SECRET,
+        redirectUri
+      )
+    : createGoogleOAuthClient();
 
   const { tokens } = await oauth2Client.getToken(code);
 
@@ -86,7 +129,7 @@ export async function exchangeCodeForTokens(code: string): Promise<{
     accessToken: tokens.access_token,
     refreshToken: tokens.refresh_token,
     expiresAt,
-    scopes: tokens.scope?.split(" ") || GOOGLE_SCOPES,
+    scopes: tokens.scope?.split(" ") || [...SCOPE_TIERS.base],
   };
 }
 

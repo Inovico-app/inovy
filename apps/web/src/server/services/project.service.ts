@@ -19,7 +19,7 @@ import type {
   ProjectWithCreatorDto,
   ProjectWithRecordingCountDto,
 } from "../dto/project.dto";
-import type { CreateProjectInput } from "../validation/create-project";
+import type { CreateProjectInput } from "../validation/projects/create-project";
 
 /**
  * Business logic layer for Project operations

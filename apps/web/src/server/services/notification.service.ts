@@ -304,7 +304,7 @@ export class NotificationService {
    */
   private static toDto(notification: {
     id: string;
-    recordingId: string;
+    recordingId: string | null;
     projectId: string;
     userId: string;
     organizationId: string;

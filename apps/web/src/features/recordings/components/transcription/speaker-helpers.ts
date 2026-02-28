@@ -1,10 +1,18 @@
-import type { AuthOrganizationUserDto } from "@/server/dto/auth.dto";
-
 export interface SpeakerInfo {
   name: string;
   userId: string | null;
   email: string | null;
   image: string | null;
+}
+
+/**
+ * User type compatible with both AuthOrganizationUserDto and OrganizationMember
+ */
+interface CompatibleUser {
+  id: string;
+  email: string | null;
+  given_name: string | null;
+  family_name: string | null;
 }
 
 /**
@@ -15,7 +23,7 @@ export function getSpeakerInfo(
   speaker: number,
   speakerNames?: Record<string, string> | null,
   speakerUserIds?: Record<string, string> | null,
-  users: AuthOrganizationUserDto[] = []
+  users: CompatibleUser[] = []
 ): SpeakerInfo {
   const speakerKey = speaker.toString();
   const userId = speakerUserIds?.[speakerKey];

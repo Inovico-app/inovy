@@ -1,4 +1,5 @@
 import { err, ok } from "neverthrow";
+import type { ScopeTier } from "../../features/integrations/google/lib/google-oauth";
 import {
   decryptToken,
   encryptToken,
@@ -7,6 +8,7 @@ import {
   refreshAccessToken,
   revokeToken,
 } from "../../features/integrations/google/lib/google-oauth";
+import { hasRequiredScopes } from "../../features/integrations/google/lib/scope-utils";
 import { logger } from "../../lib/logger";
 import {
   ActionErrors,
@@ -23,14 +25,18 @@ import type { OAuthConnection } from "../db/schema/oauth-connections";
 export class GoogleOAuthService {
   /**
    * Store OAuth connection after successful authorization
+   * @param userId - User ID
+   * @param code - Authorization code from Google
+   * @param redirectUri - Redirect URI used during authorization (must match exactly)
    */
   static async storeConnection(
     userId: string,
-    code: string
+    code: string,
+    redirectUri?: string
   ): Promise<ActionResult<OAuthConnection>> {
     try {
-      // Exchange code for tokens
-      const tokens = await exchangeCodeForTokens(code);
+      // Exchange code for tokens (must use same redirect URI as authorization)
+      const tokens = await exchangeCodeForTokens(code, redirectUri);
 
       // Get user email
       const email = await getUserEmail(tokens.accessToken);
@@ -302,6 +308,41 @@ export class GoogleOAuthService {
           "Failed to get connection status",
           error as Error,
           "GoogleOAuthService.getConnectionStatus"
+        )
+      );
+    }
+  }
+
+  /**
+   * Check whether the user's stored scopes satisfy a given tier.
+   * Returns `false` when there is no connection at all.
+   */
+  static async hasScopes(
+    userId: string,
+    tier: ScopeTier
+  ): Promise<ActionResult<boolean>> {
+    try {
+      const connection = await OAuthConnectionsQueries.getOAuthConnection(
+        userId,
+        "google"
+      );
+
+      if (!connection) {
+        return ok(false);
+      }
+
+      return ok(hasRequiredScopes(connection.scopes, tier));
+    } catch (error) {
+      logger.error(
+        "Failed to check Google scopes",
+        { userId, tier },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to check Google scopes",
+          error as Error,
+          "GoogleOAuthService.hasScopes"
         )
       );
     }

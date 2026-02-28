@@ -351,6 +351,20 @@
       "when": 1769529405779,
       "tag": "0055_add_speaker_user_ids_to_ai_insights",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1770363646292,
+      "tag": "0056_add_bot_sessions_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1770370196062,
+      "tag": "0057_add_bot_consent_notifications",
+      "breakpoints": true
     }
   ]
 }

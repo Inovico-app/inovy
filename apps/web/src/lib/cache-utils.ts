@@ -92,6 +92,22 @@ export const CacheTags = {
   // Drive Watch tags
   driveWatches: (userId: string) => `drive-watches:user:${userId}`,
 
+  // Bot Settings tags
+  // Note: Uses organizationId (UUID) instead of orgCode (slug) for consistency with bot settings schema
+  botSettings: (userId: string, organizationId: string) =>
+    `bot-settings:${userId}:${organizationId}`,
+
+  // Bot Sessions tags
+  // Note: Uses organizationId (UUID) instead of orgCode (slug) for consistency with bot sessions schema
+  botSessions: (organizationId: string) => `bot-sessions:org:${organizationId}`,
+  botSession: (sessionId: string) => `bot-session:${sessionId}`,
+  botSessionsByStatus: (organizationId: string, status: string) =>
+    `bot-sessions:org:${organizationId}:status:${status}`,
+
+  // Calendar Meetings tags
+  calendarMeetings: (userId: string, organizationId: string) =>
+    `calendar-meetings:user:${userId}:org:${organizationId}`,
+
   // Knowledge Base tags
   knowledgeEntries: (
     scope: "project" | "org" | "global",
@@ -169,7 +185,9 @@ export const CacheInvalidation = {
   invalidateProjectCache(orgCode: string): void {
     invalidateCache(
       CacheTags.projectsByOrg(orgCode),
-      CacheTags.projectCount(orgCode)
+      CacheTags.projectCount(orgCode),
+      CacheTags.dashboardStats(orgCode),
+      CacheTags.recentProjects(orgCode)
     );
   },
 
@@ -181,7 +199,9 @@ export const CacheInvalidation = {
       CacheTags.project(projectId),
       CacheTags.projectsByOrg(orgCode),
       CacheTags.projectCount(orgCode),
-      CacheTags.projectTemplate(projectId)
+      CacheTags.projectTemplate(projectId),
+      CacheTags.dashboardStats(orgCode),
+      CacheTags.recentProjects(orgCode)
     );
   },
 
@@ -274,6 +294,37 @@ export const CacheInvalidation = {
       CacheTags.notifications(userId, orgCode),
       CacheTags.notificationUnreadCount(userId, orgCode)
     );
+  },
+
+  /**
+   * Invalidate bot settings cache for a user
+   */
+  invalidateBotSettings(userId: string, organizationId: string): void {
+    invalidateCache(CacheTags.botSettings(userId, organizationId));
+  },
+
+  /**
+   * Invalidate bot sessions cache for an organization
+   */
+  invalidateBotSessions(organizationId: string): void {
+    invalidateCache(CacheTags.botSessions(organizationId));
+  },
+
+  /**
+   * Invalidate specific bot session cache
+   */
+  invalidateBotSession(sessionId: string, organizationId: string): void {
+    invalidateCache(
+      CacheTags.botSession(sessionId),
+      CacheTags.botSessions(organizationId)
+    );
+  },
+
+  /**
+   * Invalidate calendar meetings cache for a user
+   */
+  invalidateCalendarMeetings(userId: string, organizationId: string): void {
+    invalidateCache(CacheTags.calendarMeetings(userId, organizationId));
   },
 
   /**

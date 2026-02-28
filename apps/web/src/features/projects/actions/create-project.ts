@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
@@ -11,7 +12,7 @@ import {
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { ProjectService } from "@/server/services/project.service";
-import { createProjectSchema } from "@/server/validation/create-project";
+import { createProjectSchema } from "@/server/validation/projects/create-project";
 
 /**
  * Project creation using Result types throughout
@@ -77,6 +78,9 @@ export const createProjectAction = authorizedActionClient
         projectName: name,
       },
     });
+
+    // Revalidate dashboard page to refresh stats
+    revalidatePath("/");
 
     // Convert Result to action response (throws if error)
     return resultToActionResponse(result);
