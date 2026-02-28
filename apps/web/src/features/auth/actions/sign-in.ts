@@ -8,6 +8,7 @@ import {
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { OnboardingService } from "@/server/services/onboarding.service";
+import { bruteForceProtection } from "@/server/services/brute-force-protection.service";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
@@ -29,17 +30,55 @@ export const signInEmailAction = publicActionClient
   .action(async ({ parsedInput }) => {
     const { email, password } = parsedInput;
 
+    // Get request info for tracking
+    const requestHeaders = await headers();
+    const ipAddress = requestHeaders.get("x-forwarded-for") ?? requestHeaders.get("x-real-ip") ?? undefined;
+    const userAgent = requestHeaders.get("user-agent") ?? undefined;
+
+    // Check if account is locked due to failed attempts
+    const lockoutInfo = await bruteForceProtection.checkLockout(email);
+    if (lockoutInfo.isLocked) {
+      throw createErrorForNextSafeAction(
+        ActionErrors.forbidden(
+          `Account temporarily locked due to too many failed login attempts. Please try again in ${lockoutInfo.remainingMinutes} minute${lockoutInfo.remainingMinutes === 1 ? "" : "s"}.`,
+          { 
+            email,
+            lockedUntil: lockoutInfo.lockedUntil?.toISOString(),
+            remainingMinutes: lockoutInfo.remainingMinutes,
+          }
+        )
+      );
+    }
+
+    let signInSuccess = false;
+    let userId: string | undefined;
+
     try {
       await auth.api.signInEmail({
         body: {
           email,
           password,
         },
-        headers: await headers(),
+        headers: requestHeaders,
       });
+      signInSuccess = true;
+
+      // Get user ID after successful sign-in
+      const sessionResult = await getBetterAuthSession();
+      if (sessionResult.isOk() && sessionResult.value.user) {
+        userId = sessionResult.value.user.id;
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to sign in";
+
+      // Record failed attempt
+      await bruteForceProtection.recordLoginAttempt({
+        identifier: email,
+        ipAddress,
+        userAgent,
+        success: false,
+      });
 
       // Check if it's an email verification error
       if (message.includes("email") && message.includes("verify")) {
@@ -56,12 +95,22 @@ export const signInEmailAction = publicActionClient
       );
     }
 
+    // Record successful login attempt
+    if (signInSuccess) {
+      await bruteForceProtection.recordLoginAttempt({
+        identifier: email,
+        userId,
+        ipAddress,
+        userAgent,
+        success: true,
+      });
+    }
+
     // Ensure onboarding record exists
     try {
       const sessionResult = await getBetterAuthSession();
       if (sessionResult.isOk() && sessionResult.value.user) {
         const user = sessionResult.value.user;
-        const requestHeaders = await headers();
         await OnboardingService.ensureOnboardingRecordExists(
           user.id,
           requestHeaders

@@ -76,6 +76,29 @@ export const auth = betterAuth({
       : (process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL),
   basePath: "/api/auth",
   secret: process.env.BETTER_AUTH_SECRET ?? "change-me-in-production",
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 100,
+    customRules: {
+      "/sign-in/email": {
+        window: 10,
+        max: 3,
+      },
+      "/sign-in/passkey": {
+        window: 10,
+        max: 5,
+      },
+      "/reset-password": {
+        window: 60,
+        max: 3,
+      },
+      "/verify-email": {
+        window: 60,
+        max: 5,
+      },
+    },
+  },
   emailVerification: {
     autoSignInAfterVerification: true,
     async sendVerificationEmail({
