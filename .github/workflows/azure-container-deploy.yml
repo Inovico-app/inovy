@@ -41,7 +41,6 @@ on:
 jobs:
   build-and-push:
     uses: ./.github/workflows/build-push-acr.yml
-    environment: ${{ inputs.environment }}
     with:
       acr_name: ${{ inputs.acr_name != '' && inputs.acr_name || format('inovyacr{0}', inputs.environment) }}
       environment: ${{ inputs.environment }}
