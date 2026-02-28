@@ -9,10 +9,18 @@ import { useSignIn } from "@/features/auth/hooks/use-sign-in";
 import { AlertCircle, Mail, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { toast } from "sonner";
 
 export default function SignInPage() {
+  return (
+    <Suspense>
+      <SignInPageContent />
+    </Suspense>
+  );
+}
+
+function SignInPageContent() {
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect") ?? undefined;
 
