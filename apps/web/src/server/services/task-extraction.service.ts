@@ -6,6 +6,7 @@ import {
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { TasksQueries } from "@/server/data-access/tasks.queries";
 import { connectionPool } from "@/server/services/connection-pool.service";
+import { GuardrailsService } from "@/server/services/guardrails.service";
 import { PromptBuilder } from "@/server/services/prompt-builder.service";
 import { err, ok } from "neverthrow";
 import { KnowledgeBaseService } from "./knowledge-base.service";
@@ -104,8 +105,28 @@ export class TaskExtractionService {
         knowledgeContext: knowledgeContext || undefined,
       });
 
-      // Call OpenAI API with structured JSON output and retry logic
-      // Each retry attempt gets a fresh client from the pool for better round-robin and recovery
+      // Guardrails: validate transcription input before LLM call
+      const guardrailsInput = await GuardrailsService.validateInput({
+        text: transcriptionText,
+        orgId: existingRecording.organizationId,
+        projectId: existingRecording.projectId,
+        userId: existingRecording.createdById,
+      });
+
+      if (guardrailsInput.blocked) {
+        logger.warn("Task extraction input blocked by guardrails", {
+          component: "TaskExtractionService.extractTasks",
+          recordingId,
+        });
+        return err(
+          ActionErrors.forbidden(
+            "Transcription content was blocked by the safety policy",
+            undefined,
+            "TaskExtractionService.extractTasks"
+          )
+        );
+      }
+
       const completion = await connectionPool.executeWithRetry(
         async () =>
           connectionPool.getRawOpenAIClient().chat.completions.create({

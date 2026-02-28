@@ -23,6 +23,7 @@ import { connectionPool } from "./connection-pool.service";
 import { ConversationContextManager } from "./conversation-context-manager.service";
 import { KnowledgeBaseService } from "./knowledge-base.service";
 import { ProjectService } from "./project.service";
+import { GuardrailsService } from "./guardrails.service";
 import { PromptBuilder } from "./prompt-builder.service";
 import { RAGService } from "./rag/rag.service";
 import type { SearchResult } from "./rag/types";
@@ -573,9 +574,27 @@ Please answer the user's question based on this information.`
       };
       await ChatQueries.createMessage(userMessageEntry);
 
+      // Guardrails: validate user input before processing
+      const guardrailsInput = await GuardrailsService.validateInput({
+        text: userMessage,
+        orgId: organizationId,
+        projectId,
+        userId: conversation.userId,
+      });
+
+      if (guardrailsInput.blocked) {
+        return err(
+          new Error(
+            "Your message was blocked by the organization's safety policy."
+          )
+        );
+      }
+
+      const guardedUserMessage = guardrailsInput.processedText;
+
       // Get relevant context using RAG search
       const ragContextResult = await this.getRelevantContext(
-        userMessage,
+        guardedUserMessage,
         projectId
       );
 
@@ -674,17 +693,13 @@ Please answer the user's question based on this information.`
         projectDescription: project?.description ?? null,
         knowledgeContext,
         ragContent: ragContextWithSummary,
-        userQuery: userMessage,
+        userQuery: guardedUserMessage,
         organizationInstructions: orgInstructions,
         projectTemplate,
         isOrganizationLevel: false,
       });
 
       // Stream response from GPT-5-nano with error handling and request tracking
-      // Note: Streaming endpoints use single-attempt by design to avoid duplicate streamed answers.
-      // The streamText call itself may retry internally via the AI SDK, but we don't wrap it
-      // in executeWithRetry to prevent restarting streams that have already begun.
-      // Get pooled client to track active requests
       const { client: openai, pooled } =
         connectionPool.getOpenAIClientWithTracking();
       let streamError: Error | null = null;
@@ -788,6 +803,21 @@ Please answer the user's question based on this information.`
             query: userMessage,
           });
 
+          // Guardrails: validate output asynchronously (stream is already sent)
+          GuardrailsService.validateOutput({
+            text,
+            orgId: organizationId,
+            projectId,
+            userId,
+            context: ragContextWithSummary,
+          }).catch((err) => {
+            logger.error("Guardrails output validation failed", {
+              component: "ChatService.streamResponse",
+              conversationId,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          });
+
           // Save assistant message after streaming is complete
           const assistantMessageEntry: NewChatMessage = {
             conversationId,
@@ -800,10 +830,6 @@ Please answer the user's question based on this information.`
           // Update conversation title if it's the first exchange
           const conversationMessages =
             await ChatQueries.getMessagesByConversationId(conversationId);
-          /**
-           * At the time of the check, there are always at least 2 messages (user + assistant),
-           * so the condition should be === 2 to detect the first exchange and generate an auto-title.
-           */
           if (conversationMessages.length === 2 && !conversation.title) {
             const title =
               userMessage.length > 50
@@ -895,6 +921,23 @@ Please answer the user's question based on this information.`
       };
       await ChatQueries.createMessage(userMessageEntry);
 
+      // Guardrails: validate user input before processing
+      const guardrailsInput = await GuardrailsService.validateInput({
+        text: userMessage,
+        orgId: organizationId,
+        userId: conversation.userId,
+      });
+
+      if (guardrailsInput.blocked) {
+        return err(
+          new Error(
+            "Your message was blocked by the organization's safety policy."
+          )
+        );
+      }
+
+      const guardedUserMessage = guardrailsInput.processedText;
+
       // Get relevant context using organization-wide RAG search
       const ragContextResult = await this.getRelevantContextOrganizationWide(
         userMessage,
@@ -978,17 +1021,13 @@ Please answer the user's question based on this information. When referencing in
         organizationId,
         knowledgeContext,
         ragContent: ragContextWithSummary,
-        userQuery: userMessage,
+        userQuery: guardedUserMessage,
         organizationInstructions: orgInstructions,
-        projectTemplate: null, // No project template for org-level chat
+        projectTemplate: null,
         isOrganizationLevel: true,
       });
 
-      // Stream response from GPT-5-nano with error handling and request tracking
-      // Note: Streaming endpoints use single-attempt by design to avoid duplicate streamed answers.
-      // The streamText call itself may retry internally via the AI SDK, but we don't wrap it
-      // in executeWithRetry to prevent restarting streams that have already begun.
-      // Get pooled client to track active requests
+      // Stream response with error handling and request tracking
       const { client: openai, pooled } =
         connectionPool.getOpenAIClientWithTracking();
       let streamError: Error | null = null;
@@ -1089,6 +1128,20 @@ Please answer the user's question based on this information. When referencing in
             tokenCount: usage?.totalTokens,
             toolCalls: toolCallNames,
             query: userMessage,
+          });
+
+          // Guardrails: validate output asynchronously
+          GuardrailsService.validateOutput({
+            text,
+            orgId: organizationId,
+            userId,
+            context: ragContextWithSummary,
+          }).catch((err) => {
+            logger.error("Guardrails output validation failed", {
+              component: "ChatService.streamOrganizationResponse",
+              conversationId,
+              error: err instanceof Error ? err.message : String(err),
+            });
           });
 
           // Save assistant message after streaming is complete
