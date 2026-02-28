@@ -33,9 +33,11 @@ export interface SummaryResult {
 
 /**
  * Get cached summary from database
+ * Returns null if no summary exists or if the stored summary was generated in a different language
  */
 export async function getCachedSummary(
-  recordingId: string
+  recordingId: string,
+  language: string
 ): Promise<SummaryResult | null> {
   "use cache";
   cacheTag(CacheTags.summary(recordingId));
@@ -55,7 +57,20 @@ export async function getCachedSummary(
   if (insight.processingStatus === "completed" && insight.content) {
     const content = insight.content as unknown as SummaryContent & {
       knowledgeUsed?: string[];
+      generatedLanguage?: string;
     };
+
+    // Only return cached summary if it was generated in the requested language
+    const storedLanguage = content.generatedLanguage?.toLowerCase().trim();
+    const requestedLanguage = language?.toLowerCase().trim();
+    if (
+      storedLanguage &&
+      requestedLanguage &&
+      storedLanguage !== requestedLanguage
+    ) {
+      return null;
+    }
+
     return {
       content: {
         overview: content.overview,

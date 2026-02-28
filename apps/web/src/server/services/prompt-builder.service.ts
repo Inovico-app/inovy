@@ -67,6 +67,8 @@ const DEFAULT_LANGUAGE = "nl";
 const FALLBACK_LANGUAGE = "en";
 
 export interface LanguageConfig {
+  /** Label for speaker in utterance context (e.g. "Spreker" / "Speaker") */
+  speakerLabel: string;
   summary: {
     rolePreamble: string;
     taskInstruction: string;
@@ -101,6 +103,7 @@ export interface LanguageConfig {
 
 const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   nl: {
+    speakerLabel: "Spreker",
     summary: {
       rolePreamble:
         "Je bent een AI-assistent die Nederlandse vergadernotulen analyseert en samenvat.",
@@ -206,6 +209,7 @@ const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
     },
   },
   en: {
+    speakerLabel: "Speaker",
     summary: {
       rolePreamble:
         "You are an AI assistant that analyzes meeting transcripts and generates summaries.",
@@ -383,11 +387,8 @@ const DEFAULT_PRIORITY_KEYWORDS_BY_LANGUAGE: Record<
 };
 
 function getLanguageConfig(language: string): LanguageConfig {
-  const normalized =
-    language?.toLowerCase().trim() || DEFAULT_LANGUAGE;
-  return (
-    LANGUAGE_CONFIGS[normalized] ?? LANGUAGE_CONFIGS[FALLBACK_LANGUAGE]
-  );
+  const normalized = language?.toLowerCase().trim() || DEFAULT_LANGUAGE;
+  return LANGUAGE_CONFIGS[normalized] ?? LANGUAGE_CONFIGS[FALLBACK_LANGUAGE];
 }
 
 function getPriorityKeywords(language: string): {
@@ -396,8 +397,7 @@ function getPriorityKeywords(language: string): {
   medium: string[];
   low: string[];
 } {
-  const normalized =
-    language?.toLowerCase().trim() || DEFAULT_LANGUAGE;
+  const normalized = language?.toLowerCase().trim() || DEFAULT_LANGUAGE;
   return (
     DEFAULT_PRIORITY_KEYWORDS_BY_LANGUAGE[normalized] ??
     DEFAULT_PRIORITY_KEYWORDS_BY_LANGUAGE[FALLBACK_LANGUAGE]
@@ -749,10 +749,11 @@ ${params.transcriptionText}`
       );
 
       if (params.utterances && params.utterances.length > 0) {
+        const speakerLabel = config.speakerLabel;
         const speakerInfo = params.utterances
           .map(
             (u) =>
-              `Spreker ${u.speaker}: ${u.text} (${u.start}s - ${u.start + u.text.length / 10}s)`
+              `${speakerLabel} ${u.speaker}: ${u.text} (${u.start}s - ${u.start + u.text.length / 10}s)`
           )
           .join("\n");
 
@@ -825,8 +826,9 @@ ${params.transcriptionText}`
       );
 
       if (params.utterances && params.utterances.length > 0) {
+        const speakerLabel = config.speakerLabel;
         const speakerInfo = params.utterances
-          .map((u) => `Spreker ${u.speaker}: ${u.text}`)
+          .map((u) => `${speakerLabel} ${u.speaker}: ${u.text}`)
           .join("\n");
 
         const speakerContextTag = PromptBuilder.Base.wrapInXmlTag(

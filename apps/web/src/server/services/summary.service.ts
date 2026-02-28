@@ -34,24 +34,30 @@ export class SummaryService {
         transcriptionLength: transcriptionText.length,
       });
 
-      // Check cache first
-      const cachedResult = await getCachedSummary(recordingId);
-
-      if (cachedResult) {
-        logger.info("Returning cached summary", {
-          component: "SummaryService.generateSummary",
-          recordingId,
-        });
-        return ok(cachedResult);
-      }
-
-      // Get recording to fetch project/organization context for knowledge base
+      // Get recording first to resolve language before cache check
       const existingRecording =
         await RecordingsQueries.selectRecordingById(recordingId);
       if (!existingRecording) {
         return err(
           ActionErrors.notFound("Recording", "SummaryService.generateSummary")
         );
+      }
+
+      const resolvedLanguage = language ?? existingRecording.language ?? "nl";
+
+      // Check cache (language-aware: only returns if stored summary matches requested language)
+      const cachedResult = await getCachedSummary(
+        recordingId,
+        resolvedLanguage
+      );
+
+      if (cachedResult) {
+        logger.info("Returning cached summary", {
+          component: "SummaryService.generateSummary",
+          recordingId,
+          language: resolvedLanguage,
+        });
+        return ok(cachedResult);
       }
 
       // Create AI insight record
@@ -90,8 +96,7 @@ export class SummaryService {
         .map((entry) => `${entry.term}: ${entry.definition}`)
         .join("\n");
 
-      // Build prompt using PromptBuilder
-      const resolvedLanguage = language ?? existingRecording.language ?? "nl";
+      // Build prompt using PromptBuilder (resolvedLanguage already set above)
       const promptResult = PromptBuilder.Summaries.buildPrompt({
         transcriptionText,
         utterances,
@@ -204,6 +209,7 @@ export class SummaryService {
       const summaryContentWithKnowledge = {
         ...summaryContent,
         knowledgeUsed: knowledgeEntries.map((e) => e.id), // Track which knowledge entries were used
+        generatedLanguage: resolvedLanguage, // Store for language-aware cache lookup
       };
 
       await AIInsightsQueries.updateInsightContent(insight.id, {
