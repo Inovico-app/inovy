@@ -117,7 +117,7 @@ variable "container_app_cpu" {
 variable "container_app_memory" {
   description = "Memory allocation for Container App in GB (e.g., 1.0, 2.0)"
   type        = string
-  default     = "1.0Gi"
+  default     = "1Gi"
 }
 
 variable "container_app_target_port" {

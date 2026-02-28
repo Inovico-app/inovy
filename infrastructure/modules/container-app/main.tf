@@ -5,6 +5,7 @@ resource "azurerm_container_app" "inovy" {
   container_app_environment_id = var.container_app_environment_id
   resource_group_name          = var.resource_group_name
   revision_mode                = var.container_app_revision_mode
+  workload_profile_name        = "Consumption"
 
   identity {
     type         = "UserAssigned"
