@@ -12,10 +12,6 @@ import { convertRecordingIntoAiInsights } from "../../workflows/convert-recordin
 import { BotSessionsQueries } from "../data-access/bot-sessions.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { type BotStatus } from "../db/schema/bot-sessions";
-import { RecallApiService } from "./recall-api.service";
-import { mapRecallEventToBotStatus, mapRecallStatusToBotStatus } from "./bot-providers/recall/status-mapper";
-import { NotificationService } from "./notification.service";
-import { RecordingService } from "./recording.service";
 import type {
   BotRecordingReadyEvent,
   BotStatusChangeEvent,
@@ -24,6 +20,13 @@ import type {
   SvixBotStatusEvent,
   SvixRecordingEvent,
 } from "../validation/bot/recall-webhook.schema";
+import {
+  mapRecallEventToBotStatus,
+  mapRecallStatusToBotStatus,
+} from "./bot-providers/recall/status-mapper";
+import { NotificationService } from "./notification.service";
+import { RecallApiService } from "./recall-api.service";
+import { RecordingService } from "./recording.service";
 
 const KICK_COMMANDS = new Set([
   "/stop",
@@ -40,7 +43,9 @@ const TERMINAL_BOT_STATUSES = new Set<BotStatus>([
   "failed",
 ]);
 
-function getMetadata(payload: RecallWebhookEvent): Record<string, string> | undefined {
+function getMetadata(
+  payload: RecallWebhookEvent
+): Record<string, string> | undefined {
   if ("data" in payload && payload.data?.bot?.metadata) {
     const meta = payload.data.bot.metadata;
     if (meta && typeof meta === "object") {
@@ -63,7 +68,17 @@ export function getBotId(payload: RecallWebhookEvent): string {
 
 function getRecallStatus(payload: RecallWebhookEvent): string {
   if ("bot" in payload && "status" in payload.bot) return payload.bot.status;
-  if ("data" in payload && payload.data?.data?.code) return payload.data.data.code;
+  if (
+    "data" in payload &&
+    payload.data &&
+    "data" in payload.data &&
+    payload.data.data &&
+    typeof payload.data.data === "object" &&
+    "code" in payload.data.data &&
+    typeof payload.data.data.code === "string"
+  ) {
+    return payload.data.data.code;
+  }
   return "";
 }
 
@@ -227,10 +242,13 @@ export class BotWebhookService {
       }
 
       if (!organizationId || typeof organizationId !== "string") {
-        logger.warn("Chat message event missing organizationId in bot metadata", {
-          component: "BotWebhookService.processChatMessage",
-          botId,
-        });
+        logger.warn(
+          "Chat message event missing organizationId in bot metadata",
+          {
+            component: "BotWebhookService.processChatMessage",
+            botId,
+          }
+        );
         return ok(undefined);
       }
 
@@ -261,12 +279,15 @@ export class BotWebhookService {
       const leaveResult = await RecallApiService.leaveCall(botId);
 
       if (leaveResult.isErr()) {
-        logger.warn("Failed to remove bot via leave_call API, continuing with status update", {
-          component: "BotWebhookService.processChatMessage",
-          botId,
-          sessionId: session.id,
-          error: leaveResult.error,
-        });
+        logger.warn(
+          "Failed to remove bot via leave_call API, continuing with status update",
+          {
+            component: "BotWebhookService.processChatMessage",
+            botId,
+            sessionId: session.id,
+            error: leaveResult.error,
+          }
+        );
       }
 
       await BotSessionsQueries.updateByRecallBotId(botId, organizationId, {
@@ -277,21 +298,23 @@ export class BotWebhookService {
       });
 
       try {
-        const notificationResult = await NotificationService.createNotification({
-          recordingId: session.recordingId ?? null,
-          projectId: session.projectId,
-          userId: session.userId,
-          organizationId,
-          type: "bot_session_update",
-          title: "Bot removed from meeting",
-          message: `Bot was removed from "${session.meetingTitle || "meeting"}" by ${senderName} via chat command.`,
-          metadata: {
-            sessionId: session.id,
-            action: "kicked",
-            kickedBy: senderName,
-            command: text,
-          },
-        });
+        const notificationResult = await NotificationService.createNotification(
+          {
+            recordingId: session.recordingId ?? null,
+            projectId: session.projectId,
+            userId: session.userId,
+            organizationId,
+            type: "bot_session_update",
+            title: "Bot removed from meeting",
+            message: `Bot was removed from "${session.meetingTitle || "meeting"}" by ${senderName} via chat command.`,
+            metadata: {
+              sessionId: session.id,
+              action: "kicked",
+              kickedBy: senderName,
+              command: text,
+            },
+          }
+        );
 
         if (notificationResult.isErr()) {
           logger.warn("Failed to create kick notification", {
@@ -392,10 +415,11 @@ export class BotWebhookService {
         );
       }
 
-      const existingRecording = await RecordingsQueries.selectRecordingByExternalId(
-        recording.id,
-        organizationId
-      );
+      const existingRecording =
+        await RecordingsQueries.selectRecordingByExternalId(
+          recording.id,
+          organizationId
+        );
 
       if (existingRecording) {
         logger.info("Recording already exists with external ID", {
@@ -794,10 +818,11 @@ export class BotWebhookService {
         return ok(undefined);
       }
 
-      const existingRecording = await RecordingsQueries.selectRecordingByExternalId(
-        recording.id,
-        organizationId
-      );
+      const existingRecording =
+        await RecordingsQueries.selectRecordingByExternalId(
+          recording.id,
+          organizationId
+        );
 
       if (existingRecording) {
         logger.info("Recording deleted from Recall - marking for cleanup", {
@@ -893,3 +918,4 @@ export class BotWebhookService {
     return mimeToExt[mimeType] || "mp4";
   }
 }
+
