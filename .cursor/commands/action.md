@@ -4,6 +4,12 @@ When the user runs `/action`, execute the following workflow in order.
 
 ## Workflow
 
+### 0. Validate Terraform
+
+- Run `terraform validate` from the `infrastructure` folder
+- If validation fails (e.g. missing init or config errors), fix the issues first: run `terraform init -backend=false` if needed, then address any configuration errors
+- Re-run validation until it succeeds before proceeding
+
 ### 1. Add and commit changes
 
 - Run `git status` to see what has changed
@@ -37,6 +43,7 @@ Use default workflow inputs (environment=prd, resource_group_name=rg-terraform-s
 
 ## Error handling
 
+- If `terraform validate` fails: fix the configuration and re-validate; do not proceed until it passes
 - If `git push` fails (e.g. no upstream, auth): report the error and stop
 - If `gh workflow run` fails: report the error and stop
 - If the pipeline fails: show the `--log-failed` output and summarize the Terraform or workflow errors
