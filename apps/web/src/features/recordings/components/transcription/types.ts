@@ -57,6 +57,9 @@ export interface TranscriptionTabsProps {
 export interface TranscriptionEditViewProps {
   recordingId: string;
   transcriptionText: string;
+  utterances?: Utterance[];
+  speakerNames?: Record<string, string> | null;
+  speakerUserIds?: Record<string, string> | null;
   isManuallyEdited?: boolean;
   lastEditedAt?: Date | null;
   speakersDetected?: number;

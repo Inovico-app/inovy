@@ -6,15 +6,19 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Save, Search, X } from "lucide-react";
+import { Save, Search, X } from "lucide-react";
 import { useState } from "react";
 import { useUpdateTranscriptionMutation } from "../../hooks/use-update-transcription-mutation";
+import { ExportTranscriptionButton } from "./export-transcription-button";
 import { TranscriptionHistoryDialog } from "../transcription-history-dialog";
 import type { TranscriptionEditViewProps } from "./types";
 
 export function TranscriptionEditView({
   recordingId,
   transcriptionText,
+  utterances,
+  speakerNames,
+  speakerUserIds,
   isManuallyEdited,
   lastEditedAt,
   speakersDetected,
@@ -49,18 +53,6 @@ export function TranscriptionEditView({
     setChangeDescription("");
     setShowSearchReplace(false);
     onCancel();
-  };
-
-  const handleExport = () => {
-    const blob = new Blob([transcriptionText], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `transcription-${recordingId}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   const handleSearchReplace = () => {
@@ -197,15 +189,16 @@ export function TranscriptionEditView({
 
       {/* Actions */}
       <div className="flex justify-between items-center">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleExport}
-          title="Exporteer transcriptie"
-        >
-          <Download className="h-4 w-4 mr-1" />
-          Exporteer
-        </Button>
+        {utterances && utterances.length > 0 ? (
+          <ExportTranscriptionButton
+            utterances={utterances}
+            recordingId={recordingId}
+            speakerNames={speakerNames ?? undefined}
+            speakerUserIds={speakerUserIds}
+          />
+        ) : (
+          <div />
+        )}
         <div className="flex gap-2">
           <TranscriptionHistoryDialog recordingId={recordingId} />
           <Button variant="outline" onClick={handleCancel}>

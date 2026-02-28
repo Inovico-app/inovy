@@ -48,6 +48,9 @@ export function TranscriptionEditor({
           <TranscriptionEditView
             recordingId={recording.id}
             transcriptionText={transcriptionText}
+            utterances={utterances ?? (contentUtterances as Utterance[]) ?? []}
+            speakerNames={speakerNames}
+            speakerUserIds={speakerUserIds}
             isManuallyEdited={isTranscriptionManuallyEdited}
             lastEditedAt={transcriptionLastEditedAt}
             speakersDetected={speakersDetected ?? 0}
