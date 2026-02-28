@@ -14,6 +14,7 @@ RUN mkdir -p apps/web/public
 RUN pnpm install --frozen-lockfile
 
 # Build-time env vars (placeholders; real values injected at runtime)
+ENV DOCKER_BUILD=true
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
