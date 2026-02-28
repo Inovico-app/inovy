@@ -87,7 +87,8 @@ export const POST = withRateLimit(
       const result = await SummaryService.generateSummary(
         recordingId,
         recording.transcriptionText,
-        utterances
+        utterances,
+        recording.language ?? "nl"
       );
 
       if (result.isErr()) {

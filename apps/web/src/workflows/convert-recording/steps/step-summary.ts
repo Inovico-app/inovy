@@ -14,6 +14,7 @@ import { MAX_RETRIES, RETRY_DELAYS } from "../types";
  * @param recordingId - The recording to summarize
  * @param transcriptionText - The transcribed text
  * @param utterances - Optional speaker utterances for context
+ * @param language - ISO 639-1 language code for output (default: "nl")
  * @param retryCount - Current retry attempt (for internal use)
  * @returns Result indicating success or failure
  */
@@ -21,6 +22,7 @@ export async function executeSummaryStep(
   recordingId: string,
   transcriptionText: string,
   utterances?: Array<{ speaker: number; text: string }>,
+  language = "nl",
   retryCount = 0
 ): Promise<WorkflowResult<void>> {
   "use step";
@@ -35,7 +37,8 @@ export async function executeSummaryStep(
     const result = await SummaryService.generateSummary(
       recordingId,
       transcriptionText,
-      utterances
+      utterances,
+      language
     );
 
     if (result.isErr()) {
@@ -54,6 +57,7 @@ export async function executeSummaryStep(
           recordingId,
           transcriptionText,
           utterances,
+          language,
           retryCount + 1
         );
       }

@@ -16,6 +16,7 @@ import { MAX_RETRIES, RETRY_DELAYS } from "../types";
  * @param organizationId - The organization ID
  * @param createdById - The user who created the recording
  * @param utterances - Optional speaker utterances for context
+ * @param language - ISO 639-1 language code for output (default: "nl")
  * @param retryCount - Current retry attempt (for internal use)
  * @returns Result with number of tasks extracted or error
  */
@@ -26,6 +27,7 @@ export async function executeTaskExtractionStep(
   organizationId: string,
   createdById: string,
   utterances?: Array<{ speaker: number; text: string; start: number }>,
+  language = "nl",
   retryCount = 0
 ): Promise<WorkflowResult<number>> {
   "use step";
@@ -43,7 +45,8 @@ export async function executeTaskExtractionStep(
       transcriptionText,
       organizationId,
       createdById,
-      utterances
+      utterances,
+      language
     );
 
     if (result.isErr()) {
@@ -65,6 +68,7 @@ export async function executeTaskExtractionStep(
           organizationId,
           createdById,
           utterances,
+          language,
           retryCount + 1
         );
       }

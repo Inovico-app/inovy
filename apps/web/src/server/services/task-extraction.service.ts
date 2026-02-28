@@ -28,44 +28,6 @@ interface TaskExtractionResult {
 
 export class TaskExtractionService {
   /**
-   * Dutch urgency keywords for priority detection (AI-004)
-   */
-  private static readonly PRIORITY_KEYWORDS = {
-    urgent: [
-      "dringend",
-      "urgent",
-      "direct",
-      "meteen",
-      "onmiddellijk",
-      "vandaag nog",
-      "zo snel mogelijk",
-      "asap",
-      "kritiek",
-      "kritisch",
-    ],
-    high: [
-      "belangrijk",
-      "prioriteit",
-      "deze week",
-      "deadline",
-      "spoedig",
-      "snel",
-      "haast",
-      "hoogste prioriteit",
-    ],
-    medium: ["binnenkort", "volgende week", "regulier", "normaal", "standaard"],
-    low: [
-      "ooit",
-      "misschien",
-      "nice to have",
-      "later",
-      "wanneer mogelijk",
-      "geen haast",
-      "lage prioriteit",
-    ],
-  };
-
-  /**
    * Extract action items from transcription using OpenAI GPT-5
    * Includes AI-004 priority assignment logic
    */
@@ -75,7 +37,8 @@ export class TaskExtractionService {
     transcriptionText: string,
     organizationId: string,
     createdById: string,
-    utterances?: Array<{ speaker: number; text: string; start: number }>
+    utterances?: Array<{ speaker: number; text: string; start: number }>,
+    language = "nl"
   ): Promise<ActionResult<TaskExtractionResult>> {
     try {
       logger.info("Starting task extraction", {
@@ -100,8 +63,8 @@ export class TaskExtractionService {
       const promptResult = PromptBuilder.Tasks.buildPrompt({
         transcriptionText,
         utterances,
-        priorityKeywords: this.PRIORITY_KEYWORDS,
         knowledgeContext: knowledgeContext || undefined,
+        language,
       });
 
       // Call OpenAI API with structured JSON output and retry logic

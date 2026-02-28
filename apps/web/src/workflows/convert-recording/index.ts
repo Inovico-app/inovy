@@ -115,15 +115,17 @@ export async function convertRecordingIntoAiInsights(
       recordingId,
     });
 
+    const language = recording.language ?? "nl";
     const [summaryResult, taskExtractionResult] = await Promise.allSettled([
-      executeSummaryStep(recordingId, transcriptionText, utterances),
+      executeSummaryStep(recordingId, transcriptionText, utterances, language),
       executeTaskExtractionStep(
         recordingId,
         recording.projectId,
         transcriptionText,
         recording.organizationId,
         recording.createdById,
-        utterances
+        utterances,
+        language
       ),
     ]);
 

@@ -17,6 +17,7 @@ export interface RecordingDto {
   duration: number | null;
   recordingDate: Date;
   recordingMode: RecordingMode;
+  language: string; // ISO 639-1 language code
   transcriptionStatus: RecordingStatus;
   transcriptionText: string | null;
   redactedTranscriptionText: string | null;

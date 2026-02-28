@@ -103,6 +103,7 @@ export class TranscriptionService {
 
       // Call Deepgram API with keywords
       const deepgram = this.getDeepgramClient();
+      const recordingLanguage = existingRecording.language ?? "nl";
       const deepgramOptions: {
         model: string;
         language: string;
@@ -113,7 +114,7 @@ export class TranscriptionService {
         keywords?: string[];
       } = {
         model: "nova-3",
-        language: "nl",
+        language: recordingLanguage,
         smart_format: true,
         diarize: true,
         punctuate: true,
@@ -265,7 +266,8 @@ export class TranscriptionService {
         transcriptionText,
         recordingId,
         existingRecording.projectId,
-        existingRecording.organizationId
+        existingRecording.organizationId,
+        existingRecording.language ?? "nl"
       ).catch((error) => {
         logger.warn("Failed to correct transcription with knowledge base", {
           recordingId,
@@ -384,10 +386,10 @@ export class TranscriptionService {
   /**
    * Get Deepgram live streaming configuration
    */
-  static getLiveStreamingConfig() {
+  static getLiveStreamingConfig(language = "nl") {
     return {
       model: "nova-3",
-      language: "nl",
+      language,
       smart_format: true,
       diarize: true,
       punctuate: true,
@@ -405,7 +407,8 @@ export class TranscriptionService {
     transcriptionText: string,
     recordingId: string,
     projectId: string,
-    organizationId: string
+    organizationId: string,
+    language = "nl"
   ): Promise<ActionResult<void>> {
     try {
       // Fetch applicable knowledge base entries
@@ -430,6 +433,7 @@ export class TranscriptionService {
       const promptResult = PromptBuilder.Transcription.buildPrompt({
         transcriptionText,
         knowledgeContext: knowledgeContext || undefined,
+        language,
       });
 
       // Call OpenAI API with retry logic

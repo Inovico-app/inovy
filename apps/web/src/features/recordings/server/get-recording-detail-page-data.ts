@@ -37,21 +37,18 @@ export async function getRecordingDetailPageData(
       ? authResult.value.organization.id
       : null;
 
-  const [
-    recording,
-    summary,
-    tasks,
-    transcriptionInsights,
-    participantsConsent,
-  ] = await Promise.all([
-    getCachedRecordingById(recordingId),
-    getCachedSummary(recordingId),
-    getCachedTasksByRecordingId(recordingId),
-    getCachedInsightByTypeInternal(recordingId, "transcription"),
-    organizationId
-      ? getCachedConsentParticipants(recordingId, organizationId)
-      : [],
-  ]);
+  // Fetch recording first to get language for summary cache lookup
+  const recording = await getCachedRecordingById(recordingId);
+
+  const [summary, tasks, transcriptionInsights, participantsConsent] =
+    await Promise.all([
+      getCachedSummary(recordingId, recording?.language ?? "nl"),
+      getCachedTasksByRecordingId(recordingId),
+      getCachedInsightByTypeInternal(recordingId, "transcription"),
+      organizationId
+        ? getCachedConsentParticipants(recordingId, organizationId)
+        : [],
+    ]);
 
   return {
     recording,
