@@ -152,16 +152,17 @@ export class BotWebhookService {
   ): Promise<ActionResult<void>> {
     try {
       const botId = getBotId(event);
-      const metadata = getMetadata(event);
-      const organizationId = metadata?.organizationId;
+      const resolved = await resolveWebhookMetadata(
+        event,
+        botId,
+        "BotWebhookService.processStatusChange"
+      );
 
-      if (!organizationId || typeof organizationId !== "string") {
-        logger.warn("Status change event missing organizationId", {
-          component: "BotWebhookService.processStatusChange",
-          botId,
-        });
+      if (!resolved) {
         return ok(undefined);
       }
+
+      const { organizationId } = resolved;
 
       const existingSession = await BotSessionsQueries.findByRecallBotId(
         botId,
