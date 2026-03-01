@@ -1,24 +1,21 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { CheckCircle2Icon, ChevronDown } from "lucide-react";
-import { useState } from "react";
-import type { SummaryResult } from "@/server/cache/summary.cache";
-import { UserNotesEditor } from "./user-notes-editor";
-import { SummaryVersionHistoryDialog } from "./summary-version-history-dialog";
-import { EditSummaryDialog } from "./edit-summary-dialog";
 import { KnowledgeUsageIndicator } from "@/features/knowledge-base/components/knowledge-usage-indicator";
+import { formatTimestamp } from "@/lib/formatters/duration-formatters";
+import type { SummaryResult } from "@/server/cache/summary.cache";
+import { CheckCircle2Icon, ChevronDown, Clock } from "lucide-react";
+import { useState } from "react";
+import { useJumpToTimestamp } from "../hooks/use-jump-to-timestamp";
+import { EditSummaryDialog } from "./edit-summary-dialog";
+import { SummaryVersionHistoryDialog } from "./summary-version-history-dialog";
+import { UserNotesEditor } from "./user-notes-editor";
 
 interface EnhancedSummarySectionProps {
   recordingId: string;
@@ -37,6 +34,7 @@ export function EnhancedSummarySection({
   const [contributionsOpen, setContributionsOpen] = useState(false);
   const [quotesOpen, setQuotesOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(true);
+  const jumpToTimestamp = useJumpToTimestamp();
 
   if (!summary) {
     return (
@@ -44,20 +42,22 @@ export function EnhancedSummarySection({
         <CardHeader>
           <CardTitle>AI-Generated Summary</CardTitle>
         </CardHeader>
-      <CardContent>
-        {transcriptionStatus === "completed" ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <p className="mb-4">
-              No summary available yet. Generate one now to get insights.
-            </p>
-            <p className="text-sm">Use the reprocess button above to generate a summary.</p>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>Summary will be generated after transcription is complete.</p>
-          </div>
-        )}
-      </CardContent>
+        <CardContent>
+          {transcriptionStatus === "completed" ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="mb-4">
+                No summary available yet. Generate one now to get insights.
+              </p>
+              <p className="text-sm">
+                Use the reprocess button above to generate a summary.
+              </p>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Summary will be generated after transcription is complete.</p>
+            </div>
+          )}
+        </CardContent>
       </Card>
     );
   }
@@ -217,19 +217,35 @@ export function EnhancedSummarySection({
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-2 px-2">
                 <div className="space-y-3">
-                  {summary.content.importantQuotes.map((quote, idx) => (
-                    <div
-                      key={idx}
-                      className="border-l-2 border-primary pl-3 py-1"
-                    >
-                      <p className="text-sm italic text-muted-foreground">
-                        &quot;{quote.quote}&quot;
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        — {quote.speaker}
-                      </p>
-                    </div>
-                  ))}
+                  {summary.content.importantQuotes.map((quote, idx) => {
+                    const startTime = quote.startTime;
+                    return (
+                      <div
+                        key={idx}
+                        className="border-l-2 border-primary pl-3 py-1"
+                      >
+                        <p className="text-sm italic text-muted-foreground">
+                          &quot;{quote.quote}&quot;
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs text-muted-foreground">
+                            — {quote.speaker}
+                          </p>
+                          {startTime != null && (
+                            <button
+                              type="button"
+                              onClick={() => jumpToTimestamp(startTime)}
+                              aria-label={`Jump to ${formatTimestamp(startTime)}`}
+                              className="inline-flex items-center gap-1 text-xs font-mono text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                            >
+                              <Clock className="h-3 w-3" />
+                              {formatTimestamp(startTime)}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </CollapsibleContent>
             </Collapsible>

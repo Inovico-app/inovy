@@ -24,7 +24,7 @@ export class SummaryService {
   static async generateSummary(
     recordingId: string,
     transcriptionText: string,
-    utterances?: Array<{ speaker: number; text: string }>,
+    utterances?: Array<{ speaker: number; text: string; start: number }>,
     language?: string
   ): Promise<ActionResult<SummaryResult>> {
     try {

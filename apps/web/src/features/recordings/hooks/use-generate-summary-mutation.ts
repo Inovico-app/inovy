@@ -15,6 +15,7 @@ interface SummaryContent {
   importantQuotes: {
     speaker: string;
     quote: string;
+    startTime?: number;
   }[];
 }
 

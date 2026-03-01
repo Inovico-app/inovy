@@ -21,7 +21,7 @@ import { MAX_RETRIES, RETRY_DELAYS } from "../types";
 export async function executeSummaryStep(
   recordingId: string,
   transcriptionText: string,
-  utterances?: Array<{ speaker: number; text: string }>,
+  utterances?: Array<{ speaker: number; text: string; start: number }>,
   language = "nl",
   retryCount = 0
 ): Promise<WorkflowResult<void>> {
