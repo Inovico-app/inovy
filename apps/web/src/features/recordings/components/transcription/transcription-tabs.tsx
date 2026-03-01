@@ -4,8 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Edit2 } from "lucide-react";
+import { Edit2 } from "lucide-react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
+import { ExportTranscriptionButton } from "./export-transcription-button";
 import { TranscriptionHistoryDialog } from "../transcription-history-dialog";
 import { TranscriptionMessageView } from "./transcription-message-view";
 import { SpeakerLegend } from "./speaker-legend";
@@ -34,18 +35,6 @@ export function TranscriptionTabs({
     )
   );
 
-  const handleExport = () => {
-    const blob = new Blob([transcriptionText], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `transcription-${recordingId}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   const hasUtterances = utterances && utterances.length > 0;
 
   return (
@@ -73,14 +62,14 @@ export function TranscriptionTabs({
               </Badge>
             )}
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleExport}
-              title="Exporteer transcriptie"
-            >
-              <Download className="h-4 w-4" />
-            </Button>
+            {hasUtterances && (
+              <ExportTranscriptionButton
+                utterances={utterances}
+                recordingId={recordingId}
+                speakerNames={speakerNames ?? undefined}
+                speakerUserIds={speakerUserIds}
+              />
+            )}
             <TranscriptionHistoryDialog recordingId={recordingId} />
             <Button variant="outline" size="sm" onClick={onEditStart}>
               <Edit2 className="h-4 w-4 mr-1" />
