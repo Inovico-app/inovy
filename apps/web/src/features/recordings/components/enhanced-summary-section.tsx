@@ -8,13 +8,13 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { KnowledgeUsageIndicator } from "@/features/knowledge-base/components/knowledge-usage-indicator";
-import { formatTimestamp } from "@/lib/formatters/duration-formatters";
 import type { SummaryResult } from "@/server/cache/summary.cache";
-import { CheckCircle2Icon, ChevronDown, Clock } from "lucide-react";
+import { CheckCircle2Icon, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { useJumpToTimestamp } from "../hooks/use-jump-to-timestamp";
 import { EditSummaryDialog } from "./edit-summary-dialog";
 import { SummaryVersionHistoryDialog } from "./summary-version-history-dialog";
+import { TimestampButton } from "./timestamp-button";
 import { UserNotesEditor } from "./user-notes-editor";
 
 interface EnhancedSummarySectionProps {
@@ -217,35 +217,27 @@ export function EnhancedSummarySection({
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-2 px-2">
                 <div className="space-y-3">
-                  {summary.content.importantQuotes.map((quote, idx) => {
-                    const startTime = quote.startTime;
-                    return (
-                      <div
-                        key={idx}
-                        className="border-l-2 border-primary pl-3 py-1"
-                      >
-                        <p className="text-sm italic text-muted-foreground">
-                          &quot;{quote.quote}&quot;
+                  {summary.content.importantQuotes.map((quote, idx) => (
+                    <div
+                      key={idx}
+                      className="border-l-2 border-primary pl-3 py-1"
+                    >
+                      <p className="text-sm italic text-muted-foreground">
+                        &quot;{quote.quote}&quot;
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-muted-foreground">
+                          — {quote.speaker}
                         </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <p className="text-xs text-muted-foreground">
-                            — {quote.speaker}
-                          </p>
-                          {startTime != null && (
-                            <button
-                              type="button"
-                              onClick={() => jumpToTimestamp(startTime)}
-                              aria-label={`Jump to ${formatTimestamp(startTime)}`}
-                              className="inline-flex items-center gap-1 text-xs font-mono text-primary hover:text-primary/80 transition-colors cursor-pointer"
-                            >
-                              <Clock className="h-3 w-3" />
-                              {formatTimestamp(startTime)}
-                            </button>
-                          )}
-                        </div>
+                        {quote.startTime != null && (
+                          <TimestampButton
+                            startTime={quote.startTime}
+                            onJump={jumpToTimestamp}
+                          />
+                        )}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               </CollapsibleContent>
             </Collapsible>

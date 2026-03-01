@@ -132,10 +132,11 @@ const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
     {
       "speaker": "Spreker 1",
       "quote": "exacte quote",
-      "startTime": seconden in opname waar de quote werd uitgesproken
+      "startTime": 123.5
     }
   ]
-}`,
+}
+startTime is het geschatte tijdstip in seconden in de opname waar de quote werd uitgesproken. Gebruik de tijdstempels uit de speaker context.`,
       userPromptInstruction:
         "Maak een gestructureerde samenvatting van deze vergadertranscriptie:",
       languageInstruction:
@@ -239,10 +240,11 @@ const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
     {
       "speaker": "Speaker 1",
       "quote": "exact quote",
-      "startTime": seconds in recording where the quote was spoken
+      "startTime": 123.5
     }
   ]
-}`,
+}
+startTime is the approximate timestamp in seconds in the recording where the quote was spoken. Use the timestamps from the speaker context.`,
       userPromptInstruction:
         "Create a structured summary of this meeting transcript:",
       languageInstruction:

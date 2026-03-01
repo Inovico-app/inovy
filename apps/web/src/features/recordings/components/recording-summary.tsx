@@ -3,25 +3,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatTimestamp } from "@/lib/formatters/duration-formatters";
-import { Clock, Loader2, RefreshCw } from "lucide-react";
+import type { SummaryContent } from "@/server/cache/summary.cache";
+import { Loader2, RefreshCw } from "lucide-react";
 import { useGenerateSummaryMutation } from "../hooks/use-generate-summary-mutation";
 import { useJumpToTimestamp } from "../hooks/use-jump-to-timestamp";
-
-interface SummaryContent {
-  overview: string;
-  topics: string[];
-  decisions: string[];
-  speakerContributions: {
-    speaker: string;
-    contributions: string[];
-  }[];
-  importantQuotes: {
-    speaker: string;
-    quote: string;
-    startTime?: number;
-  }[];
-}
+import { TimestampButton } from "./timestamp-button";
 
 interface RecordingSummaryProps {
   recordingId: string;
@@ -168,35 +154,27 @@ export function RecordingSummary({
           <div>
             <h3 className="text-sm font-semibold mb-2">Important Quotes</h3>
             <div className="space-y-2">
-              {content.importantQuotes.map((quote, index) => {
-                const startTime = quote.startTime;
-                return (
-                  <div
-                    key={index}
-                    className="p-3 rounded-lg bg-muted/50 border-l-4 border-primary"
-                  >
-                    <p className="text-sm italic mb-1">
-                      &quot;{quote.quote}&quot;
+              {content.importantQuotes.map((quote, index) => (
+                <div
+                  key={index}
+                  className="p-3 rounded-lg bg-muted/50 border-l-4 border-primary"
+                >
+                  <p className="text-sm italic mb-1">
+                    &quot;{quote.quote}&quot;
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground">
+                      — {quote.speaker}
                     </p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs text-muted-foreground">
-                        — {quote.speaker}
-                      </p>
-                      {startTime != null && (
-                        <button
-                          type="button"
-                          onClick={() => jumpToTimestamp(startTime)}
-                          aria-label={`Jump to ${formatTimestamp(startTime)}`}
-                          className="inline-flex items-center gap-1 text-xs font-mono text-primary hover:text-primary/80 transition-colors cursor-pointer"
-                        >
-                          <Clock className="h-3 w-3" />
-                          {formatTimestamp(startTime)}
-                        </button>
-                      )}
-                    </div>
+                    {quote.startTime != null && (
+                      <TimestampButton
+                        startTime={quote.startTime}
+                        onJump={jumpToTimestamp}
+                      />
+                    )}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
         )}

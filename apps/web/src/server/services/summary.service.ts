@@ -5,6 +5,7 @@ import {
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
+import type { Utterance } from "@/server/dto/ai-insight.dto";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { connectionPool } from "@/server/services/connection-pool.service";
 import { PromptBuilder } from "@/server/services/prompt-builder.service";
@@ -24,7 +25,7 @@ export class SummaryService {
   static async generateSummary(
     recordingId: string,
     transcriptionText: string,
-    utterances?: Array<{ speaker: number; text: string; start: number }>,
+    utterances?: Utterance[],
     language?: string
   ): Promise<ActionResult<SummaryResult>> {
     try {

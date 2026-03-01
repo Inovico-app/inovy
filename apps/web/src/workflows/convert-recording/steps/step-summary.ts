@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import type { Utterance } from "@/server/dto/ai-insight.dto";
 import { SummaryService } from "@/server/services/summary.service";
 import type { WorkflowResult } from "@/workflows/lib/workflow-result";
 import { failure, success } from "@/workflows/lib/workflow-result";
@@ -21,7 +22,7 @@ import { MAX_RETRIES, RETRY_DELAYS } from "../types";
 export async function executeSummaryStep(
   recordingId: string,
   transcriptionText: string,
-  utterances?: Array<{ speaker: number; text: string; start: number }>,
+  utterances?: Utterance[],
   language = "nl",
   retryCount = 0
 ): Promise<WorkflowResult<void>> {
