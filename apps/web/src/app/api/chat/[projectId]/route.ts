@@ -4,6 +4,7 @@ import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { GuardrailError } from "@/server/ai/middleware";
 import { AgentConfigService } from "@/server/services/agent-config.service";
+import { ChatAuditService } from "@/server/services/chat-audit.service";
 import { ChatService } from "@/server/services/chat.service";
 import { ProjectService } from "@/server/services/project.service";
 import { type NextRequest, NextResponse } from "next/server";
@@ -124,6 +125,26 @@ export async function POST(
     if (streamResult.isErr()) {
       const err = streamResult.error;
       if (err instanceof GuardrailError) {
+        const categories = (err.violation.details?.categories ??
+          []) as string[];
+        if (
+          err.violation.type === "moderation" &&
+          Array.isArray(categories) &&
+          categories.length > 0
+        ) {
+          await ChatAuditService.logModerationBlocked({
+            userId: user.id,
+            organizationId: organization.id,
+            chatContext: "project",
+            projectId,
+            flaggedCategories: categories,
+            ipAddress:
+              request.headers.get("x-forwarded-for") ??
+              request.headers.get("x-real-ip") ??
+              "unknown",
+            userAgent: request.headers.get("user-agent") ?? "unknown",
+          });
+        }
         return NextResponse.json({ error: err.message }, { status: 400 });
       }
       logger.error("Failed to stream response", { error: err });

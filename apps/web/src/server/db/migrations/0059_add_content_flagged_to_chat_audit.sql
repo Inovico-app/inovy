@@ -1,0 +1,1 @@
+ALTER TYPE "public"."chat_audit_action" ADD VALUE 'content_flagged';
