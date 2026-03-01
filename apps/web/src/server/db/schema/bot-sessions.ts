@@ -58,6 +58,9 @@ export const botSessions = pgTable(
       .defaultNow(),
   },
   (table) => ({
+    recallBotIdIdx: index("bot_sessions_recall_bot_id_idx").on(
+      table.recallBotId
+    ),
     calendarEventIdOrgIdx: index("bot_sessions_calendar_event_id_org_idx").on(
       table.calendarEventId,
       table.organizationId
@@ -75,3 +78,4 @@ export const botSessions = pgTable(
 
 export type BotSession = typeof botSessions.$inferSelect;
 export type NewBotSession = typeof botSessions.$inferInsert;
+
