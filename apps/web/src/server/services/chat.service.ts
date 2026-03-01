@@ -18,6 +18,7 @@ import type {
 import { streamText } from "ai";
 import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../ai/middleware";
+import { moderateUserInput } from "../ai/middleware/input-moderation.middleware";
 import { getCachedProjectTemplate } from "../cache/project-template.cache";
 import { AgentMetricsService } from "./agent-metrics.service";
 import { connectionPool } from "./connection-pool.service";
@@ -290,7 +291,10 @@ export class ChatService {
         throw new Error("Conversation not found");
       }
 
-      // Save user message
+      // Run input moderation before persisting or RAG; do not store flagged messages
+      await moderateUserInput(userMessage);
+
+      // Save user message (only after moderation passes)
       const userMessageEntry: NewChatMessage = {
         conversationId,
         role: "user",
@@ -542,7 +546,10 @@ Please answer the user's question based on this information.`
         throw new Error("Conversation not found");
       }
 
-      // Save user message
+      // Run input moderation before persisting or RAG; do not store flagged messages
+      await moderateUserInput(userMessage);
+
+      // Save user message (only after moderation passes)
       const userMessageEntry: NewChatMessage = {
         conversationId,
         role: "user",
@@ -865,7 +872,10 @@ Please answer the user's question based on this information.`
         throw new Error("This is not an organization-level conversation");
       }
 
-      // Save user message
+      // Run input moderation before persisting or RAG; do not store flagged messages
+      await moderateUserInput(userMessage);
+
+      // Save user message (only after moderation passes)
       const userMessageEntry: NewChatMessage = {
         conversationId,
         role: "user",
@@ -1620,7 +1630,7 @@ Please answer the user's question based on this information. When referencing in
         projectId,
         limit: 8,
         scoreThreshold: 0.6, // Higher threshold for better relevance
-        useHybrid: false,
+        useHybrid: true,
         useReranking: true, // Enable re-ranking for LLM context
       });
 
