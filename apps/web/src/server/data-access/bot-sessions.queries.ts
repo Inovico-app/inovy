@@ -64,6 +64,25 @@ export class BotSessionsQueries {
   }
 
   /**
+   * Find a bot session by Recall.ai bot ID without requiring organizationId.
+   *
+   * WARNING: Bypasses tenant isolation. Only use as a webhook-event fallback
+   * when Recall omits metadata from recording events. Do NOT call from
+   * user-facing code paths.
+   */
+  static async findByRecallBotIdOnly(
+    recallBotId: string
+  ): Promise<BotSession | null> {
+    const result = await db
+      .select()
+      .from(botSessions)
+      .where(eq(botSessions.recallBotId, recallBotId))
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
+  /**
    * Find bot sessions by project
    */
   static async findByProjectId(

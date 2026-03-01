@@ -43,17 +43,28 @@ const TERMINAL_BOT_STATUSES = new Set<BotStatus>([
   "failed",
 ]);
 
+function toStringRecord(meta: unknown): Record<string, string> | undefined {
+  if (!meta || typeof meta !== "object") return undefined;
+  const entries = Object.entries(meta as Record<string, unknown>).filter(
+    (v): v is [string, string] => typeof v[1] === "string"
+  );
+  if (entries.length === 0) return undefined;
+  return Object.fromEntries(entries) as Record<string, string>;
+}
+
 function getMetadata(
   payload: RecallWebhookEvent
 ): Record<string, string> | undefined {
-  if ("data" in payload && payload.data?.bot?.metadata) {
-    const meta = payload.data.bot.metadata;
-    if (meta && typeof meta === "object") {
-      return Object.fromEntries(
-        Object.entries(meta).filter(
-          (v): v is [string, string] => typeof v[1] === "string"
-        )
-      ) as Record<string, string>;
+  if ("data" in payload) {
+    const botMeta = toStringRecord(payload.data?.bot?.metadata);
+    if (botMeta) return botMeta;
+
+    const data = payload.data as Record<string, unknown>;
+    if (data.recording && typeof data.recording === "object") {
+      const recMeta = toStringRecord(
+        (data.recording as { metadata?: unknown }).metadata
+      );
+      if (recMeta) return recMeta;
     }
   }
   if ("custom_metadata" in payload) return payload.custom_metadata;
@@ -80,6 +91,52 @@ function getRecallStatus(payload: RecallWebhookEvent): string {
     return payload.data.data.code;
   }
   return "";
+}
+
+interface ResolvedMetadata {
+  projectId: string;
+  organizationId: string;
+  userId: string;
+}
+
+async function resolveWebhookMetadata(
+  event: RecallWebhookEvent,
+  botId: string,
+  component: string
+): Promise<ResolvedMetadata | null> {
+  const metadata = getMetadata(event);
+  let projectId = metadata?.projectId;
+  let organizationId = metadata?.organizationId;
+  let userId = metadata?.userId;
+
+  if (!projectId || !organizationId || !userId) {
+    logger.warn(
+      "Webhook event metadata incomplete, falling back to session lookup",
+      {
+        component,
+        botId,
+        metadata,
+      }
+    );
+    const fallbackSession =
+      await BotSessionsQueries.findByRecallBotIdOnly(botId);
+    if (fallbackSession) {
+      projectId ??= fallbackSession.projectId;
+      organizationId ??= fallbackSession.organizationId;
+      userId ??= fallbackSession.userId;
+    }
+  }
+
+  if (!projectId || !organizationId || !userId) {
+    logger.error("Webhook event missing required metadata after fallback", {
+      component,
+      botId,
+      metadata,
+    });
+    return null;
+  }
+
+  return { projectId, organizationId, userId };
 }
 
 /**
@@ -368,32 +425,15 @@ export class BotWebhookService {
   ): Promise<ActionResult<void>> {
     try {
       const { recording, bot } = event.data;
-      const metadata = getMetadata(event);
-      const projectId = metadata?.projectId;
-      const organizationId = metadata?.organizationId;
-      const userId = metadata?.userId;
+      const resolved = await resolveWebhookMetadata(
+        event,
+        bot.id,
+        "BotWebhookService.processRecordingDone"
+      );
 
-      if (
-        !projectId ||
-        !organizationId ||
-        !userId ||
-        typeof projectId !== "string" ||
-        typeof organizationId !== "string" ||
-        typeof userId !== "string"
-      ) {
-        logger.error("Recording done event missing required metadata", {
-          component: "BotWebhookService.processRecordingDone",
-          botId: bot.id,
-          metadata,
-        });
-        return err(
-          ActionErrors.internal(
-            "Missing required metadata in webhook event",
-            undefined,
-            "BotWebhookService.processRecordingDone"
-          )
-        );
-      }
+      if (!resolved) return ok(undefined);
+
+      const { projectId, organizationId, userId } = resolved;
 
       const session = await BotSessionsQueries.findByRecallBotId(
         bot.id,
@@ -406,13 +446,7 @@ export class BotWebhookService {
           botId: bot.id,
           organizationId,
         });
-        return err(
-          ActionErrors.internal(
-            "Bot session not found",
-            undefined,
-            "BotWebhookService.processRecordingDone"
-          )
-        );
+        return ok(undefined);
       }
 
       const existingRecording =
@@ -578,34 +612,16 @@ export class BotWebhookService {
     event: BotRecordingReadyEvent
   ): Promise<ActionResult<void>> {
     try {
-      const { bot, recording, meeting, custom_metadata } = event;
-      const projectId = custom_metadata?.projectId as string | undefined;
-      const organizationId = custom_metadata?.organizationId as
-        | string
-        | undefined;
-      const userId = custom_metadata?.userId as string | undefined;
+      const { bot, recording, meeting } = event;
+      const resolved = await resolveWebhookMetadata(
+        event,
+        bot.id,
+        "BotWebhookService.processRecordingReady"
+      );
 
-      if (
-        !projectId ||
-        !organizationId ||
-        !userId ||
-        typeof projectId !== "string" ||
-        typeof organizationId !== "string" ||
-        typeof userId !== "string"
-      ) {
-        logger.error("Recording ready event missing required metadata", {
-          component: "BotWebhookService.processRecordingReady",
-          botId: bot.id,
-          custom_metadata,
-        });
-        return err(
-          ActionErrors.internal(
-            "Missing required metadata in webhook event",
-            undefined,
-            "BotWebhookService.processRecordingReady"
-          )
-        );
-      }
+      if (!resolved) return ok(undefined);
+
+      const { projectId, organizationId, userId } = resolved;
 
       const session = await BotSessionsQueries.findByRecallBotId(
         bot.id,
@@ -618,13 +634,7 @@ export class BotWebhookService {
           botId: bot.id,
           organizationId,
         });
-        return err(
-          ActionErrors.internal(
-            "Bot session not found",
-            undefined,
-            "BotWebhookService.processRecordingReady"
-          )
-        );
+        return ok(undefined);
       }
 
       const existingRecording =
