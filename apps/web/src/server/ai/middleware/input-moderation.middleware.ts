@@ -7,6 +7,11 @@ import { extractLastUserMessage, GuardrailError } from "./types";
 
 let moderationClient: OpenAI | null = null;
 
+/** When true, block requests when moderation API is unavailable (fail-closed). Default: false (fail-open). */
+const MODERATION_FAIL_CLOSED =
+  process.env.MODERATION_FAIL_CLOSED === "true" ||
+  process.env.MODERATION_FAIL_CLOSED === "1";
+
 function getModerationClient(): OpenAI | null {
   if (!moderationClient) {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -39,6 +44,15 @@ export async function moderateUserInput(userMessage: string): Promise<void> {
   try {
     const client = getModerationClient();
     if (!client) {
+      if (MODERATION_FAIL_CLOSED) {
+        throw new GuardrailError({
+          type: "moderation",
+          severity: "block",
+          message:
+            "Content moderation is temporarily unavailable. Please try again later.",
+          details: { reason: "OPENAI_API_KEY not configured" },
+        });
+      }
       return;
     }
 
@@ -74,6 +88,26 @@ export async function moderateUserInput(userMessage: string): Promise<void> {
   } catch (error) {
     if (error instanceof GuardrailError) {
       throw error;
+    }
+
+    if (MODERATION_FAIL_CLOSED) {
+      logger.error(
+        "Moderation API failed in fail-closed mode, blocking request",
+        {
+          component: "InputModerationMiddleware",
+          error: error instanceof Error ? error.message : String(error),
+        }
+      );
+      throw new GuardrailError({
+        type: "moderation",
+        severity: "block",
+        message:
+          "Content moderation is temporarily unavailable. Please try again later.",
+        details: {
+          reason: "moderation_api_error",
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
     }
 
     // Fail-open: preserve availability when moderation API is unreachable.
