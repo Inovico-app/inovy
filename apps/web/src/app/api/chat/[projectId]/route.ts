@@ -127,18 +127,24 @@ export async function POST(
       if (err instanceof GuardrailError) {
         const categories = (err.violation.details?.categories ??
           []) as string[];
-        await ChatAuditService.logModerationBlocked({
-          userId: user.id,
-          organizationId: organization.id,
-          chatContext: "project",
-          projectId,
-          flaggedCategories: categories,
-          ipAddress:
-            request.headers.get("x-forwarded-for") ??
-            request.headers.get("x-real-ip") ??
-            "unknown",
-          userAgent: request.headers.get("user-agent") ?? "unknown",
-        });
+        if (
+          err.violation.type === "moderation" &&
+          Array.isArray(categories) &&
+          categories.length > 0
+        ) {
+          await ChatAuditService.logModerationBlocked({
+            userId: user.id,
+            organizationId: organization.id,
+            chatContext: "project",
+            projectId,
+            flaggedCategories: categories,
+            ipAddress:
+              request.headers.get("x-forwarded-for") ??
+              request.headers.get("x-real-ip") ??
+              "unknown",
+            userAgent: request.headers.get("user-agent") ?? "unknown",
+          });
+        }
         return NextResponse.json({ error: err.message }, { status: 400 });
       }
       logger.error("Failed to stream response", { error: err });

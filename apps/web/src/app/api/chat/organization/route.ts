@@ -104,15 +104,22 @@ export const POST = withRateLimit(
         await moderateUserInput(message);
       } catch (err) {
         if (err instanceof GuardrailError) {
-          const categories = (err.violation.details?.categories ?? []) as string[];
-          await ChatAuditService.logModerationBlocked({
-            userId: user.id,
-            organizationId,
-            chatContext: "organization",
-            flaggedCategories: categories,
-            ipAddress: metadata.ipAddress,
-            userAgent: metadata.userAgent,
-          });
+          const categories = (err.violation.details?.categories ??
+            []) as string[];
+          if (
+            err.violation.type === "moderation" &&
+            Array.isArray(categories) &&
+            categories.length > 0
+          ) {
+            await ChatAuditService.logModerationBlocked({
+              userId: user.id,
+              organizationId,
+              chatContext: "organization",
+              flaggedCategories: categories,
+              ipAddress: metadata.ipAddress,
+              userAgent: metadata.userAgent,
+            });
+          }
           return NextResponse.json({ error: err.message }, { status: 400 });
         }
         throw err;
@@ -161,16 +168,22 @@ export const POST = withRateLimit(
       if (streamResult.isErr()) {
         const err = streamResult.error;
         if (err instanceof GuardrailError) {
-          // Moderation runs before stream; this handles other guards (PII, injection, topic)
-          const categories = (err.violation.details?.categories ?? []) as string[];
-          await ChatAuditService.logModerationBlocked({
-            userId: user.id,
-            organizationId,
-            chatContext: "organization",
-            flaggedCategories: categories,
-            ipAddress: metadata.ipAddress,
-            userAgent: metadata.userAgent,
-          });
+          const categories = (err.violation.details?.categories ??
+            []) as string[];
+          if (
+            err.violation.type === "moderation" &&
+            Array.isArray(categories) &&
+            categories.length > 0
+          ) {
+            await ChatAuditService.logModerationBlocked({
+              userId: user.id,
+              organizationId,
+              chatContext: "organization",
+              flaggedCategories: categories,
+              ipAddress: metadata.ipAddress,
+              userAgent: metadata.userAgent,
+            });
+          }
           return NextResponse.json({ error: err.message }, { status: 400 });
         }
         logger.error("Failed to stream organization response", {

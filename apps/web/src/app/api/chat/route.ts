@@ -182,14 +182,20 @@ export async function POST(request: NextRequest) {
           if (err instanceof GuardrailError) {
             const categories = (err.violation.details?.categories ??
               []) as string[];
-            await ChatAuditService.logModerationBlocked({
-              userId: user.id,
-              organizationId: organizationId,
-              chatContext: "organization",
-              flaggedCategories: categories,
-              ipAddress: metadata.ipAddress,
-              userAgent: metadata.userAgent,
-            });
+            if (
+              err.violation.type === "moderation" &&
+              Array.isArray(categories) &&
+              categories.length > 0
+            ) {
+              await ChatAuditService.logModerationBlocked({
+                userId: user.id,
+                organizationId: organizationId,
+                chatContext: "organization",
+                flaggedCategories: categories,
+                ipAddress: metadata.ipAddress,
+                userAgent: metadata.userAgent,
+              });
+            }
             return NextResponse.json({ error: err.message }, { status: 400 });
           }
           throw err;
@@ -250,14 +256,20 @@ export async function POST(request: NextRequest) {
         if (err instanceof GuardrailError) {
           const categories = (err.violation.details?.categories ??
             []) as string[];
-          await ChatAuditService.logModerationBlocked({
-            userId: user.id,
-            organizationId,
-            chatContext: "organization",
-            flaggedCategories: categories,
-            ipAddress: metadata.ipAddress,
-            userAgent: metadata.userAgent,
-          });
+          if (
+            err.violation.type === "moderation" &&
+            Array.isArray(categories) &&
+            categories.length > 0
+          ) {
+            await ChatAuditService.logModerationBlocked({
+              userId: user.id,
+              organizationId,
+              chatContext: "organization",
+              flaggedCategories: categories,
+              ipAddress: metadata.ipAddress,
+              userAgent: metadata.userAgent,
+            });
+          }
           return NextResponse.json({ error: err.message }, { status: 400 });
         }
         logger.error("Failed to stream organization response", {
@@ -357,15 +369,21 @@ export async function POST(request: NextRequest) {
         if (err instanceof GuardrailError) {
           const categories = (err.violation.details?.categories ??
             []) as string[];
-          await ChatAuditService.logModerationBlocked({
-            userId: user.id,
-            organizationId,
-            chatContext: "project",
-            projectId,
-            flaggedCategories: categories,
-            ipAddress: metadata.ipAddress,
-            userAgent: metadata.userAgent,
-          });
+          if (
+            err.violation.type === "moderation" &&
+            Array.isArray(categories) &&
+            categories.length > 0
+          ) {
+            await ChatAuditService.logModerationBlocked({
+              userId: user.id,
+              organizationId,
+              chatContext: "project",
+              projectId,
+              flaggedCategories: categories,
+              ipAddress: metadata.ipAddress,
+              userAgent: metadata.userAgent,
+            });
+          }
           return NextResponse.json({ error: err.message }, { status: 400 });
         }
         logger.error("Failed to stream response", {
