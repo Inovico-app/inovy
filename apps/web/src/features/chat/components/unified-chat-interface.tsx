@@ -10,15 +10,15 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { Activity, useEffect, useEffectEvent } from "react";
 import { getConversationMessagesAction } from "../actions/conversation-history";
+import { useChatContext } from "../hooks/use-chat-context";
+import { useChatSources } from "../hooks/use-chat-sources";
+import type { Project } from "../types";
 import { ChatEmptyState } from "./chat-empty-state";
 import { ChatHeader } from "./chat-header";
 import { ChatInput } from "./chat-input";
 import { ChatMessageList } from "./chat-message-list";
 import { ContextSwitchDialog } from "./context-switch-dialog";
 import { ConversationHistorySidebar } from "./conversation-history-sidebar";
-import { useChatContext } from "../hooks/use-chat-context";
-import { useChatSources } from "../hooks/use-chat-sources";
-import type { Project } from "../types";
 
 interface UnifiedChatInterfaceProps {
   isAdmin: boolean;
@@ -50,7 +50,6 @@ export function UnifiedChatInterface({
     id:
       chatContext.conversationId ??
       `${chatContext.context}-${chatContext.projectId ?? "org"}`,
-    // @ts-expect-error - Type mismatch between ai@6.0.0-beta.118 and ai@5.0.86 - DefaultChatTransport works correctly at runtime
     transport: new DefaultChatTransport({
       api: "/api/chat",
       body: {
@@ -73,8 +72,13 @@ export function UnifiedChatInterface({
     (msg): msg is Extract<typeof msg, { role: "user" | "assistant" }> =>
       msg.role === "user" || msg.role === "assistant"
   );
-  const { messageSourcesMap, sourceRefsMap, setSourceRef } =
-    useChatSources(filteredMessages as Array<{ id: string; role: "user" | "assistant"; metadata?: unknown }>);
+  const { messageSourcesMap, sourceRefsMap, setSourceRef } = useChatSources(
+    filteredMessages as Array<{
+      id: string;
+      role: "user" | "assistant";
+      metadata?: unknown;
+    }>
+  );
 
   // Reset conversation when context changes or starting new conversation
   useEffect(() => {
@@ -123,7 +127,11 @@ export function UnifiedChatInterface({
 
   const handleContextChange = useEffectEvent(
     (newContext: "organization" | "project", newProjectId?: string) => {
-      chatContext.handleContextChangeWithMessages(newContext, newProjectId, messages.length > 0);
+      chatContext.handleContextChangeWithMessages(
+        newContext,
+        newProjectId,
+        messages.length > 0
+      );
     }
   );
 
@@ -177,7 +185,13 @@ export function UnifiedChatInterface({
               />
             ) : (
               <ChatMessageList
-                messages={filteredMessages as Array<{ id: string; role: "user" | "assistant"; parts: Array<{ type: "text"; text?: string | null }> }>}
+                messages={
+                  filteredMessages as Array<{
+                    id: string;
+                    role: "user" | "assistant";
+                    parts: Array<{ type: "text"; text?: string | null }>;
+                  }>
+                }
                 messageSourcesMap={messageSourcesMap}
                 sourceRefsMap={sourceRefsMap}
                 context={chatContext.context}
@@ -216,3 +230,4 @@ export function UnifiedChatInterface({
     </div>
   );
 }
+

@@ -17,6 +17,7 @@ import type {
 } from "@/server/db/schema/chat-messages";
 import { streamText } from "ai";
 import { err, ok } from "neverthrow";
+import { createGuardedModel } from "../ai/middleware";
 import { getCachedProjectTemplate } from "../cache/project-template.cache";
 import { AgentMetricsService } from "./agent-metrics.service";
 import { connectionPool } from "./connection-pool.service";
@@ -436,14 +437,22 @@ Please answer the user's question based on this information.`
         isOrganizationLevel: false,
       });
 
-      // Stream response from GPT-5-nano with retry logic and request tracking
+      // Stream response from GPT-5-nano with retry logic, request tracking, and guardrails
       let streamError: Error | null = null;
 
       const result = await connectionPool.executeWithRetry(
         async () =>
           connectionPool.withOpenAIClient(async (openai) => {
+            const guardedModel = createGuardedModel(openai("gpt-5-nano"), {
+              organizationId,
+              userId: conversation.userId,
+              conversationId,
+              requestType: "chat",
+              pii: { mode: "redact" },
+            });
+
             return streamText({
-              model: openai("gpt-5-nano"),
+              model: guardedModel,
               system: promptResult.systemPrompt,
               messages: [
                 ...conversationHistory,
@@ -453,7 +462,6 @@ Please answer the user's question based on this information.`
                 },
               ],
               onError: (error) => {
-                // Capture streaming errors
                 streamError =
                   error instanceof Error ? error : new Error(String(error));
                 logger.error("Stream error during chat response generation", {
@@ -680,25 +688,28 @@ Please answer the user's question based on this information.`
         isOrganizationLevel: false,
       });
 
-      // Stream response from GPT-5-nano with error handling and request tracking
+      // Stream response with error handling, request tracking, and guardrails
       // Note: Streaming endpoints use single-attempt by design to avoid duplicate streamed answers.
-      // The streamText call itself may retry internally via the AI SDK, but we don't wrap it
-      // in executeWithRetry to prevent restarting streams that have already begun.
-      // Get pooled client to track active requests
       const { client: openai, pooled } =
         connectionPool.getOpenAIClientWithTracking();
       let streamError: Error | null = null;
       let errorMetricTracked = false;
 
-      // Track metrics: record start time and user ID
       const startTime = Date.now();
       const userId = conversation.userId;
 
-      // GPT-5-nano (reasoning models) don't support temperature, topP, frequencyPenalty, presencePenalty
       const isReasoningModel = agentSettings.model === "gpt-5-nano";
 
+      const guardedModel = createGuardedModel(openai(agentSettings.model), {
+        organizationId,
+        userId,
+        conversationId,
+        requestType: "chat",
+        pii: { mode: "redact" },
+      });
+
       const streamTextOptions: Parameters<typeof streamText>[0] = {
-        model: openai(agentSettings.model),
+        model: guardedModel,
         system: promptResult.systemPrompt,
         messages: [
           ...conversationHistory,
@@ -708,16 +719,12 @@ Please answer the user's question based on this information.`
           },
         ],
         onError: async (error) => {
-          // Decrement active requests on error
           pooled.activeRequests--;
-          // Capture streaming errors
           streamError =
             error instanceof Error ? error : new Error(String(error));
 
-          // Calculate latency
           const latencyMs = Date.now() - startTime;
 
-          // Track error metric
           await AgentMetricsService.trackRequest({
             organizationId,
             userId,
@@ -984,24 +991,27 @@ Please answer the user's question based on this information. When referencing in
         isOrganizationLevel: true,
       });
 
-      // Stream response from GPT-5-nano with error handling and request tracking
+      // Stream response with error handling, request tracking, and guardrails
       // Note: Streaming endpoints use single-attempt by design to avoid duplicate streamed answers.
-      // The streamText call itself may retry internally via the AI SDK, but we don't wrap it
-      // in executeWithRetry to prevent restarting streams that have already begun.
-      // Get pooled client to track active requests
       const { client: openai, pooled } =
         connectionPool.getOpenAIClientWithTracking();
       let streamError: Error | null = null;
 
-      // Track metrics: record start time
       const startTime = Date.now();
       const userId = conversation.userId;
 
-      // GPT-5-nano (reasoning models) don't support temperature, topP, frequencyPenalty, presencePenalty
       const isReasoningModel = agentSettings.model === "gpt-5-nano";
 
+      const guardedModel = createGuardedModel(openai(agentSettings.model), {
+        organizationId,
+        userId,
+        conversationId,
+        requestType: "chat",
+        pii: { mode: "redact" },
+      });
+
       const streamTextOptions: Parameters<typeof streamText>[0] = {
-        model: openai(agentSettings.model),
+        model: guardedModel,
         system: promptResult.systemPrompt,
         messages: [
           ...conversationHistory,
@@ -1011,16 +1021,12 @@ Please answer the user's question based on this information. When referencing in
           },
         ],
         onError: async (error) => {
-          // Decrement active requests on error
           pooled.activeRequests--;
-          // Capture streaming errors
           streamError =
             error instanceof Error ? error : new Error(String(error));
 
-          // Calculate latency
           const latencyMs = Date.now() - startTime;
 
-          // Track error metric
           await AgentMetricsService.trackRequest({
             organizationId,
             userId,

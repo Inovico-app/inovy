@@ -9,7 +9,9 @@ import type { Utterance } from "@/server/dto/ai-insight.dto";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { connectionPool } from "@/server/services/connection-pool.service";
 import { PromptBuilder } from "@/server/services/prompt-builder.service";
+import { generateText } from "ai";
 import { err, ok } from "neverthrow";
+import { createGuardedModel } from "../ai/middleware";
 import {
   getCachedSummary,
   type SummaryContent,
@@ -105,22 +107,29 @@ export class SummaryService {
         language: resolvedLanguage,
       });
 
-      // Call OpenAI API with retry logic
-      // Each retry attempt gets a fresh client from the pool for better round-robin and recovery
+      // Call AI SDK with guardrails and retry logic
       const completion = await connectionPool.executeWithRetry(
         async () =>
-          connectionPool.getRawOpenAIClient().chat.completions.create({
-            model: "gpt-5-nano",
-            messages: [
-              { role: "system", content: promptResult.systemPrompt },
-              { role: "user", content: promptResult.userPrompt },
-            ],
-            response_format: { type: "json_object" },
+          connectionPool.withOpenAIClient(async (openai) => {
+            const guardedModel = createGuardedModel(openai("gpt-5-nano"), {
+              requestType: "summary",
+              pii: { mode: "redact" },
+              audit: { enabled: false },
+            });
+
+            return generateText({
+              model: guardedModel,
+              system: promptResult.systemPrompt,
+              prompt: promptResult.userPrompt,
+              providerOptions: {
+                openai: { responseFormat: { type: "json_object" } },
+              },
+            });
           }),
         "openai"
       );
 
-      const responseContent = completion.choices[0]?.message?.content;
+      const responseContent = completion.text;
 
       if (!responseContent) {
         logger.error("No content in OpenAI response", {

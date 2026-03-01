@@ -6,7 +6,9 @@ import {
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { createClient } from "@deepgram/sdk";
+import { generateText } from "ai";
 import { err, ok } from "neverthrow";
+import { createGuardedModel } from "../ai/middleware";
 import { connectionPool } from "./connection-pool.service";
 import { KnowledgeBaseService } from "./knowledge-base.service";
 import { NotificationService } from "./notification.service";
@@ -436,22 +438,29 @@ export class TranscriptionService {
         language,
       });
 
-      // Call OpenAI API with retry logic
-      // Each retry attempt gets a fresh client from the pool for better round-robin and recovery
+      // Call AI SDK with guardrails and retry logic
       const completion = await connectionPool.executeWithRetry(
         async () =>
-          connectionPool.getRawOpenAIClient().chat.completions.create({
-            model: "gpt-5-nano",
-            messages: [
-              { role: "system", content: promptResult.systemPrompt },
-              { role: "user", content: promptResult.userPrompt },
-            ],
-            response_format: { type: "json_object" },
+          connectionPool.withOpenAIClient(async (openai) => {
+            const guardedModel = createGuardedModel(openai("gpt-5-nano"), {
+              requestType: "transcription",
+              pii: { mode: "redact" },
+              audit: { enabled: false },
+            });
+
+            return generateText({
+              model: guardedModel,
+              system: promptResult.systemPrompt,
+              prompt: promptResult.userPrompt,
+              providerOptions: {
+                openai: { responseFormat: { type: "json_object" } },
+              },
+            });
           }),
         "openai"
       );
 
-      const responseContent = completion.choices[0]?.message?.content;
+      const responseContent = completion.text;
       if (!responseContent) {
         return ok(undefined);
       }

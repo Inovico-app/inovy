@@ -791,8 +791,11 @@ export class RAGService {
         );
       }
 
-      // Chunk the transcription
-      const chunks = this.chunkText(recording.transcriptionText, 500);
+      // Prefer redacted transcription to avoid indexing PII into the vector store
+      const textToIndex =
+        recording.redactedTranscriptionText ?? recording.transcriptionText;
+
+      const chunks = this.chunkText(textToIndex, 500);
 
       // Prepare documents for Qdrant batch indexing
       const documents = chunks.map((chunk, index) => ({
