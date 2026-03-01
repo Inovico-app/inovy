@@ -29,105 +29,72 @@ import { RAGService } from "./rag/rag.service";
 import type { SearchResult } from "./rag/types";
 import { SearchResultFormatter } from "./search-result-formatter.service";
 
+const RAG_CITATION_INSTRUCTION =
+  "Each source is prefixed with [N]; use that exact number when citing.";
+
 export class ChatService {
   private static ragService = new RAGService();
 
   /**
+   * Get a short source description for context metadata
+   */
+  private static getSourceDescription(result: SearchResult): string {
+    const title =
+      result.metadata.recordingTitle ??
+      result.metadata.title ??
+      result.metadata.documentTitle ??
+      "Unknown";
+    const date = result.metadata.recordingDate as string | undefined;
+
+    switch (result.contentType) {
+      case "recording":
+        return date ? `Recording - ${title} (${date})` : `Recording - ${title}`;
+      case "transcription":
+        return date
+          ? `Transcription - ${title} (${date})`
+          : `Transcription - ${title}`;
+      case "summary":
+        return date ? `Summary - ${title} (${date})` : `Summary - ${title}`;
+      case "task":
+        return date ? `Task - ${title} (${date})` : `Task - ${title}`;
+      case "knowledge_document":
+        return `Knowledge Document - ${title}`;
+      case "project_template":
+        return "Project template";
+      case "organization_instructions":
+        return "Organization instructions";
+      default:
+        return String(result.contentType);
+    }
+  }
+
+  /**
    * Build context string from search results for LLM
    *
-   * @param results - Search results to build context from
-   * @param maxTokens - Maximum tokens allowed (default: 4000)
-   * @returns Formatted context string
+   * Each result is prefixed with [N] so the model can cite sources correctly.
+   * Results must be pre-limited; pass the same array to formatSourceCitations.
+   *
+   * @param results - Pre-limited search results (same order as sources array)
+   * @returns Formatted context string with numbered source blocks
    */
-  private static buildContextFromResults(
-    results: SearchResult[],
-    maxTokens: number = 4000
-  ): string {
+  private static buildContextFromResults(results: SearchResult[]): string {
     if (results.length === 0) {
       return "No relevant information found in the project.";
     }
 
-    // Limit results by token count while preserving grouping
-    const limitedResults = SearchResultFormatter.limitResultsByTokens(
-      results,
-      maxTokens
-    );
-
     const contextParts: string[] = [];
 
-    // Group results by recording
-    const recordingGroups = new Map<string, SearchResult[]>();
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      const sourceNumber = i + 1;
+      const description = this.getSourceDescription(result);
 
-    for (const result of limitedResults) {
-      const recordingId = result.metadata.recordingId ?? result.contentId;
-      if (!recordingGroups.has(recordingId)) {
-        recordingGroups.set(recordingId, []);
-      }
-      recordingGroups.get(recordingId)?.push(result);
+      contextParts.push(`[${sourceNumber}] ${description}`);
+      contextParts.push(result.contentText);
+      contextParts.push(""); // Blank line between sources
     }
 
-    // Build context for each recording
-    for (const [recordingId, recordingResults] of recordingGroups.entries()) {
-      const recordingTitle =
-        recordingResults[0]?.metadata.recordingTitle ?? "Unknown Recording";
-      const recordingDate =
-        recordingResults[0]?.metadata.recordingDate ?? "Unknown Date";
-
-      contextParts.push(`\n## Recording: ${recordingTitle}`);
-      contextParts.push(`Date: ${recordingDate}`);
-      contextParts.push(`Recording ID: ${recordingId}`);
-
-      // Add transcription chunks
-      const transcriptions = recordingResults.filter(
-        (r) => r.contentType === "transcription"
-      );
-      if (transcriptions.length > 0) {
-        contextParts.push("\n### Transcription:");
-        transcriptions.forEach((t) => {
-          contextParts.push(t.contentText);
-        });
-      }
-
-      // Add summary
-      const summaries = recordingResults.filter(
-        (r) => r.contentType === "summary"
-      );
-      if (summaries.length > 0) {
-        contextParts.push("\n### Summary:");
-        summaries.forEach((s) => {
-          contextParts.push(s.contentText);
-        });
-      }
-
-      // Add tasks
-      const tasks = recordingResults.filter((r) => r.contentType === "task");
-      if (tasks.length > 0) {
-        contextParts.push("\n### Related Tasks:");
-        tasks.forEach((task) => {
-          contextParts.push(`- ${task.contentText}`);
-        });
-      }
-
-      contextParts.push("---");
-    }
-
-    // Add knowledge documents separately (if any)
-    const knowledgeDocs = limitedResults.filter(
-      (r) => r.contentType === "knowledge_document"
-    );
-    if (knowledgeDocs.length > 0) {
-      contextParts.push("\n## Knowledge Base Documents:");
-      knowledgeDocs.forEach((doc) => {
-        const docTitle =
-          (doc.metadata.documentTitle as string) ||
-          (doc.metadata.title as string) ||
-          "Knowledge Document";
-        contextParts.push(`\n### ${docTitle}`);
-        contextParts.push(doc.contentText);
-      });
-    }
-
-    return contextParts.join("\n");
+    return contextParts.join("\n").trim();
   }
 
   /**
@@ -414,7 +381,7 @@ export class ChatService {
       // Build complete prompt with XML tagging and priority hierarchy
       // Include conversation summary if available
       let ragContextWithSummary = context
-        ? `Here is relevant information from the project recordings:
+        ? `Here is relevant information from the project recordings. ${RAG_CITATION_INSTRUCTION}
 
 ${context}
 
@@ -665,7 +632,7 @@ Please answer the user's question based on this information.`
       // Create the full prompt with context
       // Include conversation summary if available
       let ragContextWithSummary = context
-        ? `Here is relevant information from the project recordings:
+        ? `Here is relevant information from the project recordings. ${RAG_CITATION_INSTRUCTION}
 
 ${context}
 
@@ -973,7 +940,7 @@ Please answer the user's question based on this information.`
       // Create the full prompt with context
       // Include conversation summary if available
       let ragContextWithSummary = context
-        ? `Here is relevant information from across all organization recordings and projects:
+        ? `Here is relevant information from across all organization recordings and projects. ${RAG_CITATION_INSTRUCTION}
 
 ${context}
 
@@ -1662,8 +1629,12 @@ Please answer the user's question based on this information. When referencing in
       }
 
       const results = searchResult.value;
-      const context = this.buildContextFromResults(results, 4000);
-      const sources = this.formatSourceCitations(results, query, false);
+      const limitedResults = SearchResultFormatter.limitResultsByTokens(
+        results,
+        4000
+      );
+      const context = this.buildContextFromResults(limitedResults);
+      const sources = this.formatSourceCitations(limitedResults, query, false);
 
       return ok({ context, sources });
     } catch (error) {
@@ -1727,14 +1698,20 @@ Please answer the user's question based on this information. When referencing in
       }
 
       const results = searchResult.value;
-      const context = this.buildContextFromResults(results, 4000);
-      const sources = this.formatSourceCitations(results, query, false).map(
-        (source) => ({
-          ...source,
-          projectId: results.find((r) => r.contentId === source.contentId)
-            ?.metadata.projectId as string | undefined,
-        })
+      const limitedResults = SearchResultFormatter.limitResultsByTokens(
+        results,
+        4000
       );
+      const context = this.buildContextFromResults(limitedResults);
+      const sources = this.formatSourceCitations(
+        limitedResults,
+        query,
+        false
+      ).map((source) => ({
+        ...source,
+        projectId: limitedResults.find((r) => r.contentId === source.contentId)
+          ?.metadata.projectId as string | undefined,
+      }));
 
       return ok({ context, sources });
     } catch (error) {
