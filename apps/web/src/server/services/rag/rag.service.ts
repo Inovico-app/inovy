@@ -782,7 +782,10 @@ export class RAGService {
       const recording =
         await RecordingsQueries.selectRecordingById(recordingId);
 
-      if (!recording || !recording.transcriptionText) {
+      const hasTranscription =
+        recording?.redactedTranscriptionText || recording?.transcriptionText;
+
+      if (!recording || !hasTranscription) {
         return err(
           ActionErrors.notFound(
             "Recording or transcription",
@@ -793,7 +796,7 @@ export class RAGService {
 
       // Prefer redacted transcription to avoid indexing PII into the vector store
       const textToIndex =
-        recording.redactedTranscriptionText ?? recording.transcriptionText;
+        recording.redactedTranscriptionText ?? recording.transcriptionText!;
 
       const chunks = this.chunkText(textToIndex, 500);
 

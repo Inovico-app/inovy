@@ -447,6 +447,8 @@ Please answer the user's question based on this information.`
               organizationId,
               userId: conversation.userId,
               conversationId,
+              projectId,
+              chatContext: "project",
               requestType: "chat",
               pii: { mode: "redact" },
             });
@@ -704,6 +706,8 @@ Please answer the user's question based on this information.`
         organizationId,
         userId,
         conversationId,
+        projectId,
+        chatContext: "project",
         requestType: "chat",
         pii: { mode: "redact" },
       });
@@ -1006,6 +1010,7 @@ Please answer the user's question based on this information. When referencing in
         organizationId,
         userId,
         conversationId,
+        chatContext: "organization",
         requestType: "chat",
         pii: { mode: "redact" },
       });
@@ -1109,7 +1114,7 @@ Please answer the user's question based on this information. When referencing in
           // Update conversation title if it's the first exchange
           const conversationMessages =
             await ChatQueries.getMessagesByConversationId(conversationId);
-          if (conversationMessages.length === 1 && !conversation.title) {
+          if (conversationMessages.length === 2 && !conversation.title) {
             const title =
               userMessage.length > 50
                 ? userMessage.substring(0, 50) + "..."

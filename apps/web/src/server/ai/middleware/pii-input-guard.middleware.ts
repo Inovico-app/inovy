@@ -25,10 +25,7 @@ export function createPIIInputGuardMiddleware(
         return params;
       }
 
-      const detections = PIIDetectionService.detectPII(
-        userMessage,
-        minConfidence
-      );
+      const detections = PIIDetectionService.detectPII(userMessage, minConfidence);
 
       if (detections.length === 0) {
         return params;
@@ -55,11 +52,7 @@ export function createPIIInputGuardMiddleware(
         });
       }
 
-      const redactedMessage = PIIDetectionService.applyRedactions(
-        userMessage,
-        detections
-      );
-
+      // Redact per-part so multi-part messages preserve non-sensitive parts
       const updatedPrompt = params.prompt.map((message, idx) => {
         if (idx !== params.prompt.length - 1 || message.role !== "user") {
           return message;
@@ -68,10 +61,20 @@ export function createPIIInputGuardMiddleware(
         return {
           ...message,
           content: message.content.map((part) => {
-            if (part.type === "text") {
-              return { ...part, text: redactedMessage };
+            if (part.type !== "text") {
+              return part;
             }
-            return part;
+            const partDetections = PIIDetectionService.detectPII(
+              part.text,
+              minConfidence
+            );
+            if (partDetections.length === 0) {
+              return part;
+            }
+            return {
+              ...part,
+              text: PIIDetectionService.applyRedactions(part.text, partDetections),
+            };
           }),
         };
       });

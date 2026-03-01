@@ -67,11 +67,17 @@ export function createTopicGuardMiddleware(): LanguageModelV3Middleware {
             }
           );
 
+          const message =
+            label === "self-harm"
+              ? "If you or someone you know is struggling, please reach out for help. " +
+                "Nederland: 113 Zelfmoordpreventie (0900-0113 or 113.nl) | " +
+                "International: contact your local emergency services (112) or visit findahelpline.com"
+              : "This request falls outside the scope of this application. Inovy is designed to assist with meeting recordings, transcriptions, and project management.";
+
           throw new GuardrailError({
             type: "topic",
             severity: "block",
-            message:
-              "This request falls outside the scope of this application. Inovy is designed to assist with meeting recordings, transcriptions, and project management.",
+            message,
             details: { category: label },
           });
         }

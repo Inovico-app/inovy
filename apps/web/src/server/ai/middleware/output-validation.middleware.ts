@@ -10,11 +10,16 @@ import { extractTextFromContent } from "./types";
 
 let moderationClient: OpenAI | null = null;
 
-function getModerationClient(): OpenAI {
+function getModerationClient(): OpenAI | null {
   if (!moderationClient) {
-    moderationClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY ?? "",
-    });
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      logger.warn("OPENAI_API_KEY not configured, output moderation will be skipped", {
+        component: "OutputValidationMiddleware",
+      });
+      return null;
+    }
+    moderationClient = new OpenAI({ apiKey });
   }
   return moderationClient;
 }
@@ -29,6 +34,10 @@ async function moderateText(text: string): Promise<{
 
   try {
     const client = getModerationClient();
+    if (!client) {
+      return { flagged: false, categories: [] };
+    }
+
     const result = await client.moderations.create({
       model: "omni-moderation-latest",
       input: text.slice(0, 32_768),

@@ -4,6 +4,8 @@ export interface GuardrailOptions {
   organizationId?: string;
   userId?: string;
   conversationId?: string;
+  projectId?: string;
+  chatContext?: "project" | "organization";
   requestType?:
     | "chat"
     | "summary"
@@ -46,6 +48,10 @@ export class GuardrailError extends Error {
 export function extractTextFromPrompt(
   params: LanguageModelV3CallOptions
 ): string {
+  if (!params.prompt || params.prompt.length === 0) {
+    return "";
+  }
+
   const texts: string[] = [];
 
   for (const message of params.prompt) {

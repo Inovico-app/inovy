@@ -11,7 +11,7 @@ import {
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
 import { ChatQueries } from "@/server/data-access/chat.queries";
-import type { ChatMessage, ToolCall } from "@/server/db/schema/chat-messages";
+import type { ChatMessage } from "@/server/db/schema/chat-messages";
 import { generateText, type ModelMessage } from "ai";
 import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../ai/middleware";
@@ -141,18 +141,10 @@ export class ConversationContextManager {
    * Convert ChatMessage to ModelMessage format
    */
   private static chatMessageToModelMessage(message: ChatMessage): ModelMessage {
-    const coreMessage: ModelMessage = {
+    return {
       role: message.role as "user" | "assistant",
       content: message.content,
     };
-
-    // Include tool calls if present
-    if (message.toolCalls && message.toolCalls.length > 0) {
-      (coreMessage as ModelMessage & { toolCalls: ToolCall[] }).toolCalls =
-        message.toolCalls;
-    }
-
-    return coreMessage;
   }
 
   /**

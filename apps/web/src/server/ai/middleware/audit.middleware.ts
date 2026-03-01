@@ -117,8 +117,8 @@ async function logAuditEntry(params: {
     const logEntry: NewChatAuditLog = {
       userId: options.userId,
       organizationId: options.organizationId,
-      chatContext: "project",
-      projectId: null,
+      chatContext: options.chatContext ?? "project",
+      projectId: options.projectId ?? null,
       action: "query_executed",
       query: input.slice(0, 10_000),
       ipAddress: null,

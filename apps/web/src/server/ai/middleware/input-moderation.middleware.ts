@@ -7,11 +7,16 @@ import { extractLastUserMessage, GuardrailError } from "./types";
 
 let moderationClient: OpenAI | null = null;
 
-function getModerationClient(): OpenAI {
+function getModerationClient(): OpenAI | null {
   if (!moderationClient) {
-    moderationClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY ?? "",
-    });
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      logger.warn("OPENAI_API_KEY not configured, moderation checks will be skipped", {
+        component: "InputModerationMiddleware",
+      });
+      return null;
+    }
+    moderationClient = new OpenAI({ apiKey });
   }
   return moderationClient;
 }
@@ -31,6 +36,10 @@ export function createInputModerationMiddleware(): LanguageModelV3Middleware {
 
       try {
         const client = getModerationClient();
+        if (!client) {
+          return params;
+        }
+
         const result = await client.moderations.create({
           model: "omni-moderation-latest",
           input: truncated,
@@ -65,6 +74,8 @@ export function createInputModerationMiddleware(): LanguageModelV3Middleware {
           throw error;
         }
 
+        // Fail-open: preserve availability when moderation API is unreachable.
+        // GuardrailError (hard policy violations) is always re-thrown above.
         logger.warn(
           "OpenAI Moderation API call failed, proceeding without moderation",
           {

@@ -6,7 +6,7 @@ import type {
 import { logger } from "@/lib/logger";
 import { PIIDetectionService } from "@/server/services/pii-detection.service";
 
-import { extractTextFromContent, type GuardrailOptions } from "./types";
+import type { GuardrailOptions } from "./types";
 
 export function createPIIOutputGuardMiddleware(
   options: GuardrailOptions = {}
@@ -19,40 +19,43 @@ export function createPIIOutputGuardMiddleware(
     async wrapGenerate({ doGenerate }) {
       const result = await doGenerate();
 
-      const fullText = extractTextFromContent(result.content);
+      let totalDetections = 0;
+      const allDetectedTypes = new Set<string>();
 
-      if (!fullText) {
-        return result;
-      }
-
-      const detections = PIIDetectionService.detectPII(fullText, minConfidence);
-
-      if (detections.length === 0) {
-        return result;
-      }
-
-      const detectedTypes = [...new Set(detections.map((d) => d.type))];
-
-      logger.warn("PII detected in AI output, redacting", {
-        component: "PIIOutputGuardMiddleware",
-        types: detectedTypes,
-        count: detections.length,
-        organizationId: options.organizationId,
-      });
-
-      const redactedText = PIIDetectionService.applyRedactions(
-        fullText,
-        detections
-      );
-
+      // Redact per content block so multi-block outputs stay correct
       const updatedContent = result.content.map((block) => {
-        if (block.type === "text") {
-          return { ...block, text: redactedText };
+        if (block.type !== "text") {
+          return block;
         }
-        return block;
+
+        const detections = PIIDetectionService.detectPII(block.text, minConfidence);
+        if (detections.length === 0) {
+          return block;
+        }
+
+        totalDetections += detections.length;
+        for (const d of detections) {
+          allDetectedTypes.add(d.type);
+        }
+
+        return {
+          ...block,
+          text: PIIDetectionService.applyRedactions(block.text, detections),
+        };
       });
 
-      return { ...result, content: updatedContent };
+      if (totalDetections > 0) {
+        logger.warn("PII detected in AI output, redacting", {
+          component: "PIIOutputGuardMiddleware",
+          types: [...allDetectedTypes],
+          count: totalDetections,
+          organizationId: options.organizationId,
+        });
+      }
+
+      return totalDetections > 0
+        ? { ...result, content: updatedContent }
+        : result;
     },
 
     async wrapStream({ doStream }) {
@@ -89,12 +92,23 @@ export function createPIIOutputGuardMiddleware(
                   ...new Set(detections.map((d) => d.type)),
                 ];
 
-                logger.warn("PII detected in streamed AI output", {
+                logger.warn("PII detected in streamed AI output, redacting", {
                   component: "PIIOutputGuardMiddleware",
                   types: detectedTypes,
                   count: detections.length,
                   blockId: chunk.id,
                   organizationId: options.organizationId,
+                });
+
+                // Emit a corrective delta that replaces the original text
+                const redacted = PIIDetectionService.applyRedactions(
+                  blockText,
+                  detections
+                );
+                controller.enqueue({
+                  type: "text-delta",
+                  id: chunk.id,
+                  delta: redacted.slice(blockText.length),
                 });
               }
 
@@ -117,4 +131,3 @@ export function createPIIOutputGuardMiddleware(
     },
   };
 }
-
