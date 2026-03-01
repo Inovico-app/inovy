@@ -372,6 +372,13 @@
       "when": 1772363056370,
       "tag": "0058_add-recall-bot-id-index",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1772386996732,
+      "tag": "0059_add_content_flagged_to_chat_audit",
+      "breakpoints": true
     }
   ]
 }

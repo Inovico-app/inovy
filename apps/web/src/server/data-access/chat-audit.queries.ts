@@ -9,7 +9,11 @@ import {
 export interface AuditLogFilters {
   userId?: string;
   chatContext?: "project" | "organization";
-  action?: "access_granted" | "access_denied" | "query_executed";
+  action?:
+    | "access_granted"
+    | "access_denied"
+    | "query_executed"
+    | "content_flagged";
   startDate?: Date;
   endDate?: Date;
   limit?: number;
@@ -83,9 +87,33 @@ export class ChatAuditQueries {
       .limit(limit);
   }
 
+  static async findModerationBlocks(
+    userId: string,
+    organizationId: string,
+    since?: Date
+  ): Promise<ChatAuditLog[]> {
+    const conditions = [
+      eq(chatAuditLog.userId, userId),
+      eq(chatAuditLog.organizationId, organizationId),
+      eq(chatAuditLog.action, "content_flagged"),
+    ];
+    if (since) {
+      conditions.push(gte(chatAuditLog.createdAt, since));
+    }
+    return db
+      .select()
+      .from(chatAuditLog)
+      .where(and(...conditions))
+      .orderBy(desc(chatAuditLog.createdAt));
+  }
+
   static async findByAction(
     organizationId: string,
-    action: "access_granted" | "access_denied" | "query_executed",
+    action:
+      | "access_granted"
+      | "access_denied"
+      | "query_executed"
+      | "content_flagged",
     limit = 100
   ): Promise<ChatAuditLog[]> {
     return db

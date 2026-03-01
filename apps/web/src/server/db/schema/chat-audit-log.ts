@@ -1,16 +1,27 @@
-import { jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 /**
  * Chat audit log schema
  * Tracks all chat access attempts and queries for security and compliance
  */
 
-export const chatContextEnum = pgEnum("chat_context", ["project", "organization"]);
+export const chatContextEnum = pgEnum("chat_context", [
+  "project",
+  "organization",
+]);
 
 export const chatAuditActionEnum = pgEnum("chat_audit_action", [
   "access_granted",
   "access_denied",
   "query_executed",
+  "content_flagged",
 ]);
 
 export const chatAuditLog = pgTable("chat_audit_log", {

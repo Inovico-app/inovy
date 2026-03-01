@@ -37,6 +37,16 @@ export interface ChatQueryLogParams {
   metadata?: Record<string, unknown>;
 }
 
+export interface ChatModerationBlockedParams {
+  userId: string;
+  organizationId: string;
+  chatContext: "project" | "organization";
+  projectId?: string;
+  flaggedCategories: string[];
+  ipAddress?: string;
+  userAgent?: string;
+}
+
 export class ChatAuditService {
   /**
    * Log a chat access attempt (granted or denied)
@@ -123,6 +133,52 @@ export class ChatAuditService {
   }
 
   /**
+   * Log a moderation block (content flagged by safety system).
+   * Does NOT store the message content - only metadata for abuse tracking.
+   */
+  static async logModerationBlocked(
+    params: ChatModerationBlockedParams
+  ): Promise<ActionResult<void>> {
+    try {
+      const logEntry: NewChatAuditLog = {
+        userId: params.userId,
+        organizationId: params.organizationId,
+        chatContext: params.chatContext,
+        projectId: params.projectId ?? null,
+        action: "content_flagged",
+        query: null, // Never store harmful content
+        ipAddress: params.ipAddress ?? null,
+        userAgent: params.userAgent ?? null,
+        metadata: { categories: params.flaggedCategories },
+      };
+
+      await ChatAuditQueries.insert(logEntry);
+
+      logger.info("Moderation block logged", {
+        userId: params.userId,
+        organizationId: params.organizationId,
+        chatContext: params.chatContext,
+        categories: params.flaggedCategories,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error(
+        "Failed to log moderation block",
+        { params },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to log moderation block",
+          error as Error,
+          "ChatAuditService.logModerationBlocked"
+        )
+      );
+    }
+  }
+
+  /**
    * Get audit logs for an organization with optional filters
    */
   static async getAuditLogs(
@@ -157,6 +213,37 @@ export class ChatAuditService {
           "Failed to retrieve audit logs",
           error as Error,
           "ChatAuditService.getAuditLogs"
+        )
+      );
+    }
+  }
+
+  /**
+   * Get moderation block count for a user (for abuse detection)
+   */
+  static async getModerationBlockCount(
+    userId: string,
+    organizationId: string,
+    since?: Date
+  ): Promise<ActionResult<number>> {
+    try {
+      const blocks = await ChatAuditQueries.findModerationBlocks(
+        userId,
+        organizationId,
+        since
+      );
+      return ok(blocks.length);
+    } catch (error) {
+      logger.error(
+        "Failed to get moderation block count",
+        { userId, organizationId },
+        error as Error
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to get moderation block count",
+          error as Error,
+          "ChatAuditService.getModerationBlockCount"
         )
       );
     }
