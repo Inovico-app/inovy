@@ -1,5 +1,5 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { logger } from "@/lib/logger";
+import { logger, serializeError } from "@/lib/logger";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
@@ -24,22 +24,14 @@ const userMessageSchema = z.object({
   id: z.string(),
 });
 
+const assistantMessagePartSchema = z.looseObject({
+  type: z.string(),
+});
+
 const assistantMessageSchema = z.object({
   id: z.string(),
   role: z.literal("assistant"),
-  parts: z.array(
-    z.discriminatedUnion("type", [
-      z.object({ type: z.literal("step-start") }),
-      z.object({
-        type: z.literal("text"),
-        text: z.string(),
-        state: z.literal("done"),
-        providerMetadata: z.object({
-          openai: z.object({ itemId: z.string() }),
-        }),
-      }),
-    ])
-  ),
+  parts: z.array(assistantMessagePartSchema),
 });
 
 const chatRequestSchema = z.object({
@@ -418,7 +410,9 @@ export async function POST(request: NextRequest) {
       });
     }
   } catch (error) {
-    logger.error("Error in unified chat API", { error });
+    logger.error("Error in unified chat API", {
+      error: serializeError(error),
+    });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
