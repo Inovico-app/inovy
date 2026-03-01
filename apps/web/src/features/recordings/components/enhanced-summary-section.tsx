@@ -1,24 +1,21 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { KnowledgeUsageIndicator } from "@/features/knowledge-base/components/knowledge-usage-indicator";
+import type { SummaryResult } from "@/server/cache/summary.cache";
 import { CheckCircle2Icon, ChevronDown } from "lucide-react";
 import { useState } from "react";
-import type { SummaryResult } from "@/server/cache/summary.cache";
-import { UserNotesEditor } from "./user-notes-editor";
-import { SummaryVersionHistoryDialog } from "./summary-version-history-dialog";
+import { useJumpToTimestamp } from "../hooks/use-jump-to-timestamp";
 import { EditSummaryDialog } from "./edit-summary-dialog";
-import { KnowledgeUsageIndicator } from "@/features/knowledge-base/components/knowledge-usage-indicator";
+import { SummaryVersionHistoryDialog } from "./summary-version-history-dialog";
+import { TimestampButton } from "./timestamp-button";
+import { UserNotesEditor } from "./user-notes-editor";
 
 interface EnhancedSummarySectionProps {
   recordingId: string;
@@ -37,6 +34,7 @@ export function EnhancedSummarySection({
   const [contributionsOpen, setContributionsOpen] = useState(false);
   const [quotesOpen, setQuotesOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(true);
+  const jumpToTimestamp = useJumpToTimestamp();
 
   if (!summary) {
     return (
@@ -44,20 +42,22 @@ export function EnhancedSummarySection({
         <CardHeader>
           <CardTitle>AI-Generated Summary</CardTitle>
         </CardHeader>
-      <CardContent>
-        {transcriptionStatus === "completed" ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <p className="mb-4">
-              No summary available yet. Generate one now to get insights.
-            </p>
-            <p className="text-sm">Use the reprocess button above to generate a summary.</p>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>Summary will be generated after transcription is complete.</p>
-          </div>
-        )}
-      </CardContent>
+        <CardContent>
+          {transcriptionStatus === "completed" ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="mb-4">
+                No summary available yet. Generate one now to get insights.
+              </p>
+              <p className="text-sm">
+                Use the reprocess button above to generate a summary.
+              </p>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Summary will be generated after transcription is complete.</p>
+            </div>
+          )}
+        </CardContent>
       </Card>
     );
   }
@@ -225,9 +225,17 @@ export function EnhancedSummarySection({
                       <p className="text-sm italic text-muted-foreground">
                         &quot;{quote.quote}&quot;
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        — {quote.speaker}
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-muted-foreground">
+                          — {quote.speaker}
+                        </p>
+                        {quote.startTime != null && (
+                          <TimestampButton
+                            startTime={quote.startTime}
+                            onJump={jumpToTimestamp}
+                          />
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

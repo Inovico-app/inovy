@@ -12,27 +12,14 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import type { SummaryContent } from "@/server/cache/summary.cache";
 import { Edit, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useUpdateSummaryMutation } from "../hooks/use-update-summary-mutation";
 
-interface SummaryContent {
-  overview?: string;
-  topics?: string[];
-  decisions?: string[];
-  speakerContributions?: {
-    speaker: string;
-    contributions: string[];
-  }[];
-  importantQuotes?: {
-    speaker: string;
-    quote: string;
-  }[];
-}
-
 interface EditSummaryDialogProps {
   recordingId: string;
-  summary: SummaryContent;
+  summary: Partial<SummaryContent>;
   onSuccess?: () => void;
 }
 

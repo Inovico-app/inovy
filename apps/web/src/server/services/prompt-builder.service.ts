@@ -44,7 +44,7 @@ export interface TaskPromptParams {
 
 export interface SummaryPromptParams {
   transcriptionText: string;
-  utterances?: Array<{ speaker: number; text: string }>;
+  utterances?: Array<{ speaker: number; text: string; start: number }>;
   knowledgeContext?: string;
   language?: string;
 }
@@ -114,7 +114,7 @@ const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
 2. Topics: Een lijst van de belangrijkste onderwerpen die zijn besproken
 3. Decisions: Een lijst van beslissingen die tijdens de vergadering zijn genomen
 4. Speaker Contributions: Voor elke geïdentificeerde spreker, een lijst van hun belangrijkste bijdragen
-5. Important Quotes: Memorabele of belangrijke uitspraken van sprekers`,
+5. Important Quotes: Memorabele of belangrijke uitspraken van sprekers. Gebruik de tijdstempels uit de speaker context om de geschatte startTime (in seconden) van elke quote te bepalen.`,
       conciseInstruction:
         "Houd de samenvatting beknopt maar informatief. Focus op actie items en beslissingen.",
       outputInstruction: `Antwoord ALLEEN met valid JSON in het volgende formaat (gebruik Engels voor de veldnamen):
@@ -131,10 +131,12 @@ const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   "importantQuotes": [
     {
       "speaker": "Spreker 1",
-      "quote": "exacte quote"
+      "quote": "exacte quote",
+      "startTime": 123.5
     }
   ]
-}`,
+}
+startTime is het geschatte tijdstip in seconden in de opname waar de quote werd uitgesproken. Gebruik de tijdstempels uit de speaker context.`,
       userPromptInstruction:
         "Maak een gestructureerde samenvatting van deze vergadertranscriptie:",
       languageInstruction:
@@ -220,7 +222,7 @@ const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
 2. Topics: A list of the main topics discussed
 3. Decisions: A list of decisions made during the meeting
 4. Speaker Contributions: For each identified speaker, a list of their main contributions
-5. Important Quotes: Memorable or important quotes from speakers`,
+5. Important Quotes: Memorable or important quotes from speakers. Use the timestamps from the speaker context to determine the approximate startTime (in seconds) for each quote.`,
       conciseInstruction:
         "Keep the summary concise but informative. Focus on action items and decisions.",
       outputInstruction: `Respond ONLY with valid JSON in the following format:
@@ -237,10 +239,12 @@ const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   "importantQuotes": [
     {
       "speaker": "Speaker 1",
-      "quote": "exact quote"
+      "quote": "exact quote",
+      "startTime": 123.5
     }
   ]
-}`,
+}
+startTime is the approximate timestamp in seconds in the recording where the quote was spoken. Use the timestamps from the speaker context.`,
       userPromptInstruction:
         "Create a structured summary of this meeting transcript:",
       languageInstruction:
@@ -828,7 +832,7 @@ ${params.transcriptionText}`
       if (params.utterances && params.utterances.length > 0) {
         const speakerLabel = config.speakerLabel;
         const speakerInfo = params.utterances
-          .map((u) => `${speakerLabel} ${u.speaker}: ${u.text}`)
+          .map((u) => `${speakerLabel} ${u.speaker}: ${u.text} (${u.start}s)`)
           .join("\n");
 
         const speakerContextTag = PromptBuilder.Base.wrapInXmlTag(

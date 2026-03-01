@@ -3,22 +3,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { SummaryContent } from "@/server/cache/summary.cache";
 import { Loader2, RefreshCw } from "lucide-react";
 import { useGenerateSummaryMutation } from "../hooks/use-generate-summary-mutation";
-
-interface SummaryContent {
-  overview: string;
-  topics: string[];
-  decisions: string[];
-  speakerContributions: {
-    speaker: string;
-    contributions: string[];
-  }[];
-  importantQuotes: {
-    speaker: string;
-    quote: string;
-  }[];
-}
+import { useJumpToTimestamp } from "../hooks/use-jump-to-timestamp";
+import { TimestampButton } from "./timestamp-button";
 
 interface RecordingSummaryProps {
   recordingId: string;
@@ -43,6 +32,7 @@ export function RecordingSummary({
     recordingId,
     onSuccess: onRegenerate,
   });
+  const jumpToTimestamp = useJumpToTimestamp();
 
   const handleGenerate = () => {
     generateSummary();
@@ -169,10 +159,20 @@ export function RecordingSummary({
                   key={index}
                   className="p-3 rounded-lg bg-muted/50 border-l-4 border-primary"
                 >
-                  <p className="text-sm italic mb-1">"{quote.quote}"</p>
-                  <p className="text-xs text-muted-foreground">
-                    — {quote.speaker}
+                  <p className="text-sm italic mb-1">
+                    &quot;{quote.quote}&quot;
                   </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground">
+                      — {quote.speaker}
+                    </p>
+                    {quote.startTime != null && (
+                      <TimestampButton
+                        startTime={quote.startTime}
+                        onJump={jumpToTimestamp}
+                      />
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

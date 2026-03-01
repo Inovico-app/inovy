@@ -1,22 +1,9 @@
 "use client";
 
+import type { SummaryContent } from "@/server/cache/summary.cache";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { queryKeys } from "../../../lib/query-keys";
-
-interface SummaryContent {
-  overview: string;
-  topics: string[];
-  decisions: string[];
-  speakerContributions: {
-    speaker: string;
-    contributions: string[];
-  }[];
-  importantQuotes: {
-    speaker: string;
-    quote: string;
-  }[];
-}
 
 interface SummaryData {
   content: SummaryContent;

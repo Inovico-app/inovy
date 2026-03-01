@@ -25,6 +25,23 @@ export function formatDuration(seconds: number | null): string {
 }
 
 /**
+ * Format a timestamp in seconds to MM:SS (or H:MM:SS for 1h+)
+ * @param seconds - Position in seconds
+ * @returns Formatted timestamp string (e.g., "02:35" or "1:02:35")
+ */
+export function formatTimestamp(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hours > 0) {
+    return `${hours}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  }
+
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+}
+
+/**
  * Format duration in seconds to a compact string (e.g., "1:23:45" or "23:45")
  * @param seconds - Duration in seconds (can be null)
  * @returns Formatted duration string
