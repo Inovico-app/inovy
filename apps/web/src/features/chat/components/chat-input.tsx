@@ -27,7 +27,6 @@ export function ChatInput({
   const isDisabled =
     status === "streaming" ||
     status === "submitted" ||
-    status === "ready" ||
     (context === "project" && !projectId) ||
     !agentEnabled;
 
@@ -60,7 +59,7 @@ export function ChatInput({
           <PromptInputSubmit
             disabled={isDisabled}
             status={
-              status === "streaming" || status === "submitted" || status === "ready"
+              status === "streaming" || status === "submitted"
                 ? "streaming"
                 : undefined
             }
