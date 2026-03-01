@@ -4,6 +4,7 @@ import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
 import { GuardrailError } from "@/server/ai/middleware";
+import { moderateUserInput } from "@/server/ai/middleware/input-moderation.middleware";
 import { AgentConfigService } from "@/server/services/agent-config.service";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
 import { ChatService } from "@/server/services/chat.service";
@@ -173,20 +174,44 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Log the query
-      await ChatAuditService.logChatQuery({
-        userId: user.id,
-        organizationId: organizationId,
-        chatContext: "organization",
-        query: lastUserMessage,
-        ipAddress: metadata.ipAddress,
-        userAgent: metadata.userAgent,
-      });
+      // Run moderation before logging query; do not persist blocked content
+      if (context === "organization") {
+        try {
+          await moderateUserInput(lastUserMessage);
+        } catch (err) {
+          if (err instanceof GuardrailError) {
+            const categories = (err.violation.details?.categories ??
+              []) as string[];
+            await ChatAuditService.logModerationBlocked({
+              userId: user.id,
+              organizationId: organizationId,
+              chatContext: "organization",
+              flaggedCategories: categories,
+              ipAddress: metadata.ipAddress,
+              userAgent: metadata.userAgent,
+            });
+            return NextResponse.json({ error: err.message }, { status: 400 });
+          }
+          throw err;
+        }
+      }
+
+      // Log the query (only after moderation passes for org context)
+      if (context === "organization") {
+        await ChatAuditService.logChatQuery({
+          userId: user.id,
+          organizationId: organizationId,
+          chatContext: "organization",
+          query: lastUserMessage,
+          ipAddress: metadata.ipAddress,
+          userAgent: metadata.userAgent,
+        });
+      }
 
       // Create or get conversation
       let activeConversationId = conversationId;
 
-      if (!activeConversationId) {
+      if (context === "organization" && !activeConversationId) {
         const conversationResult =
           await ChatService.createOrganizationConversation(
             user.id,
@@ -204,6 +229,13 @@ export async function POST(request: NextRequest) {
         }
 
         activeConversationId = conversationResult.value.conversationId;
+      }
+
+      if (!activeConversationId) {
+        return NextResponse.json(
+          { error: "Conversation ID required" },
+          { status: 400 }
+        );
       }
 
       // Stream the response

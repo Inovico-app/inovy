@@ -1,1 +1,1 @@
-CREATE INDEX "bot_sessions_recall_bot_id_idx" ON "bot_sessions" USING btree ("recall_bot_id");
+CREATE INDEX IF NOT EXISTS "bot_sessions_recall_bot_id_idx" ON "bot_sessions" USING btree ("recall_bot_id");

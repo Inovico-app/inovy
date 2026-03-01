@@ -3,6 +3,7 @@ import { logger } from "@/lib/logger";
 import { withRateLimit } from "@/lib/rate-limit";
 import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
 import { GuardrailError } from "@/server/ai/middleware";
+import { moderateUserInput } from "@/server/ai/middleware/input-moderation.middleware";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
 import { ChatService } from "@/server/services/chat.service";
 import { type NextRequest, NextResponse } from "next/server";
@@ -98,7 +99,26 @@ export const POST = withRateLimit(
 
       const { message, conversationId } = validationResult.data;
 
-      // Log the query
+      // Run moderation before logging query; do not persist blocked content
+      try {
+        await moderateUserInput(message);
+      } catch (err) {
+        if (err instanceof GuardrailError) {
+          const categories = (err.violation.details?.categories ?? []) as string[];
+          await ChatAuditService.logModerationBlocked({
+            userId: user.id,
+            organizationId,
+            chatContext: "organization",
+            flaggedCategories: categories,
+            ipAddress: metadata.ipAddress,
+            userAgent: metadata.userAgent,
+          });
+          return NextResponse.json({ error: err.message }, { status: 400 });
+        }
+        throw err;
+      }
+
+      // Log the query (only after moderation passes)
       await ChatAuditService.logChatQuery({
         userId: user.id,
         organizationId,
@@ -141,8 +161,8 @@ export const POST = withRateLimit(
       if (streamResult.isErr()) {
         const err = streamResult.error;
         if (err instanceof GuardrailError) {
-          const categories = (err.violation.details?.categories ??
-            []) as string[];
+          // Moderation runs before stream; this handles other guards (PII, injection, topic)
+          const categories = (err.violation.details?.categories ?? []) as string[];
           await ChatAuditService.logModerationBlocked({
             userId: user.id,
             organizationId,

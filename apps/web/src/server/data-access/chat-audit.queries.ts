@@ -1,4 +1,4 @@
-import { and, desc, eq, gte } from "drizzle-orm";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
   chatAuditLog,
@@ -105,6 +105,26 @@ export class ChatAuditQueries {
       .from(chatAuditLog)
       .where(and(...conditions))
       .orderBy(desc(chatAuditLog.createdAt));
+  }
+
+  static async countModerationBlocks(
+    userId: string,
+    organizationId: string,
+    since?: Date
+  ): Promise<number> {
+    const conditions = [
+      eq(chatAuditLog.userId, userId),
+      eq(chatAuditLog.organizationId, organizationId),
+      eq(chatAuditLog.action, "content_flagged"),
+    ];
+    if (since) {
+      conditions.push(gte(chatAuditLog.createdAt, since));
+    }
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(chatAuditLog)
+      .where(and(...conditions));
+    return Number(result[0]?.count ?? 0);
   }
 
   static async findByAction(

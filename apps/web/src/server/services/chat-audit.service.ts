@@ -227,12 +227,12 @@ export class ChatAuditService {
     since?: Date
   ): Promise<ActionResult<number>> {
     try {
-      const blocks = await ChatAuditQueries.findModerationBlocks(
+      const count = await ChatAuditQueries.countModerationBlocks(
         userId,
         organizationId,
         since
       );
-      return ok(blocks.length);
+      return ok(count);
     } catch (error) {
       logger.error(
         "Failed to get moderation block count",
