@@ -11,9 +11,10 @@ import {
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
 import { ChatQueries } from "@/server/data-access/chat.queries";
-import type { ChatMessage, ToolCall } from "@/server/db/schema/chat-messages";
-import type { CoreMessage } from "ai";
+import type { ChatMessage } from "@/server/db/schema/chat-messages";
+import { generateText, type ModelMessage } from "ai";
 import { err, ok } from "neverthrow";
+import { createGuardedModel } from "../ai/middleware";
 import { connectionPool } from "./connection-pool.service";
 import { PromptBuilder } from "./prompt-builder.service";
 
@@ -30,7 +31,7 @@ const RESERVE_TOKENS = 2000; // Tokens to reserve for system prompt and new mess
 // ============================================================================
 
 export interface ConversationContext {
-  messages: CoreMessage[];
+  messages: ModelMessage[];
   summary?: string;
 }
 
@@ -57,7 +58,7 @@ export class ConversationContextManager {
   /**
    * Count total tokens in an array of messages
    */
-  static countTokensInMessages(messages: CoreMessage[]): number {
+  static countTokensInMessages(messages: ModelMessage[]): number {
     let totalTokens = 0;
     for (const message of messages) {
       // Count content tokens
@@ -90,10 +91,10 @@ export class ConversationContextManager {
    * Always keeps the most recent messages and prunes from the beginning/middle
    */
   static pruneMessagesByTokenLimit(
-    messages: CoreMessage[],
+    messages: ModelMessage[],
     maxTokens: number,
     reserveTokens: number
-  ): CoreMessage[] {
+  ): ModelMessage[] {
     const availableTokens = maxTokens - reserveTokens;
 
     // If messages fit within limit, return as-is
@@ -103,7 +104,7 @@ export class ConversationContextManager {
     }
 
     // Start from the end (most recent) and work backwards
-    const prunedMessages: CoreMessage[] = [];
+    const prunedMessages: ModelMessage[] = [];
     let currentTokens = 0;
 
     // Always keep the last message (user's current query)
@@ -137,21 +138,13 @@ export class ConversationContextManager {
   }
 
   /**
-   * Convert ChatMessage to CoreMessage format
+   * Convert ChatMessage to ModelMessage format
    */
-  private static chatMessageToCoreMessage(message: ChatMessage): CoreMessage {
-    const coreMessage: CoreMessage = {
+  private static chatMessageToModelMessage(message: ChatMessage): ModelMessage {
+    return {
       role: message.role as "user" | "assistant",
       content: message.content,
     };
-
-    // Include tool calls if present
-    if (message.toolCalls && message.toolCalls.length > 0) {
-      (coreMessage as CoreMessage & { toolCalls: ToolCall[] }).toolCalls =
-        message.toolCalls;
-    }
-
-    return coreMessage;
   }
 
   /**
@@ -213,21 +206,29 @@ export class ConversationContextManager {
         conversationText,
       });
 
-      // Call OpenAI API with retry logic
+      // Call AI SDK with guardrails and retry logic
       const completion = await connectionPool.executeWithRetry(
         async () =>
-          connectionPool.getRawOpenAIClient().chat.completions.create({
-            model: "gpt-5-nano",
-            messages: [
-              { role: "system", content: promptResult.systemPrompt },
-              { role: "user", content: promptResult.userPrompt },
-            ],
-            response_format: { type: "json_object" },
+          connectionPool.withOpenAIClient(async (openai) => {
+            const guardedModel = createGuardedModel(openai("gpt-5-nano"), {
+              requestType: "conversation-summary",
+              pii: { mode: "redact" },
+              audit: { enabled: false },
+            });
+
+            return generateText({
+              model: guardedModel,
+              system: promptResult.systemPrompt,
+              prompt: promptResult.userPrompt,
+              providerOptions: {
+                openai: { responseFormat: { type: "json_object" } },
+              },
+            });
           }),
         "openai"
       );
 
-      const responseContent = completion.choices[0]?.message?.content;
+      const responseContent = completion.text;
       if (!responseContent) {
         return err(
           ActionErrors.internal(
@@ -307,9 +308,9 @@ export class ConversationContextManager {
         await ChatQueries.getConversationById(conversationId);
       let existingSummary = conversation?.summary ?? undefined;
 
-      // Convert to CoreMessage format
+      // Convert to ModelMessage format
       const coreMessages = messages.map((msg) =>
-        this.chatMessageToCoreMessage(msg)
+        this.chatMessageToModelMessage(msg)
       );
 
       // Count tokens

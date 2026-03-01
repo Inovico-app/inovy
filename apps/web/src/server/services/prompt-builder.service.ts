@@ -502,6 +502,8 @@ ${escapedContent}
         "system_instructions",
         `${baseSystemPrompt}
 
+${this.buildBaseSecurityInstructions()}
+
 ${this.buildGuardRails()}`
       );
     }
