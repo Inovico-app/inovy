@@ -18,6 +18,7 @@ import type {
 import { streamText } from "ai";
 import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../ai/middleware";
+import { moderateUserInput } from "../ai/middleware/input-moderation.middleware";
 import { getCachedProjectTemplate } from "../cache/project-template.cache";
 import { AgentMetricsService } from "./agent-metrics.service";
 import { connectionPool } from "./connection-pool.service";
@@ -298,6 +299,9 @@ export class ChatService {
       };
       await ChatQueries.createMessage(userMessageEntry);
 
+      // Run input moderation before RAG to avoid computing sources for blocked requests
+      await moderateUserInput(userMessage);
+
       // Get relevant context using RAG search
       const ragContextResult = await this.getRelevantContext(
         userMessage,
@@ -549,6 +553,9 @@ Please answer the user's question based on this information.`
         content: userMessage,
       };
       await ChatQueries.createMessage(userMessageEntry);
+
+      // Run input moderation before RAG to avoid computing sources for blocked requests
+      await moderateUserInput(userMessage);
 
       // Get relevant context using RAG search
       const ragContextResult = await this.getRelevantContext(
@@ -872,6 +879,9 @@ Please answer the user's question based on this information.`
         content: userMessage,
       };
       await ChatQueries.createMessage(userMessageEntry);
+
+      // Run input moderation before RAG to avoid computing sources for blocked requests
+      await moderateUserInput(userMessage);
 
       // Get relevant context using organization-wide RAG search
       const ragContextResult = await this.getRelevantContextOrganizationWide(
@@ -1620,7 +1630,7 @@ Please answer the user's question based on this information. When referencing in
         projectId,
         limit: 8,
         scoreThreshold: 0.6, // Higher threshold for better relevance
-        useHybrid: false,
+        useHybrid: true,
         useReranking: true, // Enable re-ranking for LLM context
       });
 

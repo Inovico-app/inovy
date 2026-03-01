@@ -2,6 +2,7 @@ import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { withRateLimit } from "@/lib/rate-limit";
 import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
+import { GuardrailError } from "@/server/ai/middleware";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
 import { ChatService } from "@/server/services/chat.service";
 import { type NextRequest, NextResponse } from "next/server";
@@ -138,8 +139,12 @@ export const POST = withRateLimit(
       );
 
       if (streamResult.isErr()) {
+        const err = streamResult.error;
+        if (err instanceof GuardrailError) {
+          return NextResponse.json({ error: err.message }, { status: 400 });
+        }
         logger.error("Failed to stream organization response", {
-          error: streamResult.error,
+          error: err,
         });
         return NextResponse.json(
           { error: "Failed to generate response" },

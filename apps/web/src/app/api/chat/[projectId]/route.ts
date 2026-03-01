@@ -2,9 +2,10 @@ import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import { GuardrailError } from "@/server/ai/middleware";
+import { AgentConfigService } from "@/server/services/agent-config.service";
 import { ChatService } from "@/server/services/chat.service";
 import { ProjectService } from "@/server/services/project.service";
-import { AgentConfigService } from "@/server/services/agent-config.service";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -121,7 +122,11 @@ export async function POST(
     );
 
     if (streamResult.isErr()) {
-      logger.error("Failed to stream response", { error: streamResult.error });
+      const err = streamResult.error;
+      if (err instanceof GuardrailError) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+      logger.error("Failed to stream response", { error: err });
       return NextResponse.json(
         { error: "Failed to generate response" },
         { status: 500 }

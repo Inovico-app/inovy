@@ -8,10 +8,10 @@ import {
   SourcesContent,
   SourcesTrigger,
 } from "@/components/ai-elements/sources";
-import { CitationMarker } from "./citation-marker";
-import { EnhancedSourceCard } from "./enhanced-source-card";
 import { useCitationParser } from "../hooks/use-citation-parser";
 import type { SourceReference } from "../types";
+import { CitationMarker } from "./citation-marker";
+import { EnhancedSourceCard } from "./enhanced-source-card";
 
 interface ChatMessage {
   id: string;
@@ -104,9 +104,12 @@ export function ChatMessageList({
                 })}
               </div>
 
-              {/* Show sources for assistant messages */}
+              {/* Show sources only when assistant message has actual content */}
               {message.role === "assistant" &&
-                messageSourcesMap[message.id]?.length > 0 && (
+                messageSourcesMap[message.id]?.length > 0 &&
+                message.parts.some(
+                  (p) => p.type === "text" && (p.text?.trim() ?? "").length > 0
+                ) && (
                   <Sources>
                     <SourcesTrigger
                       count={messageSourcesMap[message.id].length}
@@ -120,7 +123,7 @@ export function ChatMessageList({
                           projectId:
                             context === "organization"
                               ? source.projectId
-                              : projectId ?? undefined,
+                              : (projectId ?? undefined),
                         };
 
                         return (

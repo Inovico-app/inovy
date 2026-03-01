@@ -3,10 +3,11 @@ import { logger } from "@/lib/logger";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
+import { GuardrailError } from "@/server/ai/middleware";
+import { AgentConfigService } from "@/server/services/agent-config.service";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
 import { ChatService } from "@/server/services/chat.service";
 import { ProjectService } from "@/server/services/project.service";
-import { AgentConfigService } from "@/server/services/agent-config.service";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -83,9 +84,8 @@ export async function POST(request: NextRequest) {
     const organizationId = organization.id;
 
     // Check if agent is enabled for this organization
-    const agentStatusResult = await AgentConfigService.isAgentEnabled(
-      organizationId
-    );
+    const agentStatusResult =
+      await AgentConfigService.isAgentEnabled(organizationId);
 
     if (agentStatusResult.isErr() || !agentStatusResult.value) {
       return NextResponse.json(
@@ -214,8 +214,12 @@ export async function POST(request: NextRequest) {
       );
 
       if (streamResult.isErr()) {
+        const err = streamResult.error;
+        if (err instanceof GuardrailError) {
+          return NextResponse.json({ error: err.message }, { status: 400 });
+        }
         logger.error("Failed to stream organization response", {
-          error: streamResult.error,
+          error: err,
         });
         return NextResponse.json(
           { error: "Failed to generate response" },
@@ -307,8 +311,12 @@ export async function POST(request: NextRequest) {
       );
 
       if (streamResult.isErr()) {
+        const err = streamResult.error;
+        if (err instanceof GuardrailError) {
+          return NextResponse.json({ error: err.message }, { status: 400 });
+        }
         logger.error("Failed to stream response", {
-          error: streamResult.error,
+          error: err,
         });
         return NextResponse.json(
           { error: "Failed to generate response" },
