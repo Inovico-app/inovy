@@ -150,6 +150,27 @@ variable "container_app_additional_env_vars" {
   default     = {}
 }
 
+variable "openai_api_key" {
+  description = "OpenAI API key (provided as GitLab/GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "anthropic_api_key" {
+  description = "Anthropic API key (provided as GitLab/GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "better_auth_secret" {
+  description = "Better Auth secret (provided as GitLab/GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

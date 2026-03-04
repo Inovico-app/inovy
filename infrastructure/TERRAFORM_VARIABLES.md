@@ -46,6 +46,11 @@ Configure these in the GitHub repository's `prd` environment:
 
 - `POSTGRESQL_ADMIN_LOGIN` - PostgreSQL administrator username
 - `POSTGRESQL_ADMIN_PASSWORD` - PostgreSQL administrator password
+- `OPENAI_API_KEY` - OpenAI API key for the Container App
+- `ANTHROPIC_API_KEY` - Anthropic API key for the Container App
+- `BETTER_AUTH_SECRET` - Better Auth secret for the Container App
+
+**Note**: When using GitLab CI, configure these as GitLab CI/CD variables (masked) in your environment.
 
 ## How It Works
 

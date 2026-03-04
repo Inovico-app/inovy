@@ -90,6 +90,30 @@ resource "azurerm_container_app" "inovy" {
         value = var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${var.container_app_environment_default_domain}" : "http://inovy-app-${var.environment}.${var.container_app_environment_default_domain}"
       }
 
+      dynamic "env" {
+        for_each = var.openai_api_key != "" ? [1] : []
+        content {
+          name  = "OPENAI_API_KEY"
+          value = var.openai_api_key
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.anthropic_api_key != "" ? [1] : []
+        content {
+          name  = "ANTHROPIC_API_KEY"
+          value = var.anthropic_api_key
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.better_auth_secret != "" ? [1] : []
+        content {
+          name  = "BETTER_AUTH_SECRET"
+          value = var.better_auth_secret
+        }
+      }
+
       env {
         name  = "NEXT_PUBLIC_APP_URL"
         value = var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${var.container_app_environment_default_domain}" : "http://inovy-app-${var.environment}.${var.container_app_environment_default_domain}"
