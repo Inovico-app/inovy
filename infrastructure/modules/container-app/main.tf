@@ -91,7 +91,7 @@ resource "azurerm_container_app" "inovy" {
       }
 
       dynamic "env" {
-        for_each = var.openai_api_key != "" ? [1] : []
+        for_each = var.openai_api_key != "" ? toset(["openai"]) : toset([])
         content {
           name  = "OPENAI_API_KEY"
           value = var.openai_api_key
@@ -99,7 +99,7 @@ resource "azurerm_container_app" "inovy" {
       }
 
       dynamic "env" {
-        for_each = var.anthropic_api_key != "" ? [1] : []
+        for_each = var.anthropic_api_key != "" ? toset(["anthropic"]) : toset([])
         content {
           name  = "ANTHROPIC_API_KEY"
           value = var.anthropic_api_key
@@ -107,7 +107,7 @@ resource "azurerm_container_app" "inovy" {
       }
 
       dynamic "env" {
-        for_each = var.better_auth_secret != "" ? [1] : []
+        for_each = var.better_auth_secret != "" ? toset(["auth"]) : toset([])
         content {
           name  = "BETTER_AUTH_SECRET"
           value = var.better_auth_secret
