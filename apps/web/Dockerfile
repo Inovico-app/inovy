@@ -35,8 +35,17 @@ ENV NODE_ENV=production
 ENV DOCKER_BUILD=true
 ENV NEXT_TELEMETRY_DISABLED=1
 
+RUN corepack enable && corepack prepare pnpm@10.27.0 --activate
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+
+# Migration support (pnpm db:migrate in ACA Jobs)
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml /app/turbo.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/web/package.json /app/apps/web/drizzle.config.ts ./apps/web/
+COPY --from=builder /app/apps/web/src/server/db ./apps/web/src/server/db
+COPY --from=builder /app/apps/web/node_modules ./apps/web/node_modules
 
 COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
