@@ -133,16 +133,13 @@ The Container App is configured with environment variables from Terraform output
 
 ### Database Migration
 
-After infrastructure is deployed, run database migrations:
+Migrations run automatically when PRs that change `apps/web/src/server/db/migrations/**` are merged to `main`. The `migrate-prod-db.yml` workflow:
 
-```bash
-# Set DATABASE_URL environment variable
-export DATABASE_URL="postgresql://adminuser:password@inovy-db-prd.postgres.database.azure.com:5432/inovy?sslmode=require"
+1. Builds and pushes the app image to ACR
+2. Starts the `db-migrate-prd` Azure Container Apps Job (runs inside the VNet)
+3. Waits for the job to complete
 
-# Run migrations
-cd apps/web
-pnpm db:migrate
-```
+The database is private (`public_network_access_enabled = false`), so migrations cannot run from public GitHub runners. The job runs in the same Container Apps environment as the app and can reach PostgreSQL.
 
 ## Troubleshooting
 

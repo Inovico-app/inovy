@@ -318,3 +318,32 @@ module "container_app" {
     ManagedBy   = "terraform"
   }
 }
+
+# Database migration job - runs pnpm db:migrate inside VNet, triggered by GitHub Actions
+module "db_migrate_job" {
+  source = "./modules/db-migrate-job"
+
+  environment                    = var.environment
+  location                       = var.location
+  resource_group_name            = azurerm_resource_group.inovy.name
+  container_app_environment_id   = data.azurerm_container_app_environment.current.id
+  managed_identity_id            = module.container_app_identity.managed_identity_id
+  container_app_image            = "${module.container_registry.acr_login_server}/inovy-app:latest"
+  acr_login_server               = module.container_registry.acr_login_server
+  postgresql_admin_login         = module.database.postgresql_administrator_login
+  postgresql_admin_password      = var.postgresql_admin_password
+  postgresql_fqdn                = module.database.postgresql_server_fqdn
+  postgresql_database_name       = module.database.postgresql_database_name
+
+  depends_on = [
+    module.container_registry,
+    module.database,
+    module.container_app_environment
+  ]
+
+  tags = {
+    Environment = var.environment
+    Application = "inovy"
+    ManagedBy   = "terraform"
+  }
+}
