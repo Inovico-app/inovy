@@ -46,8 +46,13 @@ resource "azurerm_container_app" "inovy" {
       }
 
       env {
-        name  = "REDIS_URL"
-        value = var.redis_url
+        name  = "UPSTASH_REDIS_REST_URL"
+        value = var.upstash_redis_rest_url
+      }
+
+      env {
+        name  = "UPSTASH_REDIS_REST_TOKEN"
+        value = var.upstash_redis_rest_token
       }
 
       env {

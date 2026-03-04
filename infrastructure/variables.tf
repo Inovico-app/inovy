@@ -145,7 +145,7 @@ variable "redis_memory" {
 variable "redis_min_replicas" {
   description = "Minimum number of Redis replicas"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "redis_max_replicas" {
@@ -176,7 +176,7 @@ variable "qdrant_memory" {
 variable "qdrant_min_replicas" {
   description = "Minimum number of Qdrant replicas"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "qdrant_max_replicas" {
@@ -240,7 +240,7 @@ variable "container_app_image" {
 variable "container_app_min_replicas" {
   description = "Minimum number of replicas for Container App"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "container_app_max_replicas" {

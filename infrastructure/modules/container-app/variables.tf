@@ -50,8 +50,13 @@ variable "postgresql_database_name" {
   type        = string
 }
 
-variable "redis_url" {
-  description = "Redis connection URL (redis://:password@host:port) for standard Redis"
+variable "upstash_redis_rest_url" {
+  description = "Upstash Redis REST URL (http scheme + redis hostname)"
+  type        = string
+}
+
+variable "upstash_redis_rest_token" {
+  description = "Upstash Redis REST token (from REDIS_PASSWORD secret)"
   type        = string
   sensitive   = true
 }
@@ -99,7 +104,7 @@ variable "acr_login_server" {
 variable "container_app_min_replicas" {
   description = "Minimum number of replicas for Container App"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "container_app_max_replicas" {

@@ -39,7 +39,7 @@ variable "qdrant_memory" {
 variable "qdrant_min_replicas" {
   description = "Minimum number of Qdrant replicas"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "qdrant_max_replicas" {

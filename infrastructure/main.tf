@@ -275,7 +275,8 @@ module "container_app" {
   postgresql_admin_password                    = var.postgresql_admin_password
   postgresql_fqdn                              = module.database.postgresql_server_fqdn
   postgresql_database_name                     = module.database.postgresql_database_name
-  redis_url                                    = module.redis.redis_url
+  upstash_redis_rest_url                        = "http://${module.redis.redis_hostname}"
+  upstash_redis_rest_token                      = var.redis_password
   qdrant_url                                   = module.qdrant.qdrant_url
   qdrant_api_key                               = var.qdrant_api_key
   storage_account_name                         = module.storage.storage_account_name
