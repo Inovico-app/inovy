@@ -91,6 +91,21 @@ resource "azurerm_container_app" "inovy" {
       }
 
       env {
+        name  = "OPENAI_API_KEY"
+        value = var.openai_api_key
+      }
+
+      env {
+        name  = "ANTHROPIC_API_KEY"
+        value = var.anthropic_api_key
+      }
+
+      env {
+        name  = "BETTER_AUTH_SECRET"
+        value = var.better_auth_secret
+      }
+
+      env {
         name  = "NEXT_PUBLIC_APP_URL"
         value = var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${var.container_app_environment_default_domain}" : "http://inovy-app-${var.environment}.${var.container_app_environment_default_domain}"
       }

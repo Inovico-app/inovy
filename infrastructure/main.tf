@@ -291,16 +291,10 @@ module "container_app" {
   container_app_external_ingress               = var.container_app_external_ingress
   container_app_revision_mode                  = var.container_app_revision_mode
   container_app_http_scale_concurrent_requests = var.container_app_http_scale_concurrent_requests
-  container_app_additional_env_vars = merge(
-    var.container_app_additional_env_vars,
-    {
-      for k, v in {
-        "OPENAI_API_KEY"     = var.openai_api_key
-        "ANTHROPIC_API_KEY"  = var.anthropic_api_key
-        "BETTER_AUTH_SECRET" = var.better_auth_secret
-      } : k => v if v != ""
-    }
-  )
+  container_app_additional_env_vars            = var.container_app_additional_env_vars
+  openai_api_key                               = var.openai_api_key
+  anthropic_api_key                            = var.anthropic_api_key
+  better_auth_secret                           = var.better_auth_secret
 
   depends_on = [
     module.networking,
