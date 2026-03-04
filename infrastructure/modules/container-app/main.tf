@@ -106,6 +106,36 @@ resource "azurerm_container_app" "inovy" {
       }
 
       env {
+        name  = "DEEPGRAM_API_KEY"
+        value = var.deepgram_api_key
+      }
+
+      env {
+        name  = "RECALL_API_KEY"
+        value = var.recall_api_key
+      }
+
+      env {
+        name  = "RECALL_WEBHOOK_SECRET"
+        value = var.recall_webhook_secret
+      }
+
+      env {
+        name  = "RESEND_API_KEY"
+        value = var.resend_api_key
+      }
+
+      env {
+        name  = "HUGGINGFACE_API_KEY"
+        value = var.huggingface_api_key
+      }
+
+      env {
+        name  = "OAUTH_ENCRYPTION_KEY"
+        value = var.oauth_encryption_key
+      }
+
+      env {
         name  = "BETTER_AUTH_SECRET"
         value = var.better_auth_secret
       }

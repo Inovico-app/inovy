@@ -94,6 +94,12 @@ jobs:
           TF_VAR_redis_password: ${{ secrets.REDIS_PASSWORD }}
           TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
           TF_VAR_anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          TF_VAR_deepgram_api_key: ${{ secrets.DEEPGRAM_API_KEY }}
+          TF_VAR_recall_api_key: ${{ secrets.RECALL_API_KEY }}
+          TF_VAR_recall_webhook_secret: ${{ secrets.RECALL_WEBHOOK_SECRET }}
+          TF_VAR_resend_api_key: ${{ secrets.RESEND_API_KEY }}
+          TF_VAR_huggingface_api_key: ${{ secrets.HUGGINGFACE_API_KEY }}
+          TF_VAR_oauth_encryption_key: ${{ secrets.OAUTH_ENCRYPTION_KEY }}
           TF_VAR_better_auth_secret: ${{ secrets.BETTER_AUTH_SECRET }}
         run: |
           terraform plan \
@@ -188,4 +194,10 @@ jobs:
           TF_VAR_redis_password: ${{ secrets.REDIS_PASSWORD }}
           TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
           TF_VAR_anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          TF_VAR_deepgram_api_key: ${{ secrets.DEEPGRAM_API_KEY }}
+          TF_VAR_recall_api_key: ${{ secrets.RECALL_API_KEY }}
+          TF_VAR_recall_webhook_secret: ${{ secrets.RECALL_WEBHOOK_SECRET }}
+          TF_VAR_resend_api_key: ${{ secrets.RESEND_API_KEY }}
+          TF_VAR_huggingface_api_key: ${{ secrets.HUGGINGFACE_API_KEY }}
+          TF_VAR_oauth_encryption_key: ${{ secrets.OAUTH_ENCRYPTION_KEY }}
           TF_VAR_better_auth_secret: ${{ secrets.BETTER_AUTH_SECRET }}

@@ -295,6 +295,12 @@ module "container_app" {
   container_app_additional_env_vars            = var.container_app_additional_env_vars
   openai_api_key                               = var.openai_api_key
   anthropic_api_key                            = var.anthropic_api_key
+  deepgram_api_key                             = var.deepgram_api_key
+  recall_api_key                               = var.recall_api_key
+  recall_webhook_secret                        = var.recall_webhook_secret
+  resend_api_key                               = var.resend_api_key
+  huggingface_api_key                          = var.huggingface_api_key
+  oauth_encryption_key                         = var.oauth_encryption_key
   better_auth_secret                           = var.better_auth_secret
 
   depends_on = [

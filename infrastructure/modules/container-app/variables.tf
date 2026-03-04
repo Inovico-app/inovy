@@ -169,6 +169,48 @@ variable "anthropic_api_key" {
   sensitive   = true
 }
 
+variable "deepgram_api_key" {
+  description = "Deepgram API key (provided as GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "recall_api_key" {
+  description = "Recall API key (provided as GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "recall_webhook_secret" {
+  description = "Recall webhook secret (provided as GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "resend_api_key" {
+  description = "Resend API key (provided as GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "huggingface_api_key" {
+  description = "Hugging Face API key (provided as GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "oauth_encryption_key" {
+  description = "OAuth encryption key for token storage (32 bytes hex, provided as GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "better_auth_secret" {
   description = "Better Auth secret (provided as GitLab/GitHub secret)"
   type        = string
