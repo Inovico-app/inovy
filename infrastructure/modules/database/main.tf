@@ -64,6 +64,13 @@ resource "azurerm_postgresql_flexible_server" "inovy" {
   depends_on = [azurerm_private_dns_zone_virtual_network_link.postgresql]
 }
 
+# Enable vector extension (pgvector) for vector similarity search
+resource "azurerm_postgresql_flexible_server_configuration" "vector" {
+  name      = "azure.extensions"
+  server_id = azurerm_postgresql_flexible_server.inovy.id
+  value     = "vector"
+}
+
 # Database
 resource "azurerm_postgresql_flexible_server_database" "inovy" {
   name      = "inovy"
