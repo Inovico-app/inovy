@@ -275,9 +275,9 @@ module "container_app" {
   postgresql_admin_password                    = var.postgresql_admin_password
   postgresql_fqdn                              = module.database.postgresql_server_fqdn
   postgresql_database_name                     = module.database.postgresql_database_name
-  upstash_redis_rest_url                        = "http://${module.redis.redis_hostname}"
+  upstash_redis_rest_url                        = "http://redis-${var.environment}.internal.${data.azurerm_container_app_environment.current.default_domain}"
   upstash_redis_rest_token                      = var.redis_password
-  qdrant_url                                   = module.qdrant.qdrant_url
+  qdrant_url                                   = "http://qdrant-${var.environment}.internal.${data.azurerm_container_app_environment.current.default_domain}"
   qdrant_api_key                               = var.qdrant_api_key
   storage_account_name                         = module.storage.storage_account_name
   storage_connection_string                    = module.storage.storage_account_primary_connection_string
