@@ -145,30 +145,9 @@ variable "container_app_http_scale_concurrent_requests" {
 }
 
 variable "container_app_additional_env_vars" {
-  description = "Additional environment variables for Container App"
+  description = "Additional environment variables for Container App (includes OPENAI_API_KEY, ANTHROPIC_API_KEY, BETTER_AUTH_SECRET when set)"
   type        = map(string)
   default     = {}
-}
-
-variable "openai_api_key" {
-  description = "OpenAI API key (provided as GitLab/GitHub secret)"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "anthropic_api_key" {
-  description = "Anthropic API key (provided as GitLab/GitHub secret)"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "better_auth_secret" {
-  description = "Better Auth secret (provided as GitLab/GitHub secret)"
-  type        = string
-  default     = ""
-  sensitive   = true
 }
 
 variable "tags" {

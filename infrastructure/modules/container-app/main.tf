@@ -1,15 +1,5 @@
 # Container App for Inovy application
 # Uses shared Container App Environment (from container-app-environment) and managed identity (from container-app-identity)
-locals {
-  optional_secret_env_vars = {
-    for k, v in {
-      "OPENAI_API_KEY"     = var.openai_api_key
-      "ANTHROPIC_API_KEY"  = var.anthropic_api_key
-      "BETTER_AUTH_SECRET" = var.better_auth_secret
-    } : k => v if v != ""
-  }
-}
-
 resource "azurerm_container_app" "inovy" {
   name                         = "inovy-app-${var.environment}"
   container_app_environment_id = var.container_app_environment_id
@@ -98,14 +88,6 @@ resource "azurerm_container_app" "inovy" {
       env {
         name  = "BETTER_AUTH_URL"
         value = var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${var.container_app_environment_default_domain}" : "http://inovy-app-${var.environment}.${var.container_app_environment_default_domain}"
-      }
-
-      dynamic "env" {
-        for_each = local.optional_secret_env_vars
-        content {
-          name  = env.key
-          value = env.value
-        }
       }
 
       env {
