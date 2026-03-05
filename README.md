@@ -965,6 +965,38 @@ Better Auth manages its own schema for:
 - **Passkeys** - WebAuthn passkey credentials
 - **Magic Links** - Magic link authentication tokens
 
+## 📚 Documentation
+
+### Configuration and Deployment
+
+- **[CONFIGURATION.md](./CONFIGURATION.md)** - Comprehensive configuration guidelines
+  - Environment variables reference
+  - Service configuration details
+  - Security configuration settings
+  - Configuration validation and testing
+
+- **[SECURITY.md](./SECURITY.md)** - Security guidelines and best practices
+  - Authentication and authorization
+  - Data protection and encryption
+  - Network security and headers
+  - Incident response procedures
+  - Compliance requirements (GDPR, NEN 7510, BIO)
+
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Deployment procedures and guidelines
+  - Production deployment checklist
+  - Environment setup procedures
+  - Monitoring and maintenance
+  - Rollback procedures
+  - Troubleshooting guide
+
+### Additional Documentation
+
+- **[Structure.md](./Structure.md)** - Detailed project structure
+- **[MVP.md](./MVP.md)** - Product requirements
+- **[USER_STORIES.md](./USER_STORIES.md)** - Development user stories
+
+---
+
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -972,7 +1004,8 @@ Better Auth manages its own schema for:
 3. Follow the established architecture patterns
 4. Add proper DTOs and type safety
 5. Include comprehensive error handling
-6. Submit a pull request
+6. Review security guidelines in [SECURITY.md](./SECURITY.md)
+7. Submit a pull request
 
 ## 📄 License
 
@@ -981,4 +1014,11 @@ This project is private and proprietary.
 ## 🙋‍♂️ Support
 
 For questions and support, please refer to the project documentation or contact the development team.
+
+### Documentation Resources
+
+- **Setup**: [README.md](./README.md)
+- **Configuration**: [CONFIGURATION.md](./CONFIGURATION.md)
+- **Security**: [SECURITY.md](./SECURITY.md)
+- **Deployment**: [DEPLOYMENT.md](./DEPLOYMENT.md)
 
