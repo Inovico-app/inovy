@@ -1,15 +1,27 @@
 /**
  * Better Auth Access Control Configuration
  * Defines resources, actions, and roles for RBAC using Better Auth's access control plugin
+ *
+ * SSD-7.1.01 Compliance: Authorization Groups Structure
+ * This file defines the foundational access control statements that are organized
+ * into authorization groups in authorization-groups.ts for better manageability.
  */
 
 import { createAccessControl } from "better-auth/plugins/access";
 
 /**
  * Access control statements defining all resources and their available actions
- * Maps to our application's policies
+ * Organized by functional category for clarity and maintainability
+ *
+ * Authorization Groups (defined in authorization-groups.ts) use these resources
+ * to create manageable permission sets that can be assigned to roles.
  */
 const statement = {
+  /**
+   * Content Management Resources
+   * Core content types that users create and manage
+   */
+
   // Project management
   project: ["create", "read", "update", "delete"],
 
@@ -19,44 +31,69 @@ const statement = {
   // Task management
   task: ["create", "read", "update", "delete"],
 
+  /**
+   * Organization Administration Resources
+   * Organization-level configuration and structure
+   */
+
   // Organization management
   organization: ["create", "list", "read", "update", "delete"],
-
-  // User management
-  user: ["create", "read", "update", "delete"],
-
-  // Chat management
-  chat: ["project", "organization"],
-
-  // Superadmin actions
-  superadmin: ["all"],
-
-  // Admin actions
-  admin: ["all"],
-
-  // Organization instructions
-  orgInstruction: ["read", "write"],
-
-  // Deepgram management
-  deepgram: ["token"],
-
-  // Settings management
-  setting: ["read", "update"],
-
-  // Integrations management
-  integration: ["manage"],
 
   // Team management
   team: ["create", "read", "update", "delete"],
 
-  // Audit log management
-  "audit-log": ["read"],
+  // Settings management
+  setting: ["read", "update"],
+
+  // Organization instructions
+  orgInstruction: ["read", "write"],
+
+  /**
+   * User Management Resources
+   * User accounts and invitations
+   */
+
+  // User management
+  user: ["create", "read", "update", "delete"],
+
+  // Invitation management
+  invitation: ["create", "cancel"],
 
   // Onboarding management
   onboarding: ["create", "read", "update", "complete"],
 
-  // Invitation management
-  invitation: ["create", "cancel"],
+  /**
+   * System Administration Resources
+   * System-level operations and monitoring
+   */
+
+  // Superadmin actions (cross-organization)
+  superadmin: ["all"],
+
+  // Admin actions (organization-scoped)
+  admin: ["all"],
+
+  // Audit log management
+  "audit-log": ["read"],
+
+  /**
+   * Integration Management Resources
+   * Third-party services and integrations
+   */
+
+  // Integrations management
+  integration: ["manage"],
+
+  // Deepgram management
+  deepgram: ["token"],
+
+  /**
+   * Communication Resources
+   * Chat and messaging features
+   */
+
+  // Chat management
+  chat: ["project", "organization"],
 } as const;
 
 /**
@@ -67,9 +104,28 @@ export const ac = createAccessControl(statement);
 /**
  * Define roles with their permissions
  * Maps Better Auth organization roles (owner, admin, member) to application permissions
+ *
+ * These role definitions implement the authorization groups defined in authorization-groups.ts
+ * Each role is systematically assigned permissions based on their authorization group memberships.
+ *
+ * See authorization-groups.ts for the complete authorization group structure and
+ * AUTHORIZATION_GROUPS.md for detailed documentation and compliance information.
  */
 
-// Super Admin - Full access to everything
+/**
+ * Super Admin Role
+ *
+ * Authorization Groups:
+ * - System: SUPERADMIN_FULL, ADMIN_FULL, AUDIT_LOG_READER
+ * - Organization: ORG_FULL, ORG_INSTRUCTION_WRITER
+ * - Content: CONTENT_FULL_ACCESS
+ * - User: USER_FULL, INVITATION_MANAGER
+ * - Integration: INTEGRATION_FULL (includes DEEPGRAM_ACCESS)
+ * - Communication: CHAT_FULL
+ *
+ * Scope: Cross-organization system access
+ * Use Case: Platform administration, system configuration
+ */
 export const superAdmin = ac.newRole({
   project: ["create", "read", "update", "delete"],
   recording: ["create", "read", "update", "delete"],
@@ -89,7 +145,20 @@ export const superAdmin = ac.newRole({
   invitation: ["create", "cancel"],
 });
 
-// Admin - Full access except super admin features
+/**
+ * Admin Role
+ *
+ * Authorization Groups:
+ * - System: ADMIN_FULL, AUDIT_LOG_READER
+ * - Organization: ORG_FULL, ORG_INSTRUCTION_WRITER
+ * - Content: CONTENT_FULL_ACCESS
+ * - User: USER_FULL, INVITATION_MANAGER
+ * - Integration: INTEGRATION_MANAGER (no DEEPGRAM_ACCESS)
+ * - Communication: CHAT_FULL
+ *
+ * Scope: Full access within organization
+ * Use Case: Organization administration, user management, content oversight
+ */
 export const admin = ac.newRole({
   project: ["create", "read", "update", "delete"],
   recording: ["create", "read", "update", "delete"],
@@ -108,7 +177,19 @@ export const admin = ac.newRole({
   invitation: ["create", "cancel"],
 });
 
-// Manager - Limited admin access
+/**
+ * Manager Role
+ *
+ * Authorization Groups:
+ * - Organization: ORG_SETTINGS_MANAGER, TEAM_VIEWER, ORG_INSTRUCTION_READER
+ * - Content: CONTENT_FULL_ACCESS
+ * - User: USER_VIEWER, INVITATION_MANAGER
+ * - Integration: INTEGRATION_MANAGER
+ * - Communication: CHAT_PROJECT (no organization chat)
+ *
+ * Scope: Content and team management within organization
+ * Use Case: Project management, team coordination, content creation
+ */
 export const manager = ac.newRole({
   project: ["create", "read", "update", "delete"],
   recording: ["create", "read", "update", "delete"],
@@ -125,7 +206,18 @@ export const manager = ac.newRole({
   invitation: ["create", "cancel"],
 });
 
-// User - Standard user permissions
+/**
+ * User Role
+ *
+ * Authorization Groups:
+ * - Content: PROJECT_EDITOR, RECORDING_EDITOR, TASK_EDITOR (no delete)
+ * - User: USER_VIEWER (self-view only)
+ * - Organization: ORG_INSTRUCTION_READER, TEAM_VIEWER
+ * - Communication: CHAT_PROJECT
+ *
+ * Scope: Content contribution within organization
+ * Use Case: Create and edit content, participate in projects, collaborate with team
+ */
 export const user = ac.newRole({
   project: ["create", "read", "update"],
   recording: ["create", "read", "update"],
@@ -142,7 +234,18 @@ export const user = ac.newRole({
   onboarding: ["create", "read", "update", "complete"],
 });
 
-// Viewer - Read-only access
+/**
+ * Viewer Role
+ *
+ * Authorization Groups:
+ * - Content: PROJECT_VIEWER, RECORDING_VIEWER, TASK_VIEWER (read-only)
+ * - User: USER_VIEWER
+ * - Organization: ORG_INSTRUCTION_READER, TEAM_VIEWER
+ * - Communication: CHAT_PROJECT
+ *
+ * Scope: Read-only access within organization
+ * Use Case: Review content, observe projects, read-only collaboration
+ */
 export const viewer = ac.newRole({
   project: ["read"],
   recording: ["read"],
