@@ -124,6 +124,13 @@ async function resolveWebhookMetadata(
       projectId ??= fallbackSession.projectId;
       organizationId ??= fallbackSession.organizationId;
       userId ??= fallbackSession.userId;
+    } else {
+      logger.error("DB fallback failed: no session found for botId", {
+        component,
+        botId,
+        botIdType: typeof botId,
+        botIdLength: botId.length,
+      });
     }
   }
 
@@ -132,6 +139,11 @@ async function resolveWebhookMetadata(
       component,
       botId,
       metadata,
+      resolvedFields: {
+        hasProjectId: !!projectId,
+        hasOrganizationId: !!organizationId,
+        hasUserId: !!userId,
+      },
     });
     return null;
   }
