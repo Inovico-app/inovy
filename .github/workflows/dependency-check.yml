@@ -1,0 +1,232 @@
+name: Weekly Dependency Health Check
+
+# SSD-3.1.01: Scheduled dependency verification and monitoring
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  dependency-health-check:
+    name: Dependency Health Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.9"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run dependency verification script
+        id: verify
+        run: |
+          chmod +x scripts/verify-dependencies.sh
+          ./scripts/verify-dependencies.sh > verification-report.txt 2>&1 || true
+          cat verification-report.txt
+
+      - name: Check for outdated dependencies
+        id: outdated
+        run: |
+          echo "Checking for outdated dependencies..."
+          pnpm outdated --json > outdated.json || true
+          
+          OUTDATED_COUNT=$(jq '. | length' outdated.json || echo "0")
+          echo "outdated_count=$OUTDATED_COUNT" >> $GITHUB_OUTPUT
+          
+          echo "### Outdated Dependencies Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Total outdated: $OUTDATED_COUNT" >> $GITHUB_STEP_SUMMARY
+
+      - name: Security audit summary
+        id: audit
+        run: |
+          echo "Running security audit..."
+          pnpm audit --json > audit.json || true
+          
+          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit.json)
+          HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit.json)
+          MODERATE=$(jq '.metadata.vulnerabilities.moderate // 0' audit.json)
+          
+          echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+          echo "high=$HIGH" >> $GITHUB_OUTPUT
+          echo "moderate=$MODERATE" >> $GITHUB_OUTPUT
+          
+          echo "### Security Audit Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Critical: $CRITICAL" >> $GITHUB_STEP_SUMMARY
+          echo "- High: $HIGH" >> $GITHUB_STEP_SUMMARY
+          echo "- Moderate: $MODERATE" >> $GITHUB_STEP_SUMMARY
+
+      - name: Create health check report
+        run: |
+          cat > health-report.md << 'EOF'
+          # Weekly Dependency Health Check Report
+          
+          **Date**: $(date +%Y-%m-%d)
+          **Status**: Automated Report
+          
+          ## Summary
+          
+          - **Critical Vulnerabilities**: ${{ steps.audit.outputs.critical }}
+          - **High Vulnerabilities**: ${{ steps.audit.outputs.high }}
+          - **Moderate Vulnerabilities**: ${{ steps.audit.outputs.moderate }}
+          - **Outdated Dependencies**: ${{ steps.outdated.outputs.outdated_count }}
+          
+          ## Action Required
+          
+          - [ ] Review security vulnerabilities
+          - [ ] Update outdated dependencies
+          - [ ] Review Dependabot PRs
+          - [ ] Update dependency lifecycle documentation if needed
+          
+          ## Details
+          
+          See workflow artifacts for detailed reports:
+          - Verification report
+          - Audit report (JSON)
+          - Outdated dependencies list (JSON)
+          
+          ## Compliance
+          
+          This report is part of SSD-3.1.01 compliance for supply chain security.
+          
+          ---
+          *Generated automatically by GitHub Actions*
+          EOF
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-health-reports
+          path: |
+            verification-report.txt
+            audit.json
+            outdated.json
+            health-report.md
+          retention-days: 90
+
+      - name: Create GitHub issue for critical findings
+        if: steps.audit.outputs.critical != '0' || steps.audit.outputs.high != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const critical = '${{ steps.audit.outputs.critical }}';
+            const high = '${{ steps.audit.outputs.high }}';
+            
+            const issueBody = `# ⚠️ Security Vulnerabilities Detected
+            
+            **Critical Vulnerabilities**: ${critical}
+            **High Vulnerabilities**: ${high}
+            
+            ## Action Required
+            
+            Immediate action is required to address these security vulnerabilities per our [Dependency Lifecycle Management Plan](./DEPENDENCY_LIFECYCLE.md).
+            
+            ### Response Timeline
+            - **Critical**: 24 hours
+            - **High**: 1 week
+            
+            ## Steps to Resolve
+            
+            1. Review the security audit report in workflow artifacts
+            2. Check for available security patches
+            3. Apply patches or update dependencies
+            4. Run \`pnpm security:verify\` to verify fix
+            5. Deploy security updates
+            
+            ## Resources
+            
+            - [Security Policy](./SECURITY.md)
+            - [Dependency Lifecycle Plan](./DEPENDENCY_LIFECYCLE.md)
+            - [Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            
+            **SSD Reference**: SSD-3.1.01
+            **Compliance**: NEN 7510, BIO
+            
+            ---
+            *Auto-generated by weekly dependency health check*
+            `;
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[SECURITY] Critical/High Vulnerabilities Detected - ${new Date().toISOString().split('T')[0]}`,
+              body: issueBody,
+              labels: ['security', 'dependencies', 'urgent']
+            });
+
+  dependency-stats:
+    name: Generate Dependency Statistics
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.9"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate dependency statistics
+        run: |
+          echo "### Dependency Statistics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Count total dependencies
+          TOTAL_DEPS=$(pnpm list --json --depth=0 | jq '[.[] | .dependencies // {} | to_entries] | flatten | length')
+          echo "- Total direct dependencies: $TOTAL_DEPS" >> $GITHUB_STEP_SUMMARY
+          
+          # Count dev dependencies
+          DEV_DEPS=$(pnpm list --json --depth=0 --dev | jq '[.[] | .devDependencies // {} | to_entries] | flatten | length')
+          echo "- Development dependencies: $DEV_DEPS" >> $GITHUB_STEP_SUMMARY
+          
+          # Count prod dependencies
+          PROD_DEPS=$((TOTAL_DEPS - DEV_DEPS))
+          echo "- Production dependencies: $PROD_DEPS" >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Target**: Keep total direct dependencies under 100" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check dependency depth
+        run: |
+          echo "Analyzing dependency tree depth..."
+          pnpm list --depth=5 > dependency-tree.txt
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Dependency tree generated (see artifacts)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload statistics
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-statistics
+          path: dependency-tree.txt
+          retention-days: 30
