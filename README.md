@@ -26,6 +26,7 @@ Inovy is a modern web application that helps organizations manage meeting record
 - **Clean Architecture** - Separation of concerns with proper data access patterns
 - **Type Safety** - Full TypeScript implementation with comprehensive DTOs
 - **Enterprise Security** - Better Auth with OAuth, Passkey, Magic Link, and RBAC
+- **Encryption at Rest** - AES-256-GCM encryption for sensitive data (secure by default)
 - **Multi-Layer Caching** - Redis + Next.js cache components for optimal performance
 - **Modern UI** - Responsive design with Shadcn/UI, Radix UI, and Tailwind CSS 4
 - **Database** - PostgreSQL with Drizzle ORM for type-safe queries
@@ -386,9 +387,19 @@ Notification Dispatch
    # Recall.ai (Meeting Bot)
    RECALL_WEBHOOK_SECRET="your-recall-webhook-secret"
 
+   # Encryption (Required for production)
+   # Generate with: openssl rand -hex 32
+   ENCRYPTION_MASTER_KEY="your-encryption-master-key"  # 64 hex chars for AES-256
+   OAUTH_ENCRYPTION_KEY="your-oauth-encryption-key"    # 64 hex chars for OAuth tokens
+   
+   # Optional: Disable encryption (not recommended for production)
+   # DISABLE_ENCRYPTION_AT_REST=true
+
    # Optional: Development
    NODE_ENV="development"
    ```
+
+   > **🔐 Security Note**: Encryption at rest is enabled by default. See [apps/web/SECURITY.md](apps/web/SECURITY.md) for detailed security documentation and key management practices.
 
 4. **Database Setup**
 

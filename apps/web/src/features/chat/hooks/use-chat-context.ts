@@ -133,23 +133,25 @@ export function useChatContext({
     currentProjectName,
     showSwitchDialog,
     pendingContext,
-    setContext,
-    setProjectId,
-    setConversationId,
+    setContext: (newContext: "organization" | "project") => void setContext(newContext),
+    setProjectId: (id: string | null) => void setProjectId(id),
+    setConversationId: (id: string | null) => void setConversationId(id),
     handleContextChange: (
       newContext: "organization" | "project",
       newProjectId?: string
     ): void => {
-      handleContextChange(newContext, newProjectId ?? undefined, false);
+      void handleContextChange(newContext, newProjectId ?? undefined, false);
     },
     handleContextChangeWithMessages: (
       newContext: "organization" | "project",
       newProjectId?: string,
       hasMessages = false
     ): void => {
-      handleContextChange(newContext, newProjectId ?? undefined, hasMessages);
+      void handleContextChange(newContext, newProjectId ?? undefined, hasMessages);
     },
-    handleConfirmContextSwitch,
+    handleConfirmContextSwitch: (): void => {
+      void handleConfirmContextSwitch();
+    },
     setShowSwitchDialog,
     getTargetContextName,
   };

@@ -16,6 +16,7 @@
     "db:seed": "tsx --env-file=.env.local src/server/db/seed.ts",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx src --fix --max-warnings 0",
     "typecheck": "tsc",
+    "test:encryption": "npx tsx --env-file=.env.local src/lib/__tests__/encryption.test.ts",
     "index-project": "npx tsx --env-file=.env.local src/scripts/index-project-content.ts",
     "optimize-qdrant": "npx tsx --env-file=.env.local src/scripts/optimize-qdrant-collections.ts",
     "auth:generate": "pnpx @better-auth/cli generate && pnpm tsx scripts/add-role-types.ts",
