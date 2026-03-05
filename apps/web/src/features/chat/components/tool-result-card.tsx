@@ -55,6 +55,29 @@ function ProjectsResult({ output }: { output: unknown }) {
   );
 }
 
+interface Recording {
+  id: string;
+  title: string;
+  projectName: string | null;
+  status: string;
+  recordingDate: Date | string | null;
+  duration: number | null;
+}
+
+interface RecordingsResultData {
+  recordings?: Recording[];
+  total?: number;
+  error?: string;
+}
+
+function isRecordingsResult(output: unknown): output is RecordingsResultData {
+  if (typeof output !== "object" || output === null) return false;
+  const obj = output as Record<string, unknown>;
+  if ("error" in obj && typeof obj.error === "string") return true;
+  if ("recordings" in obj && Array.isArray(obj.recordings)) return true;
+  return false;
+}
+
 function formatDuration(seconds: number | null): string {
   if (seconds == null) return "--";
   if (seconds < 60) return `${seconds}s`;
@@ -66,18 +89,13 @@ function formatDuration(seconds: number | null): string {
 }
 
 function RecordingsResult({ output }: { output: unknown }) {
-  const data = output as {
-    recordings?: Array<{
-      id: string;
-      title: string;
-      projectName: string | null;
-      status: string;
-      recordingDate: Date | string | null;
-      duration: number | null;
-    }>;
-    total?: number;
-    error?: string;
-  };
+  if (!isRecordingsResult(output)) {
+    return (
+      <p className="text-sm text-destructive">Unexpected recordings format.</p>
+    );
+  }
+
+  const data: RecordingsResultData = output;
 
   if (data.error) {
     return <p className="text-sm text-destructive">{data.error}</p>;

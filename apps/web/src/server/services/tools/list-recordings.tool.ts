@@ -14,15 +14,15 @@ export function createListRecordingsTool(ctx: ToolContext) {
     }),
     execute: async ({ search, projectId }) => {
       try {
-        const effectiveProjectId = projectId ?? ctx.projectId;
+        const effectiveProjectId = ctx.projectId ?? projectId;
 
         if (effectiveProjectId) {
           const recs = await RecordingsQueries.selectRecordingsByProjectId(
             effectiveProjectId,
             ctx.organizationId,
-            { search, statusFilter: "active" }
+            { search, statusFilter: "active", limit: 20 }
           );
-          const results = recs.slice(0, 20).map((r) => ({
+          const results = recs.map((r) => ({
             id: r.id,
             title: r.title,
             projectName: null as string | null,
@@ -31,14 +31,14 @@ export function createListRecordingsTool(ctx: ToolContext) {
             duration: r.duration,
           }));
 
-          return { recordings: results, total: recs.length };
+          return { recordings: results, total: results.length };
         }
 
         const recs = await RecordingsQueries.selectRecordingsByOrganization(
           ctx.organizationId,
-          { search, statusFilter: "active" }
+          { search, statusFilter: "active", limit: 20 }
         );
-        const results = recs.slice(0, 20).map((r) => ({
+        const results = recs.map((r) => ({
           id: r.id,
           title: r.title,
           projectName: r.projectName,
@@ -47,7 +47,7 @@ export function createListRecordingsTool(ctx: ToolContext) {
           duration: r.duration,
         }));
 
-        return { recordings: results, total: recs.length };
+        return { recordings: results, total: results.length };
       } catch (error) {
         logger.error("Error in list-recordings tool", {
           component: "ListRecordingsTool",
