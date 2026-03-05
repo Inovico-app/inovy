@@ -12,7 +12,7 @@ import { Activity, useEffect, useEffectEvent } from "react";
 import { getConversationMessagesAction } from "../actions/conversation-history";
 import { useChatContext } from "../hooks/use-chat-context";
 import { useChatSources } from "../hooks/use-chat-sources";
-import type { Project } from "../types";
+import type { MessagePart, Project } from "../types";
 import { ChatEmptyState } from "./chat-empty-state";
 import { ChatHeader } from "./chat-header";
 import { ChatInput } from "./chat-input";
@@ -109,16 +109,39 @@ export function UnifiedChatInterface({
       });
       if (result?.data) {
         // Convert ChatMessage[] to format expected by useChat
-        const loadedMessages = result.data.map((msg) => ({
-          id: msg.id,
-          role: msg.role as "user" | "assistant",
-          content: msg.content,
-          createdAt: msg.createdAt,
-          parts: [{ type: "text" as const, text: msg.content }],
-          metadata: msg.sources ? { sources: msg.sources } : undefined,
-        }));
+        const loadedMessages = result.data.map((msg) => {
+          const parts: MessagePart[] = [];
 
-        setMessages(loadedMessages);
+          // Reconstruct tool parts from persisted toolCalls (v6 format)
+          if (msg.toolCalls?.length) {
+            for (const tc of msg.toolCalls) {
+              parts.push({
+                type: `tool-${tc.name}`,
+                toolCallId: tc.id,
+                state: "output-available",
+                input: tc.arguments,
+                output: tc.result ?? {},
+              });
+            }
+          }
+
+          // Always add text part for consistency (matches original behavior)
+          parts.push({ type: "text" as const, text: msg.content });
+
+          return {
+            id: msg.id,
+            role: msg.role as "user" | "assistant",
+            content: msg.content,
+            createdAt: msg.createdAt,
+            parts,
+            metadata: msg.sources ? { sources: msg.sources } : undefined,
+          };
+        });
+
+        // Cast needed: our MessagePart[] is structurally compatible with
+        // UIMessage parts at runtime but TypeScript can't verify the union
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setMessages(loadedMessages as any);
       }
     } catch (error) {
       console.error("Failed to load conversation history:", error);

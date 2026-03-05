@@ -9,14 +9,20 @@ import {
   SourcesTrigger,
 } from "@/components/ai-elements/sources";
 import { useCitationParser } from "../hooks/use-citation-parser";
-import type { SourceReference } from "../types";
+import {
+  getToolName,
+  isToolPart,
+  type MessagePart,
+  type SourceReference,
+} from "../types";
 import { CitationMarker } from "./citation-marker";
 import { EnhancedSourceCard } from "./enhanced-source-card";
+import { ToolResultCard } from "./tool-result-card";
 
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
-  parts: Array<{ type: "text"; text?: string | null }>;
+  parts: MessagePart[];
 }
 
 interface ChatMessageListProps {
@@ -69,6 +75,15 @@ export function ChatMessageList({
             <MessageContent>
               <div className="whitespace-pre-wrap break-words">
                 {message.parts.map((part, index) => {
+                  if (isToolPart(part)) {
+                    return (
+                      <ToolResultCard
+                        key={index}
+                        toolName={getToolName(part)}
+                        part={part}
+                      />
+                    );
+                  }
                   if (part.type === "text") {
                     // Parse citations for assistant messages
                     if (message.role === "assistant") {
@@ -107,9 +122,11 @@ export function ChatMessageList({
               {/* Show sources only when assistant message has actual content */}
               {message.role === "assistant" &&
                 messageSourcesMap[message.id]?.length > 0 &&
-                message.parts.some(
-                  (p) => p.type === "text" && (p.text?.trim() ?? "").length > 0
-                ) && (
+                message.parts.some((p) => {
+                  if (p.type !== "text") return false;
+                  const textPart = p as { text?: string | null };
+                  return (textPart.text?.trim() ?? "").length > 0;
+                }) && (
                   <Sources>
                     <SourcesTrigger
                       count={messageSourcesMap[message.id].length}

@@ -15,7 +15,7 @@ import type {
   NewChatMessage,
   SourceReference,
 } from "@/server/db/schema/chat-messages";
-import { streamText } from "ai";
+import { stepCountIs, streamText } from "ai";
 import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../ai/middleware";
 import { moderateUserInput } from "../ai/middleware/input-moderation.middleware";
@@ -28,6 +28,11 @@ import { ProjectService } from "./project.service";
 import { PromptBuilder } from "./prompt-builder.service";
 import { RAGService } from "./rag/rag.service";
 import type { SearchResult } from "./rag/types";
+import {
+  buildPersistedToolCalls,
+  createChatTools,
+  type ToolContext,
+} from "./tools";
 import { SearchResultFormatter } from "./search-result-formatter.service";
 
 const RAG_CITATION_INSTRUCTION =
@@ -686,9 +691,18 @@ Please answer the user's question based on this information.`
         pii: { mode: "redact" },
       });
 
+      const toolContext: ToolContext = {
+        organizationId,
+        userId,
+        projectId,
+        chatContext: "project",
+      };
+
       const streamTextOptions: Parameters<typeof streamText>[0] = {
         model: guardedModel,
         system: promptResult.systemPrompt,
+        tools: createChatTools(toolContext),
+        stopWhen: stepCountIs(3),
         messages: [
           ...conversationHistory,
           {
@@ -722,7 +736,7 @@ Please answer the user's question based on this information.`
             error: streamError,
           });
         },
-        async onFinish({ text, usage, toolCalls }) {
+        async onFinish({ text, usage, toolCalls, toolResults }) {
           // Decrement active requests when stream finishes
           pooled.activeRequests--;
 
@@ -779,6 +793,7 @@ Please answer the user's question based on this information.`
             role: "assistant",
             content: text,
             sources,
+            toolCalls: buildPersistedToolCalls(toolCalls, toolResults),
           };
           await ChatQueries.createMessage(assistantMessageEntry);
 
@@ -992,9 +1007,17 @@ Please answer the user's question based on this information. When referencing in
         pii: { mode: "redact" },
       });
 
+      const orgToolContext: ToolContext = {
+        organizationId,
+        userId,
+        chatContext: "organization",
+      };
+
       const streamTextOptions: Parameters<typeof streamText>[0] = {
         model: guardedModel,
         system: promptResult.systemPrompt,
+        tools: createChatTools(orgToolContext),
+        stopWhen: stepCountIs(3),
         messages: [
           ...conversationHistory,
           {
@@ -1030,7 +1053,7 @@ Please answer the user's question based on this information. When referencing in
             }
           );
         },
-        async onFinish({ text, usage, toolCalls }) {
+        async onFinish({ text, usage, toolCalls, toolResults }) {
           // Decrement active requests when stream finishes
           pooled.activeRequests--;
 
@@ -1085,6 +1108,7 @@ Please answer the user's question based on this information. When referencing in
             role: "assistant",
             content: text,
             sources,
+            toolCalls: buildPersistedToolCalls(toolCalls, toolResults),
           };
           await ChatQueries.createMessage(assistantMessageEntry);
 
