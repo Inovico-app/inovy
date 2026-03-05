@@ -2,6 +2,7 @@ import type { ToolCall } from "@/server/db/schema/chat-messages";
 import type { ToolContext } from "./tool-context";
 import { createListProjectsTool } from "./list-projects.tool";
 import { createListRecordingsTool } from "./list-recordings.tool";
+import { createListTasksTool } from "./list-tasks.tool";
 
 export type { ToolContext } from "./tool-context";
 
@@ -9,6 +10,7 @@ export function createChatTools(ctx: ToolContext) {
   return {
     listProjects: createListProjectsTool(ctx),
     listRecordings: createListRecordingsTool(ctx),
+    listTasks: createListTasksTool(ctx),
   };
 }
 

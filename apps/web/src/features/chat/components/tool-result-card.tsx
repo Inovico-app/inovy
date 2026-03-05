@@ -1,4 +1,4 @@
-import { FolderOpen, Loader2, Mic, Wrench } from "lucide-react";
+import { CheckSquare, FolderOpen, Loader2, Mic, Wrench } from "lucide-react";
 import type { ToolPart } from "../types";
 
 interface ToolResultCardProps {
@@ -55,29 +55,6 @@ function ProjectsResult({ output }: { output: unknown }) {
   );
 }
 
-interface Recording {
-  id: string;
-  title: string;
-  projectName: string | null;
-  status: string;
-  recordingDate: Date | string | null;
-  duration: number | null;
-}
-
-interface RecordingsResultData {
-  recordings?: Recording[];
-  total?: number;
-  error?: string;
-}
-
-function isRecordingsResult(output: unknown): output is RecordingsResultData {
-  if (typeof output !== "object" || output === null) return false;
-  const obj = output as Record<string, unknown>;
-  if ("error" in obj && typeof obj.error === "string") return true;
-  if ("recordings" in obj && Array.isArray(obj.recordings)) return true;
-  return false;
-}
-
 function formatDuration(seconds: number | null): string {
   if (seconds == null) return "--";
   if (seconds < 60) return `${seconds}s`;
@@ -89,13 +66,18 @@ function formatDuration(seconds: number | null): string {
 }
 
 function RecordingsResult({ output }: { output: unknown }) {
-  if (!isRecordingsResult(output)) {
-    return (
-      <p className="text-sm text-destructive">Unexpected recordings format.</p>
-    );
-  }
-
-  const data: RecordingsResultData = output;
+  const data = output as {
+    recordings?: Array<{
+      id: string;
+      title: string;
+      projectName: string | null;
+      status: string;
+      recordingDate: Date | string | null;
+      duration: number | null;
+    }>;
+    total?: number;
+    error?: string;
+  };
 
   if (data.error) {
     return <p className="text-sm text-destructive">{data.error}</p>;
@@ -136,6 +118,84 @@ function RecordingsResult({ output }: { output: unknown }) {
   );
 }
 
+const statusStyles: Record<string, string> = {
+  pending: "bg-muted text-muted-foreground",
+  in_progress: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  completed: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+  cancelled: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+};
+
+const priorityStyles: Record<string, string> = {
+  urgent: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+  high: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+  medium: "bg-muted text-muted-foreground",
+  low: "bg-muted text-muted-foreground",
+};
+
+function formatStatus(status: string): string {
+  return status.replace(/_/g, " ");
+}
+
+function TasksResult({ output }: { output: unknown }) {
+  const data = output as {
+    tasks?: Array<{
+      id: string;
+      title: string;
+      description: string | null;
+      status: string;
+      priority: string;
+      assigneeName: string | null;
+      dueDate: Date | string | null;
+    }>;
+    total?: number;
+    error?: string;
+  };
+
+  if (data.error) {
+    return <p className="text-sm text-destructive">{data.error}</p>;
+  }
+
+  if (!data.tasks?.length) {
+    return <p className="text-sm text-muted-foreground">No tasks found.</p>;
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {data.tasks.map((task) => (
+        <div
+          key={task.id}
+          className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+        >
+          <CheckSquare className="size-4 shrink-0 text-muted-foreground" />
+          <span className="font-medium">{task.title}</span>
+          {task.assigneeName && (
+            <span className="text-xs text-muted-foreground">
+              &middot; {task.assigneeName}
+            </span>
+          )}
+          <span className="ml-auto flex items-center gap-1.5">
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs capitalize ${statusStyles[task.status] ?? "bg-muted"}`}
+            >
+              {formatStatus(task.status)}
+            </span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs capitalize ${priorityStyles[task.priority] ?? "bg-muted"}`}
+            >
+              {task.priority}
+            </span>
+          </span>
+        </div>
+      ))}
+      {(data.total ?? 0) > data.tasks.length && (
+        <p className="text-xs text-muted-foreground">
+          Showing {data.tasks.length} of {data.total} tasks
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ToolResultContent({
   toolName,
   output,
@@ -148,6 +208,8 @@ function ToolResultContent({
       return <ProjectsResult output={output} />;
     case "listRecordings":
       return <RecordingsResult output={output} />;
+    case "listTasks":
+      return <TasksResult output={output} />;
     default:
       return (
         <pre className="max-h-40 overflow-auto rounded-md bg-muted p-2 text-xs">
