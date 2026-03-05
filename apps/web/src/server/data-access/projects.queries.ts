@@ -362,6 +362,7 @@ export class ProjectQueries {
   static async findByOrganizationWithRecordingCount(filters: {
     organizationId: string;
     status?: AllowedStatus;
+    limit?: number;
   }): Promise<ProjectWithRecordingCountDto[]> {
     const whereConditions = [
       eq(projects.organizationId, filters.organizationId),
@@ -371,7 +372,7 @@ export class ProjectQueries {
       whereConditions.push(eq(projects.status, filters.status));
     }
 
-    const result = await db
+    let query = db
       .select({
         id: projects.id,
         name: projects.name,
@@ -391,6 +392,12 @@ export class ProjectQueries {
       .leftJoin(users, eq(projects.createdById, users.id))
       .where(and(...whereConditions))
       .groupBy(projects.id, users.id, users.name, users.email, users.image);
+
+    if (filters.limit) {
+      query = query.limit(filters.limit) as typeof query;
+    }
+
+    const result = await query;
 
     return result.map((project) => ({
       id: project.id,
