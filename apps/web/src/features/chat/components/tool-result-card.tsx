@@ -1,4 +1,4 @@
-import { CheckSquare, FolderOpen, Loader2, Mic, Wrench } from "lucide-react";
+import { CheckSquare, FolderOpen, Loader2, Mic, Search, Wrench } from "lucide-react";
 import type { ToolPart } from "../types";
 
 interface ToolResultCardProps {
@@ -196,6 +196,79 @@ function TasksResult({ output }: { output: unknown }) {
   );
 }
 
+const sourceTypeStyles: Record<string, string> = {
+  transcription: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  summary: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
+  task: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+  project_template: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+  organization_instructions: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  knowledge_document: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+};
+
+function KnowledgeSearchResult({ output }: { output: unknown }) {
+  const data = output as {
+    results?: Array<{
+      content: string;
+      score: number;
+      sourceType: string;
+      title: string | null;
+      source: string | null;
+      recordingDate: string | null;
+    }>;
+    total?: number;
+    message?: string;
+    error?: string;
+  };
+
+  if (data.error) {
+    return <p className="text-sm text-destructive">{data.error}</p>;
+  }
+
+  if (!data.results?.length) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {data.message ?? "No results found."}
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {data.results.map((result, index) => (
+        <div
+          key={index}
+          className="space-y-1 rounded-md border px-3 py-2 text-sm"
+        >
+          <div className="flex items-center gap-2">
+            <Search className="size-4 shrink-0 text-muted-foreground" />
+            <span className="font-medium">
+              {result.title ?? result.source ?? "Untitled"}
+            </span>
+            <span className="ml-auto flex items-center gap-1.5">
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs capitalize ${sourceTypeStyles[result.sourceType] ?? "bg-muted"}`}
+              >
+                {formatStatus(result.sourceType)}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {result.score.toFixed(2)}
+              </span>
+            </span>
+          </div>
+          <p className="line-clamp-2 text-xs text-muted-foreground">
+            {result.content}
+          </p>
+        </div>
+      ))}
+      {(data.total ?? 0) > data.results.length && (
+        <p className="text-xs text-muted-foreground">
+          Showing {data.results.length} of {data.total} results
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ToolResultContent({
   toolName,
   output,
@@ -210,6 +283,8 @@ function ToolResultContent({
       return <RecordingsResult output={output} />;
     case "listTasks":
       return <TasksResult output={output} />;
+    case "searchKnowledge":
+      return <KnowledgeSearchResult output={output} />;
     default:
       return (
         <pre className="max-h-40 overflow-auto rounded-md bg-muted p-2 text-xs">

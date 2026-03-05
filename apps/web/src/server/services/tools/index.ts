@@ -3,6 +3,7 @@ import type { ToolContext } from "./tool-context";
 import { createListProjectsTool } from "./list-projects.tool";
 import { createListRecordingsTool } from "./list-recordings.tool";
 import { createListTasksTool } from "./list-tasks.tool";
+import { createSearchKnowledgeTool } from "./search-knowledge.tool";
 
 export type { ToolContext } from "./tool-context";
 
@@ -11,6 +12,7 @@ export function createChatTools(ctx: ToolContext) {
     listProjects: createListProjectsTool(ctx),
     listRecordings: createListRecordingsTool(ctx),
     listTasks: createListTasksTool(ctx),
+    searchKnowledge: createSearchKnowledgeTool(ctx),
   };
 }
 
