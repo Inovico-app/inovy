@@ -357,6 +357,19 @@ Notification Dispatch
    MICROSOFT_CLIENT_SECRET="your-microsoft-client-secret"
    MICROSOFT_TENANT_ID="common"  # or your specific tenant ID
 
+   # Federative Authentication (SSD-5.3.01 Compliance)
+   # Required when patient portal or citizen authentication is needed
+   # See: docs/compliance/federative-authentication-compliance.md
+   DIGID_ENABLED="false"  # Enable when patient portal is added
+   # DIGID_ENTITY_ID="https://yourdomain.nl/saml/metadata"
+   # DIGID_CALLBACK_URL="https://yourdomain.nl/api/auth/saml/digid/callback"
+   # DIGID_ISSUER="https://preprod.signicat.com/saml/digid"
+   # DIGID_ENTRY_POINT="https://preprod.signicat.com/saml/digid/sso"
+   # DIGID_IDP_CERT="<Signicat certificate>"
+   # DIGID_SP_PRIVATE_KEY="<Private key for SAML signing>"
+   # DIGID_SP_CERT="<Public certificate for SAML>"
+   # BSN_ENCRYPTION_KEY="<64 character hex for BSN encryption>"
+
    # AI Services
    # OpenAI
    OPENAI_API_KEY="your-openai-api-key"
@@ -933,6 +946,41 @@ Inovy uses Better Auth for comprehensive authentication and authorization:
    - User data synchronized from Better Auth
    - Profile management
    - Organization membership management
+
+## 🔒 Security & Compliance
+
+### SSD Compliance
+
+Inovy is designed to comply with the Dutch Secure Software Development (SSD) standard for healthcare applications. Key compliance areas include:
+
+- **SSD-5: Authentication & Authorization** - Better Auth with multi-factor options, RBAC, and organization isolation
+- **SSD-5.3.01: Federative Authentication** - Architecture ready for DigiD/eHerkenning integration when required by law
+- **SSD-15: Layer Separation** - Clear separation between presentation, application, and data layers
+- **SSD-21-22: Input Validation** - Comprehensive Zod validation for all inputs
+- **SSD-24-33: Security Headers** - Configurable security headers and CORS policies
+- **SSD-27: Discrete Errors** - Generic user-facing errors with detailed server-side logging
+
+### Compliance Documentation
+
+Comprehensive compliance documentation is available in the `docs/compliance/` directory:
+
+- **[Federative Authentication Compliance](docs/compliance/federative-authentication-compliance.md)** - Analysis of legal requirements for DigiD/eHerkenning integration, evaluation of federative authentication options, and complete implementation plan for SSD-5.3.01 compliance
+
+### Data Protection
+
+- **GDPR Compliance** - Data export and deletion tools, privacy-by-design architecture
+- **Audit Logging** - Comprehensive audit trail for all data access and modifications
+- **Encryption** - AES-256-GCM encryption for sensitive tokens and credentials
+- **Data Retention** - Configurable retention policies with automatic cleanup
+
+### Healthcare Security Standards
+
+- **NEN 7510 Ready** - Architecture designed for Dutch healthcare security standard
+- **AVG/GDPR** - Privacy-first design with data minimization
+- **BIO/ISO 27001** - Information security management alignment
+- **Access Control** - Strict RBAC with least privilege principle
+
+**Note:** Federative authentication (DigiD/eHerkenning) implementation is documented and ready to be activated when patient-facing features are added or legal requirements mandate it. See compliance documentation for details.
 
 ## 📊 Database Schema
 
