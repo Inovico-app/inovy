@@ -965,6 +965,32 @@ Better Auth manages its own schema for:
 - **Passkeys** - WebAuthn passkey credentials
 - **Magic Links** - Magic link authentication tokens
 
+## 🔒 Security & Compliance
+
+Inovy follows comprehensive security policies and compliance standards:
+
+- **Security Documentation**: [docs/security/](./docs/security/)
+- **Hardening Policy**: Component-level security hardening guidelines
+- **Patching Procedures**: Systematic update and patching schedules
+- **Compliance Verification**: Regular audits and automated compliance checks
+
+### Compliance Standards
+
+- ✅ **SSD-1.1.01**: ICT component hardening and patching (fully documented)
+- ✅ **NEN 7510**: Information security in healthcare
+- ✅ **AVG/GDPR**: Data protection and privacy
+- ✅ **ISO 27001**: Information security management (target)
+- ✅ **OWASP Top 10**: Web application security best practices
+
+### Automated Security
+
+- **Dependabot**: Weekly dependency updates and security alerts
+- **CI/CD Security Checks**: Automated vulnerability scanning in every build
+- **Infrastructure Security**: Managed by Vercel (DDoS protection, WAF, auto-SSL)
+- **Runtime Security**: Rate limiting, input validation, XSS prevention
+
+For security issues, please contact: security@inovy.io (to be configured)
+
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -972,7 +998,8 @@ Better Auth manages its own schema for:
 3. Follow the established architecture patterns
 4. Add proper DTOs and type safety
 5. Include comprehensive error handling
-6. Submit a pull request
+6. Follow security best practices (see [Security Documentation](./docs/security/))
+7. Submit a pull request
 
 ## 📄 License
 

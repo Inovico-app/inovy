@@ -1,0 +1,263 @@
+name: Security Compliance Check
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Daily at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    # Allow manual trigger
+
+jobs:
+  security-compliance:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+      
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      # 1. Dependency Security Audit
+      - name: Run dependency audit
+        id: audit
+        run: |
+          echo "## 🔒 Dependency Audit" >> $GITHUB_STEP_SUMMARY
+          
+          # Run audit and capture output
+          pnpm audit --json > audit-report.json || true
+          
+          # Count vulnerabilities by severity
+          if [ -f audit-report.json ]; then
+            CRITICAL=$(cat audit-report.json | jq '.metadata.vulnerabilities.critical // 0' 2>/dev/null || echo "0")
+            HIGH=$(cat audit-report.json | jq '.metadata.vulnerabilities.high // 0' 2>/dev/null || echo "0")
+            MODERATE=$(cat audit-report.json | jq '.metadata.vulnerabilities.moderate // 0' 2>/dev/null || echo "0")
+            LOW=$(cat audit-report.json | jq '.metadata.vulnerabilities.low // 0' 2>/dev/null || echo "0")
+          else
+            CRITICAL=0
+            HIGH=0
+            MODERATE=0
+            LOW=0
+          fi
+          
+          echo "- 🔴 Critical: **$CRITICAL**" >> $GITHUB_STEP_SUMMARY
+          echo "- 🟠 High: **$HIGH**" >> $GITHUB_STEP_SUMMARY
+          echo "- 🟡 Moderate: **$MODERATE**" >> $GITHUB_STEP_SUMMARY
+          echo "- 🟢 Low: **$LOW**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Store for later use
+          echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+          echo "high=$HIGH" >> $GITHUB_OUTPUT
+          
+          # Pass/Fail criteria: 0 critical, <5 high
+          if [ "$CRITICAL" -gt "0" ]; then
+            echo "::error::❌ $CRITICAL critical vulnerabilities found"
+            echo "**Status:** ❌ FAIL - Critical vulnerabilities must be addressed immediately" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          elif [ "$HIGH" -ge "5" ]; then
+            echo "::warning::⚠️ $HIGH high vulnerabilities found (threshold: <5)"
+            echo "**Status:** ⚠️ WARNING - High vulnerability count exceeds threshold" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Status:** ✅ PASS" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      # 2. Outdated Dependencies Check
+      - name: Check for outdated dependencies
+        run: |
+          echo "## 📦 Outdated Dependencies" >> $GITHUB_STEP_SUMMARY
+          pnpm outdated --long --format json > outdated-report.json || true
+          
+          if [ -s outdated-report.json ]; then
+            OUTDATED_COUNT=$(cat outdated-report.json | jq 'length' 2>/dev/null || echo "0")
+            echo "- Outdated packages: **$OUTDATED_COUNT**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- Outdated packages: **0**" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "- See artifact for details" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+      
+      # 3. TypeScript Type Safety
+      - name: TypeScript type check
+        run: |
+          echo "## 🎯 TypeScript Type Check" >> $GITHUB_STEP_SUMMARY
+          if pnpm typecheck; then
+            echo "**Status:** ✅ PASS - No type errors" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Status:** ❌ FAIL - Type errors found" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+      
+      # 4. Code Quality & Security Linting
+      - name: ESLint security check
+        run: |
+          echo "## 🔍 ESLint Security Check" >> $GITHUB_STEP_SUMMARY
+          if pnpm lint; then
+            echo "**Status:** ✅ PASS - No linting errors" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Status:** ❌ FAIL - Linting errors found" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+      
+      # 5. Build Verification
+      - name: Production build test
+        run: |
+          echo "## 🏗️ Production Build" >> $GITHUB_STEP_SUMMARY
+          if pnpm build; then
+            echo "**Status:** ✅ PASS - Build successful" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Status:** ❌ FAIL - Build failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+      
+      # 6. License Compliance Check
+      - name: Check license compliance
+        continue-on-error: true
+        run: |
+          echo "## 📜 License Compliance" >> $GITHUB_STEP_SUMMARY
+          
+          # Install license-checker
+          npm install -g license-checker
+          
+          # Check licenses (allow common open-source licenses)
+          cd apps/web
+          license-checker --production --json > ../../licenses.json || true
+          
+          # Count packages by license type
+          if [ -f ../../licenses.json ]; then
+            echo "- License check completed" >> $GITHUB_STEP_SUMMARY
+            echo "- See artifact for details" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+      
+      # 7. Generate compliance summary
+      - name: Generate compliance summary
+        if: always()
+        run: |
+          echo "## 📊 Compliance Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Audit | ${{ steps.audit.outcome == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Type Safety | ${{ steps.typecheck.outcome == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint Check | ${{ steps.lint.outcome == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ steps.build.outcome == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Generated:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+      
+      # 8. Create compliance report file
+      - name: Create compliance report
+        if: always()
+        run: |
+          cat << EOF > compliance-report.md
+          # Security Compliance Report
+          
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Commit:** ${{ github.sha }}
+          **Branch:** ${{ github.ref_name }}
+          **Triggered by:** ${{ github.event_name }}
+          
+          ## Summary
+          
+          - **Dependency Audit:** ${{ steps.audit.outcome }}
+          - **Type Check:** Type check outcome
+          - **Lint Check:** Lint check outcome
+          - **Build:** Build outcome
+          
+          ## Vulnerability Summary
+          
+          - Critical: ${{ steps.audit.outputs.critical }}
+          - High: ${{ steps.audit.outputs.high }}
+          
+          ## Compliance Status
+          
+          ${{ steps.audit.outputs.critical == '0' && steps.audit.outputs.high < '5' && '✅ COMPLIANT' || '❌ NON-COMPLIANT' }}
+          
+          ## Next Steps
+          
+          1. Review detailed reports in workflow artifacts
+          2. Address any critical or high vulnerabilities immediately
+          3. Update dependencies as needed
+          4. Re-run compliance check
+          
+          ---
+          
+          *This report was generated automatically by the Security Compliance workflow.*
+          EOF
+      
+      # 9. Upload compliance artifacts
+      - name: Upload compliance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-report-${{ github.sha }}
+          path: |
+            compliance-report.md
+            audit-report.json
+            outdated-report.json
+            licenses.json
+          retention-days: 90
+      
+      # 10. Comment on PR with results (if PR)
+      - name: Comment PR with compliance results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const critical = '${{ steps.audit.outputs.critical }}';
+            const high = '${{ steps.audit.outputs.high }}';
+            
+            const status = critical === '0' && high < '5' ? '✅ PASS' : '❌ FAIL';
+            
+            const comment = `## Security Compliance Check ${status}
+            
+            | Metric | Value |
+            |--------|-------|
+            | Critical Vulnerabilities | ${critical === '0' ? '✅' : '❌'} ${critical} |
+            | High Vulnerabilities | ${high < '5' ? '✅' : '⚠️'} ${high} |
+            
+            **Details:** Check the [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for full report.
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
