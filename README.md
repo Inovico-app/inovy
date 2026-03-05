@@ -965,6 +965,19 @@ Better Auth manages its own schema for:
 - **Passkeys** - WebAuthn passkey credentials
 - **Magic Links** - Magic link authentication tokens
 
+## 🔒 Security & Compliance
+
+Inovy follows industry best practices for security and compliance in healthcare applications:
+
+- **SSD-1 Compliance:** Hardening van technische componenten (Technical Component Hardening)
+- **Protocols & Services:** Comprehensive documentation of all protocols, services, and accounts
+- **Data Protection:** Encryption in transit (TLS 1.2+) and at rest (AES-256)
+- **Access Control:** Multi-tenant RBAC with organization isolation
+- **Audit Logging:** Complete audit trail for compliance
+
+For detailed security documentation, see:
+- **[Protocols, Services & Accounts Overview](./PROTOCOLS_SERVICES_ACCOUNTS.md)** - Complete overview of network protocols, external services, and required accounts (SSD-1.2.01)
+
 ## 🤝 Contributing
 
 1. Fork the repository
