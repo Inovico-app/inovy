@@ -139,8 +139,6 @@ export const addBotToMeeting = authorizedActionClient
     }
 
     // User has given consent (either via dialog or requirePerMeetingConsent is false)
-    // Always use "scheduled" - bot will join when meeting starts
-    const botStatus = "scheduled" as const;
 
     // Create bot session via provider
     const provider = BotProviderFactory.getDefault();
@@ -166,7 +164,7 @@ export const addBotToMeeting = authorizedActionClient
       throw createErrorForNextSafeAction(sessionResult.error);
     }
 
-    const { providerId } = sessionResult.value;
+    const { providerId, internalStatus: botStatus } = sessionResult.value;
 
     // Persist bot session to database (cleanup provider session on insert failure)
     let session;
