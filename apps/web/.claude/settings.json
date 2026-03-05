@@ -1,0 +1,6 @@
+{
+  "permissions": {
+    "allow": ["Bash", "Gh", "Git", "Pnpm", "Docker", "Npm"]
+  }
+}
+

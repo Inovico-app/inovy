@@ -4,6 +4,7 @@ import {
   ActionErrors,
   type ActionResult,
 } from "../../lib/server-action-client/action-errors";
+import { InvitationsQueries } from "../data-access/invitations.queries";
 import { OrganizationQueries } from "../data-access/organization.queries";
 
 export interface OrganizationMemberDto {
@@ -12,6 +13,14 @@ export interface OrganizationMemberDto {
   given_name: string | null;
   family_name: string | null;
   roles?: string[];
+}
+
+export interface PendingInvitationDto {
+  id: string;
+  email: string;
+  role: string;
+  expiresAt: Date;
+  createdAt: Date;
 }
 
 /**
@@ -67,6 +76,36 @@ export class OrganizationService {
           "Failed to get organization members",
           error as Error,
           "OrganizationService.getOrganizationMembers"
+        )
+      );
+    }
+  }
+
+  /**
+   * Get pending (non-expired) invitations for an organization
+   */
+  static async getPendingInvitations(
+    organizationId: string
+  ): Promise<ActionResult<PendingInvitationDto[]>> {
+    try {
+      const invitations =
+        await InvitationsQueries.getPendingInvitationsByOrganization(
+          organizationId
+        );
+
+      return ok(invitations);
+    } catch (error) {
+      logger.error("Failed to get pending invitations", {
+        component: "OrganizationService.getPendingInvitations",
+        error,
+        organizationId,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to get pending invitations",
+          error as Error,
+          "OrganizationService.getPendingInvitations"
         )
       );
     }
