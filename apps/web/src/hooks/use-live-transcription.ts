@@ -47,13 +47,18 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
     try {
       setError(null);
 
-      // Note: API key should be fetched from backend for security
-      // For now, we'll create the connection assuming the parent provides it
-      if (!process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY) {
-        throw new Error("Deepgram API key not configured");
+      // Fetch temporary token from server for security
+      const tokenResponse = await fetch("/api/deepgram/token");
+      if (!tokenResponse.ok) {
+        throw new Error("Failed to fetch Deepgram token");
+      }
+      const { token } = await tokenResponse.json();
+
+      if (!token) {
+        throw new Error("Deepgram token not available");
       }
 
-      const deepgram = createClient(process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY);
+      const deepgram = createClient(token);
       deepgramRef.current = deepgram;
 
       const connection = deepgram.listen.live({
