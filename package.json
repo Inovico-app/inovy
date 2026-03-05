@@ -15,7 +15,12 @@
     "db:push": "turbo -F web db:push",
     "db:studio": "turbo -F web db:studio",
     "db:generate": "turbo -F web db:generate",
-    "db:migrate": "turbo -F web db:migrate"
+    "db:migrate": "turbo -F web db:migrate",
+    "audit:security": "./scripts/security-audit.sh all",
+    "audit:security-headers": "./scripts/security-audit.sh headers",
+    "audit:cors": "./scripts/security-audit.sh cors",
+    "audit:tls": "./scripts/security-audit.sh tls",
+    "audit:protocol": "./scripts/security-audit.sh protocol"
   },
   "devDependencies": {
     "turbo": "^2.6.1"
