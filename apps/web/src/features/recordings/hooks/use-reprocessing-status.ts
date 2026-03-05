@@ -18,7 +18,7 @@ interface UseReprocessingStatusOptions {
 interface ReprocessingStatus {
   isReprocessing: boolean;
   workflowStatus: WorkflowStatus;
-  workflowError: string | null;
+  workflowError?: string | null;
   status?: string;
   startedAt?: Date;
   errorMessage?: string | null;

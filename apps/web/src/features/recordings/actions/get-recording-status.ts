@@ -19,15 +19,17 @@ export const getRecordingStatusAction = authorizedActionClient
   .schema(getRecordingStatusSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
-    const { organizationId } = ctx;
+    const { user, organizationId } = ctx;
 
     if (!organizationId) {
       throw ActionErrors.forbidden("Organization context required");
     }
 
-    // Get recording
-    const recordingResult =
-      await RecordingService.getRecordingById(recordingId);
+    // Get recording with user context for data minimization
+    const recordingResult = await RecordingService.getRecordingById(
+      recordingId,
+      user
+    );
     const recording = resultToActionResponse(recordingResult);
 
     if (!recording) {

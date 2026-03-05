@@ -6,6 +6,7 @@ import {
 import { decrypt } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import { AuditLogService } from "@/server/services/audit-log.service";
 import { RecordingService } from "@/server/services/recording.service";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -55,6 +56,27 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    // Audit log: Recording playback access (SSD-4.4.01)
+    const { ipAddress, userAgent } = AuditLogService.extractRequestInfo(
+      request.headers
+    );
+    
+    await AuditLogService.createAuditLog({
+      eventType: "data_access",
+      resourceType: "recording",
+      resourceId: recordingId,
+      userId: user.id,
+      organizationId: organization.id,
+      action: "playback",
+      ipAddress,
+      userAgent,
+      metadata: {
+        fileName: recording.fileName,
+        fileSize: recording.fileSize,
+        isEncrypted: recording.isEncrypted,
+      },
+    });
 
     // Download file from Vercel Blob with timeout
     // Note: This loads the entire file into memory. For files up to 500MB (MAX_FILE_SIZE),

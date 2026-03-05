@@ -13,6 +13,7 @@ import { DataExportsQueries } from "../data-access/data-exports.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { TasksQueries } from "../data-access/tasks.queries";
 import type { DataExport } from "../db/schema/data-exports";
+import { AuditLogService } from "./audit-log.service";
 import { UserService } from "./user.service";
 
 export interface ExportFilters {
@@ -87,12 +88,17 @@ export interface UserExportData {
  */
 export class GdprExportService {
   /**
-   * Create a new export request
+   * Create a new export request with audit logging
+   * @param userId - User requesting export
+   * @param organizationId - Organization ID
+   * @param filters - Optional export filters
+   * @param auditContext - Optional audit context (ipAddress, userAgent)
    */
   static async createExportRequest(
     userId: string,
     organizationId: string,
-    filters?: ExportFilters
+    filters?: ExportFilters,
+    auditContext?: { ipAddress?: string; userAgent?: string }
   ): Promise<ActionResult<DataExport>> {
     try {
       const expiresAt = addDays(new Date(), 7);
@@ -107,6 +113,22 @@ export class GdprExportService {
         conversationsCount: 0,
       });
 
+      // Audit log: GDPR export request (SSD-4.4.01)
+      await AuditLogService.createAuditLog({
+        eventType: "data_export",
+        resourceType: "data_export",
+        resourceId: export_.id,
+        userId,
+        organizationId,
+        action: "create",
+        ipAddress: auditContext?.ipAddress ?? null,
+        userAgent: auditContext?.userAgent ?? null,
+        metadata: {
+          filters: filters ?? {},
+          expiresAt: expiresAt.toISOString(),
+        },
+      });
+
       logger.info("Created export request", {
         component: "GdprExportService.createExportRequest",
         exportId: export_.id,
@@ -114,9 +136,6 @@ export class GdprExportService {
         organizationId,
       });
 
-      // Start async export generation
-      // In production, this would be queued, but for now we'll process synchronously
-      // for small datasets and asynchronously for large ones
       this.generateExport(userId, organizationId, export_.id, filters).catch(
         (error) => {
           logger.error("Failed to generate export", {
@@ -239,6 +258,7 @@ export class GdprExportService {
   ): Promise<ActionResult<UserExportData>> {
     try {
       // Get user profile using UserService
+      // Note: User can always see their own full data in GDPR exports
       let userProfile: UserExportData["user"];
       const userResult = await UserService.getUserById(userId);
 
