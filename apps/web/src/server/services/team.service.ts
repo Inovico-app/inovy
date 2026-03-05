@@ -1,5 +1,6 @@
 import type { Team, TeamInput, TeamMember } from "better-auth/plugins";
 import { err, ok } from "neverthrow";
+import { headers } from "next/headers";
 import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
@@ -17,6 +18,7 @@ import type {
   UserTeamRoleDto,
 } from "../dto/team.dto";
 import { UserQueries } from "../data-access/user.queries";
+import { AuditLogService } from "./audit-log.service";
 type UserTeamRole = "member" | "lead" | "admin";
 
 /**
@@ -718,6 +720,36 @@ export class TeamService {
         role,
       });
 
+      // Log team member assignment for audit trail
+      try {
+        const headersList = await headers();
+        const { ipAddress, userAgent } =
+          AuditLogService.extractRequestInfo(headersList);
+
+        await AuditLogService.createAuditLog({
+          eventType: "role_assigned",
+          resourceType: "role",
+          resourceId: userTeam.id,
+          userId: authResult.value.user?.id ?? "unknown",
+          organizationId: team.organizationId,
+          action: "assign",
+          ipAddress,
+          userAgent,
+          metadata: {
+            targetUserId: userId,
+            teamId,
+            teamName: team.name,
+            role: "member",
+          },
+        });
+      } catch (error) {
+        logger.error("Failed to create audit log for team assignment", {
+          userId,
+          teamId,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
+
       // Invalidate cache
       CacheInvalidation.invalidateTeamCache(team.organizationId);
 
@@ -790,6 +822,35 @@ export class TeamService {
       );
 
       await UserTeamQueries.deleteUserTeam(userId, teamId);
+
+      // Log team member removal for audit trail
+      try {
+        const headersList = await headers();
+        const { ipAddress, userAgent } =
+          AuditLogService.extractRequestInfo(headersList);
+
+        await AuditLogService.createAuditLog({
+          eventType: "role_removed",
+          resourceType: "role",
+          resourceId: teamId,
+          userId: authResult.value.user?.id ?? "unknown",
+          organizationId: team.organizationId,
+          action: "unassign",
+          ipAddress,
+          userAgent,
+          metadata: {
+            targetUserId: userId,
+            teamId,
+            teamName: team.name,
+          },
+        });
+      } catch (error) {
+        logger.error("Failed to create audit log for team removal", {
+          userId,
+          teamId,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
 
       // Invalidate cache
       CacheInvalidation.invalidateTeamCache(team.organizationId);
@@ -866,6 +927,37 @@ export class TeamService {
         return err(
           ActionErrors.notFound("UserTeam", "TeamService.updateUserTeamRole")
         );
+      }
+
+      // Log team role change for audit trail
+      try {
+        const headersList = await headers();
+        const { ipAddress, userAgent } =
+          AuditLogService.extractRequestInfo(headersList);
+
+        await AuditLogService.createAuditLog({
+          eventType: "role_assigned",
+          resourceType: "role",
+          resourceId: userTeam.id,
+          userId: authResult.value.user?.id ?? "unknown",
+          organizationId: team.organizationId,
+          action: "update",
+          ipAddress,
+          userAgent,
+          metadata: {
+            targetUserId: userId,
+            teamId,
+            teamName: team.name,
+            newRole: role,
+          },
+        });
+      } catch (error) {
+        logger.error("Failed to create audit log for team role update", {
+          userId,
+          teamId,
+          role,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
       }
 
       // Invalidate cache
