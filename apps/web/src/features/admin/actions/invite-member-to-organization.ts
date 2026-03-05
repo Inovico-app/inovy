@@ -97,6 +97,7 @@ export const inviteMemberToOrganization = authorizedActionClient
           revalidatePath(`/admin/organizations/${organizationId}`);
           revalidatePath("/admin/organizations");
           revalidatePath("/admin/users");
+          revalidatePath("/settings/organization");
 
           return resultToActionResponse(
             ok({
@@ -194,6 +195,7 @@ export const inviteMemberToOrganization = authorizedActionClient
           revalidatePath(`/admin/organizations/${organizationId}`);
           revalidatePath("/admin/organizations");
           revalidatePath("/admin/users");
+          revalidatePath("/settings/organization");
 
           return resultToActionResponse(
             ok({
