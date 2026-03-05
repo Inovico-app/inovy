@@ -965,6 +965,41 @@ Better Auth manages its own schema for:
 - **Passkeys** - WebAuthn passkey credentials
 - **Magic Links** - Magic link authentication tokens
 
+## 📚 Documentation
+
+Comprehensive documentation is available in the `/docs` directory:
+
+### Authorization System (SSD-7.1.03 Compliance)
+
+Complete documentation for the authorization system covering role-based access control (RBAC), user management, and compliance with NEN 7510, NEN 7513, and SSD-7 requirements:
+
+- **[Authorization Process](/docs/security/AUTHORIZATION_PROCESS.md)** - Process for defining and maintaining authorizations
+  - Authorization architecture and role hierarchy
+  - Role definition and modification process
+  - Permission structure and enforcement
+  - Audit logging and security best practices
+  - Maintenance and compliance procedures
+
+- **[Authorization Assignment Procedures](/docs/security/AUTHORIZATION_ASSIGNMENT.md)** - Procedures for managing user roles
+  - User onboarding and invitation workflow
+  - Role modification and privilege management
+  - Member management and removal procedures
+  - Emergency access and incident response
+  - Superadmin role management
+
+- **[Authorization Configuration](/docs/security/AUTHORIZATION_CONFIGURATION.md)** - Technical configuration reference
+  - Complete role definitions and permission matrix
+  - Database schema and access control configuration
+  - API endpoints and environment variables
+  - Cache configuration and monitoring
+  - Compliance checklist and testing guide
+
+### Technical Documentation
+
+- **[Technical Implementation Guide](/apps/web/src/lib/README.md)** - Architecture patterns and implementation details
+
+For a complete overview of available documentation, see [/docs/README.md](/docs/README.md).
+
 ## 🤝 Contributing
 
 1. Fork the repository
