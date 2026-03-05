@@ -63,6 +63,7 @@ export function createSearchKnowledgeTool(ctx: ToolContext) {
             sourceType: r.metadata.type,
             title: r.metadata.title ?? null,
             source: r.metadata.source ?? null,
+            recordingId: (r.metadata.recordingId as string) ?? null,
             recordingDate: r.metadata.recordingDate ?? null,
           })),
           total: count,

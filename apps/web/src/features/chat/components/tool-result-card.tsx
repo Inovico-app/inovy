@@ -1,9 +1,28 @@
-import { CheckSquare, FolderOpen, Loader2, Mic, Search, Wrench } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  AlertCircle,
+  CheckSquare,
+  FolderOpen,
+  Loader2,
+  Mic,
+  Search,
+} from "lucide-react";
 import type { ToolPart } from "../types";
 
 interface ToolResultCardProps {
   toolName: string;
   part: ToolPart;
+}
+
+const toolMeta: Record<string, { icon: LucideIcon; label: string }> = {
+  listProjects: { icon: FolderOpen, label: "Projects" },
+  listRecordings: { icon: Mic, label: "Recordings" },
+  listTasks: { icon: CheckSquare, label: "Tasks" },
+  searchKnowledge: { icon: Search, label: "Knowledge Search" },
+};
+
+function getToolMeta(toolName: string) {
+  return toolMeta[toolName] ?? { icon: Search, label: formatToolName(toolName) };
 }
 
 function ProjectsResult({ output }: { output: unknown }) {
@@ -294,25 +313,53 @@ function ToolResultContent({
   }
 }
 
+function LoadingSkeleton({ toolName }: { toolName: string }) {
+  const rows = toolName === "searchKnowledge" ? 2 : 3;
+  return (
+    <div className="space-y-1.5">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-2 rounded-md border border-border/30 px-3 py-2"
+        >
+          <div className="size-4 shrink-0 animate-pulse rounded bg-muted" />
+          <div
+            className="h-3.5 animate-pulse rounded bg-muted"
+            style={{ width: `${60 + (i * 15) % 30}%`, animationDelay: `${i * 100}ms` }}
+          />
+          <div
+            className="ml-auto h-3 w-12 animate-pulse rounded-full bg-muted"
+            style={{ animationDelay: `${i * 100 + 50}ms` }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function ToolResultCard({ toolName, part }: ToolResultCardProps) {
+  const { icon: Icon, label } = getToolMeta(toolName);
   const isLoading =
     part.state === "input-streaming" || part.state === "input-available";
 
   if (isLoading) {
     return (
-      <div className="my-2 flex items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-        <Loader2 className="size-4 animate-spin" />
-        <span>Using {formatToolName(toolName)}...</span>
+      <div className="my-2 animate-in fade-in slide-in-from-bottom-2 rounded-lg border border-border/50 bg-muted/30 p-3 duration-200">
+        <div className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Loader2 className="size-3 animate-spin" />
+          <span>Searching {label}...</span>
+        </div>
+        <LoadingSkeleton toolName={toolName} />
       </div>
     );
   }
 
   if (part.state === "output-error") {
     return (
-      <div className="my-2 rounded-lg border border-destructive/50 bg-destructive/5 p-3">
+      <div className="my-2 animate-in fade-in rounded-lg border border-destructive/50 bg-destructive/5 p-3 duration-200">
         <div className="mb-1 flex items-center gap-1.5 text-xs text-destructive">
-          <Wrench className="size-3" />
-          <span>{formatToolName(toolName)} failed</span>
+          <AlertCircle className="size-3" />
+          <span>{label} failed</span>
         </div>
         <p className="text-sm text-destructive">{part.errorText ?? "Unknown error"}</p>
       </div>
@@ -320,10 +367,10 @@ export function ToolResultCard({ toolName, part }: ToolResultCardProps) {
   }
 
   return (
-    <div className="my-2 rounded-lg border border-border/50 bg-muted/30 p-3">
+    <div className="my-2 animate-in fade-in slide-in-from-bottom-2 rounded-lg border border-border/50 bg-muted/30 p-3 duration-200">
       <div className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Wrench className="size-3" />
-        <span>{formatToolName(toolName)}</span>
+        <Icon className="size-3" />
+        <span>{label}</span>
       </div>
       <ToolResultContent toolName={toolName} output={part.output} />
     </div>
