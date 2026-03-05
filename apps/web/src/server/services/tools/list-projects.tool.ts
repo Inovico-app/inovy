@@ -20,9 +20,10 @@ export function createListProjectsTool(ctx: ToolContext) {
           await ProjectQueries.findByOrganizationWithRecordingCount({
             organizationId: ctx.organizationId,
             status,
+            limit: 20,
           });
 
-        const results = projects.slice(0, 20).map((p) => ({
+        const results = projects.map((p) => ({
           id: p.id,
           name: p.name,
           description: p.description,

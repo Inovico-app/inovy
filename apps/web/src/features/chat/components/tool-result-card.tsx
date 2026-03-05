@@ -94,7 +94,7 @@ export function ToolResultCard({ toolName, part }: ToolResultCardProps) {
           <Wrench className="size-3" />
           <span>{formatToolName(toolName)} failed</span>
         </div>
-        <p className="text-sm text-destructive">{part.errorText}</p>
+        <p className="text-sm text-destructive">{part.errorText ?? "Unknown error"}</p>
       </div>
     );
   }

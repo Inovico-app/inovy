@@ -118,9 +118,9 @@ export function UnifiedChatInterface({
               parts.push({
                 type: `tool-${tc.name}`,
                 toolCallId: tc.id,
-                state: "output-available",
+                state: tc.result ? "output-available" : "output-unavailable",
                 input: tc.arguments,
-                output: tc.result ?? {},
+                output: tc.result ?? undefined,
               });
             }
           }
