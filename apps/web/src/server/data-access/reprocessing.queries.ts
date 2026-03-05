@@ -4,7 +4,7 @@ import {
   type NewReprocessingHistory,
   type ReprocessingHistory,
 } from "@/server/db/schema/reprocessing-history";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, lte } from "drizzle-orm";
 
 export class ReprocessingQueries {
   static async createReprocessingHistory(
@@ -75,6 +75,22 @@ export class ReprocessingQueries {
       .limit(1);
     if (!history) return false;
     return history.status === "running" || history.status === "pending";
+  }
+
+  /**
+   * Delete reprocessing history older than the specified number of days
+   */
+  static async deleteOldReprocessingHistory(
+    retentionDays: number
+  ): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+    const result = await db
+      .delete(reprocessingHistory)
+      .where(lte(reprocessingHistory.startedAt, cutoffDate));
+
+    return result.rowCount ?? 0;
   }
 }
 

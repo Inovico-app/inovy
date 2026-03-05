@@ -11,6 +11,14 @@
     {
       "path": "/api/cron/poll-bot-status",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/data-retention-cleanup",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/audit-log-archival",
+      "schedule": "0 2 1 1 *"
     }
   ]
 }
