@@ -9,6 +9,7 @@ import {
   Building2Icon,
   ChevronRightIcon,
   FileTextIcon,
+  ShieldCheckIcon,
   SettingsIcon,
   UsersIcon,
 } from "lucide-react";
@@ -31,6 +32,12 @@ const BASE_ADMIN_MENU_ITEMS: MenuItem[] = [
     icon: UsersIcon,
     title: "User Management",
     description: "Manage roles and permissions",
+  },
+  {
+    href: "/admin/privileged-access",
+    icon: ShieldCheckIcon,
+    title: "Privileged Access",
+    description: "Monitor high-privilege accounts",
   },
   {
     href: "/admin/audit-logs",

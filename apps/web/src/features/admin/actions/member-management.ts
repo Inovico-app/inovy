@@ -8,6 +8,7 @@ import {
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { AuditLogService } from "@/server/services/audit-log.service";
 import { APIError } from "better-auth/api";
 import { err, ok } from "neverthrow";
 import { revalidatePath } from "next/cache";
@@ -32,12 +33,19 @@ export const inviteMember = authorizedActionClient
   )
   .action(async ({ parsedInput, ctx }) => {
     const { email, role } = parsedInput;
-    const { organizationId } = ctx;
+    const { organizationId, user } = ctx;
 
     if (!organizationId) {
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
+        "inviteMember"
+      );
+    }
+
+    if (!user) {
+      throw ActionErrors.unauthenticated(
+        "User not found in context",
         "inviteMember"
       );
     }
@@ -63,6 +71,27 @@ export const inviteMember = authorizedActionClient
           )
         );
       }
+
+      const headersList = await headers();
+      const { ipAddress, userAgent } =
+        AuditLogService.extractRequestInfo(headersList);
+
+      await AuditLogService.createAuditLog({
+        eventType: "role_assigned",
+        resourceType: "role",
+        resourceId: result.id,
+        userId: user.id,
+        organizationId,
+        action: "assign",
+        ipAddress,
+        userAgent,
+        metadata: {
+          invitedEmail: email,
+          assignedRole: role,
+          invitedBy: user.email,
+          invitationType: "invitation",
+        },
+      });
 
       // Invalidate cache
       CacheInvalidation.invalidateOrganization(organizationId);
@@ -111,16 +140,26 @@ export const removeMember = authorizedActionClient
   .inputSchema(
     z.object({
       memberIdOrEmail: z.string().min(1, "Member ID or email is required"),
+      memberRole: z
+        .enum(["owner", "admin", "user", "viewer", "manager"])
+        .optional(),
     })
   )
   .action(async ({ parsedInput, ctx }) => {
-    const { memberIdOrEmail } = parsedInput;
-    const { organizationId } = ctx;
+    const { memberIdOrEmail, memberRole } = parsedInput;
+    const { organizationId, user } = ctx;
 
     if (!organizationId) {
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
+        "removeMember"
+      );
+    }
+
+    if (!user) {
+      throw ActionErrors.unauthenticated(
+        "User not found in context",
         "removeMember"
       );
     }
@@ -145,6 +184,27 @@ export const removeMember = authorizedActionClient
           )
         );
       }
+
+      const headersList = await headers();
+      const { ipAddress, userAgent } =
+        AuditLogService.extractRequestInfo(headersList);
+
+      await AuditLogService.createAuditLog({
+        eventType: "role_removed",
+        resourceType: "role",
+        resourceId: memberIdOrEmail,
+        userId: user.id,
+        organizationId,
+        action: "revoke",
+        ipAddress,
+        userAgent,
+        metadata: {
+          removedMember: memberIdOrEmail,
+          previousRole: memberRole ?? "unknown",
+          removedBy: user.email,
+          removalType: "member_removed",
+        },
+      });
 
       // Invalidate cache
       CacheInvalidation.invalidateOrganization(organizationId);
@@ -179,16 +239,27 @@ export const updateMemberRole = authorizedActionClient
     z.object({
       memberId: z.string().min(1, "Member ID is required"),
       role: z.enum(["owner", "admin", "member"]),
+      previousRole: z
+        .enum(["owner", "admin", "user", "viewer", "manager", "member"])
+        .optional(),
+      memberEmail: z.string().email().optional(),
     })
   )
   .action(async ({ parsedInput, ctx }) => {
-    const { memberId, role } = parsedInput;
-    const { organizationId } = ctx;
+    const { memberId, role, previousRole, memberEmail } = parsedInput;
+    const { organizationId, user } = ctx;
 
     if (!organizationId) {
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
+        "updateMemberRole"
+      );
+    }
+
+    if (!user) {
+      throw ActionErrors.unauthenticated(
+        "User not found in context",
         "updateMemberRole"
       );
     }
@@ -215,12 +286,36 @@ export const updateMemberRole = authorizedActionClient
         );
       }
 
+      const headersList = await headers();
+      const { ipAddress, userAgent } =
+        AuditLogService.extractRequestInfo(headersList);
+
+      await AuditLogService.createAuditLog({
+        eventType: "role_assigned",
+        resourceType: "role",
+        resourceId: memberId,
+        userId: user.id,
+        organizationId,
+        action: "update",
+        ipAddress,
+        userAgent,
+        metadata: {
+          memberId,
+          memberEmail: memberEmail ?? "unknown",
+          previousRole: previousRole ?? "unknown",
+          newRole: role,
+          updatedBy: user.email,
+          updateType: "role_change",
+        },
+      });
+
       // Invalidate cache
       CacheInvalidation.invalidateOrganization(organizationId);
 
       // Revalidate routes
       revalidatePath("/admin/users");
       revalidatePath("/settings/organization");
+      revalidatePath("/admin/privileged-access");
 
       return resultToActionResponse(ok({ success: true }));
     } catch (error) {
