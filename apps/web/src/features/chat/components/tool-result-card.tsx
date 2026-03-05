@@ -1,4 +1,4 @@
-import { FolderOpen, Loader2, Wrench } from "lucide-react";
+import { FolderOpen, Loader2, Mic, Wrench } from "lucide-react";
 import type { ToolPart } from "../types";
 
 interface ToolResultCardProps {
@@ -55,6 +55,69 @@ function ProjectsResult({ output }: { output: unknown }) {
   );
 }
 
+function formatDuration(seconds: number | null): string {
+  if (seconds == null) return "--";
+  if (seconds < 60) return `${seconds}s`;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  const s = seconds % 60;
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+}
+
+function RecordingsResult({ output }: { output: unknown }) {
+  const data = output as {
+    recordings?: Array<{
+      id: string;
+      title: string;
+      projectName: string | null;
+      status: string;
+      recordingDate: Date | string | null;
+      duration: number | null;
+    }>;
+    total?: number;
+    error?: string;
+  };
+
+  if (data.error) {
+    return <p className="text-sm text-destructive">{data.error}</p>;
+  }
+
+  if (!data.recordings?.length) {
+    return <p className="text-sm text-muted-foreground">No recordings found.</p>;
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {data.recordings.map((recording) => (
+        <div
+          key={recording.id}
+          className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+        >
+          <Mic className="size-4 shrink-0 text-muted-foreground" />
+          <span className="font-medium">{recording.title}</span>
+          {recording.projectName && (
+            <span className="text-xs text-muted-foreground">
+              {recording.projectName}
+            </span>
+          )}
+          <span className="ml-auto text-xs text-muted-foreground">
+            {formatDuration(recording.duration)}
+          </span>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-xs capitalize">
+            {recording.status}
+          </span>
+        </div>
+      ))}
+      {(data.total ?? 0) > data.recordings.length && (
+        <p className="text-xs text-muted-foreground">
+          Showing {data.recordings.length} of {data.total} recordings
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ToolResultContent({
   toolName,
   output,
@@ -65,6 +128,8 @@ function ToolResultContent({
   switch (toolName) {
     case "listProjects":
       return <ProjectsResult output={output} />;
+    case "listRecordings":
+      return <RecordingsResult output={output} />;
     default:
       return (
         <pre className="max-h-40 overflow-auto rounded-md bg-muted p-2 text-xs">
