@@ -10,13 +10,14 @@ interface CreateMeetingRequest {
   meeting_url: string;
   bot_name?: string;
   webhook_url: string;
-  custom_metadata: Record<string, string>;
+  metadata: Record<string, string>;
   automatic_leave: {
     noone_joined_timeout: number;
     waiting_room_timeout: number;
     everyone_left_timeout: number;
   };
   recording_config?: {
+    metadata?: Record<string, string>;
     realtime_endpoints?: Array<{
       type: "webhook";
       url: string;
@@ -95,7 +96,7 @@ export class RecallApiService {
         meeting_url: meetingUrl,
         bot_name: options?.botDisplayName || "Inovy Recording Bot",
         webhook_url: webhookUrl,
-        custom_metadata: customMetadata ?? {},
+        metadata: customMetadata ?? {},
         automatic_leave: {
           noone_joined_timeout:
             (options?.inactivityTimeoutMinutes ?? 5) * 60,
@@ -103,6 +104,7 @@ export class RecallApiService {
           everyone_left_timeout: 30,
         },
         recording_config: {
+          metadata: customMetadata ?? {},
           realtime_endpoints: [
             {
               type: "webhook",
