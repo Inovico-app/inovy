@@ -9,7 +9,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -18,109 +17,155 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { EmailChipInput } from "@/components/email-chip-input";
+import { useEmailChipInput } from "@/hooks/use-email-chip-input";
 import { Loader2Icon, UserPlusIcon } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
 import { inviteMember } from "../../actions/member-management";
 
-const inviteFormSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  role: z.enum(["owner", "admin", "user", "viewer", "manager"]),
-});
-
-type InviteFormValues = z.infer<typeof inviteFormSchema>;
+type Role = "owner" | "admin" | "user" | "viewer" | "manager";
 
 export function InviteUserDialog() {
   const [open, setOpen] = useState(false);
+  const [role, setRole] = useState<Role>("user");
+  const [isPending, startTransition] = useTransition();
 
   const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<InviteFormValues>({
-    resolver: standardSchemaResolver(inviteFormSchema),
-    defaultValues: {
-      email: "",
-      role: "user",
+    emails,
+    inputValue,
+    error,
+    handleInputChange,
+    handleKeyDown,
+    handlePaste,
+    removeEmail,
+    clear,
+  } = useEmailChipInput({
+    messages: {
+      invalidEmail: (email) => `"${email}" is not a valid email address`,
+      duplicateEmail: (email) => `${email} has already been added`,
+      maxEmails: (max) => `You can invite up to ${max} people at a time`,
     },
   });
 
-  const role = watch("role");
+  const handleSubmit = () => {
+    if (emails.length === 0) return;
 
-  const onSubmit = async (data: InviteFormValues) => {
-    try {
-      const result = await inviteMember(data);
+    startTransition(async () => {
+      const settled = await Promise.allSettled(
+        emails.map(async (email) => {
+          const result = await inviteMember({ email, role });
 
-      if (result?.data) {
-        toast.success("Invitation sent successfully");
-        reset();
-        setOpen(false);
-      } else if (result?.validationErrors) {
-        const firstFieldErrors = Object.values(result.validationErrors)[0];
-        const firstError = Array.isArray(firstFieldErrors)
-          ? firstFieldErrors[0]
-          : firstFieldErrors?._errors?.[0];
-        toast.error(firstError ?? "Validation failed");
-      } else if (result?.serverError) {
-        toast.error(result.serverError);
+          if (result?.data) return { email, success: true as const };
+
+          if (result?.serverError) {
+            return {
+              email,
+              success: false as const,
+              error: result.serverError,
+            };
+          }
+
+          if (result?.validationErrors) {
+            const firstFieldErrors = Object.values(
+              result.validationErrors
+            )[0];
+            const firstError = Array.isArray(firstFieldErrors)
+              ? firstFieldErrors[0]
+              : firstFieldErrors?._errors?.[0];
+            return {
+              email,
+              success: false as const,
+              error: firstError ?? "Validation failed",
+            };
+          }
+
+          return { email, success: false as const, error: "Unknown error" };
+        })
+      );
+
+      const results = settled.map((s) =>
+        s.status === "fulfilled"
+          ? s.value
+          : {
+              email: "unknown",
+              success: false as const,
+              error: "Failed to send",
+            }
+      );
+
+      const successCount = results.filter((r) => r.success).length;
+      const failures = results.filter((r) => !r.success);
+
+      if (successCount > 0 && failures.length === 0) {
+        toast.success(
+          successCount === 1
+            ? "Invitation sent successfully"
+            : `${successCount} invitations sent successfully`
+        );
+      } else if (successCount > 0 && failures.length > 0) {
+        toast.warning(`${successCount} sent, ${failures.length} failed`, {
+          description: failures
+            .map((r) => `${r.email}: ${r.error}`)
+            .join(", "),
+        });
+      } else {
+        toast.error("Failed to send invitations", {
+          description: failures
+            .map((r) => `${r.email}: ${r.error}`)
+            .join(", "),
+        });
       }
-    } catch (error) {
-      toast.error("Failed to send invitation");
-      console.error(error);
-    }
+
+      setOpen(false);
+    });
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) {
+          clear();
+          setRole("user");
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button>
           <UserPlusIcon className="mr-2 h-4 w-4" />
-          Invite Member
+          Invite Members
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Invite Organization Member</DialogTitle>
+          <DialogTitle>Invite Members</DialogTitle>
           <DialogDescription>
-            Send an invitation email to add a new member to your organization
+            Add email addresses to invite new members to your organization
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-4">
+          {/* Email chip input */}
           <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="user@example.com"
-              {...register("email")}
-              aria-invalid={errors.email ? "true" : "false"}
+            <Label htmlFor="invite-email-input">Email Addresses</Label>
+            <EmailChipInput
+              emails={emails}
+              inputValue={inputValue}
+              error={error}
+              disabled={isPending}
+              onInputChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              onRemove={removeEmail}
             />
-            {errors.email && (
-              <p className="text-sm text-red-600">{errors.email.message}</p>
-            )}
-            <p className="text-sm text-muted-foreground">
-              The email address of the person you want to invite
-            </p>
           </div>
 
+          {/* Role selector */}
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select
-              value={role}
-              onValueChange={(value) =>
-                setValue(
-                  "role",
-                  value as "owner" | "admin" | "user" | "viewer" | "manager"
-                )
-              }
-            >
+            <Select value={role} onValueChange={(v) => setRole(v as Role)}>
               <SelectTrigger id="role">
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
@@ -132,33 +177,36 @@ export function InviteUserDialog() {
                 <SelectItem value="manager">Manager</SelectItem>
               </SelectContent>
             </Select>
-            {errors.role && (
-              <p className="text-sm text-red-600">{errors.role.message}</p>
-            )}
             <p className="text-sm text-muted-foreground">
-              The role this member will have in the organization
+              All invited members will receive this role
             </p>
           </div>
 
+          {/* Actions */}
           <div className="flex gap-3 justify-end">
             <Button
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
-              disabled={isSubmitting}
+              disabled={isPending}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && (
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isPending || emails.length === 0}
+            >
+              {isPending && (
                 <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Send Invitation
+              {emails.length <= 1
+                ? "Send Invitation"
+                : `Send ${emails.length} Invitations`}
             </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
 }
-
