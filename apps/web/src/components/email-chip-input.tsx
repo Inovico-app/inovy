@@ -51,6 +51,7 @@ export function EmailChipInput({
 
   const handleRemoveClick = (email: string) => (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (disabled) return;
     onRemove(email);
   };
 
@@ -95,7 +96,8 @@ export function EmailChipInput({
                   <button
                     type="button"
                     onClick={handleRemoveClick(email)}
-                    className="ml-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    disabled={disabled}
+                    className="ml-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                     aria-label={removeLabel(email)}
                   >
                     <XIcon className="h-3 w-3" />

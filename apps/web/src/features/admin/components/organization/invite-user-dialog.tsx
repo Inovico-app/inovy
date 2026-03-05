@@ -22,7 +22,7 @@ import { useEmailChipInput } from "@/hooks/use-email-chip-input";
 import { Loader2Icon, UserPlusIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { inviteMember } from "../../actions/member-management";
+import { useInviteMember } from "../../hooks/use-invite-member";
 
 type Role = "owner" | "admin" | "user" | "viewer" | "manager";
 
@@ -30,6 +30,7 @@ export function InviteUserDialog() {
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState<Role>("user");
   const [isPending, startTransition] = useTransition();
+  const { executeAsync: inviteMember } = useInviteMember();
 
   const {
     emails,
@@ -52,46 +53,44 @@ export function InviteUserDialog() {
     if (emails.length === 0) return;
 
     startTransition(async () => {
-      const settled = await Promise.allSettled(
+      const results = await Promise.all(
         emails.map(async (email) => {
-          const result = await inviteMember({ email, role });
+          try {
+            const result = await inviteMember({ email, role });
 
-          if (result?.data) return { email, success: true as const };
+            if (result?.data) return { email, success: true as const };
 
-          if (result?.serverError) {
+            if (result?.serverError) {
+              return {
+                email,
+                success: false as const,
+                error: result.serverError,
+              };
+            }
+
+            if (result?.validationErrors) {
+              const firstFieldErrors = Object.values(
+                result.validationErrors
+              )[0];
+              const firstError = Array.isArray(firstFieldErrors)
+                ? firstFieldErrors[0]
+                : firstFieldErrors?._errors?.[0];
+              return {
+                email,
+                success: false as const,
+                error: firstError ?? "Validation failed",
+              };
+            }
+
+            return { email, success: false as const, error: "Unknown error" };
+          } catch {
             return {
               email,
-              success: false as const,
-              error: result.serverError,
-            };
-          }
-
-          if (result?.validationErrors) {
-            const firstFieldErrors = Object.values(
-              result.validationErrors
-            )[0];
-            const firstError = Array.isArray(firstFieldErrors)
-              ? firstFieldErrors[0]
-              : firstFieldErrors?._errors?.[0];
-            return {
-              email,
-              success: false as const,
-              error: firstError ?? "Validation failed",
-            };
-          }
-
-          return { email, success: false as const, error: "Unknown error" };
-        })
-      );
-
-      const results = settled.map((s) =>
-        s.status === "fulfilled"
-          ? s.value
-          : {
-              email: "unknown",
               success: false as const,
               error: "Failed to send",
-            }
+            };
+          }
+        })
       );
 
       const successCount = results.filter((r) => r.success).length;
@@ -103,6 +102,7 @@ export function InviteUserDialog() {
             ? "Invitation sent successfully"
             : `${successCount} invitations sent successfully`
         );
+        setOpen(false);
       } else if (successCount > 0 && failures.length > 0) {
         toast.warning(`${successCount} sent, ${failures.length} failed`, {
           description: failures
@@ -116,8 +116,6 @@ export function InviteUserDialog() {
             .join(", "),
         });
       }
-
-      setOpen(false);
     });
   };
 

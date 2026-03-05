@@ -27,6 +27,8 @@ export function StepInviteColleagues({ isLoading }: StepInviteColleaguesProps) {
   useEffect(() => {
     if (emails.length > 0) {
       setValue("inviteEmails", emails.join(", "));
+    } else {
+      setValue("inviteEmails", "");
     }
   }, [emails, setValue]);
 
