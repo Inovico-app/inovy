@@ -18,13 +18,15 @@ if (typeof window === "undefined") {
   }
 }
 
-// Create connection pool
+// Create connection pool with TLS/SSL enforcement
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL!,
   // Configure pool for serverless environments
   max: 1, // Single connection for serverless
   idleTimeoutMillis: 0, // Disable idle timeout
   connectionTimeoutMillis: 10000, // 10 second connection timeout
+  // SSL/TLS configuration (Neon enforces TLS by default)
+  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: true } : undefined,
 });
 
 // Initialize drizzle with all schema including relations

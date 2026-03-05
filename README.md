@@ -965,6 +965,157 @@ Better Auth manages its own schema for:
 - **Passkeys** - WebAuthn passkey credentials
 - **Magic Links** - Magic link authentication tokens
 
+## 🔒 Security & Encryption
+
+### Encryption Between Application Layers (SSD-4.1.02)
+
+Inovy implements comprehensive encryption for all communication channels to protect data in transit:
+
+#### 1. Client to Web Server (HTTPS/TLS)
+
+- **Vercel Edge Network**: Automatic HTTPS enforcement with TLS 1.3
+- **SSL Certificates**: Auto-provisioned and renewed via Let's Encrypt
+- **HSTS Headers**: Strict-Transport-Security with 2-year max-age
+- **Security Headers**: X-Frame-Options, X-Content-Type-Options, CSP, etc.
+
+```typescript
+// next.config.ts - Security headers configuration
+headers: [
+  {
+    key: 'Strict-Transport-Security',
+    value: 'max-age=63072000; includeSubDomains; preload'
+  },
+  // Additional security headers...
+]
+```
+
+#### 2. App Server to Database (TLS/SSL)
+
+- **Neon Postgres**: TLS encryption enforced by default
+- **Connection Security**: SSL mode configured in connection string
+- **Certificate Validation**: Automatic certificate verification
+
+```typescript
+// Database connection with TLS
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: true }
+});
+```
+
+#### 3. External Service Communications (HTTPS)
+
+All external APIs use HTTPS/TLS:
+
+- OpenAI & Anthropic: `https://api.openai.com`, `https://api.anthropic.com`
+- Deepgram: `https://api.deepgram.com`
+- Upstash Redis: `https://` REST API with TLS
+- Qdrant: `https://your-cluster.qdrant.io`
+- Google & Microsoft APIs: All OAuth and API calls over HTTPS
+- Vercel Blob: `https://` for all file operations
+
+#### 4. Data at Rest Encryption (Optional)
+
+For additional security, Inovy supports encryption at rest:
+
+```typescript
+// AES-256-GCM encryption for files
+import { encrypt, decrypt } from '@/lib/encryption';
+
+// Encrypt before storage
+const encrypted = encrypt(fileBuffer);
+
+// Decrypt for playback
+const decrypted = decrypt(encryptedData);
+```
+
+**Features:**
+- AES-256-GCM authenticated encryption
+- PBKDF2 key derivation with SHA-256
+- Random salt and IV for each encryption
+- Authentication tags prevent tampering
+
+#### OAuth Token Encryption
+
+OAuth tokens are encrypted before database storage:
+
+```typescript
+// AES-256-GCM encryption for OAuth tokens
+const encryptedToken = encryptToken(accessToken);
+const decryptedToken = decryptToken(encryptedToken);
+```
+
+### Environment Variables for Encryption
+
+```env
+# Database with TLS
+DATABASE_URL="postgresql://[user]:[password]@[host]/[db]?sslmode=require"
+
+# Optional: Encryption at Rest
+ENABLE_ENCRYPTION_AT_REST="true"
+ENCRYPTION_MASTER_KEY="your-256-bit-hex-key"     # 64 hex chars
+OAUTH_ENCRYPTION_KEY="your-256-bit-hex-key"      # 64 hex chars
+```
+
+Generate encryption keys:
+```bash
+# Generate 256-bit encryption keys
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+### Verification & Health Checks
+
+#### Encryption Health Endpoint
+
+```bash
+# Check encryption status for all layers
+curl http://localhost:3000/api/encryption/health
+```
+
+Response includes:
+```json
+{
+  "status": "healthy",
+  "ssdCompliance": {
+    "norm": "SSD-4.1.02",
+    "compliant": true
+  },
+  "checks": {
+    "database": { "encrypted": true },
+    "externalAPIs": { "status": "healthy" },
+    "securityConfig": { "httpsEnforced": true }
+  }
+}
+```
+
+#### Verification Script
+
+```bash
+# Run comprehensive encryption verification
+pnpm tsx apps/web/src/scripts/verify-encryption.ts
+```
+
+This script verifies:
+- Database TLS/SSL configuration
+- External API HTTPS usage
+- Security configuration
+- Encryption key setup
+
+### Security Compliance
+
+**SSD-4.1.02 Compliance:**
+- ✅ Encryption between app server and web server
+- ✅ Encryption between app and database
+- ✅ Web server enforces encryption to client
+
+**Additional Standards:**
+- TLS 1.3 (with TLS 1.2 fallback)
+- HSTS preload ready
+- Modern cipher suites
+- Automatic certificate management
+
+For detailed documentation, see [`docs/security/SSD-4.1.02-ENCRYPTION-LAYERS.md`](/docs/security/SSD-4.1.02-ENCRYPTION-LAYERS.md)
+
 ## 🤝 Contributing
 
 1. Fork the repository
