@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { getAvatarColor, getInitials } from "@/lib/email-chip-utils";
 import { cn } from "@/lib/utils";
 import { XIcon } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
 import { useRef } from "react";
 
 const defaultRemoveLabel = (email: string) => `Remove ${email}`;
@@ -67,9 +67,10 @@ export function EmailChipInput({
         role="presentation"
       >
         <div className="flex flex-wrap items-center gap-1.5">
+          <LazyMotion features={domAnimation}>
           <AnimatePresence mode="popLayout">
             {emails.map((email, index) => (
-              <motion.div
+              <m.div
                 key={email}
                 layout
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -100,9 +101,10 @@ export function EmailChipInput({
                     <XIcon className="h-3 w-3" />
                   </button>
                 </Badge>
-              </motion.div>
+              </m.div>
             ))}
           </AnimatePresence>
+          </LazyMotion>
 
           <Input
             ref={inputRef}
@@ -126,9 +128,10 @@ export function EmailChipInput({
       </div>
 
       {/* Error message */}
+      <LazyMotion features={domAnimation}>
       <AnimatePresence>
         {error && (
-          <motion.p
+          <m.p
             id="invite-error"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
@@ -137,9 +140,10 @@ export function EmailChipInput({
             role="alert"
           >
             {error}
-          </motion.p>
+          </m.p>
         )}
       </AnimatePresence>
+      </LazyMotion>
 
       {/* Hint text */}
       <p id="invite-hint" className="text-sm text-muted-foreground">

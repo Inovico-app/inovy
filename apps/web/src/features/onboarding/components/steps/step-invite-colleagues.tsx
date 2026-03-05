@@ -2,7 +2,7 @@
 
 import { EmailChipInput } from "@/components/email-chip-input";
 import { useEmailChipInput } from "@/hooks/use-email-chip-input";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
 import { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import type { OnboardingFormValues } from "../../schemas/onboarding-form.schema";
@@ -67,9 +67,10 @@ export function StepInviteColleagues({ isLoading }: StepInviteColleaguesProps) {
       </fieldset>
 
       {/* Friendly skip nudge */}
+      <LazyMotion features={domAnimation}>
       <AnimatePresence>
         {emails.length === 0 && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -80,9 +81,10 @@ export function StepInviteColleagues({ isLoading }: StepInviteColleaguesProps) {
               Je kunt deze stap ook overslaan en later collega&apos;s uitnodigen
               via de instellingen.
             </p>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
+      </LazyMotion>
     </div>
   );
 }
