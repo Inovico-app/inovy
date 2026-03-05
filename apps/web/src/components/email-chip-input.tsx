@@ -6,7 +6,11 @@ import { getAvatarColor, getInitials } from "@/lib/email-chip-utils";
 import { cn } from "@/lib/utils";
 import { XIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useRef } from "react";
+import { useRef } from "react";
+
+const defaultRemoveLabel = (email: string) => `Remove ${email}`;
+const defaultHintCount = (count: number) =>
+  `${count} ${count === 1 ? "person" : "people"} will be invited`;
 
 interface EmailChipInputProps {
   emails: string[];
@@ -31,10 +35,9 @@ export function EmailChipInput({
   disabled,
   placeholder = "user@example.com",
   placeholderMore = "Add another\u2026",
-  removeLabel = (email) => `Remove ${email}`,
+  removeLabel = defaultRemoveLabel,
   hintEmpty = "Press Enter to add. You can also paste multiple addresses.",
-  hintCount = (count) =>
-    `${count} ${count === 1 ? "person" : "people"} will be invited`,
+  hintCount = defaultHintCount,
   onInputChange,
   onKeyDown,
   onPaste,
@@ -42,17 +45,14 @@ export function EmailChipInput({
 }: EmailChipInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleContainerClick = useCallback(() => {
+  const handleContainerClick = () => {
     inputRef.current?.focus();
-  }, []);
+  };
 
-  const handleRemoveClick = useCallback(
-    (email: string) => (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onRemove(email);
-    },
-    [onRemove]
-  );
+  const handleRemoveClick = (email: string) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRemove(email);
+  };
 
   return (
     <div className="space-y-2">
