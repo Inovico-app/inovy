@@ -21,10 +21,11 @@ import type {
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
-import { magicLink, organization } from "better-auth/plugins";
+import { magicLink, organization, twoFactor } from "better-auth/plugins";
 import { nanoid } from "nanoid";
 import { headers } from "next/headers";
 import { ac, roles } from "./auth/access-control";
+import { authHooks } from "./auth/auth-hooks";
 
 /**
  * Better Auth instance configuration
@@ -54,6 +55,9 @@ import { ac, roles } from "./auth/access-control";
  */
 export const auth = betterAuth({
   experimental: { joins: true },
+  hooks: {
+    after: authHooks,
+  },
   database: drizzleAdapter(db, {
     provider: "pg",
     usePlural: true,
@@ -67,6 +71,7 @@ export const auth = betterAuth({
       invitations: schema.invitations,
       passkeys: schema.passkeys,
       magicLinks: schema.magicLinks,
+      twoFactor: schema.twoFactor,
       teams: schema.teams,
       teamMembers: schema.teamMembers,
     },
@@ -227,28 +232,23 @@ export const auth = betterAuth({
     additionalFields: {
       role: {
         type: "string",
-        enum: [
-          "owner",
-          "admin",
-          "superadmin",
-          "manager",
-          "user",
-          "viewer",
-        ] as const,
         defaultValue: "user",
         required: true,
         description: "The role of the user in the organization",
-        input: false, // don't allow user to change their role
+        input: false,
       },
       onboardingCompleted: {
         type: "boolean",
         defaultValue: false,
         required: true,
-        input: false, // don't allow user to change this directly
+        input: false,
       },
     },
   },
   plugins: [
+    twoFactor({
+      issuer: "Inovy",
+    }),
     organization({
       // Access control configuration
       ac,

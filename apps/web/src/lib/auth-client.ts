@@ -4,6 +4,7 @@ import { passkeyClient } from "@better-auth/passkey/client";
 import {
   magicLinkClient,
   organizationClient,
+  twoFactorClient,
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { ac, roleMapping, roles } from "./auth/access-control";
@@ -21,6 +22,7 @@ export const authClient = createAuthClient({
       ? "http://localhost:3000"
       : process.env.NEXT_PUBLIC_APP_URL,
   plugins: [
+    twoFactorClient(),
     magicLinkClient(),
     passkeyClient(),
     organizationClient({
