@@ -12,9 +12,9 @@ Configure these in the GitHub repository's `prd` environment:
 - `AZURE_SUBSCRIPTION_ID` - Azure subscription ID
 
 ### Docker Build (NEXT_PUBLIC_* at build time)
-These are passed as Docker build args when building the app image. Configure as **variables** (not secrets) in the environment:
+These are passed as Docker build args when building the app image:
 
-- `NEXT_PUBLIC_APP_URL` or `APP_URL` - Public app URL (e.g. `https://inovy-app-prd.xxx.azurecontainerapps.io`). Required for client bundle.
+- `NEXT_PUBLIC_APP_URL` - Resolved automatically by querying the Azure Container App Environment (`inovy-env-<env>`). Fallback: set `NEXT_PUBLIC_APP_URL` or `APP_URL` as env vars when infra is not deployed yet.
 - `NEXT_PUBLIC_PLATFORM` - Platform identifier (`azure` or `vercel`). Defaults to `azure` if unset.
 - `NEXT_PUBLIC_WEBHOOK_URL` - (optional) Public webhook URL for Google Drive
 - `NEXT_PUBLIC_KVK_NUMBER` - (optional) KVK number for legal pages

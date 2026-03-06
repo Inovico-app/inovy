@@ -37,6 +37,11 @@ on:
         required: false
         type: string
         default: ""
+      next_public_app_url:
+        description: "Override NEXT_PUBLIC_APP_URL (e.g. when infra not deployed yet)"
+        required: false
+        type: string
+        default: ""
 
 jobs:
   build-and-push:
@@ -46,6 +51,7 @@ jobs:
       environment: ${{ inputs.environment }}
       build_image: ${{ inputs.build_image }}
       container_image: ${{ inputs.container_image }}
+      next_public_app_url: ${{ inputs.next_public_app_url }}
     secrets: inherit
 
   migrate:
