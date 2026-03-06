@@ -24,6 +24,26 @@ export function createSearchKnowledgeTool(ctx: ToolContext) {
         .optional()
         .default(5)
         .describe("Maximum number of results to return (1-20)"),
+      contentType: z
+        .enum([
+          "transcription",
+          "summary",
+          "task",
+          "knowledge_document",
+          "project_template",
+          "organization_instructions",
+        ])
+        .optional()
+        .describe(
+          "Filter results by content type. Use 'summary' to find recording summaries, 'transcription' for transcript chunks, 'task' for action items."
+        ),
+      recordingId: z
+        .string()
+        .uuid()
+        .optional()
+        .describe(
+          "Filter results to a specific recording by its ID. Combine with contentType for precise results."
+        ),
       useHybrid: z
         .boolean()
         .optional()
@@ -35,8 +55,17 @@ export function createSearchKnowledgeTool(ctx: ToolContext) {
         .default(true)
         .describe("Use cross-encoder re-ranking for improved relevance"),
     }),
-    execute: async ({ query, limit, useHybrid, useReranking }) => {
+    execute: async ({ query, limit, contentType, recordingId, useHybrid, useReranking }) => {
       try {
+        // Build additional filters from parameters
+        const filters: Record<string, unknown> = {};
+        if (contentType) {
+          filters.contentType = contentType;
+        }
+        if (recordingId) {
+          filters.documentId = recordingId;
+        }
+
         const result = await ragSearchTool.execute({
           query,
           limit,
@@ -44,6 +73,7 @@ export function createSearchKnowledgeTool(ctx: ToolContext) {
           useReranking,
           organizationId: ctx.organizationId,
           projectId: ctx.projectId,
+          filters,
         });
 
         if (result.isErr()) {
