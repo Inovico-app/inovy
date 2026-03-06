@@ -124,8 +124,7 @@ postgresql_admin_password = "YourSecurePassword123!"
 
 The Container App is configured with environment variables from Terraform outputs:
 - `DATABASE_URL` - PostgreSQL connection string
-- `UPSTASH_REDIS_REST_URL` - Redis endpoint
-- `UPSTASH_REDIS_REST_TOKEN` - Redis access key
+- `REDIS_URL` - Redis connection URL (redis://) for ioredis client
 - `QDRANT_URL` - Qdrant API endpoint
 - `AZURE_STORAGE_ACCOUNT_NAME` - Blob storage account name
 - `AZURE_STORAGE_ACCOUNT_KEY` - Blob storage access key (for SAS token generation)

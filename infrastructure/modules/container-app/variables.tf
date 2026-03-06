@@ -50,13 +50,8 @@ variable "postgresql_database_name" {
   type        = string
 }
 
-variable "upstash_redis_rest_url" {
-  description = "Upstash Redis REST URL (http scheme + redis hostname)"
-  type        = string
-}
-
-variable "upstash_redis_rest_token" {
-  description = "Upstash Redis REST token (from REDIS_PASSWORD secret)"
+variable "redis_url" {
+  description = "Redis connection URL (redis://:password@host:port) for Azure ioredis client"
   type        = string
   sensitive   = true
 }
