@@ -249,9 +249,13 @@ module "storage" {
   storage_blob_restore_days           = var.storage_blob_restore_days
   managed_identity_principal_id       = module.container_app_identity.managed_identity_principal_id
   uuid_namespace                      = local.uuid_namespace_dns
+  cors_allowed_origins                = [
+    var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${data.azurerm_container_app_environment.current.default_domain}" : "http://inovy-app-${var.environment}.${data.azurerm_container_app_environment.current.default_domain}"
+  ]
 
   depends_on = [
-    module.container_app_identity
+    module.container_app_identity,
+    data.azurerm_container_app_environment.current
   ]
 
   tags = {
