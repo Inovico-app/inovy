@@ -12,11 +12,14 @@ export function useNavigateToMeeting(
 ) {
   const router = useRouter();
 
-  const { execute, isExecuting } = useAction(getOrCreateMeeting, {
+  const { execute, isExecuting, reset } = useAction(getOrCreateMeeting, {
     onSuccess: ({ data }) => {
       if (!data?.meetingId) return;
       options?.onBeforeNavigate?.();
-      router.push(`/meetings/${data.meetingId}/prep`);
+      // Use replace so navigating back doesn't restore stale action state
+      router.replace(`/meetings/${data.meetingId}/prep`);
+      // Reset action state to prevent re-triggering on component remount
+      reset();
     },
     onError: ({ error }) => {
       toast.error(error.serverError || "Failed to open meeting");
