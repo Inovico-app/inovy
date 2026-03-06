@@ -12,6 +12,7 @@ import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/comp
 import { getOrganizationSettings } from "@/features/settings/actions/organization-settings";
 import { OrganizationInstructionsSection } from "@/features/settings/components/organization-instructions-section";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { formatDateShort } from "@/lib/formatters/date-formatters";
 import { getUserDisplayName } from "@/lib/formatters/display-formatters";
 import { logger } from "@/lib/logger";
 import { isOrganizationAdmin } from "@/lib/rbac/rbac";
@@ -19,8 +20,11 @@ import {
   getCachedKnowledgeDocuments,
   getCachedKnowledgeEntries,
 } from "@/server/cache/knowledge-base.cache";
-import { OrganizationService } from "@/server/services/organization.service";
-import { Building2Icon, MailIcon, UserIcon } from "lucide-react";
+import {
+  OrganizationService,
+  type PendingInvitationDto,
+} from "@/server/services/organization.service";
+import { Building2Icon, ClockIcon, MailIcon, UserIcon } from "lucide-react";
 import { Suspense } from "react";
 
 async function OrganizationContent() {
@@ -51,7 +55,7 @@ async function OrganizationContent() {
   // Check if user is admin
   const canEdit = auth.user ? isOrganizationAdmin(auth.user) : false;
 
-  // Fetch organization members
+  // Fetch organization members and pending invitations
   let members: Array<{
     id: string;
     email: string | null;
@@ -59,12 +63,18 @@ async function OrganizationContent() {
     family_name: string | null;
     roles?: string[];
   }> = [];
+  let pendingInvitations: PendingInvitationDto[] = [];
 
   if (organizationId) {
-    const membersResult =
-      await OrganizationService.getOrganizationMembers(organizationId);
+    const [membersResult, invitationsResult] = await Promise.all([
+      OrganizationService.getOrganizationMembers(organizationId),
+      OrganizationService.getPendingInvitations(organizationId),
+    ]);
     if (membersResult.isOk()) {
       members = membersResult.value;
+    }
+    if (invitationsResult.isOk()) {
+      pendingInvitations = invitationsResult.value;
     }
   }
 
@@ -228,6 +238,44 @@ async function OrganizationContent() {
           ) : (
             <div className="text-center py-6">
               <p className="text-muted-foreground">No members to display</p>
+            </div>
+          )}
+
+          {/* Pending Invitations */}
+          {pendingInvitations.length > 0 && (
+            <div className="mt-6">
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                Pending Invitations ({pendingInvitations.length})
+              </h4>
+              <div className="space-y-3">
+                {pendingInvitations.map((invitation) => (
+                  <div
+                    key={invitation.id}
+                    className="flex items-center justify-between p-3 border border-dashed rounded-lg bg-muted/25"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-muted-foreground">
+                          {invitation.email}
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className="text-xs border-amber-500/50 text-amber-600 dark:text-amber-400"
+                        >
+                          Pending
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {invitation.role}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                        <ClockIcon className="h-3 w-3" />
+                        Expires {formatDateShort(invitation.expiresAt)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>

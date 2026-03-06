@@ -72,6 +72,7 @@ export function AudioPlaybackProvider({ children }: { children: ReactNode }) {
         cleanupRef.current = null;
       }
       stopLoop();
+      mediaRef.current?.pause();
       mediaRef.current = el;
 
       if (!el) {

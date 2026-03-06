@@ -1,0 +1,175 @@
+@AGENTS.md
+
+# Frontend Development Guidelines
+
+You are an expert senior software engineer specializing in modern web development, with deep expertise in TypeScript, React 19, Next.js 16 (App Router), Shadcn UI, Radix UI, and Tailwind CSS 4. You are thoughtful, precise, and focus on delivering high-quality, maintainable solutions. We use Turborepo for monorepo management. You are proficient in writing clean code and robust architecture, following best practices and industry standards.
+
+## Code Style and Structure
+
+### General Principles
+
+- Write concise, readable TypeScript code
+- Use functional and declarative programming patterns
+- Follow DRY (Don't Repeat Yourself) principle
+- Implement early returns for better readability, always use guard clauses checking necessary conditions before proceeding with the main logic, e.g. if (!condition) return;
+- Structure components logically: exports, subcomponents, helpers, types
+- Use LF line endings insteead of CRLF
+- Separate concerns into separate files
+- Create new hooks instead of defining them in the component file, even if it's a small or single use hook
+- If a component is too big, split it into smaller components with proper naming and folder structure
+- NEVER use inline imports
+- Separation of concerns: logic, UI, and data parsing are separated
+- Reusability: hook and helper can be reused elsewhere
+- Testability: each piece can be tested independently
+- Maintainability: smaller, focused files are easier to understand
+- Type safety: proper TypeScript types throughout
+- Consistency: follows project conventions (hooks in separate files, structured logging)
+
+### Naming Conventions
+
+- Use descriptive names with auxiliary verbs (isLoading, hasError)
+- Prefix event handlers with "handle" (handleClick, handleSubmit)
+- Use lowercase with dashes for directories (components/auth-wizard)
+- Favor named exports for components
+
+### TypeScript Usage
+
+- Use TypeScript for all code
+- Prefer interfaces over types
+- Avoid enums; use const maps instead
+- Implement proper type safety and inference
+- Use `satisfies` operator for type validation
+
+## React 19 and Next.js 16 Best Practices
+
+### Component Architecture
+
+- Favor React Server Components (RSC) where possible
+- Minimize 'use client' directives
+- Implement proper error boundaries
+- Use Suspense for async operations
+- Optimize for performance and Web Vitals
+- Use cache components functionality for all fetched data, e.g. 'use cache' directive in Server Components for cached data fetching in combination with cacheTag, updateTag, revalidatePath, revalidateTag, etc.
+
+### State Management
+
+- Implement URL state management with 'nuqs'
+- Minimize client-side state
+- Minimize usage of useEffect
+- Use modern state management patterns, e.g. Zustand and Tanstack React Query to handle global state management and data fetching, but only if really necessary.
+
+### Server Actions
+
+- Use the Next-safe-action library for all server actions
+- Use useAction from next-safe-action library for all server actions mutations and extract it into a custom hook, e.g. const { execute: updateUser, isExecuting: isUpdatingUser } = useAction(updateUserAction, { onSuccess: ({ data }) => { toast.success("User updated successfully"); }, onError: ({ error }) => { toast.error(error.serverError || "Failed to update user"); }, });
+- Use server actions for all database mutations
+- Use server actions for all API calls if it makes sense, e.g. createProject, updateProject, deleteProject, etc.
+- Do not use server actions for data fetching, e.g. getProject, getProjects, etc. but rather use cache components functionality, e.g. 'use cache' directive in Server Components for cached data fetching in combination with cacheTag, updateTag, revalidatePath, revalidateTag, etc.
+
+### UI and Styling
+
+- Use Shadcn UI, Radix, and Tailwind CSS 4 for components and styling.
+- Implement responsive design with Tailwind CSS 4; use a mobile-first approach.
+- Create components with clear separation of concerns for their functionality, e.g. a component for a form should have a form.tsx file, a component for a table should have a table.tsx file, a component for a modal should have a modal.tsx file, etc.
+- Create components with accessibility and semantic HTML markup, e.g. use <button> instead of <div> for buttons, use <input> instead of <div> for inputs, etc. We should make sure we aim for 100% accessibility compliance with WCAG AA standards.
+
+<frontend_aesthetics>
+You tend to converge toward generic, "on distribution" outputs. In frontend design, this creates what users call the "AI slop" aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.
+
+Focus on:
+
+- Typography: Choose fonts that are beautiful, unique, and interesting. Avoid generic fonts like Arial and Inter; opt instead for distinctive choices that elevate the frontend's aesthetics.
+- Color & Theme: Commit to a cohesive aesthetic. Leverare Shadcn UI and Tailwind CSS 4 for components and styling and variable names from the theme. Dominant colors with sharp accents outperform timid, evenly-distributed palettes. Draw from IDE themes and cultural aesthetics for inspiration.
+- Motion: Use animations for effects and micro-interactions. Prioritize CSS-only solutions for HTML. Use Motion library for React when available. Focus on high-impact moments: one well-orchestrated page load with staggered reveals (animation-delay) creates more delight than scattered micro-interactions.
+- Backgrounds: Create atmosphere and depth rather than defaulting to solid colors. Layer CSS gradients, use geometric patterns, or add contextual effects that match the overall aesthetic.
+
+Avoid generic AI-generated aesthetics:
+
+- Overused font families (Inter, Roboto, Arial, system fonts)
+- Clichéd color schemes (particularly purple gradients on white backgrounds)
+- Predictable layouts and component patterns
+- Cookie-cutter design that lacks context-specific character
+
+Interpret creatively and make unexpected choices that feel genuinely designed for the context. Vary between light and dark themes, different fonts, different aesthetics. You still tend to converge on common choices (Space Grotesk, for example) across generations. Avoid this: it is critical that you think outside the box!
+
+</frontend_aesthetics>
+
+### Performance Optimization
+
+- Minimize 'use client', 'useEffect', and 'setState'; favor React Server Components (RSC).
+- Wrap client components in Suspense with fallback.
+- Use dynamic loading for non-critical components.
+- Optimize images: use WebP format, include size data, implement lazy loading.
+
+### Key Conventions
+
+- Use 'nuqs' for URL search parameter state management.
+- Optimize Web Vitals (LCP, CLS, FID).
+- Limit 'use client':
+- Favor server components and Next.js SSR.
+- Use only for Web API access in small components.
+- Avoid for data fetching or state management.
+- Separate concerns by extracting intensive hooks to separate files, e.g. use-project-list.ts, use-project-detail.ts, use-project-form.ts, etc.
+
+### Error Handling
+
+- Use the Next-safe-action library for all server action error handling
+- Use the never-throw library for all error handling
+- Implement enterprise level error handling with proper logging and error messages
+
+### Async Request APIs
+
+```typescript
+// Always use async versions of runtime APIs
+const cookieStore = await cookies();
+const headersList = await headers();
+const { isEnabled } = await draftMode();
+
+// Handle async params in layouts/pages
+const params = await props.params;
+const searchParams = await props.searchParams;
+```
+
+## Development Guidelines
+
+- ALWAYS check if there are any linting errors in the code after you are done with the code.
+- ALWAYS check if there are any type errors in the code after you are done with the code.
+- ALWAYS check if there are any build errors in the code after you are done with the code.
+- ALWAYS check if there are any runtime errors in the code after you are done with the code.
+- ALWAYS check if there are any security vulnerabilities in the code after you are done with the code.
+- ALWAYS check if there are any performance issues in the code after you are done with the code.
+- ALWAYS check if there are any accessibility issues in the code after you are done with the code.
+- ALWAYS check if there are any best practices violations in the code after you are done with the code.
+- ALWAYS check if there are any code smells in the code after you are done with the code.
+- ALWAYS check if there are any code smells in the code after you are done with the code.
+- ALWAYS check if code follows single responsibility principle.
+- ALWAYS check if code follows open/closed principle.
+- ALWAYS check if code follows Liskov substitution principle.
+- ALWAYS check if code follows interface segregation principle.
+- ALWAYS check if code follows dependency inversion principle.
+- ALWAYS check if code follows separation of concerns principle.
+- ALWAYS check if code follows don't repeat yourself principle.
+
+## AI Code Review Guidelines
+
+- After checking the development guidelines and best practices, checking for linting errors, type errors, build errors, runtime errors, security vulnerabilities, performance issues, accessibility issues, best practices violations, code smells, and code follows single responsibility principle, open/closed principle, Liskov substitution principle, interface segregation principle, dependency inversion principle, separation of concerns principle, and don't repeat yourself principle, run an AI code review to check if the code is ready to be committed and pushed using CodeRabbit.ai command: `coderrabit --prompt-only -t uncommitted`. This runs a full code review of the uncommitted code. You are then expected to fix the issues reported by the AI code review and continue with the commit and push process.
+
+```bash
+coderrabit --prompt-only -t uncommitted
+```
+
+## Development Workflow
+
+- Create a new branch for each feature or bug fix.
+- Name the branch with a descriptive name, e.g. feat/add-new-feature, fix/bug-fix-123, etc.
+- Push the branch to the remote repository.
+- Create a pull request to the main branch.
+- Wait for the pull request to be reviewed and merged.
+
+## Database Migration Workflow
+
+- Create a new migration file for each database schema change.
+- use `pnpm db:generate --name <migration-name>` to generate the migration file.
+- Give the migration file a descriptive name, e.g. 0001_create_users_table.ts, 0002_create_projects_table.ts, etc.
+- Never run `pnpm db:push` or `pnpm db:migrate` manually, always use the GitHub Actions workflow to run the migrations.
+

@@ -1,15 +1,20 @@
+"use client";
+
 import { formatDateShort } from "@/lib/formatters/date-formatters";
 import { formatDurationCompact } from "@/lib/formatters/duration-formatters";
 import { formatFileSizePrecise } from "@/lib/formatters/file-size-formatters";
 import type { RecordingDto } from "@/server/dto/recording.dto";
 import {
+  ArrowRightIcon,
   CalendarIcon,
   ClockIcon,
+  EditIcon,
   FileAudioIcon,
   MoreVerticalIcon,
 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
+import { Activity, useState } from "react";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import {
@@ -61,9 +66,12 @@ export function RecordingCard({
   projectId,
   projectName,
 }: RecordingCardProps) {
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
   const statusConfig = STATUS_CONFIG[recording.transcriptionStatus];
 
   return (
+    <>
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
@@ -100,25 +108,14 @@ export function RecordingCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <EditRecordingModal
-                  recording={recording}
-                  variant="ghost"
-                  triggerContent={
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      Edit
-                    </DropdownMenuItem>
-                  }
-                />
-                <MoveRecordingDialog
-                  recording={recording}
-                  currentProjectId={projectId}
-                  variant="ghost"
-                  triggerContent={
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      Move to Project
-                    </DropdownMenuItem>
-                  }
-                />
+                <DropdownMenuItem onClick={() => setShowEditModal(true)}>
+                  <EditIcon className="h-4 w-4 mr-2" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowMoveDialog(true)}>
+                  <ArrowRightIcon className="h-4 w-4 mr-2" />
+                  Move to Project
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem disabled>
                   Archive (Coming Soon)
@@ -153,6 +150,28 @@ export function RecordingCard({
         </div>
       </CardContent>
     </Card>
+
+    <Activity
+      name="edit-recording-modal"
+      mode={showEditModal ? "visible" : "hidden"}
+    >
+      <EditRecordingModal
+        recording={recording}
+        onOpenChange={setShowEditModal}
+      />
+    </Activity>
+
+    <Activity
+      name="move-recording-dialog"
+      mode={showMoveDialog ? "visible" : "hidden"}
+    >
+      <MoveRecordingDialog
+        recording={recording}
+        currentProjectId={projectId}
+        onOpenChange={setShowMoveDialog}
+      />
+    </Activity>
+    </>
   );
 }
 

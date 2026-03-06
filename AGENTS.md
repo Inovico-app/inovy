@@ -1,5 +1,13 @@
 # AGENTS.md
 
+<!-- BEGIN:nextjs-agent-rules -->
+
+# Next.js: ALWAYS read docs before coding
+
+Before any Next.js work, find and read the relevant doc in `node_modules/next/dist/docs/`. Your training data is outdated — the docs are the source of truth.
+
+<!-- END:nextjs-agent-rules -->
+
 ## Cursor Cloud specific instructions
 
 ### Overview
@@ -18,11 +26,11 @@ Inovy is an AI-Powered Meeting Recording & Management Platform. It is a Turborep
 
 Standard commands documented in the root `package.json`:
 
-| Command | Scope | Notes |
-|---------|-------|-------|
-| `pnpm lint` | web (via turbo) | Uses `--max-warnings 0`; the existing codebase has pre-existing warnings/errors |
-| `pnpm typecheck` | all packages | Clean pass expected |
-| `pnpm build` | all packages | Runs full production build |
+| Command          | Scope           | Notes                                                                           |
+| ---------------- | --------------- | ------------------------------------------------------------------------------- |
+| `pnpm lint`      | web (via turbo) | Uses `--max-warnings 0`; the existing codebase has pre-existing warnings/errors |
+| `pnpm typecheck` | all packages    | Clean pass expected                                                             |
+| `pnpm build`     | all packages    | Runs full production build                                                      |
 
 Direct usage from `apps/web`: `pnpm lint`, `pnpm run typecheck`, `pnpm run build`.
 
@@ -34,3 +42,4 @@ Direct usage from `apps/web`: `pnpm lint`, `pnpm run typecheck`, `pnpm run build
 - **Database**: Uses Neon serverless PostgreSQL. Migrations are in `apps/web/src/server/db/migrations/`. Run `pnpm db:migrate` to apply. Do NOT run `pnpm db:push` in production per the workspace rules.
 - **Qdrant**: Can be run locally via `docker compose up -d qdrant` (optional). Production uses cloud-hosted Qdrant configured via `QDRANT_URL` and `QDRANT_API_KEY` env vars.
 - **Workflow plugin**: `next.config.ts` wraps config with `withWorkflow()` from the `workflow` package, which adds startup time (~3s) for discovering workflow directives.
+

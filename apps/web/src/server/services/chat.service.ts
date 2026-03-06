@@ -11,11 +11,8 @@ import type {
   ChatConversation,
   NewChatConversation,
 } from "@/server/db/schema/chat-conversations";
-import type {
-  NewChatMessage,
-  SourceReference,
-} from "@/server/db/schema/chat-messages";
-import { streamText } from "ai";
+import type { NewChatMessage } from "@/server/db/schema/chat-messages";
+import { stepCountIs, streamText } from "ai";
 import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../ai/middleware";
 import { moderateUserInput } from "../ai/middleware/input-moderation.middleware";
@@ -28,10 +25,14 @@ import { ProjectService } from "./project.service";
 import { PromptBuilder } from "./prompt-builder.service";
 import { RAGService } from "./rag/rag.service";
 import type { SearchResult } from "./rag/types";
+import {
+  buildPersistedToolCalls,
+  createChatTools,
+  extractSourcesFromToolResults,
+  type ToolContext,
+} from "./tools";
 import { SearchResultFormatter } from "./search-result-formatter.service";
 
-const RAG_CITATION_INSTRUCTION =
-  "Each source is prefixed with [N]; use that exact number when citing.";
 
 export class ChatService {
   private static ragService = new RAGService();
@@ -302,38 +303,6 @@ export class ChatService {
       };
       await ChatQueries.createMessage(userMessageEntry);
 
-      // Get relevant context using RAG search
-      const ragContextResult = await this.getRelevantContext(
-        userMessage,
-        projectId
-      );
-
-      let context = "";
-      let sources: SourceReference[] = [];
-
-      if (ragContextResult.isOk()) {
-        context = ragContextResult.value.context;
-        sources = ragContextResult.value.sources.map(
-          (source: {
-            contentId: string;
-            contentType: string;
-            title: string;
-            excerpt: string;
-            similarityScore: number;
-            recordingId?: string;
-            timestamp?: number;
-          }) => ({
-            contentId: source.contentId,
-            contentType: source.contentType as SourceReference["contentType"],
-            title: source.title,
-            excerpt: source.excerpt,
-            similarityScore: source.similarityScore,
-            recordingId: source.recordingId,
-            timestamp: source.timestamp,
-          })
-        );
-      }
-
       // Get conversation context with smart pruning and summarization
       const conversationContextResult =
         await ConversationContextManager.getConversationContext(conversationId);
@@ -382,18 +351,10 @@ export class ChatService {
         // Log but continue - the guard rails in system prompt will handle this
       }
 
-      // Build complete prompt with XML tagging and priority hierarchy
-      // Include conversation summary if available
-      let ragContextWithSummary = context
-        ? `Here is relevant information from the project recordings. ${RAG_CITATION_INSTRUCTION}
-
-${context}
-
-Please answer the user's question based on this information.`
-        : "No relevant information was found in the project recordings. Let the user know you don't have specific information to answer their question.";
-
+      // Build RAG context — no pre-fetch; AI uses searchKnowledge tool on-demand
+      let ragContextWithSummary = "";
       if (conversationSummary) {
-        ragContextWithSummary += `\n\nPrevious conversation summary:\n${conversationSummary}`;
+        ragContextWithSummary = `Previous conversation summary:\n${conversationSummary}`;
       }
 
       const promptResult = PromptBuilder.Chat.buildPrompt({
@@ -483,7 +444,7 @@ Please answer the user's question based on this information.`
         conversationId,
         role: "assistant",
         content: fullResponse,
-        sources,
+        sources: [],
       };
       await ChatQueries.createMessage(assistantMessageEntry);
 
@@ -505,7 +466,7 @@ Please answer the user's question based on this information.`
 
       logger.info("Chat response generated", { conversationId });
 
-      return ok({ response: fullResponse, sources });
+      return ok({ response: fullResponse, sources: [] });
     } catch (error) {
       logger.error("Error generating chat response", {
         error,
@@ -557,38 +518,6 @@ Please answer the user's question based on this information.`
       };
       await ChatQueries.createMessage(userMessageEntry);
 
-      // Get relevant context using RAG search
-      const ragContextResult = await this.getRelevantContext(
-        userMessage,
-        projectId
-      );
-
-      let context = "";
-      let sources: SourceReference[] = [];
-
-      if (ragContextResult.isOk()) {
-        context = ragContextResult.value.context;
-        sources = ragContextResult.value.sources.map(
-          (source: {
-            contentId: string;
-            contentType: string;
-            title: string;
-            excerpt: string;
-            similarityScore: number;
-            recordingId?: string;
-            timestamp?: number;
-          }) => ({
-            contentId: source.contentId,
-            contentType: source.contentType as SourceReference["contentType"],
-            title: source.title,
-            excerpt: source.excerpt,
-            similarityScore: source.similarityScore,
-            recordingId: source.recordingId,
-            timestamp: source.timestamp,
-          })
-        );
-      }
-
       // Get conversation context with smart pruning and summarization
       const conversationContextResult =
         await ConversationContextManager.getConversationContext(conversationId);
@@ -636,18 +565,10 @@ Please answer the user's question based on this information.`
       // Get agent settings for configuration
       const agentSettings = await getCachedAgentSettings();
 
-      // Create the full prompt with context
-      // Include conversation summary if available
-      let ragContextWithSummary = context
-        ? `Here is relevant information from the project recordings. ${RAG_CITATION_INSTRUCTION}
-
-${context}
-
-Please answer the user's question based on this information.`
-        : "No relevant information was found in the project recordings. Let the user know you don't have specific information to answer their question.";
-
+      // Build RAG context — no pre-fetch; AI uses searchKnowledge tool on-demand
+      let ragContextWithSummary = "";
       if (conversationSummary) {
-        ragContextWithSummary += `\n\nPrevious conversation summary:\n${conversationSummary}`;
+        ragContextWithSummary = `Previous conversation summary:\n${conversationSummary}`;
       }
 
       // Build complete prompt with priority hierarchy
@@ -686,9 +607,18 @@ Please answer the user's question based on this information.`
         pii: { mode: "redact" },
       });
 
+      const toolContext: ToolContext = {
+        organizationId,
+        userId,
+        projectId,
+        chatContext: "project",
+      };
+
       const streamTextOptions: Parameters<typeof streamText>[0] = {
         model: guardedModel,
         system: promptResult.systemPrompt,
+        tools: createChatTools(toolContext),
+        stopWhen: stepCountIs(3),
         messages: [
           ...conversationHistory,
           {
@@ -722,7 +652,7 @@ Please answer the user's question based on this information.`
             error: streamError,
           });
         },
-        async onFinish({ text, usage, toolCalls }) {
+        async onFinish({ text, usage, toolCalls, toolResults }) {
           // Decrement active requests when stream finishes
           pooled.activeRequests--;
 
@@ -773,12 +703,16 @@ Please answer the user's question based on this information.`
             query: userMessage,
           });
 
+          // Extract sources from searchKnowledge tool results
+          const sources = extractSourcesFromToolResults(toolCalls, toolResults);
+
           // Save assistant message after streaming is complete
           const assistantMessageEntry: NewChatMessage = {
             conversationId,
             role: "assistant",
             content: text,
             sources,
+            toolCalls: buildPersistedToolCalls(toolCalls, toolResults),
           };
           await ChatQueries.createMessage(assistantMessageEntry);
 
@@ -817,13 +751,8 @@ Please answer the user's question based on this information.`
         throw streamError;
       }
 
-      // Return stream with sources as metadata in the response
       return ok({
-        stream: result.toUIMessageStreamResponse({
-          messageMetadata: () => ({
-            sources,
-          }),
-        }),
+        stream: result.toUIMessageStreamResponse(),
       });
     } catch (error) {
       logger.error("Error streaming chat response", {
@@ -883,38 +812,6 @@ Please answer the user's question based on this information.`
       };
       await ChatQueries.createMessage(userMessageEntry);
 
-      // Get relevant context using organization-wide RAG search
-      const ragContextResult = await this.getRelevantContextOrganizationWide(
-        userMessage,
-        organizationId
-      );
-
-      let context = "";
-      let sources: SourceReference[] = [];
-
-      if (ragContextResult.isOk()) {
-        context = ragContextResult.value.context;
-        sources = ragContextResult.value.sources.map(
-          (source: {
-            contentId: string;
-            contentType: string;
-            title: string;
-            excerpt: string;
-            similarityScore: number;
-            recordingId?: string;
-            timestamp?: number;
-          }) => ({
-            contentId: source.contentId,
-            contentType: source.contentType as SourceReference["contentType"],
-            title: source.title,
-            excerpt: source.excerpt,
-            similarityScore: source.similarityScore,
-            recordingId: source.recordingId,
-            timestamp: source.timestamp,
-          })
-        );
-      }
-
       // Get conversation context with smart pruning and summarization
       const conversationContextResult =
         await ConversationContextManager.getConversationContext(conversationId);
@@ -947,18 +844,10 @@ Please answer the user's question based on this information.`
         ? knowledgeResult.value
         : "";
 
-      // Create the full prompt with context
-      // Include conversation summary if available
-      let ragContextWithSummary = context
-        ? `Here is relevant information from across all organization recordings and projects. ${RAG_CITATION_INSTRUCTION}
-
-${context}
-
-Please answer the user's question based on this information. When referencing information, mention which project it comes from.`
-        : "No relevant information was found in the organization's recordings. Let the user know you don't have specific information to answer their question.";
-
+      // Build RAG context — no pre-fetch; AI uses searchKnowledge tool on-demand
+      let ragContextWithSummary = "";
       if (conversationSummary) {
-        ragContextWithSummary += `\n\nPrevious conversation summary:\n${conversationSummary}`;
+        ragContextWithSummary = `Previous conversation summary:\n${conversationSummary}`;
       }
 
       // Build complete prompt with priority hierarchy
@@ -992,9 +881,17 @@ Please answer the user's question based on this information. When referencing in
         pii: { mode: "redact" },
       });
 
+      const orgToolContext: ToolContext = {
+        organizationId,
+        userId,
+        chatContext: "organization",
+      };
+
       const streamTextOptions: Parameters<typeof streamText>[0] = {
         model: guardedModel,
         system: promptResult.systemPrompt,
+        tools: createChatTools(orgToolContext),
+        stopWhen: stepCountIs(3),
         messages: [
           ...conversationHistory,
           {
@@ -1030,7 +927,7 @@ Please answer the user's question based on this information. When referencing in
             }
           );
         },
-        async onFinish({ text, usage, toolCalls }) {
+        async onFinish({ text, usage, toolCalls, toolResults }) {
           // Decrement active requests when stream finishes
           pooled.activeRequests--;
 
@@ -1079,12 +976,16 @@ Please answer the user's question based on this information. When referencing in
             query: userMessage,
           });
 
+          // Extract sources from searchKnowledge tool results
+          const sources = extractSourcesFromToolResults(toolCalls, toolResults);
+
           // Save assistant message after streaming is complete
           const assistantMessageEntry: NewChatMessage = {
             conversationId,
             role: "assistant",
             content: text,
             sources,
+            toolCalls: buildPersistedToolCalls(toolCalls, toolResults),
           };
           await ChatQueries.createMessage(assistantMessageEntry);
 
@@ -1121,13 +1022,8 @@ Please answer the user's question based on this information. When referencing in
         throw streamError;
       }
 
-      // Return stream with sources as metadata in the response
       return ok({
-        stream: result.toUIMessageStreamResponse({
-          messageMetadata: () => ({
-            sources,
-          }),
-        }),
+        stream: result.toUIMessageStreamResponse(),
       });
     } catch (error) {
       logger.error("Error streaming organization chat response", {

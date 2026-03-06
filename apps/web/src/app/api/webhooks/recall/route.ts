@@ -4,7 +4,6 @@ import { verifyRequestFromRecall } from "@/server/lib/verify-recall-webhook";
 import { BotWebhookService, getBotId } from "@/server/services/bot-webhook.service";
 import {
   recallWebhookEventSchema,
-  type BotRecordingReadyEvent,
   type BotStatusChangeEvent,
   type ParticipantEventChatMessage,
   type RecallWebhookEvent,
@@ -96,8 +95,6 @@ export async function POST(request: NextRequest) {
     > = {
       "participant_events.chat_message": (p) =>
         BotWebhookService.processChatMessage(p as ParticipantEventChatMessage),
-      "bot.recording_ready": (p) =>
-        BotWebhookService.processRecordingReady(p as BotRecordingReadyEvent),
       "recording.done": (p) =>
         BotWebhookService.processRecordingDone(p as SvixRecordingEvent),
       "recording.failed": (p) =>

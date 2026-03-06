@@ -145,6 +145,32 @@ export class InvitationsQueries {
   }
 
   /**
+   * Get all pending, non-expired invitations for an organization
+   */
+  static async getPendingInvitationsByOrganization(
+    organizationId: string
+  ): Promise<
+    Pick<Invitation, "id" | "email" | "role" | "expiresAt" | "createdAt">[]
+  > {
+    return db
+      .select({
+        id: invitations.id,
+        email: invitations.email,
+        role: invitations.role,
+        expiresAt: invitations.expiresAt,
+        createdAt: invitations.createdAt,
+      })
+      .from(invitations)
+      .where(
+        and(
+          eq(invitations.organizationId, organizationId),
+          eq(invitations.status, "pending"),
+          gt(invitations.expiresAt, new Date())
+        )
+      );
+  }
+
+  /**
    * Create a new invitation record
    */
   static async createInvitation(data: NewInvitation): Promise<Invitation> {

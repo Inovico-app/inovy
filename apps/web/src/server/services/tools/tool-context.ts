@@ -1,0 +1,6 @@
+export interface ToolContext {
+  organizationId: string;
+  userId: string;
+  projectId?: string;
+  chatContext: "project" | "organization";
+}

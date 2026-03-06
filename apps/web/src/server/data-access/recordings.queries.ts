@@ -40,6 +40,7 @@ export class RecordingsQueries {
       search?: string;
       includeArchived?: boolean;
       statusFilter?: "active" | "archived";
+      limit?: number;
     }
   ): Promise<Recording[]> {
     const conditions = [
@@ -53,11 +54,16 @@ export class RecordingsQueries {
     if (options?.search)
       conditions.push(ilike(recordings.title, `%${options.search}%`));
 
-    return await db
+    const query = db
       .select()
       .from(recordings)
       .where(and(...conditions))
       .orderBy(desc(recordings.createdAt));
+
+    if (options?.limit) {
+      return await query.limit(options.limit);
+    }
+    return await query;
   }
 
   static async updateRecordingMetadata(
@@ -366,6 +372,7 @@ export class RecordingsQueries {
       projectIds?: string[];
       teamIds?: string[];
       departmentId?: string;
+      limit?: number;
     }
   ): Promise<Array<Recording & { projectName: string }>> {
     const conditions = [eq(recordings.organizationId, organizationId)];
@@ -395,7 +402,7 @@ export class RecordingsQueries {
       }
     }
 
-    const result = await db
+    const query = db
       .select({
         id: recordings.id,
         projectId: recordings.projectId,
@@ -445,7 +452,10 @@ export class RecordingsQueries {
       .where(and(...conditions))
       .orderBy(desc(recordings.recordingDate));
 
-    return result;
+    if (options?.limit) {
+      return await query.limit(options.limit);
+    }
+    return await query;
   }
 }
 
