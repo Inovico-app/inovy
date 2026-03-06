@@ -1,7 +1,7 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { MAX_FILE_SIZE_50MB } from "@/lib/constants/file-sizes";
 import { logger } from "@/lib/logger";
-import { getStorageProvider } from "./storage";
+import { getStorageProvider, resolveFetchableUrl } from "./storage";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import {
@@ -865,7 +865,8 @@ export class DocumentProcessingService {
     url: string
   ): Promise<ActionResult<string>> {
     try {
-      const response = await fetch(url);
+      const fetchableUrl = await resolveFetchableUrl(url, 60);
+      const response = await fetch(fetchableUrl);
       if (!response.ok) {
         return err(
           ActionErrors.internal(
@@ -886,6 +887,33 @@ export class DocumentProcessingService {
         )
       );
     }
+  }
+
+  /**
+   * Get document for view/download with access validation.
+   * Returns the document if the user has read access.
+   */
+  static async getDocumentForView(
+    documentId: string
+  ): Promise<ActionResult<KnowledgeDocumentDto>> {
+    const document =
+      await KnowledgeBaseDocumentsQueries.getDocumentById(documentId);
+    if (!document) {
+      return err(
+        ActionErrors.notFound(
+          "Document",
+          "DocumentProcessingService.getDocumentForView"
+        )
+      );
+    }
+    const accessResult = await this.validateDocumentAccess(
+      document,
+      "DocumentProcessingService.getDocumentForView"
+    );
+    if (accessResult.isErr()) {
+      return err(accessResult.error);
+    }
+    return ok(document);
   }
 
   /**

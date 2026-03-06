@@ -92,6 +92,23 @@ jobs:
           TF_VAR_postgresql_admin_login: ${{ secrets.POSTGRESQL_ADMIN_LOGIN }}
           TF_VAR_postgresql_admin_password: ${{ secrets.POSTGRESQL_ADMIN_PASSWORD }}
           TF_VAR_redis_password: ${{ secrets.REDIS_PASSWORD }}
+          TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          TF_VAR_deepgram_api_key: ${{ secrets.DEEPGRAM_API_KEY }}
+          TF_VAR_recall_api_key: ${{ secrets.RECALL_API_KEY }}
+          TF_VAR_recall_webhook_secret: ${{ secrets.RECALL_WEBHOOK_SECRET }}
+          TF_VAR_resend_api_key: ${{ secrets.RESEND_API_KEY }}
+          TF_VAR_huggingface_api_key: ${{ secrets.HUGGINGFACE_API_KEY }}
+          TF_VAR_oauth_encryption_key: ${{ secrets.OAUTH_ENCRYPTION_KEY }}
+          TF_VAR_better_auth_secret: ${{ secrets.BETTER_AUTH_SECRET }}
+          TF_VAR_cron_secret: ${{ secrets.CRON_SECRET }}
+          TF_VAR_resend_from_email: ${{ secrets.RESEND_FROM_EMAIL }}
+          TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TF_VAR_microsoft_client_id: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          TF_VAR_microsoft_client_secret: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
+          TF_VAR_next_public_webhook_url: ${{ secrets.NEXT_PUBLIC_WEBHOOK_URL }}
+          TF_VAR_next_public_kvk_number: ${{ secrets.NEXT_PUBLIC_KVK_NUMBER }}
         run: |
           terraform plan \
             -input=false \
@@ -183,3 +200,20 @@ jobs:
           TF_VAR_postgresql_admin_login: ${{ secrets.POSTGRESQL_ADMIN_LOGIN }}
           TF_VAR_postgresql_admin_password: ${{ secrets.POSTGRESQL_ADMIN_PASSWORD }}
           TF_VAR_redis_password: ${{ secrets.REDIS_PASSWORD }}
+          TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          TF_VAR_deepgram_api_key: ${{ secrets.DEEPGRAM_API_KEY }}
+          TF_VAR_recall_api_key: ${{ secrets.RECALL_API_KEY }}
+          TF_VAR_recall_webhook_secret: ${{ secrets.RECALL_WEBHOOK_SECRET }}
+          TF_VAR_resend_api_key: ${{ secrets.RESEND_API_KEY }}
+          TF_VAR_huggingface_api_key: ${{ secrets.HUGGINGFACE_API_KEY }}
+          TF_VAR_oauth_encryption_key: ${{ secrets.OAUTH_ENCRYPTION_KEY }}
+          TF_VAR_better_auth_secret: ${{ secrets.BETTER_AUTH_SECRET }}
+          TF_VAR_cron_secret: ${{ secrets.CRON_SECRET }}
+          TF_VAR_resend_from_email: ${{ secrets.RESEND_FROM_EMAIL }}
+          TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TF_VAR_microsoft_client_id: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          TF_VAR_microsoft_client_secret: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
+          TF_VAR_next_public_webhook_url: ${{ secrets.NEXT_PUBLIC_WEBHOOK_URL }}
+          TF_VAR_next_public_kvk_number: ${{ secrets.NEXT_PUBLIC_KVK_NUMBER }}

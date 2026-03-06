@@ -48,6 +48,12 @@ variable "uuid_namespace" {
   type        = string
 }
 
+variable "cors_allowed_origins" {
+  description = "Origins allowed for CORS on blob storage (e.g. app URL for client uploads)"
+  type        = list(string)
+  default     = []
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

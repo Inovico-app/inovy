@@ -67,9 +67,10 @@ export function RecordingPlayerWrapper({
     }
   }, [searchParams, isVideo, isAudio]);
 
-  // Use playback endpoint for encrypted recordings
+  // Use playback endpoint for encrypted recordings, or when recordingId is available
+  // (Azure storage requires server-side signed URLs; direct blob URLs return 409)
   const playbackUrl =
-    isEncrypted && recordingId
+    recordingId && (isEncrypted || fileUrl.includes(".blob.core.windows.net"))
       ? `/api/recordings/${recordingId}/playback`
       : fileUrl;
 
@@ -103,11 +104,16 @@ export function RecordingPlayerWrapper({
     );
   }
 
+  const downloadUrl =
+    recordingId && fileUrl.includes(".blob.core.windows.net")
+      ? `/api/recordings/${recordingId}/playback?download=1`
+      : fileUrl;
+
   return (
     <div className="text-center py-8 text-muted-foreground">
       <p>Playback not supported for this file type</p>
       <Button variant="outline" className="mt-4" asChild>
-        <a href={fileUrl} download={fileName}>
+        <a href={downloadUrl} download={fileName}>
           Download File
         </a>
       </Button>

@@ -121,7 +121,7 @@ export function KnowledgeDocumentList({
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
                       <a
-                        href={document.fileUrl}
+                        href={`/api/documents/${document.id}/view`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center"

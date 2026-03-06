@@ -25,7 +25,7 @@ locals {
 resource "azurerm_container_app_job" "cron" {
   for_each = local.cron_jobs
 
-  name                         = "inovy-cron-${each.key}-${var.environment}"
+  name                         = "cron-${each.key}-${var.environment}"
   location                     = var.location
   resource_group_name          = var.resource_group_name
   container_app_environment_id = var.container_app_environment_id

@@ -37,6 +37,11 @@ on:
         required: false
         type: string
         default: ""
+      next_public_app_url:
+        description: "Override NEXT_PUBLIC_APP_URL (e.g. when infra not deployed yet)"
+        required: false
+        type: string
+        default: ""
 
 jobs:
   build-and-push:
@@ -46,10 +51,86 @@ jobs:
       environment: ${{ inputs.environment }}
       build_image: ${{ inputs.build_image }}
       container_image: ${{ inputs.container_image }}
+      next_public_app_url: ${{ inputs.next_public_app_url }}
     secrets: inherit
 
-  deploy:
+  migrate:
     needs: build-and-push
+    environment: ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Run database migration job
+        run: |
+          JOB_NAME="db-migrate-${{ inputs.environment }}"
+          RG="rg-inovy-${{ inputs.environment }}"
+          IMAGE_TAG="${{ needs.build-and-push.outputs.image_tag }}"
+          MAX_ATTEMPTS=60
+          INTERVAL=10
+
+          echo "Updating migration job image to '$IMAGE_TAG'..."
+          az containerapp job update \
+            --name "$JOB_NAME" \
+            --resource-group "$RG" \
+            --image "$IMAGE_TAG"
+
+          echo "Starting migration job '$JOB_NAME'..."
+          az containerapp job start \
+            --name "$JOB_NAME" \
+            --resource-group "$RG"
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Checking job status (attempt $i/$MAX_ATTEMPTS)..."
+            EXECUTIONS=$(az containerapp job execution list \
+              --name "$JOB_NAME" \
+              --resource-group "$RG" \
+              --output json 2>/dev/null || echo "[]")
+
+            if [ "$EXECUTIONS" = "[]" ]; then
+              echo "No executions yet, waiting..."
+              sleep $INTERVAL
+              continue
+            fi
+
+            STATUS=$(echo "$EXECUTIONS" | jq -r '.[0].properties.status // empty')
+            EXEC_NAME=$(echo "$EXECUTIONS" | jq -r '.[0].name // empty')
+            echo "Execution: $EXEC_NAME, Status: $STATUS"
+
+            case "$STATUS" in
+              Succeeded)
+                echo "Migration completed successfully"
+                exit 0
+                ;;
+              Failed)
+                echo "Migration failed"
+                az containerapp job logs show \
+                  --name "$JOB_NAME" \
+                  --resource-group "$RG" \
+                  --job-execution-name "$EXEC_NAME" \
+                  --tail 100 2>/dev/null || true
+                exit 1
+                ;;
+              *)
+                sleep $INTERVAL
+                ;;
+            esac
+          done
+
+          echo "Timeout waiting for migration job"
+          exit 1
+
+  deploy:
+    needs: [build-and-push, migrate]
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     permissions:

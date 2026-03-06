@@ -11,6 +11,16 @@ Configure these in the GitHub repository's `prd` environment:
 - `AZURE_TENANT_ID` - Azure AD tenant ID
 - `AZURE_SUBSCRIPTION_ID` - Azure subscription ID
 
+### Docker Build (NEXT_PUBLIC_* at build time)
+These are passed as Docker build args when building the app image:
+
+- `NEXT_PUBLIC_APP_URL` - Resolved automatically by querying the Azure Container App Environment (`inovy-env-<env>`). Fallback: set `NEXT_PUBLIC_APP_URL` or `APP_URL` as env vars when infra is not deployed yet.
+- `NEXT_PUBLIC_PLATFORM` - Platform identifier (`azure` or `vercel`). Defaults to `azure` if unset.
+- `NEXT_PUBLIC_WEBHOOK_URL` - (optional) Public webhook URL for Google Drive
+- `NEXT_PUBLIC_KVK_NUMBER` - (optional) KVK number for legal pages
+
+`DEEPGRAM_API_KEY` (secret) is also passed as `NEXT_PUBLIC_DEEPGRAM_API_KEY` for client-side live transcription.
+
 ### Terraform Variables
 - `TF_VARS` - **Required**: GitHub Environment variable that contains either:
   1. **File path** to a Terraform variables file (e.g., `/tmp/terraform.tfvars`), OR
@@ -44,8 +54,35 @@ Configure these in the GitHub repository's `prd` environment:
 
 Configure these in the GitHub repository's `prd` environment:
 
+### Core
 - `POSTGRESQL_ADMIN_LOGIN` - PostgreSQL administrator username
 - `POSTGRESQL_ADMIN_PASSWORD` - PostgreSQL administrator password
+- `REDIS_PASSWORD` - Redis password for the Redis Container App
+- `BETTER_AUTH_SECRET` - Better Auth secret for the Container App
+
+### API Keys
+- `OPENAI_API_KEY` - OpenAI API key for the Container App
+- `ANTHROPIC_API_KEY` - Anthropic API key for the Container App
+- `DEEPGRAM_API_KEY` - Deepgram API key (server-side)
+- `RECALL_API_KEY` - Recall API key
+- `RECALL_WEBHOOK_SECRET` - Recall webhook secret
+- `RESEND_API_KEY` - Resend API key for email
+- `HUGGINGFACE_API_KEY` - Hugging Face API key
+- `OAUTH_ENCRYPTION_KEY` - OAuth encryption key for token storage (32 bytes hex)
+
+### OAuth
+- `GOOGLE_CLIENT_ID` - Google OAuth client ID
+- `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
+- `MICROSOFT_CLIENT_ID` - Microsoft OAuth client ID
+- `MICROSOFT_CLIENT_SECRET` - Microsoft OAuth client secret
+
+### Container App (additional)
+- `CRON_SECRET` - Secret for authenticating cron job requests
+- `RESEND_FROM_EMAIL` - Resend from email (e.g., Inovy <app@inovico.nl>)
+- `NEXT_PUBLIC_WEBHOOK_URL` - Public webhook URL for Google Drive (optional; derived from app URL if empty)
+- `NEXT_PUBLIC_KVK_NUMBER` - KVK number for legal pages
+
+**Note**: When using GitLab CI, configure these as GitLab CI/CD variables (masked) in your environment.
 
 ## How It Works
 

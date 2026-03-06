@@ -24,6 +24,11 @@ on:
         required: false
         type: string
         default: ""
+      next_public_app_url:
+        description: "Override NEXT_PUBLIC_APP_URL (skips Azure query when set)"
+        required: false
+        type: string
+        default: ""
     outputs:
       image_tag:
         description: "Full image reference (registry/repo:tag)"
@@ -60,6 +65,27 @@ jobs:
         if: ${{ inputs.build_image }}
         uses: docker/setup-buildx-action@v3
 
+      - name: Get App URL for build
+        if: ${{ inputs.build_image }}
+        id: get-app-url
+        env:
+          FALLBACK_URL: ${{ vars.NEXT_PUBLIC_APP_URL || vars.APP_URL }}
+        run: |
+          if [ -n "${{ inputs.next_public_app_url }}" ]; then
+            APP_URL="${{ inputs.next_public_app_url }}"
+            echo "Using override URL: $APP_URL"
+          elif DEFAULT_DOMAIN=$(az containerapp env show --name "inovy-env-${{ inputs.environment }}" --resource-group "rg-inovy-${{ inputs.environment }}" --query "properties.defaultDomain" -o tsv 2>/dev/null); then
+            APP_URL="https://inovy-app-${{ inputs.environment }}.${DEFAULT_DOMAIN}"
+            echo "Using Azure-derived URL: $APP_URL"
+          elif [ -n "$FALLBACK_URL" ]; then
+            APP_URL="$FALLBACK_URL"
+            echo "Using fallback from env vars: $APP_URL"
+          else
+            echo "::error::Could not resolve NEXT_PUBLIC_APP_URL. Deploy infrastructure first (azure-infra.yml) or set NEXT_PUBLIC_APP_URL/APP_URL in the GitHub environment, or pass next_public_app_url to the workflow."
+            exit 1
+          fi
+          echo "app_url=$APP_URL" >> $GITHUB_OUTPUT
+
       - name: Build and Push Docker Image
         if: ${{ inputs.build_image }}
         uses: docker/build-push-action@v5
@@ -73,6 +99,11 @@ jobs:
             ${{ inputs.acr_name }}.azurecr.io/inovy-app:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_PLATFORM=${{ vars.NEXT_PUBLIC_PLATFORM || 'azure' }}
+            NEXT_PUBLIC_APP_URL=${{ steps.get-app-url.outputs.app_url }}
+            NEXT_PUBLIC_WEBHOOK_URL=${{ vars.NEXT_PUBLIC_WEBHOOK_URL || '' }}
+            NEXT_PUBLIC_KVK_NUMBER=${{ vars.NEXT_PUBLIC_KVK_NUMBER || '' }}
 
       - name: Set image tag output
         id: set-output

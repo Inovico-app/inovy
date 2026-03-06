@@ -175,3 +175,9 @@ output "container_app_url" {
   description = "URL of the Container App"
   value       = module.container_app.container_app_url
 }
+
+# Database migration job output (for GitHub Actions)
+output "db_migrate_job_name" {
+  description = "Name of the database migration job (for az containerapp job start)"
+  value       = module.db_migrate_job.job_name
+}

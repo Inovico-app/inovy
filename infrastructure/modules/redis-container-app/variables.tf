@@ -39,7 +39,7 @@ variable "redis_memory" {
 variable "redis_min_replicas" {
   description = "Minimum number of Redis replicas"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "redis_max_replicas" {

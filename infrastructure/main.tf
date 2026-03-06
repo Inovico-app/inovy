@@ -249,9 +249,13 @@ module "storage" {
   storage_blob_restore_days           = var.storage_blob_restore_days
   managed_identity_principal_id       = module.container_app_identity.managed_identity_principal_id
   uuid_namespace                      = local.uuid_namespace_dns
+  cors_allowed_origins                = [
+    var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${data.azurerm_container_app_environment.current.default_domain}" : "http://inovy-app-${var.environment}.${data.azurerm_container_app_environment.current.default_domain}"
+  ]
 
   depends_on = [
-    module.container_app_identity
+    module.container_app_identity,
+    data.azurerm_container_app_environment.current
   ]
 
   tags = {
@@ -298,10 +302,11 @@ module "container_app" {
   postgresql_admin_password                    = var.postgresql_admin_password
   postgresql_fqdn                              = module.database.postgresql_server_fqdn
   postgresql_database_name                     = module.database.postgresql_database_name
-  redis_url                                    = module.redis.redis_url
-  qdrant_url                                   = module.qdrant.qdrant_url
+  redis_url                                     = module.redis.redis_url
+  qdrant_url                                   = "http://qdrant-${var.environment}.internal.${data.azurerm_container_app_environment.current.default_domain}"
   qdrant_api_key                               = var.qdrant_api_key
   storage_account_name                         = module.storage.storage_account_name
+  storage_account_key                          = module.storage.storage_account_primary_access_key
   storage_connection_string                    = module.storage.storage_account_primary_connection_string
   storage_container_name                       = module.storage.storage_container_name
   container_app_image                          = "${module.container_registry.acr_login_server}/inovy-app:latest"
@@ -312,11 +317,29 @@ module "container_app" {
   container_app_memory                         = var.container_app_memory
   container_app_target_port                    = var.container_app_target_port
   container_app_external_ingress               = var.container_app_external_ingress
-  container_app_revision_mode                  = var.container_app_revision_mode
   container_app_http_scale_concurrent_requests = var.container_app_http_scale_concurrent_requests
-  container_app_additional_env_vars            = merge(var.container_app_additional_env_vars, {
-    CRON_SECRET = var.cron_secret
-  })
+  next_public_platform                         = var.next_public_platform
+  container_app_additional_env_vars            = var.container_app_additional_env_vars
+  openai_api_key                               = var.openai_api_key
+  anthropic_api_key                            = var.anthropic_api_key
+  deepgram_api_key                             = var.deepgram_api_key
+  recall_api_key                               = var.recall_api_key
+  recall_webhook_secret                        = var.recall_webhook_secret
+  resend_api_key                               = var.resend_api_key
+  huggingface_api_key                          = var.huggingface_api_key
+  oauth_encryption_key                         = var.oauth_encryption_key
+  better_auth_secret                           = var.better_auth_secret
+  cron_secret                                  = var.cron_secret
+  resend_from_email                            = var.resend_from_email
+  resend_reply_to_email                        = var.resend_reply_to_email
+  google_client_id                             = var.google_client_id
+  google_client_secret                         = var.google_client_secret
+  google_redirect_uri                           = var.google_redirect_uri
+  microsoft_client_id                          = var.microsoft_client_id
+  microsoft_client_secret                       = var.microsoft_client_secret
+  microsoft_tenant_id                           = var.microsoft_tenant_id
+  next_public_webhook_url                       = var.next_public_webhook_url
+  next_public_kvk_number                        = var.next_public_kvk_number
 
   depends_on = [
     module.networking,
@@ -325,6 +348,35 @@ module "container_app" {
     module.qdrant,
     module.storage,
     module.container_registry
+  ]
+
+  tags = {
+    Environment = var.environment
+    Application = "inovy"
+    ManagedBy   = "terraform"
+  }
+}
+
+# Database migration job - runs pnpm db:migrate inside VNet, triggered by GitHub Actions
+module "db_migrate_job" {
+  source = "./modules/db-migrate-job"
+
+  environment                    = var.environment
+  location                       = var.location
+  resource_group_name            = azurerm_resource_group.inovy.name
+  container_app_environment_id   = data.azurerm_container_app_environment.current.id
+  managed_identity_id            = module.container_app_identity.managed_identity_id
+  container_app_image            = "${module.container_registry.acr_login_server}/inovy-app:latest"
+  acr_login_server               = module.container_registry.acr_login_server
+  postgresql_admin_login         = module.database.postgresql_administrator_login
+  postgresql_admin_password      = var.postgresql_admin_password
+  postgresql_fqdn                = module.database.postgresql_server_fqdn
+  postgresql_database_name       = module.database.postgresql_database_name
+
+  depends_on = [
+    module.container_registry,
+    module.database,
+    module.container_app_environment
   ]
 
   tags = {

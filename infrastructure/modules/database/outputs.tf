@@ -32,6 +32,6 @@ output "postgresql_administrator_password" {
 
 output "postgresql_connection_string" {
   description = "PostgreSQL connection string (without password)"
-  value       = "postgresql://${azurerm_postgresql_flexible_server.inovy.administrator_login}@${azurerm_postgresql_flexible_server.inovy.fqdn}:5432/${azurerm_postgresql_flexible_server_database.inovy.name}?sslmode=require"
+  value       = "postgresql://${azurerm_postgresql_flexible_server.inovy.administrator_login}@${azurerm_postgresql_flexible_server.inovy.fqdn}:5432/${azurerm_postgresql_flexible_server_database.inovy.name}?sslmode=verify-full"
   sensitive   = true
 }

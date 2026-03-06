@@ -151,5 +151,32 @@ export class AzureStorageProvider implements StorageProvider {
       pathname: finalPath,
     };
   }
+
+  async generateReadSasUrl(
+    blobUrl: string,
+    expiresInMinutes = 60
+  ): Promise<string> {
+    const credential = getSharedKeyCredential();
+    const url = new URL(blobUrl);
+    const pathParts = url.pathname.split("/").filter(Boolean);
+    const containerName = pathParts[0]!;
+    const blobName = pathParts.slice(1).join("/");
+
+    const expiresOn = new Date();
+    expiresOn.setMinutes(expiresOn.getMinutes() + expiresInMinutes);
+
+    const sasToken = generateBlobSASQueryParameters(
+      {
+        containerName,
+        blobName,
+        permissions: BlobSASPermissions.parse("r"), // read only
+        startsOn: new Date(),
+        expiresOn,
+      },
+      credential
+    ).toString();
+
+    return `${blobUrl}?${sasToken}`;
+  }
 }
 

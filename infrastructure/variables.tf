@@ -145,7 +145,7 @@ variable "redis_memory" {
 variable "redis_min_replicas" {
   description = "Minimum number of Redis replicas"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "redis_max_replicas" {
@@ -176,7 +176,7 @@ variable "qdrant_memory" {
 variable "qdrant_min_replicas" {
   description = "Minimum number of Qdrant replicas"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "qdrant_max_replicas" {
@@ -240,7 +240,7 @@ variable "container_app_image" {
 variable "container_app_min_replicas" {
   description = "Minimum number of replicas for Container App"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "container_app_max_replicas" {
@@ -273,16 +273,16 @@ variable "container_app_external_ingress" {
   default     = true
 }
 
-variable "container_app_revision_mode" {
-  description = "Revision mode for Container App (Single or Multiple)"
-  type        = string
-  default     = "Single"
-}
-
 variable "container_app_http_scale_concurrent_requests" {
   description = "Concurrent requests threshold for HTTP scale rule"
   type        = number
   default     = 10
+}
+
+variable "next_public_platform" {
+  description = "Platform identifier (e.g., azure, vercel) - sets NEXT_PUBLIC_PLATFORM env var for container app"
+  type        = string
+  default     = "azure"
 }
 
 variable "container_app_additional_env_vars" {
@@ -291,11 +291,138 @@ variable "container_app_additional_env_vars" {
   default     = {}
 }
 
-# Cron jobs variables
-variable "cron_secret" {
-  description = "Shared secret for authenticating cron job requests (must match CRON_SECRET env var in the app)"
+variable "openai_api_key" {
+  description = "OpenAI API key (provided as GitLab/GitHub secret)"
   type        = string
+  default     = ""
   sensitive   = true
+}
+
+variable "anthropic_api_key" {
+  description = "Anthropic API key (provided as GitLab/GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "deepgram_api_key" {
+  description = "Deepgram API key (provided as GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "recall_api_key" {
+  description = "Recall API key (provided as GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "recall_webhook_secret" {
+  description = "Recall webhook secret (provided as GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "resend_api_key" {
+  description = "Resend API key (provided as GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "huggingface_api_key" {
+  description = "Hugging Face API key (provided as GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "oauth_encryption_key" {
+  description = "OAuth encryption key for token storage (32 bytes hex, provided as GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "better_auth_secret" {
+  description = "Better Auth secret (provided as GitLab/GitHub secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "cron_secret" {
+  description = "Secret for authenticating cron job requests"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "resend_from_email" {
+  description = "Resend from email address (e.g., Inovy <app@inovico.nl>)"
+  type        = string
+  default     = "app@inovico.nl"
+}
+
+variable "resend_reply_to_email" {
+  description = "Resend reply-to email (optional, defaults to resend_from_email)"
+  type        = string
+  default     = "app@inovico.nl"
+}
+
+variable "google_client_id" {
+  description = "Google OAuth client ID"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "google_client_secret" {
+  description = "Google OAuth client secret"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "google_redirect_uri" {
+  description = "Google OAuth redirect URI (optional; derived from app URL if empty)"
+  type        = string
+  default     = ""
+}
+
+variable "microsoft_client_id" {
+  description = "Microsoft OAuth client ID"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "microsoft_client_secret" {
+  description = "Microsoft OAuth client secret"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "microsoft_tenant_id" {
+  description = "Microsoft OAuth tenant ID (default: common)"
+  type        = string
+  default     = "common"
+}
+
+variable "next_public_webhook_url" {
+  description = "Public webhook URL for Google Drive (optional; derived from app URL if empty)"
+  type        = string
+  default     = ""
+}
+
+variable "next_public_kvk_number" {
+  description = "KVK number for legal pages (terms of service, privacy policy)"
+  type        = string
+  default     = ""
 }
 
 variable "log_analytics_retention_days" {

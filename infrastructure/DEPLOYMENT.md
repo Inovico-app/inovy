@@ -124,25 +124,22 @@ postgresql_admin_password = "YourSecurePassword123!"
 
 The Container App is configured with environment variables from Terraform outputs:
 - `DATABASE_URL` - PostgreSQL connection string
-- `UPSTASH_REDIS_REST_URL` - Redis endpoint
-- `UPSTASH_REDIS_REST_TOKEN` - Redis access key
+- `REDIS_URL` - Redis connection URL (redis://) for ioredis client
 - `QDRANT_URL` - Qdrant API endpoint
 - `AZURE_STORAGE_ACCOUNT_NAME` - Blob storage account name
+- `AZURE_STORAGE_ACCOUNT_KEY` - Blob storage access key (for SAS token generation)
 - `AZURE_STORAGE_CONNECTION_STRING` - Blob storage connection string
 - `BLOB_STORAGE_PROVIDER` - Set to `azure` for Azure deployments
 
 ### Database Migration
 
-After infrastructure is deployed, run database migrations:
+Migrations run automatically when PRs that change `apps/web/src/server/db/migrations/**` are merged to `main`. The `migrate-prod-db.yml` workflow:
 
-```bash
-# Set DATABASE_URL environment variable
-export DATABASE_URL="postgresql://adminuser:password@inovy-db-prd.postgres.database.azure.com:5432/inovy?sslmode=require"
+1. Builds and pushes the app image to ACR
+2. Starts the `db-migrate-prd` Azure Container Apps Job (runs inside the VNet)
+3. Waits for the job to complete
 
-# Run migrations
-cd apps/web
-pnpm db:migrate
-```
+The database is private (`public_network_access_enabled = false`), so migrations cannot run from public GitHub runners. The job runs in the same Container Apps environment as the app and can reach PostgreSQL.
 
 ## Troubleshooting
 

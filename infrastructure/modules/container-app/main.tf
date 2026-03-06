@@ -1,10 +1,16 @@
 # Container App for Inovy application
 # Uses shared Container App Environment (from container-app-environment) and managed identity (from container-app-identity)
+locals {
+  app_url = var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${var.container_app_environment_default_domain}" : "http://inovy-app-${var.environment}.${var.container_app_environment_default_domain}"
+  google_redirect_uri = var.google_redirect_uri != "" ? var.google_redirect_uri : "${local.app_url}/api/integrations/google/callback"
+  next_public_webhook_url = var.next_public_webhook_url != "" ? var.next_public_webhook_url : "${local.app_url}/api/webhooks/google-drive"
+}
+
 resource "azurerm_container_app" "inovy" {
   name                         = "inovy-app-${var.environment}"
   container_app_environment_id = var.container_app_environment_id
   resource_group_name          = var.resource_group_name
-  revision_mode                = var.container_app_revision_mode
+  revision_mode                = "Single" # Single keeps URL stable; Multiple creates new URL per revision
   workload_profile_name        = "Consumption"
 
   identity {
@@ -42,7 +48,7 @@ resource "azurerm_container_app" "inovy" {
 
       env {
         name  = "DATABASE_URL"
-        value = "postgresql://${var.postgresql_admin_login}:${var.postgresql_admin_password}@${var.postgresql_fqdn}:5432/${var.postgresql_database_name}?sslmode=require"
+        value = "postgresql://${var.postgresql_admin_login}:${var.postgresql_admin_password}@${var.postgresql_fqdn}:5432/${var.postgresql_database_name}?sslmode=verify-full"
       }
 
       env {
@@ -66,6 +72,11 @@ resource "azurerm_container_app" "inovy" {
       }
 
       env {
+        name  = "AZURE_STORAGE_ACCOUNT_KEY"
+        value = var.storage_account_key
+      }
+
+      env {
         name  = "AZURE_STORAGE_CONNECTION_STRING"
         value = var.storage_connection_string
       }
@@ -81,6 +92,11 @@ resource "azurerm_container_app" "inovy" {
       }
 
       env {
+        name  = "NEXT_PUBLIC_PLATFORM"
+        value = var.next_public_platform
+      }
+
+      env {
         name  = "NODE_ENV"
         value = var.environment == "prd" ? "production" : var.environment
       }
@@ -91,8 +107,108 @@ resource "azurerm_container_app" "inovy" {
       }
 
       env {
+        name  = "OPENAI_API_KEY"
+        value = var.openai_api_key
+      }
+
+      env {
+        name  = "ANTHROPIC_API_KEY"
+        value = var.anthropic_api_key
+      }
+
+      env {
+        name  = "DEEPGRAM_API_KEY"
+        value = var.deepgram_api_key
+      }
+
+      env {
+        name  = "RECALL_API_KEY"
+        value = var.recall_api_key
+      }
+
+      env {
+        name  = "RECALL_WEBHOOK_SECRET"
+        value = var.recall_webhook_secret
+      }
+
+      env {
+        name  = "RESEND_API_KEY"
+        value = var.resend_api_key
+      }
+
+      env {
+        name  = "HUGGINGFACE_API_KEY"
+        value = var.huggingface_api_key
+      }
+
+      env {
+        name  = "OAUTH_ENCRYPTION_KEY"
+        value = var.oauth_encryption_key
+      }
+
+      env {
+        name  = "BETTER_AUTH_SECRET"
+        value = var.better_auth_secret
+      }
+
+      env {
         name  = "NEXT_PUBLIC_APP_URL"
-        value = var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${var.container_app_environment_default_domain}" : "http://inovy-app-${var.environment}.${var.container_app_environment_default_domain}"
+        value = local.app_url
+      }
+
+      env {
+        name  = "CRON_SECRET"
+        value = var.cron_secret
+      }
+
+      env {
+        name  = "RESEND_FROM_EMAIL"
+        value = var.resend_from_email
+      }
+
+      env {
+        name  = "RESEND_REPLY_TO_EMAIL"
+        value = var.resend_reply_to_email != "" ? var.resend_reply_to_email : var.resend_from_email
+      }
+
+      env {
+        name  = "GOOGLE_CLIENT_ID"
+        value = var.google_client_id
+      }
+
+      env {
+        name  = "GOOGLE_CLIENT_SECRET"
+        value = var.google_client_secret
+      }
+
+      env {
+        name  = "GOOGLE_REDIRECT_URI"
+        value = local.google_redirect_uri
+      }
+
+      env {
+        name  = "MICROSOFT_CLIENT_ID"
+        value = var.microsoft_client_id
+      }
+
+      env {
+        name  = "MICROSOFT_CLIENT_SECRET"
+        value = var.microsoft_client_secret
+      }
+
+      env {
+        name  = "MICROSOFT_TENANT_ID"
+        value = var.microsoft_tenant_id
+      }
+
+      env {
+        name  = "NEXT_PUBLIC_WEBHOOK_URL"
+        value = local.next_public_webhook_url
+      }
+
+      env {
+        name  = "NEXT_PUBLIC_KVK_NUMBER"
+        value = var.next_public_kvk_number
       }
 
       dynamic "env" {

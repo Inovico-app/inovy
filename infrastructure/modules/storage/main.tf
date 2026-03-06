@@ -24,6 +24,18 @@ resource "azurerm_storage_account" "recordings" {
     restore_policy {
       days = var.storage_blob_restore_days
     }
+
+    # CORS for client-side blob uploads (SAS token)
+    dynamic "cors_rule" {
+      for_each = length(var.cors_allowed_origins) > 0 ? [1] : []
+      content {
+        allowed_origins    = var.cors_allowed_origins
+        allowed_methods    = ["GET", "HEAD", "PUT", "OPTIONS"]
+        allowed_headers    = ["*"]
+        exposed_headers    = ["*"]
+        max_age_in_seconds = 3600
+      }
+    }
   }
 
   tags = merge(var.tags, {
@@ -33,9 +45,16 @@ resource "azurerm_storage_account" "recordings" {
   })
 }
 
-# Container for recordings
+# Container for recordings (server-side uploads)
 resource "azurerm_storage_container" "recordings" {
   name                  = "recordings"
+  storage_account_id    = azurerm_storage_account.recordings.id
+  container_access_type = "private"
+}
+
+# Container for client-side uploads (SAS token; CORS required)
+resource "azurerm_storage_container" "public" {
+  name                  = "public"
   storage_account_id    = azurerm_storage_account.recordings.id
   container_access_type = "private"
 }
