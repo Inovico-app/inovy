@@ -8,7 +8,7 @@ import {
 } from "@/components/ai-elements/conversation";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { Activity, useEffect, useEffectEvent } from "react";
+import { Activity, useEffect, useEffectEvent, useRef } from "react";
 import { getConversationMessagesAction } from "../actions/conversation-history";
 import { useChatContext } from "../hooks/use-chat-context";
 import { useChatSources } from "../hooks/use-chat-sources";
@@ -45,22 +45,38 @@ export function UnifiedChatInterface({
     defaultProjectId,
   });
 
+  // Ref to track conversation ID across renders without recreating the Chat instance.
+  // The transport is captured once by useChat, so we need a ref for the fetch closure.
+  const conversationIdRef = useRef(chatContext.conversationId);
+  conversationIdRef.current = chatContext.conversationId;
+
   // Use unified API endpoint for both contexts
   // Note: Type mismatch between ai package versions - DefaultChatTransport works correctly at runtime
   const { messages, status, error, setMessages, sendMessage } = useChat({
-    id:
-      chatContext.conversationId ??
-      `${chatContext.context}-${chatContext.projectId ?? "org"}`,
+    id: `${chatContext.context}-${chatContext.projectId ?? "org"}`,
     transport: new DefaultChatTransport({
       api: "/api/chat",
-      body: {
+      body: () => ({
         context: chatContext.context,
         ...(chatContext.context === "project" && chatContext.projectId
           ? { projectId: chatContext.projectId }
           : {}),
-        ...(chatContext.conversationId
-          ? { conversationId: chatContext.conversationId }
+        ...(conversationIdRef.current
+          ? { conversationId: conversationIdRef.current }
           : {}),
+      }),
+      fetch: async (input, init) => {
+        const response = await globalThis.fetch(input, init);
+
+        // Capture conversation ID from first response to maintain conversation continuity
+        const returnedConversationId =
+          response.headers.get("X-Conversation-Id");
+        if (returnedConversationId && !conversationIdRef.current) {
+          conversationIdRef.current = returnedConversationId;
+          chatContext.setConversationId(returnedConversationId);
+        }
+
+        return response;
       },
     }),
     onError: (err: Error) => {
@@ -95,6 +111,7 @@ export function UnifiedChatInterface({
 
   // Handle new conversation
   const handleNewConversation = useEffectEvent(() => {
+    conversationIdRef.current = null;
     chatContext.setConversationId(null);
     setMessages([]);
   });
