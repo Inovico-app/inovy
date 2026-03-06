@@ -1,6 +1,5 @@
 import { logger } from "@/lib/logger";
-
-const platform = process.env.PLATFORM ?? "vercel";
+import { platform } from "@/lib/platform";
 
 /**
  * Minimal Redis client interface matching the commands used by
@@ -29,22 +28,19 @@ export interface RedisClient {
   incrbyfloat(key: string, increment: number): Promise<unknown>;
 }
 
-let _client: RedisClient | null = null;
+let _clientPromise: Promise<RedisClient | null> | null = null;
 
 /**
  * Create a platform-aware Redis client.
  * Returns null if Redis is not configured.
  */
-export async function createRedisClient(): Promise<RedisClient | null> {
-  if (_client) return _client;
-
-  if (platform === "azure") {
-    _client = await createIoRedisClient();
-  } else {
-    _client = createUpstashClient();
+export function createRedisClient(): Promise<RedisClient | null> {
+  if (!_clientPromise) {
+    _clientPromise = platform === "azure"
+      ? createIoRedisClient()
+      : Promise.resolve(createUpstashClient());
   }
-
-  return _client;
+  return _clientPromise;
 }
 
 function createUpstashClient(): RedisClient | null {

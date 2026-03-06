@@ -1,5 +1,6 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger, serializeError } from "@/lib/logger";
+import { platform } from "@/lib/platform";
 import { withRateLimit } from "@/lib/rate-limit";
 import { ProjectQueries } from "@/server/data-access/projects.queries";
 import { ConsentService } from "@/server/services/consent.service";
@@ -16,8 +17,6 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { start } from "workflow/api";
-
-const platform = process.env.PLATFORM ?? "vercel";
 
 interface Participant {
   email: string;

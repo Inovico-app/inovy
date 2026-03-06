@@ -1,6 +1,8 @@
+import type { Platform } from "@/lib/platform";
 import { toast } from "sonner";
 
-const platform = process.env.NEXT_PUBLIC_PLATFORM ?? "vercel";
+const platform: Platform =
+  (process.env.NEXT_PUBLIC_PLATFORM as Platform) ?? "vercel";
 
 export interface UploadRecordingOptions {
   clientPayload?: string;
@@ -17,6 +19,12 @@ export interface UploadResult {
   pathname: string;
 }
 
+const UPLOAD_TOAST = {
+  loading: "Opname wordt opgeslagen en geüpload... Een moment geduld.",
+  success: "Opname succesvol opgeslagen!",
+  error: "Fout bij opslaan van opname",
+} as const;
+
 /**
  * Client-side wrapper for uploading recordings directly to blob storage.
  * Uses Vercel Blob client upload on Vercel, or Azure SAS token flow on Azure.
@@ -25,10 +33,12 @@ export async function uploadRecordingToBlob(
   file: File,
   options?: UploadRecordingOptions
 ): Promise<UploadResult> {
-  if (platform === "azure") {
-    return uploadViaAzure(file, options);
-  }
-  return uploadViaVercel(file, options);
+  const uploadFn =
+    platform === "azure"
+      ? uploadViaAzure(file, options)
+      : uploadViaVercel(file, options);
+
+  return toast.promise(uploadFn, UPLOAD_TOAST).unwrap();
 }
 
 /**
@@ -40,22 +50,13 @@ async function uploadViaVercel(
 ): Promise<UploadResult> {
   const { upload } = await import("@vercel/blob/client");
 
-  const result = await toast
-    .promise(
-      upload(`recordings/${file.name}`, file, {
-        access: "public",
-        handleUploadUrl: "/api/recordings/upload",
-        clientPayload: options?.clientPayload,
-        onUploadProgress: options?.onUploadProgress,
-        abortSignal: options?.signal,
-      }),
-      {
-        loading: "Opname wordt opgeslagen en geüpload... Een moment geduld.",
-        success: "Opname succesvol opgeslagen!",
-        error: "Fout bij opslaan van opname",
-      }
-    )
-    .unwrap();
+  const result = await upload(`recordings/${file.name}`, file, {
+    access: "public",
+    handleUploadUrl: "/api/recordings/upload",
+    clientPayload: options?.clientPayload,
+    onUploadProgress: options?.onUploadProgress,
+    abortSignal: options?.signal,
+  });
 
   return { url: result.url, pathname: result.pathname };
 }
@@ -70,72 +71,61 @@ async function uploadViaAzure(
   file: File,
   options?: UploadRecordingOptions
 ): Promise<UploadResult> {
-  return toast
-    .promise(
-      (async () => {
-        // Step 1: Get SAS upload token
-        const tokenResponse = await fetch("/api/recordings/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "generate-token",
-            metadata: options?.clientPayload,
-          }),
-          signal: options?.signal,
-        });
+  // Step 1: Get SAS upload token
+  const tokenResponse = await fetch("/api/recordings/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "generate-token",
+      metadata: options?.clientPayload,
+    }),
+    signal: options?.signal,
+  });
 
-        if (!tokenResponse.ok) {
-          const error = (await tokenResponse.json()) as { error?: string };
-          throw new Error(error.error ?? "Failed to generate upload token");
-        }
+  if (!tokenResponse.ok) {
+    const error = (await tokenResponse.json()) as { error?: string };
+    throw new Error(error.error ?? "Failed to generate upload token");
+  }
 
-        const {
-          uploadUrl,
-          blobUrl,
-          pathname,
-          tokenPayload,
-        }: {
-          uploadUrl: string;
-          blobUrl: string;
-          pathname: string;
-          tokenPayload: string;
-        } = await tokenResponse.json();
+  const {
+    uploadUrl,
+    blobUrl,
+    pathname,
+    tokenPayload,
+  }: {
+    uploadUrl: string;
+    blobUrl: string;
+    pathname: string;
+    tokenPayload: string;
+  } = await tokenResponse.json();
 
-        // Step 2: Upload directly to Azure using SAS URL
-        await uploadToAzureWithProgress(
-          uploadUrl,
-          file,
-          options?.onUploadProgress,
-          options?.signal
-        );
+  // Step 2: Upload directly to Azure using SAS URL
+  await uploadToAzureWithProgress(
+    uploadUrl,
+    file,
+    options?.onUploadProgress,
+    options?.signal
+  );
 
-        // Step 3: Notify server upload is complete
-        const completeResponse = await fetch("/api/recordings/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "upload-complete",
-            blobUrl,
-            pathname,
-            tokenPayload,
-          }),
-          signal: options?.signal,
-        });
+  // Step 3: Notify server upload is complete
+  const completeResponse = await fetch("/api/recordings/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "upload-complete",
+      blobUrl,
+      pathname,
+      tokenPayload,
+    }),
+    signal: options?.signal,
+  });
 
-        if (!completeResponse.ok) {
-          const error = (await completeResponse.json()) as { error?: string };
-          throw new Error(error.error ?? "Failed to process upload");
-        }
+  if (!completeResponse.ok) {
+    const error = (await completeResponse.json()) as { error?: string };
+    throw new Error(error.error ?? "Failed to process upload");
+  }
 
-        return { url: blobUrl, pathname };
-      })(),
-      {
-        loading: "Opname wordt opgeslagen en geüpload... Een moment geduld.",
-        success: "Opname succesvol opgeslagen!",
-        error: "Fout bij opslaan van opname",
-      }
-    )
-    .unwrap();
+  return { url: blobUrl, pathname };
 }
 
 /**
@@ -176,7 +166,7 @@ function uploadToAzureWithProgress(
     xhr.onerror = () => reject(new Error("Azure upload failed"));
 
     if (signal) {
-      signal.addEventListener("abort", () => xhr.abort());
+      signal.addEventListener("abort", () => xhr.abort(), { once: true });
     }
 
     xhr.send(file);

@@ -1,4 +1,5 @@
 import { CacheInvalidation } from "@/lib/cache-utils";
+import { getStorageProvider } from "./storage";
 import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
 import { err, ok } from "neverthrow";
 import { start } from "workflow/api";
@@ -545,7 +546,6 @@ export class BotWebhookService {
         }
       }
 
-      const { getStorageProvider } = await import("./storage");
       const storage = await getStorageProvider();
       const blob = await storage.put(blobPath, fileToUpload, {
         access: shouldEncrypt ? "private" : "public",

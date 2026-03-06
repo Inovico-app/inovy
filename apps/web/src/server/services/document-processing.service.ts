@@ -1,6 +1,7 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { MAX_FILE_SIZE_50MB } from "@/lib/constants/file-sizes";
 import { logger } from "@/lib/logger";
+import { getStorageProvider } from "./storage";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import {
@@ -423,7 +424,6 @@ export class DocumentProcessingService {
           const blobPath = `knowledge-base/${scope}/${scopeId ?? "global"}/${
             item.file.name
           }`;
-          const { getStorageProvider } = await import("./storage");
           const storage = await getStorageProvider();
           const blobResult = await storage.put(blobPath, item.file, {
             access: "public",
@@ -629,7 +629,6 @@ export class DocumentProcessingService {
       }
 
       // Upload to blob storage
-      const { getStorageProvider } = await import("./storage");
       const storage = await getStorageProvider();
       const blobPath = `knowledge-base/${scope}/${scopeId ?? "global"}/${
         file.name

@@ -69,9 +69,6 @@ resource "azurerm_container_app_job" "cron" {
   }
 
   tags = merge(var.tags, {
-    Environment = var.environment
-    Application = "inovy"
-    ManagedBy   = "terraform"
-    Component   = "cron-${each.key}"
+    Component = "cron-${each.key}"
   })
 }

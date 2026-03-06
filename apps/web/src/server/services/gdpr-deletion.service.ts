@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import { getStorageProvider } from "./storage";
 import { err, ok } from "neverthrow";
 import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { logger } from "../../lib/logger";
@@ -265,7 +266,6 @@ export class GdprDeletionService {
       (r) => r.createdById === userId
     );
 
-    const { getStorageProvider } = await import("./storage");
     const storage = await getStorageProvider();
 
     for (const recording of ownedRecordings) {

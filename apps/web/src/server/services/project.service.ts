@@ -1,6 +1,7 @@
 import type { BetterAuthUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { getStorageProvider } from "./storage";
 import { err, ok } from "neverthrow";
 import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { CacheInvalidation } from "../../lib/cache-utils";
@@ -485,7 +486,6 @@ export class ProjectService {
         recordingCount: recordings.length,
       });
       // Delete all recording files from blob storage
-      const { getStorageProvider } = await import("./storage");
       const storage = await getStorageProvider();
       const blobDeletionPromises = recordings.map(async (recording) => {
         try {

@@ -14,12 +14,17 @@ import type {
   StoragePutResult,
 } from "./storage.types";
 
+let _blobServiceClient: BlobServiceClient | null = null;
+
 function getClient(): BlobServiceClient {
-  const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
-  if (!connectionString) {
-    throw new Error("AZURE_STORAGE_CONNECTION_STRING is not set");
+  if (!_blobServiceClient) {
+    const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+    if (!connectionString) {
+      throw new Error("AZURE_STORAGE_CONNECTION_STRING is not set");
+    }
+    _blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
   }
-  return BlobServiceClient.fromConnectionString(connectionString);
+  return _blobServiceClient;
 }
 
 function getSharedKeyCredential(): StorageSharedKeyCredential {

@@ -1,4 +1,4 @@
-const platform = process.env.PLATFORM ?? "vercel";
+import { platform } from "@/lib/platform";
 
 const { db } = platform === "azure"
   ? await import("./db.azure")
