@@ -138,8 +138,6 @@ entra_administrators = [
 # container_app_external_ingress = true
 
 # Container Revision Mode
-# container_app_revision_mode = "Single"  # Single or Multiple
-
 # Container Scaling Rules
 # container_app_http_scale_concurrent_requests = 10
 

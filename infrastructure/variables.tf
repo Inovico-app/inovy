@@ -273,20 +273,14 @@ variable "container_app_external_ingress" {
   default     = true
 }
 
-variable "container_app_revision_mode" {
-  description = "Revision mode for Container App (Single or Multiple)"
-  type        = string
-  default     = "Single"
-}
-
 variable "container_app_http_scale_concurrent_requests" {
   description = "Concurrent requests threshold for HTTP scale rule"
   type        = number
   default     = 10
 }
 
-variable "platform" {
-  description = "Platform identifier (e.g., azure, vercel) - sets PLATFORM env var for container app"
+variable "next_public_platform" {
+  description = "Platform identifier (e.g., azure, vercel) - sets NEXT_PUBLIC_PLATFORM env var for container app"
   type        = string
   default     = "azure"
 }
@@ -370,13 +364,13 @@ variable "cron_secret" {
 variable "resend_from_email" {
   description = "Resend from email address (e.g., Inovy <app@inovico.nl>)"
   type        = string
-  default     = ""
+  default     = "app@inovico.nl"
 }
 
 variable "resend_reply_to_email" {
   description = "Resend reply-to email (optional, defaults to resend_from_email)"
   type        = string
-  default     = ""
+  default     = "app@inovico.nl"
 }
 
 variable "google_client_id" {

@@ -73,6 +73,12 @@ jobs:
             ${{ inputs.acr_name }}.azurecr.io/inovy-app:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_PLATFORM=${{ vars.NEXT_PUBLIC_PLATFORM || 'azure' }}
+            NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL || vars.APP_URL || 'https://placeholder.inovico.nl' }}
+            NEXT_PUBLIC_WEBHOOK_URL=${{ vars.NEXT_PUBLIC_WEBHOOK_URL || '' }}
+            NEXT_PUBLIC_KVK_NUMBER=${{ vars.NEXT_PUBLIC_KVK_NUMBER || '' }}
+            NEXT_PUBLIC_DEEPGRAM_API_KEY=${{ secrets.DEEPGRAM_API_KEY || '' }}
 
       - name: Set image tag output
         id: set-output

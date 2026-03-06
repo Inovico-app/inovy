@@ -313,9 +313,8 @@ module "container_app" {
   container_app_memory                         = var.container_app_memory
   container_app_target_port                    = var.container_app_target_port
   container_app_external_ingress               = var.container_app_external_ingress
-  container_app_revision_mode                  = var.container_app_revision_mode
   container_app_http_scale_concurrent_requests = var.container_app_http_scale_concurrent_requests
-  platform                                     = var.platform
+  next_public_platform                         = var.next_public_platform
   container_app_additional_env_vars            = var.container_app_additional_env_vars
   openai_api_key                               = var.openai_api_key
   anthropic_api_key                            = var.anthropic_api_key

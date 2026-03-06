@@ -11,6 +11,16 @@ Configure these in the GitHub repository's `prd` environment:
 - `AZURE_TENANT_ID` - Azure AD tenant ID
 - `AZURE_SUBSCRIPTION_ID` - Azure subscription ID
 
+### Docker Build (NEXT_PUBLIC_* at build time)
+These are passed as Docker build args when building the app image. Configure as **variables** (not secrets) in the environment:
+
+- `NEXT_PUBLIC_APP_URL` or `APP_URL` - Public app URL (e.g. `https://inovy-app-prd.xxx.azurecontainerapps.io`). Required for client bundle.
+- `NEXT_PUBLIC_PLATFORM` - Platform identifier (`azure` or `vercel`). Defaults to `azure` if unset.
+- `NEXT_PUBLIC_WEBHOOK_URL` - (optional) Public webhook URL for Google Drive
+- `NEXT_PUBLIC_KVK_NUMBER` - (optional) KVK number for legal pages
+
+`DEEPGRAM_API_KEY` (secret) is also passed as `NEXT_PUBLIC_DEEPGRAM_API_KEY` for client-side live transcription.
+
 ### Terraform Variables
 - `TF_VARS` - **Required**: GitHub Environment variable that contains either:
   1. **File path** to a Terraform variables file (e.g., `/tmp/terraform.tfvars`), OR

@@ -10,7 +10,7 @@ resource "azurerm_container_app" "inovy" {
   name                         = "inovy-app-${var.environment}"
   container_app_environment_id = var.container_app_environment_id
   resource_group_name          = var.resource_group_name
-  revision_mode                = var.container_app_revision_mode
+  revision_mode                = "Single" # Single keeps URL stable; Multiple creates new URL per revision
   workload_profile_name        = "Consumption"
 
   identity {
@@ -92,8 +92,8 @@ resource "azurerm_container_app" "inovy" {
       }
 
       env {
-        name  = "PLATFORM"
-        value = var.platform
+        name  = "NEXT_PUBLIC_PLATFORM"
+        value = var.next_public_platform
       }
 
       env {
