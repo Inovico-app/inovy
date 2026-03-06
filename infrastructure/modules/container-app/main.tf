@@ -86,6 +86,11 @@ resource "azurerm_container_app" "inovy" {
       }
 
       env {
+        name  = "PLATFORM"
+        value = var.platform
+      }
+
+      env {
         name  = "NODE_ENV"
         value = var.environment == "prd" ? "production" : var.environment
       }

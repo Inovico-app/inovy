@@ -285,6 +285,12 @@ variable "container_app_http_scale_concurrent_requests" {
   default     = 10
 }
 
+variable "platform" {
+  description = "Platform identifier (e.g., azure, vercel) - sets PLATFORM env var for container app"
+  type        = string
+  default     = "azure"
+}
+
 variable "container_app_additional_env_vars" {
   description = "Additional environment variables for Container App"
   type        = map(string)
