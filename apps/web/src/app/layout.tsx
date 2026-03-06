@@ -1,10 +1,9 @@
 import { AriaLiveRegion } from "@/components/aria-live-region";
-import { SkipLink } from "@/components/skip-link";
 import { BetterAuthProvider } from "@/providers/AuthProvider";
 import { DeepgramContextProvider } from "@/providers/DeepgramProvider";
 import { MicrophoneContextProvider } from "@/providers/microphone/MicrophoneProvider";
-import { SystemAudioContextProvider } from "@/providers/system-audio/SystemAudioProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
+import { SystemAudioContextProvider } from "@/providers/system-audio/SystemAudioProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 import { SpeedInsights as VercelSpeedInsights } from "@vercel/speed-insights/next";
@@ -43,7 +42,6 @@ export default function RootLayout({
       <body
         className={`${plusJakartaSans.variable} ${jetBrainsMono.variable} antialiased`}
       >
-        <SkipLink />
         <AriaLiveRegion />
         <BetterAuthProvider>
           <DeepgramContextProvider>

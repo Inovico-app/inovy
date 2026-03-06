@@ -618,7 +618,7 @@ export class ChatService {
         model: guardedModel,
         system: promptResult.systemPrompt,
         tools: createChatTools(toolContext),
-        stopWhen: stepCountIs(3),
+        stopWhen: stepCountIs(10),
         messages: [
           ...conversationHistory,
           {
@@ -891,7 +891,7 @@ export class ChatService {
         model: guardedModel,
         system: promptResult.systemPrompt,
         tools: createChatTools(orgToolContext),
-        stopWhen: stepCountIs(3),
+        stopWhen: stepCountIs(10),
         messages: [
           ...conversationHistory,
           {

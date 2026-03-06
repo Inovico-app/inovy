@@ -3,12 +3,14 @@ import type { ToolContext } from "./tool-context";
 import { createListProjectsTool } from "./list-projects.tool";
 import { createListRecordingsTool } from "./list-recordings.tool";
 import { createListTasksTool } from "./list-tasks.tool";
+import { createGetRecordingDetailsTool } from "./get-recording-details.tool";
 import { createSearchKnowledgeTool } from "./search-knowledge.tool";
 
 export type { ToolContext } from "./tool-context";
 
 export function createChatTools(ctx: ToolContext) {
   return {
+    getRecordingDetails: createGetRecordingDetailsTool(ctx),
     listProjects: createListProjectsTool(ctx),
     listRecordings: createListRecordingsTool(ctx),
     listTasks: createListTasksTool(ctx),
@@ -67,6 +69,30 @@ export function extractSourcesFromToolResults(
   const sources: SourceReference[] = [];
 
   for (const tc of toolCalls) {
+    if (tc.toolName === "getRecordingDetails") {
+      const output = resultMap.get(tc.toolCallId) as
+        | {
+            recording?: { id: string; title: string; recordingDate: string };
+            summary?: string | null;
+            error?: string;
+          }
+        | undefined;
+
+      if (!output?.recording || output.error) continue;
+
+      sources.push({
+        contentId: output.recording.id,
+        contentType: "summary",
+        title: output.recording.title,
+        excerpt: output.summary
+          ? output.summary.substring(0, 200)
+          : "Recording details",
+        similarityScore: 1.0,
+        recordingId: output.recording.id,
+        recordingDate: output.recording.recordingDate,
+      });
+    }
+
     if (tc.toolName !== "searchKnowledge") continue;
 
     const output = resultMap.get(tc.toolCallId) as
