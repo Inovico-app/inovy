@@ -101,6 +101,14 @@ jobs:
           TF_VAR_huggingface_api_key: ${{ secrets.HUGGINGFACE_API_KEY }}
           TF_VAR_oauth_encryption_key: ${{ secrets.OAUTH_ENCRYPTION_KEY }}
           TF_VAR_better_auth_secret: ${{ secrets.BETTER_AUTH_SECRET }}
+          TF_VAR_cron_secret: ${{ secrets.CRON_SECRET }}
+          TF_VAR_resend_from_email: ${{ secrets.RESEND_FROM_EMAIL }}
+          TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TF_VAR_microsoft_client_id: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          TF_VAR_microsoft_client_secret: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
+          TF_VAR_next_public_webhook_url: ${{ secrets.NEXT_PUBLIC_WEBHOOK_URL }}
+          TF_VAR_next_public_kvk_number: ${{ secrets.NEXT_PUBLIC_KVK_NUMBER }}
         run: |
           terraform plan \
             -input=false \
@@ -201,3 +209,11 @@ jobs:
           TF_VAR_huggingface_api_key: ${{ secrets.HUGGINGFACE_API_KEY }}
           TF_VAR_oauth_encryption_key: ${{ secrets.OAUTH_ENCRYPTION_KEY }}
           TF_VAR_better_auth_secret: ${{ secrets.BETTER_AUTH_SECRET }}
+          TF_VAR_cron_secret: ${{ secrets.CRON_SECRET }}
+          TF_VAR_resend_from_email: ${{ secrets.RESEND_FROM_EMAIL }}
+          TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TF_VAR_microsoft_client_id: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          TF_VAR_microsoft_client_secret: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
+          TF_VAR_next_public_webhook_url: ${{ secrets.NEXT_PUBLIC_WEBHOOK_URL }}
+          TF_VAR_next_public_kvk_number: ${{ secrets.NEXT_PUBLIC_KVK_NUMBER }}

@@ -1,5 +1,11 @@
 # Container App for Inovy application
 # Uses shared Container App Environment (from container-app-environment) and managed identity (from container-app-identity)
+locals {
+  app_url = var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${var.container_app_environment_default_domain}" : "http://inovy-app-${var.environment}.${var.container_app_environment_default_domain}"
+  google_redirect_uri = var.google_redirect_uri != "" ? var.google_redirect_uri : "${local.app_url}/api/integrations/google/callback"
+  next_public_webhook_url = var.next_public_webhook_url != "" ? var.next_public_webhook_url : "${local.app_url}/api/webhooks/google-drive"
+}
+
 resource "azurerm_container_app" "inovy" {
   name                         = "inovy-app-${var.environment}"
   container_app_environment_id = var.container_app_environment_id
@@ -147,7 +153,62 @@ resource "azurerm_container_app" "inovy" {
 
       env {
         name  = "NEXT_PUBLIC_APP_URL"
-        value = var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${var.container_app_environment_default_domain}" : "http://inovy-app-${var.environment}.${var.container_app_environment_default_domain}"
+        value = local.app_url
+      }
+
+      env {
+        name  = "CRON_SECRET"
+        value = var.cron_secret
+      }
+
+      env {
+        name  = "RESEND_FROM_EMAIL"
+        value = var.resend_from_email
+      }
+
+      env {
+        name  = "RESEND_REPLY_TO_EMAIL"
+        value = var.resend_reply_to_email != "" ? var.resend_reply_to_email : var.resend_from_email
+      }
+
+      env {
+        name  = "GOOGLE_CLIENT_ID"
+        value = var.google_client_id
+      }
+
+      env {
+        name  = "GOOGLE_CLIENT_SECRET"
+        value = var.google_client_secret
+      }
+
+      env {
+        name  = "GOOGLE_REDIRECT_URI"
+        value = local.google_redirect_uri
+      }
+
+      env {
+        name  = "MICROSOFT_CLIENT_ID"
+        value = var.microsoft_client_id
+      }
+
+      env {
+        name  = "MICROSOFT_CLIENT_SECRET"
+        value = var.microsoft_client_secret
+      }
+
+      env {
+        name  = "MICROSOFT_TENANT_ID"
+        value = var.microsoft_tenant_id
+      }
+
+      env {
+        name  = "NEXT_PUBLIC_WEBHOOK_URL"
+        value = local.next_public_webhook_url
+      }
+
+      env {
+        name  = "NEXT_PUBLIC_KVK_NUMBER"
+        value = var.next_public_kvk_number
       }
 
       dynamic "env" {

@@ -303,6 +303,17 @@ module "container_app" {
   huggingface_api_key                          = var.huggingface_api_key
   oauth_encryption_key                         = var.oauth_encryption_key
   better_auth_secret                           = var.better_auth_secret
+  cron_secret                                  = var.cron_secret
+  resend_from_email                            = var.resend_from_email
+  resend_reply_to_email                        = var.resend_reply_to_email
+  google_client_id                             = var.google_client_id
+  google_client_secret                         = var.google_client_secret
+  google_redirect_uri                           = var.google_redirect_uri
+  microsoft_client_id                          = var.microsoft_client_id
+  microsoft_client_secret                       = var.microsoft_client_secret
+  microsoft_tenant_id                           = var.microsoft_tenant_id
+  next_public_webhook_url                       = var.next_public_webhook_url
+  next_public_kvk_number                        = var.next_public_kvk_number
 
   depends_on = [
     module.networking,

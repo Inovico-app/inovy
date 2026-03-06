@@ -360,6 +360,77 @@ variable "better_auth_secret" {
   sensitive   = true
 }
 
+variable "cron_secret" {
+  description = "Secret for authenticating cron job requests"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "resend_from_email" {
+  description = "Resend from email address (e.g., Inovy <app@inovico.nl>)"
+  type        = string
+  default     = ""
+}
+
+variable "resend_reply_to_email" {
+  description = "Resend reply-to email (optional, defaults to resend_from_email)"
+  type        = string
+  default     = ""
+}
+
+variable "google_client_id" {
+  description = "Google OAuth client ID"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "google_client_secret" {
+  description = "Google OAuth client secret"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "google_redirect_uri" {
+  description = "Google OAuth redirect URI (optional; derived from app URL if empty)"
+  type        = string
+  default     = ""
+}
+
+variable "microsoft_client_id" {
+  description = "Microsoft OAuth client ID"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "microsoft_client_secret" {
+  description = "Microsoft OAuth client secret"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "microsoft_tenant_id" {
+  description = "Microsoft OAuth tenant ID (default: common)"
+  type        = string
+  default     = "common"
+}
+
+variable "next_public_webhook_url" {
+  description = "Public webhook URL for Google Drive (optional; derived from app URL if empty)"
+  type        = string
+  default     = ""
+}
+
+variable "next_public_kvk_number" {
+  description = "KVK number for legal pages (terms of service, privacy policy)"
+  type        = string
+  default     = ""
+}
+
 variable "log_analytics_retention_days" {
   description = "Log Analytics workspace retention in days"
   type        = number
