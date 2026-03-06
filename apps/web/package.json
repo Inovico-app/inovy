@@ -27,6 +27,7 @@
     "@ai-sdk/provider": "3.0.8",
     "@ai-sdk/react": "^3.0.107",
     "@anthropic-ai/sdk": "^0.32.1",
+    "@azure/storage-blob": "^12.31.0",
     "@better-auth/passkey": "^1.4.6",
     "@better-auth/stripe": "^1.4.6",
     "@deepgram/sdk": "^4.11.2",
@@ -77,6 +78,7 @@
     "drizzle-orm": "^0.44.5",
     "embla-carousel-react": "^8.6.0",
     "googleapis": "^164.1.0",
+    "ioredis": "^5.10.0",
     "lucide-react": "^0.544.0",
     "mammoth": "^1.6.0",
     "mcp-handler": "^1.0.4",
@@ -118,8 +120,10 @@
     "@tailwindcss/postcss": "^4.1.13",
     "@tanstack/react-query-devtools": "^5.89.0",
     "@types/archiver": "^7.0.0",
+    "@types/ioredis": "^5.0.0",
     "@types/node": "^24.5.2",
     "@types/pdf-parse": "^1.1.4",
+    "@types/pg": "^8.18.0",
     "@types/react": "~19.2.7",
     "@types/react-dom": "^19.2.3",
     "@types/ws": "^8.18.1",
@@ -140,3 +144,4 @@
     "typescript-eslint": "^8.44.0"
   }
 }
+

@@ -4,8 +4,8 @@
  */
 
 import { logger } from "@/lib/logger";
+import { render } from "@react-email/components";
 import { Resend } from "resend";
-const { render } = await import("@react-email/render");
 
 // Lazy initialization of Resend client
 // Only create the client when actually needed and API key is available
