@@ -57,7 +57,7 @@ export function DashboardGreeting({
           </Link>
         </Button>
         <Button size="default" asChild>
-          <Link href="/recordings">
+          <Link href="/record">
             <MicIcon className="mr-1.5 h-4 w-4" />
             New Recording
           </Link>
