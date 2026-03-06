@@ -20,6 +20,55 @@ const publicRoutes = [
 const isAlwaysPublic = (req: NextRequest) =>
   publicRoutes.some((route) => req.nextUrl.pathname.startsWith(route));
 
+function setSecurityHeaders(res: NextResponse) {
+  // HSTS: Enforce HTTPS for 1 year, include subdomains
+  res.headers.set(
+    "Strict-Transport-Security",
+    "max-age=31536000; includeSubDomains"
+  );
+
+  // Prevent MIME sniffing
+  res.headers.set("X-Content-Type-Options", "nosniff");
+
+  // Prevent clickjacking
+  res.headers.set("X-Frame-Options", "DENY");
+
+  // Content Security Policy
+  res.headers.set(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://va.vercel-scripts.com",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https: blob:",
+      "font-src 'self' data:",
+      "connect-src 'self' https: wss:",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join("; ")
+  );
+
+  // Referrer Policy
+  res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+
+  // Permissions Policy
+  res.headers.set(
+    "Permissions-Policy",
+    [
+      "camera=()",
+      "microphone=()",
+      "geolocation=()",
+      "interest-cohort=()",
+    ].join(", ")
+  );
+
+  // X-DNS-Prefetch-Control
+  res.headers.set("X-DNS-Prefetch-Control", "on");
+
+  return res;
+}
+
 export default async function proxy(req: NextRequest) {
   // Handle CORS for API routes
   if (req.nextUrl.pathname.startsWith("/api/")) {
@@ -35,14 +84,14 @@ export default async function proxy(req: NextRequest) {
       "Access-Control-Allow-Headers",
       "Content-Type, Authorization"
     );
-    return res;
+    return setSecurityHeaders(res);
   }
 
   const publicRoute = isAlwaysPublic(req);
 
   if (publicRoute) {
     // Early return for public/auth routes
-    return NextResponse.next();
+    return setSecurityHeaders(NextResponse.next());
   }
 
   // Use a fresh session to avoid caching issues, this however has a minor performance impact
@@ -54,7 +103,9 @@ export default async function proxy(req: NextRequest) {
   const hasUserOnboarded = (session?.user as BetterAuthUser)
     ?.onboardingCompleted;
   if (!hasUserOnboarded) {
-    return NextResponse.redirect(new URL("/onboarding", req.url));
+    return setSecurityHeaders(
+      NextResponse.redirect(new URL("/onboarding", req.url))
+    );
   }
 
   // For all other routes, require authentication
@@ -62,10 +113,10 @@ export default async function proxy(req: NextRequest) {
     // Redirect to sign-in, preserving the original URL for redirect after login
     const signInUrl = new URL("/sign-in", req.url);
     signInUrl.searchParams.set("redirect", req.nextUrl.pathname);
-    return NextResponse.redirect(signInUrl);
+    return setSecurityHeaders(NextResponse.redirect(signInUrl));
   }
 
-  return NextResponse.next();
+  return setSecurityHeaders(NextResponse.next());
 }
 
 export const config = {
