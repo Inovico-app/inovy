@@ -54,4 +54,10 @@ export interface StorageProvider {
   generateClientUploadToken?(
     options: ClientUploadOptions
   ): Promise<ClientUploadToken>;
+
+  /**
+   * Generate a read-only signed URL for a blob.
+   * Required for Azure when public access is disabled; Vercel blob URLs are typically public.
+   */
+  generateReadSasUrl?(blobUrl: string, expiresInMinutes?: number): Promise<string>;
 }

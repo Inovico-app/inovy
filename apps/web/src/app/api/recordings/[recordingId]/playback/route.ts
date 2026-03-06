@@ -7,7 +7,16 @@ import { decrypt } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { RecordingService } from "@/server/services/recording.service";
+import { getStorageProvider } from "@/server/services/storage";
 import { type NextRequest, NextResponse } from "next/server";
+
+function isAzureBlobUrl(url: string): boolean {
+  try {
+    return new URL(url).hostname.endsWith(".blob.core.windows.net");
+  } catch {
+    return false;
+  }
+}
 
 /**
  * API endpoint to serve decrypted recording files
@@ -56,7 +65,19 @@ export async function GET(
       );
     }
 
-    // Download file from Vercel Blob with timeout
+    // Resolve fetch URL: Azure blobs need a read SAS token (public access disabled)
+    let fetchUrl = recording.fileUrl;
+    if (isAzureBlobUrl(recording.fileUrl)) {
+      const storage = await getStorageProvider();
+      if (storage.generateReadSasUrl) {
+        fetchUrl = await storage.generateReadSasUrl(
+          recording.fileUrl,
+          60 // 1 hour expiry for playback session
+        );
+      }
+    }
+
+    // Download file from storage with timeout
     // Note: This loads the entire file into memory. For files up to 500MB (MAX_FILE_SIZE),
     // this is acceptable, but consider streaming decryption for future optimization.
     const controller = new AbortController();
@@ -67,7 +88,7 @@ export async function GET(
 
     let response: Response;
     try {
-      response = await fetch(recording.fileUrl, { signal: controller.signal });
+      response = await fetch(fetchUrl, { signal: controller.signal });
       clearTimeout(timeoutId);
     } catch (error) {
       clearTimeout(timeoutId);
@@ -109,12 +130,17 @@ export async function GET(
       fileBuffer = Buffer.from(arrayBuffer);
     }
 
-    // Return decrypted file with appropriate headers
+    const isDownload =
+      request.nextUrl.searchParams.get("download") === "1";
+    const contentDisposition = isDownload
+      ? `attachment; filename="${recording.fileName}"`
+      : `inline; filename="${recording.fileName}"`;
+
     return new NextResponse(fileBuffer as unknown as BodyInit, {
       headers: {
         "Content-Type": recording.fileMimeType,
         "Content-Length": fileBuffer.length.toString(),
-        "Content-Disposition": `inline; filename="${recording.fileName}"`,
+        "Content-Disposition": contentDisposition,
         "Cache-Control": `private, max-age=${CACHE_MAX_AGE_1_HOUR}`,
       },
     });
