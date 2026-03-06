@@ -17,6 +17,7 @@ import { ChatEmptyState } from "./chat-empty-state";
 import { ChatHeader } from "./chat-header";
 import { ChatInput } from "./chat-input";
 import { ChatMessageList } from "./chat-message-list";
+import { ChatThinkingIndicator } from "./chat-thinking-indicator";
 import { ContextSwitchDialog } from "./context-switch-dialog";
 import { ConversationHistorySidebar } from "./conversation-history-sidebar";
 
@@ -207,20 +208,23 @@ export function UnifiedChatInterface({
                 projectName={chatContext.currentProjectName}
               />
             ) : (
-              <ChatMessageList
-                messages={
-                  filteredMessages as Array<{
-                    id: string;
-                    role: "user" | "assistant";
-                    parts: Array<{ type: "text"; text?: string | null }>;
-                  }>
-                }
-                messageSourcesMap={messageSourcesMap}
-                sourceRefsMap={sourceRefsMap}
-                context={chatContext.context}
-                projectId={chatContext.projectId}
-                setSourceRef={setSourceRef}
-              />
+              <>
+                <ChatMessageList
+                  messages={
+                    filteredMessages as Array<{
+                      id: string;
+                      role: "user" | "assistant";
+                      parts: Array<{ type: "text"; text?: string | null }>;
+                    }>
+                  }
+                  messageSourcesMap={messageSourcesMap}
+                  sourceRefsMap={sourceRefsMap}
+                  context={chatContext.context}
+                  projectId={chatContext.projectId}
+                  setSourceRef={setSourceRef}
+                />
+                {status === "submitted" && <ChatThinkingIndicator />}
+              </>
             )}
           </ConversationContent>
           <ConversationScrollButton />
