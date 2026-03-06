@@ -786,6 +786,7 @@ export class BotWebhookService {
     ]);
 
     const sections: string[] = [];
+    const trimmedNotes = preMeetingNote?.content?.trim();
 
     if (agendaItems.length > 0) {
       const items = agendaItems
@@ -794,8 +795,8 @@ export class BotWebhookService {
       sections.push(`📋 Agenda:\n${items}`);
     }
 
-    if (preMeetingNote?.content?.trim()) {
-      sections.push(`📝 Pre-Meeting Notes:\n${preMeetingNote.content.trim()}`);
+    if (trimmedNotes) {
+      sections.push(`📝 Pre-Meeting Notes:\n${trimmedNotes}`);
     }
 
     if (sections.length === 0) return;
@@ -818,7 +819,7 @@ export class BotWebhookService {
       botId,
       meetingId,
       hasAgenda: agendaItems.length > 0,
-      hasNotes: !!preMeetingNote?.content?.trim(),
+      hasNotes: !!trimmedNotes,
     });
   }
 
