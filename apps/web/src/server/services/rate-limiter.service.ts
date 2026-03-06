@@ -1,5 +1,8 @@
 import { logger } from "@/lib/logger";
-import { Redis } from "@upstash/redis";
+import {
+  createRedisClient,
+  type RedisClient,
+} from "./redis-client.factory";
 
 /**
  * Rate Limiter Service
@@ -7,6 +10,7 @@ import { Redis } from "@upstash/redis";
  * Rate limiting to prevent abuse and manage costs
  * Uses token bucket algorithm for request-based limiting
  * Uses cost-based limiting for expensive operations (LLM tokens)
+ * Uses platform-aware Redis client (Upstash for Vercel, ioredis for Azure).
  */
 
 export type UserTier = "free" | "pro";
@@ -24,33 +28,22 @@ export interface TierLimits {
 
 export class RateLimiterService {
   private static instance: RateLimiterService | null = null;
-  private client: Redis | null = null;
+  private client: RedisClient | null = null;
+  private initialized = false;
 
-  private constructor() {
-    const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
-    const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  private constructor() {}
 
-    if (!redisUrl || !redisToken) {
-      logger.warn(
-        "Redis environment variables not configured. Rate limiting will be disabled.",
-        {
-          component: "RateLimiterService",
-          hasUrl: !!redisUrl,
-          hasToken: !!redisToken,
-        }
-      );
-      return;
-    }
+  private async init() {
+    if (this.initialized) return;
+    this.initialized = true;
 
     try {
-      this.client = new Redis({
-        url: redisUrl,
-        token: redisToken,
-      });
-
-      logger.info("RateLimiterService initialized", {
-        component: "RateLimiterService",
-      });
+      this.client = await createRedisClient();
+      if (this.client) {
+        logger.info("RateLimiterService initialized", {
+          component: "RateLimiterService",
+        });
+      }
     } catch (error) {
       logger.error("Failed to initialize RateLimiterService", {
         component: "RateLimiterService",
@@ -67,6 +60,11 @@ export class RateLimiterService {
     return RateLimiterService.instance;
   }
 
+  private async getClient(): Promise<RedisClient | null> {
+    await this.init();
+    return this.client;
+  }
+
   /**
    * Check if Redis is available
    */
@@ -76,7 +74,6 @@ export class RateLimiterService {
 
   /**
    * Get tier limits
-   * Defaults to free tier if tier is not specified
    */
   getTierLimits(tier: UserTier = "free"): TierLimits {
     const limits: Record<UserTier, TierLimits> = {
@@ -103,17 +100,14 @@ export class RateLimiterService {
 
   /**
    * Get user tier
-   * Defaults to 'free' if not specified
-   * Can be extended to check user subscription in the future
    */
   async getUserTier(userId: string): Promise<UserTier> {
-    if (!this.client) {
-      return "free";
-    }
+    const client = await this.getClient();
+    if (!client) return "free";
 
     try {
       const tierKey = `tier:${userId}`;
-      const tier = await this.client.get(tierKey);
+      const tier = await client.get(tierKey);
 
       if (tier === "pro") {
         return "pro";
@@ -138,8 +132,8 @@ export class RateLimiterService {
     maxRequests: number = 100,
     windowSeconds: number = 3600
   ): Promise<RateLimitResult> {
-    if (!this.client) {
-      // Fail-open: allow requests if Redis is unavailable
+    const client = await this.getClient();
+    if (!client) {
       logger.warn("Redis unavailable, allowing request", {
         component: "RateLimiterService",
         userId,
@@ -156,15 +150,12 @@ export class RateLimiterService {
     const windowStart = now - windowSeconds * 1000;
 
     try {
-      // Remove old entries outside the window
-      await this.client.zremrangebyscore(key, 0, windowStart);
+      await client.zremrangebyscore(key, 0, windowStart);
 
-      // Count current requests in the window
-      const currentCount = await this.client.zcard(key);
+      const currentCount = await client.zcard(key);
 
       if (currentCount >= maxRequests) {
-        // Get the oldest entry to calculate reset time
-        const oldestEntries = await this.client.zrange(key, 0, 0, {
+        const oldestEntries = await client.zrange(key, 0, 0, {
           withScores: true,
         });
 
@@ -174,7 +165,6 @@ export class RateLimiterService {
           Array.isArray(oldestEntries) &&
           oldestEntries.length >= 2
         ) {
-          // Upstash returns [member, score] pairs when withScores is true
           const oldestTimestamp =
             typeof oldestEntries[1] === "number"
               ? oldestEntries[1]
@@ -197,12 +187,10 @@ export class RateLimiterService {
         };
       }
 
-      // Add current request with timestamp as score
       const requestId = `${now}-${Math.random().toString(36).substring(7)}`;
-      await this.client.zadd(key, { score: now, member: requestId });
+      await client.zadd(key, { score: now, member: requestId });
 
-      // Set expiration on the key
-      await this.client.expire(key, windowSeconds);
+      await client.expire(key, windowSeconds);
 
       const remaining = maxRequests - currentCount - 1;
       const resetAt = now + windowSeconds * 1000;
@@ -213,7 +201,6 @@ export class RateLimiterService {
         resetAt,
       };
     } catch (error) {
-      // Fail-open: allow requests on error
       logger.error("Rate limit check error, allowing request", {
         component: "RateLimiterService",
         userId,
@@ -237,8 +224,8 @@ export class RateLimiterService {
     maxCost: number = 10000,
     windowSeconds: number = 3600
   ): Promise<boolean> {
-    if (!this.client) {
-      // Fail-open: allow requests if Redis is unavailable
+    const client = await this.getClient();
+    if (!client) {
       logger.warn("Redis unavailable, allowing cost-based request", {
         component: "RateLimiterService",
         userId,
@@ -250,8 +237,7 @@ export class RateLimiterService {
     const key = `costlimit:${userId}`;
 
     try {
-      // Get current cost
-      const currentCostStr = await this.client.get(key);
+      const currentCostStr = await client.get(key);
       const currentCost = currentCostStr
         ? parseFloat(currentCostStr as string)
         : 0;
@@ -268,15 +254,12 @@ export class RateLimiterService {
         return false;
       }
 
-      // Increment cost
-      await this.client.incrbyfloat(key, cost);
+      await client.incrbyfloat(key, cost);
 
-      // Set expiration on the key
-      await this.client.expire(key, windowSeconds);
+      await client.expire(key, windowSeconds);
 
       return true;
     } catch (error) {
-      // Fail-open: allow requests on error
       logger.error("Cost limit check error, allowing request", {
         component: "RateLimiterService",
         userId,
@@ -290,4 +273,3 @@ export class RateLimiterService {
 }
 
 export const rateLimiter = RateLimiterService.getInstance();
-

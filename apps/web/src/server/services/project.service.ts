@@ -1,7 +1,6 @@
 import type { BetterAuthUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { del } from "@vercel/blob";
 import { err, ok } from "neverthrow";
 import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { CacheInvalidation } from "../../lib/cache-utils";
@@ -485,10 +484,12 @@ export class ProjectService {
         projectId,
         recordingCount: recordings.length,
       });
-      // Delete all recording files from Vercel Blob storage
+      // Delete all recording files from blob storage
+      const { getStorageProvider } = await import("./storage");
+      const storage = await getStorageProvider();
       const blobDeletionPromises = recordings.map(async (recording) => {
         try {
-          await del(recording.fileUrl);
+          await storage.del(recording.fileUrl);
           logger.info("Deleted recording file from blob storage", {
             component: "ProjectService.deleteProject",
             recordingId: recording.id,

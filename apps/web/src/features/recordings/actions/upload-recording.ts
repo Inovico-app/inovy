@@ -10,7 +10,7 @@ import {
   MAX_FILE_SIZE,
 } from "@/server/validation/recordings/upload-recording";
 import { convertRecordingIntoAiInsights } from "@/workflows/convert-recording";
-import { put } from "@vercel/blob";
+import { getStorageProvider } from "@/server/services/storage";
 import { revalidatePath } from "next/cache";
 import { start } from "workflow/api";
 
@@ -143,18 +143,15 @@ export async function uploadRecordingFormAction(
       }
     }
 
-    // Upload file to Vercel Blob (use private access if encrypted)
-    const uploadOptions: {
-      access: "public" | "private";
-      contentType: string;
-    } = {
-      access: shouldEncrypt ? ("private" as const) : ("public" as const),
-      contentType: file.type,
-    };
-    const blob = await put(
+    // Upload file to blob storage (use private access if encrypted)
+    const storage = await getStorageProvider();
+    const blob = await storage.put(
       `recordings/${Date.now()}-${file.name}`,
       fileToUpload,
-      uploadOptions as Parameters<typeof put>[2]
+      {
+        access: shouldEncrypt ? "private" : "public",
+        contentType: file.type,
+      }
     );
 
     logger.info("File uploaded to Blob", {

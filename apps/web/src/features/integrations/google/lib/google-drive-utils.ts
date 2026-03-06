@@ -1,5 +1,5 @@
-import type { PutBlobResult } from "@vercel/blob";
-import { uploadRecordingToBlob } from "../../../../lib/vercel-blob";
+import type { StoragePutResult } from "@/server/services/storage";
+import { getStorageProvider } from "@/server/services/storage";
 
 /**
  * Google Drive File Processing Utilities
@@ -14,20 +14,18 @@ export function isAudioOrVideoFile(mimeType: string): boolean {
 }
 
 /**
- * Upload file buffer to Vercel Blob storage
- * Returns blob information (url, pathname, etc.)
- * Uses uploadRecordingToBlob function
+ * Upload file buffer to blob storage
+ * Returns blob information (url, pathname)
  */
 export async function uploadToBlob(
   fileBuffer: Buffer,
   fileName: string,
   mimeType: string
-): Promise<PutBlobResult> {
-  // Convert Buffer to File for uploadRecordingToBlob
-  const uint8Array = new Uint8Array(fileBuffer);
-  const blob = new Blob([uint8Array], { type: mimeType });
-  const file = new File([blob], fileName, { type: mimeType });
-
-  return uploadRecordingToBlob(file);
+): Promise<StoragePutResult> {
+  const storage = await getStorageProvider();
+  return storage.put(`recordings/${fileName}`, fileBuffer, {
+    access: "public",
+    contentType: mimeType,
+  });
 }
 

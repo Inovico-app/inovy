@@ -1,6 +1,5 @@
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
-import { put } from "@vercel/blob";
 import { err, ok } from "neverthrow";
 import { start } from "workflow/api";
 import { logger, serializeError } from "../../lib/logger";
@@ -546,10 +545,12 @@ export class BotWebhookService {
         }
       }
 
-      const blob = await put(blobPath, fileToUpload, {
+      const { getStorageProvider } = await import("./storage");
+      const storage = await getStorageProvider();
+      const blob = await storage.put(blobPath, fileToUpload, {
         access: shouldEncrypt ? "private" : "public",
         contentType: mimeType,
-      } as Parameters<typeof put>[2]);
+      });
 
       const createResult = await RecordingService.createRecording(
         {

@@ -291,6 +291,13 @@ variable "container_app_additional_env_vars" {
   default     = {}
 }
 
+# Cron jobs variables
+variable "cron_secret" {
+  description = "Shared secret for authenticating cron job requests (must match CRON_SECRET env var in the app)"
+  type        = string
+  sensitive   = true
+}
+
 variable "log_analytics_retention_days" {
   description = "Log Analytics workspace retention in days"
   type        = number

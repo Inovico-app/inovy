@@ -1,10 +1,10 @@
 "use server";
 
-import { put as putBlob } from "@vercel/blob";
+import { getStorageProvider } from "@/server/services/storage";
 
 export async function uploadFileToVercelBlobAction(file: File) {
-  // Upload to Vercel Blob
-  await putBlob(`recordings/${file.name}`, file, {
+  const storage = await getStorageProvider();
+  await storage.put(`recordings/${file.name}`, file, {
     access: "public",
   });
 }

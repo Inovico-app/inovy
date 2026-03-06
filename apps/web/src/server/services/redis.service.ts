@@ -1,42 +1,34 @@
 import { logger } from "@/lib/logger";
-import { Redis } from "@upstash/redis";
+import {
+  createRedisClient,
+  type RedisClient,
+} from "./redis-client.factory";
 
 /**
  * Redis Service
  *
- * Singleton service for managing Upstash Redis connections and operations.
+ * Singleton service for managing Redis connections and operations.
  * Provides caching functionality for embeddings and other data.
+ * Uses platform-aware client (Upstash for Vercel, ioredis for Azure).
  */
 export class RedisService {
   private static instance: RedisService | null = null;
-  private client: Redis | null = null;
+  private client: RedisClient | null = null;
+  private initialized = false;
 
-  private constructor() {
-    const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
-    const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  private constructor() {}
 
-    if (!redisUrl || !redisToken) {
-      logger.warn(
-        "Redis environment variables not configured. Redis caching will be disabled.",
-        {
-          component: "RedisService",
-          hasUrl: !!redisUrl,
-          hasToken: !!redisToken,
-        }
-      );
-      return;
-    }
+  private async init() {
+    if (this.initialized) return;
+    this.initialized = true;
 
     try {
-      this.client = new Redis({
-        url: redisUrl,
-        token: redisToken,
-      });
-
-      logger.info("RedisService initialized", {
-        component: "RedisService",
-        url: redisUrl,
-      });
+      this.client = await createRedisClient();
+      if (this.client) {
+        logger.info("RedisService initialized", {
+          component: "RedisService",
+        });
+      }
     } catch (error) {
       logger.error("Failed to initialize Redis client", {
         component: "RedisService",
@@ -53,6 +45,11 @@ export class RedisService {
     return RedisService.instance;
   }
 
+  private async getClient(): Promise<RedisClient | null> {
+    await this.init();
+    return this.client;
+  }
+
   /**
    * Check if Redis is available
    */
@@ -64,12 +61,11 @@ export class RedisService {
    * Get value from cache
    */
   async get(key: string): Promise<string | null> {
-    if (!this.client) {
-      return null;
-    }
+    const client = await this.getClient();
+    if (!client) return null;
 
     try {
-      const value = await this.client.get(key);
+      const value = await client.get(key);
       return value as string | null;
     } catch (error) {
       logger.error("Redis get error", {
@@ -85,15 +81,14 @@ export class RedisService {
    * Set value in cache with optional TTL (in seconds)
    */
   async set(key: string, value: string, ttl?: number): Promise<boolean> {
-    if (!this.client) {
-      return false;
-    }
+    const client = await this.getClient();
+    if (!client) return false;
 
     try {
       if (ttl) {
-        await this.client.setex(key, ttl, value);
+        await client.setex(key, ttl, value);
       } else {
-        await this.client.set(key, value);
+        await client.set(key, value);
       }
       return true;
     } catch (error) {
@@ -110,12 +105,11 @@ export class RedisService {
    * Delete key from cache
    */
   async del(key: string): Promise<boolean> {
-    if (!this.client) {
-      return false;
-    }
+    const client = await this.getClient();
+    if (!client) return false;
 
     try {
-      await this.client.del(key);
+      await client.del(key);
       return true;
     } catch (error) {
       logger.error("Redis del error", {
@@ -131,12 +125,11 @@ export class RedisService {
    * Check if key exists
    */
   async exists(key: string): Promise<boolean> {
-    if (!this.client) {
-      return false;
-    }
+    const client = await this.getClient();
+    if (!client) return false;
 
     try {
-      const result = await this.client.exists(key);
+      const result = await client.exists(key);
       return result === 1;
     } catch (error) {
       logger.error("Redis exists error", {
@@ -152,12 +145,13 @@ export class RedisService {
    * Batch get multiple keys
    */
   async mget(keys: string[]): Promise<(string | null)[]> {
-    if (!this.client || keys.length === 0) {
+    const client = await this.getClient();
+    if (!client || keys.length === 0) {
       return keys.map(() => null);
     }
 
     try {
-      const values = await this.client.mget(...keys);
+      const values = await client.mget(...keys);
       return values.map((v) => (v as string | null) ?? null);
     } catch (error) {
       logger.error("Redis mget error", {
@@ -176,18 +170,17 @@ export class RedisService {
     keyValuePairs: Array<{ key: string; value: string }>,
     ttl?: number
   ): Promise<boolean> {
-    if (!this.client || keyValuePairs.length === 0) {
+    const client = await this.getClient();
+    if (!client || keyValuePairs.length === 0) {
       return false;
     }
 
     try {
-      // Upstash Redis REST API doesn't support pipeline, so we'll set sequentially
-      // For better performance, we could use Promise.all but that might hit rate limits
       for (const { key, value } of keyValuePairs) {
         if (ttl) {
-          await this.client.setex(key, ttl, value);
+          await client.setex(key, ttl, value);
         } else {
-          await this.client.set(key, value);
+          await client.set(key, value);
         }
       }
       return true;
@@ -201,4 +194,3 @@ export class RedisService {
     }
   }
 }
-

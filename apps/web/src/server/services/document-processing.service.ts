@@ -7,7 +7,6 @@ import {
   ActionErrors,
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
-import { put as putBlob } from "@vercel/blob";
 import { err, ok } from "neverthrow";
 import { KnowledgeBaseDocumentsQueries } from "../data-access/knowledge-base-documents.queries";
 import { ProjectQueries } from "../data-access/projects.queries";
@@ -424,7 +423,9 @@ export class DocumentProcessingService {
           const blobPath = `knowledge-base/${scope}/${scopeId ?? "global"}/${
             item.file.name
           }`;
-          const blobResult = await putBlob(blobPath, item.file, {
+          const { getStorageProvider } = await import("./storage");
+          const storage = await getStorageProvider();
+          const blobResult = await storage.put(blobPath, item.file, {
             access: "public",
             addRandomSuffix: true,
           });
@@ -627,11 +628,13 @@ export class DocumentProcessingService {
         );
       }
 
-      // Upload to Vercel Blob
+      // Upload to blob storage
+      const { getStorageProvider } = await import("./storage");
+      const storage = await getStorageProvider();
       const blobPath = `knowledge-base/${scope}/${scopeId ?? "global"}/${
         file.name
       }`;
-      const blobResult = await putBlob(blobPath, file, {
+      const blobResult = await storage.put(blobPath, file, {
         access: "public",
         addRandomSuffix: true,
       });

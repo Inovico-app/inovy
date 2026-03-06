@@ -261,6 +261,28 @@ module "storage" {
   }
 }
 
+# Cron Jobs Module
+module "cron_jobs" {
+  source = "./modules/cron-jobs"
+
+  environment                  = var.environment
+  location                     = var.location
+  resource_group_name          = azurerm_resource_group.inovy.name
+  container_app_environment_id = data.azurerm_container_app_environment.current.id
+  app_url                      = var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${data.azurerm_container_app_environment.current.default_domain}" : "http://inovy-app-${var.environment}.${data.azurerm_container_app_environment.current.default_domain}"
+  cron_secret                  = var.cron_secret
+
+  depends_on = [
+    module.container_app_environment
+  ]
+
+  tags = {
+    Environment = var.environment
+    Application = "inovy"
+    ManagedBy   = "terraform"
+  }
+}
+
 # Container App Module
 module "container_app" {
   source = "./modules/container-app"
