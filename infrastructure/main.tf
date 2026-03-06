@@ -273,7 +273,8 @@ module "cron_jobs" {
   cron_secret                  = var.cron_secret
 
   depends_on = [
-    module.container_app_environment
+    module.container_app_environment,
+    module.container_app
   ]
 
   tags = {
@@ -313,7 +314,9 @@ module "container_app" {
   container_app_external_ingress               = var.container_app_external_ingress
   container_app_revision_mode                  = var.container_app_revision_mode
   container_app_http_scale_concurrent_requests = var.container_app_http_scale_concurrent_requests
-  container_app_additional_env_vars            = var.container_app_additional_env_vars
+  container_app_additional_env_vars            = merge(var.container_app_additional_env_vars, {
+    CRON_SECRET = var.cron_secret
+  })
 
   depends_on = [
     module.networking,

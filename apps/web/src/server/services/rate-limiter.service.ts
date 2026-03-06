@@ -29,27 +29,30 @@ export interface TierLimits {
 export class RateLimiterService {
   private static instance: RateLimiterService | null = null;
   private client: RedisClient | null = null;
-  private initialized = false;
+  private initPromise: Promise<void> | null = null;
 
   private constructor() {}
 
-  private async init() {
-    if (this.initialized) return;
-    this.initialized = true;
-
-    try {
-      this.client = await createRedisClient();
-      if (this.client) {
-        logger.info("RateLimiterService initialized", {
-          component: "RateLimiterService",
-        });
-      }
-    } catch (error) {
-      logger.error("Failed to initialize RateLimiterService", {
-        component: "RateLimiterService",
-        error: error instanceof Error ? error.message : String(error),
-      });
+  private init(): Promise<void> {
+    if (!this.initPromise) {
+      this.initPromise = (async () => {
+        try {
+          this.client = await createRedisClient();
+          if (this.client) {
+            logger.info("RateLimiterService initialized", {
+              component: "RateLimiterService",
+            });
+          }
+        } catch (error) {
+          this.initPromise = null;
+          logger.error("Failed to initialize RateLimiterService", {
+            component: "RateLimiterService",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
     }
+    return this.initPromise;
   }
 
   /**

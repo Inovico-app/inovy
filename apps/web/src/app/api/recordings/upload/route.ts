@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "crypto";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger, serializeError } from "@/lib/logger";
 import { platform } from "@/lib/platform";
@@ -40,6 +41,26 @@ interface UploadMetadata {
 interface TokenPayload extends UploadMetadata {
   userId: string;
   organizationId: string;
+}
+
+function getSigningSecret(): string {
+  const secret = process.env.UPLOAD_TOKEN_SECRET ?? process.env.CRON_SECRET;
+  if (!secret) {
+    throw new Error("UPLOAD_TOKEN_SECRET or CRON_SECRET must be set for Azure upload flow");
+  }
+  return secret;
+}
+
+function signPayload(payload: string): string {
+  return createHmac("sha256", getSigningSecret()).update(payload).digest("hex");
+}
+
+function verifySignedPayload(payload: string, signature: string): boolean {
+  const expected = signPayload(payload);
+  const sigBuf = Buffer.from(signature, "hex");
+  const expectedBuf = Buffer.from(expected, "hex");
+  if (sigBuf.length !== expectedBuf.length) return false;
+  return timingSafeEqual(sigBuf, expectedBuf);
 }
 
 /**
@@ -163,19 +184,27 @@ async function processUploadCompleted(
 
   revalidatePath(`/projects/${payload.projectId}`);
 
-  const workflowRun = await start(convertRecordingIntoAiInsights, [
-    recording.id,
-  ]);
+  try {
+    const workflowRun = await start(convertRecordingIntoAiInsights, [
+      recording.id,
+    ]);
 
-  logger.info("AI processing workflow triggered from upload recording", {
-    component: "POST /api/recordings/upload - processUploadCompleted",
-    recordingId: recording.id,
-    run: {
-      id: workflowRun.runId,
-      name: workflowRun.workflowName,
-      status: workflowRun.status,
-    },
-  });
+    logger.info("AI processing workflow triggered from upload recording", {
+      component: "POST /api/recordings/upload - processUploadCompleted",
+      recordingId: recording.id,
+      run: {
+        id: workflowRun.runId,
+        name: workflowRun.workflowName,
+        status: workflowRun.status,
+      },
+    });
+  } catch (error) {
+    logger.error("Failed to trigger AI processing workflow", {
+      component: "POST /api/recordings/upload - processUploadCompleted",
+      recordingId: recording.id,
+      error: serializeError(error),
+    });
+  }
 }
 
 /**
@@ -211,11 +240,24 @@ async function validateAndAuthenticate(
     );
   }
 
+  if (
+    !ALLOWED_MIME_TYPES.includes(
+      metadata.fileMimeType as (typeof ALLOWED_MIME_TYPES)[number]
+    )
+  ) {
+    throw new Error(
+      `Unsupported file type: ${metadata.fileMimeType}`
+    );
+  }
+
   const project = await ProjectQueries.findById(
     metadata.projectId,
     organization.id
   );
-  if (project?.status === "archived") {
+  if (!project) {
+    throw new Error("Project not found");
+  }
+  if (project.status === "archived") {
     throw new Error("Cannot add recordings to an archived project");
   }
 
@@ -306,6 +348,7 @@ async function handleAzureUpload(request: NextRequest) {
     blobUrl?: string;
     pathname?: string;
     tokenPayload?: string;
+    tokenSignature?: string;
   };
 
   if (body.action === "generate-token") {
@@ -337,17 +380,25 @@ async function handleAzureUpload(request: NextRequest) {
       pathname: token.pathname,
     });
 
+    const serializedPayload = JSON.stringify(tokenPayload);
+    const tokenSignature = signPayload(serializedPayload);
+
     return NextResponse.json({
       uploadUrl: token.uploadUrl,
       blobUrl: token.blobUrl,
       pathname: token.pathname,
-      tokenPayload: JSON.stringify(tokenPayload),
+      tokenPayload: serializedPayload,
+      tokenSignature,
     });
   }
 
   if (body.action === "upload-complete") {
-    if (!body.blobUrl || !body.tokenPayload) {
-      throw new Error("Missing blobUrl or tokenPayload");
+    if (!body.blobUrl || !body.tokenPayload || !body.tokenSignature) {
+      throw new Error("Missing blobUrl, tokenPayload, or tokenSignature");
+    }
+
+    if (!verifySignedPayload(body.tokenPayload, body.tokenSignature)) {
+      throw new Error("Invalid token signature — payload may have been tampered with");
     }
 
     let payload: TokenPayload;
@@ -355,6 +406,18 @@ async function handleAzureUpload(request: NextRequest) {
       payload = JSON.parse(body.tokenPayload) as TokenPayload;
     } catch {
       throw new Error("Invalid token payload");
+    }
+
+    // Verify uploaded blob size doesn't exceed limit
+    const storage = await getStorageProvider();
+    if (storage.getBlobProperties) {
+      const props = await storage.getBlobProperties(body.blobUrl);
+      if (props.contentLength && props.contentLength > MAX_FILE_SIZE) {
+        await storage.del(body.blobUrl);
+        throw new Error(
+          `Uploaded file exceeds maximum size of ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB`
+        );
+      }
     }
 
     await processUploadCompleted(body.blobUrl, body.pathname ?? "", payload);

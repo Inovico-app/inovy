@@ -14,27 +14,30 @@ import {
 export class RedisService {
   private static instance: RedisService | null = null;
   private client: RedisClient | null = null;
-  private initialized = false;
+  private initPromise: Promise<void> | null = null;
 
   private constructor() {}
 
-  private async init() {
-    if (this.initialized) return;
-    this.initialized = true;
-
-    try {
-      this.client = await createRedisClient();
-      if (this.client) {
-        logger.info("RedisService initialized", {
-          component: "RedisService",
-        });
-      }
-    } catch (error) {
-      logger.error("Failed to initialize Redis client", {
-        component: "RedisService",
-        error: error instanceof Error ? error.message : String(error),
-      });
+  private init(): Promise<void> {
+    if (!this.initPromise) {
+      this.initPromise = (async () => {
+        try {
+          this.client = await createRedisClient();
+          if (this.client) {
+            logger.info("RedisService initialized", {
+              component: "RedisService",
+            });
+          }
+        } catch (error) {
+          this.initPromise = null;
+          logger.error("Failed to initialize Redis client", {
+            component: "RedisService",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
     }
+    return this.initPromise;
   }
 
   /**

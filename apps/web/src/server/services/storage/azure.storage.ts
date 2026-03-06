@@ -7,6 +7,7 @@ import {
 import { randomUUID } from "crypto";
 import path from "path";
 import type {
+  BlobProperties,
   ClientUploadOptions,
   ClientUploadToken,
   StorageProvider,
@@ -96,6 +97,24 @@ export class AzureStorageProvider implements StorageProvider {
     const containerClient = client.getContainerClient(containerName);
     const blobClient = containerClient.getBlobClient(blobName);
     await blobClient.deleteIfExists();
+  }
+
+  async getBlobProperties(url: string): Promise<BlobProperties> {
+    const client = getClient();
+
+    const blobUrl = new URL(url);
+    const pathParts = blobUrl.pathname.split("/").filter(Boolean);
+    const containerName = pathParts[0]!;
+    const blobName = pathParts.slice(1).join("/");
+
+    const containerClient = client.getContainerClient(containerName);
+    const blobClient = containerClient.getBlobClient(blobName);
+    const props = await blobClient.getProperties();
+
+    return {
+      contentLength: props.contentLength,
+      contentType: props.contentType,
+    };
   }
 
   async generateClientUploadToken(

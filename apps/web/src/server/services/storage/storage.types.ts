@@ -27,6 +27,11 @@ export interface ClientUploadOptions {
   expiresInMinutes?: number;
 }
 
+export interface BlobProperties {
+  contentLength?: number;
+  contentType?: string;
+}
+
 export interface StorageProvider {
   put(
     path: string,
@@ -35,6 +40,12 @@ export interface StorageProvider {
   ): Promise<StoragePutResult>;
 
   del(url: string): Promise<void>;
+
+  /**
+   * Get blob properties (size, content type) by URL.
+   * Used to verify uploaded file size after client-side uploads.
+   */
+  getBlobProperties?(url: string): Promise<BlobProperties>;
 
   /**
    * Generate a client upload token for direct browser-to-storage uploads.

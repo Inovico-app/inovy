@@ -92,11 +92,13 @@ async function uploadViaAzure(
     blobUrl,
     pathname,
     tokenPayload,
+    tokenSignature,
   }: {
     uploadUrl: string;
     blobUrl: string;
     pathname: string;
     tokenPayload: string;
+    tokenSignature: string;
   } = await tokenResponse.json();
 
   // Step 2: Upload directly to Azure using SAS URL
@@ -116,6 +118,7 @@ async function uploadViaAzure(
       blobUrl,
       pathname,
       tokenPayload,
+      tokenSignature,
     }),
     signal: options?.signal,
   });
@@ -138,6 +141,11 @@ function uploadToAzureWithProgress(
   signal?: AbortSignal
 ): Promise<void> {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException("Upload aborted", "AbortError"));
+      return;
+    }
+
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", sasUrl);
     xhr.setRequestHeader("x-ms-blob-type", "BlockBlob");
@@ -155,7 +163,16 @@ function uploadToAzureWithProgress(
       };
     }
 
+    const cleanup = () => {
+      if (signal) {
+        signal.removeEventListener("abort", onAbort);
+      }
+    };
+
+    const onAbort = () => xhr.abort();
+
     xhr.onload = () => {
+      cleanup();
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve();
       } else {
@@ -163,10 +180,13 @@ function uploadToAzureWithProgress(
       }
     };
 
-    xhr.onerror = () => reject(new Error("Azure upload failed"));
+    xhr.onerror = () => {
+      cleanup();
+      reject(new Error("Azure upload failed"));
+    };
 
     if (signal) {
-      signal.addEventListener("abort", () => xhr.abort(), { once: true });
+      signal.addEventListener("abort", onAbort);
     }
 
     xhr.send(file);

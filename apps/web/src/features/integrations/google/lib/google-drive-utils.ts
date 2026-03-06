@@ -23,9 +23,10 @@ export async function uploadToBlob(
   mimeType: string
 ): Promise<StoragePutResult> {
   const storage = await getStorageProvider();
-  return storage.put(`recordings/${fileName}`, fileBuffer, {
+  return storage.put(`recordings/${Date.now()}-${fileName}`, fileBuffer, {
     access: "public",
     contentType: mimeType,
+    addRandomSuffix: true,
   });
 }
 
