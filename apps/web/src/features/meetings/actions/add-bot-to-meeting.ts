@@ -12,6 +12,7 @@ import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
 import { BotSessionsQueries } from "@/server/data-access/bot-sessions.queries";
 import { ProjectQueries } from "@/server/data-access/projects.queries";
 import { BotProviderFactory } from "@/server/services/bot-providers/factory";
+import { MeetingService } from "@/server/services/meeting.service";
 import { z } from "zod";
 
 const addBotToMeetingSchema = z.object({
@@ -197,6 +198,28 @@ export const addBotToMeeting = authorizedActionClient
           "add-bot-to-meeting"
         )
       );
+    }
+
+    // Create or find meeting for this calendar event
+    const meetingResult = await MeetingService.findOrCreateForCalendarEvent(
+      calendarEventId,
+      organizationId,
+      {
+        organizationId,
+        projectId: project.id,
+        createdById: user.id,
+        calendarEventId,
+        title: meetingTitle || "Untitled Meeting",
+        scheduledStartAt: new Date(),
+        status: "scheduled",
+        meetingUrl: meetingUrl.trim(),
+      }
+    );
+
+    if (meetingResult.isOk()) {
+      await BotSessionsQueries.update(session.id, organizationId, {
+        meetingId: meetingResult.value.id,
+      });
     }
 
     // Invalidate bot sessions cache

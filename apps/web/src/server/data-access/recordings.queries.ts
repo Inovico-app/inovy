@@ -439,6 +439,7 @@ export class RecordingsQueries {
         consentRevokedAt: recordings.consentRevokedAt,
         isEncrypted: recordings.isEncrypted,
         encryptionMetadata: recordings.encryptionMetadata,
+        meetingId: recordings.meetingId,
         projectName: projects.name,
       })
       .from(recordings)

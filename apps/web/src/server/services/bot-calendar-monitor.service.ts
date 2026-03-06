@@ -10,6 +10,7 @@ import { ProjectQueries } from "../data-access/projects.queries";
 import { BotProviderFactory } from "./bot-providers/factory";
 import { GoogleCalendarService } from "./google-calendar.service";
 import { GoogleOAuthService } from "./google-oauth.service";
+import { MeetingService } from "./meeting.service";
 import { NotificationService } from "./notification.service";
 
 /**
@@ -237,6 +238,40 @@ export class BotCalendarMonitorService {
               meeting.attendees?.map((a) => a.email).filter(Boolean) ??
               undefined,
           });
+
+          // Create or find meeting for this calendar event
+          const meetingResult =
+            await MeetingService.findOrCreateForCalendarEvent(
+              meeting.id,
+              settings.organizationId,
+              {
+                organizationId: settings.organizationId,
+                projectId: project.id,
+                createdById: settings.userId,
+                calendarEventId: meeting.id,
+                externalCalendarId: meeting.id,
+                title: meeting.title || "Untitled Meeting",
+                description: null,
+                scheduledStartAt: meeting.start ?? new Date(),
+                scheduledEndAt: meeting.end ?? undefined,
+                status: "scheduled",
+                meetingUrl: meeting.meetingUrl,
+                participants:
+                  meeting.attendees?.map((a) => ({
+                    email: a.email,
+                    name: null,
+                    role: null,
+                  })) ?? [],
+              }
+            );
+
+          if (meetingResult.isOk()) {
+            await BotSessionsQueries.update(
+              session.id,
+              settings.organizationId,
+              { meetingId: meetingResult.value.id }
+            );
+          }
 
           // Create notification if consent is required
           if (botStatus === "pending_consent") {

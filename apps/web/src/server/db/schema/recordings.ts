@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   pgTable,
   text,
@@ -7,6 +8,7 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
+import { meetings } from "./meetings";
 import { projects } from "./projects";
 
 export const recordingStatusEnum = [
@@ -79,6 +81,9 @@ export const recordings = pgTable(
     reprocessingTriggeredById: text("reprocessing_triggered_by_id"), // Better Auth user ID
     organizationId: text("organization_id").notNull(), // Better Auth organization ID
     createdById: text("created_by_id").notNull(), // Better Auth user ID
+    meetingId: uuid("meeting_id").references(() => meetings.id, {
+      onDelete: "set null",
+    }),
     externalRecordingId: text("external_recording_id"), // External recording ID (e.g., Recall.ai recording.id)
     // Consent tracking fields
     consentGiven: boolean("consent_given").notNull().default(false),
@@ -101,6 +106,7 @@ export const recordings = pgTable(
       table.organizationId,
       table.externalRecordingId
     ),
+    meetingIdIdx: index("recordings_meeting_id_idx").on(table.meetingId),
   })
 );
 

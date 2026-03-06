@@ -23,7 +23,11 @@ import {
   mapRecallEventToBotStatus,
   mapRecallStatusToBotStatus,
 } from "./bot-providers/recall/status-mapper";
+import { MeetingAgendaItemsQueries } from "../data-access/meeting-agenda-items.queries";
+import { MeetingNotesQueries } from "../data-access/meeting-notes.queries";
+import { MeetingService } from "./meeting.service";
 import { NotificationService } from "./notification.service";
+import { PostActionExecutorService } from "./post-action-executor.service";
 import { RecallApiService } from "./recall-api.service";
 import { RecordingService } from "./recording.service";
 
@@ -259,6 +263,43 @@ export class BotWebhookService {
         recallStatus: updates.recallStatus,
         botStatus: internalStatus,
       });
+
+      // Update meeting status based on bot lifecycle
+      if (existingSession.meetingId) {
+        if (internalStatus === "active") {
+          await MeetingService.updateStatus(
+            existingSession.meetingId,
+            organizationId,
+            "in_progress",
+            { actualStartAt: new Date() }
+          );
+
+          // Send agenda & pre-meeting notes as a chat briefing message
+          this.sendBriefingMessage(
+            botId,
+            existingSession.meetingId
+          ).catch((briefingError) => {
+            logger.error("Failed to send briefing message", {
+              component: "BotWebhookService.processStatusChange",
+              botId,
+              meetingId: existingSession.meetingId,
+              error: serializeError(briefingError),
+            });
+          });
+        }
+
+        if (
+          internalStatus === "completed" ||
+          internalStatus === "leaving"
+        ) {
+          await MeetingService.updateStatus(
+            existingSession.meetingId,
+            organizationId,
+            "completed",
+            { actualEndAt: new Date() }
+          );
+        }
+      }
 
       return ok(undefined);
     } catch (error) {
@@ -571,6 +612,7 @@ export class BotWebhookService {
           externalRecordingId: recording.id,
           isEncrypted: shouldEncrypt,
           encryptionMetadata,
+          meetingId: session.meetingId ?? null,
         },
         true
       );
@@ -592,6 +634,23 @@ export class BotWebhookService {
         finalRecordingId,
         "BotWebhookService.processRecordingDone"
       );
+
+      // Trigger post-meeting actions if linked to a meeting
+      if (session.meetingId) {
+        PostActionExecutorService.executePostActions(
+          session.meetingId,
+          organizationId
+        ).catch((postActionError) => {
+          logger.error(
+            "Failed to trigger post-actions",
+            {
+              component: "BotWebhookService.processRecordingDone",
+              meetingId: session.meetingId,
+            },
+            postActionError as Error
+          );
+        });
+      }
 
       logger.info("Recording processed and bot session updated", {
         component: "BotWebhookService.processRecordingDone",
@@ -715,6 +774,53 @@ export class BotWebhookService {
         )
       );
     }
+  }
+
+  private static async sendBriefingMessage(
+    botId: string,
+    meetingId: string
+  ): Promise<void> {
+    const [agendaItems, preMeetingNote] = await Promise.all([
+      MeetingAgendaItemsQueries.findByMeetingId(meetingId),
+      MeetingNotesQueries.findByMeetingAndType(meetingId, "pre_meeting"),
+    ]);
+
+    const sections: string[] = [];
+    const trimmedNotes = preMeetingNote?.content?.trim();
+
+    if (agendaItems.length > 0) {
+      const items = agendaItems
+        .map((item, i) => `${i + 1}. ${item.title}`)
+        .join("\n");
+      sections.push(`📋 Agenda:\n${items}`);
+    }
+
+    if (trimmedNotes) {
+      sections.push(`📝 Pre-Meeting Notes:\n${trimmedNotes}`);
+    }
+
+    if (sections.length === 0) return;
+
+    const message = sections.join("\n\n");
+    const result = await RecallApiService.sendChatMessage(botId, message);
+
+    if (result.isErr()) {
+      logger.warn("Briefing chat message failed to send", {
+        component: "BotWebhookService.sendBriefingMessage",
+        botId,
+        meetingId,
+        error: result.error.message,
+      });
+      return;
+    }
+
+    logger.info("Briefing message sent to meeting", {
+      component: "BotWebhookService.sendBriefingMessage",
+      botId,
+      meetingId,
+      hasAgenda: agendaItems.length > 0,
+      hasNotes: !!trimmedNotes,
+    });
   }
 
   private static async triggerAiWorkflow(

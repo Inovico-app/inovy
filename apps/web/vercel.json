@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/poll-bot-status",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/agenda-check",
+      "schedule": "0 0 * * *"
     }
   ]
 }
