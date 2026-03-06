@@ -7,16 +7,8 @@ import { decrypt } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { RecordingService } from "@/server/services/recording.service";
-import { getStorageProvider } from "@/server/services/storage";
+import { resolveFetchableUrl } from "@/server/services/storage";
 import { type NextRequest, NextResponse } from "next/server";
-
-function isAzureBlobUrl(url: string): boolean {
-  try {
-    return new URL(url).hostname.endsWith(".blob.core.windows.net");
-  } catch {
-    return false;
-  }
-}
 
 /**
  * API endpoint to serve decrypted recording files
@@ -66,16 +58,7 @@ export async function GET(
     }
 
     // Resolve fetch URL: Azure blobs need a read SAS token (public access disabled)
-    let fetchUrl = recording.fileUrl;
-    if (isAzureBlobUrl(recording.fileUrl)) {
-      const storage = await getStorageProvider();
-      if (storage.generateReadSasUrl) {
-        fetchUrl = await storage.generateReadSasUrl(
-          recording.fileUrl,
-          60 // 1 hour expiry for playback session
-        );
-      }
-    }
+    const fetchUrl = await resolveFetchableUrl(recording.fileUrl, 60);
 
     // Download file from storage with timeout
     // Note: This loads the entire file into memory. For files up to 500MB (MAX_FILE_SIZE),

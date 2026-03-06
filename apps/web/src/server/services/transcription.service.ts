@@ -9,6 +9,7 @@ import { createClient } from "@deepgram/sdk";
 import { generateText } from "ai";
 import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../ai/middleware";
+import { resolveFetchableUrl } from "@/server/services/storage";
 import { connectionPool } from "./connection-pool.service";
 import { KnowledgeBaseService } from "./knowledge-base.service";
 import { NotificationService } from "./notification.service";
@@ -128,8 +129,11 @@ export class TranscriptionService {
         deepgramOptions.keywords = keywords;
       }
 
+      // Azure blobs need a read SAS token for Deepgram to fetch
+      const fetchableUrl = await resolveFetchableUrl(fileUrl, 60);
+
       const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
-        { url: fileUrl },
+        { url: fetchableUrl },
         deepgramOptions
       );
 

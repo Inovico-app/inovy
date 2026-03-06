@@ -17,6 +17,7 @@ export function getStorageProvider(): Promise<StorageProvider> {
   return _providerPromise;
 }
 
+export { isAzureBlobUrl, resolveFetchableUrl } from "./url-utils";
 export type {
   ClientUploadOptions,
   ClientUploadToken,
