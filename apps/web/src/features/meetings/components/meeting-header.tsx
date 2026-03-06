@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, Clock, Users } from "lucide-react";
+import { format } from "date-fns";
 import type { Meeting } from "@/server/db/schema/meetings";
 import type { MeetingParticipant } from "@/server/db/schema/meetings";
 import {
@@ -65,24 +66,14 @@ export function MeetingHeader({
           {meeting.scheduledStartAt && (
             <span className="inline-flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5" />
-              {new Date(meeting.scheduledStartAt).toLocaleDateString(
-                undefined,
-                { weekday: "short", month: "short", day: "numeric" }
-              )}
+              {format(new Date(meeting.scheduledStartAt), "EEE, MMM d")}
             </span>
           )}
           {startTime && (
             <span className="inline-flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5" />
-              {new Date(startTime).toLocaleTimeString(undefined, {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-              {endTime &&
-                ` – ${new Date(endTime).toLocaleTimeString(undefined, {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}`}
+              {format(new Date(startTime), "HH:mm")}
+              {endTime && ` – ${format(new Date(endTime), "HH:mm")}`}
             </span>
           )}
           {participants.length > 0 && (
