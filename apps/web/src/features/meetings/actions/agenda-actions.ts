@@ -6,6 +6,7 @@ import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
 import { MeetingAgendaTemplatesQueries } from "@/server/data-access/meeting-agenda-templates.queries";
+import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { agendaItemStatusEnum } from "@/server/db/schema/meeting-agenda-items";
 
@@ -25,6 +26,9 @@ export const addAgendaItem = authorizedActionClient
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
+
+    const meeting = await MeetingsQueries.findById(parsedInput.meetingId, organizationId);
+    if (!meeting) throw ActionErrors.notFound("Meeting not found");
 
     const item = await MeetingAgendaItemsQueries.insert(parsedInput);
     CacheInvalidation.invalidateMeetingAgendaItems(parsedInput.meetingId);
@@ -50,6 +54,9 @@ export const updateAgendaItem = authorizedActionClient
     const { user, organizationId } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
 
+    const meeting = await MeetingsQueries.findById(parsedInput.meetingId, organizationId);
+    if (!meeting) throw ActionErrors.notFound("Meeting not found");
+
     const { id, meetingId, ...data } = parsedInput;
     const item = await MeetingAgendaItemsQueries.update(id, meetingId, data);
     if (!item) throw ActionErrors.notFound("Agenda item not found");
@@ -71,6 +78,9 @@ export const deleteAgendaItem = authorizedActionClient
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
+
+    const meeting = await MeetingsQueries.findById(parsedInput.meetingId, organizationId);
+    if (!meeting) throw ActionErrors.notFound("Meeting not found");
 
     const deleted = await MeetingAgendaItemsQueries.delete(
       parsedInput.id,
@@ -97,8 +107,12 @@ export const applyAgendaTemplate = authorizedActionClient
     const { user, organizationId } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
 
+    const meeting = await MeetingsQueries.findById(parsedInput.meetingId, organizationId);
+    if (!meeting) throw ActionErrors.notFound("Meeting not found");
+
     const template = await MeetingAgendaTemplatesQueries.findById(
-      parsedInput.templateId
+      parsedInput.templateId,
+      organizationId
     );
     if (!template) throw ActionErrors.notFound("Template not found");
 

@@ -5,6 +5,7 @@ import { authorizedActionClient } from "@/lib/server-action-client/action-client
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
+import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
@@ -34,6 +35,9 @@ export const generateAgendaFromAI = authorizedActionClient
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
+
+    const meeting = await MeetingsQueries.findById(parsedInput.meetingId, organizationId);
+    if (!meeting) throw ActionErrors.notFound("Meeting not found");
 
     const { object } = await generateObject({
       model: openai("gpt-4o-mini"),

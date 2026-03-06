@@ -597,6 +597,7 @@ export class BotWebhookService {
           externalRecordingId: recording.id,
           isEncrypted: shouldEncrypt,
           encryptionMetadata,
+          meetingId: session.meetingId ?? null,
         },
         true
       );

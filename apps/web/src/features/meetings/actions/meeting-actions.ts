@@ -53,6 +53,9 @@ export const saveMeetingNotes = authorizedActionClient
     const { user, organizationId } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
 
+    const meeting = await MeetingsQueries.findById(parsedInput.meetingId, organizationId);
+    if (!meeting) throw ActionErrors.notFound("Meeting not found");
+
     const note = await MeetingNotesQueries.upsert({
       ...parsedInput,
       createdById: user.id,
@@ -82,6 +85,9 @@ export const configurePostActions = authorizedActionClient
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
+
+    const meeting = await MeetingsQueries.findById(parsedInput.meetingId, organizationId);
+    if (!meeting) throw ActionErrors.notFound("Meeting not found");
 
     // Skip pending ones (don't touch completed/running)
     const existing = await MeetingPostActionsQueries.findByMeetingId(

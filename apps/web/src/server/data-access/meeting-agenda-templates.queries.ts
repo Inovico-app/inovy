@@ -32,12 +32,21 @@ export class MeetingAgendaTemplatesQueries {
   }
 
   static async findById(
-    id: string
+    id: string,
+    organizationId: string
   ): Promise<MeetingAgendaTemplate | null> {
     const result = await db
       .select()
       .from(meetingAgendaTemplates)
-      .where(eq(meetingAgendaTemplates.id, id))
+      .where(
+        and(
+          eq(meetingAgendaTemplates.id, id),
+          or(
+            eq(meetingAgendaTemplates.organizationId, organizationId),
+            eq(meetingAgendaTemplates.isSystem, true)
+          )
+        )
+      )
       .limit(1);
     return result[0] ?? null;
   }
