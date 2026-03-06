@@ -122,6 +122,7 @@ export class BotSessionsQueries {
         | "leftAt"
         | "meetingUrl"
         | "projectId"
+        | "meetingId"
       >
     >
   ): Promise<BotSession | null> {
@@ -143,6 +144,16 @@ export class BotSessionsQueries {
   }
 
   /**
+   * Find bot sessions by meeting ID
+   */
+  static async findByMeetingId(meetingId: string): Promise<BotSession[]> {
+    return db
+      .select()
+      .from(botSessions)
+      .where(eq(botSessions.meetingId, meetingId));
+  }
+
+  /**
    * Update bot session by Recall.ai bot ID
    */
   static async updateByRecallBotId(
@@ -157,6 +168,7 @@ export class BotSessionsQueries {
         | "joinedAt"
         | "leftAt"
         | "error"
+        | "meetingId"
       >
     >
   ): Promise<BotSession | null> {
@@ -665,6 +677,7 @@ export class BotSessionsQueries {
         leftAt: botSessions.leftAt,
         error: botSessions.error,
         retryCount: botSessions.retryCount,
+        meetingId: botSessions.meetingId,
         meetingParticipants: botSessions.meetingParticipants,
         createdAt: botSessions.createdAt,
         updatedAt: botSessions.updatedAt,
@@ -708,6 +721,7 @@ export class BotSessionsQueries {
       leftAt: row.leftAt,
       error: row.error,
       retryCount: row.retryCount,
+      meetingId: row.meetingId ?? null,
       meetingParticipants: row.meetingParticipants,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,

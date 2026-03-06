@@ -379,6 +379,13 @@
       "when": 1772386996732,
       "tag": "0059_add_content_flagged_to_chat_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1772814762738,
+      "tag": "0060_add_meeting_workflows_tables",
+      "breakpoints": true
     }
   ]
 }

@@ -23,7 +23,9 @@ import {
   mapRecallEventToBotStatus,
   mapRecallStatusToBotStatus,
 } from "./bot-providers/recall/status-mapper";
+import { MeetingService } from "./meeting.service";
 import { NotificationService } from "./notification.service";
+import { PostActionExecutorService } from "./post-action-executor.service";
 import { RecallApiService } from "./recall-api.service";
 import { RecordingService } from "./recording.service";
 
@@ -259,6 +261,30 @@ export class BotWebhookService {
         recallStatus: updates.recallStatus,
         botStatus: internalStatus,
       });
+
+      // Update meeting status based on bot lifecycle
+      if (existingSession.meetingId) {
+        if (internalStatus === "active") {
+          await MeetingService.updateStatus(
+            existingSession.meetingId,
+            organizationId,
+            "in_progress",
+            { actualStartAt: new Date() }
+          );
+        }
+
+        if (
+          internalStatus === "completed" ||
+          internalStatus === "leaving"
+        ) {
+          await MeetingService.updateStatus(
+            existingSession.meetingId,
+            organizationId,
+            "completed",
+            { actualEndAt: new Date() }
+          );
+        }
+      }
 
       return ok(undefined);
     } catch (error) {
@@ -592,6 +618,23 @@ export class BotWebhookService {
         finalRecordingId,
         "BotWebhookService.processRecordingDone"
       );
+
+      // Trigger post-meeting actions if linked to a meeting
+      if (session.meetingId) {
+        PostActionExecutorService.executePostActions(
+          session.meetingId,
+          organizationId
+        ).catch((postActionError) => {
+          logger.error(
+            "Failed to trigger post-actions",
+            {
+              component: "BotWebhookService.processRecordingDone",
+              meetingId: session.meetingId,
+            },
+            postActionError as Error
+          );
+        });
+      }
 
       logger.info("Recording processed and bot session updated", {
         component: "BotWebhookService.processRecordingDone",

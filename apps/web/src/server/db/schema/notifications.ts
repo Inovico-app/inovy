@@ -19,6 +19,9 @@ export const notificationTypeEnum = [
   "recording_processed",
   "bot_consent_request",
   "bot_session_update",
+  "meeting_prep_reminder",
+  "meeting_followup_ready",
+  "meeting_post_action_complete",
 ] as const;
 export type NotificationType = (typeof notificationTypeEnum)[number];
 

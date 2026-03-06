@@ -6,6 +6,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import { meetings } from "./meetings";
 import { projects } from "./projects";
 import { recordings } from "./recordings";
 
@@ -49,6 +50,9 @@ export const botSessions = pgTable(
     leftAt: timestamp("left_at", { withTimezone: true }), // When bot left meeting
     error: text("error"), // Error message for failed sessions
     retryCount: integer("retry_count").notNull().default(0), // Number of retry attempts
+    meetingId: uuid("meeting_id").references(() => meetings.id, {
+      onDelete: "set null",
+    }),
     meetingParticipants: text("meeting_participants").array(), // Array of participant emails/names
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -73,6 +77,7 @@ export const botSessions = pgTable(
       table.userId,
       table.organizationId
     ),
+    meetingIdIdx: index("bot_sessions_meeting_id_idx").on(table.meetingId),
   })
 );
 

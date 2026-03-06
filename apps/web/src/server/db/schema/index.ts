@@ -36,3 +36,9 @@ export * from "./tasks";
 export * from "./transcription-history";
 export * from "./user-deletion-requests";
 
+export * from "./meetings";
+export * from "./meeting-agenda-items";
+export * from "./meeting-notes";
+export * from "./meeting-post-actions";
+export * from "./meeting-agenda-templates";
+export * from "./meeting-share-tokens";

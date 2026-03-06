@@ -160,6 +160,17 @@ export const CacheTags = {
 
   // Invitation tags
   invitation: (invitationId: string) => `invitation:${invitationId}`,
+
+  // Meeting tags
+  meetings: (organizationId: string) => `meetings:org:${organizationId}`,
+  meeting: (meetingId: string) => `meeting:${meetingId}`,
+  meetingAgendaItems: (meetingId: string) =>
+    `meeting-agenda-items:${meetingId}`,
+  meetingNotes: (meetingId: string) => `meeting-notes:${meetingId}`,
+  meetingPostActions: (meetingId: string) =>
+    `meeting-post-actions:${meetingId}`,
+  meetingTemplates: (organizationId: string) =>
+    `meeting-templates:org:${organizationId}`,
 } as const;
 
 /**
@@ -540,6 +551,22 @@ export const CacheInvalidation = {
    */
   invalidateTeamMembers(teamId: string): void {
     invalidateCache(CacheTags.teamMembers(teamId));
+  },
+
+  invalidateMeetings(organizationId: string): void {
+    invalidateCache(CacheTags.meetings(organizationId));
+  },
+
+  invalidateMeeting(meetingId: string): void {
+    invalidateCache(CacheTags.meeting(meetingId));
+  },
+
+  invalidateMeetingAgendaItems(meetingId: string): void {
+    invalidateCache(CacheTags.meetingAgendaItems(meetingId));
+  },
+
+  invalidateMeetingNotes(meetingId: string): void {
+    invalidateCache(CacheTags.meetingNotes(meetingId));
   },
 } as const;
 

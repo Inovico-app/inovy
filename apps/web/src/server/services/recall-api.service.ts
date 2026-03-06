@@ -488,5 +488,123 @@ export class RecallApiService {
       );
     }
   }
+
+  /**
+   * Get the current transcript for an active bot session
+   */
+  static async getTranscript(
+    botId: string
+  ): Promise<
+    ActionResult<{
+      transcript: Array<{
+        speaker: string;
+        words: Array<{ text: string; start_time: number; end_time: number }>;
+      }>;
+    }>
+  > {
+    try {
+      const apiKey = getRecallApiKey();
+      const response = await fetch(
+        `${this.API_BASE_URL}/bot/${botId}/transcript/`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Token ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          signal: AbortSignal.timeout(30000),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error("Failed to get transcript from Recall.ai", {
+          component: "RecallApiService.getTranscript",
+          botId,
+          status: response.status,
+          error: errorText,
+        });
+        return err(
+          ActionErrors.internal(
+            `Failed to get transcript: ${response.status}`,
+            new Error(errorText),
+            "RecallApiService.getTranscript"
+          )
+        );
+      }
+
+      const data = await response.json();
+      return ok({ transcript: data });
+    } catch (error) {
+      logger.error("Error getting transcript from Recall.ai", {
+        component: "RecallApiService.getTranscript",
+        botId,
+        error: serializeError(error),
+      });
+      return err(
+        ActionErrors.internal(
+          "Failed to get transcript",
+          error as Error,
+          "RecallApiService.getTranscript"
+        )
+      );
+    }
+  }
+
+  /**
+   * Send a chat message to the meeting via the bot
+   */
+  static async sendChatMessage(
+    botId: string,
+    message: string
+  ): Promise<ActionResult<void>> {
+    try {
+      const apiKey = getRecallApiKey();
+      const response = await fetch(
+        `${this.API_BASE_URL}/bot/${botId}/send_chat_message/`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Token ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message }),
+          signal: AbortSignal.timeout(30000),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error("Failed to send chat message via Recall.ai", {
+          component: "RecallApiService.sendChatMessage",
+          botId,
+          status: response.status,
+          error: errorText,
+        });
+        return err(
+          ActionErrors.internal(
+            `Failed to send chat message: ${response.status}`,
+            new Error(errorText),
+            "RecallApiService.sendChatMessage"
+          )
+        );
+      }
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Error sending chat message via Recall.ai", {
+        component: "RecallApiService.sendChatMessage",
+        botId,
+        error: serializeError(error),
+      });
+      return err(
+        ActionErrors.internal(
+          "Failed to send chat message",
+          error as Error,
+          "RecallApiService.sendChatMessage"
+        )
+      );
+    }
+  }
 }
 
