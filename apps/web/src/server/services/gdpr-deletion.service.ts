@@ -1,5 +1,5 @@
-import { del } from "@vercel/blob";
 import { createHash } from "crypto";
+import { getStorageProvider } from "./storage";
 import { err, ok } from "neverthrow";
 import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { logger } from "../../lib/logger";
@@ -266,10 +266,12 @@ export class GdprDeletionService {
       (r) => r.createdById === userId
     );
 
+    const storage = await getStorageProvider();
+
     for (const recording of ownedRecordings) {
       try {
         // Delete file from blob storage
-        await del(recording.fileUrl);
+        await storage.del(recording.fileUrl);
       } catch (error) {
         logger.warn("Failed to delete recording file", {
           component: "GdprDeletionService.deleteUserOwnedRecordings",

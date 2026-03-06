@@ -1,13 +1,13 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { MAX_FILE_SIZE_50MB } from "@/lib/constants/file-sizes";
 import { logger } from "@/lib/logger";
+import { getStorageProvider } from "./storage";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import {
   ActionErrors,
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
-import { put as putBlob } from "@vercel/blob";
 import { err, ok } from "neverthrow";
 import { KnowledgeBaseDocumentsQueries } from "../data-access/knowledge-base-documents.queries";
 import { ProjectQueries } from "../data-access/projects.queries";
@@ -424,7 +424,8 @@ export class DocumentProcessingService {
           const blobPath = `knowledge-base/${scope}/${scopeId ?? "global"}/${
             item.file.name
           }`;
-          const blobResult = await putBlob(blobPath, item.file, {
+          const storage = await getStorageProvider();
+          const blobResult = await storage.put(blobPath, item.file, {
             access: "public",
             addRandomSuffix: true,
           });
@@ -627,11 +628,12 @@ export class DocumentProcessingService {
         );
       }
 
-      // Upload to Vercel Blob
+      // Upload to blob storage
+      const storage = await getStorageProvider();
       const blobPath = `knowledge-base/${scope}/${scopeId ?? "global"}/${
         file.name
       }`;
-      const blobResult = await putBlob(blobPath, file, {
+      const blobResult = await storage.put(blobPath, file, {
         access: "public",
         addRandomSuffix: true,
       });

@@ -7,7 +7,7 @@ import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { RecordingService } from "@/server/services/recording.service";
 import { deleteRecordingSchema } from "@/server/validation/recordings/delete-recording";
-import { del } from "@vercel/blob";
+import { getStorageProvider } from "@/server/services/storage";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -84,9 +84,10 @@ export const deleteRecordingAction = authorizedActionClient
       },
     });
 
-    // Delete file from Vercel Blob
+    // Delete file from blob storage
     try {
-      await del(recording.fileUrl);
+      const storage = await getStorageProvider();
+      await storage.del(recording.fileUrl);
       logger.info("Successfully deleted blob file", {
         component: "deleteRecordingAction",
         recordingId,

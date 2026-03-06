@@ -1,6 +1,6 @@
 import { CacheInvalidation } from "@/lib/cache-utils";
+import { getStorageProvider } from "./storage";
 import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
-import { put } from "@vercel/blob";
 import { err, ok } from "neverthrow";
 import { start } from "workflow/api";
 import { logger, serializeError } from "../../lib/logger";
@@ -13,7 +13,6 @@ import { BotSessionsQueries } from "../data-access/bot-sessions.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { type BotStatus } from "../db/schema/bot-sessions";
 import type {
-  BotRecordingReadyEvent,
   BotStatusChangeEvent,
   ParticipantEventChatMessage,
   RecallWebhookEvent,
@@ -300,7 +299,7 @@ export class BotWebhookService {
       logger.info("Kick command detected in meeting chat", {
         component: "BotWebhookService.processChatMessage",
         command: text,
-        senderName,
+        metadata,
         botId,
       });
 
@@ -363,7 +362,7 @@ export class BotWebhookService {
       await BotSessionsQueries.updateByRecallBotId(botId, organizationId, {
         botStatus: "leaving",
         recallStatus: "kicked_by_participant",
-        error: `Bot removed via chat command by ${senderName}`,
+        error: `Bot removed via chat command`,
         leftAt: new Date(),
       });
 
@@ -380,7 +379,6 @@ export class BotWebhookService {
             metadata: {
               sessionId: session.id,
               action: "kicked",
-              kickedBy: senderName,
               command: text,
             },
           }
@@ -409,8 +407,8 @@ export class BotWebhookService {
         component: "BotWebhookService.processChatMessage",
         botId,
         sessionId: session.id,
-        kickedBy: senderName,
         command: text,
+        metadata,
       });
 
       return ok(undefined);
@@ -548,10 +546,11 @@ export class BotWebhookService {
         }
       }
 
-      const blob = await put(blobPath, fileToUpload, {
+      const storage = await getStorageProvider();
+      const blob = await storage.put(blobPath, fileToUpload, {
         access: shouldEncrypt ? "private" : "public",
         contentType: mimeType,
-      } as Parameters<typeof put>[2]);
+      });
 
       const createResult = await RecordingService.createRecording(
         {
@@ -613,160 +612,6 @@ export class BotWebhookService {
           "Failed to process recording",
           error as Error,
           "BotWebhookService.processRecordingDone"
-        )
-      );
-    }
-  }
-
-  /**
-   * Process legacy bot.recording_ready (has URL in payload)
-   */
-  static async processRecordingReady(
-    event: BotRecordingReadyEvent
-  ): Promise<ActionResult<void>> {
-    try {
-      const { bot, recording, meeting } = event;
-      const resolved = await resolveWebhookMetadata(
-        event,
-        bot.id,
-        "BotWebhookService.processRecordingReady"
-      );
-
-      if (!resolved) return ok(undefined);
-
-      const { projectId, organizationId, userId } = resolved;
-
-      const session = await BotSessionsQueries.findByRecallBotId(
-        bot.id,
-        organizationId
-      );
-
-      if (!session) {
-        logger.error("Bot session not found for recording", {
-          component: "BotWebhookService.processRecordingReady",
-          botId: bot.id,
-          organizationId,
-        });
-        return ok(undefined);
-      }
-
-      const existingRecording =
-        await RecordingsQueries.selectRecordingByExternalId(
-          recording.id,
-          organizationId
-        );
-
-      let finalRecordingId: string;
-
-      if (existingRecording) {
-        finalRecordingId = existingRecording.id;
-      } else {
-        const downloadResult = await this.downloadRecording(recording.url);
-        if (downloadResult.isErr()) return err(downloadResult.error);
-
-        const { fileBuffer, mimeType } = downloadResult.value;
-        const fileName = `recall-${recording.id}.${this.getFileExtension(mimeType)}`;
-        const timestamp = Date.now();
-        const blobPath = `recordings/${timestamp}-${fileName}`;
-
-        const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
-        let fileToUpload: Buffer = fileBuffer;
-        let encryptionMetadata: string | null = null;
-
-        if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
-          logger.error("Encryption enabled but master key not configured", {
-            component: "BotWebhookService.processRecordingReady",
-          });
-          return err(
-            ActionErrors.internal(
-              "Encryption configuration error",
-              undefined,
-              "BotWebhookService.processRecordingReady"
-            )
-          );
-        }
-
-        if (shouldEncrypt) {
-          try {
-            const encryptedBase64 = encrypt(fileBuffer);
-            const encryptedBuffer = Buffer.from(encryptedBase64, "base64");
-            fileToUpload = encryptedBuffer;
-            encryptionMetadata = JSON.stringify(generateEncryptionMetadata());
-          } catch (encryptError) {
-            logger.error("Failed to encrypt recording", {
-              component: "BotWebhookService.processRecordingReady",
-              error: serializeError(encryptError),
-            });
-            return err(
-              ActionErrors.internal(
-                "Failed to encrypt recording",
-                encryptError as Error,
-                "BotWebhookService.processRecordingReady"
-              )
-            );
-          }
-        }
-
-        const blob = await put(blobPath, fileToUpload, {
-          access: shouldEncrypt ? "private" : "public",
-          contentType: mimeType,
-        } as Parameters<typeof put>[2]);
-
-        const recordingDate = meeting?.start_time
-          ? new Date(meeting.start_time)
-          : new Date();
-
-        const createResult = await RecordingService.createRecording(
-          {
-            projectId,
-            title: meeting?.title ?? session.meetingTitle ?? "Bot Recording",
-            description: null,
-            fileUrl: blob.url,
-            fileName,
-            fileSize: fileBuffer.length,
-            fileMimeType: mimeType,
-            duration: recording.duration ?? null,
-            recordingDate,
-            recordingMode: "bot",
-            transcriptionStatus: "pending",
-            transcriptionText: null,
-            organizationId,
-            createdById: userId,
-            externalRecordingId: recording.id,
-            isEncrypted: shouldEncrypt,
-            encryptionMetadata,
-          },
-          true
-        );
-
-        if (createResult.isErr()) return err(createResult.error);
-        finalRecordingId = createResult.value.id;
-      }
-
-      await BotSessionsQueries.updateRecordingId(
-        bot.id,
-        organizationId,
-        finalRecordingId,
-        bot.status
-      );
-
-      await this.triggerAiWorkflow(
-        finalRecordingId,
-        "BotWebhookService.processRecordingReady"
-      );
-
-      return ok(undefined);
-    } catch (error) {
-      logger.error("Failed to process recording ready event", {
-        component: "BotWebhookService.processRecordingReady",
-        error: serializeError(error),
-        botId: event.bot.id,
-      });
-      return err(
-        ActionErrors.internal(
-          "Failed to process recording",
-          error as Error,
-          "BotWebhookService.processRecordingReady"
         )
       );
     }
