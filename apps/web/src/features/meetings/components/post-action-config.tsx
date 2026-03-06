@@ -11,6 +11,7 @@ import {
   Share2,
   CalendarPlus,
   ExternalLink,
+  Save,
 } from "lucide-react";
 import { useMeetingActions } from "../hooks/use-meeting-actions";
 import { postActionStatusColors } from "../lib/meeting-constants";
@@ -111,67 +112,83 @@ export function PostActionConfig({
   };
 
   const executedActions = postActions.filter((a) => a.status !== "pending");
+  const enabledCount = allActionTypes.filter((type) => enabled[type]).length;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Post-Meeting Actions</h3>
-        {hasChanges && (
+    <div className="space-y-3">
+      <div className="space-y-1.5">
+        {allActionTypes.map((type) => {
+          const meta = actionMeta[type];
+          const Icon = meta.icon;
+          const executedAction = executedActions.find((a) => a.type === type);
+          const isEnabled = enabled[type];
+
+          return (
+            <label
+              key={type}
+              htmlFor={`action-${type}`}
+              className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                isEnabled
+                  ? "border-primary/30 bg-primary/5"
+                  : "border-border/60 bg-card hover:border-border"
+              } ${executedAction ? "opacity-70 cursor-default" : ""}`}
+            >
+              <div
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors ${
+                  isEnabled
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <Label
+                    htmlFor={`action-${type}`}
+                    className="font-medium text-sm cursor-pointer"
+                  >
+                    {meta.label}
+                  </Label>
+                  {executedAction && (
+                    <Badge
+                      variant="secondary"
+                      className={`text-[10px] px-1.5 py-0 ${postActionStatusColors[executedAction.status]}`}
+                    >
+                      {executedAction.status}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {meta.description}
+                </p>
+              </div>
+              <Switch
+                id={`action-${type}`}
+                checked={isEnabled}
+                onCheckedChange={() => handleToggle(type)}
+                disabled={!!executedAction}
+              />
+            </label>
+          );
+        })}
+      </div>
+
+      {hasChanges && (
+        <div className="flex items-center justify-between pt-2 border-t border-border/40">
+          <p className="text-xs text-muted-foreground">
+            {enabledCount} action{enabledCount !== 1 ? "s" : ""} selected
+          </p>
           <Button
             size="sm"
             onClick={handleSave}
             disabled={isConfiguringPostActions}
           >
-            {isConfiguringPostActions ? "Saving..." : "Save"}
+            <Save className="mr-1.5 h-3.5 w-3.5" />
+            {isConfiguringPostActions ? "Saving..." : "Save Configuration"}
           </Button>
-        )}
-      </div>
-
-      <div className="space-y-3">
-        {allActionTypes.map((type) => {
-          const meta = actionMeta[type];
-          const Icon = meta.icon;
-          const executedAction = executedActions.find((a) => a.type === type);
-
-          return (
-            <div
-              key={type}
-              className="flex items-center justify-between rounded-lg border p-3 bg-card"
-            >
-              <div className="flex items-center gap-3">
-                <Icon className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Label
-                      htmlFor={`action-${type}`}
-                      className="font-medium text-sm cursor-pointer"
-                    >
-                      {meta.label}
-                    </Label>
-                    {executedAction && (
-                      <Badge
-                        variant="secondary"
-                        className={postActionStatusColors[executedAction.status]}
-                      >
-                        {executedAction.status}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {meta.description}
-                  </p>
-                </div>
-              </div>
-              <Switch
-                id={`action-${type}`}
-                checked={enabled[type]}
-                onCheckedChange={() => handleToggle(type)}
-                disabled={!!executedAction}
-              />
-            </div>
-          );
-        })}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

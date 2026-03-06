@@ -16,9 +16,11 @@ import {
   ChevronUp,
   ChevronDown,
   Plus,
-  Trash2,
+  X,
   Sparkles,
   LayoutTemplate,
+  GripVertical,
+  Loader2,
 } from "lucide-react";
 import { useAgendaActions } from "../hooks/use-agenda-actions";
 import {
@@ -96,138 +98,184 @@ export function AgendaBuilder({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Agenda</h3>
-        <div className="flex items-center gap-2">
-          {templates.length > 0 && (
-            <Select
-              onValueChange={(templateId) => {
-                applyTemplate({
-                  meetingId,
-                  templateId,
-                  replaceExisting: items.length === 0,
-                });
-              }}
-              disabled={isApplyingTemplate}
-            >
-              <SelectTrigger className="w-[180px]">
-                <LayoutTemplate className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Use template" />
-              </SelectTrigger>
-              <SelectContent>
-                {templates.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowAiInput(!showAiInput)}
-            disabled={isGeneratingAgenda}
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {templates.length > 0 && (
+          <Select
+            onValueChange={(templateId) => {
+              applyTemplate({
+                meetingId,
+                templateId,
+                replaceExisting: items.length === 0,
+              });
+            }}
+            disabled={isApplyingTemplate}
           >
-            <Sparkles className="mr-2 h-4 w-4" />
-            {isGeneratingAgenda ? "Generating..." : "AI Generate"}
-          </Button>
-        </div>
+            <SelectTrigger className="w-[170px] h-8 text-xs">
+              <LayoutTemplate className="mr-1.5 h-3.5 w-3.5" />
+              <SelectValue placeholder="Use template" />
+            </SelectTrigger>
+            <SelectContent>
+              {templates.map((template) => (
+                <SelectItem key={template.id} value={template.id}>
+                  {template.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        <Button
+          variant={showAiInput ? "secondary" : "outline"}
+          size="sm"
+          className="h-8 text-xs"
+          onClick={() => setShowAiInput(!showAiInput)}
+          disabled={isGeneratingAgenda}
+        >
+          {isGeneratingAgenda ? (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+          )}
+          {isGeneratingAgenda ? "Generating..." : "AI Generate"}
+        </Button>
       </div>
 
+      {/* AI Generation Input */}
       {showAiInput && (
-        <div className="flex gap-2 rounded-lg border p-3 bg-muted/30">
-          <Input
-            placeholder="Describe your meeting (e.g., 'Weekly sprint review for engineering team')"
-            value={aiPrompt}
-            onChange={(e) => setAiPrompt(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleGenerateAgenda();
-            }}
-            disabled={isGeneratingAgenda}
-          />
-          <Button
-            size="sm"
-            onClick={handleGenerateAgenda}
-            disabled={isGeneratingAgenda || aiPrompt.trim().length < 10}
-          >
-            Generate
-          </Button>
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+          <p className="text-xs text-muted-foreground font-medium">
+            Describe the meeting and we&apos;ll generate an agenda for you.
+          </p>
+          <div className="flex gap-2">
+            <Input
+              placeholder="e.g., 'Weekly sprint review for engineering team'"
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleGenerateAgenda();
+              }}
+              disabled={isGeneratingAgenda}
+              className="text-sm"
+            />
+            <Button
+              size="sm"
+              onClick={handleGenerateAgenda}
+              disabled={isGeneratingAgenda || aiPrompt.trim().length < 10}
+            >
+              Generate
+            </Button>
+          </div>
         </div>
       )}
 
-      {/* Agenda items list */}
-      <div className="space-y-2">
-        {items.map((item, index) => (
-          <div
-            key={item.id}
-            className="flex items-start gap-2 rounded-lg border p-3 bg-card"
-          >
-            <div className="flex flex-col gap-1 pt-1">
-              <button
-                type="button"
-                onClick={() => handleMoveItem(index, "up")}
-                disabled={index === 0}
-                className="text-muted-foreground hover:text-foreground disabled:opacity-30"
-                aria-label="Move up"
-              >
-                <ChevronUp className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleMoveItem(index, "down")}
-                disabled={index === items.length - 1}
-                className="text-muted-foreground hover:text-foreground disabled:opacity-30"
-                aria-label="Move down"
-              >
-                <ChevronDown className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-sm">{item.title}</span>
-                <Badge
-                  variant="secondary"
-                  className={agendaItemStatusColors[item.status]}
-                >
-                  {formatStatusLabel(item.status)}
-                </Badge>
-              </div>
-              {item.description && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {item.description}
-                </p>
-              )}
-              {item.aiSummary && (
-                <p className="text-sm text-green-600 dark:text-green-400 mt-1 italic">
-                  {item.aiSummary}
-                </p>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => deleteItem({ id: item.id, meetingId })}
-              disabled={isDeletingItem}
-              aria-label="Remove agenda item"
-            >
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
-          </div>
-        ))}
-      </div>
+      {/* Empty State */}
+      {items.length === 0 && !showAiInput && (
+        <div className="rounded-lg border border-dashed border-border/80 py-8 text-center">
+          <p className="text-sm text-muted-foreground">
+            No agenda items yet. Add one below or use AI to generate.
+          </p>
+        </div>
+      )}
 
-      {/* Add new item form */}
-      <div className="rounded-lg border border-dashed p-3 space-y-2">
-        <Input
-          placeholder="Add agenda item..."
-          value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && newTitle.trim()) handleAddItem();
-          }}
-          disabled={isAddingItem}
-        />
+      {/* Agenda Items */}
+      {items.length > 0 && (
+        <div className="space-y-1.5">
+          {items.map((item, index) => (
+            <div
+              key={item.id}
+              className="group flex items-start gap-1.5 rounded-lg border border-border/60 bg-card p-3 transition-colors hover:border-border"
+            >
+              {/* Reorder controls */}
+              <div className="flex flex-col items-center gap-0.5 pt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  type="button"
+                  onClick={() => handleMoveItem(index, "up")}
+                  disabled={index === 0}
+                  className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5"
+                  aria-label="Move up"
+                >
+                  <ChevronUp className="h-3.5 w-3.5" />
+                </button>
+                <GripVertical className="h-3 w-3 text-muted-foreground/40" />
+                <button
+                  type="button"
+                  onClick={() => handleMoveItem(index, "down")}
+                  disabled={index === items.length - 1}
+                  className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5"
+                  aria-label="Move down"
+                >
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {/* Item number */}
+              <span className="text-xs font-mono text-muted-foreground/50 pt-1 w-5 text-right shrink-0">
+                {index + 1}.
+              </span>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm leading-snug">
+                    {item.title}
+                  </span>
+                  <Badge
+                    variant="secondary"
+                    className={`text-[10px] px-1.5 py-0 ${agendaItemStatusColors[item.status]}`}
+                  >
+                    {formatStatusLabel(item.status)}
+                  </Badge>
+                </div>
+                {item.description && (
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                    {item.description}
+                  </p>
+                )}
+                {item.aiSummary && (
+                  <p className="text-xs text-accent mt-1 italic leading-relaxed">
+                    {item.aiSummary}
+                  </p>
+                )}
+              </div>
+
+              {/* Delete */}
+              <button
+                type="button"
+                onClick={() => deleteItem({ id: item.id, meetingId })}
+                disabled={isDeletingItem}
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive p-1 shrink-0"
+                aria-label="Remove agenda item"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add New Item */}
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <Input
+            placeholder="Add agenda item..."
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && newTitle.trim()) handleAddItem();
+            }}
+            disabled={isAddingItem}
+            className="text-sm"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleAddItem}
+            disabled={!newTitle.trim() || isAddingItem}
+          >
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            {isAddingItem ? "Adding..." : "Add"}
+          </Button>
+        </div>
         {newTitle.trim() && (
           <Textarea
             placeholder="Description (optional)"
@@ -235,16 +283,9 @@ export function AgendaBuilder({
             onChange={(e) => setNewDescription(e.target.value)}
             rows={2}
             disabled={isAddingItem}
+            className="text-sm resize-none"
           />
         )}
-        <Button
-          size="sm"
-          onClick={handleAddItem}
-          disabled={!newTitle.trim() || isAddingItem}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          {isAddingItem ? "Adding..." : "Add Item"}
-        </Button>
       </div>
     </div>
   );

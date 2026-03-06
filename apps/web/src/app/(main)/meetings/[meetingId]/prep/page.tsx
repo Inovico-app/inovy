@@ -52,19 +52,23 @@ export default async function MeetingPrepPage(props: PageProps) {
   const params = await props.params;
 
   return (
-    <div className="container max-w-4xl py-8 px-4">
+    <div className="mx-auto w-full max-w-3xl py-10 px-4 sm:px-6">
       <Suspense
         fallback={
           <div
-            className="animate-pulse space-y-4"
+            className="animate-pulse space-y-6"
             aria-busy="true"
             aria-label="Loading meeting prep"
             role="status"
           >
-            <div className="h-8 bg-muted rounded w-1/3" />
-            <div className="h-4 bg-muted rounded w-2/3" />
-            <div className="h-64 bg-muted rounded" />
-            <div className="h-48 bg-muted rounded" />
+            <div className="space-y-3">
+              <div className="h-5 bg-muted rounded-full w-24" />
+              <div className="h-9 bg-muted rounded w-2/3" />
+              <div className="h-4 bg-muted rounded w-1/3" />
+            </div>
+            <div className="h-px bg-border" />
+            <div className="h-64 bg-muted rounded-xl" />
+            <div className="h-48 bg-muted rounded-xl" />
           </div>
         }
       >

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Save } from "lucide-react";
+import { Save, ListChecks, StickyNote, Zap } from "lucide-react";
 import { AgendaBuilder } from "./agenda-builder";
 import { MeetingHeader } from "./meeting-header";
 import { PostActionConfig } from "./post-action-config";
@@ -21,6 +21,33 @@ interface MeetingPrepContentProps {
   preNotes: MeetingNote | null;
   postActions: MeetingPostAction[];
   templates: MeetingAgendaTemplate[];
+}
+
+function SectionHeader({
+  step,
+  icon: Icon,
+  title,
+  description,
+}: {
+  step: number;
+  icon: React.ElementType;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 mb-4">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary text-sm font-semibold">
+        {step}
+      </div>
+      <div className="space-y-0.5 pt-0.5">
+        <h2 className="text-base font-semibold flex items-center gap-2">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+          {title}
+        </h2>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+    </div>
+  );
 }
 
 export function MeetingPrepContent({
@@ -42,53 +69,75 @@ export function MeetingPrepContent({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <MeetingHeader meeting={meeting} />
 
-      {/* Agenda Builder */}
-      <Card>
-        <CardContent className="pt-6">
-          <AgendaBuilder
-            meetingId={meeting.id}
-            items={agendaItems}
-            templates={templates}
-          />
-        </CardContent>
-      </Card>
+      {/* Section 1: Agenda */}
+      <section>
+        <SectionHeader
+          step={1}
+          icon={ListChecks}
+          title="Agenda"
+          description="Define the topics you want to cover in this meeting."
+        />
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="pt-6">
+            <AgendaBuilder
+              meetingId={meeting.id}
+              items={agendaItems}
+              templates={templates}
+            />
+          </CardContent>
+        </Card>
+      </section>
 
-      {/* Pre-Meeting Notes */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Pre-Meeting Notes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            placeholder="Add your preparation notes, questions, or talking points..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={5}
-            className="mb-3"
-          />
-          <Button
-            size="sm"
-            onClick={handleSaveNotes}
-            disabled={isSavingNotes || notes === (preNotes?.content ?? "")}
-          >
-            <Save className="mr-2 h-4 w-4" />
-            {isSavingNotes ? "Saving..." : "Save Notes"}
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Section 2: Notes */}
+      <section>
+        <SectionHeader
+          step={2}
+          icon={StickyNote}
+          title="Pre-Meeting Notes"
+          description="Jot down questions, talking points, or context before the meeting."
+        />
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="pt-6">
+            <Textarea
+              placeholder="What do you want to discuss? Any questions or context to share..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={5}
+              className="mb-3 resize-none"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSaveNotes}
+              disabled={isSavingNotes || notes === (preNotes?.content ?? "")}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {isSavingNotes ? "Saving..." : "Save Notes"}
+            </Button>
+          </CardContent>
+        </Card>
+      </section>
 
-      {/* Post-Meeting Actions Config */}
-      <Card>
-        <CardContent className="pt-6">
-          <PostActionConfig
-            meetingId={meeting.id}
-            postActions={postActions}
-          />
-        </CardContent>
-      </Card>
+      {/* Section 3: Post-Meeting Actions */}
+      <section>
+        <SectionHeader
+          step={3}
+          icon={Zap}
+          title="Post-Meeting Actions"
+          description="Configure what happens automatically after the meeting ends."
+        />
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="pt-6">
+            <PostActionConfig
+              meetingId={meeting.id}
+              postActions={postActions}
+            />
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }

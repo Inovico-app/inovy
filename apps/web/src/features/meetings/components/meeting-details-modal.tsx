@@ -22,7 +22,12 @@ import { BotStatusBadge } from "@/features/bot/components/bot-status-badge";
 import { useUserProjects } from "@/features/projects/hooks/use-user-projects";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { format } from "date-fns";
-import { ExternalLinkIcon, Loader2Icon, Trash2Icon } from "lucide-react";
+import {
+  ExternalLinkIcon,
+  Loader2Icon,
+  Trash2Icon,
+  ClipboardList,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -32,6 +37,7 @@ import { useRemoveBotFromMeeting } from "../hooks/use-remove-bot-from-meeting";
 import { useUpdateBotSessionMeetingUrl } from "../hooks/use-update-bot-session-meeting-url";
 import { useUpdateBotSessionProject } from "../hooks/use-update-bot-session-project";
 import { useUpdateMeetingDetails } from "../hooks/use-update-meeting-details";
+import { useNavigateToMeeting } from "../hooks/use-navigate-to-meeting";
 import type { MeetingWithSession } from "../lib/calendar-utils";
 import {
   formatMeetingDuration,
@@ -145,6 +151,10 @@ export function MeetingDetailsModal({
       onOpenChange(false);
       onSuccess?.();
     },
+  });
+
+  const { navigateToMeeting, isNavigating } = useNavigateToMeeting({
+    onBeforeNavigate: () => onOpenChange(false),
   });
 
   const { projects, isLoadingProjects, defaultProjectId } = useUserProjects({
@@ -300,6 +310,36 @@ export function MeetingDetailsModal({
           </DialogHeader>
 
           <div className="space-y-6">
+            {/* Meeting Prep Navigation */}
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() =>
+                navigateToMeeting({
+                  calendarEventId: meeting.id,
+                  title: meeting.title || "Untitled Meeting",
+                  scheduledStartAt: new Date(meeting.start).toISOString(),
+                  scheduledEndAt: new Date(meeting.end).toISOString(),
+                  meetingUrl: meeting.meetingUrl || undefined,
+                  participants: meeting.attendees?.map((a) => ({
+                    email: a.email,
+                    name: null,
+                    role: null,
+                  })),
+                })
+              }
+              disabled={isNavigating}
+            >
+              {isNavigating ? (
+                <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <ClipboardList className="h-4 w-4 mr-2" />
+              )}
+              {isNavigating ? "Opening..." : "Prepare Meeting"}
+            </Button>
+
+            <Separator />
+
             {/* Section 1: Meeting Details */}
             <section aria-labelledby="meeting-details-heading">
               <h3 id="meeting-details-heading" className="font-semibold mb-3">

@@ -11,6 +11,59 @@ import { CacheInvalidation } from "@/lib/cache-utils";
 import { meetingNoteTypeEnum } from "@/server/db/schema/meeting-notes";
 import { postActionTypeEnum } from "@/server/db/schema/meeting-post-actions";
 
+const getOrCreateMeetingSchema = z.object({
+  calendarEventId: z.string().min(1),
+  title: z.string().min(1),
+  scheduledStartAt: z.string().datetime(),
+  scheduledEndAt: z.string().datetime().optional(),
+  meetingUrl: z.string().optional(),
+  participants: z
+    .array(
+      z.object({
+        email: z.string(),
+        name: z.string().nullable(),
+        role: z.string().nullable(),
+      })
+    )
+    .optional(),
+});
+
+export const getOrCreateMeeting = authorizedActionClient
+  .metadata({
+    permissions: policyToPermissions("recordings:create"),
+    name: "get-or-create-meeting",
+  })
+  .schema(getOrCreateMeetingSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user, organizationId } = ctx;
+    if (!user || !organizationId) throw ActionErrors.unauthenticated();
+
+    const { MeetingService } = await import(
+      "@/server/services/meeting.service"
+    );
+
+    const result = await MeetingService.findOrCreateForCalendarEvent(
+      parsedInput.calendarEventId,
+      organizationId,
+      {
+        organizationId,
+        createdById: user.id,
+        calendarEventId: parsedInput.calendarEventId,
+        title: parsedInput.title,
+        scheduledStartAt: new Date(parsedInput.scheduledStartAt),
+        scheduledEndAt: parsedInput.scheduledEndAt
+          ? new Date(parsedInput.scheduledEndAt)
+          : undefined,
+        meetingUrl: parsedInput.meetingUrl,
+        participants: parsedInput.participants ?? [],
+      }
+    );
+
+    if (result.isErr()) throw ActionErrors.internal(result.error.message);
+
+    return { meetingId: result.value.id };
+  });
+
 const updateMeetingSchema = z.object({
   meetingId: z.string().uuid(),
   title: z.string().min(1).optional(),

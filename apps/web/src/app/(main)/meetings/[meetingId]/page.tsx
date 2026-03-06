@@ -1,11 +1,11 @@
-import { Suspense } from "react";
-import { notFound, redirect } from "next/navigation";
+import { MeetingDetailContent } from "@/features/meetings/components/meeting-detail-content";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
 import { MeetingNotesQueries } from "@/server/data-access/meeting-notes.queries";
 import { MeetingPostActionsQueries } from "@/server/data-access/meeting-post-actions.queries";
-import { MeetingDetailContent } from "@/features/meetings/components/meeting-detail-content";
+import { MeetingsQueries } from "@/server/data-access/meetings.queries";
+import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
 
 interface PageProps {
   params: Promise<{ meetingId: string }>;
@@ -47,7 +47,7 @@ export default async function MeetingDetailPage(props: PageProps) {
   const params = await props.params;
 
   return (
-    <div className="container max-w-4xl py-8 px-4">
+    <div className="mx-auto w-full max-w-3xl py-10 px-4 sm:px-6">
       <Suspense
         fallback={
           <div
@@ -68,3 +68,4 @@ export default async function MeetingDetailPage(props: PageProps) {
     </div>
   );
 }
+
