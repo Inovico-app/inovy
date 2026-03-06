@@ -128,6 +128,7 @@ The Container App is configured with environment variables from Terraform output
 - `UPSTASH_REDIS_REST_TOKEN` - Redis access key
 - `QDRANT_URL` - Qdrant API endpoint
 - `AZURE_STORAGE_ACCOUNT_NAME` - Blob storage account name
+- `AZURE_STORAGE_ACCOUNT_KEY` - Blob storage access key (for SAS token generation)
 - `AZURE_STORAGE_CONNECTION_STRING` - Blob storage connection string
 - `BLOB_STORAGE_PROVIDER` - Set to `azure` for Azure deployments
 

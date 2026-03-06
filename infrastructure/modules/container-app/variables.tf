@@ -84,6 +84,12 @@ variable "storage_connection_string" {
   sensitive   = true
 }
 
+variable "storage_account_key" {
+  description = "Primary access key for the storage account (required for SAS token generation)"
+  type        = string
+  sensitive   = true
+}
+
 variable "storage_container_name" {
   description = "Name of the recordings container"
   type        = string

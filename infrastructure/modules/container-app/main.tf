@@ -48,7 +48,7 @@ resource "azurerm_container_app" "inovy" {
 
       env {
         name  = "DATABASE_URL"
-        value = "postgresql://${var.postgresql_admin_login}:${var.postgresql_admin_password}@${var.postgresql_fqdn}:5432/${var.postgresql_database_name}?sslmode=require"
+        value = "postgresql://${var.postgresql_admin_login}:${var.postgresql_admin_password}@${var.postgresql_fqdn}:5432/${var.postgresql_database_name}?sslmode=verify-full"
       }
 
       env {
@@ -74,6 +74,11 @@ resource "azurerm_container_app" "inovy" {
       env {
         name  = "AZURE_STORAGE_ACCOUNT_NAME"
         value = var.storage_account_name
+      }
+
+      env {
+        name  = "AZURE_STORAGE_ACCOUNT_KEY"
+        value = var.storage_account_key
       }
 
       env {

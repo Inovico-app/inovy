@@ -303,6 +303,7 @@ module "container_app" {
   qdrant_url                                   = "http://qdrant-${var.environment}.internal.${data.azurerm_container_app_environment.current.default_domain}"
   qdrant_api_key                               = var.qdrant_api_key
   storage_account_name                         = module.storage.storage_account_name
+  storage_account_key                          = module.storage.storage_account_primary_access_key
   storage_connection_string                    = module.storage.storage_account_primary_connection_string
   storage_container_name                       = module.storage.storage_container_name
   container_app_image                          = "${module.container_registry.acr_login_server}/inovy-app:latest"

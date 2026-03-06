@@ -36,7 +36,7 @@ resource "azurerm_container_app_job" "db_migrate" {
 
       env {
         name  = "DATABASE_URL"
-        value = "postgresql://${urlencode(var.postgresql_admin_login)}:${urlencode(var.postgresql_admin_password)}@${var.postgresql_fqdn}:5432/${urlencode(var.postgresql_database_name)}?sslmode=require"
+        value = "postgresql://${urlencode(var.postgresql_admin_login)}:${urlencode(var.postgresql_admin_password)}@${var.postgresql_fqdn}:5432/${urlencode(var.postgresql_database_name)}?sslmode=verify-full"
       }
 
       command = ["sh", "-c", "cd apps/web && pnpm db:migrate"]
