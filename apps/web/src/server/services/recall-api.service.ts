@@ -9,7 +9,6 @@ import { getRecallApiKey } from "./recall-api.utils";
 interface CreateMeetingRequest {
   meeting_url: string;
   bot_name?: string;
-  webhook_url: string;
   metadata: Record<string, string>;
   automatic_leave: {
     noone_joined_timeout: number;
@@ -18,10 +17,13 @@ interface CreateMeetingRequest {
   };
   recording_config?: {
     metadata?: Record<string, string>;
+    participant_events?: Record<string, never>;
     realtime_endpoints?: Array<{
       type: "webhook";
-      url: string;
-      events: string[];
+      config: {
+        url: string;
+        events: string[];
+      };
     }>;
   };
   chat?: {
@@ -95,21 +97,22 @@ export class RecallApiService {
       const requestBody: CreateMeetingRequest = {
         meeting_url: meetingUrl,
         bot_name: options?.botDisplayName || "Inovy Recording Bot",
-        webhook_url: webhookUrl,
         metadata: customMetadata ?? {},
         automatic_leave: {
-          noone_joined_timeout:
-            (options?.inactivityTimeoutMinutes ?? 5) * 60,
+          noone_joined_timeout: (options?.inactivityTimeoutMinutes ?? 5) * 60,
           waiting_room_timeout: 600,
           everyone_left_timeout: 30,
         },
         recording_config: {
           metadata: customMetadata ?? {},
+          participant_events: {},
           realtime_endpoints: [
             {
               type: "webhook",
-              url: webhookUrl,
-              events: ["participant_events.chat_message"],
+              config: {
+                url: webhookUrl,
+                events: ["participant_events.chat_message"],
+              },
             },
           ],
         },
@@ -492,9 +495,7 @@ export class RecallApiService {
   /**
    * Get the current transcript for an active bot session
    */
-  static async getTranscript(
-    botId: string
-  ): Promise<
+  static async getTranscript(botId: string): Promise<
     ActionResult<{
       transcript: Array<{
         speaker: string;
