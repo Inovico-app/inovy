@@ -1,9 +1,7 @@
 import { toast } from "sonner";
 
 const blobProvider =
-  process.env.NEXT_PUBLIC_BLOB_STORAGE_PROVIDER ||
-  process.env.NEXT_PUBLIC_PLATFORM ||
-  "vercel";
+  process.env.NEXT_PUBLIC_BLOB_STORAGE_PROVIDER || "vercel";
 const useAzure = blobProvider === "azure";
 
 export interface UploadRecordingOptions {
