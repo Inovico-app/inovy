@@ -1,8 +1,10 @@
-import type { Platform } from "@/lib/platform";
 import { toast } from "sonner";
 
-const platform: Platform =
-  (process.env.NEXT_PUBLIC_PLATFORM as Platform) ?? "vercel";
+const blobProvider =
+  process.env.NEXT_PUBLIC_BLOB_STORAGE_PROVIDER ||
+  process.env.NEXT_PUBLIC_PLATFORM ||
+  "vercel";
+const useAzure = blobProvider === "azure";
 
 export interface UploadRecordingOptions {
   clientPayload?: string;
@@ -33,10 +35,9 @@ export async function uploadRecordingToBlob(
   file: File,
   options?: UploadRecordingOptions
 ): Promise<UploadResult> {
-  const uploadFn =
-    platform === "azure"
-      ? uploadViaAzure(file, options)
-      : uploadViaVercel(file, options);
+  const uploadFn = useAzure
+    ? uploadViaAzure(file, options)
+    : uploadViaVercel(file, options);
 
   return toast.promise(uploadFn, UPLOAD_TOAST).unwrap();
 }

@@ -129,7 +129,7 @@ The Container App is configured with environment variables from Terraform output
 - `AZURE_STORAGE_ACCOUNT_NAME` - Blob storage account name
 - `AZURE_STORAGE_ACCOUNT_KEY` - Blob storage access key (for SAS token generation)
 - `AZURE_STORAGE_CONNECTION_STRING` - Blob storage connection string
-- `BLOB_STORAGE_PROVIDER` - Set to `azure` for Azure deployments
+- `BLOB_STORAGE_PROVIDER` - Set to `azure` to enable Azure blob storage. When set, only storage uses Azure; DB and Redis remain driven by `NEXT_PUBLIC_PLATFORM`. Can be used independently (e.g. `BLOB_STORAGE_PROVIDER=azure` with `NEXT_PUBLIC_PLATFORM=vercel` for Azure blob + Vercel DB/Redis).
 
 ### Database Migration
 

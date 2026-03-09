@@ -1,4 +1,4 @@
-import { platform } from "@/lib/platform";
+import { getBlobStorageProvider } from "@/lib/blob-storage-provider";
 import type { StorageProvider } from "./storage.types";
 
 let _providerPromise: Promise<StorageProvider> | null = null;
@@ -6,7 +6,7 @@ let _providerPromise: Promise<StorageProvider> | null = null;
 export function getStorageProvider(): Promise<StorageProvider> {
   if (!_providerPromise) {
     _providerPromise = (async () => {
-      if (platform === "azure") {
+      if (getBlobStorageProvider() === "azure") {
         const { AzureStorageProvider } = await import("./azure.storage");
         return new AzureStorageProvider();
       }
