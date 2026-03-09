@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
   cacheComponents: true,
   reactCompiler: true,
+  env: {
+    NEXT_PUBLIC_BLOB_STORAGE_PROVIDER:
+      process.env.BLOB_STORAGE_PROVIDER ?? "",
+  },
   // Exclude pino and related packages from bundling (server-only)
   serverExternalPackages: [
     "pino",

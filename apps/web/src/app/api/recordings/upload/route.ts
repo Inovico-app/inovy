@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger, serializeError } from "@/lib/logger";
-import { platform } from "@/lib/platform";
+import { getBlobStorageProvider } from "@/lib/blob-storage-provider";
 import { withRateLimit } from "@/lib/rate-limit";
 import { ProjectQueries } from "@/server/data-access/projects.queries";
 import { ConsentService } from "@/server/services/consent.service";
@@ -435,7 +435,7 @@ async function handleAzureUpload(request: NextRequest) {
 export const POST = withRateLimit(
   async (request: NextRequest) => {
     try {
-      if (platform === "azure") {
+      if (getBlobStorageProvider() === "azure") {
         return await handleAzureUpload(request);
       }
       return await handleVercelUpload(request);
