@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { SummaryContent } from "@/server/cache/summary.cache";
 import { Edit, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useEditSummaryForm } from "../hooks/use-edit-summary-form";
 import { useUpdateSummaryMutation } from "../hooks/use-update-summary-mutation";
 
 interface EditSummaryDialogProps {
@@ -29,14 +30,7 @@ export function EditSummaryDialog({
   onSuccess,
 }: EditSummaryDialogProps) {
   const [open, setOpen] = useState(false);
-
-  // Convert summary object to editable fields
-  const [overview, setOverview] = useState(summary.overview ?? "");
-  const [topics, setTopics] = useState(summary.topics?.join("\n") ?? "");
-  const [decisions, setDecisions] = useState(
-    summary.decisions?.join("\n") ?? ""
-  );
-  const [changeDescription, setChangeDescription] = useState("");
+  const { formState, setField, resetForm } = useEditSummaryForm(summary);
 
   const mutation = useUpdateSummaryMutation({
     onSuccess: () => {
@@ -50,12 +44,12 @@ export function EditSummaryDialog({
 
     // Convert text fields back to arrays (split by newlines, filter empty)
     const content: SummaryContent = {
-      overview: overview.trim(),
-      topics: topics
+      overview: formState.overview.trim(),
+      topics: formState.topics
         .split("\n")
         .map((t) => t.trim())
         .filter(Boolean),
-      decisions: decisions
+      decisions: formState.decisions
         .split("\n")
         .map((t) => t.trim())
         .filter(Boolean),
@@ -66,15 +60,8 @@ export function EditSummaryDialog({
     mutation.mutate({
       recordingId,
       content: content as unknown as Record<string, unknown>,
-      changeDescription: changeDescription || undefined,
+      changeDescription: formState.changeDescription || undefined,
     });
-  };
-
-  const resetForm = () => {
-    setOverview(summary.overview ?? "");
-    setTopics(summary.topics?.join("\n") ?? "");
-    setDecisions(summary.decisions?.join("\n") ?? "");
-    setChangeDescription("");
   };
 
   return (
@@ -83,7 +70,7 @@ export function EditSummaryDialog({
       onOpenChange={(newOpen) => {
         setOpen(newOpen);
         if (!newOpen) {
-          resetForm();
+          resetForm(summary);
         }
       }}
     >
@@ -109,14 +96,14 @@ export function EditSummaryDialog({
               <Label htmlFor="overview">Overview</Label>
               <Textarea
                 id="overview"
-                value={overview}
-                onChange={(e) => setOverview(e.target.value)}
+                value={formState.overview}
+                onChange={(e) => setField("overview", e.target.value)}
                 placeholder="A brief paragraph summarizing the meeting..."
                 rows={3}
                 className="text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                {overview.length} characters
+                {formState.overview.length} characters
               </p>
             </div>
 
@@ -125,14 +112,14 @@ export function EditSummaryDialog({
               <Label htmlFor="topics">Key Topics</Label>
               <Textarea
                 id="topics"
-                value={topics}
-                onChange={(e) => setTopics(e.target.value)}
+                value={formState.topics}
+                onChange={(e) => setField("topics", e.target.value)}
                 placeholder="One topic per line..."
                 rows={4}
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                {topics.split("\n").filter(Boolean).length} topics
+                {formState.topics.split("\n").filter(Boolean).length} topics
               </p>
             </div>
 
@@ -141,14 +128,14 @@ export function EditSummaryDialog({
               <Label htmlFor="decisions">Decisions</Label>
               <Textarea
                 id="decisions"
-                value={decisions}
-                onChange={(e) => setDecisions(e.target.value)}
+                value={formState.decisions}
+                onChange={(e) => setField("decisions", e.target.value)}
                 placeholder="One decision per line..."
                 rows={4}
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                {decisions.split("\n").filter(Boolean).length} decisions
+                {formState.decisions.split("\n").filter(Boolean).length} decisions
               </p>
             </div>
 
@@ -159,8 +146,8 @@ export function EditSummaryDialog({
               </Label>
               <Textarea
                 id="changeDescription"
-                value={changeDescription}
-                onChange={(e) => setChangeDescription(e.target.value)}
+                value={formState.changeDescription}
+                onChange={(e) => setField("changeDescription", e.target.value)}
                 placeholder="Describe what you changed..."
                 rows={2}
               />

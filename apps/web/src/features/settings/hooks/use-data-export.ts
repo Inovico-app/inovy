@@ -2,12 +2,95 @@
 
 import { getUserProjects } from "@/features/projects/actions/get-user-projects";
 import type { DataExport } from "@/server/db/schema/data-exports";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer } from "react";
 import { toast } from "sonner";
 import {
   getExportHistory,
   requestDataExport,
 } from "../actions/export-user-data";
+
+// ============================================================================
+// State & Actions
+// ============================================================================
+
+interface DataExportState {
+  isRequesting: boolean;
+  isLoadingHistory: boolean;
+  exports: DataExport[];
+  projects: Array<{ id: string; name: string }>;
+  startDate: string;
+  endDate: string;
+  selectedProjectId: string;
+}
+
+type DataExportAction =
+  | { type: "SET_LOADING_HISTORY"; payload: boolean }
+  | { type: "SET_REQUESTING"; payload: boolean }
+  | { type: "SET_EXPORTS"; payload: DataExport[] }
+  | { type: "SET_PROJECTS"; payload: Array<{ id: string; name: string }> }
+  | { type: "SET_START_DATE"; payload: string }
+  | { type: "SET_END_DATE"; payload: string }
+  | { type: "SET_PROJECT_ID"; payload: string }
+  | { type: "RESET_FORM" };
+
+function createInitialState(): DataExportState {
+  return {
+    isRequesting: false,
+    isLoadingHistory: true,
+    exports: [],
+    projects: [],
+    startDate: "",
+    endDate: "",
+    selectedProjectId: "all",
+  };
+}
+
+// ============================================================================
+// Reducer
+// ============================================================================
+
+function dataExportReducer(
+  state: DataExportState,
+  action: DataExportAction
+): DataExportState {
+  switch (action.type) {
+    case "SET_LOADING_HISTORY":
+      return { ...state, isLoadingHistory: action.payload };
+
+    case "SET_REQUESTING":
+      return { ...state, isRequesting: action.payload };
+
+    case "SET_EXPORTS":
+      return { ...state, exports: action.payload };
+
+    case "SET_PROJECTS":
+      return { ...state, projects: action.payload };
+
+    case "SET_START_DATE":
+      return { ...state, startDate: action.payload };
+
+    case "SET_END_DATE":
+      return { ...state, endDate: action.payload };
+
+    case "SET_PROJECT_ID":
+      return { ...state, selectedProjectId: action.payload };
+
+    case "RESET_FORM":
+      return {
+        ...state,
+        startDate: "",
+        endDate: "",
+        selectedProjectId: "all",
+      };
+
+    default:
+      return state;
+  }
+}
+
+// ============================================================================
+// Hook
+// ============================================================================
 
 interface UseDataExportReturn {
   isRequesting: boolean;
@@ -25,17 +108,7 @@ interface UseDataExportReturn {
 }
 
 export function useDataExport(): UseDataExportReturn {
-  const [isRequesting, setIsRequesting] = useState(false);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const [exports, setExports] = useState<DataExport[]>([]);
-  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>(
-    []
-  );
-
-  // Form state
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
+  const [state, dispatch] = useReducer(dataExportReducer, undefined, createInitialState);
 
   useEffect(() => {
     loadHistory();
@@ -43,18 +116,18 @@ export function useDataExport(): UseDataExportReturn {
   }, []);
 
   async function loadHistory() {
-    setIsLoadingHistory(true);
+    dispatch({ type: "SET_LOADING_HISTORY", payload: true });
     try {
       const result = await getExportHistory({});
       if (result.data?.success && result.data.exports) {
-        setExports(result.data.exports);
+        dispatch({ type: "SET_EXPORTS", payload: result.data.exports });
       } else {
         toast.error(result.serverError || "Failed to load export history");
       }
     } catch {
       toast.error("Failed to load export history");
     } finally {
-      setIsLoadingHistory(false);
+      dispatch({ type: "SET_LOADING_HISTORY", payload: false });
     }
   }
 
@@ -62,7 +135,7 @@ export function useDataExport(): UseDataExportReturn {
     try {
       const result = await getUserProjects();
       if (result.success && result.data) {
-        setProjects(result.data);
+        dispatch({ type: "SET_PROJECTS", payload: result.data });
       }
     } catch {
       // Silently fail - projects filter is optional
@@ -70,22 +143,22 @@ export function useDataExport(): UseDataExportReturn {
   }
 
   async function handleRequestExport() {
-    setIsRequesting(true);
+    dispatch({ type: "SET_REQUESTING", payload: true });
     try {
       const filters: {
         dateRange?: { startDate: Date; endDate: Date };
         projectId?: string;
       } = {};
 
-      if (startDate && endDate) {
+      if (state.startDate && state.endDate) {
         filters.dateRange = {
-          startDate: new Date(startDate),
-          endDate: new Date(endDate),
+          startDate: new Date(state.startDate),
+          endDate: new Date(state.endDate),
         };
       }
 
-      if (selectedProjectId && selectedProjectId !== "all") {
-        filters.projectId = selectedProjectId;
+      if (state.selectedProjectId && state.selectedProjectId !== "all") {
+        filters.projectId = state.selectedProjectId;
       }
 
       const result = await requestDataExport(
@@ -97,9 +170,7 @@ export function useDataExport(): UseDataExportReturn {
           "Export request created. Your export will be ready shortly."
         );
         // Reset form
-        setStartDate("");
-        setEndDate("");
-        setSelectedProjectId("all");
+        dispatch({ type: "RESET_FORM" });
         // Reload history
         await loadHistory();
       } else {
@@ -108,7 +179,7 @@ export function useDataExport(): UseDataExportReturn {
     } catch {
       toast.error("Failed to create export request");
     } finally {
-      setIsRequesting(false);
+      dispatch({ type: "SET_REQUESTING", payload: false });
     }
   }
 
@@ -149,16 +220,16 @@ export function useDataExport(): UseDataExportReturn {
   }
 
   return {
-    isRequesting,
-    isLoadingHistory,
-    exports,
-    projects,
-    startDate,
-    setStartDate,
-    endDate,
-    setEndDate,
-    selectedProjectId,
-    setSelectedProjectId,
+    isRequesting: state.isRequesting,
+    isLoadingHistory: state.isLoadingHistory,
+    exports: state.exports,
+    projects: state.projects,
+    startDate: state.startDate,
+    setStartDate: (value: string) => dispatch({ type: "SET_START_DATE", payload: value }),
+    endDate: state.endDate,
+    setEndDate: (value: string) => dispatch({ type: "SET_END_DATE", payload: value }),
+    selectedProjectId: state.selectedProjectId,
+    setSelectedProjectId: (value: string) => dispatch({ type: "SET_PROJECT_ID", payload: value }),
     handleRequestExport,
     handleDownload,
   };

@@ -11,9 +11,10 @@ import {
 import type { AuditLog } from "@/server/db/schema/audit-logs";
 import { Download } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { toast } from "sonner";
 import { exportAuditLogs } from "../../actions/export-audit-logs";
+import { useAuditLogFilters } from "../../hooks/use-audit-log-filters";
 import { AuditLogFilters } from "./audit-log-filters";
 
 interface AuditLogViewerProps {
@@ -39,44 +40,28 @@ export function AuditLogViewer({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const [eventTypes, setEventTypes] = useState<string[]>(
-    initialFilters?.eventType
-      ? initialFilters.eventType.split(",").filter(Boolean)
-      : []
-  );
-  const [resourceTypes, setResourceTypes] = useState<string[]>(
-    initialFilters?.resourceType
-      ? initialFilters.resourceType.split(",").filter(Boolean)
-      : []
-  );
-  const [actions, setActions] = useState<string[]>(
-    initialFilters?.action
-      ? initialFilters.action.split(",").filter(Boolean)
-      : []
-  );
-  const [userId, setUserId] = useState<string | undefined>(
-    initialFilters?.userId
-  );
-  const [resourceId, setResourceId] = useState<string | undefined>(
-    initialFilters?.resourceId
-  );
-  const [startDate, setStartDate] = useState<string | undefined>(
-    initialFilters?.startDate
-  );
-  const [endDate, setEndDate] = useState<string | undefined>(
-    initialFilters?.endDate
-  );
+  const {
+    filters,
+    clearFilters,
+    setEventTypes,
+    setResourceTypes,
+    setActions,
+    setUserId,
+    setResourceId,
+    setStartDate,
+    setEndDate,
+  } = useAuditLogFilters({ initialFilters });
 
   const updateURL = () => {
     const params = new URLSearchParams();
-    if (eventTypes.length > 0) params.set("eventType", eventTypes.join(","));
-    if (resourceTypes.length > 0)
-      params.set("resourceType", resourceTypes.join(","));
-    if (actions.length > 0) params.set("action", actions.join(","));
-    if (userId) params.set("userId", userId);
-    if (resourceId) params.set("resourceId", resourceId);
-    if (startDate) params.set("startDate", startDate);
-    if (endDate) params.set("endDate", endDate);
+    if (filters.eventTypes.length > 0) params.set("eventType", filters.eventTypes.join(","));
+    if (filters.resourceTypes.length > 0)
+      params.set("resourceType", filters.resourceTypes.join(","));
+    if (filters.actions.length > 0) params.set("action", filters.actions.join(","));
+    if (filters.userId) params.set("userId", filters.userId);
+    if (filters.resourceId) params.set("resourceId", filters.resourceId);
+    if (filters.startDate) params.set("startDate", filters.startDate);
+    if (filters.endDate) params.set("endDate", filters.endDate);
 
     const queryString = params.toString();
     const url = queryString
@@ -92,13 +77,7 @@ export function AuditLogViewer({
   const data = initialData;
 
   const handleClearFilters = () => {
-    setEventTypes([]);
-    setResourceTypes([]);
-    setActions([]);
-    setUserId(undefined);
-    setResourceId(undefined);
-    setStartDate(undefined);
-    setEndDate(undefined);
+    clearFilters();
     startTransition(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       router.push("/admin/audit-logs" as any);
@@ -113,13 +92,13 @@ export function AuditLogViewer({
     try {
       const result = await exportAuditLogs({
         format,
-        eventType: eventTypes.length > 0 ? eventTypes : undefined,
-        resourceType: resourceTypes.length > 0 ? resourceTypes : undefined,
-        action: actions.length > 0 ? actions : undefined,
-        userId,
-        resourceId,
-        startDate: startDate ? new Date(startDate).toISOString() : undefined,
-        endDate: endDate ? new Date(endDate).toISOString() : undefined,
+        eventType: filters.eventTypes.length > 0 ? filters.eventTypes : undefined,
+        resourceType: filters.resourceTypes.length > 0 ? filters.resourceTypes : undefined,
+        action: filters.actions.length > 0 ? filters.actions : undefined,
+        userId: filters.userId,
+        resourceId: filters.resourceId,
+        startDate: filters.startDate ? new Date(filters.startDate).toISOString() : undefined,
+        endDate: filters.endDate ? new Date(filters.endDate).toISOString() : undefined,
       });
 
       if (result?.serverError || !result?.data) {
@@ -252,7 +231,7 @@ export function AuditLogViewer({
                           </code>
                         </td>
                         <td className="py-3 px-4 text-muted-foreground">
-                          {log.ipAddress ?? "—"}
+                          {log.ipAddress ?? "---"}
                         </td>
                       </tr>
                     ))}
@@ -265,37 +244,37 @@ export function AuditLogViewer({
       </div>
       <div className="lg:col-span-1">
         <AuditLogFilters
-          eventTypes={eventTypes}
+          eventTypes={filters.eventTypes}
           onEventTypesChange={(types) => {
             setEventTypes(types);
             handleFilterChange();
           }}
-          resourceTypes={resourceTypes}
+          resourceTypes={filters.resourceTypes}
           onResourceTypesChange={(types) => {
             setResourceTypes(types);
             handleFilterChange();
           }}
-          actions={actions}
+          actions={filters.actions}
           onActionsChange={(acts) => {
             setActions(acts);
             handleFilterChange();
           }}
-          userId={userId}
+          userId={filters.userId}
           onUserIdChange={(id) => {
             setUserId(id);
             handleFilterChange();
           }}
-          resourceId={resourceId}
+          resourceId={filters.resourceId}
           onResourceIdChange={(id) => {
             setResourceId(id);
             handleFilterChange();
           }}
-          startDate={startDate}
+          startDate={filters.startDate}
           onStartDateChange={(date) => {
             setStartDate(date);
             handleFilterChange();
           }}
-          endDate={endDate}
+          endDate={filters.endDate}
           onEndDateChange={(date) => {
             setEndDate(date);
             handleFilterChange();
@@ -306,4 +285,3 @@ export function AuditLogViewer({
     </div>
   );
 }
-

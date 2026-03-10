@@ -21,12 +21,12 @@ import { useRouter } from "next/navigation";
 import {
   useEffect,
   useRef,
-  useState,
   type ChangeEvent,
   type DragEvent,
 } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useUploadState } from "../hooks/use-upload-state";
 import {
   uploadRecordingFormSchema,
   type UploadRecordingFormValues,
@@ -59,11 +59,16 @@ export function UploadRecordingForm({
     mode: "onChange",
   });
 
-  const [file, setFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    state,
+    setFile,
+    removeFile,
+    setDragging,
+    startUpload,
+    updateProgress,
+    setUploadError,
+    cancelUpload,
+  } = useUploadState();
 
   // Cleanup on unmount - abort any ongoing upload
   useEffect(() => {
@@ -77,13 +82,13 @@ export function UploadRecordingForm({
   const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(true);
+    setDragging(true);
   };
 
   const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
+    setDragging(false);
   };
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
@@ -94,7 +99,7 @@ export function UploadRecordingForm({
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
+    setDragging(false);
 
     const droppedFiles = e.dataTransfer.files;
     if (droppedFiles.length > 0) {
@@ -116,7 +121,7 @@ export function UploadRecordingForm({
         selectedFile.type as (typeof ALLOWED_MIME_TYPES)[number]
       )
     ) {
-      setError(
+      setUploadError(
         "Unsupported file type. Please upload mp3, mp4, wav, m4a, or webm files."
       );
       return;
@@ -124,14 +129,13 @@ export function UploadRecordingForm({
 
     // Validate file size
     if (selectedFile.size > MAX_FILE_SIZE) {
-      setError(
+      setUploadError(
         `File size exceeds maximum of ${MAX_FILE_SIZE / 1024 / 1024}MB.`
       );
       return;
     }
 
     setFile(selectedFile);
-    setError(null);
 
     // Auto-populate title from filename if empty
     if (!form.getValues("title")) {
@@ -141,20 +145,17 @@ export function UploadRecordingForm({
   };
 
   const handleRemoveFile = () => {
-    setFile(null);
-    setError(null);
+    removeFile();
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
   const handleCancelUpload = () => {
-    if (abortControllerRef.current && isUploading) {
+    if (abortControllerRef.current && state.isUploading) {
       abortControllerRef.current.abort();
       toast.info("Upload cancelled");
-      setIsUploading(false);
-      setUploadProgress(0);
-      setError(null);
+      cancelUpload();
     }
 
     if (onCancel) {
@@ -163,14 +164,12 @@ export function UploadRecordingForm({
   };
 
   const onSubmit = async (data: UploadRecordingFormValues) => {
-    if (!file) {
-      setError("Please select a file to upload");
+    if (!state.file) {
+      setUploadError("Please select a file to upload");
       return;
     }
 
-    setIsUploading(true);
-    setError(null);
-    setUploadProgress(0);
+    startUpload();
 
     // Create a new abort controller for this upload
     abortControllerRef.current = new AbortController();
@@ -183,16 +182,16 @@ export function UploadRecordingForm({
         description: data.description?.trim() || undefined,
         recordingDate: data.recordingDate,
         recordingMode: "upload",
-        fileName: file.name,
-        fileSize: file.size,
-        fileMimeType: file.type,
+        fileName: state.file.name,
+        fileSize: state.file.size,
+        fileMimeType: state.file.type,
       });
 
       // Upload file directly to Vercel Blob with real progress tracking
-      const blob = await uploadRecordingToBlob(file, {
+      const blob = await uploadRecordingToBlob(state.file, {
         clientPayload,
         onUploadProgress: (progress) => {
-          setUploadProgress(Math.round(progress.percentage));
+          updateProgress(Math.round(progress.percentage));
         },
         signal: abortControllerRef.current.signal,
       });
@@ -211,16 +210,16 @@ export function UploadRecordingForm({
     } catch (err) {
       // Handle abort error differently from other errors
       if (err instanceof Error && err.name === "AbortError") {
-        setError("Upload cancelled");
+        setUploadError("Upload cancelled");
         return; // Don't show error toast for intentional cancellation
       }
 
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const errorMessage = err instanceof Error ? err.message : "An error occurred";
+      setUploadError(errorMessage);
       toast.error(
         err instanceof Error ? err.message : "An error occurred during upload"
       );
     } finally {
-      setIsUploading(false);
       abortControllerRef.current = null;
     }
   };
@@ -232,9 +231,9 @@ export function UploadRecordingForm({
         <div className="space-y-2">
           <FormLabel htmlFor="file">Recording File *</FormLabel>
           <FileDropZone
-            file={file}
-            isDragging={isDragging}
-            isUploading={isUploading}
+            file={state.file}
+            isDragging={state.isDragging}
+            isUploading={state.isUploading}
             fileInputRef={fileInputRef}
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
@@ -246,7 +245,7 @@ export function UploadRecordingForm({
         </div>
 
         {/* Upload Progress */}
-        {isUploading && <UploadProgressBar progress={uploadProgress} />}
+        {state.isUploading && <UploadProgressBar progress={state.uploadProgress} />}
 
         {/* Title Field */}
         <FormField
@@ -260,7 +259,7 @@ export function UploadRecordingForm({
                   {...field}
                   placeholder="Enter recording title"
                   maxLength={200}
-                  disabled={isUploading}
+                  disabled={state.isUploading}
                 />
               </FormControl>
               <FormMessage />
@@ -280,7 +279,7 @@ export function UploadRecordingForm({
                   {...field}
                   placeholder="Enter recording description (optional)"
                   maxLength={1000}
-                  disabled={isUploading}
+                  disabled={state.isUploading}
                   rows={4}
                 />
               </FormControl>
@@ -300,7 +299,7 @@ export function UploadRecordingForm({
                 <Input
                   {...field}
                   type="date"
-                  disabled={isUploading}
+                  disabled={state.isUploading}
                   max={new Date().toISOString().split("T")[0]}
                 />
               </FormControl>
@@ -310,9 +309,9 @@ export function UploadRecordingForm({
         />
 
         {/* Error Message */}
-        {error && (
+        {state.error && (
           <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-            {error}
+            {state.error}
           </div>
         )}
 
@@ -320,14 +319,14 @@ export function UploadRecordingForm({
         <div className="flex gap-3 justify-end">
           {onCancel && (
             <Button type="button" variant="outline" onClick={handleCancelUpload}>
-              {isUploading ? "Cancel Upload" : "Cancel"}
+              {state.isUploading ? "Cancel Upload" : "Cancel"}
             </Button>
           )}
           <Button
             type="submit"
-            disabled={!file || !form.formState.isValid || isUploading}
+            disabled={!state.file || !form.formState.isValid || state.isUploading}
           >
-            {isUploading ? "Uploading..." : "Upload Recording"}
+            {state.isUploading ? "Uploading..." : "Upload Recording"}
           </Button>
         </div>
       </form>
