@@ -29,6 +29,7 @@ export async function convertBlobToMp3(
       // Create an audio element to play the blob
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
+      audio.volume = 0;
 
       // Create a MediaStream from the audio element
       const audioContext = new AudioContext();
