@@ -2,7 +2,7 @@
 
 import { SearchIcon, XIcon } from "lucide-react";
 import { useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 
@@ -12,11 +12,13 @@ export function RecordingSearch() {
     shallow: false,
   });
   const [localSearch, setLocalSearch] = useState(search);
+  const prevSearchRef = useRef(search);
 
-  // Sync local state with URL param
-  useEffect(() => {
+  // Sync local state with URL param during render (no useEffect needed)
+  if (prevSearchRef.current !== search) {
+    prevSearchRef.current = search;
     setLocalSearch(search);
-  }, [search]);
+  }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

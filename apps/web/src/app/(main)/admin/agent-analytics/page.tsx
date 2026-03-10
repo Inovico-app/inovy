@@ -49,10 +49,11 @@ async function UserAnalyticsContent({
 
   // Parse search params
   const params = await searchParams;
+  const now = new Date();
   const startDate = params.startDate
     ? new Date(params.startDate)
-    : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Default to last 30 days
-  const endDate = params.endDate ? new Date(params.endDate) : new Date();
+    : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // Default to last 30 days
+  const endDate = params.endDate ? new Date(params.endDate) : now;
 
   // For non-superadmins, only show their own analytics
   // For superadmins, allow selecting a user

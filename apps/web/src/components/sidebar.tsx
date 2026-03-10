@@ -68,13 +68,9 @@ export function Sidebar() {
   const { data } = useActiveMemberRole();
   const { isAdmin, isSuperAdmin } = data ?? {};
 
-  // Prevent hydration mismatch
+  // Prevent hydration mismatch and restore collapsed state from localStorage
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  // Restore collapsed state from localStorage
-  useEffect(() => {
     const savedState = localStorage.getItem("sidebar-collapsed");
     if (savedState !== null) {
       setCollapsed(savedState === "true");

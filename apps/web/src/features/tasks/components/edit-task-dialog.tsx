@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,7 +49,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
       ? new Date(task.dueDate).toISOString().slice(0, 16)
       : ""
   );
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[] | null>(null);
 
   const { members, isLoading: membersLoading } = useOrganizationMembers();
   const { data: taskTags, isLoading: tagsLoading } = useTaskTags(task.id);
@@ -60,12 +60,8 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
     },
   });
 
-  // Initialize tag selection when task tags are loaded
-  useEffect(() => {
-    if (taskTags) {
-      setSelectedTagIds(taskTags.map((tag) => tag.id));
-    }
-  }, [taskTags]);
+  // Derive effective tag IDs: use local overrides if set, otherwise fall back to fetched data
+  const effectiveTagIds = selectedTagIds ?? taskTags?.map((tag) => tag.id) ?? [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +74,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
       status,
       assigneeId: assigneeId ?? undefined,
       dueDate: dueDate ? (new Date(dueDate) as unknown as Date | null) : undefined,
-      tagIds: selectedTagIds,
+      tagIds: effectiveTagIds,
     });
   };
 
@@ -93,9 +89,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
         ? new Date(task.dueDate).toISOString().slice(0, 16)
         : ""
     );
-    if (taskTags) {
-      setSelectedTagIds(taskTags.map((tag) => tag.id));
-    }
+    setSelectedTagIds(null);
   };
 
   return (
@@ -238,7 +232,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
             {/* Tags */}
             {!tagsLoading && (
               <TaskTagSelector
-                selectedTagIds={selectedTagIds}
+                selectedTagIds={effectiveTagIds}
                 onTagsChange={setSelectedTagIds}
               />
             )}

@@ -8,12 +8,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { getCachedAllOrganizations } from "@/server/cache/organization.cache";
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { OrganizationListClient } from "./organization-list-client";
 
 export async function OrganizationList() {
+  const authResult = await getBetterAuthSession();
+  if (authResult.isErr() || !authResult.value.isAuthenticated) {
+    redirect("/sign-in");
+  }
+
   const organizations = await getCachedAllOrganizations();
 
   return (

@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useConsentBanner } from "../hooks/use-consent-banner";
 
 interface ConsentBannerProps {
@@ -26,11 +26,13 @@ export function ConsentBanner({
 }: ConsentBannerProps) {
   // Use local state to ensure dialog closes immediately when consent is granted
   const [localIsOpen, setLocalIsOpen] = useState(isOpen);
+  const prevIsOpenRef = useRef(isOpen);
 
-  // Sync local state with prop
-  useEffect(() => {
+  // Sync local state with prop during render (no useEffect needed)
+  if (prevIsOpenRef.current !== isOpen) {
+    prevIsOpenRef.current = isOpen;
     setLocalIsOpen(isOpen);
-  }, [isOpen]);
+  }
 
   const {
     hasRead,

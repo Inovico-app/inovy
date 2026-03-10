@@ -13,7 +13,7 @@ import {
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { parseAsString, useQueryStates } from "nuqs";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface AgentMetricsFiltersProps {
   initialStartDate: Date;
@@ -59,18 +59,27 @@ export function AgentMetricsFilters({
   );
 
   const [selectedUserId, setSelectedUserId] = useState(initialUserId ?? "");
+  const prevUrlUserIdRef = useRef(organizationId.userId);
+  const prevOrgIdRef = useRef(organizationId.organizationId);
 
-  // Sync local state with URL on navigation
-  useEffect(() => {
+  // Sync local state with URL on navigation (during render, not in effect)
+  if (organizationId.userId !== prevUrlUserIdRef.current) {
     if (organizationId.userId !== undefined) {
       setSelectedUserId(organizationId.userId ?? "");
     }
-  }, [organizationId.userId]);
+    prevUrlUserIdRef.current = organizationId.userId;
+  }
 
-  // Update users when organization changes
-  useEffect(() => {
+  // Reset user when organization changes (during render for state, effect for router.refresh)
+  if (organizationId.organizationId !== prevOrgIdRef.current) {
     if (organizationId.organizationId) {
       setSelectedUserId("");
+    }
+    prevOrgIdRef.current = organizationId.organizationId;
+  }
+
+  useEffect(() => {
+    if (organizationId.organizationId) {
       router.refresh();
     }
   }, [organizationId.organizationId, router]);

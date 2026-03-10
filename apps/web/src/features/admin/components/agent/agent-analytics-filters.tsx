@@ -13,7 +13,7 @@ import {
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { parseAsString, useQueryStates } from "nuqs";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface AgentAnalyticsFiltersProps {
   initialStartDate: Date;
@@ -59,11 +59,18 @@ export function AgentAnalyticsFilters({
   );
 
   const [selectedUserId, setSelectedUserId] = useState(initialUserId ?? "");
+  const prevOrgIdRef = useRef(organizationId.organizationId);
 
-  // Update users when organization changes
-  useEffect(() => {
+  // Reset user when organization changes (during render for state, effect for router.refresh)
+  if (organizationId.organizationId !== prevOrgIdRef.current) {
     if (organizationId.organizationId) {
       setSelectedUserId("");
+    }
+    prevOrgIdRef.current = organizationId.organizationId;
+  }
+
+  useEffect(() => {
+    if (organizationId.organizationId) {
       router.refresh();
     }
   }, [organizationId.organizationId, router]);

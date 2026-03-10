@@ -1063,75 +1063,84 @@ export const PromptInputSpeechButton = ({
   ...props
 }: PromptInputSpeechButtonProps) => {
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(
-    null
-  );
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const isInitializedRef = useRef(false);
 
-  useEffect(() => {
+  // Initialize speech recognition lazily on first interaction
+  const getRecognition = useCallback((): SpeechRecognition | null => {
+    if (recognitionRef.current) return recognitionRef.current;
+    if (isInitializedRef.current) return null;
+
+    isInitializedRef.current = true;
+
     if (
-      typeof window !== "undefined" &&
-      ("SpeechRecognition" in window || "webkitSpeechRecognition" in window)
+      typeof window === "undefined" ||
+      !("SpeechRecognition" in window || "webkitSpeechRecognition" in window)
     ) {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
-      const speechRecognition = new SpeechRecognition();
-
-      speechRecognition.continuous = true;
-      speechRecognition.interimResults = true;
-      speechRecognition.lang = "en-US";
-
-      speechRecognition.onstart = () => {
-        setIsListening(true);
-      };
-
-      speechRecognition.onend = () => {
-        setIsListening(false);
-      };
-
-      speechRecognition.onresult = (event) => {
-        let finalTranscript = "";
-
-        const results = Array.from(event.results);
-
-        for (const result of results) {
-          if (result.isFinal) {
-            finalTranscript += result[0]?.transcript ?? "";
-          }
-        }
-
-        if (finalTranscript && textareaRef?.current) {
-          const textarea = textareaRef.current;
-          const currentValue = textarea.value;
-          const newValue =
-            currentValue + (currentValue ? " " : "") + finalTranscript;
-
-          textarea.value = newValue;
-          textarea.dispatchEvent(new Event("input", { bubbles: true }));
-          onTranscriptionChange?.(newValue);
-        }
-      };
-
-      speechRecognition.onerror = (event) => {
-        logger.error("Speech recognition error", {
-          component: "PromptInputSpeechButton",
-          error: event.error,
-        });
-        setIsListening(false);
-      };
-
-      recognitionRef.current = speechRecognition;
-      setRecognition(speechRecognition);
+      return null;
     }
 
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    const speechRecognition = new SpeechRecognition();
+
+    speechRecognition.continuous = true;
+    speechRecognition.interimResults = true;
+    speechRecognition.lang = "en-US";
+
+    speechRecognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    speechRecognition.onend = () => {
+      setIsListening(false);
+    };
+
+    speechRecognition.onresult = (event) => {
+      let finalTranscript = "";
+
+      const results = Array.from(event.results);
+
+      for (const result of results) {
+        if (result.isFinal) {
+          finalTranscript += result[0]?.transcript ?? "";
+        }
+      }
+
+      if (finalTranscript && textareaRef?.current) {
+        const textarea = textareaRef.current;
+        const currentValue = textarea.value;
+        const newValue =
+          currentValue + (currentValue ? " " : "") + finalTranscript;
+
+        textarea.value = newValue;
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        onTranscriptionChange?.(newValue);
+      }
+    };
+
+    speechRecognition.onerror = (event) => {
+      logger.error("Speech recognition error", {
+        component: "PromptInputSpeechButton",
+        error: event.error,
+      });
+      setIsListening(false);
+    };
+
+    recognitionRef.current = speechRecognition;
+    return speechRecognition;
+  }, [textareaRef, onTranscriptionChange]);
+
+  useEffect(() => {
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
     };
-  }, [textareaRef, onTranscriptionChange]);
+  }, []);
 
   const toggleListening = useCallback(() => {
+    const recognition = getRecognition();
     if (!recognition) {
       return;
     }
@@ -1141,7 +1150,7 @@ export const PromptInputSpeechButton = ({
     } else {
       recognition.start();
     }
-  }, [recognition, isListening]);
+  }, [getRecognition, isListening]);
 
   return (
     <PromptInputButton
@@ -1150,7 +1159,6 @@ export const PromptInputSpeechButton = ({
         isListening && "animate-pulse bg-accent text-accent-foreground",
         className
       )}
-      disabled={!recognition}
       onClick={toggleListening}
       {...props}
     >

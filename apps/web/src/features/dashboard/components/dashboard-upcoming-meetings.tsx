@@ -11,6 +11,7 @@ import Link from "next/link";
 
 interface DashboardUpcomingMeetingsProps {
   meetings: CalendarEvent[];
+  now: number;
 }
 
 function formatRelativeTime(date: Date): string {
@@ -155,8 +156,8 @@ function EmptyState() {
 
 export function DashboardUpcomingMeetings({
   meetings,
+  now,
 }: DashboardUpcomingMeetingsProps) {
-  const now = Date.now();
   const sorted = [...meetings]
     .filter((m) => new Date(m.end).getTime() >= now)
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())

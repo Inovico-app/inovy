@@ -8,7 +8,7 @@ import {
 } from "@/components/ai-elements/conversation";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { Activity, useEffect, useEffectEvent, useRef } from "react";
+import { Activity, useEffect, useEffectEvent, useMemo, useRef } from "react";
 import { getConversationMessagesAction } from "../actions/conversation-history";
 import { useChatContext } from "../hooks/use-chat-context";
 import { useChatSources } from "../hooks/use-chat-sources";
@@ -48,37 +48,56 @@ export function UnifiedChatInterface({
   // Ref to track conversation ID across renders without recreating the Chat instance.
   // The transport is captured once by useChat, so we need a ref for the fetch closure.
   const conversationIdRef = useRef(chatContext.conversationId);
-  conversationIdRef.current = chatContext.conversationId;
+
+  // Sync ref with latest conversationId outside of render (in an effect)
+  useEffect(() => {
+    conversationIdRef.current = chatContext.conversationId;
+  }, [chatContext.conversationId]);
+
+  // Memoize transport to avoid recreating on every render and to keep ref access
+  // out of the render body (refs are only read inside callbacks, not during render).
+  const chatContextRef = useRef(chatContext);
+  useEffect(() => {
+    chatContextRef.current = chatContext;
+  });
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        body: () => ({
+          context: chatContextRef.current.context,
+          ...(chatContextRef.current.context === "project" &&
+          chatContextRef.current.projectId
+            ? { projectId: chatContextRef.current.projectId }
+            : {}),
+          ...(conversationIdRef.current
+            ? { conversationId: conversationIdRef.current }
+            : {}),
+        }),
+        fetch: async (input, init) => {
+          const response = await globalThis.fetch(input, init);
+
+          // Capture conversation ID from first response to maintain conversation continuity
+          const returnedConversationId =
+            response.headers.get("X-Conversation-Id");
+          if (returnedConversationId && !conversationIdRef.current) {
+            conversationIdRef.current = returnedConversationId;
+            chatContextRef.current.setConversationId(returnedConversationId);
+          }
+
+          return response;
+        },
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
 
   // Use unified API endpoint for both contexts
   // Note: Type mismatch between ai package versions - DefaultChatTransport works correctly at runtime
   const { messages, status, error, setMessages, sendMessage } = useChat({
     id: `${chatContext.context}-${chatContext.projectId ?? "org"}`,
-    transport: new DefaultChatTransport({
-      api: "/api/chat",
-      body: () => ({
-        context: chatContext.context,
-        ...(chatContext.context === "project" && chatContext.projectId
-          ? { projectId: chatContext.projectId }
-          : {}),
-        ...(conversationIdRef.current
-          ? { conversationId: conversationIdRef.current }
-          : {}),
-      }),
-      fetch: async (input, init) => {
-        const response = await globalThis.fetch(input, init);
-
-        // Capture conversation ID from first response to maintain conversation continuity
-        const returnedConversationId =
-          response.headers.get("X-Conversation-Id");
-        if (returnedConversationId && !conversationIdRef.current) {
-          conversationIdRef.current = returnedConversationId;
-          chatContext.setConversationId(returnedConversationId);
-        }
-
-        return response;
-      },
-    }),
+    transport,
     onError: (err: Error) => {
       console.error("Chat error:", err);
     },
