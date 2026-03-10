@@ -2,6 +2,8 @@ import { logger } from "@/lib/logger";
 import { BotCalendarMonitorService } from "@/server/services/bot-calendar-monitor.service";
 import { type NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/cron/monitor-calendar
  * Monitors Google Calendar for upcoming meetings and creates bot sessions

@@ -2,6 +2,8 @@ import { logger } from "@/lib/logger";
 import { BotStatusPollService } from "@/server/services/bot-status-poll.service";
 import { type NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/cron/poll-bot-status
  * Polls active bot sessions to check their current status

@@ -4,6 +4,8 @@ import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { BotSessionsQueries } from "@/server/data-access/bot-sessions.queries";
 import { type NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
 

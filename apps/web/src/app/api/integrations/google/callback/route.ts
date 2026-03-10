@@ -4,6 +4,8 @@ import { logger } from "@/lib/logger";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { type NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 const SAFE_REDIRECT_FALLBACK = "/settings?google_success=true";
 
 function validateRedirectUrl(
