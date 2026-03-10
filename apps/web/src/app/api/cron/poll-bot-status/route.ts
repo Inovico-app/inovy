@@ -1,8 +1,7 @@
 import { logger } from "@/lib/logger";
 import { BotStatusPollService } from "@/server/services/bot-status-poll.service";
 import { type NextRequest, NextResponse } from "next/server";
-
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 /**
  * GET /api/cron/poll-bot-status
@@ -16,6 +15,7 @@ export const dynamic = "force-dynamic";
  * update vercel.json to use "0 0 * * *" (once daily at midnight UTC).
  */
 export async function GET(request: NextRequest) {
+  await connection();
   const startTime = Date.now();
 
   try {

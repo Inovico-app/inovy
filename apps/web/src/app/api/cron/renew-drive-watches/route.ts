@@ -1,9 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { connection } from "next/server";
 import { logger } from "@/lib/logger";
 import { DriveWatchesQueries } from "@/server/data-access/drive-watches.queries";
 import { DriveWatchesService } from "@/server/services/drive-watches.service";
-
-export const dynamic = "force-dynamic";
 
 /**
  * GET /api/cron/renew-drive-watches
@@ -11,6 +10,7 @@ export const dynamic = "force-dynamic";
  * Authenticated via Authorization: Bearer ${CRON_SECRET} header
  */
 export async function GET(request: NextRequest) {
+  await connection();
   try {
     // Authenticate via CRON_SECRET
     const authHeader = request.headers.get("authorization");

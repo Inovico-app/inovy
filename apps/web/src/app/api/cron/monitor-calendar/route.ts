@@ -1,8 +1,7 @@
 import { logger } from "@/lib/logger";
 import { BotCalendarMonitorService } from "@/server/services/bot-calendar-monitor.service";
 import { type NextRequest, NextResponse } from "next/server";
-
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 /**
  * GET /api/cron/monitor-calendar
@@ -16,6 +15,7 @@ export const dynamic = "force-dynamic";
  * update vercel.json to use "0 0 * * *" (once daily at midnight UTC).
  */
 export async function GET(request: NextRequest) {
+  await connection();
   const startTime = Date.now();
 
   try {
