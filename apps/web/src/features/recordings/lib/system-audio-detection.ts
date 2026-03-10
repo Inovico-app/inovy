@@ -1,6 +1,7 @@
 /**
  * Browser compatibility detection for system audio capture
  */
+import { UAParser } from "ua-parser-js";
 
 export type AudioSourceType = "microphone" | "system" | "both";
 
@@ -11,11 +12,18 @@ export interface SystemAudioCompatibility {
   browserName: string;
 }
 
+const SUPPORTED_BROWSERS = new Set(["Chrome", "Edge", "Opera"]);
+const UNSUPPORTED_MESSAGES: Record<string, string> = {
+  Firefox:
+    "Firefox does not support system audio capture. Please use Chrome, Edge, or Opera for this feature.",
+  Safari:
+    "Safari does not support system audio capture. Please use Chrome, Edge, or Opera for this feature.",
+};
+
 /**
  * Detect browser and check system audio capture support
  * System audio capture requires getDisplayMedia with audio support
  * Supported browsers: Chrome 74+, Edge 79+, Opera 62+
- * Unsupported: Firefox, Safari
  */
 export function detectSystemAudioSupport(): SystemAudioCompatibility {
   if (typeof window === "undefined" || typeof navigator === "undefined") {
@@ -27,7 +35,10 @@ export function detectSystemAudioSupport(): SystemAudioCompatibility {
     };
   }
 
-  // Check if getDisplayMedia is available
+  const parser = new UAParser(navigator.userAgent);
+  const browser = parser.getBrowser();
+  const browserName = browser.name || "Unknown";
+
   const hasGetDisplayMedia =
     navigator.mediaDevices &&
     typeof navigator.mediaDevices.getDisplayMedia === "function";
@@ -38,46 +49,21 @@ export function detectSystemAudioSupport(): SystemAudioCompatibility {
       isAudioSupported: false,
       message:
         "Screen capture API is not supported in this browser. Please use Chrome, Edge, or Opera.",
-      browserName: detectBrowserName(),
+      browserName,
     };
   }
 
-  // Detect browser name for better messaging
-  const browserName = detectBrowserName();
-
-  // Check browser-specific support
-  // Chrome 74+, Edge 79+, Opera 62+ support audio capture
-  // Firefox and Safari do not support audio capture in getDisplayMedia
-  const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
-  const isEdge = /Edg/.test(navigator.userAgent);
-  const isOpera = /OPR/.test(navigator.userAgent) || /Opera/.test(navigator.userAgent);
-  const isFirefox = /Firefox/.test(navigator.userAgent);
-  const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-
-  // Audio capture is supported in Chrome, Edge, and Opera
-  const isAudioSupported = isChrome || isEdge || isOpera;
-
-  if (isFirefox) {
+  const unsupportedMessage = UNSUPPORTED_MESSAGES[browserName];
+  if (unsupportedMessage) {
     return {
       isSupported: true,
       isAudioSupported: false,
-      message:
-        "Firefox does not support system audio capture. Please use Chrome, Edge, or Opera for this feature.",
-      browserName: "Firefox",
+      message: unsupportedMessage,
+      browserName,
     };
   }
 
-  if (isSafari) {
-    return {
-      isSupported: true,
-      isAudioSupported: false,
-      message:
-        "Safari does not support system audio capture. Please use Chrome, Edge, or Opera for this feature.",
-      browserName: "Safari",
-    };
-  }
-
-  if (isAudioSupported) {
+  if (SUPPORTED_BROWSERS.has(browserName)) {
     return {
       isSupported: true,
       isAudioSupported: true,
@@ -86,7 +72,6 @@ export function detectSystemAudioSupport(): SystemAudioCompatibility {
     };
   }
 
-  // Unknown browser or older version
   return {
     isSupported: true,
     isAudioSupported: false,
@@ -97,27 +82,7 @@ export function detectSystemAudioSupport(): SystemAudioCompatibility {
 }
 
 /**
- * Detect browser name from user agent
- */
-function detectBrowserName(): string {
-  if (typeof navigator === "undefined") {
-    return "Unknown";
-  }
-
-  const ua = navigator.userAgent;
-
-  if (/Edg/.test(ua)) return "Edge";
-  if (/Chrome/.test(ua) && !/Edg/.test(ua)) return "Chrome";
-  if (/Firefox/.test(ua)) return "Firefox";
-  if (/Safari/.test(ua) && !/Chrome/.test(ua)) return "Safari";
-  if (/OPR/.test(ua) || /Opera/.test(ua)) return "Opera";
-
-  return "Unknown";
-}
-
-/**
  * Check if system audio capture is currently available
- * This performs a runtime check, not just browser detection
  */
 export async function checkSystemAudioAvailability(): Promise<boolean> {
   if (typeof navigator === "undefined" || !navigator.mediaDevices) {
@@ -128,8 +93,6 @@ export async function checkSystemAudioAvailability(): Promise<boolean> {
     return false;
   }
 
-  // We can't actually test getDisplayMedia without user interaction,
-  // so we rely on browser detection
   const compatibility = detectSystemAudioSupport();
   return compatibility.isAudioSupported;
 }
