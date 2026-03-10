@@ -153,6 +153,7 @@ export const LiveWaveform = ({
 
       if (hasData) {
         let fadeProgress = 0;
+        let fadeRafId: number;
         const fadeToIdle = () => {
           fadeProgress += 0.03;
           if (fadeProgress < 1) {
@@ -166,7 +167,7 @@ export const LiveWaveform = ({
               );
             }
             needsRedrawRef.current = true;
-            requestAnimationFrame(fadeToIdle);
+            fadeRafId = requestAnimationFrame(fadeToIdle);
           } else {
             if (mode === "static") {
               staticBarsRef.current = [];
@@ -175,7 +176,11 @@ export const LiveWaveform = ({
             }
           }
         };
-        fadeToIdle();
+        fadeRafId = requestAnimationFrame(fadeToIdle);
+
+        return () => {
+          cancelAnimationFrame(fadeRafId);
+        };
       }
     }
   }, [processing, active, barWidth, barGap, mode]);
@@ -318,9 +323,8 @@ export const LiveWaveform = ({
         }
       }
 
-      // Only redraw if needed
-      if (!needsRedrawRef.current && !active) {
-        rafId = requestAnimationFrame(animate);
+      // Only redraw if needed — stop loop entirely when idle
+      if (!needsRedrawRef.current && !active && !processing) {
         return;
       }
 
