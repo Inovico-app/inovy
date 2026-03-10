@@ -3,8 +3,7 @@ import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { type NextRequest, NextResponse } from "next/server";
-
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 const SAFE_REDIRECT_FALLBACK = "/settings?google_success=true";
 
@@ -36,6 +35,7 @@ function validateRedirectUrl(
  * Handles OAuth callback from Google
  */
 export async function GET(request: NextRequest) {
+  await connection();
   try {
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get("code");

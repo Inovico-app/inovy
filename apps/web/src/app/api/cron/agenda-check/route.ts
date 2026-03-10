@@ -3,10 +3,10 @@ import { AgendaTrackerService } from "@/server/services/agenda-tracker.service";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { BotSessionsQueries } from "@/server/data-access/bot-sessions.queries";
 import { type NextRequest, NextResponse } from "next/server";
-
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
 
 export async function GET(request: NextRequest) {
+  await connection();
   const startTime = Date.now();
 
   try {
