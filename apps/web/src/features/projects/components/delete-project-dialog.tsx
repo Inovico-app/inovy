@@ -3,6 +3,7 @@
 import { Loader2Icon, Trash2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useDeleteProjectState } from "../hooks/use-delete-project-state";
 import { toast } from "sonner";
 import { Button } from "../../../components/ui/button";
 import { Checkbox } from "../../../components/ui/checkbox";
@@ -60,41 +61,43 @@ export function DeleteProjectDialog({
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = controlledOnOpenChange || setInternalOpen;
   
-  const [isLoading, setIsLoading] = useState(false);
-  const [confirmationText, setConfirmationText] = useState("");
-  const [confirmCheckbox, setConfirmCheckbox] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    state: deleteState,
+    setConfirmationText,
+    setCheckbox,
+    setLoading,
+    setError,
+    reset: resetDeleteState,
+  } = useDeleteProjectState();
 
   // Reset state when dialog closes
   useEffect(() => {
     if (!open) {
-      setConfirmationText("");
-      setConfirmCheckbox(false);
-      setError(null);
+      resetDeleteState();
     }
-  }, [open]);
+  }, [open, resetDeleteState]);
 
   const handleDelete = async () => {
-    if (confirmationText !== "DELETE" && confirmationText !== projectName) {
+    if (deleteState.confirmationText !== "DELETE" && deleteState.confirmationText !== projectName) {
       setError(
         'Please type "DELETE" or the exact project name to confirm deletion'
       );
       return;
     }
 
-    if (!confirmCheckbox) {
+    if (!deleteState.confirmCheckbox) {
       setError("You must confirm that you understand the consequences");
       return;
     }
 
-    setIsLoading(true);
+    setLoading(true);
     setError(null);
 
     try {
       const result = await deleteProjectAction({
         projectId,
-        confirmationText,
-        confirmCheckbox,
+        confirmationText: deleteState.confirmationText,
+        confirmCheckbox: deleteState.confirmCheckbox,
       });
 
       if (result?.serverError) {
@@ -123,14 +126,14 @@ export function DeleteProjectDialog({
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const isDeleteDisabled =
-    isLoading ||
-    !confirmCheckbox ||
-    (confirmationText !== "DELETE" && confirmationText !== projectName);
+    deleteState.isLoading ||
+    !deleteState.confirmCheckbox ||
+    (deleteState.confirmationText !== "DELETE" && deleteState.confirmationText !== projectName);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -175,14 +178,11 @@ export function DeleteProjectDialog({
             </Label>
             <Input
               id="confirmation"
-              value={confirmationText}
-              onChange={(e) => {
-                setConfirmationText(e.target.value);
-                setError(null);
-              }}
+              value={deleteState.confirmationText}
+              onChange={(e) => setConfirmationText(e.target.value)}
               placeholder={`Type "DELETE" or "${projectName}"`}
-              disabled={isLoading}
-              className={error ? "border-destructive" : ""}
+              disabled={deleteState.isLoading}
+              className={deleteState.error ? "border-destructive" : ""}
             />
           </div>
 
@@ -190,12 +190,9 @@ export function DeleteProjectDialog({
           <div className="flex items-start space-x-3 space-y-0">
             <Checkbox
               id="confirm-checkbox"
-              checked={confirmCheckbox}
-              onCheckedChange={(checked) => {
-                setConfirmCheckbox(checked === true);
-                setError(null);
-              }}
-              disabled={isLoading}
+              checked={deleteState.confirmCheckbox}
+              onCheckedChange={(checked) => setCheckbox(checked === true)}
+              disabled={deleteState.isLoading}
             />
             <div className="space-y-1 leading-none">
               <Label
@@ -209,8 +206,8 @@ export function DeleteProjectDialog({
             </div>
           </div>
 
-          {error && (
-            <p className="text-sm text-destructive font-medium">{error}</p>
+          {deleteState.error && (
+            <p className="text-sm text-destructive font-medium">{deleteState.error}</p>
           )}
 
           {/* Warning Box */}
@@ -235,7 +232,7 @@ export function DeleteProjectDialog({
           <Button
             variant="outline"
             onClick={() => setOpen(false)}
-            disabled={isLoading}
+            disabled={deleteState.isLoading}
           >
             Cancel
           </Button>
@@ -245,7 +242,7 @@ export function DeleteProjectDialog({
             variant="destructive"
             className="min-w-[160px]"
           >
-            {isLoading && <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />}
+            {deleteState.isLoading && <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />}
             Delete Permanently
           </Button>
         </DialogFooter>

@@ -4,9 +4,7 @@ import {
   getRecordingDeviceErrorInfo,
   type RecordingDeviceErrorInfo,
 } from "@/features/recordings/lib/recording-device-errors";
-import { getMicrophoneGainPreferenceClient } from "@/features/recordings/lib/microphone-gain-preferences";
 import {
-  getMicrophoneDevicePreferenceClient,
   setMicrophoneDevicePreferenceClient,
 } from "@/features/recordings/lib/microphone-device-preferences";
 import {
@@ -14,8 +12,8 @@ import {
   type ReactNode,
   useContext,
   useEffect,
+  useReducer,
   useRef,
-  useState,
 } from "react";
 import { toast } from "sonner";
 import {
@@ -29,6 +27,10 @@ import {
   MEDIA_RECORDER_TIMESLICE,
   MIN_GAIN,
 } from "./microphone-constants";
+import {
+  createInitialState,
+  microphoneReducer,
+} from "./microphone-reducer";
 
 // ============================================================================
 // Types & Enums
@@ -96,20 +98,8 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
   // State
   // ==========================================================================
 
-  const [microphoneState, setMicrophoneState] = useState<MicrophoneState>(
-    MicrophoneState.NotSetup
-  );
-  const [setupError, setSetupError] = useState<RecordingDeviceErrorInfo | null>(
-    null
-  );
-  const [microphone, setMicrophone] = useState<MediaRecorder | null>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [gain, setGainState] = useState<number>(() =>
-    getMicrophoneGainPreferenceClient()
-  );
-  const [deviceId, setDeviceIdState] = useState<string | null>(() =>
-    getMicrophoneDevicePreferenceClient()
-  );
+  const [state, dispatch] = useReducer(microphoneReducer, undefined, createInitialState);
+  const { microphoneState, setupError, microphone, stream, gain, deviceId } = state;
 
   // ==========================================================================
   // Refs
@@ -152,8 +142,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
   // ==========================================================================
 
   const setupMicrophone = async () => {
-    setMicrophoneState(MicrophoneState.SettingUp);
-    setSetupError(null);
+    dispatch({ type: "SETUP_START" });
 
     // Cleanup any existing resources before setting up new ones
     cleanupResources();
@@ -180,17 +169,20 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
       // Create MediaRecorder from processed stream
       const mediaRecorder = new MediaRecorder(processor.processedStream);
 
-      setMicrophoneState(MicrophoneState.Ready);
-      setMicrophone(mediaRecorder);
-      setStream(processor.processedStream);
+      dispatch({
+        type: "SETUP_SUCCESS",
+        payload: {
+          microphone: mediaRecorder,
+          stream: processor.processedStream,
+        },
+      });
       return { success: true as const, stream: processor.processedStream };
     } catch (err: unknown) {
       console.error("Failed to setup microphone:", err);
       cleanupResources();
-      setMicrophoneState(MicrophoneState.Error);
 
       const errorInfo = getRecordingDeviceErrorInfo(err);
-      setSetupError(errorInfo);
+      dispatch({ type: "SETUP_ERROR", payload: errorInfo });
 
       // Stay on page: show notification instead of error screen
       toast.error(errorInfo.title, {
@@ -205,7 +197,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
     // Guard against null/undefined microphone
     if (!microphone) {
       console.warn("Cannot start microphone: microphone is not initialized");
-      setMicrophoneState(MicrophoneState.Error);
+      dispatch({ type: "SET_STATE", payload: MicrophoneState.Error });
       return;
     }
 
@@ -218,11 +210,11 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
     }
 
     try {
-      setMicrophoneState(MicrophoneState.Opening);
+      dispatch({ type: "SET_STATE", payload: MicrophoneState.Opening });
 
       // Set up one-time event listeners for start/resume and error events
       const handleSuccess = () => {
-        setMicrophoneState(MicrophoneState.Open);
+        dispatch({ type: "SET_STATE", payload: MicrophoneState.Open });
         microphone.removeEventListener("start", handleStart);
         microphone.removeEventListener("resume", handleResume);
         microphone.removeEventListener("error", handleError);
@@ -233,7 +225,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
 
       const handleError = (event: Event) => {
         console.error("MediaRecorder error:", event);
-        setMicrophoneState(MicrophoneState.Ready);
+        dispatch({ type: "SET_STATE", payload: MicrophoneState.Ready });
         microphone.removeEventListener("start", handleStart);
         microphone.removeEventListener("resume", handleResume);
         microphone.removeEventListener("error", handleError);
@@ -250,7 +242,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
       }
     } catch (error) {
       console.error("Failed to start microphone:", error);
-      setMicrophoneState(MicrophoneState.Ready);
+      dispatch({ type: "SET_STATE", payload: MicrophoneState.Ready });
     }
   };
 
@@ -271,21 +263,21 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
     if (microphone.state !== "recording") {
       // If already paused or inactive, set state accordingly
       if (microphone.state === "paused") {
-        setMicrophoneState(MicrophoneState.Paused);
+        dispatch({ type: "SET_STATE", payload: MicrophoneState.Paused });
       } else if (microphone.state === "inactive") {
-        setMicrophoneState(MicrophoneState.Ready);
+        dispatch({ type: "SET_STATE", payload: MicrophoneState.Ready });
       }
       return;
     }
 
     try {
-      setMicrophoneState(MicrophoneState.Pausing);
+      dispatch({ type: "SET_STATE", payload: MicrophoneState.Pausing });
       microphone.pause();
-      setMicrophoneState(MicrophoneState.Paused);
+      dispatch({ type: "SET_STATE", payload: MicrophoneState.Paused });
     } catch (error) {
       console.error("Failed to stop microphone:", error);
       // Revert to previous valid state (was Open before Pausing)
-      setMicrophoneState(MicrophoneState.Open);
+      dispatch({ type: "SET_STATE", payload: MicrophoneState.Open });
     }
 
     // Note: We don't clean up streams/audio context here because they might be reused
@@ -299,7 +291,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
   const setGain = (newGain: number) => {
     // Clamp gain to valid range
     const clampedGain = Math.max(MIN_GAIN, Math.min(MAX_GAIN, newGain));
-    setGainState(clampedGain);
+    dispatch({ type: "SET_GAIN", payload: clampedGain });
 
     // Update gain node if it exists
     updateGain(gainNodeRef.current, clampedGain);
@@ -310,7 +302,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
   // ==========================================================================
 
   const setDeviceId = (newDeviceId: string | null) => {
-    setDeviceIdState(newDeviceId);
+    dispatch({ type: "SET_DEVICE_ID", payload: newDeviceId });
     // Persist preference immediately
     setMicrophoneDevicePreferenceClient(newDeviceId);
   };

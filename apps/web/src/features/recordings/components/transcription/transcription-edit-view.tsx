@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Save, Search, X } from "lucide-react";
-import { useState } from "react";
+import { useTranscriptionEditState } from "../../hooks/use-transcription-edit-state";
 import { useUpdateTranscriptionMutation } from "../../hooks/use-update-transcription-mutation";
 import { ExportTranscriptionButton } from "./export-transcription-button";
 import { TranscriptionHistoryDialog } from "../transcription-history-dialog";
@@ -26,16 +26,21 @@ export function TranscriptionEditView({
   onCancel,
   onSuccess,
 }: TranscriptionEditViewProps) {
-  const [editedText, setEditedText] = useState(() => transcriptionText);
-  const [changeDescription, setChangeDescription] = useState("");
-  const [showSearchReplace, setShowSearchReplace] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [replaceTerm, setReplaceTerm] = useState("");
+  const {
+    state,
+    setEditedText,
+    setChangeDescription,
+    toggleSearchReplace,
+    setSearchTerm,
+    setReplaceTerm,
+    executeReplace,
+    reset,
+    closeSearchReplace,
+  } = useTranscriptionEditState(transcriptionText);
 
   const updateMutation = useUpdateTranscriptionMutation({
     onSuccess: () => {
-      setEditedText(transcriptionText);
-      setChangeDescription("");
+      reset(transcriptionText);
       onSuccess();
     },
   });
@@ -43,25 +48,14 @@ export function TranscriptionEditView({
   const handleSave = () => {
     updateMutation.mutate({
       recordingId,
-      content: editedText,
-      changeDescription: changeDescription || undefined,
+      content: state.editedText,
+      changeDescription: state.changeDescription || undefined,
     });
   };
 
   const handleCancel = () => {
-    setEditedText(transcriptionText);
-    setChangeDescription("");
-    setShowSearchReplace(false);
+    reset(transcriptionText);
     onCancel();
-  };
-
-  const handleSearchReplace = () => {
-    if (!searchTerm) return;
-    const newText = editedText.replaceAll(searchTerm, replaceTerm);
-    setEditedText(newText);
-    setSearchTerm("");
-    setReplaceTerm("");
-    setShowSearchReplace(false);
   };
 
   return (
@@ -106,21 +100,21 @@ export function TranscriptionEditView({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setShowSearchReplace(!showSearchReplace)}
+          onClick={toggleSearchReplace}
         >
           <Search className="h-4 w-4 mr-1" />
           Zoek & Vervang
         </Button>
       </div>
 
-      {showSearchReplace && (
+      {state.showSearchReplace && (
         <Card className="p-4 bg-muted/50">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="search-term">Zoeken naar</Label>
               <Input
                 id="search-term"
-                value={searchTerm}
+                value={state.searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Zoekterm..."
               />
@@ -129,7 +123,7 @@ export function TranscriptionEditView({
               <Label htmlFor="replace-term">Vervangen door</Label>
               <Input
                 id="replace-term"
-                value={replaceTerm}
+                value={state.replaceTerm}
                 onChange={(e) => setReplaceTerm(e.target.value)}
                 placeholder="Vervangende tekst..."
               />
@@ -139,18 +133,14 @@ export function TranscriptionEditView({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                setSearchTerm("");
-                setReplaceTerm("");
-                setShowSearchReplace(false);
-              }}
+              onClick={closeSearchReplace}
             >
               Annuleren
             </Button>
             <Button
               size="sm"
-              onClick={handleSearchReplace}
-              disabled={!searchTerm}
+              onClick={executeReplace}
+              disabled={!state.searchTerm}
             >
               Vervang Alle
             </Button>
@@ -165,7 +155,7 @@ export function TranscriptionEditView({
         </Label>
         <Input
           id="change-description"
-          value={changeDescription}
+          value={state.changeDescription}
           onChange={(e) => setChangeDescription(e.target.value)}
           placeholder="Bijv. Correctie van namen, spelling..."
           maxLength={500}
@@ -177,13 +167,13 @@ export function TranscriptionEditView({
         <Label htmlFor="transcription-text">Transcriptie tekst</Label>
         <Textarea
           id="transcription-text"
-          value={editedText}
+          value={state.editedText}
           onChange={(e) => setEditedText(e.target.value)}
           className="min-h-[400px] font-mono text-sm"
           placeholder="Transcriptie tekst..."
         />
         <p className="text-xs text-muted-foreground">
-          {editedText.length} karakters
+          {state.editedText.length} karakters
         </p>
       </div>
 
@@ -208,7 +198,7 @@ export function TranscriptionEditView({
           <Button
             onClick={handleSave}
             disabled={
-              updateMutation.isPending || editedText === transcriptionText
+              updateMutation.isPending || state.editedText === transcriptionText
             }
           >
             <Save className="h-4 w-4 mr-1" />

@@ -9,10 +9,14 @@ import {
   type ReactNode,
   useContext,
   useEffect,
+  useReducer,
   useRef,
-  useState,
 } from "react";
 import { toast } from "sonner";
+import {
+  createInitialState,
+  systemAudioReducer,
+} from "./system-audio-reducer";
 
 // ============================================================================
 // Types & Enums
@@ -68,16 +72,8 @@ const SystemAudioContextProvider: React.FC<
   // State
   // ==========================================================================
 
-  const [systemAudioState, setSystemAudioState] = useState<SystemAudioState>(
-    SystemAudioState.NotSetup
-  );
-  const [setupError, setSetupError] = useState<RecordingDeviceErrorInfo | null>(
-    null
-  );
-  const [systemAudio, setSystemAudio] = useState<MediaRecorder | null>(null);
-  const [systemAudioStream, setSystemAudioStream] =
-    useState<MediaStream | null>(null);
-  const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+  const [state, dispatch] = useReducer(systemAudioReducer, undefined, createInitialState);
+  const { systemAudioState, setupError, systemAudio, systemAudioStream, videoStream } = state;
 
   // ==========================================================================
   // Refs
@@ -121,8 +117,7 @@ const SystemAudioContextProvider: React.FC<
   // ==========================================================================
 
   const setupSystemAudio = async () => {
-    setSystemAudioState(SystemAudioState.SettingUp);
-    setSetupError(null);
+    dispatch({ type: "SETUP_START" });
 
     // Cleanup any existing resources before setting up new ones
     cleanupResources();
@@ -165,20 +160,19 @@ const SystemAudioContextProvider: React.FC<
 
       // Create a new stream with only audio tracks for recording
       const audioOnlyStream = new MediaStream(audioTracks);
-      setSystemAudioStream(audioOnlyStream);
       systemAudioStreamRef.current = audioOnlyStream; // Update ref for cleanup
 
       // Store video stream separately - keep tracks alive but hidden
+      let videoOnlyStream: MediaStream | null = null;
       if (videoTracks.length > 0) {
-        const videoOnlyStream = new MediaStream(videoTracks);
-        
+        videoOnlyStream = new MediaStream(videoTracks);
+
         // Hide video tracks by disabling them instead of stopping
         // This keeps the stream alive and usable while preventing video rendering
         videoTracks.forEach((track) => {
           track.enabled = false;
         });
-        
-        setVideoStream(videoOnlyStream);
+
         videoStreamRef.current = videoOnlyStream; // Update ref for cleanup
       } else {
         videoStreamRef.current = null; // Clear ref if no video tracks
@@ -204,16 +198,21 @@ const SystemAudioContextProvider: React.FC<
         mimeType: "audio/webm;codecs=opus",
       });
 
-      setSystemAudioState(SystemAudioState.Ready);
-      setSystemAudio(mediaRecorder);
+      dispatch({
+        type: "SETUP_SUCCESS",
+        payload: {
+          systemAudio: mediaRecorder,
+          systemAudioStream: audioOnlyStream,
+          videoStream: videoOnlyStream,
+        },
+      });
       return { success: true as const, stream: audioOnlyStream };
     } catch (err: unknown) {
       console.error("Failed to setup system audio:", err);
       cleanupResources();
-      setSystemAudioState(SystemAudioState.Error);
 
       const errorInfo = getSystemAudioErrorInfo(err);
-      setSetupError(errorInfo);
+      dispatch({ type: "SETUP_ERROR", payload: errorInfo });
 
       // Stay on page: show notification instead of error screen
       toast.error(errorInfo.title, {
@@ -230,7 +229,7 @@ const SystemAudioContextProvider: React.FC<
       console.warn(
         "Cannot start system audio: systemAudio is not initialized"
       );
-      setSystemAudioState(SystemAudioState.Error);
+      dispatch({ type: "SET_STATE", payload: SystemAudioState.Error });
       return;
     }
 
@@ -246,11 +245,11 @@ const SystemAudioContextProvider: React.FC<
     }
 
     try {
-      setSystemAudioState(SystemAudioState.Opening);
+      dispatch({ type: "SET_STATE", payload: SystemAudioState.Opening });
 
       // Set up one-time event listeners for start/resume and error events
       const handleSuccess = () => {
-        setSystemAudioState(SystemAudioState.Open);
+        dispatch({ type: "SET_STATE", payload: SystemAudioState.Open });
         systemAudio.removeEventListener("start", handleStart);
         systemAudio.removeEventListener("resume", handleResume);
         systemAudio.removeEventListener("error", handleError);
@@ -261,7 +260,7 @@ const SystemAudioContextProvider: React.FC<
 
       const handleError = (event: Event) => {
         console.error("MediaRecorder error:", event);
-        setSystemAudioState(SystemAudioState.Ready);
+        dispatch({ type: "SET_STATE", payload: SystemAudioState.Ready });
         systemAudio.removeEventListener("start", handleStart);
         systemAudio.removeEventListener("resume", handleResume);
         systemAudio.removeEventListener("error", handleError);
@@ -278,7 +277,7 @@ const SystemAudioContextProvider: React.FC<
       }
     } catch (error) {
       console.error("Failed to start system audio:", error);
-      setSystemAudioState(SystemAudioState.Ready);
+      dispatch({ type: "SET_STATE", payload: SystemAudioState.Ready });
     }
   };
 
@@ -300,21 +299,21 @@ const SystemAudioContextProvider: React.FC<
     if (systemAudio.state !== "recording") {
       // If already paused or inactive, set state accordingly
       if (systemAudio.state === "paused") {
-        setSystemAudioState(SystemAudioState.Paused);
+        dispatch({ type: "SET_STATE", payload: SystemAudioState.Paused });
       } else if (systemAudio.state === "inactive") {
-        setSystemAudioState(SystemAudioState.Ready);
+        dispatch({ type: "SET_STATE", payload: SystemAudioState.Ready });
       }
       return;
     }
 
     try {
-      setSystemAudioState(SystemAudioState.Pausing);
+      dispatch({ type: "SET_STATE", payload: SystemAudioState.Pausing });
       systemAudio.pause();
-      setSystemAudioState(SystemAudioState.Paused);
+      dispatch({ type: "SET_STATE", payload: SystemAudioState.Paused });
     } catch (error) {
       console.error("Failed to stop system audio:", error);
       // Revert to previous valid state (was Open before Pausing)
-      setSystemAudioState(SystemAudioState.Open);
+      dispatch({ type: "SET_STATE", payload: SystemAudioState.Open });
     }
 
     // Note: We don't clean up streams/audio context here because they might be reused

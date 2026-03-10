@@ -4,13 +4,14 @@ import { Input } from "@/components/ui/input";
 import type { TeamWithMemberCount } from "@/server/cache/team.cache";
 import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { toast } from "sonner";
 import {
   assignUserToTeam,
   removeUserFromTeam,
   updateUserTeamRole,
 } from "../../actions/teams";
+import { useTeamAssignmentState } from "../../hooks/use-team-assignment-state";
 import { TeamAssignDialog } from "./team-assign-dialog";
 import { TeamMemberList } from "./team-member-list";
 import { TeamRemoveDialog } from "./team-remove-dialog";
@@ -36,62 +37,59 @@ export function TeamMemberAssignment({
   canEdit,
 }: TeamMemberAssignmentProps) {
   const router = useRouter();
-  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState("");
-  const [selectedTeamId, setSelectedTeamId] = useState("");
-  const [selectedRole, setSelectedRole] = useState<string>("member");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showRemoveDialog, setShowRemoveDialog] = useState<{
-    userId: string;
-    userName: string;
-    teamId: string;
-    teamName: string;
-  } | null>(null);
+  const {
+    state,
+    setSelectedUser,
+    setSelectedTeam,
+    setSelectedRole,
+    setSubmitting,
+    setSearchQuery,
+    showRemoveDialog,
+    hideRemoveDialog,
+    closeAssignDialog,
+    setAssignDialogOpen,
+  } = useTeamAssignmentState();
 
   // Filter members by search query
   const filteredMembers = useMemo(() => {
-    if (!searchQuery.trim()) return members;
+    if (!state.searchQuery.trim()) return members;
 
-    const query = searchQuery.toLowerCase();
+    const query = state.searchQuery.toLowerCase();
     return members.filter(
       (member) =>
         member.email?.toLowerCase().includes(query) ||
         member.given_name?.toLowerCase().includes(query) ||
         member.family_name?.toLowerCase().includes(query)
     );
-  }, [members, searchQuery]);
+  }, [members, state.searchQuery]);
 
   // Get available teams for selected user
   const availableTeamsForUser = useMemo(() => {
-    if (!selectedUserId) return teams;
+    if (!state.selectedUserId) return teams;
 
-    const user = members.find((m) => m.id === selectedUserId);
+    const user = members.find((m) => m.id === state.selectedUserId);
     const userTeamIds = new Set(user?.teams?.map((t) => t.teamId) || []);
 
     return teams.filter((team) => !userTeamIds.has(team.id));
-  }, [selectedUserId, members, teams]);
+  }, [state.selectedUserId, members, teams]);
 
   const handleAssign = async () => {
-    if (!selectedUserId || !selectedTeamId) {
+    if (!state.selectedUserId || !state.selectedTeamId) {
       toast.error("Please select both a user and a team");
       return;
     }
 
-    setIsSubmitting(true);
+    setSubmitting(true);
     try {
       const result = await assignUserToTeam({
-        userId: selectedUserId,
-        teamId: selectedTeamId,
-        role: selectedRole as "member" | "lead" | "admin",
+        userId: state.selectedUserId,
+        teamId: state.selectedTeamId,
+        role: state.selectedRole as "member" | "lead" | "admin",
       });
 
       if (result?.data) {
         toast.success("User assigned to team successfully");
-        setIsAssignDialogOpen(false);
-        setSelectedUserId("");
-        setSelectedTeamId("");
-        setSelectedRole("member");
+        closeAssignDialog();
         router.refresh();
       } else if (result?.validationErrors) {
         const firstFieldErrors = Object.values(result.validationErrors)[0];
@@ -106,25 +104,25 @@ export function TeamMemberAssignment({
       toast.error("Failed to assign user to team");
       console.error(error);
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
   const handleRemove = async () => {
-    if (!showRemoveDialog) return;
+    if (!state.showRemoveDialog) return;
 
-    setIsSubmitting(true);
+    setSubmitting(true);
     try {
       const result = await removeUserFromTeam({
-        userId: showRemoveDialog.userId,
-        teamId: showRemoveDialog.teamId,
+        userId: state.showRemoveDialog.userId,
+        teamId: state.showRemoveDialog.teamId,
       });
 
       if (result?.data) {
         toast.success(
-          `${showRemoveDialog.userName} removed from ${showRemoveDialog.teamName}`
+          `${state.showRemoveDialog.userName} removed from ${state.showRemoveDialog.teamName}`
         );
-        setShowRemoveDialog(null);
+        hideRemoveDialog();
         router.refresh();
       } else if (result?.validationErrors) {
         const firstFieldErrors = Object.values(result.validationErrors)[0];
@@ -139,7 +137,7 @@ export function TeamMemberAssignment({
       toast.error("Failed to remove user from team");
       console.error(error);
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
@@ -148,7 +146,7 @@ export function TeamMemberAssignment({
     teamId: string,
     newRole: string
   ) => {
-    setIsSubmitting(true);
+    setSubmitting(true);
     try {
       const result = await updateUserTeamRole({
         userId,
@@ -172,7 +170,7 @@ export function TeamMemberAssignment({
       toast.error("Failed to update role");
       console.error(error);
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
@@ -191,7 +189,7 @@ export function TeamMemberAssignment({
           <Input
             type="search"
             placeholder="Search members..."
-            value={searchQuery}
+            value={state.searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
@@ -199,18 +197,18 @@ export function TeamMemberAssignment({
 
         {canEdit && (
           <TeamAssignDialog
-            open={isAssignDialogOpen}
-            onOpenChange={setIsAssignDialogOpen}
+            open={state.isAssignDialogOpen}
+            onOpenChange={setAssignDialogOpen}
             members={members}
             availableTeams={availableTeamsForUser}
-            selectedUserId={selectedUserId}
-            onSelectedUserChange={setSelectedUserId}
-            selectedTeamId={selectedTeamId}
-            onSelectedTeamChange={setSelectedTeamId}
-            selectedRole={selectedRole}
+            selectedUserId={state.selectedUserId}
+            onSelectedUserChange={setSelectedUser}
+            selectedTeamId={state.selectedTeamId}
+            onSelectedTeamChange={setSelectedTeam}
+            selectedRole={state.selectedRole}
             onSelectedRoleChange={setSelectedRole}
             onAssign={handleAssign}
-            isSubmitting={isSubmitting}
+            isSubmitting={state.isSubmitting}
             getUserName={getUserName}
           />
         )}
@@ -219,20 +217,20 @@ export function TeamMemberAssignment({
       {/* Members List */}
       <TeamMemberList
         members={filteredMembers}
-        searchQuery={searchQuery}
+        searchQuery={state.searchQuery}
         canEdit={canEdit}
-        isSubmitting={isSubmitting}
+        isSubmitting={state.isSubmitting}
         getUserName={getUserName}
-        onShowRemoveDialog={setShowRemoveDialog}
+        onShowRemoveDialog={showRemoveDialog}
         onRoleChange={handleRoleChange}
       />
 
       {/* Remove Confirmation Dialog */}
       <TeamRemoveDialog
-        data={showRemoveDialog}
-        onOpenChange={() => setShowRemoveDialog(null)}
+        data={state.showRemoveDialog}
+        onOpenChange={() => hideRemoveDialog()}
         onConfirm={handleRemove}
-        isSubmitting={isSubmitting}
+        isSubmitting={state.isSubmitting}
       />
     </div>
   );
