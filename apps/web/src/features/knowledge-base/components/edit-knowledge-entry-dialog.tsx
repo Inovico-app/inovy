@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +9,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { updateKnowledgeEntryAction } from "../actions/update-entry";
+import { Textarea } from "@/components/ui/textarea";
 import type { KnowledgeEntryDto } from "@/server/dto/knowledge-base.dto";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { useAction } from "next-safe-action/hooks";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { updateKnowledgeEntryAction } from "../actions/update-entry";
+import {
+  editKnowledgeEntryFormSchema,
+  type EditKnowledgeEntryFormValues,
+} from "../validation/knowledge-entry-form.schema";
 
 interface EditKnowledgeEntryDialogProps {
   entry: KnowledgeEntryDto;
@@ -33,18 +46,53 @@ export function EditKnowledgeEntryDialog({
   onSuccess,
 }: EditKnowledgeEntryDialogProps) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    term: entry.term,
-    definition: entry.definition,
-    context: entry.context || "",
-    examples: entry.examples?.join("\n") || "",
-    isActive: entry.isActive,
+
+  const form = useForm<EditKnowledgeEntryFormValues>({
+    resolver: standardSchemaResolver(editKnowledgeEntryFormSchema),
+    defaultValues: {
+      term: entry.term,
+      definition: entry.definition,
+      context: entry.context || "",
+      examples: entry.examples?.join("\n") || "",
+      isActive: entry.isActive,
+    },
   });
+
+  const { execute: updateEntry, isExecuting: isUpdating } = useAction(
+    updateKnowledgeEntryAction,
+    {
+      onSuccess: ({ data }) => {
+        if (data) {
+          toast.success("Knowledge entry updated successfully");
+          onSuccess?.(data);
+          onOpenChange(false);
+          router.refresh();
+        }
+      },
+      onError: ({ error }) => {
+        if (error.validationErrors) {
+          const firstFieldErrors = Object.values(error.validationErrors)[0];
+          const firstError = Array.isArray(firstFieldErrors)
+            ? firstFieldErrors[0]
+            : typeof firstFieldErrors === "object" &&
+                firstFieldErrors !== null &&
+                "_errors" in firstFieldErrors &&
+                Array.isArray(firstFieldErrors._errors)
+              ? firstFieldErrors._errors[0]
+              : undefined;
+          toast.error(
+            typeof firstError === "string" ? firstError : "Validation failed"
+          );
+          return;
+        }
+        toast.error(error.serverError || "Failed to update knowledge entry");
+      },
+    }
+  );
 
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen) {
-      setFormData({
+      form.reset({
         term: entry.term,
         definition: entry.definition,
         context: entry.context || "",
@@ -55,60 +103,22 @@ export function EditKnowledgeEntryDialog({
     onOpenChange(newOpen);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const onSubmit = (values: EditKnowledgeEntryFormValues) => {
+    const examplesArray = values.examples
+      ? values.examples
+          .split("\n")
+          .map((ex) => ex.trim())
+          .filter((ex) => ex.length > 0)
+      : null;
 
-    try {
-      const examplesArray = formData.examples
-        ? formData.examples
-            .split("\n")
-            .map((ex) => ex.trim())
-            .filter((ex) => ex.length > 0)
-        : null;
-
-      const result = await updateKnowledgeEntryAction({
-        id: entry.id,
-        term: formData.term,
-        definition: formData.definition,
-        context: formData.context || null,
-        examples: examplesArray,
-        isActive: formData.isActive,
-      });
-
-      if (result?.serverError) {
-        toast.error(result.serverError);
-        return;
-      }
-
-      if (result?.validationErrors) {
-        const firstFieldErrors = Object.values(result.validationErrors)[0];
-        const firstError = Array.isArray(firstFieldErrors)
-          ? firstFieldErrors[0]
-          : typeof firstFieldErrors === "object" &&
-              firstFieldErrors !== null &&
-              "_errors" in firstFieldErrors &&
-              Array.isArray(firstFieldErrors._errors)
-          ? firstFieldErrors._errors[0]
-          : undefined;
-        toast.error(
-          typeof firstError === "string" ? firstError : "Validation failed"
-        );
-        return;
-      }
-
-      if (result?.data) {
-        toast.success("Knowledge entry updated successfully");
-        onSuccess?.(result.data);
-        onOpenChange(false);
-        router.refresh();
-      }
-    } catch (error) {
-      console.error("Error updating knowledge entry:", error);
-      toast.error("Failed to update knowledge entry");
-    } finally {
-      setIsLoading(false);
-    }
+    updateEntry({
+      id: entry.id,
+      term: values.term,
+      definition: values.definition,
+      context: values.context || null,
+      examples: examplesArray,
+      isActive: values.isActive,
+    });
   };
 
   return (
@@ -120,86 +130,96 @@ export function EditKnowledgeEntryDialog({
             Update the term and definition
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="term">Term *</Label>
-            <Input
-              id="term"
-              value={formData.term}
-              onChange={(e) =>
-                setFormData({ ...formData, term: e.target.value })
-              }
-              required
-              maxLength={100}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="term"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Term *</FormLabel>
+                  <FormControl>
+                    <Input {...field} maxLength={100} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="definition">Definition *</Label>
-            <Textarea
-              id="definition"
-              value={formData.definition}
-              onChange={(e) =>
-                setFormData({ ...formData, definition: e.target.value })
-              }
-              required
-              rows={4}
-              maxLength={5000}
+            <FormField
+              control={form.control}
+              name="definition"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Definition *</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} rows={4} maxLength={5000} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="context">Context (optional)</Label>
-            <Textarea
-              id="context"
-              value={formData.context}
-              onChange={(e) =>
-                setFormData({ ...formData, context: e.target.value })
-              }
-              rows={2}
-              maxLength={1000}
+            <FormField
+              control={form.control}
+              name="context"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Context (optional)</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} rows={2} maxLength={1000} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="examples">Examples (optional, one per line)</Label>
-            <Textarea
-              id="examples"
-              value={formData.examples}
-              onChange={(e) =>
-                setFormData({ ...formData, examples: e.target.value })
-              }
-              rows={3}
+            <FormField
+              control={form.control}
+              name="examples"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Examples (optional, one per line)</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} rows={3} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="isActive"
-              checked={formData.isActive}
-              onCheckedChange={(checked) =>
-                setFormData({ ...formData, isActive: checked })
-              }
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex items-center space-x-2">
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel>Active</FormLabel>
+                </FormItem>
+              )}
             />
-            <Label htmlFor="isActive">Active</Label>
-          </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Updating..." : "Update Entry"}
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isUpdating}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isUpdating}>
+                {isUpdating ? "Updating..." : "Update Entry"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
 }
-

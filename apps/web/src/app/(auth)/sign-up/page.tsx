@@ -3,13 +3,37 @@
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useSignUp } from "@/features/auth/hooks/use-sign-up";
+import {
+  magicLinkSchema,
+  signUpEmailSchema,
+} from "@/features/auth/validation/auth.schema";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { AlertCircle, ArrowLeft, Mail, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { useForm } from "react-hook-form";
+import type { z } from "zod";
+
+const emailSignUpSchema = signUpEmailSchema.pick({
+  name: true,
+  email: true,
+  password: true,
+});
+
+type EmailSignUpValues = z.infer<typeof emailSignUpSchema>;
+type MagicLinkValues = z.infer<typeof magicLinkSchema>;
 
 export default function SignUpPage() {
   return (
@@ -24,12 +48,24 @@ function SignUpPageContent() {
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect") || undefined;
 
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [magicLinkEmail, setMagicLinkEmail] = useState("");
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [showMagicLinkForm, setShowMagicLinkForm] = useState(false);
+
+  const emailForm = useForm<EmailSignUpValues>({
+    resolver: standardSchemaResolver(emailSignUpSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+    },
+  });
+
+  const magicLinkForm = useForm<MagicLinkValues>({
+    resolver: standardSchemaResolver(magicLinkSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
 
   const {
     signUpEmail,
@@ -44,19 +80,17 @@ function SignUpPageContent() {
 
   const isLoading = isSignUpLoading || isSendingMagicLink;
 
-  const handleEmailSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    signUpEmail({ email, password, name, callbackUrl: redirectUrl });
+  const handleEmailSignUp = (data: EmailSignUpValues) => {
+    signUpEmail({ ...data, callbackUrl: redirectUrl });
   };
 
   const handleSocialSignUp = (provider: "google" | "microsoft") => {
     signUpSocial({ provider, callbackUrl: redirectUrl });
   };
 
-  const handleMagicLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    sendMagicLink({ email: magicLinkEmail });
-    setMagicLinkEmail("");
+  const handleMagicLink = (data: MagicLinkValues) => {
+    sendMagicLink({ email: data.email });
+    magicLinkForm.reset();
   };
 
   return (
@@ -169,145 +203,176 @@ function SignUpPageContent() {
 
         {showEmailForm && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <form onSubmit={handleEmailSignUp} className="space-y-4">
-              <fieldset className="space-y-4" disabled={isLoading}>
-                <legend className="sr-only">
-                  Create account with email and password
-                </legend>
+            <Form {...emailForm}>
+              <form
+                onSubmit={emailForm.handleSubmit(handleEmailSignUp)}
+                className="space-y-4"
+              >
+                <fieldset className="space-y-4" disabled={isLoading}>
+                  <legend className="sr-only">
+                    Create account with email and password
+                  </legend>
 
-                {signUpError && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Foutmelding</AlertTitle>
-                    <AlertDescription>{signUpError}</AlertDescription>
-                  </Alert>
-                )}
+                  {signUpError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Foutmelding</AlertTitle>
+                      <AlertDescription>{signUpError}</AlertDescription>
+                    </Alert>
+                  )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="name">Naam</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Jan Jansen"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    disabled={isLoading}
-                    autoFocus
+                  <FormField
+                    control={emailForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Naam</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="text"
+                            placeholder="Jan Jansen"
+                            autoFocus
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="je@voorbeeld.nl"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={isLoading}
+
+                  <FormField
+                    control={emailForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="je@voorbeeld.nl"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Wachtwoord</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={8}
-                    disabled={isLoading}
+
+                  <FormField
+                    control={emailForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Wachtwoord</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            placeholder="••••••••"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Minimaal 8 tekens
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Minimaal 8 tekens
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      setShowEmailForm(false);
-                      setEmail("");
-                      setName("");
-                      setPassword("");
-                    }}
-                    disabled={isLoading}
-                    className="flex-1"
-                  >
-                    Annuleren
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1"
-                    disabled={isLoading}
-                    isLoading={isSigningUp}
-                  >
-                    Registreren
-                  </Button>
-                </div>
-              </fieldset>
-            </form>
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setShowEmailForm(false);
+                        emailForm.reset();
+                      }}
+                      disabled={isLoading}
+                      className="flex-1"
+                    >
+                      Annuleren
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="flex-1"
+                      disabled={isLoading}
+                      isLoading={isSigningUp}
+                    >
+                      Registreren
+                    </Button>
+                  </div>
+                </fieldset>
+              </form>
+            </Form>
           </div>
         )}
 
         {showMagicLinkForm && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <form onSubmit={handleMagicLink} className="space-y-4">
-              <fieldset className="space-y-4" disabled={isLoading}>
-                <legend className="sr-only">Sign up with magic link</legend>
+            <Form {...magicLinkForm}>
+              <form
+                onSubmit={magicLinkForm.handleSubmit(handleMagicLink)}
+                className="space-y-4"
+              >
+                <fieldset className="space-y-4" disabled={isLoading}>
+                  <legend className="sr-only">Sign up with magic link</legend>
 
-                {magicLinkError && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Foutmelding</AlertTitle>
-                    <AlertDescription>{magicLinkError}</AlertDescription>
-                  </Alert>
-                )}
+                  {magicLinkError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Foutmelding</AlertTitle>
+                      <AlertDescription>{magicLinkError}</AlertDescription>
+                    </Alert>
+                  )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="magic-link-email">Email</Label>
-                  <Input
-                    id="magic-link-email"
-                    type="email"
-                    placeholder="je@voorbeeld.nl"
-                    value={magicLinkEmail}
-                    onChange={(e) => setMagicLinkEmail(e.target.value)}
-                    required
-                    disabled={isLoading}
-                    autoFocus
+                  <FormField
+                    control={magicLinkForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="je@voorbeeld.nl"
+                            autoFocus
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          We sturen je een link om je account aan te maken zonder
+                          wachtwoord
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    We sturen je een link om je account aan te maken zonder
-                    wachtwoord
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      setShowMagicLinkForm(false);
-                      setMagicLinkEmail("");
-                    }}
-                    disabled={isLoading}
-                    className="flex-1"
-                  >
-                    Annuleren
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1"
-                    disabled={isLoading}
-                    isLoading={isSendingMagicLink}
-                  >
-                    Versturen
-                  </Button>
-                </div>
-              </fieldset>
-            </form>
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setShowMagicLinkForm(false);
+                        magicLinkForm.reset();
+                      }}
+                      disabled={isLoading}
+                      className="flex-1"
+                    >
+                      Annuleren
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="flex-1"
+                      disabled={isLoading}
+                      isLoading={isSendingMagicLink}
+                    >
+                      Versturen
+                    </Button>
+                  </div>
+                </fieldset>
+              </form>
+            </Form>
           </div>
         )}
 
