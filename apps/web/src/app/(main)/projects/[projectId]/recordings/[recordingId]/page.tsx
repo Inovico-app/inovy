@@ -37,6 +37,7 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
     tasks,
     transcriptionInsights,
     participantsConsent,
+    organizationId,
   } = data;
 
   if (!recording) {
@@ -50,7 +51,8 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
       <div className="max-w-4xl mx-auto space-y-6">
         <RecordingDetailBreadcrumb
           projectId={projectId}
-          recordingId={recordingId}
+          organizationId={organizationId}
+          recordingTitle={recording.title}
         />
 
         {/* Header */}
@@ -128,7 +130,6 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
           </Button>
         </div>
       </div>
-      ;
     </div>
   );
 }

@@ -20,11 +20,12 @@ interface RecordingDetailPageData {
   tasks: TaskDto[];
   transcriptionInsights: AIInsightDto | null;
   participantsConsent: ConsentParticipant[];
+  organizationId: string;
 }
 
 /**
  * Server-side loader for the recording detail page.
- * Returns `null` when the data is not accessible / mismatched, letting the page decide `notFound()`.
+ * Returns `null` when the user is not authenticated or has no organization.
  */
 export async function getRecordingDetailPageData(
   input: GetRecordingDetailPageDataInput
@@ -32,10 +33,11 @@ export async function getRecordingDetailPageData(
   const { recordingId } = input;
 
   const authResult = await getBetterAuthSession();
-  const organizationId =
-    authResult.isOk() && authResult.value.organization
-      ? authResult.value.organization.id
-      : null;
+  if (authResult.isErr() || !authResult.value.organization) {
+    return null;
+  }
+
+  const organizationId = authResult.value.organization.id;
 
   // Fetch recording first to get language for summary cache lookup
   const recording = await getCachedRecordingById(recordingId);
@@ -45,9 +47,7 @@ export async function getRecordingDetailPageData(
       getCachedSummary(recordingId, recording?.language ?? "nl"),
       getCachedTasksByRecordingId(recordingId),
       getCachedInsightByTypeInternal(recordingId, "transcription"),
-      organizationId
-        ? getCachedConsentParticipants(recordingId, organizationId)
-        : [],
+      getCachedConsentParticipants(recordingId, organizationId),
     ]);
 
   return {
@@ -56,6 +56,6 @@ export async function getRecordingDetailPageData(
     tasks,
     transcriptionInsights,
     participantsConsent,
+    organizationId,
   };
 }
-
