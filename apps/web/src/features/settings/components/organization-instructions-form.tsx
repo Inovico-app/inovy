@@ -26,7 +26,7 @@ export function OrganizationInstructionsForm({
   isLoading = false,
   canEdit,
 }: OrganizationInstructionsFormProps) {
-  const [instructions, setInstructions] = useState(initialValue);
+  const [instructions, setInstructions] = useState(() => initialValue);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSubmit = async () => {
@@ -55,7 +55,7 @@ export function OrganizationInstructionsForm({
     <div className="space-y-4">
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium">
+          <label htmlFor="org-ai-instructions" className="text-sm font-medium">
             Organization AI Instructions
           </label>
           {!canEdit && (
@@ -65,6 +65,7 @@ export function OrganizationInstructionsForm({
           )}
         </div>
         <Textarea
+          id="org-ai-instructions"
           placeholder={
             canEdit
               ? "Enter organization-wide guidelines and instructions for the AI. These will be included in all chat responses across all projects to help guide AI behavior for your organization."

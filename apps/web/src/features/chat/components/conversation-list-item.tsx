@@ -46,6 +46,8 @@ export function ConversationListItem({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       className={cn(
         "group relative flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-accent cursor-pointer",
         isActive && "bg-accent border-primary",
@@ -53,6 +55,13 @@ export function ConversationListItem({
         isArchived && "opacity-75"
       )}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+      aria-label={`Conversation: ${conversation.title || "Untitled Conversation"}`}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">

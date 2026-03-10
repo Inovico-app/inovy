@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { UserAnalyticsCharts } from "@/features/admin/components/agent/user-analytics-charts";
+import { UserAnalyticsChartsLazy } from "@/features/admin/components/agent/user-analytics-charts-lazy";
 import { UserAnalyticsFilters } from "@/features/admin/components/agent/user-analytics-filters";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
@@ -133,7 +133,7 @@ async function UserAnalyticsContent({
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         {/* Main Content */}
         <div className="min-w-0 flex-1">
-          <UserAnalyticsCharts
+          <UserAnalyticsChartsLazy
             engagementMetrics={engagementMetrics}
             startDate={startDate}
             endDate={endDate}

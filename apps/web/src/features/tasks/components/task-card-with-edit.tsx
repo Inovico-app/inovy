@@ -2,7 +2,9 @@
 
 import { Badge } from "@/components/ui/badge";
 import type { TaskDto } from "@/server/dto/task.dto";
+import DOMPurify from "dompurify";
 import { CheckCircle2Icon, CircleIcon } from "lucide-react";
+import { useMemo } from "react";
 import { EditTaskDialog } from "./edit-task-dialog";
 import { TaskVersionHistoryDialog } from "./task-version-history-dialog";
 
@@ -11,6 +13,11 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task }: TaskCardProps) {
+  const sanitizedDescription = useMemo(
+    () => (task.description ? DOMPurify.sanitize(task.description) : ""),
+    [task.description]
+  );
+
   return (
     <div className="border rounded-lg p-4 hover:bg-accent/50 transition-colors">
       <div className="flex items-start justify-between gap-4">
@@ -32,7 +39,9 @@ export function TaskCard({ task }: TaskCardProps) {
             {task.description && (
               <div
                 className="text-sm text-muted-foreground mb-2 prose prose-sm dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: task.description }}
+                // SAFETY: Content is sanitized with DOMPurify above to prevent XSS.
+                // Task descriptions may contain HTML from AI-generated markdown conversion.
+                dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
               />
             )}
             <div className="flex flex-wrap items-center gap-2">

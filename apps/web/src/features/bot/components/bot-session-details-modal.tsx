@@ -175,7 +175,7 @@ export function BotSessionDetailsModal({
                     <h3 className="font-semibold mb-3">Participants</h3>
                     <div className="space-y-1">
                       {session.meetingParticipants.map((participant, index) => (
-                        <div key={index} className="text-sm">
+                        <div key={`participant-${index}-${participant}`} className="text-sm">
                           {participant}
                         </div>
                       ))}

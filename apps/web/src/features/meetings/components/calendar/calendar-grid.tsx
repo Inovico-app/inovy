@@ -61,7 +61,7 @@ export function CalendarGrid({
 
           return (
             <div
-              key={`${day.date.toISOString()}-${index}`}
+              key={day.date.toISOString()}
               role="gridcell"
               aria-label={format(day.date, "EEEE, MMMM d, yyyy")}
               tabIndex={isInteractive ? 0 : undefined}

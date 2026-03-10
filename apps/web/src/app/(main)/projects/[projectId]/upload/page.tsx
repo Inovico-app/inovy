@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export async function generateMetadata({ params }: UploadRecordingPageProps): Promise<Metadata> {
+  const { projectId } = await params;
+  return { title: `Upload Recording - Project ${projectId}` };
+}
 import { ProjectService } from "@/server/services/project.service";
 import { ArrowLeftIcon } from "lucide-react";
 import type { Route } from "next";

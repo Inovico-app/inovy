@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { MeetingDetailContent } from "@/features/meetings/components/meeting-detail-content";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { meetingId } = await params;
+  return { title: `Meeting ${meetingId}` };
+}
 import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
 import { MeetingNotesQueries } from "@/server/data-access/meeting-notes.queries";
 import { MeetingPostActionsQueries } from "@/server/data-access/meeting-post-actions.queries";

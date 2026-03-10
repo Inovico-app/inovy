@@ -26,7 +26,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useSearchParams } from "next/navigation";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { MeetingDetailsModal } from "../meeting-details-modal";
 import { MeetingsList } from "../meetings/meetings-list";
@@ -49,7 +49,15 @@ function validateTimePeriod(value: string | undefined): TimePeriod {
   return "upcoming";
 }
 
-export function CalendarViewComponent({
+export function CalendarViewComponent(props: CalendarViewProps) {
+  return (
+    <Suspense fallback={null}>
+      <CalendarViewInner {...props} />
+    </Suspense>
+  );
+}
+
+function CalendarViewInner({
   initialDate = new Date(),
   selectedStatus: initialSelectedStatus = "all",
 }: CalendarViewProps) {

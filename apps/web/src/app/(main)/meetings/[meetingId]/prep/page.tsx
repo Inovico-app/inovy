@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { meetingId } = await params;
+  return { title: `Meeting Prep ${meetingId}` };
+}
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";

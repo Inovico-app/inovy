@@ -29,7 +29,7 @@ export function AgentConfigToggle({
   enabled,
 }: AgentConfigToggleProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [pendingEnabled, setPendingEnabled] = useState(enabled);
+  const [pendingEnabled, setPendingEnabled] = useState(() => enabled);
 
   const { execute, status } = useAction(updateAgentConfig, {
     onSuccess: ({ data }) => {

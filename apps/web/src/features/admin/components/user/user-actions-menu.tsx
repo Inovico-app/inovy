@@ -56,7 +56,7 @@ export function UserActionsMenu({
   const [showRoleDialog, setShowRoleDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<string>(currentRole);
+  const [selectedRole, setSelectedRole] = useState<string>(() => currentRole);
 
   const handleRemoveMember = async () => {
     setIsDeleting(true);

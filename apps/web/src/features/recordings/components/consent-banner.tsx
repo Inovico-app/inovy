@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
-import { useState, useRef } from "react";
 import { useConsentBanner } from "../hooks/use-consent-banner";
 
 interface ConsentBannerProps {
@@ -24,23 +23,13 @@ export function ConsentBanner({
   onConsentGranted,
   onConsentDenied,
 }: ConsentBannerProps) {
-  // Use local state to ensure dialog closes immediately when consent is granted
-  const [localIsOpen, setLocalIsOpen] = useState(isOpen);
-  const prevIsOpenRef = useRef(isOpen);
-
-  // Sync local state with prop during render (no useEffect needed)
-  if (prevIsOpenRef.current !== isOpen) {
-    prevIsOpenRef.current = isOpen;
-    setLocalIsOpen(isOpen);
-  }
-
   const {
     hasRead,
     setHasRead,
     handleOpenChange,
     handleConsentGranted,
   } = useConsentBanner({
-    isOpen: localIsOpen,
+    isOpen,
     onConsentGranted,
     onConsentDenied,
   });
@@ -49,20 +38,12 @@ export function ConsentBanner({
   const handleConsentGrantedClick = () => {
     // Call the handler which sets the ref flag and notifies parent
     handleConsentGranted();
-    // Close dialog immediately using local state
-    setLocalIsOpen(false);
-    // Also call handleOpenChange to ensure hook state is updated
+    // Close dialog via hook handler to ensure state is updated
     handleOpenChange(false);
   };
 
-  // Handle dialog open/close changes
-  const handleDialogOpenChange = (open: boolean) => {
-    setLocalIsOpen(open);
-    handleOpenChange(open);
-  };
-
   return (
-    <Dialog open={localIsOpen} onOpenChange={handleDialogOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md" showCloseButton={false}>
         <DialogHeader>
           <div className="flex items-center gap-2">

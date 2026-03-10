@@ -109,7 +109,7 @@ async function AdminUsersContainer() {
             fallback={
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
+                  <Skeleton key={`skeleton-${i}`} className="h-16 w-full" />
                 ))}
               </div>
             }
@@ -123,7 +123,7 @@ async function AdminUsersContainer() {
             fallback={
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
+                  <Skeleton key={`skeleton-${i}`} className="h-16 w-full" />
                 ))}
               </div>
             }
@@ -147,7 +147,7 @@ export default function AdminUsersPage() {
           </div>
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-16 w-full" />
+              <Skeleton key={`skeleton-${i}`} className="h-16 w-full" />
             ))}
           </div>
         </div>

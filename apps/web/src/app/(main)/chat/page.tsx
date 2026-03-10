@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { ProtectedPage } from "@/components/protected-page";
 import { Card } from "@/components/ui/card";
+
+export const metadata: Metadata = { title: "Chat" };
 import { UnifiedChatInterface } from "@/features/chat/components/unified-chat-interface";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { canAccessOrganizationChat } from "@/lib/rbac/rbac";

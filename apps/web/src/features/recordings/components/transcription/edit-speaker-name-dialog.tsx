@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { updateSpeakerNames } from "@/features/recordings/actions/update-speaker-names";
 import { useOrganizationMembers } from "@/features/tasks/hooks/use-organization-members";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 interface EditSpeakerNameDialogProps {
@@ -48,18 +48,13 @@ export function EditSpeakerNameDialog({
   const { members: users = [], isLoading: isLoadingUsers } =
     useOrganizationMembers();
 
-  // Update state when props change
-  useEffect(() => {
-    if (isOpen) {
-      setName(currentName || "");
-      setSelectedUserId(currentUserId || null);
-    }
-  }, [isOpen, currentName, currentUserId]);
-
   // Auto-fill name when user is selected (only if name field is empty)
-  useEffect(() => {
-    if (selectedUserId && !name.trim()) {
-      const selectedUser = users.find((u) => u.id === selectedUserId);
+  const handleUserChange = (value: string) => {
+    const newUserId = value === "__none__" ? null : value;
+    setSelectedUserId(newUserId);
+
+    if (newUserId && !name.trim()) {
+      const selectedUser = users.find((u) => u.id === newUserId);
       if (selectedUser) {
         const fullName = [selectedUser.given_name, selectedUser.family_name]
           .filter(Boolean)
@@ -69,7 +64,7 @@ export function EditSpeakerNameDialog({
         }
       }
     }
-  }, [selectedUserId, users, name]);
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -111,10 +106,8 @@ export function EditSpeakerNameDialog({
   };
 
   const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      setName(currentName || "");
-      setSelectedUserId(currentUserId || null);
-    }
+    setName(currentName || "");
+    setSelectedUserId(currentUserId || null);
     onOpenChange(open);
   };
 
@@ -134,9 +127,7 @@ export function EditSpeakerNameDialog({
             </Label>
             <Select
               value={selectedUserId ?? "__none__"}
-              onValueChange={(value) =>
-                setSelectedUserId(value === "__none__" ? null : value)
-              }
+              onValueChange={handleUserChange}
               disabled={isLoadingUsers || isSaving}
             >
               <SelectTrigger

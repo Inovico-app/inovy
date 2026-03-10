@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+
+export async function generateMetadata({ params }: ProjectDetailPageProps): Promise<Metadata> {
+  const { projectId } = await params;
+  return { title: `Project ${projectId}` };
+}
 import { ProjectActions } from "@/features/projects/components/project-actions";
 import { RecordingList } from "@/features/recordings/components/recording-list";
 import { ProjectService } from "@/server/services/project.service";
@@ -37,7 +43,10 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
   const { projectId } = await params;
   const { search } = await searchParams;
 
-  const projectResult = await ProjectService.getProjectById(projectId);
+  const [projectResult, statisticsResult] = await Promise.all([
+    ProjectService.getProjectById(projectId),
+    RecordingService.getProjectRecordingStatistics(projectId),
+  ]);
 
   if (projectResult.isErr()) {
     notFound();
@@ -46,9 +55,6 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
   const project = projectResult.value;
   const isArchived = project.status === "archived";
 
-  // Get recording statistics
-  const statisticsResult =
-    await RecordingService.getProjectRecordingStatistics(projectId);
   const statistics = statisticsResult.isOk()
     ? statisticsResult.value
     : { totalCount: 0, lastRecordingDate: null, recentCount: 0 };
@@ -207,7 +213,7 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
               fallback={
                 <div className="space-y-4">
                   {[...Array(3)].map((_, i) => (
-                    <Skeleton key={i} className="h-32 w-full" />
+                    <Skeleton key={`skeleton-${i}`} className="h-32 w-full" />
                   ))}
                 </div>
               }

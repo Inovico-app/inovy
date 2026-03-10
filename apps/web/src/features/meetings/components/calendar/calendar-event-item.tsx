@@ -62,7 +62,12 @@ export function CalendarEventItem({
         <span className="text-muted-foreground">{timeDisplay}</span>
         {hasBotSession && botSession ? (
           <>
-            <div onClick={(e) => e.stopPropagation()}>
+            <div
+              role="group"
+              aria-label="Bot session controls"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
               <BotSessionStatusTrigger
                 status={botSession.botStatus}
                 sessionId={botSession.id}
@@ -85,7 +90,12 @@ export function CalendarEventItem({
         ) : isPast ? (
           NoBotFallback
         ) : (
-          <div onClick={(e) => e.stopPropagation()}>
+          <div
+            role="group"
+            aria-label="Add bot controls"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <AddBotButton meeting={meeting} variant="icon" />
           </div>
         )}
@@ -160,8 +170,11 @@ export function CalendarEventItem({
         )}
       </div>
       <div
+        role="group"
+        aria-label="Meeting actions"
         className="flex min-h-[44px] flex-col items-end justify-center gap-1"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
       >
         {hasBotSession && botSession ? (
           <>
@@ -199,7 +212,7 @@ export function CalendarEventItem({
 
   return (
     <div
-      role={onMeetingClick ? "button" : "group"}
+      role={onMeetingClick ? "button" : undefined}
       aria-label={`${meeting.title} - ${timeDisplay}`}
       className={wrapperClassName}
       onClick={

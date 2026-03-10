@@ -42,7 +42,7 @@ export function ConsentManager({
   organizerEmail,
 }: ConsentManagerProps) {
   const [participants, setParticipants] = useState<ConsentParticipant[]>(
-    initialParticipants
+    () => initialParticipants
   );
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newParticipantEmail, setNewParticipantEmail] = useState("");

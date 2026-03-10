@@ -118,7 +118,7 @@ export function EnhancedSummarySection({
               <ul className="space-y-2">
                 {summary.content.topics.map((topic, idx) => (
                   <li
-                    key={idx}
+                    key={`topic-${idx}-${String(topic).slice(0, 20)}`}
                     className="text-sm text-muted-foreground flex items-start gap-2"
                   >
                     <span className="text-primary mt-1">•</span>
@@ -147,7 +147,7 @@ export function EnhancedSummarySection({
               <ul className="space-y-2">
                 {summary.content.decisions.map((decision, idx) => (
                   <li
-                    key={idx}
+                    key={`decision-${idx}-${String(decision).slice(0, 20)}`}
                     className="text-sm text-muted-foreground flex items-start gap-2"
                   >
                     <CheckCircle2Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
@@ -180,14 +180,14 @@ export function EnhancedSummarySection({
               <CollapsibleContent className="pt-2 px-2">
                 <div className="space-y-4">
                   {summary.content.speakerContributions.map((speaker, idx) => (
-                    <div key={idx}>
+                    <div key={`speaker-${idx}-${speaker.speaker}`}>
                       <p className="font-medium text-sm mb-2">
                         {speaker.speaker}
                       </p>
                       <ul className="space-y-1 ml-4">
                         {speaker.contributions.map((contribution, cIdx) => (
                           <li
-                            key={cIdx}
+                            key={`contribution-${cIdx}-${String(contribution).slice(0, 20)}`}
                             className="text-sm text-muted-foreground"
                           >
                             • {contribution}
@@ -219,7 +219,7 @@ export function EnhancedSummarySection({
                 <div className="space-y-3">
                   {summary.content.importantQuotes.map((quote, idx) => (
                     <div
-                      key={idx}
+                      key={`quote-${idx}-${quote.speaker}`}
                       className="border-l-2 border-primary pl-3 py-1"
                     >
                       <p className="text-sm italic text-muted-foreground">

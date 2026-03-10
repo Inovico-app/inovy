@@ -74,7 +74,7 @@ export function TranscriptionDisplay({
           <div className="space-y-4 max-w-4xl mx-auto">
             {transcripts.map((segment, index) => (
               <div
-                key={index}
+                key={`segment-${segment.timestamp}-${segment.speaker ?? "unknown"}`}
                 className="group relative p-4 bg-background rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-all duration-300 hover:border-primary/20"
                 style={{
                   animation: `fadeIn 0.3s ease-out ${index * 0.05}s both`,

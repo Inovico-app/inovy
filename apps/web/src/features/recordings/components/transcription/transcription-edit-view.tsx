@@ -26,7 +26,7 @@ export function TranscriptionEditView({
   onCancel,
   onSuccess,
 }: TranscriptionEditViewProps) {
-  const [editedText, setEditedText] = useState(transcriptionText);
+  const [editedText, setEditedText] = useState(() => transcriptionText);
   const [changeDescription, setChangeDescription] = useState("");
   const [showSearchReplace, setShowSearchReplace] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");

@@ -98,7 +98,7 @@ export function MeetingDetailContent({
                           <ul className="mt-1 space-y-0.5">
                             {item.aiKeyPoints.map((point, i) => (
                               <li
-                                key={i}
+                                key={`keypoint-${i}-${point.slice(0, 20)}`}
                                 className="text-xs text-muted-foreground pl-2 border-l-2 border-green-300 dark:border-green-700"
                               >
                                 {point}
@@ -189,8 +189,8 @@ export function MeetingDetailContent({
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {participants.map((p, i) => (
-                <Badge key={i} variant="outline">
+              {participants.map((p) => (
+                <Badge key={p.email} variant="outline">
                   {p.name || p.email}
                 </Badge>
               ))}

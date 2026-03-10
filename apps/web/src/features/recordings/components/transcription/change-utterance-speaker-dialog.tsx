@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { useAvailableSpeakers } from "@/features/recordings/hooks/use-available-speakers";
 import { useUpdateUtteranceSpeaker } from "@/features/recordings/hooks/use-update-utterance-speaker";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 interface ChangeUtteranceSpeakerDialogProps {
   isOpen: boolean;
@@ -44,19 +44,7 @@ export function ChangeUtteranceSpeakerDialog({
   onSuccess,
 }: ChangeUtteranceSpeakerDialogProps) {
   const [selectedSpeaker, setSelectedSpeaker] =
-    useState<number>(currentSpeaker);
-  const prevIsOpenRef = useRef(isOpen);
-  const prevCurrentSpeakerRef = useRef(currentSpeaker);
-
-  // Reset selected speaker when dialog opens or currentSpeaker changes (during render, not in effect)
-  if (
-    (isOpen && !prevIsOpenRef.current) ||
-    currentSpeaker !== prevCurrentSpeakerRef.current
-  ) {
-    setSelectedSpeaker(currentSpeaker);
-  }
-  prevIsOpenRef.current = isOpen;
-  prevCurrentSpeakerRef.current = currentSpeaker;
+    useState<number>(() => currentSpeaker);
 
   const availableSpeakers = useAvailableSpeakers({
     speakersDetected,
@@ -86,9 +74,7 @@ export function ChangeUtteranceSpeakerDialog({
   };
 
   const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      setSelectedSpeaker(currentSpeaker);
-    }
+    setSelectedSpeaker(currentSpeaker);
     onOpenChange(open);
   };
 

@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamMemberManagement } from "@/features/teams/components/team-member-management";
+
+export async function generateMetadata({ params }: TeamMembersPageProps): Promise<Metadata> {
+  const { teamId } = await params;
+  return { title: `Team Members ${teamId}` };
+}
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import {
   canAccessTeam,
@@ -64,7 +70,7 @@ export default async function TeamMembersPage({
       fallback={
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-20" />
+            <Skeleton key={`skeleton-${i}`} className="h-20" />
           ))}
         </div>
       }

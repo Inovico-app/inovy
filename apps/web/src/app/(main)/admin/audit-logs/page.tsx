@@ -114,7 +114,7 @@ export default function AuditLogsPage(props: AuditLogsPageProps) {
               <div className="space-y-4">
                 {[...Array(5)].map((_, i) => (
                   <div
-                    key={i}
+                    key={`skeleton-${i}`}
                     className="h-16 bg-muted rounded animate-pulse"
                   />
                 ))}

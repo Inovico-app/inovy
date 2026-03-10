@@ -1,5 +1,8 @@
 import { NotificationsListServer } from "@/features/notifications/components/notifications-list-server";
+import type { Metadata } from "next";
 import { Suspense } from "react";
+
+export const metadata: Metadata = { title: "Notifications" };
 
 /**
  * Notifications page
