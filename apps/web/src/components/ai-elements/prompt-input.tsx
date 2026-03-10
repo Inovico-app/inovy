@@ -34,13 +34,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 import type { ChatStatus, FileUIPart } from "ai";
 import {
   ImageIcon,
   Loader2Icon,
-  MicIcon,
   PaperclipIcon,
   PlusIcon,
   SendIcon,
@@ -992,180 +990,10 @@ export const PromptInputSubmit = ({
   );
 };
 
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start(): void;
-  stop(): void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onstart: ((this: SpeechRecognition, ev: Event) => any) | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onend: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onresult:
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    | ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any)
-    | null;
-  onerror:
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    | ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any)
-    | null;
-}
-
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-}
-
-type SpeechRecognitionResultList = {
-  readonly length: number;
-  item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
-};
-
-type SpeechRecognitionResult = {
-  readonly length: number;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-  isFinal: boolean;
-};
-
-type SpeechRecognitionAlternative = {
-  transcript: string;
-  confidence: number;
-};
-
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string;
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition: {
-      new (): SpeechRecognition;
-    };
-    webkitSpeechRecognition: {
-      new (): SpeechRecognition;
-    };
-  }
-}
-
-export type PromptInputSpeechButtonProps = ComponentProps<
-  typeof PromptInputButton
-> & {
-  textareaRef?: RefObject<HTMLTextAreaElement | null>;
-  onTranscriptionChange?: (text: string) => void;
-};
-
-export const PromptInputSpeechButton = ({
-  className,
-  textareaRef,
-  onTranscriptionChange,
-  ...props
-}: PromptInputSpeechButtonProps) => {
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const isInitializedRef = useRef(false);
-
-  // Initialize speech recognition lazily on first interaction
-  const getRecognition = useCallback((): SpeechRecognition | null => {
-    if (recognitionRef.current) return recognitionRef.current;
-    if (isInitializedRef.current) return null;
-
-    isInitializedRef.current = true;
-
-    if (
-      typeof window === "undefined" ||
-      !("SpeechRecognition" in window || "webkitSpeechRecognition" in window)
-    ) {
-      return null;
-    }
-
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    const speechRecognition = new SpeechRecognition();
-
-    speechRecognition.continuous = true;
-    speechRecognition.interimResults = true;
-    speechRecognition.lang = "en-US";
-
-    speechRecognition.onstart = () => {
-      setIsListening(true);
-    };
-
-    speechRecognition.onend = () => {
-      setIsListening(false);
-    };
-
-    speechRecognition.onresult = (event) => {
-      let finalTranscript = "";
-
-      const results = Array.from(event.results);
-
-      for (const result of results) {
-        if (result.isFinal) {
-          finalTranscript += result[0]?.transcript ?? "";
-        }
-      }
-
-      if (finalTranscript && textareaRef?.current) {
-        const textarea = textareaRef.current;
-        const currentValue = textarea.value;
-        const newValue =
-          currentValue + (currentValue ? " " : "") + finalTranscript;
-
-        textarea.value = newValue;
-        textarea.dispatchEvent(new Event("input", { bubbles: true }));
-        onTranscriptionChange?.(newValue);
-      }
-    };
-
-    speechRecognition.onerror = (event) => {
-      logger.error("Speech recognition error", {
-        component: "PromptInputSpeechButton",
-        error: event.error,
-      });
-      setIsListening(false);
-    };
-
-    recognitionRef.current = speechRecognition;
-    return speechRecognition;
-  }, [textareaRef, onTranscriptionChange]);
-
-  useEffect(() => {
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, []);
-
-  const toggleListening = useCallback(() => {
-    const recognition = getRecognition();
-    if (!recognition) {
-      return;
-    }
-
-    if (isListening) {
-      recognition.stop();
-    } else {
-      recognition.start();
-    }
-  }, [getRecognition, isListening]);
-
-  return (
-    <PromptInputButton
-      className={cn(
-        "relative transition-all duration-200",
-        isListening && "animate-pulse bg-accent text-accent-foreground",
-        className
-      )}
-      onClick={toggleListening}
-      {...props}
-    >
-      <MicIcon className="size-4" />
-    </PromptInputButton>
-  );
-};
+export {
+  PromptInputSpeechButton,
+  type PromptInputSpeechButtonProps,
+} from "./prompt-input-speech-button";
 
 export type PromptInputModelSelectProps = ComponentProps<typeof Select>;
 

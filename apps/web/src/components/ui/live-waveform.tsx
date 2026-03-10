@@ -3,6 +3,11 @@
 import { useEffect, useRef, type HTMLAttributes } from "react";
 
 import { cn } from "@/lib/utils";
+import {
+  calculateScrollingAverage,
+  generateProcessingData,
+  generateStaticBars,
+} from "./live-waveform-utils";
 
 export type LiveWaveformProps = HTMLAttributes<HTMLDivElement> & {
   active?: boolean;
@@ -110,70 +115,16 @@ export const LiveWaveform = ({
           transitionProgressRef.current + 0.02
         );
 
-        const processingData = [];
-        const barCount = Math.floor(
-          (containerRef.current?.getBoundingClientRect().width || 200) /
-            (barWidth + barGap)
-        );
-
-        if (mode === "static") {
-          const halfCount = Math.floor(barCount / 2);
-
-          for (let i = 0; i < barCount; i++) {
-            const normalizedPosition = (i - halfCount) / halfCount;
-            const centerWeight = 1 - Math.abs(normalizedPosition) * 0.4;
-
-            const wave1 = Math.sin(time * 1.5 + normalizedPosition * 3) * 0.25;
-            const wave2 = Math.sin(time * 0.8 - normalizedPosition * 2) * 0.2;
-            const wave3 = Math.cos(time * 2 + normalizedPosition) * 0.15;
-            const combinedWave = wave1 + wave2 + wave3;
-            const processingValue = (0.2 + combinedWave) * centerWeight;
-
-            let finalValue = processingValue;
-            if (
-              lastActiveDataRef.current.length > 0 &&
-              transitionProgressRef.current < 1
-            ) {
-              const lastDataIndex = Math.min(
-                i,
-                lastActiveDataRef.current.length - 1
-              );
-              const lastValue = lastActiveDataRef.current[lastDataIndex] || 0;
-              finalValue =
-                lastValue * (1 - transitionProgressRef.current) +
-                processingValue * transitionProgressRef.current;
-            }
-
-            processingData.push(Math.max(0.05, Math.min(1, finalValue)));
-          }
-        } else {
-          for (let i = 0; i < barCount; i++) {
-            const normalizedPosition = (i - barCount / 2) / (barCount / 2);
-            const centerWeight = 1 - Math.abs(normalizedPosition) * 0.4;
-
-            const wave1 = Math.sin(time * 1.5 + i * 0.15) * 0.25;
-            const wave2 = Math.sin(time * 0.8 - i * 0.1) * 0.2;
-            const wave3 = Math.cos(time * 2 + i * 0.05) * 0.15;
-            const combinedWave = wave1 + wave2 + wave3;
-            const processingValue = (0.2 + combinedWave) * centerWeight;
-
-            let finalValue = processingValue;
-            if (
-              lastActiveDataRef.current.length > 0 &&
-              transitionProgressRef.current < 1
-            ) {
-              const lastDataIndex = Math.floor(
-                (i / barCount) * lastActiveDataRef.current.length
-              );
-              const lastValue = lastActiveDataRef.current[lastDataIndex] || 0;
-              finalValue =
-                lastValue * (1 - transitionProgressRef.current) +
-                processingValue * transitionProgressRef.current;
-            }
-
-            processingData.push(Math.max(0.05, Math.min(1, finalValue)));
-          }
-        }
+        const processingData = generateProcessingData({
+          containerWidth:
+            containerRef.current?.getBoundingClientRect().width || 200,
+          barWidth,
+          barGap,
+          mode,
+          time,
+          lastActiveData: lastActiveDataRef.current,
+          transitionProgress: transitionProgressRef.current,
+        });
 
         if (mode === "static") {
           staticBarsRef.current = processingData;
@@ -340,60 +291,25 @@ export const LiveWaveform = ({
         lastUpdateRef.current = currentTime;
 
         if (analyserRef.current) {
-          const dataArray = new Uint8Array(
-            analyserRef.current.frequencyBinCount
-          );
-          analyserRef.current.getByteFrequencyData(dataArray);
-
           if (mode === "static") {
-            // For static mode, update bars in place
-            const startFreq = Math.floor(dataArray.length * 0.05);
-            const endFreq = Math.floor(dataArray.length * 0.4);
-            const relevantData = dataArray.slice(startFreq, endFreq);
-
             const barCount = Math.floor(rect.width / (barWidth + barGap));
-            const halfCount = Math.floor(barCount / 2);
-            const newBars: number[] = [];
-
-            // Mirror the data for symmetric display
-            for (let i = halfCount - 1; i >= 0; i--) {
-              const dataIndex = Math.floor(
-                (i / halfCount) * relevantData.length
-              );
-              const value = Math.min(
-                1,
-                (relevantData[dataIndex] / 255) * sensitivity
-              );
-              newBars.push(Math.max(0.05, value));
-            }
-
-            for (let i = 0; i < halfCount; i++) {
-              const dataIndex = Math.floor(
-                (i / halfCount) * relevantData.length
-              );
-              const value = Math.min(
-                1,
-                (relevantData[dataIndex] / 255) * sensitivity
-              );
-              newBars.push(Math.max(0.05, value));
-            }
+            const newBars = generateStaticBars({
+              analyser: analyserRef.current,
+              barCount,
+              sensitivity,
+            });
 
             staticBarsRef.current = newBars;
             lastActiveDataRef.current = newBars;
           } else {
             // Scrolling mode - original behavior
-            let sum = 0;
-            const startFreq = Math.floor(dataArray.length * 0.05);
-            const endFreq = Math.floor(dataArray.length * 0.4);
-            const relevantData = dataArray.slice(startFreq, endFreq);
-
-            for (let i = 0; i < relevantData.length; i++) {
-              sum += relevantData[i];
-            }
-            const average = (sum / relevantData.length / 255) * sensitivity;
+            const average = calculateScrollingAverage({
+              analyser: analyserRef.current,
+              sensitivity,
+            });
 
             // Add to history
-            historyRef.current.push(Math.min(1, Math.max(0.05, average)));
+            historyRef.current.push(average);
             lastActiveDataRef.current = [...historyRef.current];
 
             // Maintain history size
