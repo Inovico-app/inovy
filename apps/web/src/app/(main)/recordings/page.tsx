@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { ProtectedPage } from "@/components/protected-page";
 import { RecordingsOverview } from "@/features/recordings/components/recordings-overview";
 import { Suspense } from "react";
+
+export const metadata: Metadata = { title: "Recordings" };
 
 export default async function RecordingsPage() {
   // CACHE COMPONENTS: Wrap dynamic content in Suspense to enable static shell generation

@@ -34,7 +34,7 @@ export function ProjectTemplateSectionClient({
   initialTemplate,
 }: ProjectTemplateSectionClientProps) {
   const [template, setTemplate] = useState<ProjectTemplateDto | null>(
-    initialTemplate
+    () => initialTemplate
   );
   const [isEditing, setIsEditing] = useState(false);
 

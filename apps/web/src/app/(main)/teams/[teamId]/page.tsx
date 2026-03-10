@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamDashboard } from "@/features/teams/components/team-dashboard";
+
+export async function generateMetadata({ params }: TeamPageProps): Promise<Metadata> {
+  const { teamId } = await params;
+  return { title: `Team ${teamId}` };
+}
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { canAccessTeam } from "@/lib/rbac/rbac";
 import { redirect } from "next/navigation";
@@ -50,8 +56,8 @@ export default async function TeamPage({ params }: TeamPageProps) {
         <div className="space-y-6">
           <Skeleton className="h-32" />
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-32" />
+            {[...Array(3)].map((_, i: number) => (
+              <Skeleton key={`skeleton-${i}`} className="h-32" />
             ))}
           </div>
         </div>

@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { TasksListServer } from "@/features/tasks/components/tasks-list-server";
 import { Suspense } from "react";
+
+export const metadata: Metadata = { title: "Tasks" };
 
 export default async function TasksPage() {
   // CACHE COMPONENTS: Wrap dynamic content in Suspense to enable static shell generation

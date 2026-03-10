@@ -36,8 +36,8 @@ export function OrganizationKnowledgeBaseSection({
   organizationId,
   canEdit,
 }: OrganizationKnowledgeBaseSectionProps) {
-  const [entries, setEntries] = useState(initialEntries);
-  const [documents, setDocuments] = useState(initialDocuments);
+  const [entries, setEntries] = useState(() => initialEntries);
+  const [documents, setDocuments] = useState(() => initialDocuments);
   const [showCreateEntryDialog, setShowCreateEntryDialog] = useState(false);
   const [showUploadDocumentDialog, setShowUploadDocumentDialog] =
     useState(false);

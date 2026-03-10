@@ -43,10 +43,10 @@ export function ProjectKnowledgeBaseSection({
   organizationId,
   canEdit,
 }: ProjectKnowledgeBaseSectionProps) {
-  const [projectEntries, setProjectEntries] = useState(initialProjectEntries);
-  const [documents, setDocuments] = useState(initialProjectDocuments);
+  const [projectEntries, setProjectEntries] = useState(() => initialProjectEntries);
+  const [documents, setDocuments] = useState(() => initialProjectDocuments);
   const [hierarchicalEntries, setHierarchicalEntries] =
-    useState(initialHierarchicalEntries);
+    useState(() => initialHierarchicalEntries);
   const [showCreateEntryDialog, setShowCreateEntryDialog] = useState(false);
   const [showUploadDocumentDialog, setShowUploadDocumentDialog] = useState(false);
 

@@ -29,7 +29,7 @@ export function OrganizationInstructionsSection({
   organizationId,
   canEdit,
 }: OrganizationInstructionsSectionProps) {
-  const [instructions, setInstructions] = useState(initialInstructions);
+  const [instructions, setInstructions] = useState(() => initialInstructions);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 

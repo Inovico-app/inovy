@@ -46,16 +46,13 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
       ? await isProjectManager(authResult.value.user, projectId)
       : false;
 
-  // Fetch knowledge base data
-  const projectEntries = await getCachedKnowledgeEntries("project", projectId);
-  const projectDocuments = await getCachedKnowledgeDocuments(
-    "project",
-    projectId
-  );
-  const hierarchicalEntries = await getCachedHierarchicalKnowledge(
-    projectId,
-    project.organizationId
-  );
+  // Fetch knowledge base data in parallel
+  const [projectEntries, projectDocuments, hierarchicalEntries] =
+    await Promise.all([
+      getCachedKnowledgeEntries("project", projectId),
+      getCachedKnowledgeDocuments("project", projectId),
+      getCachedHierarchicalKnowledge(projectId, project.organizationId),
+    ]);
 
   return (
     <div className="container mx-auto py-8 px-4">

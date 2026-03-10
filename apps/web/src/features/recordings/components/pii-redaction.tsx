@@ -153,7 +153,7 @@ export function PIIRedaction({
                 );
                 return (
                   <div
-                    key={index}
+                    key={`pii-${detection.type}-${detection.startIndex}-${detection.endIndex}`}
                     className={`flex items-center justify-between p-2 rounded border ${
                       redacted ? "bg-muted" : ""
                     }`}

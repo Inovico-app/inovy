@@ -31,7 +31,7 @@ export function ProjectTemplateForm({
   onCancel,
   isLoading = false,
 }: ProjectTemplateFormProps) {
-  const [instructions, setInstructions] = useState(initialValue);
+  const [instructions, setInstructions] = useState(() => initialValue);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSubmit = async () => {
@@ -56,8 +56,9 @@ export function ProjectTemplateForm({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <label className="text-sm font-medium">Project Instructions</label>
+        <label htmlFor="project-instructions" className="text-sm font-medium">Project Instructions</label>
         <Textarea
+          id="project-instructions"
           placeholder="Enter project-specific guidelines and instructions for the AI. These will be included in chat responses to help guide AI behavior for this project."
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}

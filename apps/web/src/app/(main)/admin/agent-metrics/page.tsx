@@ -1,5 +1,18 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { AgentAnalyticsCharts } from "@/features/admin/components/agent/agent-analytics-charts";
+import dynamic from "next/dynamic";
+
+const AgentAnalyticsCharts = dynamic(
+  () =>
+    import(
+      "@/features/admin/components/agent/agent-analytics-charts"
+    ).then((m) => m.AgentAnalyticsCharts),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-96 animate-pulse rounded-lg bg-muted" />
+    ),
+  }
+);
 import { AgentMetricsExport } from "@/features/admin/components/agent/agent-metrics-export";
 import { AgentMetricsFilters } from "@/features/admin/components/agent/agent-metrics-filters";
 import { AgentMetricsTable } from "@/features/admin/components/agent/agent-metrics-table";

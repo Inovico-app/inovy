@@ -1,5 +1,6 @@
 import { ProtectedPage } from "@/components/protected-page";
 import { DashboardGetStarted } from "@/features/dashboard/components/dashboard-get-started";
+import type { Metadata } from "next";
 import { DashboardGreeting } from "@/features/dashboard/components/dashboard-greeting";
 import { DashboardPendingTasks } from "@/features/dashboard/components/dashboard-pending-tasks";
 import { DashboardRecentRecordings } from "@/features/dashboard/components/dashboard-recent-recordings";
@@ -15,6 +16,8 @@ import {
   getCachedTasksWithContext,
 } from "@/server/cache/task.cache";
 import { OnboardingService } from "@/server/services/onboarding.service";
+
+export const metadata: Metadata = { title: "Dashboard" };
 
 async function DashboardContent() {
   const authResult = await getBetterAuthSession();

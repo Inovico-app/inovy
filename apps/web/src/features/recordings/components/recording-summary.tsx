@@ -98,7 +98,7 @@ export function RecordingSummary({
             <h3 className="text-sm font-semibold mb-2">Key Topics</h3>
             <ul className="space-y-1">
               {content.topics.map((topic, index) => (
-                <li key={index} className="text-sm flex items-start">
+                <li key={`topic-${index}-${String(topic).slice(0, 20)}`} className="text-sm flex items-start">
                   <span className="text-primary mr-2">•</span>
                   {topic}
                 </li>
@@ -113,7 +113,7 @@ export function RecordingSummary({
             <h3 className="text-sm font-semibold mb-2">Decisions</h3>
             <ul className="space-y-1">
               {content.decisions.map((decision, index) => (
-                <li key={index} className="text-sm flex items-start">
+                <li key={`decision-${index}-${String(decision).slice(0, 20)}`} className="text-sm flex items-start">
                   <span className="text-primary mr-2">•</span>
                   {decision}
                 </li>
@@ -131,13 +131,13 @@ export function RecordingSummary({
               </h3>
               <div className="space-y-3">
                 {content.speakerContributions.map((speaker, index) => (
-                  <div key={index} className="p-3 rounded-lg bg-muted/50">
+                  <div key={`speaker-${index}-${speaker.speaker}`} className="p-3 rounded-lg bg-muted/50">
                     <Badge variant="secondary" className="mb-2">
                       {speaker.speaker}
                     </Badge>
                     <ul className="space-y-1">
                       {speaker.contributions.map((contribution, cIndex) => (
-                        <li key={cIndex} className="text-sm flex items-start">
+                        <li key={`contribution-${cIndex}-${String(contribution).slice(0, 20)}`} className="text-sm flex items-start">
                           <span className="text-muted-foreground mr-2">-</span>
                           {contribution}
                         </li>
@@ -156,7 +156,7 @@ export function RecordingSummary({
             <div className="space-y-2">
               {content.importantQuotes.map((quote, index) => (
                 <div
-                  key={index}
+                  key={`quote-${index}-${quote.speaker}`}
                   className="p-3 rounded-lg bg-muted/50 border-l-4 border-primary"
                 >
                   <p className="text-sm italic mb-1">

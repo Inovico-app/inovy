@@ -1,5 +1,18 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { UserAnalyticsCharts } from "@/features/admin/components/agent/user-analytics-charts";
+import dynamic from "next/dynamic";
+
+const UserAnalyticsCharts = dynamic(
+  () =>
+    import(
+      "@/features/admin/components/agent/user-analytics-charts"
+    ).then((m) => m.UserAnalyticsCharts),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-96 animate-pulse rounded-lg bg-muted" />
+    ),
+  }
+);
 import { UserAnalyticsFilters } from "@/features/admin/components/agent/user-analytics-filters";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";

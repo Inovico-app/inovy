@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { TeamWithMemberCount } from "@/server/cache/team.cache";
 import { Edit, Plus, Search, Trash2, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Activity, useEffect, useMemo, useState } from "react";
+import { Activity, useMemo, useState } from "react";
 import { createTeam, deleteTeam, updateTeam } from "../../actions/teams";
 
 interface TeamManagementClientProps {
@@ -39,11 +39,10 @@ export function TeamManagementClient({
   const [editDepartmentId, setEditDepartmentId] = useState<string>("none");
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    if (editingTeam) {
-      setEditDepartmentId(editingTeam.departmentId ?? "none");
-    }
-  }, [editingTeam]);
+  const handleEditTeam = (team: TeamWithMemberCount) => {
+    setEditingTeam(team);
+    setEditDepartmentId(team.departmentId ?? "none");
+  };
 
   const handleCreate = async (formData: FormData) => {
     setIsSubmitting(true);
@@ -248,7 +247,7 @@ export function TeamManagementClient({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setEditingTeam(team)}
+                    onClick={() => handleEditTeam(team)}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>

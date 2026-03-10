@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import { BotSessionsList } from "@/features/bot/components/bot-sessions-list";
+
+export const metadata: Metadata = { title: "Bot Sessions" };
 import { BotSessionsTabs } from "@/features/bot/components/bot-sessions-tabs";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { getCachedBotSessions } from "@/server/cache/bot-sessions.cache";
@@ -119,7 +122,7 @@ export default function BotSessionsPage({
             <div className="space-y-4">
               {[...Array(3)].map((_, i) => (
                 <div
-                  key={i}
+                  key={`skeleton-${i}`}
                   className="h-32 bg-muted rounded animate-pulse"
                   aria-hidden="true"
                 />

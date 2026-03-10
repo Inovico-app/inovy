@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreateProjectModal } from "@/features/projects/components/create-project-modal";
+
+export const metadata: Metadata = { title: "Projects" };
 import { ProjectSearch } from "@/features/projects/components/project-search";
 import { ProjectTabs } from "@/features/projects/components/project-tabs";
 import { formatDateShort } from "@/lib/formatters/date-formatters";
@@ -196,7 +199,7 @@ export default function ProjectsPage({ searchParams }: ProjectsPageProps) {
             <div className="h-12 bg-muted rounded animate-pulse" />
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-48 bg-muted rounded animate-pulse" />
+                <div key={`skeleton-${i}`} className="h-48 bg-muted rounded animate-pulse" />
               ))}
             </div>
           </div>

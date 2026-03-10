@@ -34,7 +34,7 @@ export function DashboardGetStarted() {
       <CardContent>
         <div className="space-y-3">
           {steps.map((step, i) => (
-            <div key={i} className="flex items-center gap-3">
+            <div key={`step-${step.label.slice(0, 20)}`} className="flex items-center gap-3">
               <div
                 className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${
                   i === 0

@@ -157,11 +157,22 @@ export function UploadKnowledgeDocumentDialog({
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
+              role="button"
+              tabIndex={0}
               onClick={() => {
                 if (!isLoading && selectedFiles.length < maxBatchSize) {
                   document.getElementById("file")?.click();
                 }
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  if (!isLoading && selectedFiles.length < maxBatchSize) {
+                    document.getElementById("file")?.click();
+                  }
+                }
+              }}
+              aria-label="Upload document"
               className={cn(
                 "border-2 border-dashed rounded-lg p-6 transition-colors",
                 isDragOver

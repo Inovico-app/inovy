@@ -96,7 +96,7 @@ export function Sidebar() {
         </div>
         <nav className="flex-1 space-y-1 p-2">
           {[...Array(navLinks.length)].map((_, i) => (
-            <Skeleton key={i} className="h-10 w-full mb-2" />
+            <Skeleton key={`skeleton-${i}`} className="h-10 w-full mb-2" />
           ))}
         </nav>
       </aside>

@@ -100,7 +100,7 @@ export function HierarchicalKnowledgeEntryList({
                           <strong className="text-sm">Examples:</strong>
                           <ul className="list-disc list-inside mt-1 text-sm text-muted-foreground">
                             {entry.examples.map((example, idx) => (
-                              <li key={idx}>{example}</li>
+                              <li key={`example-${idx}-${example.slice(0, 20)}`}>{example}</li>
                             ))}
                           </ul>
                         </div>
@@ -176,7 +176,7 @@ export function HierarchicalKnowledgeEntryList({
                           <strong className="text-sm">Examples:</strong>
                           <ul className="list-disc list-inside mt-1 text-sm text-muted-foreground">
                             {entry.examples.map((example, idx) => (
-                              <li key={idx}>{example}</li>
+                              <li key={`example-${idx}-${example.slice(0, 20)}`}>{example}</li>
                             ))}
                           </ul>
                         </div>
@@ -229,7 +229,7 @@ export function HierarchicalKnowledgeEntryList({
                           <strong className="text-sm">Examples:</strong>
                           <ul className="list-disc list-inside mt-1 text-sm text-muted-foreground">
                             {entry.examples.map((example, idx) => (
-                              <li key={idx}>{example}</li>
+                              <li key={`example-${idx}-${example.slice(0, 20)}`}>{example}</li>
                             ))}
                           </ul>
                         </div>

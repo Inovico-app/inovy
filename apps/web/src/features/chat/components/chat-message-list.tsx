@@ -80,7 +80,7 @@ export function ChatMessageList({
                   if (isToolPart(part)) {
                     return (
                       <ToolResultCard
-                        key={index}
+                        key={`part-${index}-${part.type}`}
                         toolName={getToolName(part)}
                         part={part}
                       />
@@ -94,10 +94,10 @@ export function ChatMessageList({
                         message.id
                       );
                       return (
-                        <span key={index}>
+                        <span key={`text-part-${index}`}>
                           {parsedParts.map((part, i) => {
                             if (part.type === "text") {
-                              return <span key={i}>{part.content}</span>;
+                              return <span key={`parsed-text-${i}`}>{part.content}</span>;
                             }
                             return (
                               <CitationMarker
@@ -115,7 +115,7 @@ export function ChatMessageList({
                         </span>
                       );
                     }
-                    return <span key={index}>{part.text}</span>;
+                    return <span key={`raw-text-${index}`}>{part.text}</span>;
                   }
                   return null;
                 })}

@@ -234,7 +234,16 @@ export function UploadRecordingForm({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          role="button"
+          tabIndex={0}
           onClick={() => !file && !isUploading && fileInputRef.current?.click()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              if (!file && !isUploading) fileInputRef.current?.click();
+            }
+          }}
+          aria-label="Upload recording file"
         >
           <input
             ref={fileInputRef}

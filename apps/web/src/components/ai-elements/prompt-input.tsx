@@ -1276,6 +1276,7 @@ export const PromptInputTabLabel = ({
       "mb-2 px-3 font-medium text-muted-foreground text-xs",
       className
     )}
+    aria-label={typeof props.children === "string" ? props.children : "Tab label"}
     {...props}
   />
 );

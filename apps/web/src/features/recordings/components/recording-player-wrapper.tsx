@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { useAudioPlaybackContext } from "../context/audio-playback-context";
 
 interface RecordingPlayerWrapperProps {
@@ -15,7 +15,15 @@ interface RecordingPlayerWrapperProps {
   isEncrypted?: boolean;
 }
 
-export function RecordingPlayerWrapper({
+export function RecordingPlayerWrapper(props: RecordingPlayerWrapperProps) {
+  return (
+    <Suspense fallback={null}>
+      <RecordingPlayerWrapperInner {...props} />
+    </Suspense>
+  );
+}
+
+function RecordingPlayerWrapperInner({
   fileUrl,
   fileMimeType,
   fileName,

@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import { CalendarViewComponent } from "@/features/meetings/components/calendar/calendar-view";
+
+export const metadata: Metadata = { title: "Meetings" };
 import { GoogleConnectionPrompt } from "@/features/meetings/components/google-connection-prompt";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";

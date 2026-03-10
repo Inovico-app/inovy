@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { ConsentManager } from "@/features/recordings/components/consent-manager";
+
+export async function generateMetadata({ params }: RecordingDetailPageProps): Promise<Metadata> {
+  const { recordingId } = await params;
+  return { title: `Recording ${recordingId}` };
+}
 import { EnhancedSummarySection } from "@/features/recordings/components/enhanced-summary-section";
 import { RecordingDetailActionsDropdown } from "@/features/recordings/components/recording-detail-actions-dropdown";
 import { RecordingDetailStatus } from "@/features/recordings/components/recording-detail-status";

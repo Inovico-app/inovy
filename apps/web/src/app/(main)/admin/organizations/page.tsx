@@ -46,7 +46,7 @@ async function OrganizationsContent() {
         fallback={
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-24 w-full" />
+              <Skeleton key={`skeleton-${i}`} className="h-24 w-full" />
             ))}
           </div>
         }
@@ -68,7 +68,7 @@ export default function OrganizationsPage() {
           </div>
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-24 w-full" />
+              <Skeleton key={`skeleton-${i}`} className="h-24 w-full" />
             ))}
           </div>
         </div>

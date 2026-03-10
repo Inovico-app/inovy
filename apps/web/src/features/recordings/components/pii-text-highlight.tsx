@@ -26,7 +26,7 @@ export function PIITextHighlight({
     <div className="space-y-2">
       {parts.map((part, index) => {
         if (!part.isPII || !part.detection) {
-          return <span key={index}>{part.text}</span>;
+          return <span key={`text-${index}-${part.text.slice(0, 20)}`}>{part.text}</span>;
         }
 
         const redacted = isRedacted(
@@ -39,13 +39,21 @@ export function PIITextHighlight({
 
         return (
           <span
-            key={index}
+            key={`pii-${part.detection.type}-${part.detection.startIndex}-${part.detection.endIndex}`}
+            role="button"
+            tabIndex={0}
             className={`inline-block px-1 rounded ${
               redacted
                 ? "bg-red-500/30 text-red-700 dark:text-red-400 line-through"
                 : colorClass
             } cursor-pointer hover:opacity-80 transition-opacity`}
             onClick={() => !redacted && onRedact(part.detection!)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                if (!redacted) onRedact(part.detection!);
+              }
+            }}
             title={`${
               PII_TYPE_LABELS[part.detection.type] || part.detection.type
             } (${Math.round(part.detection.confidence * 100)}% vertrouwen)`}

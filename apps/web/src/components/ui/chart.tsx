@@ -76,6 +76,9 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null;
   }
 
+  // SAFETY: This is the default shadcn/ui ChartStyle component. The HTML content
+  // is constructed entirely from the developer-defined ChartConfig (theme colors
+  // and CSS variable names), not from user input. No XSS risk.
   return (
     <style
       dangerouslySetInnerHTML={{

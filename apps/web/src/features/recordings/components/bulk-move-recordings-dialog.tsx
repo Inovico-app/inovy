@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import type { RecordingDto } from "@/server/dto/recording.dto";
 import { AlertCircleIcon, CheckCircleIcon, FolderIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { useBulkMoveRecordingsMutation } from "../hooks/use-bulk-move-recordings-mutation";
 import { useProjectsForMove } from "../hooks/use-projects-for-move";
@@ -60,12 +60,11 @@ export function BulkMoveRecordingsDialog({
     currentProjectId,
   });
 
-  useEffect(() => {
-    // Show error toast if projects fail to load
-    if (projectsError) {
-      toast.error("Failed to load projects");
-    }
-  }, [projectsError]);
+  const prevProjectsErrorRef = useRef(projectsError);
+  if (projectsError && projectsError !== prevProjectsErrorRef.current) {
+    toast.error("Failed to load projects");
+  }
+  prevProjectsErrorRef.current = projectsError;
 
   // Bulk move recordings mutation
   const { moveRecordings, isMoving, progress } = useBulkMoveRecordingsMutation({
@@ -155,7 +154,7 @@ export function BulkMoveRecordingsDialog({
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">
+                <label htmlFor="bulk-move-target-project" className="text-sm font-medium">
                   Select Target Project
                 </label>
                 <Select
@@ -271,10 +270,10 @@ export function BulkMoveRecordingsDialog({
 
               {failureCount > 0 && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-destructive">
+                  <label htmlFor="bulk-move-failed-list" className="text-sm font-medium text-destructive">
                     Failed Recordings:
                   </label>
-                  <div className="rounded-lg border border-destructive/20 p-3 bg-destructive/5 max-h-48 overflow-y-auto">
+                  <div id="bulk-move-failed-list" className="rounded-lg border border-destructive/20 p-3 bg-destructive/5 max-h-48 overflow-y-auto">
                     <ul className="text-sm space-y-2">
                       {results
                         .filter((r) => !r.success)
@@ -301,10 +300,10 @@ export function BulkMoveRecordingsDialog({
 
               {successCount > 0 && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-green-600 dark:text-green-500">
+                  <label htmlFor="bulk-move-success-list" className="text-sm font-medium text-green-600 dark:text-green-500">
                     Successfully Moved:
                   </label>
-                  <div className="rounded-lg border p-3 bg-muted/50 max-h-48 overflow-y-auto">
+                  <div id="bulk-move-success-list" className="rounded-lg border p-3 bg-muted/50 max-h-48 overflow-y-auto">
                     <ul className="text-sm space-y-1">
                       {results
                         .filter((r) => r.success)

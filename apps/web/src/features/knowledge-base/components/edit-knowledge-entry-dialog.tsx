@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -42,8 +42,8 @@ export function EditKnowledgeEntryDialog({
     isActive: entry.isActive,
   });
 
-  useEffect(() => {
-    if (open) {
+  const handleOpenChange = (newOpen: boolean) => {
+    if (newOpen) {
       setFormData({
         term: entry.term,
         definition: entry.definition,
@@ -52,7 +52,8 @@ export function EditKnowledgeEntryDialog({
         isActive: entry.isActive,
       });
     }
-  }, [entry, open]);
+    onOpenChange(newOpen);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +112,7 @@ export function EditKnowledgeEntryDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Knowledge Entry</DialogTitle>

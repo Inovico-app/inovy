@@ -39,7 +39,7 @@ export function TopQueriesTable({ queries }: TopQueriesTableProps) {
             </TableHeader>
             <TableBody>
               {queries.map((query, index) => (
-                <TableRow key={index}>
+                <TableRow key={`query-${index}-${query.query.slice(0, 30)}`}>
                   <TableCell className="max-w-md truncate">
                     {query.query}
                   </TableCell>

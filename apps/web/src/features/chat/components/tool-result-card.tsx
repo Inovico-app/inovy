@@ -255,7 +255,7 @@ function KnowledgeSearchResult({ output }: { output: unknown }) {
     <div className="space-y-1.5">
       {data.results.map((result, index) => (
         <div
-          key={index}
+          key={`result-${index}-${result.title ?? result.source ?? "untitled"}`}
           className="space-y-1 rounded-md border px-3 py-2 text-sm"
         >
           <div className="flex items-center gap-2">

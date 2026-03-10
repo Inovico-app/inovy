@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { ProtectedPage } from "@/components/protected-page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
+export const metadata: Metadata = { title: "Record" };
 import { RecordPageClient } from "@/features/recordings/components/record-page-client";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import type { ProjectWithCreatorDto } from "@/server/dto/project.dto";

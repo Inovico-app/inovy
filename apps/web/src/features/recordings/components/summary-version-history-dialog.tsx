@@ -120,7 +120,7 @@ export function SummaryVersionHistoryDialog({
                         <ul className="space-y-1 pl-4">
                           {entry.content.topics.map((topic, idx) => (
                             <li
-                              key={idx}
+                              key={`topic-${idx}-${String(topic).slice(0, 20)}`}
                               className="text-muted-foreground list-disc"
                             >
                               {String(topic)}
@@ -140,7 +140,7 @@ export function SummaryVersionHistoryDialog({
                         <ul className="space-y-1 pl-4">
                           {entry.content.decisions.map((decision, idx) => (
                             <li
-                              key={idx}
+                              key={`decision-${idx}-${String(decision).slice(0, 20)}`}
                               className="text-muted-foreground list-disc"
                             >
                               {String(decision)}

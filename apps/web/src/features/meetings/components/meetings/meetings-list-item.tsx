@@ -116,8 +116,11 @@ export function MeetingsListItem({
 
           {/* Bot Status Badge or Add Bot */}
           <div
+            role="group"
+            aria-label="Meeting actions"
             className="flex min-h-[44px] items-center gap-2 sm:items-center"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
           >
             {botStatus === "no_bot" ? (
               isUpcoming ? (

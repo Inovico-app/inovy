@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import { AcceptInvitation } from "@/features/auth/components/accept-invitation";
 import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
+
+export async function generateMetadata({ params }: AcceptInvitationPageProps): Promise<Metadata> {
+  const { id } = await params;
+  return { title: `Accept Invitation ${id}` };
+}
 
 interface AcceptInvitationPageProps {
   params: Promise<{ id: string }>;
