@@ -3,6 +3,8 @@ import { logger } from "@/lib/logger";
 import { DriveWatchesQueries } from "@/server/data-access/drive-watches.queries";
 import { DriveWatchesService } from "@/server/services/drive-watches.service";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/cron/renew-drive-watches
  * Automatically renews expiring Drive watches
