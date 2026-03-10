@@ -2,6 +2,8 @@
  * Audio mixing utilities for combining multiple audio sources
  */
 
+import { logger } from "@/lib/logger";
+
 export interface AudioMixerRefs {
   audioContext: AudioContext;
   mixedStream: MediaStream;
@@ -54,7 +56,7 @@ export function mixAudioStreams(
         source.connect(destination);
         sources.push(source);
       } catch (error) {
-        console.warn("Failed to create audio source from stream:", error);
+        logger.warn("Failed to create audio source from stream", { component: "audio-mixer", error: error instanceof Error ? error : new Error(String(error)) });
       }
     }
   }
@@ -123,6 +125,6 @@ export function cleanupAudioMixer(refs: AudioMixerRefs): void {
 
   // Close audio context
   if (refs.audioContext && refs.audioContext.state !== "closed") {
-    refs.audioContext.close().catch(console.error);
+    refs.audioContext.close().catch((err) => logger.error("Failed to close audio context", { component: "audio-mixer", error: err instanceof Error ? err : new Error(String(err)) }));
   }
 }

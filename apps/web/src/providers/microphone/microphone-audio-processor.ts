@@ -2,6 +2,8 @@
  * Audio processing utilities for microphone gain control
  */
 
+import { logger } from "@/lib/logger";
+
 export interface AudioProcessorRefs {
   audioContext: AudioContext;
   gainNode: GainNode;
@@ -83,6 +85,6 @@ export function cleanupAudioProcessor(refs: AudioProcessorRefs): void {
 
   // Close audio context
   if (refs.audioContext && refs.audioContext.state !== "closed") {
-    refs.audioContext.close().catch(console.error);
+    refs.audioContext.close().catch((err) => logger.error("Failed to close audio context", { component: "microphone-audio-processor", error: err instanceof Error ? err : new Error(String(err)) }));
   }
 }

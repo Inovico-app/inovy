@@ -4,6 +4,7 @@ import {
   getSystemAudioErrorInfo,
   type RecordingDeviceErrorInfo,
 } from "@/features/recordings/lib/recording-device-errors";
+import { logger } from "@/lib/logger";
 import {
   createContext,
   type ReactNode,
@@ -102,7 +103,7 @@ const SystemAudioContextProvider: React.FC<
 
     // Close audio context
     if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-      audioContextRef.current.close().catch(console.error);
+      audioContextRef.current.close().catch((err) => logger.error("Failed to close audio context", { component: "SystemAudioProvider", error: err instanceof Error ? err : new Error(String(err)) }));
     }
 
     // Reset all refs when tearing down so future cleanups see correct values
@@ -181,14 +182,14 @@ const SystemAudioContextProvider: React.FC<
       // Handle track ended events (user stops sharing)
       displayStream.getVideoTracks().forEach((track) => {
         track.onended = () => {
-          console.log("Video track ended, stopping system audio");
+          logger.info("Video track ended, stopping system audio", { component: "SystemAudioProvider" });
           stopSystemAudio();
         };
       });
 
       displayStream.getAudioTracks().forEach((track) => {
         track.onended = () => {
-          console.log("Audio track ended, stopping system audio");
+          logger.info("Audio track ended, stopping system audio", { component: "SystemAudioProvider" });
           stopSystemAudio();
         };
       });
@@ -208,7 +209,7 @@ const SystemAudioContextProvider: React.FC<
       });
       return { success: true as const, stream: audioOnlyStream };
     } catch (err: unknown) {
-      console.error("Failed to setup system audio:", err);
+      logger.error("Failed to setup system audio", { component: "SystemAudioProvider", error: err instanceof Error ? err : new Error(String(err)) });
       cleanupResources();
 
       const errorInfo = getSystemAudioErrorInfo(err);
@@ -226,9 +227,7 @@ const SystemAudioContextProvider: React.FC<
   const startSystemAudio = () => {
     // Guard against null/undefined systemAudio
     if (!systemAudio) {
-      console.warn(
-        "Cannot start system audio: systemAudio is not initialized"
-      );
+      logger.warn("Cannot start system audio: systemAudio is not initialized", { component: "SystemAudioProvider" });
       dispatch({ type: "SET_STATE", payload: SystemAudioState.Error });
       return;
     }
@@ -238,9 +237,7 @@ const SystemAudioContextProvider: React.FC<
       systemAudio.state !== "inactive" &&
       systemAudio.state !== "paused"
     ) {
-      console.warn(
-        `Cannot start system audio: invalid state ${systemAudio.state}`
-      );
+      logger.warn(`Cannot start system audio: invalid state ${systemAudio.state}`, { component: "SystemAudioProvider" });
       return;
     }
 
@@ -259,7 +256,7 @@ const SystemAudioContextProvider: React.FC<
       const handleResume = () => handleSuccess();
 
       const handleError = (event: Event) => {
-        console.error("MediaRecorder error:", event);
+        logger.error("MediaRecorder error", { component: "SystemAudioProvider", error: event instanceof Error ? event : new Error(String(event)) });
         dispatch({ type: "SET_STATE", payload: SystemAudioState.Ready });
         systemAudio.removeEventListener("start", handleStart);
         systemAudio.removeEventListener("resume", handleResume);
@@ -276,7 +273,7 @@ const SystemAudioContextProvider: React.FC<
         systemAudio.start(250); // Collect data every 250ms
       }
     } catch (error) {
-      console.error("Failed to start system audio:", error);
+      logger.error("Failed to start system audio", { component: "SystemAudioProvider", error: error instanceof Error ? error : new Error(String(error)) });
       dispatch({ type: "SET_STATE", payload: SystemAudioState.Ready });
     }
   };
@@ -289,9 +286,7 @@ const SystemAudioContextProvider: React.FC<
   const stopSystemAudio = () => {
     // Guard against null/undefined systemAudio
     if (!systemAudio) {
-      console.warn(
-        "Cannot stop system audio: systemAudio is not initialized"
-      );
+      logger.warn("Cannot stop system audio: systemAudio is not initialized", { component: "SystemAudioProvider" });
       return;
     }
 
@@ -311,7 +306,7 @@ const SystemAudioContextProvider: React.FC<
       systemAudio.pause();
       dispatch({ type: "SET_STATE", payload: SystemAudioState.Paused });
     } catch (error) {
-      console.error("Failed to stop system audio:", error);
+      logger.error("Failed to stop system audio", { component: "SystemAudioProvider", error: error instanceof Error ? error : new Error(String(error)) });
       // Revert to previous valid state (was Open before Pausing)
       dispatch({ type: "SET_STATE", payload: SystemAudioState.Open });
     }

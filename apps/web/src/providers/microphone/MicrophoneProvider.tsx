@@ -7,6 +7,7 @@ import {
 import {
   setMicrophoneDevicePreferenceClient,
 } from "@/features/recordings/lib/microphone-device-preferences";
+import { logger } from "@/lib/logger";
 import {
   createContext,
   type ReactNode,
@@ -178,7 +179,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
       });
       return { success: true as const, stream: processor.processedStream };
     } catch (err: unknown) {
-      console.error("Failed to setup microphone:", err);
+      logger.error("Failed to setup microphone", { component: "MicrophoneProvider", error: err instanceof Error ? err : new Error(String(err)) });
       cleanupResources();
 
       const errorInfo = getRecordingDeviceErrorInfo(err);
@@ -196,16 +197,14 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
   const startMicrophone = () => {
     // Guard against null/undefined microphone
     if (!microphone) {
-      console.warn("Cannot start microphone: microphone is not initialized");
+      logger.warn("Cannot start microphone: microphone is not initialized", { component: "MicrophoneProvider" });
       dispatch({ type: "SET_STATE", payload: MicrophoneState.Error });
       return;
     }
 
     // Guard: microphone must be in Ready state (inactive) or Paused state
     if (microphone.state !== "inactive" && microphone.state !== "paused") {
-      console.warn(
-        `Cannot start microphone: invalid state ${microphone.state}`
-      );
+      logger.warn(`Cannot start microphone: invalid state ${microphone.state}`, { component: "MicrophoneProvider" });
       return;
     }
 
@@ -224,7 +223,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
       const handleResume = () => handleSuccess();
 
       const handleError = (event: Event) => {
-        console.error("MediaRecorder error:", event);
+        logger.error("MediaRecorder error", { component: "MicrophoneProvider", error: event instanceof Error ? event : new Error(String(event)) });
         dispatch({ type: "SET_STATE", payload: MicrophoneState.Ready });
         microphone.removeEventListener("start", handleStart);
         microphone.removeEventListener("resume", handleResume);
@@ -241,7 +240,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
         microphone.start(MEDIA_RECORDER_TIMESLICE);
       }
     } catch (error) {
-      console.error("Failed to start microphone:", error);
+      logger.error("Failed to start microphone", { component: "MicrophoneProvider", error: error instanceof Error ? error : new Error(String(error)) });
       dispatch({ type: "SET_STATE", payload: MicrophoneState.Ready });
     }
   };
@@ -254,7 +253,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
   const stopMicrophone = () => {
     // Guard against null/undefined microphone
     if (!microphone) {
-      console.warn("Cannot stop microphone: microphone is not initialized");
+      logger.warn("Cannot stop microphone: microphone is not initialized", { component: "MicrophoneProvider" });
       return;
     }
 
@@ -275,7 +274,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
       microphone.pause();
       dispatch({ type: "SET_STATE", payload: MicrophoneState.Paused });
     } catch (error) {
-      console.error("Failed to stop microphone:", error);
+      logger.error("Failed to stop microphone", { component: "MicrophoneProvider", error: error instanceof Error ? error : new Error(String(error)) });
       // Revert to previous valid state (was Open before Pausing)
       dispatch({ type: "SET_STATE", payload: MicrophoneState.Open });
     }
