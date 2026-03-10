@@ -46,10 +46,6 @@ export function GoogleSettings({ projectId }: GoogleSettingsProps) {
     urgent: false,
   });
 
-  useEffect(() => {
-    loadSettings();
-  }, [projectId]);
-
   async function loadSettings() {
     setLoading(true);
 
@@ -84,6 +80,10 @@ export function GoogleSettings({ projectId }: GoogleSettingsProps) {
 
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadSettings();
+  }, [projectId]);
 
   async function handleSave() {
     setSaving(true);

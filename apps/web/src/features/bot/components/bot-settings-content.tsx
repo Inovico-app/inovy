@@ -2,7 +2,7 @@
 
 import type { BotSettings } from "@/server/db/schema/bot-settings";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+
 import { BotConfigurationForm } from "./bot-configuration-form";
 import { EnableBotToggle } from "./enable-bot-toggle";
 
@@ -17,13 +17,7 @@ interface BotSettingsContentProps {
 export function BotSettingsContent({
   initialSettings,
 }: BotSettingsContentProps) {
-  const [settings, setSettings] = useState<BotSettings>(initialSettings);
   const router = useRouter();
-
-  // Sync state with props when they change (e.g., after router.refresh())
-  useEffect(() => {
-    setSettings(initialSettings);
-  }, [initialSettings]);
 
   const loadSettings = () => {
     // Refresh the page to reload cached data
@@ -32,9 +26,9 @@ export function BotSettingsContent({
 
   return (
     <div className="space-y-6">
-      <EnableBotToggle settings={settings} onUpdate={loadSettings} />
-      {settings.botEnabled && (
-        <BotConfigurationForm settings={settings} onUpdate={loadSettings} />
+      <EnableBotToggle settings={initialSettings} onUpdate={loadSettings} />
+      {initialSettings.botEnabled && (
+        <BotConfigurationForm settings={initialSettings} onUpdate={loadSettings} />
       )}
     </div>
   );

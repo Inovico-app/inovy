@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -45,12 +45,18 @@ export function AddBotConsentDialog({
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     defaultProjectId ?? ""
   );
+  const prevOpenRef = useRef(open);
+  const prevDefaultProjectIdRef = useRef(defaultProjectId);
 
-  useEffect(() => {
-    if (open && defaultProjectId) {
-      setSelectedProjectId(defaultProjectId);
-    }
-  }, [open, defaultProjectId]);
+  // Reset selected project when dialog opens or defaultProjectId changes (during render)
+  if (
+    (open && !prevOpenRef.current && defaultProjectId) ||
+    (open && defaultProjectId && defaultProjectId !== prevDefaultProjectIdRef.current)
+  ) {
+    setSelectedProjectId(defaultProjectId);
+  }
+  prevOpenRef.current = open;
+  prevDefaultProjectIdRef.current = defaultProjectId;
 
   const handleAccept = () => {
     if (!selectedProjectId) {

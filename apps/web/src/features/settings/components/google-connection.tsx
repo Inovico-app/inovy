@@ -66,18 +66,6 @@ export function GoogleConnection() {
     null
   );
 
-  useEffect(() => {
-    loadStatus();
-  }, []);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("google_success") === "true") {
-      loadStatus();
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, []);
-
   async function loadStatus() {
     setStatus((prev) => ({ ...prev, loading: true }));
 
@@ -100,6 +88,18 @@ export function GoogleConnection() {
       toast.error("Failed to load connection status");
     }
   }
+
+  useEffect(() => {
+    loadStatus();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("google_success") === "true") {
+      loadStatus();
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   async function handleDisconnect() {
     setDisconnecting(true);

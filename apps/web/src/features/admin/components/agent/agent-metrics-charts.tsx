@@ -66,40 +66,27 @@ const chartConfig = {
   },
 } satisfies Record<string, { label: string; color: string }>;
 
-export function AgentMetricsCharts({
-  requestCount,
-  latency,
-  errorRate,
-  tokenUsage,
-  toolUsage,
-}: AgentMetricsChartsProps) {
-  // Format dates for display
-  const formatDate = (dateStr: string) => {
-    try {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-      });
-    } catch {
-      return dateStr;
-    }
-  };
+function formatDate(dateStr: string) {
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+    });
+  } catch {
+    return dateStr;
+  }
+}
 
-  const hasRequestData = requestCount.length > 0;
-  const hasLatencyData = latency.length > 0;
-  const hasErrorRateData = errorRate.length > 0;
-  const hasTokenData = tokenUsage.length > 0;
-  const hasToolData = toolUsage.length > 0;
-
-  const EmptyState = ({
-    message,
-    height = 300,
-  }: {
-    message: string;
-    height?: number;
-  }) => (
+function EmptyState({
+  message,
+  height = 300,
+}: {
+  message: string;
+  height?: number;
+}) {
+  return (
     <div
       className="flex items-center justify-center text-sm text-muted-foreground"
       style={{ height: `${height}px` }}
@@ -107,6 +94,20 @@ export function AgentMetricsCharts({
       {message}
     </div>
   );
+}
+
+export function AgentMetricsCharts({
+  requestCount,
+  latency,
+  errorRate,
+  tokenUsage,
+  toolUsage,
+}: AgentMetricsChartsProps) {
+  const hasRequestData = requestCount.length > 0;
+  const hasLatencyData = latency.length > 0;
+  const hasErrorRateData = errorRate.length > 0;
+  const hasTokenData = tokenUsage.length > 0;
+  const hasToolData = toolUsage.length > 0;
 
   return (
     <div className="space-y-6">

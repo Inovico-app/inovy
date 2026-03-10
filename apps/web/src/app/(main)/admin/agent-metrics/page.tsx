@@ -54,10 +54,11 @@ async function AgentMetricsContent({
 
   // Parse search params
   const params = await searchParams;
+  const now = new Date();
   const startDate = params.startDate
     ? new Date(params.startDate)
-    : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // Default to last 7 days
-  const endDate = params.endDate ? new Date(params.endDate) : new Date();
+    : new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // Default to last 7 days
+  const endDate = params.endDate ? new Date(params.endDate) : now;
 
   // For non-superadmins, automatically filter by their organization
   const organizationId = hasSuperAdminPermission

@@ -47,10 +47,6 @@ export function GoogleStatusDashboard() {
     emailDrafts: 0,
   });
 
-  useEffect(() => {
-    loadStatus();
-  }, []);
-
   async function loadStatus() {
     setLoading(true);
 
@@ -65,6 +61,10 @@ export function GoogleStatusDashboard() {
 
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadStatus();
+  }, []);
 
   async function handleRetry(actionId: string) {
     setRetrying(actionId);

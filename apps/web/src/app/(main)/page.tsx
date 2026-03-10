@@ -130,7 +130,7 @@ async function DashboardContent() {
         />
 
         {/* Today's meetings */}
-        <DashboardUpcomingMeetings meetings={upcomingMeetings} />
+        <DashboardUpcomingMeetings meetings={upcomingMeetings} now={now.getTime()} />
 
         {/* Tasks and recordings side by side */}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">

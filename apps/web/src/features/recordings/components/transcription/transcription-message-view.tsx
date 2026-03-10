@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { createRef, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAudioTranscriptSync } from "../../hooks/use-audio-transcript-sync";
 import { useAutoScrollPause } from "../../hooks/use-auto-scroll-pause";
 import { useGroupedUtterances } from "../../hooks/use-grouped-utterances";
@@ -20,9 +20,7 @@ export function TranscriptionMessageView({
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const bubbleRefsRef = useRef<
-    Map<number, React.RefObject<HTMLDivElement | null>>
-  >(new Map());
+  const bubbleElementsRef = useRef<Map<number, HTMLDivElement>>(new Map());
 
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
     typeof window !== "undefined"
@@ -38,23 +36,16 @@ export function TranscriptionMessageView({
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  const getBubbleRef = useCallback((index: number) => {
-    const map = bubbleRefsRef.current;
-    if (!map.has(index)) {
-      map.set(index, createRef<HTMLDivElement>());
-    }
-    return map.get(index)!;
-  }, []);
-
-  useEffect(() => {
-    const validIndexes = new Set(groupedUtterances.map((_, i) => i));
-    const map = bubbleRefsRef.current;
-    for (const key of map.keys()) {
-      if (!validIndexes.has(key)) {
-        map.delete(key);
+  const getBubbleCallbackRef = useCallback(
+    (index: number) => (el: HTMLDivElement | null) => {
+      if (el) {
+        bubbleElementsRef.current.set(index, el);
+      } else {
+        bubbleElementsRef.current.delete(index);
       }
-    }
-  }, [groupedUtterances]);
+    },
+    []
+  );
 
   const { activeGroupIndex } = useAudioTranscriptSync(groupedUtterances);
   const { isAutoScrollPaused, resumeAutoScroll, markProgrammaticScroll } =
@@ -64,8 +55,7 @@ export function TranscriptionMessageView({
   useEffect(() => {
     if (activeGroupIndex === null || isAutoScrollPaused) return;
 
-    const ref = bubbleRefsRef.current.get(activeGroupIndex);
-    const el = ref?.current;
+    const el = bubbleElementsRef.current.get(activeGroupIndex);
     if (!el) return;
 
     markProgrammaticScroll();
@@ -158,7 +148,7 @@ export function TranscriptionMessageView({
           {groupedUtterances.map((grouped, index) => (
             <TranscriptionMessageBubble
               key={`${grouped.start}-${grouped.speaker}-${index}`}
-              ref={getBubbleRef(index)}
+              ref={getBubbleCallbackRef(index)}
               groupedUtterance={grouped}
               viewMode={viewMode}
               speakersDetected={speakersDetected}

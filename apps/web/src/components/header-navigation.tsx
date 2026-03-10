@@ -34,7 +34,7 @@ export function HeaderNavigation() {
   const { data: userRoleData } = useUserRole();
   const { isAdmin, isSuperAdmin, roles } = userRoleData ?? {};
 
-  // Prevent hydration mismatch
+  // Prevent hydration mismatch — intentional synchronous setState in mount effect
   useEffect(() => {
     setMounted(true);
   }, []);

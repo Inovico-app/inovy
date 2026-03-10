@@ -75,20 +75,6 @@ export const AudioVisualizer = ({
     }
   }, []);
 
-  useEffect(() => {
-    if (!audioContextRef.current || !analyserRef.current) {
-      return;
-    }
-
-    const source = audioContextRef.current.createMediaStreamSource(
-      microphone.stream
-    );
-    source.connect(analyserRef.current);
-
-    draw();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [microphone.stream]);
-
   const draw = (): void => {
     const canvas = canvasRef.current;
     const analyser = analyserRef.current;
@@ -130,6 +116,20 @@ export const AudioVisualizer = ({
       x += barWidth;
     }
   };
+
+  useEffect(() => {
+    if (!audioContextRef.current || !analyserRef.current) {
+      return;
+    }
+
+    const source = audioContextRef.current.createMediaStreamSource(
+      microphone.stream
+    );
+    source.connect(analyserRef.current);
+
+    draw();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [microphone.stream]);
 
   return <canvas ref={canvasRef} width={canvasWidth}></canvas>;
 };

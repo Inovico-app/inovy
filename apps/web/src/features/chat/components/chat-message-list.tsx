@@ -50,6 +50,13 @@ export function ChatMessageList({
 }: ChatMessageListProps) {
   const { parseCitations, scrollToSource } = useCitationParser();
 
+  // Initialize source refs for all messages before rendering
+  for (const message of messages) {
+    if (!sourceRefsMap.current[message.id]) {
+      sourceRefsMap.current[message.id] = {};
+    }
+  }
+
   const handleCitationClick = (messageId: string, sourceIndex: number) => {
     scrollToSource(messageId, sourceIndex, sourceRefsMap);
   };
@@ -57,11 +64,6 @@ export function ChatMessageList({
   return (
     <>
       {messages.map((message) => {
-        // Initialize source refs for this message if needed
-        if (!sourceRefsMap.current[message.id]) {
-          sourceRefsMap.current[message.id] = {};
-        }
-
         return (
           <Message key={message.id} from={message.role}>
             <MessageAvatar

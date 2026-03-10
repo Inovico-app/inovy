@@ -123,15 +123,6 @@ export function LiveRecorder({
     setShowConsentBanner(false);
   });
 
-  // Handle stop click (with confirmation for short recordings)
-  const handleStopClick = useEffectEvent(() => {
-    if (recording.duration < 3) {
-      setShowStopConfirm(true);
-    } else {
-      void handleFinalStop();
-    }
-  });
-
   // Handle final stop
   const handleFinalStop = useEffectEvent(async () => {
     try {
@@ -163,6 +154,15 @@ export function LiveRecorder({
       recording.setRecorderError(
         "Kon transcriptie niet starten. Probeer het opnieuw."
       );
+    }
+  });
+
+  // Handle stop click (with confirmation for short recordings)
+  const handleStopClick = useEffectEvent(() => {
+    if (recording.duration < 3) {
+      setShowStopConfirm(true);
+    } else {
+      void handleFinalStop();
     }
   });
 
