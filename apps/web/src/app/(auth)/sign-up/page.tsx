@@ -1,39 +1,14 @@
 "use client";
 
 import { AuthShell } from "@/components/auth/auth-shell";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { useSignUp } from "@/features/auth/hooks/use-sign-up";
-import {
-  magicLinkSchema,
-  signUpEmailSchema,
-} from "@/features/auth/validation/auth.schema";
-import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
-import { AlertCircle, ArrowLeft, Mail, Sparkles } from "lucide-react";
+import { ArrowLeft, Mail, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { useForm } from "react-hook-form";
-import type { z } from "zod";
-
-const emailSignUpSchema = signUpEmailSchema.pick({
-  name: true,
-  email: true,
-  password: true,
-});
-
-type EmailSignUpValues = z.infer<typeof emailSignUpSchema>;
-type MagicLinkValues = z.infer<typeof magicLinkSchema>;
+import { EmailSignUpForm } from "./components/email-sign-up-form";
+import { MagicLinkSignUpForm } from "./components/magic-link-sign-up-form";
 
 export default function SignUpPage() {
   return (
@@ -51,22 +26,6 @@ function SignUpPageContent() {
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [showMagicLinkForm, setShowMagicLinkForm] = useState(false);
 
-  const emailForm = useForm<EmailSignUpValues>({
-    resolver: standardSchemaResolver(emailSignUpSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-    },
-  });
-
-  const magicLinkForm = useForm<MagicLinkValues>({
-    resolver: standardSchemaResolver(magicLinkSchema),
-    defaultValues: {
-      email: "",
-    },
-  });
-
   const {
     signUpEmail,
     signUpSocial,
@@ -80,7 +39,11 @@ function SignUpPageContent() {
 
   const isLoading = isSignUpLoading || isSendingMagicLink;
 
-  const handleEmailSignUp = (data: EmailSignUpValues) => {
+  const handleEmailSignUp = (data: {
+    name: string;
+    email: string;
+    password: string;
+  }) => {
     signUpEmail({ ...data, callbackUrl: redirectUrl });
   };
 
@@ -88,9 +51,8 @@ function SignUpPageContent() {
     signUpSocial({ provider, callbackUrl: redirectUrl });
   };
 
-  const handleMagicLink = (data: MagicLinkValues) => {
+  const handleMagicLink = (data: { email: string }) => {
     sendMagicLink({ email: data.email });
-    magicLinkForm.reset();
   };
 
   return (
@@ -202,178 +164,23 @@ function SignUpPageContent() {
         )}
 
         {showEmailForm && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <Form {...emailForm}>
-              <form
-                onSubmit={emailForm.handleSubmit(handleEmailSignUp)}
-                className="space-y-4"
-              >
-                <fieldset className="space-y-4" disabled={isLoading}>
-                  <legend className="sr-only">
-                    Create account with email and password
-                  </legend>
-
-                  {signUpError && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Foutmelding</AlertTitle>
-                      <AlertDescription>{signUpError}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  <FormField
-                    control={emailForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Naam</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="Jan Jansen"
-                            autoFocus
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={emailForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="je@voorbeeld.nl"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={emailForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Wachtwoord</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="••••••••"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">
-                          Minimaal 8 tekens
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => {
-                        setShowEmailForm(false);
-                        emailForm.reset();
-                      }}
-                      disabled={isLoading}
-                      className="flex-1"
-                    >
-                      Annuleren
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="flex-1"
-                      disabled={isLoading}
-                      isLoading={isSigningUp}
-                    >
-                      Registreren
-                    </Button>
-                  </div>
-                </fieldset>
-              </form>
-            </Form>
-          </div>
+          <EmailSignUpForm
+            onSubmit={handleEmailSignUp}
+            onCancel={() => setShowEmailForm(false)}
+            isLoading={isLoading}
+            isSigningUp={isSigningUp}
+            signUpError={signUpError}
+          />
         )}
 
         {showMagicLinkForm && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <Form {...magicLinkForm}>
-              <form
-                onSubmit={magicLinkForm.handleSubmit(handleMagicLink)}
-                className="space-y-4"
-              >
-                <fieldset className="space-y-4" disabled={isLoading}>
-                  <legend className="sr-only">Sign up with magic link</legend>
-
-                  {magicLinkError && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Foutmelding</AlertTitle>
-                      <AlertDescription>{magicLinkError}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  <FormField
-                    control={magicLinkForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="je@voorbeeld.nl"
-                            autoFocus
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">
-                          We sturen je een link om je account aan te maken zonder
-                          wachtwoord
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => {
-                        setShowMagicLinkForm(false);
-                        magicLinkForm.reset();
-                      }}
-                      disabled={isLoading}
-                      className="flex-1"
-                    >
-                      Annuleren
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="flex-1"
-                      disabled={isLoading}
-                      isLoading={isSendingMagicLink}
-                    >
-                      Versturen
-                    </Button>
-                  </div>
-                </fieldset>
-              </form>
-            </Form>
-          </div>
+          <MagicLinkSignUpForm
+            onSubmit={handleMagicLink}
+            onCancel={() => setShowMagicLinkForm(false)}
+            isLoading={isLoading}
+            isSendingMagicLink={isSendingMagicLink}
+            magicLinkError={magicLinkError}
+          />
         )}
 
         {/* Terms and Privacy Policy */}
@@ -409,4 +216,3 @@ function SignUpPageContent() {
     </AuthShell>
   );
 }
-

@@ -11,14 +11,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { formatFileSizePrecise } from "@/lib/formatters/file-size-formatters";
 import { uploadRecordingToBlob } from "@/lib/vercel-blob";
 import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE,
 } from "@/server/validation/recordings/upload-recording";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
-import { UploadIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
@@ -33,6 +31,8 @@ import {
   uploadRecordingFormSchema,
   type UploadRecordingFormValues,
 } from "../validation/upload-recording-form.schema";
+import { FileDropZone } from "./upload-file-drop-zone";
+import { UploadProgressBar } from "./upload-progress-bar";
 
 interface UploadRecordingFormProps {
   projectId: string;
@@ -231,96 +231,22 @@ export function UploadRecordingForm({
         {/* File Upload Area */}
         <div className="space-y-2">
           <FormLabel htmlFor="file">Recording File *</FormLabel>
-          <div
-            className={`
-              border-2 border-dashed rounded-lg p-8 text-center transition-colors
-              ${
-                isDragging
-                  ? "border-primary bg-primary/5"
-                  : "border-muted-foreground/25"
-              }
-              ${file ? "bg-muted/50" : "bg-background"}
-              ${isUploading ? "pointer-events-none opacity-50" : "cursor-pointer"}
-            `}
+          <FileDropZone
+            file={file}
+            isDragging={isDragging}
+            isUploading={isUploading}
+            fileInputRef={fileInputRef}
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            role="button"
-            tabIndex={0}
-            onClick={() => !file && !isUploading && fileInputRef.current?.click()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                if (!file && !isUploading) fileInputRef.current?.click();
-              }
-            }}
-            aria-label="Upload recording file"
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              id="file"
-              className="hidden"
-              accept=".mp3,.mp4,.wav,.m4a,.webm,audio/mpeg,audio/mp4,audio/wav,audio/webm,video/mp4,video/webm"
-              onChange={handleFileInputChange}
-              disabled={isUploading}
-            />
-
-            {!file ? (
-              <div className="space-y-2">
-                <UploadIcon className="h-12 w-12 mx-auto text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">
-                    Drop your recording here or click to browse
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Supports MP3, MP4, WAV, M4A (max {MAX_FILE_SIZE / 1024 / 1024}
-                    MB)
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-medium truncate">{file.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatFileSizePrecise(file.size)}
-                  </p>
-                </div>
-                {!isUploading && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveFile();
-                    }}
-                  >
-                    <XIcon className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
+            onFileInputChange={handleFileInputChange}
+            onRemoveFile={handleRemoveFile}
+          />
         </div>
 
         {/* Upload Progress */}
-        {isUploading && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Uploading...</span>
-              <span>{uploadProgress}%</span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div
-                className="bg-primary h-2 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              />
-            </div>
-          </div>
-        )}
+        {isUploading && <UploadProgressBar progress={uploadProgress} />}
 
         {/* Title Field */}
         <FormField

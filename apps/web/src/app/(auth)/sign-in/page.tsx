@@ -1,38 +1,14 @@
 "use client";
 
 import { AuthShell } from "@/components/auth/auth-shell";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { useSignIn } from "@/features/auth/hooks/use-sign-in";
-import {
-  magicLinkSchema,
-  signInEmailSchema,
-} from "@/features/auth/validation/auth.schema";
-import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
-import { AlertCircle, Mail, Sparkles } from "lucide-react";
+import { Mail, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import type { z } from "zod";
-
-const emailSignInFormSchema = signInEmailSchema.pick({
-  email: true,
-  password: true,
-});
-
-type EmailSignInFormValues = z.infer<typeof emailSignInFormSchema>;
-type MagicLinkFormValues = z.infer<typeof magicLinkSchema>;
+import { EmailSignInForm } from "./components/email-sign-in-form";
+import { MagicLinkSignInForm } from "./components/magic-link-sign-in-form";
 
 export default function SignInPage() {
   return (
@@ -49,21 +25,6 @@ function SignInPageContent() {
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [showMagicLinkForm, setShowMagicLinkForm] = useState(false);
 
-  const emailForm = useForm<EmailSignInFormValues>({
-    resolver: standardSchemaResolver(emailSignInFormSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
-
-  const magicLinkForm = useForm<MagicLinkFormValues>({
-    resolver: standardSchemaResolver(magicLinkSchema),
-    defaultValues: {
-      email: "",
-    },
-  });
-
   const {
     signInEmail,
     signInSocial,
@@ -79,7 +40,7 @@ function SignInPageContent() {
 
   const isLoading = isSignInLoading || isSendingMagicLink;
 
-  const handleEmailSignIn = (data: EmailSignInFormValues) => {
+  const handleEmailSignIn = (data: { email: string; password: string }) => {
     signInEmail({ ...data, redirectTo: redirectUrl });
   };
 
@@ -87,18 +48,11 @@ function SignInPageContent() {
     signInSocial({ provider, callbackUrl: redirectUrl });
   };
 
-  const handleMagicLink = (data: MagicLinkFormValues) => {
+  const handleMagicLink = (data: { email: string }) => {
     sendMagicLink({ email: data.email });
-    magicLinkForm.reset();
   };
 
-  const handlePasswordReset = (e: React.FormEvent) => {
-    e.preventDefault();
-    const email = emailForm.getValues("email");
-    if (!email) {
-      toast.error("Voer eerst je e-mailadres in");
-      return;
-    }
+  const handlePasswordReset = (email: string) => {
     requestPasswordReset({ email });
   };
 
@@ -117,7 +71,7 @@ function SignInPageContent() {
           variant="outline"
           onClick={() => handleSocialSignIn("google")}
           disabled={isLoading}
-          isLoading={isLoading && !isSigningIn && !isSendingMagicLink} // Approximate check
+          isLoading={isLoading && !isSigningIn && !isSendingMagicLink}
           className="w-full justify-start border-border bg-background hover:bg-accent"
         >
           {!isLoading && (
@@ -201,178 +155,26 @@ function SignInPageContent() {
 
         {/* Email Form */}
         {showEmailForm && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <Form {...emailForm}>
-              <form
-                onSubmit={emailForm.handleSubmit(handleEmailSignIn)}
-                className="space-y-4"
-              >
-                <fieldset className="space-y-4" disabled={isLoading}>
-                  <legend className="sr-only">
-                    Sign in with email and password
-                  </legend>
-
-                  {signInError && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Foutmelding</AlertTitle>
-                      <AlertDescription>{signInError}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  {passwordResetError && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Foutmelding</AlertTitle>
-                      <AlertDescription>{passwordResetError}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  <FormField
-                    control={emailForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="je@voorbeeld.nl"
-                            disabled={isLoading}
-                            autoFocus
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={emailForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <FormLabel>Wachtwoord</FormLabel>
-                          <button
-                            type="button"
-                            onClick={handlePasswordReset}
-                            className="text-xs text-primary hover:underline"
-                            disabled={isLoading}
-                          >
-                            Wachtwoord vergeten?
-                          </button>
-                        </div>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="••••••••"
-                            disabled={isLoading}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => {
-                        setShowEmailForm(false);
-                        emailForm.reset();
-                      }}
-                      disabled={isLoading}
-                      className="flex-1"
-                    >
-                      Annuleren
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="flex-1"
-                      disabled={isLoading}
-                      isLoading={isSigningIn}
-                    >
-                      Inloggen
-                    </Button>
-                  </div>
-                </fieldset>
-              </form>
-            </Form>
-          </div>
+          <EmailSignInForm
+            onSubmit={handleEmailSignIn}
+            onCancel={() => setShowEmailForm(false)}
+            isLoading={isLoading}
+            isSigningIn={isSigningIn}
+            signInError={signInError}
+            passwordResetError={passwordResetError}
+            onPasswordReset={handlePasswordReset}
+          />
         )}
 
         {/* Magic Link Form */}
         {showMagicLinkForm && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <Form {...magicLinkForm}>
-              <form
-                onSubmit={magicLinkForm.handleSubmit(handleMagicLink)}
-                className="space-y-4"
-              >
-                <fieldset className="space-y-4" disabled={isLoading}>
-                  <legend className="sr-only">Sign in with magic link</legend>
-
-                  {magicLinkError && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Foutmelding</AlertTitle>
-                      <AlertDescription>{magicLinkError}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  <FormField
-                    control={magicLinkForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="je@voorbeeld.nl"
-                            disabled={isLoading}
-                            autoFocus
-                            {...field}
-                          />
-                        </FormControl>
-                        <p className="text-xs text-muted-foreground">
-                          We sturen je een link om in te loggen zonder wachtwoord
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => {
-                        setShowMagicLinkForm(false);
-                        magicLinkForm.reset();
-                      }}
-                      disabled={isLoading}
-                      className="flex-1"
-                    >
-                      Annuleren
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="flex-1"
-                      disabled={isLoading}
-                      isLoading={isSendingMagicLink}
-                    >
-                      Versturen
-                    </Button>
-                  </div>
-                </fieldset>
-              </form>
-            </Form>
-          </div>
+          <MagicLinkSignInForm
+            onSubmit={handleMagicLink}
+            onCancel={() => setShowMagicLinkForm(false)}
+            isLoading={isLoading}
+            isSendingMagicLink={isSendingMagicLink}
+            magicLinkError={magicLinkError}
+          />
         )}
 
         {/* Registration Link */}
