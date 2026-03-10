@@ -1,21 +1,22 @@
-import { getCachedProjectById } from "@/server/cache/project.cache";
-import { getCachedRecordingById } from "@/server/cache/recording.cache";
+import { getCachedProjectByIdWithCreator } from "@/server/cache/project.cache";
 import type { Route } from "next";
 import Link from "next/link";
 
 interface RecordingDetailBreadcrumbProps {
   projectId: string;
-  recordingId: string;
+  organizationId: string;
+  recordingTitle: string;
 }
 
 export async function RecordingDetailBreadcrumb({
   projectId,
-  recordingId,
+  organizationId,
+  recordingTitle,
 }: RecordingDetailBreadcrumbProps) {
-  const [project, recording] = await Promise.all([
-    getCachedProjectById(projectId),
-    getCachedRecordingById(recordingId),
-  ]);
+  const project = await getCachedProjectByIdWithCreator(
+    projectId,
+    organizationId
+  );
 
   return (
     <nav className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -41,9 +42,8 @@ export async function RecordingDetailBreadcrumb({
       </Link>
       <span>/</span>
       <span className="text-foreground font-medium truncate">
-        {recording?.title ?? "Recording"}
+        {recordingTitle}
       </span>
     </nav>
   );
 }
-
