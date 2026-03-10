@@ -9,64 +9,78 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { updateProfile } from "@/features/settings/actions/update-profile";
 import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import {
+  profileFormSchema,
+  type ProfileFormValues,
+} from "@/features/settings/validation/profile.schema";
+import { useAction } from "next-safe-action/hooks";
 
 function EditProfileContent() {
   const router = useRouter();
-  const [givenName, setGivenName] = useState("");
-  const [familyName, setFamilyName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const form = useForm<ProfileFormValues>({
+    resolver: standardSchemaResolver(profileFormSchema),
+    defaultValues: {
+      givenName: "",
+      familyName: "",
+    },
+  });
+
+  const { execute, isExecuting } = useAction(updateProfile, {
+    onSuccess: () => {
+      const values = form.getValues();
+      toast.success("Profile updated successfully!");
+      localStorage.setItem(
+        "user_profile",
+        JSON.stringify({
+          given_name: values.givenName,
+          family_name: values.familyName,
+        })
+      );
+      setTimeout(() => {
+        router.push("/settings/profile");
+      }, 500);
+    },
+    onError: ({ error }) => {
+      const message = error.serverError || "Failed to update profile";
+      form.setError("root", { message });
+      toast.error(message);
+    },
+  });
 
   // Load initial values from localStorage or user data
   useEffect(() => {
     const stored = localStorage.getItem("user_profile");
     if (stored) {
       const profile = JSON.parse(stored);
-      setGivenName(profile.given_name || "");
-      setFamilyName(profile.family_name || "");
-    }
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-    setIsLoading(true);
-
-    try {
-      const result = await updateProfile({
-        given_name: givenName,
-        family_name: familyName,
+      form.reset({
+        givenName: profile.given_name || "",
+        familyName: profile.family_name || "",
       });
-
-      if (result.data) {
-        toast.success("Profile updated successfully!");
-        // Save to localStorage for immediate UI update
-        localStorage.setItem(
-          "user_profile",
-          JSON.stringify({ given_name: givenName, family_name: familyName })
-        );
-        // Use a small delay to ensure UI updates
-        setTimeout(() => {
-          router.push("/settings/profile");
-        }, 500);
-      } else {
-        setErrors({ submit: result.serverError || "Failed to update profile" });
-        toast.error(result.serverError || "Failed to update profile");
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "An error occurred";
-      setErrors({ submit: message });
-      toast.error(message);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [form]);
+
+  function onSubmit(values: ProfileFormValues) {
+    execute({
+      given_name: values.givenName ?? "",
+      family_name: values.familyName ?? "",
+    });
+  }
 
   return (
     <div className="container mx-auto max-w-2xl py-8 px-4">
@@ -88,63 +102,74 @@ function EditProfileContent() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* First Name */}
-              <div className="space-y-2">
-                <Label htmlFor="given_name">First Name</Label>
-                <Input
-                  id="given_name"
-                  type="text"
-                  value={givenName}
-                  onChange={(e) => setGivenName(e.target.value)}
-                  placeholder="Enter your first name"
-                  disabled={isLoading}
-                  className={errors.given_name ? "border-red-500" : ""}
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
+                {/* First Name */}
+                <FormField
+                  control={form.control}
+                  name="givenName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Enter your first name"
+                          disabled={isExecuting}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                {errors.given_name && (
-                  <p className="text-sm text-red-500">{errors.given_name}</p>
-                )}
-              </div>
 
-              {/* Last Name */}
-              <div className="space-y-2">
-                <Label htmlFor="family_name">Last Name</Label>
-                <Input
-                  id="family_name"
-                  type="text"
-                  value={familyName}
-                  onChange={(e) => setFamilyName(e.target.value)}
-                  placeholder="Enter your last name"
-                  disabled={isLoading}
-                  className={errors.family_name ? "border-red-500" : ""}
+                {/* Last Name */}
+                <FormField
+                  control={form.control}
+                  name="familyName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Enter your last name"
+                          disabled={isExecuting}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                {errors.family_name && (
-                  <p className="text-sm text-red-500">{errors.family_name}</p>
-                )}
-              </div>
 
-              {/* Submit Error */}
-              {errors.submit && (
-                <div className="bg-red-50 border border-red-200 rounded p-3">
-                  <p className="text-sm text-red-700">{errors.submit}</p>
+                {/* Submit Error */}
+                {form.formState.errors.root && (
+                  <div className="bg-red-50 border border-red-200 rounded p-3">
+                    <p className="text-sm text-red-700">
+                      {form.formState.errors.root.message}
+                    </p>
+                  </div>
+                )}
+
+                {/* Form Actions */}
+                <div className="flex gap-3 pt-4">
+                  <Button type="submit" disabled={isExecuting}>
+                    {isExecuting ? "Saving..." : "Save Changes"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isExecuting}
+                    asChild
+                  >
+                    <Link href="/settings/profile">Cancel</Link>
+                  </Button>
                 </div>
-              )}
-
-              {/* Form Actions */}
-              <div className="flex gap-3 pt-4">
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Saving..." : "Save Changes"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={isLoading}
-                  asChild
-                >
-                  <Link href="/settings/profile">Cancel</Link>
-                </Button>
-              </div>
-            </form>
+              </form>
+            </Form>
           </CardContent>
         </Card>
 
@@ -155,14 +180,14 @@ function EditProfileContent() {
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>
-              • Email changes require verification and should be done through your account settings
+              • Email changes require verification and should be done through
+              your account settings
             </p>
             <p>
-              • Password changes can be managed through your Kinde account dashboard
+              • Password changes can be managed through your Kinde account
+              dashboard
             </p>
-            <p>
-              • Changes are saved immediately after confirmation
-            </p>
+            <p>• Changes are saved immediately after confirmation</p>
           </CardContent>
         </Card>
       </div>

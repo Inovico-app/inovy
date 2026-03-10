@@ -9,15 +9,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { KnowledgeBaseScope } from "@/server/db/schema/knowledge-base-entries";
 import type { KnowledgeEntryDto } from "@/server/dto/knowledge-base.dto";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { createKnowledgeEntryAction } from "../actions/create-entry";
+import {
+  createKnowledgeEntryFormSchema,
+  type CreateKnowledgeEntryFormValues,
+} from "../validation/knowledge-entry-form.schema";
 
 interface CreateKnowledgeEntryDialogProps {
   open: boolean;
@@ -35,73 +48,60 @@ export function CreateKnowledgeEntryDialog({
   onSuccess,
 }: CreateKnowledgeEntryDialogProps) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    term: "",
-    definition: "",
-    context: "",
-    examples: "",
+
+  const form = useForm<CreateKnowledgeEntryFormValues>({
+    resolver: standardSchemaResolver(createKnowledgeEntryFormSchema),
+    defaultValues: {
+      term: "",
+      definition: "",
+      context: "",
+      examples: "",
+    },
+    mode: "onChange",
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const examplesArray = formData.examples
-        ? formData.examples
-            .split("\n")
-            .map((ex) => ex.trim())
-            .filter((ex) => ex.length > 0)
-        : null;
-
-      const result = await createKnowledgeEntryAction({
-        scope,
-        scopeId,
-        term: formData.term,
-        definition: formData.definition,
-        context: formData.context || null,
-        examples: examplesArray,
-      });
-
-      if (result?.serverError) {
-        toast.error(result.serverError);
-        return;
-      }
-
-      if (result?.validationErrors) {
-        const firstFieldErrors = Object.values(result.validationErrors)[0];
-        const firstError = Array.isArray(firstFieldErrors)
-          ? firstFieldErrors[0]
-          : typeof firstFieldErrors === "object" &&
-            firstFieldErrors !== null &&
-            "_errors" in firstFieldErrors &&
-            Array.isArray(firstFieldErrors._errors)
-          ? firstFieldErrors._errors[0]
-          : undefined;
-        toast.error(
-          typeof firstError === "string" ? firstError : "Validation failed"
-        );
-        return;
-      }
-
-      if (result?.data) {
+  const { execute, isExecuting } = useAction(createKnowledgeEntryAction, {
+    onSuccess: ({ data }) => {
+      if (data) {
         toast.success("Knowledge entry created successfully");
-        onSuccess?.(result.data);
+        onSuccess?.(data);
         onOpenChange(false);
-        setFormData({ term: "", definition: "", context: "", examples: "" });
+        form.reset();
         router.refresh();
       }
-    } catch (error) {
-      console.error("Error creating knowledge entry:", error);
-      toast.error("Failed to create knowledge entry");
-    } finally {
-      setIsLoading(false);
+    },
+    onError: ({ error }) => {
+      toast.error(error.serverError || "Failed to create knowledge entry");
+    },
+  });
+
+  const handleSubmit = (data: CreateKnowledgeEntryFormValues) => {
+    const examplesArray = data.examples
+      ? data.examples
+          .split("\n")
+          .map((ex) => ex.trim())
+          .filter((ex) => ex.length > 0)
+      : null;
+
+    execute({
+      scope,
+      scopeId,
+      term: data.term,
+      definition: data.definition,
+      context: data.context || null,
+      examples: examplesArray,
+    });
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      form.reset();
     }
+    onOpenChange(isOpen);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Knowledge Entry</DialogTitle>
@@ -109,79 +109,105 @@ export function CreateKnowledgeEntryDialog({
             Add a new term and definition to the knowledge base
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="term">Term *</Label>
-            <Input
-              id="term"
-              value={formData.term}
-              onChange={(e) =>
-                setFormData({ ...formData, term: e.target.value })
-              }
-              placeholder="e.g., MVP"
-              required
-              maxLength={100}
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-4"
+          >
+            <FormField
+              control={form.control}
+              name="term"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Term *</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g., MVP"
+                      maxLength={100}
+                      disabled={isExecuting}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="definition">Definition *</Label>
-            <Textarea
-              id="definition"
-              value={formData.definition}
-              onChange={(e) =>
-                setFormData({ ...formData, definition: e.target.value })
-              }
-              placeholder="e.g., Minimum Viable Product - the simplest version of a product that can be released"
-              required
-              rows={4}
-              maxLength={5000}
+            <FormField
+              control={form.control}
+              name="definition"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Definition *</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="e.g., Minimum Viable Product - the simplest version of a product that can be released"
+                      rows={4}
+                      maxLength={5000}
+                      disabled={isExecuting}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="context">Context (optional)</Label>
-            <Textarea
-              id="context"
-              value={formData.context}
-              onChange={(e) =>
-                setFormData({ ...formData, context: e.target.value })
-              }
-              placeholder="Additional context about when/how this term is used"
-              rows={2}
-              maxLength={1000}
+            <FormField
+              control={form.control}
+              name="context"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Context (optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Additional context about when/how this term is used"
+                      rows={2}
+                      maxLength={1000}
+                      disabled={isExecuting}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="examples">Examples (optional, one per line)</Label>
-            <Textarea
-              id="examples"
-              value={formData.examples}
-              onChange={(e) =>
-                setFormData({ ...formData, examples: e.target.value })
-              }
-              placeholder="Example 1&#10;Example 2"
-              rows={3}
+            <FormField
+              control={form.control}
+              name="examples"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Examples (optional, one per line)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Example 1&#10;Example 2"
+                      rows={3}
+                      disabled={isExecuting}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Creating..." : "Create Entry"}
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleOpenChange(false)}
+                disabled={isExecuting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isExecuting}>
+                {isExecuting ? "Creating..." : "Create Entry"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
 }
-

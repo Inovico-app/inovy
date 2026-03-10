@@ -89,7 +89,7 @@ export function UnifiedChatInterface({
           return response;
         },
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     []
   );
 

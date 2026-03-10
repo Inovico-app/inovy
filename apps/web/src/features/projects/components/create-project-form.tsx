@@ -8,14 +8,26 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createProjectAction } from "@/features/projects/actions/create-project";
 import { PROJECT_DESCRIPTION_MAX_LENGTH } from "@/lib/constants/project-constants";
+import {
+  createProjectSchema,
+  type CreateProjectInput,
+} from "@/server/validation/projects/create-project";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 interface CreateProjectFormProps {
@@ -39,8 +51,15 @@ export function CreateProjectForm({
   showCard = true,
 }: CreateProjectFormProps = {}) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+
+  const form = useForm<CreateProjectInput>({
+    resolver: standardSchemaResolver(createProjectSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+    },
+    mode: "onChange",
+  });
 
   const { execute, result, isExecuting, reset } = useAction(
     createProjectAction,
@@ -62,94 +81,105 @@ export function CreateProjectForm({
     }
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!name.trim()) {
-      return;
-    }
-
+  const handleSubmit = (data: CreateProjectInput) => {
     execute({
-      name: name.trim(),
-      description: description.trim() || undefined,
+      name: data.name.trim(),
+      description: data.description?.trim() || undefined,
     });
   };
 
   const handleReset = () => {
-    setName("");
-    setDescription("");
+    form.reset();
     reset();
   };
 
+  const description = form.watch("description") ?? "";
+
   const formContent = (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Project Name *</Label>
-        <Input
-          id="name"
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Enter project name"
-          disabled={isExecuting}
-          required
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Project Name *</FormLabel>
+              <FormControl>
+                <Input
+                  type="text"
+                  placeholder="Enter project name"
+                  disabled={isExecuting}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Enter project description (optional)"
-          disabled={isExecuting}
-          rows={3}
-          maxLength={PROJECT_DESCRIPTION_MAX_LENGTH}
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Enter project description (optional)"
+                  disabled={isExecuting}
+                  rows={3}
+                  maxLength={PROJECT_DESCRIPTION_MAX_LENGTH}
+                  {...field}
+                />
+              </FormControl>
+              <p
+                className={`text-right text-xs ${
+                  description.length >= PROJECT_DESCRIPTION_MAX_LENGTH
+                    ? "text-red-500"
+                    : description.length >=
+                        PROJECT_DESCRIPTION_MAX_LENGTH - 100
+                      ? "text-yellow-500"
+                      : "text-muted-foreground"
+                }`}
+                aria-live="polite"
+              >
+                {description.length} / {PROJECT_DESCRIPTION_MAX_LENGTH}
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        <p
-          className={`text-right text-xs ${
-            description.length >= PROJECT_DESCRIPTION_MAX_LENGTH
-              ? "text-red-500"
-              : description.length >= PROJECT_DESCRIPTION_MAX_LENGTH - 100
-                ? "text-yellow-500"
-                : "text-muted-foreground"
-          }`}
-          aria-live="polite"
-        >
-          {description.length} / {PROJECT_DESCRIPTION_MAX_LENGTH}
-        </p>
-      </div>
 
-      {result?.serverError && (
-        <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md">
-          <p className="text-sm text-red-800 dark:text-red-200">
-            {result.serverError}
-          </p>
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        <Button
-          type="submit"
-          disabled={isExecuting || !name.trim()}
-          className="flex-1"
-        >
-          {isExecuting ? "Creating..." : "Create Project"}
-        </Button>
-
-        {showCard && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleReset}
-            disabled={isExecuting}
-          >
-            Reset
-          </Button>
+        {result?.serverError && (
+          <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md">
+            <p className="text-sm text-red-800 dark:text-red-200">
+              {result.serverError}
+            </p>
+          </div>
         )}
-      </div>
-    </form>
+
+        <div className="flex gap-2">
+          <Button
+            type="submit"
+            disabled={isExecuting || !form.formState.isValid}
+            className="flex-1"
+          >
+            {isExecuting ? "Creating..." : "Create Project"}
+          </Button>
+
+          {showCard && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleReset}
+              disabled={isExecuting}
+            >
+              Reset
+            </Button>
+          )}
+        </div>
+      </form>
+    </Form>
   );
 
   if (showCard) {
@@ -168,4 +198,3 @@ export function CreateProjectForm({
 
   return formContent;
 }
-

@@ -8,8 +8,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -25,9 +33,14 @@ import type {
   DriveWatchDto,
   DriveWatchListItemDto,
 } from "@/server/dto/drive-watch.dto";
+import {
+  driveWatchFormSchema,
+  type DriveWatchFormValues,
+} from "@/features/settings/validation/drive-watch.schema";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2, X } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
-import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 interface Project {
@@ -52,8 +65,13 @@ export function DriveWatchForm({
   onSuccess,
   onCancel,
 }: DriveWatchFormProps) {
-  const [folderId, setFolderId] = useState(editingWatch?.folderId || "");
-  const [projectId, setProjectId] = useState(editingWatch?.projectId || "");
+  const form = useForm<DriveWatchFormValues>({
+    resolver: standardSchemaResolver(driveWatchFormSchema),
+    defaultValues: {
+      folderId: editingWatch?.folderId || "",
+      projectId: editingWatch?.projectId || "",
+    },
+  });
 
   const { execute: executeStart, isExecuting: isStarting } = useAction(
     startDriveWatchAction,
@@ -170,23 +188,16 @@ export function DriveWatchForm({
     }
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!folderId.trim() || !projectId) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
+  const handleSubmit = (values: DriveWatchFormValues) => {
     if (editingWatch) {
       executeUpdate({
         watchId: editingWatch.id,
-        projectId,
+        projectId: values.projectId,
       });
     } else {
       executeStart({
-        folderId: folderId.trim(),
-        projectId,
+        folderId: values.folderId,
+        projectId: values.projectId,
       });
     }
   };
@@ -213,76 +224,97 @@ export function DriveWatchForm({
         </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="folderId">
-              Google Drive Folder ID{" "}
-              {!editingWatch && <span className="text-destructive">*</span>}
-            </Label>
-            <Input
-              id="folderId"
-              type="text"
-              value={folderId}
-              onChange={(e) => setFolderId(e.target.value)}
-              placeholder="Enter folder ID (e.g., 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms)"
-              disabled={!!editingWatch || isLoading}
-              required={!editingWatch}
-              aria-describedby="folderId-help"
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-4"
+          >
+            <FormField
+              control={form.control}
+              name="folderId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Google Drive Folder ID{" "}
+                    {!editingWatch && (
+                      <span className="text-destructive">*</span>
+                    )}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type="text"
+                      placeholder="Enter folder ID (e.g., 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms)"
+                      disabled={!!editingWatch || isLoading}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    You can find the folder ID in the Google Drive URL. The
+                    folder ID is the long string of characters after{" "}
+                    <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                      /folders/
+                    </code>
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <p id="folderId-help" className="text-sm text-muted-foreground">
-              You can find the folder ID in the Google Drive URL. The folder ID
-              is the long string of characters after{" "}
-              <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                /folders/
-              </code>
-            </p>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="projectId">
-              Project <span className="text-destructive">*</span>
-            </Label>
-            <Select
-              value={projectId}
-              onValueChange={setProjectId}
-              disabled={isLoading}
-              required
-            >
-              <SelectTrigger id="projectId">
-                <SelectValue placeholder="Select a project" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.length === 0 ? (
-                  <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                    No projects available
-                  </div>
-                ) : (
-                  projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))
+            <FormField
+              control={form.control}
+              name="projectId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Project <span className="text-destructive">*</span>
+                  </FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={isLoading}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a project" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {projects.length === 0 ? (
+                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                          No projects available
+                        </div>
+                      ) : (
+                        projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Files uploaded to this folder will be linked to the selected
+                    project
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex items-center gap-2">
+              <Button type="submit" disabled={isLoading}>
+                {isLoading && (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
-              </SelectContent>
-            </Select>
-            <p className="text-sm text-muted-foreground">
-              Files uploaded to this folder will be linked to the selected
-              project
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {editingWatch ? "Update Watch" : "Start Watching"}
-            </Button>
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-          </div>
-        </form>
+                {editingWatch ? "Update Watch" : "Start Watching"}
+              </Button>
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </Form>
       </CardContent>
     </Card>
   );
 }
-
