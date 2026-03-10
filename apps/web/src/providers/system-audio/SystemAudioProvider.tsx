@@ -180,17 +180,22 @@ const SystemAudioContextProvider: React.FC<
       }
 
       // Handle track ended events (user stops sharing)
+      // Use cleanupResources() + CLEANUP dispatch instead of stopSystemAudio()
+      // because tracks are already dead at this point — pause() would fail
+      // and the streams can't be reused, so full teardown is needed.
       displayStream.getVideoTracks().forEach((track) => {
         track.onended = () => {
-          logger.info("Video track ended, stopping system audio", { component: "SystemAudioProvider" });
-          stopSystemAudio();
+          logger.info("Video track ended, cleaning up system audio", { component: "SystemAudioProvider" });
+          cleanupResources();
+          dispatch({ type: "CLEANUP" });
         };
       });
 
       displayStream.getAudioTracks().forEach((track) => {
         track.onended = () => {
-          logger.info("Audio track ended, stopping system audio", { component: "SystemAudioProvider" });
-          stopSystemAudio();
+          logger.info("Audio track ended, cleaning up system audio", { component: "SystemAudioProvider" });
+          cleanupResources();
+          dispatch({ type: "CLEANUP" });
         };
       });
 
