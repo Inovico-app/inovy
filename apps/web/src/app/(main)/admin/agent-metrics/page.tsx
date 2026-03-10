@@ -1,18 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import dynamic from "next/dynamic";
-
-const AgentAnalyticsCharts = dynamic(
-  () =>
-    import(
-      "@/features/admin/components/agent/agent-analytics-charts"
-    ).then((m) => m.AgentAnalyticsCharts),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-96 animate-pulse rounded-lg bg-muted" />
-    ),
-  }
-);
+import { AgentAnalyticsChartsLazy } from "@/features/admin/components/agent/agent-analytics-charts-lazy";
 import { AgentMetricsExport } from "@/features/admin/components/agent/agent-metrics-export";
 import { AgentMetricsFilters } from "@/features/admin/components/agent/agent-metrics-filters";
 import { AgentMetricsTable } from "@/features/admin/components/agent/agent-metrics-table";
@@ -147,7 +134,7 @@ async function AgentMetricsContent({
         <div className="min-w-0 flex-1">
           <div className="space-y-8">
             {/* Analytics Overview Charts */}
-            <AgentAnalyticsCharts
+            <AgentAnalyticsChartsLazy
               requestCount={requestCount}
               latency={latency}
               errorRate={errorRate}
