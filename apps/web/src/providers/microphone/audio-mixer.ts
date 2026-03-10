@@ -2,6 +2,7 @@
  * Audio mixing utilities for combining multiple audio sources
  */
 
+import { createAudioContext } from "@/lib/audio/create-audio-context";
 import { logger } from "@/lib/logger";
 
 export interface AudioMixerRefs {
@@ -12,25 +13,6 @@ export interface AudioMixerRefs {
 }
 
 /**
- * Get AudioContext constructor (handles browser compatibility)
- * @throws Error if Web Audio API is not supported
- */
-function getAudioContextConstructor(): typeof AudioContext {
-  const AudioContextConstructor =
-    window.AudioContext ||
-    (window as unknown as { webkitAudioContext: typeof AudioContext })
-      .webkitAudioContext;
-
-  if (!AudioContextConstructor) {
-    throw new Error(
-      "Web Audio API is not supported in this environment. Please use a modern browser."
-    );
-  }
-
-  return AudioContextConstructor;
-}
-
-/**
  * Mix multiple audio streams into a single MediaStream
  * @param streams - Array of MediaStreams to mix
  * @returns Audio mixer refs with mixed stream
@@ -38,8 +20,7 @@ function getAudioContextConstructor(): typeof AudioContext {
 export function mixAudioStreams(
   streams: MediaStream[]
 ): AudioMixerRefs {
-  const AudioContextConstructor = getAudioContextConstructor();
-  const audioContext = new AudioContextConstructor();
+  const audioContext = createAudioContext();
 
   // Create destination for mixed audio
   const destination = audioContext.createMediaStreamDestination();

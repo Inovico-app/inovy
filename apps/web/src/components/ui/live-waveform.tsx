@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type HTMLAttributes } from "react";
 
+import { createAudioContext } from "@/lib/audio/create-audio-context";
 import { cn } from "@/lib/utils";
 import {
   calculateScrollingAverage,
@@ -220,11 +221,7 @@ export const LiveWaveform = ({
         streamRef.current = stream;
         onStreamReady?.(stream);
 
-        const AudioContextConstructor =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext })
-            .webkitAudioContext;
-        const audioContext = new AudioContextConstructor();
+        const audioContext = createAudioContext();
         const analyser = audioContext.createAnalyser();
         analyser.fftSize = fftSize;
         analyser.smoothingTimeConstant = smoothingTimeConstant;
