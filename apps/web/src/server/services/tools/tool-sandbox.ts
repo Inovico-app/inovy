@@ -1,5 +1,6 @@
 import { logger } from "@/lib/logger";
 import { PIIDetectionService } from "@/server/services/pii-detection.service";
+import { circuitBreaker } from "@/server/services/circuit-breaker.service";
 
 /**
  * Maximum size (in bytes) of a tool's JSON-serialized output before truncation.
@@ -57,11 +58,12 @@ interface SandboxOptions {
 
 /**
  * Wraps a tool execute function with:
- * 1. Execution timeout
- * 2. Output size cap (truncation)
- * 3. PII redaction on output
- * 4. Per-conversation tool call counter
- * 5. Structured audit logging
+ * 1. Circuit breaker check (skip if tool is in failure state)
+ * 2. Per-conversation tool call budget
+ * 3. Execution timeout
+ * 4. Output size cap (truncation)
+ * 5. PII redaction on output
+ * 6. Structured audit logging
  */
 export function sandboxExecute<TInput, TOutput>(
   executeFn: (input: TInput) => Promise<TOutput>,
@@ -80,7 +82,23 @@ export function sandboxExecute<TInput, TOutput>(
   return async (input: TInput): Promise<TOutput | { error: string }> => {
     const startTime = Date.now();
 
-    // 1. Check per-conversation tool call budget
+    // 1. Circuit breaker check — skip execution if tool is in failure state
+    if (organizationId) {
+      const allowed = await circuitBreaker.canExecute(organizationId, toolName);
+      if (!allowed) {
+        logger.warn("Tool blocked by circuit breaker", {
+          component: "ToolSandbox",
+          toolName,
+          organizationId,
+          userId,
+        });
+        return {
+          error: `Tool "${toolName}" is temporarily unavailable due to repeated failures. It will recover automatically.`,
+        } as TOutput | { error: string };
+      }
+    }
+
+    // 2. Check per-conversation tool call budget
     if (conversationId) {
       const count = incrementToolCallCount(conversationId);
       if (count > MAX_TOOL_CALLS_PER_CONVERSATION) {
@@ -97,7 +115,7 @@ export function sandboxExecute<TInput, TOutput>(
       }
     }
 
-    // 2. Execute with timeout
+    // 3. Execute with timeout
     let result: TOutput;
     try {
       result = await Promise.race([
@@ -109,8 +127,19 @@ export function sandboxExecute<TInput, TOutput>(
           )
         ),
       ]);
+
+      // Record success for circuit breaker
+      if (organizationId) {
+        await circuitBreaker.recordSuccess(organizationId, toolName).catch(() => {});
+      }
     } catch (error) {
       const latencyMs = Date.now() - startTime;
+
+      // Record failure for circuit breaker
+      if (organizationId) {
+        await circuitBreaker.recordFailure(organizationId, toolName).catch(() => {});
+      }
+
       logger.error("Tool execution failed in sandbox", {
         component: "ToolSandbox",
         toolName,
@@ -124,7 +153,7 @@ export function sandboxExecute<TInput, TOutput>(
 
     const latencyMs = Date.now() - startTime;
 
-    // 3. Serialize and check output size
+    // 4. Serialize and check output size
     let serialized: string;
     try {
       serialized = JSON.stringify(result);
@@ -154,7 +183,7 @@ export function sandboxExecute<TInput, TOutput>(
       } as TOutput | { error: string };
     }
 
-    // 4. PII redaction on output
+    // 5. PII redaction on output
     if (redactPII) {
       const detections = PIIDetectionService.detectPII(serialized, PII_MIN_CONFIDENCE);
       if (detections.length > 0) {
@@ -190,7 +219,7 @@ export function sandboxExecute<TInput, TOutput>(
       }
     }
 
-    // 5. Audit log
+    // 6. Audit log
     logger.debug("Tool execution completed", {
       component: "ToolSandbox",
       toolName,
