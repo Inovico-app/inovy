@@ -45,16 +45,9 @@ resource "azurerm_storage_account" "recordings" {
   })
 }
 
-# Container for recordings (server-side uploads)
-resource "azurerm_storage_container" "recordings" {
-  name                  = "recordings"
-  storage_account_id    = azurerm_storage_account.recordings.id
-  container_access_type = "private"
-}
-
-# Container for client-side uploads (SAS token; CORS required)
-resource "azurerm_storage_container" "public" {
-  name                  = "public"
+# Container for application-wide blob storage (recordings, gdpr-exports, knowledge-base)
+resource "azurerm_storage_container" "app" {
+  name                  = var.storage_container_name
   storage_account_id    = azurerm_storage_account.recordings.id
   container_access_type = "private"
 }

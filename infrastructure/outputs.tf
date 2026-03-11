@@ -135,7 +135,7 @@ output "storage_account_primary_connection_string" {
 }
 
 output "storage_container_name" {
-  description = "Name of the recordings container"
+  description = "Name of the application storage container"
   value       = module.storage.storage_container_name
 }
 

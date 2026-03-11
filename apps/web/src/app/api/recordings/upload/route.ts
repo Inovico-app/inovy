@@ -63,6 +63,41 @@ function verifySignedPayload(payload: string, signature: string): boolean {
   return timingSafeEqual(sigBuf, expectedBuf);
 }
 
+const RETRYABLE_STATUS_CODES = [429, 500, 502, 503];
+
+function isRetryableError(err: unknown): boolean {
+  const statusCode = (err as { statusCode?: number }).statusCode;
+  if (statusCode == null) return true; // Network/timeout – retry
+  if (RETRYABLE_STATUS_CODES.includes(statusCode)) return true;
+  return false;
+}
+
+async function getBlobPropertiesWithRetry(
+  getBlobProperties: (url: string) => Promise<{ contentLength?: number; contentType?: string }>,
+  blobUrl: string,
+  maxAttempts = 3
+): Promise<{ contentLength?: number; contentType?: string }> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await getBlobProperties(blobUrl);
+    } catch (err) {
+      lastError = err;
+      if (attempt === maxAttempts || !isRetryableError(err)) throw err;
+      const delayMs = 500 * Math.pow(2, attempt - 1);
+      logger.info("Retrying getBlobProperties after transient error", {
+        component: "POST /api/recordings/upload - getBlobPropertiesWithRetry",
+        attempt,
+        maxAttempts,
+        delayMs,
+        error: serializeError(err),
+      });
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+  throw lastError;
+}
+
 /**
  * Shared post-upload processing: create recording, save consent, trigger AI workflow
  */
@@ -408,15 +443,26 @@ async function handleAzureUpload(request: NextRequest) {
       throw new Error("Invalid token payload");
     }
 
-    // Verify uploaded blob size doesn't exceed limit
+    // Verify uploaded blob size doesn't exceed limit (best-effort; proceed if verification fails)
     const storage = await getStorageProvider();
     if (storage.getBlobProperties) {
-      const props = await storage.getBlobProperties(body.blobUrl);
-      if (props.contentLength && props.contentLength > MAX_FILE_SIZE) {
-        await storage.del(body.blobUrl);
-        throw new Error(
-          `Uploaded file exceeds maximum size of ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB`
+      try {
+        const props = await getBlobPropertiesWithRetry(
+          storage.getBlobProperties.bind(storage),
+          body.blobUrl
         );
+        if (props?.contentLength && props.contentLength > MAX_FILE_SIZE) {
+          await storage.del(body.blobUrl);
+          throw new Error(
+            `Uploaded file exceeds maximum size of ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB`
+          );
+        }
+      } catch (verifyError) {
+        logger.warn("Could not verify blob size after upload; proceeding anyway", {
+          component: "POST /api/recordings/upload - upload-complete",
+          blobUrl: body.blobUrl,
+          error: serializeError(verifyError),
+        });
       }
     }
 

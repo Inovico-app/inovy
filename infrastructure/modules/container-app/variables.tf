@@ -86,7 +86,7 @@ variable "storage_account_key" {
 }
 
 variable "storage_container_name" {
-  description = "Name of the recordings container"
+  description = "Name of the application storage container"
   type        = string
 }
 

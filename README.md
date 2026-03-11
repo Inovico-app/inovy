@@ -390,6 +390,8 @@ Notification Dispatch
    NODE_ENV="development"
    ```
 
+   For a complete reference of all environment variables (Local, Vercel, Azure), see [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md).
+
 4. **Database Setup**
 
    ```bash
