@@ -6,22 +6,79 @@ import { createListTasksTool } from "./list-tasks.tool";
 import { createGetRecordingDetailsTool } from "./get-recording-details.tool";
 import { createSearchKnowledgeTool } from "./search-knowledge.tool";
 import { AgentPermissionService } from "../agent-permission.service";
+import { sandboxExecute } from "./tool-sandbox";
 
 export type { ToolContext } from "./tool-context";
+export { resetToolCallCount } from "./tool-sandbox";
 
-export function createChatTools(ctx: ToolContext) {
+/**
+ * Creates chat tools filtered by user role and wrapped in the execution sandbox.
+ * The sandbox enforces: timeouts, output size caps, PII redaction, and per-conversation call limits.
+ */
+export function createChatTools(ctx: ToolContext & { conversationId?: string }) {
+  const sandboxOpts = {
+    userId: ctx.userId,
+    organizationId: ctx.organizationId,
+    conversationId: ctx.conversationId,
+  };
+
   const allTools = {
-    getRecordingDetails: createGetRecordingDetailsTool(ctx),
-    listProjects: createListProjectsTool(ctx),
-    listRecordings: createListRecordingsTool(ctx),
-    listTasks: createListTasksTool(ctx),
-    searchKnowledge: createSearchKnowledgeTool(ctx),
+    getRecordingDetails: wrapToolWithSandbox(
+      createGetRecordingDetailsTool(ctx),
+      "getRecordingDetails",
+      sandboxOpts
+    ),
+    listProjects: wrapToolWithSandbox(
+      createListProjectsTool(ctx),
+      "listProjects",
+      sandboxOpts
+    ),
+    listRecordings: wrapToolWithSandbox(
+      createListRecordingsTool(ctx),
+      "listRecordings",
+      sandboxOpts
+    ),
+    listTasks: wrapToolWithSandbox(
+      createListTasksTool(ctx),
+      "listTasks",
+      sandboxOpts
+    ),
+    searchKnowledge: wrapToolWithSandbox(
+      createSearchKnowledgeTool(ctx),
+      "searchKnowledge",
+      sandboxOpts
+    ),
   };
 
   return AgentPermissionService.filterToolsByRole(allTools, ctx.userRole, {
     userId: ctx.userId,
     organizationId: ctx.organizationId,
   });
+}
+
+/**
+ * Wraps an AI SDK tool's execute function with the sandbox.
+ * Preserves the full tool type (including inputSchema) while replacing execute.
+ *
+ * Uses `any` internally because the AI SDK Tool type is deeply generic and
+ * the sandbox operates on serialized JSON, making it type-erased by design.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function wrapToolWithSandbox<T extends Record<string, any>>(
+  toolDef: T,
+  toolName: string,
+  opts: { userId?: string; organizationId?: string; conversationId?: string }
+): T {
+  if (!toolDef.execute) return toolDef;
+
+  const originalExecute = toolDef.execute;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wrappedExecute = sandboxExecute<any, any>(originalExecute, {
+    toolName,
+    ...opts,
+  });
+
+  return { ...toolDef, execute: wrappedExecute };
 }
 
 function ensureRecord(value: unknown): Record<string, unknown> {

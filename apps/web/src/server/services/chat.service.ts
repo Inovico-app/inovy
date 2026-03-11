@@ -29,6 +29,7 @@ import {
   buildPersistedToolCalls,
   createChatTools,
   extractSourcesFromToolResults,
+  resetToolCallCount,
   type ToolContext,
 } from "./tools";
 import { SearchResultFormatter } from "./search-result-formatter.service";
@@ -614,13 +615,17 @@ export class ChatService {
         projectId,
         chatContext: "project",
         userRole,
+        conversationId,
       };
+
+      // Viewer role gets reduced step budget
+      const maxSteps = userRole === "viewer" ? 5 : 10;
 
       const streamTextOptions: Parameters<typeof streamText>[0] = {
         model: guardedModel,
         system: promptResult.systemPrompt,
         tools: createChatTools(toolContext),
-        stopWhen: stepCountIs(10),
+        stopWhen: stepCountIs(maxSteps),
         messages: [
           ...conversationHistory,
           {
@@ -630,6 +635,7 @@ export class ChatService {
         ],
         onError: async (error) => {
           pooled.activeRequests--;
+          resetToolCallCount(conversationId);
           streamError =
             error instanceof Error ? error : new Error(String(error));
 
@@ -657,6 +663,9 @@ export class ChatService {
         async onFinish({ text, usage, toolCalls, toolResults }) {
           // Decrement active requests when stream finishes
           pooled.activeRequests--;
+
+          // Clean up per-conversation tool call counter
+          resetToolCallCount(conversationId);
 
           // Calculate latency
           const latencyMs = Date.now() - startTime;
@@ -889,13 +898,17 @@ export class ChatService {
         userId,
         chatContext: "organization",
         userRole,
+        conversationId,
       };
+
+      // Viewer role gets reduced step budget (org chat is admin-only, but defense in depth)
+      const orgMaxSteps = userRole === "viewer" ? 5 : 10;
 
       const streamTextOptions: Parameters<typeof streamText>[0] = {
         model: guardedModel,
         system: promptResult.systemPrompt,
         tools: createChatTools(orgToolContext),
-        stopWhen: stepCountIs(10),
+        stopWhen: stepCountIs(orgMaxSteps),
         messages: [
           ...conversationHistory,
           {
@@ -905,6 +918,7 @@ export class ChatService {
         ],
         onError: async (error) => {
           pooled.activeRequests--;
+          resetToolCallCount(conversationId);
           streamError =
             error instanceof Error ? error : new Error(String(error));
 
@@ -934,6 +948,9 @@ export class ChatService {
         async onFinish({ text, usage, toolCalls, toolResults }) {
           // Decrement active requests when stream finishes
           pooled.activeRequests--;
+
+          // Clean up per-conversation tool call counter
+          resetToolCallCount(conversationId);
 
           // Calculate latency
           const latencyMs = Date.now() - startTime;
