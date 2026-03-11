@@ -45,14 +45,18 @@ export function useNavigationGuard({
       return;
     }
 
-    // --- Strategy 1: Click capture on <a> tags ---
-    // Runs in capture phase so it fires before Next.js's Link click handler.
-    // Next.js checks e.defaultPrevented before navigating, so preventDefault()
-    // is sufficient to block the client-side route transition.
+    // --- Strategy 1: Click interception on <a> tags ---
+    // Next.js <Link> checks e.defaultPrevented before navigating, so
+    // preventDefault() alone is sufficient to block the route transition.
+    // We intentionally do NOT use stopPropagation — it breaks React 19's
+    // event delegation (which attaches to the React root, a child of document).
     const handleLinkClick = (e: MouseEvent) => {
       if (!enabledRef.current) return;
 
-      const anchor = (e.target as HTMLElement).closest("a");
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+
+      const anchor = target.closest("a");
       if (!anchor) return;
 
       const href = anchor.getAttribute("href");
@@ -67,9 +71,8 @@ export function useNavigationGuard({
       // Skip same-page navigation
       if (href === window.location.pathname) return;
 
-      // Block the click so Next.js never sees it
+      // Block Next.js navigation (Link checks defaultPrevented)
       e.preventDefault();
-      e.stopPropagation();
 
       pendingUrlRef.current = href;
       setShowDialog(true);
