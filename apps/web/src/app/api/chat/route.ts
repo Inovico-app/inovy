@@ -6,6 +6,7 @@ import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
 import { GuardrailError } from "@/server/ai/middleware";
 import { moderateUserInput } from "@/server/ai/middleware/input-moderation.middleware";
 import { AgentConfigService } from "@/server/services/agent-config.service";
+import { AgentKillSwitchService } from "@/server/services/agent-kill-switch.service";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
 import { ChatService } from "@/server/services/chat.service";
 import { ProjectService } from "@/server/services/project.service";
@@ -73,8 +74,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { user, organization } = session;
+    const { user, organization, member } = session;
     const organizationId = organization.id;
+    const userRole = member?.role ?? "user";
+
+    // Check global kill switch before anything else
+    const isKilled = await AgentKillSwitchService.isKilled();
+    if (isKilled) {
+      return NextResponse.json(
+        {
+          error: "Agent is temporarily unavailable",
+          code: "AGENT_KILLED",
+        },
+        { status: 503 }
+      );
+    }
 
     // Check if agent is enabled for this organization
     const agentStatusResult =
@@ -240,7 +254,8 @@ export async function POST(request: NextRequest) {
       const streamResult = await ChatService.streamOrganizationResponse(
         activeConversationId,
         lastUserMessage,
-        organizationId
+        organizationId,
+        userRole
       );
 
       if (streamResult.isErr()) {
@@ -353,7 +368,8 @@ export async function POST(request: NextRequest) {
         activeConversationId,
         lastUserMessage,
         projectId,
-        organizationId
+        organizationId,
+        userRole
       );
 
       if (streamResult.isErr()) {

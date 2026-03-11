@@ -484,7 +484,8 @@ export class ChatService {
     conversationId: string,
     userMessage: string,
     projectId: string,
-    organizationId: string
+    organizationId: string,
+    userRole: string = "user"
   ) {
     try {
       logger.info("Streaming chat response", { conversationId, projectId });
@@ -612,6 +613,7 @@ export class ChatService {
         userId,
         projectId,
         chatContext: "project",
+        userRole,
       };
 
       const streamTextOptions: Parameters<typeof streamText>[0] = {
@@ -770,7 +772,8 @@ export class ChatService {
   static async streamOrganizationResponse(
     conversationId: string,
     userMessage: string,
-    organizationId: string
+    organizationId: string,
+    userRole: string = "admin"
   ) {
     try {
       logger.info("Streaming organization chat response", {
@@ -885,6 +888,7 @@ export class ChatService {
         organizationId,
         userId,
         chatContext: "organization",
+        userRole,
       };
 
       const streamTextOptions: Parameters<typeof streamText>[0] = {
