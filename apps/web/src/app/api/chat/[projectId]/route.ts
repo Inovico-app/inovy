@@ -5,6 +5,7 @@ import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { GuardrailError } from "@/server/ai/middleware";
 import { AgentConfigService } from "@/server/services/agent-config.service";
 import { AgentKillSwitchService } from "@/server/services/agent-kill-switch.service";
+import { AgentTokenBudgetService } from "@/server/services/agent-token-budget.service";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
 import { ChatService } from "@/server/services/chat.service";
 import { ProjectService } from "@/server/services/project.service";
@@ -71,6 +72,23 @@ export async function POST(
 
     if (!rateLimitResult.allowed) {
       return createRateLimitResponse(rateLimitResult);
+    }
+
+    // Check per-organization daily token budget
+    const budgetResult = await AgentTokenBudgetService.getRemainingBudget(
+      organization.id
+    );
+
+    if (!budgetResult.allowed) {
+      return NextResponse.json(
+        {
+          error: "Daily token budget exceeded for this organization",
+          code: "TOKEN_BUDGET_EXCEEDED",
+          limit: budgetResult.limit,
+          remaining: budgetResult.remaining,
+        },
+        { status: 429 }
+      );
     }
 
     // Verify user has access to the project

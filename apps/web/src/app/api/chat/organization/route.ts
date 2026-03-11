@@ -5,6 +5,7 @@ import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
 import { GuardrailError } from "@/server/ai/middleware";
 import { moderateUserInput } from "@/server/ai/middleware/input-moderation.middleware";
 import { AgentKillSwitchService } from "@/server/services/agent-kill-switch.service";
+import { AgentTokenBudgetService } from "@/server/services/agent-token-budget.service";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
 import { ChatService } from "@/server/services/chat.service";
 import { type NextRequest, NextResponse } from "next/server";
@@ -62,6 +63,23 @@ export const POST = withRateLimit(
             code: "AGENT_KILLED",
           },
           { status: 503 }
+        );
+      }
+
+      // Check per-organization daily token budget
+      const budgetResult = await AgentTokenBudgetService.getRemainingBudget(
+        organizationId
+      );
+
+      if (!budgetResult.allowed) {
+        return NextResponse.json(
+          {
+            error: "Daily token budget exceeded for this organization",
+            code: "TOKEN_BUDGET_EXCEEDED",
+            limit: budgetResult.limit,
+            remaining: budgetResult.remaining,
+          },
+          { status: 429 }
         );
       }
 
