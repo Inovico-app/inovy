@@ -53,9 +53,9 @@ export function Sidebar() {
           collapsed ? "w-16" : "w-64"
         )}
       >
-        <div className="flex h-14 items-center justify-between px-4 border-b">
+        <header className="flex h-14 items-center justify-between px-4 border-b">
           <Skeleton className="h-6 w-20" />
-        </div>
+        </header>
         <nav className="flex-1 space-y-1 p-2">
           {[...Array(navLinks.length)].map((_, i) => (
             <Skeleton key={`skeleton-${i}`} className="h-10 w-full mb-2" />
@@ -75,7 +75,7 @@ export function Sidebar() {
       )}
     >
       {/* Header */}
-      <div className="flex h-14 items-center justify-between px-4 border-b">
+      <header className="flex h-14 items-center justify-between px-4 border-b">
         {!collapsed && (
           <Link href="/" className="font-semibold text-xl">
             Inovy
@@ -95,7 +95,7 @@ export function Sidebar() {
             <ChevronLeft className="h-4 w-4" />
           )}
         </Button>
-      </div>
+      </header>
 
       {/* Organization Switcher */}
       <OrganizationSwitcher collapsed={collapsed} />

@@ -52,7 +52,7 @@ export const PromptInputSpeechButton = ({
 
     speechRecognition.continuous = true;
     speechRecognition.interimResults = true;
-    speechRecognition.lang = "en-US";
+    speechRecognition.lang = "nl-NL";
 
     speechRecognition.onstart = () => {
       setIsListening(true);
@@ -126,9 +126,11 @@ export const PromptInputSpeechButton = ({
         className
       )}
       onClick={toggleListening}
+      aria-label={isListening ? "Stop voice input" : "Start voice input"}
+      aria-pressed={isListening}
       {...props}
     >
-      <MicIcon className="size-4" />
+      <MicIcon className="size-4" aria-hidden="true" />
     </PromptInputButton>
   );
 };

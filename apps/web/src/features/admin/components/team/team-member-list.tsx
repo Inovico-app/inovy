@@ -85,6 +85,7 @@ export function TeamMemberList({
                                 })
                               }
                               disabled={isSubmitting}
+                              aria-label={`Remove ${getUserName(member)} from team`}
                             >
                               <XIcon className="h-3 w-3" />
                             </Button>

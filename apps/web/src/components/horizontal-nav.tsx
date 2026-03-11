@@ -1,5 +1,6 @@
 "use client";
 
+import { useScrollShadows } from "@/hooks/use-scroll-shadows";
 import { cn } from "@/lib/utils";
 import type { Route } from "next";
 import Link from "next/link";
@@ -18,6 +19,8 @@ interface HorizontalNavProps {
 
 export function HorizontalNav({ items, ariaLabel }: HorizontalNavProps) {
   const pathname = usePathname();
+  const { containerRef, showLeftShadow, showRightShadow } =
+    useScrollShadows<HTMLDivElement>();
 
   const isActive = (href: string) => {
     const segments = href.split("/").filter(Boolean);
@@ -31,8 +34,17 @@ export function HorizontalNav({ items, ariaLabel }: HorizontalNavProps) {
       className="border-b bg-background/80 backdrop-blur-sm"
       aria-label={ariaLabel}
     >
-      <div className="container mx-auto max-w-6xl px-4 md:px-6">
-        <div className="flex items-center gap-1 overflow-x-auto py-1 -mb-px">
+      <div className="container relative mx-auto max-w-6xl px-4 md:px-6">
+        {showLeftShadow && (
+          <div
+            className="pointer-events-none absolute left-0 top-0 z-10 h-full w-8 bg-gradient-to-r from-background/80 to-transparent"
+            aria-hidden="true"
+          />
+        )}
+        <div
+          ref={containerRef}
+          className="flex items-center gap-1 overflow-x-auto py-1 -mb-px"
+        >
           {items.map((item) => {
             const active = isActive(item.href);
             return (
@@ -52,6 +64,12 @@ export function HorizontalNav({ items, ariaLabel }: HorizontalNavProps) {
             );
           })}
         </div>
+        {showRightShadow && (
+          <div
+            className="pointer-events-none absolute right-0 top-0 z-10 h-full w-8 bg-gradient-to-l from-background/80 to-transparent"
+            aria-hidden="true"
+          />
+        )}
       </div>
     </nav>
   );

@@ -41,7 +41,7 @@ async function ChatPageContent() {
   // If no projects and not admin, show error
   if (projects.length === 0 && !isAdmin) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] p-4">
+      <div className="flex items-center justify-center min-h-[calc(100dvh-4rem)] p-4">
         <Card className="max-w-md w-full p-6">
           <div className="flex flex-col items-center text-center space-y-4">
             <div className="p-3 bg-destructive/10 rounded-full">
@@ -61,7 +61,7 @@ async function ChatPageContent() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)]">
+    <div className="h-[calc(100dvh-4rem)]">
       <UnifiedChatInterface
         isAdmin={isAdmin}
         projects={projects}

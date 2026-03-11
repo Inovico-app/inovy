@@ -6,20 +6,30 @@ import { ModeToggle } from "./mode-toggle";
 
 export function TopBar() {
   return (
-    <div className="h-14 border-b bg-background">
+    <header className="h-14 border-b bg-background">
       <div className="flex items-center justify-between h-full px-4 md:justify-end gap-3">
         <Suspense>
           <MobileSidebar />
         </Suspense>
         <div className="flex items-center gap-3">
           <Suspense
-            fallback={<div className="h-9 w-9 bg-muted animate-pulse rounded" />}
+            fallback={
+              <div
+                className="h-9 w-9 bg-muted animate-pulse rounded"
+                role="status"
+                aria-label="Loading"
+              />
+            }
           >
             <NotificationBell />
           </Suspense>
           <Suspense
             fallback={
-              <div className="h-9 w-16 bg-muted animate-pulse rounded" />
+              <div
+                className="h-9 w-16 bg-muted animate-pulse rounded"
+                role="status"
+                aria-label="Loading"
+              />
             }
           >
             <HeaderAuthButtons />
@@ -27,6 +37,6 @@ export function TopBar() {
           <ModeToggle />
         </div>
       </div>
-    </div>
+    </header>
   );
 }
