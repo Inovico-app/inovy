@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsMobile } from "@/hooks/use-media-query";
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
 import { useCalendarViewState } from "@/features/meetings/hooks/use-calendar-view-state";
 import { AnimatePresence, motion } from "motion/react";
@@ -27,6 +28,7 @@ function CalendarViewInner({
   initialDate = new Date(),
   selectedStatus: initialSelectedStatus = "all",
 }: CalendarViewProps) {
+  const isMobile = useIsMobile();
   const [selectedMeeting, setSelectedMeeting] =
     useState<MeetingWithSession | null>(null);
   const [meetingModalOpen, setMeetingModalOpen] = useState(false);
@@ -53,7 +55,10 @@ function CalendarViewInner({
     handleTimePeriodChange,
     handleLoadMore,
     handleClearFilters,
-  } = useCalendarViewState({ initialDate, initialSelectedStatus });
+  } = useCalendarViewState({ initialDate, initialSelectedStatus, isMobile });
+
+  // On mobile, always force list view — the 7-column calendar grid can't fit
+  const effectiveView = isMobile ? "list" : (view as CalendarView);
 
   const handleMeetingClick = (meeting: MeetingWithSession) => {
     setSelectedMeeting(meeting);
@@ -64,8 +69,9 @@ function CalendarViewInner({
     <div className="space-y-4">
       <CalendarHeader
         currentDate={currentDate}
-        view={view as CalendarView}
+        view={effectiveView}
         onViewChange={handleViewChange}
+        isMobile={isMobile}
         onPreviousMonth={handlePreviousMonth}
         onNextMonth={handleNextMonth}
         onToday={handleToday}
@@ -80,7 +86,7 @@ function CalendarViewInner({
       />
       <div ref={viewContainerRef} className="relative min-h-[400px]">
         <AnimatePresence mode="wait">
-          {view === "month" && (
+          {effectiveView === "month" && (
             <motion.div
               key="month-view"
               initial={{ opacity: 0, y: 10 }}
@@ -108,7 +114,7 @@ function CalendarViewInner({
               )}
             </motion.div>
           )}
-          {view === "list" && (
+          {effectiveView === "list" && (
             <motion.div
               key="list-view"
               initial={{ opacity: 0, y: 10 }}
@@ -142,7 +148,7 @@ function CalendarViewInner({
               ) : null}
             </motion.div>
           )}
-          {view === "week" && (
+          {effectiveView === "week" && (
             <motion.div
               key="week-view"
               initial={{ opacity: 0, y: 10 }}
@@ -155,7 +161,7 @@ function CalendarViewInner({
               </div>
             </motion.div>
           )}
-          {view === "day" && (
+          {effectiveView === "day" && (
             <motion.div
               key="day-view"
               initial={{ opacity: 0, y: 10 }}

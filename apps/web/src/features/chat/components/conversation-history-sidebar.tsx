@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { MessageSquare, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { useConversationHistory } from "../hooks/use-conversation-history";
@@ -16,6 +17,7 @@ interface ConversationHistorySidebarProps {
   currentConversationId?: string;
   onSelectConversation: (conversationId: string) => void;
   onNewConversation?: () => void;
+  className?: string;
 }
 
 export function ConversationHistorySidebar({
@@ -24,6 +26,7 @@ export function ConversationHistorySidebar({
   currentConversationId,
   onSelectConversation,
   onNewConversation,
+  className,
 }: ConversationHistorySidebarProps) {
   const [filter, setFilter] = useState<
     "all" | "active" | "archived" | "deleted"
@@ -86,7 +89,7 @@ export function ConversationHistorySidebar({
   };
 
   return (
-    <div className="flex flex-col h-full w-80 bg-background border-r">
+    <div className={cn("flex flex-col h-full w-80 bg-background border-r", className)}>
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b shrink-0">

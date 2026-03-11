@@ -6,9 +6,15 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { Activity, useEffect, useEffectEvent, useMemo, useRef } from "react";
+import { Activity, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { getConversationMessagesAction } from "../actions/conversation-history";
 import { useChatContext } from "../hooks/use-chat-context";
 import { useChatSources } from "../hooks/use-chat-sources";
@@ -38,6 +44,8 @@ export function UnifiedChatInterface({
   agentEnabled = true,
   organizationName,
 }: UnifiedChatInterfaceProps) {
+  const [mobileHistoryOpen, setMobileHistoryOpen] = useState(false);
+
   const chatContext = useChatContext({
     isAdmin,
     projects,
@@ -208,15 +216,50 @@ export function UnifiedChatInterface({
     }
   });
 
+  const handleToggleMobileHistory = useEffectEvent(() => {
+    setMobileHistoryOpen((prev) => !prev);
+  });
+
+  const handleMobileSelectConversation = useEffectEvent((id: string) => {
+    handleResumeConversation(id);
+    setMobileHistoryOpen(false);
+  });
+
+  const handleMobileNewConversation = useEffectEvent(() => {
+    handleNewConversation();
+    setMobileHistoryOpen(false);
+  });
+
   return (
     <div className="flex h-full">
+      {/* Desktop conversation sidebar */}
       <ConversationHistorySidebar
         context={chatContext.context}
         projectId={chatContext.projectId ?? undefined}
         currentConversationId={chatContext.conversationId ?? undefined}
         onSelectConversation={handleResumeConversation}
         onNewConversation={handleNewConversation}
+        className="hidden md:flex"
       />
+
+      {/* Mobile conversation history sheet */}
+      <Sheet open={mobileHistoryOpen} onOpenChange={setMobileHistoryOpen}>
+        <SheetContent side="left" className="w-80 p-0 md:hidden" showCloseButton={false}>
+          <SheetHeader className="sr-only">
+            <SheetTitle>Conversation History</SheetTitle>
+          </SheetHeader>
+          {mobileHistoryOpen && (
+            <ConversationHistorySidebar
+              context={chatContext.context}
+              projectId={chatContext.projectId ?? undefined}
+              currentConversationId={chatContext.conversationId ?? undefined}
+              onSelectConversation={handleMobileSelectConversation}
+              onNewConversation={handleMobileNewConversation}
+              className="w-full border-r-0"
+            />
+          )}
+        </SheetContent>
+      </Sheet>
 
       <div className="flex flex-col flex-1 min-w-0 h-full">
         <ChatHeader
@@ -226,6 +269,7 @@ export function UnifiedChatInterface({
           isAdmin={isAdmin}
           projects={projects}
           onContextChange={handleContextChange}
+          onToggleHistory={handleToggleMobileHistory}
         />
 
         {/* Agent Disabled Banner */}

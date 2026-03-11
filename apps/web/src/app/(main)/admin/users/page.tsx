@@ -95,7 +95,7 @@ async function AdminUsersContainer() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl py-12 px-6">
+    <div className="container mx-auto max-w-4xl py-6 px-4 md:py-12 md:px-6">
       <AdminUsersHeader />
 
       <Tabs defaultValue="users" className="space-y-6">
@@ -140,7 +140,7 @@ export default function AdminUsersPage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto max-w-4xl py-12 px-6">
+        <div className="container mx-auto max-w-4xl py-6 px-4 md:py-12 md:px-6">
           <div className="mb-10 space-y-2">
             <Skeleton className="h-9 w-64" />
             <Skeleton className="h-5 w-96" />

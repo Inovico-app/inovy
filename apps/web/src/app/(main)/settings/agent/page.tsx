@@ -30,7 +30,7 @@ async function AgentContent() {
   const agentEnabled = await getCachedAgentConfig(organizationId);
 
   return (
-    <div className="container mx-auto max-w-6xl py-12 px-6">
+    <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Knowledge Base Browser</h1>

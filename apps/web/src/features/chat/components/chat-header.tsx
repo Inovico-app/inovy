@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+import { History } from "lucide-react";
 import { ChatContextSelector } from "./chat-context-selector";
 import { ChatContextBadge } from "./chat-context-badge";
 import type { Project } from "../types";
@@ -12,6 +14,7 @@ interface ChatHeaderProps {
     newContext: "organization" | "project",
     newProjectId?: string
   ) => void;
+  onToggleHistory?: () => void;
 }
 
 export function ChatHeader({
@@ -21,11 +24,23 @@ export function ChatHeader({
   isAdmin,
   projects,
   onContextChange,
+  onToggleHistory,
 }: ChatHeaderProps) {
   return (
     <div className="border-b p-4 bg-background shrink-0">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
+          {onToggleHistory && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden shrink-0"
+              onClick={onToggleHistory}
+              aria-label="Toggle conversation history"
+            >
+              <History className="h-5 w-5" />
+            </Button>
+          )}
           <ChatContextSelector
             currentContext={context}
             currentProjectId={projectId ?? undefined}

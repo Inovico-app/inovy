@@ -11,55 +11,17 @@ import { useActiveMemberRole } from "@/hooks/use-active-member-role";
 import { OrganizationSwitcher } from "@/components/organization-switcher";
 import { cn } from "@/lib/utils";
 import {
-  Bot,
-  Calendar,
-  CheckSquare,
   ChevronLeft,
   ChevronRight,
-  FileAudio,
   FileText,
-  FolderKanban,
-  LayoutDashboard,
-  MessageSquare,
   Plus,
   Scale,
-  Settings,
-  ShieldAlert,
 } from "lucide-react";
+import { adminLinks, isNavActive, navLinks } from "@/lib/navigation";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-
-interface NavLink {
-  to: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  requiresAdmin?: boolean;
-  requiresSuperAdmin?: boolean;
-}
-
-const navLinks: NavLink[] = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/recordings", label: "Recordings", icon: FileAudio },
-  { to: "/chat", label: "Chat", icon: MessageSquare },
-  { to: "/projects", label: "Projects", icon: FolderKanban },
-  { to: "/tasks", label: "Tasks", icon: CheckSquare },
-  { to: "/meetings", label: "Meetings", icon: Calendar },
-  { to: "/bot/sessions", label: "Bot Sessions", icon: Bot },
-  { to: "/settings", label: "Settings", icon: Settings },
-];
-
-const adminLinks: NavLink[] = [
-  { to: "/admin", label: "Management", icon: ShieldAlert, requiresAdmin: true },
-];
-
-function isActive(pathname: string, href: string): boolean {
-  if (href === "/") {
-    return pathname === "/";
-  }
-  return pathname.startsWith(href);
-}
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -87,7 +49,7 @@ export function Sidebar() {
     return (
       <aside
         className={cn(
-          "flex flex-col border-r bg-background transition-all duration-300",
+          "hidden md:flex flex-col border-r bg-background transition-all duration-300",
           collapsed ? "w-16" : "w-64"
         )}
       >
@@ -108,7 +70,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "flex flex-col border-r bg-background transition-all duration-300",
+        "hidden md:flex flex-col border-r bg-background transition-all duration-300",
         collapsed ? "w-16" : "w-64"
       )}
     >
@@ -143,7 +105,7 @@ export function Sidebar() {
         {/* Main Navigation */}
         <div className="space-y-1">
           {navLinks.map(({ to, label, icon: Icon }) => {
-            const active = isActive(pathname, to);
+            const active = isNavActive(pathname, to);
             const linkContent = (
               <Link
                 key={to}
@@ -187,7 +149,7 @@ export function Sidebar() {
             )}
             <div className="space-y-1">
               {adminLinks.map(({ to, label, icon: Icon }) => {
-                const active = isActive(pathname, to);
+                const active = isNavActive(pathname, to);
                 const linkContent = (
                   <Link
                     key={to}
@@ -244,16 +206,16 @@ export function Sidebar() {
           >
             <Link
               href="/privacy-policy"
-              className="text-[11px] text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               Privacy
             </Link>
-            <span className="text-muted-foreground/40 text-[11px]">
+            <span className="text-muted-foreground/60 text-xs">
               &middot;
             </span>
             <Link
               href="/terms-of-service"
-              className="text-[11px] text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               Voorwaarden
             </Link>

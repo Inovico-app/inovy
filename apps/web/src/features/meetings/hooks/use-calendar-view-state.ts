@@ -44,6 +44,7 @@ function validateTimePeriod(value: string | undefined): TimePeriod {
 interface UseCalendarViewStateProps {
   initialDate: Date;
   initialSelectedStatus: MeetingBotStatusFilter;
+  isMobile?: boolean;
 }
 
 interface UseCalendarViewStateReturn {
@@ -74,6 +75,7 @@ interface UseCalendarViewStateReturn {
 export function useCalendarViewState({
   initialDate,
   initialSelectedStatus,
+  isMobile = false,
 }: UseCalendarViewStateProps): UseCalendarViewStateReturn {
   const searchParams = useSearchParams();
   const viewContainerRef = useRef<HTMLDivElement>(null);
@@ -108,6 +110,9 @@ export function useCalendarViewState({
   const selectedStatus = validateBotStatus(selectedStatusParam);
   const timePeriod = validateTimePeriod(timePeriodParam);
 
+  // On mobile, always treat as list view for data computation
+  const effectiveView = isMobile ? "list" : view;
+
   const currentDate = monthParam
     ? parse(monthParam, "yyyy-MM", new Date())
     : startOfMonth(initialDate);
@@ -116,7 +121,7 @@ export function useCalendarViewState({
   const { data: meetings = [], isLoading: isLoadingMeetings } =
     useMeetingsQuery({
       month: currentDate,
-      enabled: view === "month" || view === "list",
+      enabled: effectiveView === "month" || effectiveView === "list",
     });
 
   // Filter meetings to current month range for calendar view
@@ -160,16 +165,16 @@ export function useCalendarViewState({
 
   // For list view: also filter by time period (upcoming/past)
   const listFilteredMeetings = useMemo(() => {
-    if (view !== "list") return statusFilteredMeetings;
+    if (effectiveView !== "list") return statusFilteredMeetings;
     return filterMeetingsByTimePeriod(statusFilteredMeetings, timePeriod);
-  }, [view, statusFilteredMeetings, timePeriod]);
+  }, [effectiveView, statusFilteredMeetings, timePeriod]);
 
   // Calendar view uses status-filtered meetings (no time period filter)
   const calendarFilteredMeetings = statusFilteredMeetings;
 
   // Load-more result for list view
   const loadMoreResult = useMemo(() => {
-    if (view !== "list") return null;
+    if (effectiveView !== "list") return null;
     const clampedLimit = Math.max(
       1,
       Math.min(visibleLimit ?? PAGE_SIZE, MAX_VISIBLE_LIMIT)
@@ -178,7 +183,7 @@ export function useCalendarViewState({
       limit: clampedLimit,
       timePeriod,
     });
-  }, [view, listFilteredMeetings, visibleLimit, timePeriod]);
+  }, [effectiveView, listFilteredMeetings, visibleLimit, timePeriod]);
 
   const statusCounts = useMeetingStatusCounts({
     meetings: meetingsWithSessions,
@@ -288,7 +293,7 @@ export function useCalendarViewState({
   ]);
 
   const filteredCount =
-    view === "list"
+    effectiveView === "list"
       ? listFilteredMeetings.length
       : statusFilteredMeetings.length;
   const totalCount = meetingsWithSessions.length;
