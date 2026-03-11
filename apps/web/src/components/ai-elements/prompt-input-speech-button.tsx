@@ -15,17 +15,34 @@ import {
 import { PromptInputButton } from "./prompt-input";
 import type { SpeechRecognition } from "./prompt-input-speech-types";
 
+const DEFAULT_REGION_MAP: Record<string, string> = {
+  nl: "nl-NL",
+  en: "en-US",
+  de: "de-DE",
+  fr: "fr-FR",
+  es: "es-ES",
+  it: "it-IT",
+  pt: "pt-PT",
+};
+
+function toBcp47(language: string): string {
+  if (language.includes("-")) return language;
+  return DEFAULT_REGION_MAP[language.toLowerCase()] ?? `${language}-${language.toUpperCase()}`;
+}
+
 export type PromptInputSpeechButtonProps = ComponentProps<
   typeof PromptInputButton
 > & {
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
   onTranscriptionChange?: (text: string) => void;
+  language?: string;
 };
 
 export const PromptInputSpeechButton = ({
   className,
   textareaRef,
   onTranscriptionChange,
+  language = "nl",
   ...props
 }: PromptInputSpeechButtonProps) => {
   const [isListening, setIsListening] = useState(false);
@@ -52,7 +69,7 @@ export const PromptInputSpeechButton = ({
 
     speechRecognition.continuous = true;
     speechRecognition.interimResults = true;
-    speechRecognition.lang = "nl-NL";
+    speechRecognition.lang = toBcp47(language);
 
     speechRecognition.onstart = () => {
       setIsListening(true);
@@ -95,7 +112,7 @@ export const PromptInputSpeechButton = ({
 
     recognitionRef.current = speechRecognition;
     return speechRecognition;
-  }, [textareaRef, onTranscriptionChange]);
+  }, [textareaRef, onTranscriptionChange, language]);
 
   useEffect(() => {
     return () => {

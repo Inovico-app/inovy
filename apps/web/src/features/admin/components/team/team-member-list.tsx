@@ -85,9 +85,9 @@ export function TeamMemberList({
                                 })
                               }
                               disabled={isSubmitting}
-                              aria-label={`Remove ${getUserName(member)} from team`}
+                              aria-label={`Remove ${getUserName(member)} from ${teamMembership.teamName}`}
                             >
-                              <XIcon className="h-3 w-3" />
+                              <XIcon className="h-3 w-3" aria-hidden="true" />
                             </Button>
                           )}
                         </div>

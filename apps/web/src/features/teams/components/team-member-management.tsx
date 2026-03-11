@@ -73,7 +73,7 @@ export async function TeamMemberManagement({
       <div className="flex items-center gap-4">
         <Link href={`/teams/${teamId}`}>
           <Button variant="ghost" size="icon" aria-label="Back to team">
-            <ArrowLeftIcon className="h-4 w-4" />
+            <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
           </Button>
         </Link>
         <div>

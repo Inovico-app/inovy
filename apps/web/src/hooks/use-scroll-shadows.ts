@@ -21,9 +21,17 @@ export function useScrollShadows<T extends HTMLElement = HTMLDivElement>() {
     const { scrollLeft, scrollWidth, clientWidth } = el;
     const threshold = 2;
 
-    setShadows({
-      showLeftShadow: scrollLeft > threshold,
-      showRightShadow: scrollLeft + clientWidth < scrollWidth - threshold,
+    const showLeftShadow = scrollLeft > threshold;
+    const showRightShadow = scrollLeft + clientWidth < scrollWidth - threshold;
+
+    setShadows((prev) => {
+      if (
+        prev.showLeftShadow === showLeftShadow &&
+        prev.showRightShadow === showRightShadow
+      ) {
+        return prev;
+      }
+      return { showLeftShadow, showRightShadow };
     });
   }, []);
 
@@ -34,12 +42,17 @@ export function useScrollShadows<T extends HTMLElement = HTMLDivElement>() {
     updateShadows();
 
     el.addEventListener("scroll", updateShadows, { passive: true });
+
     const resizeObserver = new ResizeObserver(updateShadows);
     resizeObserver.observe(el);
+
+    const mutationObserver = new MutationObserver(updateShadows);
+    mutationObserver.observe(el, { childList: true, subtree: true });
 
     return () => {
       el.removeEventListener("scroll", updateShadows);
       resizeObserver.disconnect();
+      mutationObserver.disconnect();
     };
   }, [updateShadows]);
 
