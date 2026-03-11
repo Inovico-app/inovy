@@ -33,6 +33,7 @@ import {
   type ToolContext,
 } from "./tools";
 import { checkOutputGrounding } from "../ai/middleware/output-grounding.middleware";
+import { ConversationIntegrityService } from "./conversation-integrity.service";
 import { PromptIntegrityService } from "./prompt-integrity.service";
 import { SearchResultFormatter } from "./search-result-formatter.service";
 
@@ -625,6 +626,14 @@ export class ChatService {
         conversationId,
       };
 
+      // Validate conversation context bounds before streaming
+      ConversationIntegrityService.validateContextBounds(
+        conversationHistory.map((m) => ({
+          role: String(m.role),
+          content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+        }))
+      );
+
       // Viewer role gets reduced step budget
       const maxSteps = userRole === "viewer" ? 5 : 10;
 
@@ -916,6 +925,14 @@ export class ChatService {
         userRole,
         conversationId,
       };
+
+      // Validate conversation context bounds before streaming
+      ConversationIntegrityService.validateContextBounds(
+        conversationHistory.map((m) => ({
+          role: String(m.role),
+          content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+        }))
+      );
 
       // Viewer role gets reduced step budget (org chat is admin-only, but defense in depth)
       const orgMaxSteps = userRole === "viewer" ? 5 : 10;
