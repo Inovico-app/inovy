@@ -7,7 +7,7 @@ import { Suspense } from "react";
 
 function BotSettingsLoading() {
   return (
-    <div className="container mx-auto max-w-6xl py-12 px-6">
+    <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
       <div className="max-w-4xl space-y-6">
         <div className="space-y-2">
           <div className="h-9 w-64 bg-muted rounded animate-pulse" />
@@ -79,7 +79,7 @@ export default function BotSettingsPage() {
   return (
     <Suspense fallback={<BotSettingsLoading />}>
       <ProtectedPage>
-        <div className="container mx-auto max-w-6xl py-12 px-6">
+        <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
           <div className="max-w-4xl space-y-6">
             <div>
               <h1 className="text-3xl font-bold">Bot Settings</h1>

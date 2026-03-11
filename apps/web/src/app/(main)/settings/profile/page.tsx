@@ -183,7 +183,7 @@ export default function ProfilePage() {
       }
     >
       <ProtectedPage>
-        <div className="container mx-auto max-w-6xl py-12 px-6">
+        <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
           <Suspense
             fallback={
               <div className="space-y-4">

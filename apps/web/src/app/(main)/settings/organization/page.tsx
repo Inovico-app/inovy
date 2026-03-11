@@ -113,7 +113,7 @@ async function OrganizationContent() {
   }
 
   return (
-    <div className="container mx-auto max-w-6xl py-12 px-6">
+    <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Organization</h1>

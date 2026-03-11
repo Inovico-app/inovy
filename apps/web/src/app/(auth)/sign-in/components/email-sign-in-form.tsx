@@ -105,6 +105,7 @@ export function EmailSignInForm({
                     <Input
                       type="email"
                       placeholder="je@voorbeeld.nl"
+                      autoComplete="email"
                       disabled={isLoading}
                       autoFocus
                       {...field}
@@ -135,6 +136,7 @@ export function EmailSignInForm({
                     <Input
                       type="password"
                       placeholder="••••••••"
+                      autoComplete="current-password"
                       disabled={isLoading}
                       {...field}
                     />

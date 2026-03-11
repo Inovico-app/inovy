@@ -85,6 +85,7 @@ export function EmailSignUpForm({
                     <Input
                       type="text"
                       placeholder="Jan Jansen"
+                      autoComplete="name"
                       autoFocus
                       {...field}
                     />
@@ -104,6 +105,7 @@ export function EmailSignUpForm({
                     <Input
                       type="email"
                       placeholder="je@voorbeeld.nl"
+                      autoComplete="email"
                       {...field}
                     />
                   </FormControl>
@@ -122,6 +124,7 @@ export function EmailSignUpForm({
                     <Input
                       type="password"
                       placeholder="••••••••"
+                      autoComplete="new-password"
                       {...field}
                     />
                   </FormControl>

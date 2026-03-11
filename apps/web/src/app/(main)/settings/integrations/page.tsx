@@ -6,7 +6,7 @@ import { Suspense } from "react";
 
 function IntegrationsContent() {
   return (
-    <div className="container mx-auto max-w-6xl py-12 px-6">
+    <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Integrations</h1>
@@ -30,7 +30,7 @@ export default function IntegrationsPage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto max-w-6xl py-12 px-6">
+        <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
           <div className="space-y-8">
             <div className="mb-8 space-y-4">
               <div className="h-9 w-64 bg-muted rounded animate-pulse" />

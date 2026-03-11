@@ -32,6 +32,7 @@ interface CalendarHeaderProps {
   onClearFilters?: () => void;
   timePeriod?: TimePeriod;
   onTimePeriodChange?: (period: TimePeriod) => void;
+  isMobile?: boolean;
 }
 
 export function CalendarHeader({
@@ -49,6 +50,7 @@ export function CalendarHeader({
   onClearFilters,
   timePeriod = "upcoming",
   onTimePeriodChange,
+  isMobile = false,
 }: CalendarHeaderProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -106,7 +108,9 @@ export function CalendarHeader({
         </div>
 
         <div className="flex items-center gap-2">
-          <CalendarViewToggle view={view} onViewChange={onViewChange} />
+          {!isMobile && (
+            <CalendarViewToggle view={view} onViewChange={onViewChange} />
+          )}
           <Button
             size="sm"
             onClick={() => setDialogOpen(true)}

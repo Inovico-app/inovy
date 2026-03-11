@@ -64,13 +64,12 @@ async function AdminDashboard() {
   ];
 
   return (
-    <div className="container mx-auto max-w-6xl py-12 px-6">
+    <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
       <div className="max-w-4xl">
         <div className="mb-10">
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
           <p className="text-muted-foreground mt-2">
-            Welcome to the admin panel. Select a section from the sidebar to get
-            started.
+            Welcome to the admin panel. Select a section above to get started.
           </p>
         </div>
 
@@ -136,7 +135,7 @@ export default function AdminPage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto max-w-6xl py-12 px-6">
+        <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
           <div className="max-w-4xl">
             <div className="mb-10 space-y-4">
               <Skeleton className="h-9 w-64 animate-pulse" />
