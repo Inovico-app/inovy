@@ -23,8 +23,7 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"],
-      "@inovy/mcp": ["../../packages/mcp/src/index.ts"]
+      "@/*": ["./src/*"]
     }
   },
   "include": [
