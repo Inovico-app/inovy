@@ -4,6 +4,7 @@ import {
   getSystemAudioErrorInfo,
   type RecordingDeviceErrorInfo,
 } from "@/features/recordings/lib/recording-device-errors";
+import { logger } from "@/lib/logger";
 import {
   createContext,
   type ReactNode,
@@ -39,6 +40,8 @@ interface SystemAudioContextType {
   videoStream: MediaStream | null; // Video track is required by getDisplayMedia
   startSystemAudio: () => void;
   stopSystemAudio: () => void;
+  /** Fully releases system audio resources (stops tracks, closes AudioContext, resets state). Use after recording is complete. */
+  releaseSystemAudio: () => void;
   /** Resolves when setup completes. Returns success, optional stream, and error info (toast shown on failure, never throws). */
   setupSystemAudio: () => Promise<
     | { success: true; stream: MediaStream }
@@ -102,7 +105,7 @@ const SystemAudioContextProvider: React.FC<
 
     // Close audio context
     if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-      audioContextRef.current.close().catch(console.error);
+      audioContextRef.current.close().catch((err) => logger.error("Failed to close audio context", { component: "SystemAudioProvider", error: err instanceof Error ? err : new Error(String(err)) }));
     }
 
     // Reset all refs when tearing down so future cleanups see correct values
@@ -179,17 +182,22 @@ const SystemAudioContextProvider: React.FC<
       }
 
       // Handle track ended events (user stops sharing)
+      // Use cleanupResources() + CLEANUP dispatch instead of stopSystemAudio()
+      // because tracks are already dead at this point — pause() would fail
+      // and the streams can't be reused, so full teardown is needed.
       displayStream.getVideoTracks().forEach((track) => {
         track.onended = () => {
-          console.log("Video track ended, stopping system audio");
-          stopSystemAudio();
+          logger.info("Video track ended, cleaning up system audio", { component: "SystemAudioProvider" });
+          cleanupResources();
+          dispatch({ type: "CLEANUP" });
         };
       });
 
       displayStream.getAudioTracks().forEach((track) => {
         track.onended = () => {
-          console.log("Audio track ended, stopping system audio");
-          stopSystemAudio();
+          logger.info("Audio track ended, cleaning up system audio", { component: "SystemAudioProvider" });
+          cleanupResources();
+          dispatch({ type: "CLEANUP" });
         };
       });
 
@@ -208,7 +216,7 @@ const SystemAudioContextProvider: React.FC<
       });
       return { success: true as const, stream: audioOnlyStream };
     } catch (err: unknown) {
-      console.error("Failed to setup system audio:", err);
+      logger.error("Failed to setup system audio", { component: "SystemAudioProvider", error: err instanceof Error ? err : new Error(String(err)) });
       cleanupResources();
 
       const errorInfo = getSystemAudioErrorInfo(err);
@@ -226,9 +234,7 @@ const SystemAudioContextProvider: React.FC<
   const startSystemAudio = () => {
     // Guard against null/undefined systemAudio
     if (!systemAudio) {
-      console.warn(
-        "Cannot start system audio: systemAudio is not initialized"
-      );
+      logger.warn("Cannot start system audio: systemAudio is not initialized", { component: "SystemAudioProvider" });
       dispatch({ type: "SET_STATE", payload: SystemAudioState.Error });
       return;
     }
@@ -238,9 +244,7 @@ const SystemAudioContextProvider: React.FC<
       systemAudio.state !== "inactive" &&
       systemAudio.state !== "paused"
     ) {
-      console.warn(
-        `Cannot start system audio: invalid state ${systemAudio.state}`
-      );
+      logger.warn(`Cannot start system audio: invalid state ${systemAudio.state}`, { component: "SystemAudioProvider" });
       return;
     }
 
@@ -259,7 +263,12 @@ const SystemAudioContextProvider: React.FC<
       const handleResume = () => handleSuccess();
 
       const handleError = (event: Event) => {
-        console.error("MediaRecorder error:", event);
+        const errorMessage = event instanceof ErrorEvent ? event.message : String(event);
+        logger.error("MediaRecorder error", { component: "SystemAudioProvider", error: event instanceof Error ? event : new Error(errorMessage) });
+        toast.error("Systeemaudio fout", {
+          description: errorMessage,
+          duration: 8000,
+        });
         dispatch({ type: "SET_STATE", payload: SystemAudioState.Ready });
         systemAudio.removeEventListener("start", handleStart);
         systemAudio.removeEventListener("resume", handleResume);
@@ -276,7 +285,11 @@ const SystemAudioContextProvider: React.FC<
         systemAudio.start(250); // Collect data every 250ms
       }
     } catch (error) {
-      console.error("Failed to start system audio:", error);
+      logger.error("Failed to start system audio", { component: "SystemAudioProvider", error: error instanceof Error ? error : new Error(String(error)) });
+      toast.error("Kon systeemaudio niet starten", {
+        description: error instanceof Error ? error.message : String(error),
+        duration: 8000,
+      });
       dispatch({ type: "SET_STATE", payload: SystemAudioState.Ready });
     }
   };
@@ -289,9 +302,7 @@ const SystemAudioContextProvider: React.FC<
   const stopSystemAudio = () => {
     // Guard against null/undefined systemAudio
     if (!systemAudio) {
-      console.warn(
-        "Cannot stop system audio: systemAudio is not initialized"
-      );
+      logger.warn("Cannot stop system audio: systemAudio is not initialized", { component: "SystemAudioProvider" });
       return;
     }
 
@@ -311,13 +322,35 @@ const SystemAudioContextProvider: React.FC<
       systemAudio.pause();
       dispatch({ type: "SET_STATE", payload: SystemAudioState.Paused });
     } catch (error) {
-      console.error("Failed to stop system audio:", error);
+      logger.error("Failed to stop system audio", { component: "SystemAudioProvider", error: error instanceof Error ? error : new Error(String(error)) });
+      toast.error("Kon systeemaudio niet stoppen", {
+        description: error instanceof Error ? error.message : String(error),
+        duration: 8000,
+      });
       // Revert to previous valid state (was Open before Pausing)
       dispatch({ type: "SET_STATE", payload: SystemAudioState.Open });
     }
 
     // Note: We don't clean up streams/audio context here because they might be reused
-    // Cleanup happens in useEffect cleanup on unmount
+    // For full teardown, use releaseSystemAudio() instead
+  };
+
+  /**
+   * Fully releases system audio resources (stops tracks, closes AudioContext, resets state).
+   * Use after recording is complete — unlike stopSystemAudio() which only pauses.
+   */
+  const releaseSystemAudio = () => {
+    // Stop the MediaRecorder if it's active
+    if (systemAudio && systemAudio.state !== "inactive") {
+      try {
+        systemAudio.stop();
+      } catch {
+        // Ignore — MediaRecorder may already be in an invalid state
+      }
+    }
+
+    cleanupResources();
+    dispatch({ type: "CLEANUP" });
   };
 
   // ==========================================================================
@@ -343,6 +376,7 @@ const SystemAudioContextProvider: React.FC<
         videoStream,
         startSystemAudio,
         stopSystemAudio,
+        releaseSystemAudio,
         setupSystemAudio,
         systemAudioState,
         setupError,

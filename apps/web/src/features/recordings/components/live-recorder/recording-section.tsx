@@ -113,6 +113,7 @@ export function RecordingSection({
             <div className="flex h-40 items-center justify-center">
               <LiveWaveform
                 active={isRecording}
+                stream={stream}
                 barWidth={5}
                 barGap={2}
                 barRadius={8}

@@ -2,30 +2,14 @@
  * Audio mixing utilities for combining multiple audio sources
  */
 
+import { createAudioContext } from "@/lib/audio/create-audio-context";
+import { logger } from "@/lib/logger";
+
 export interface AudioMixerRefs {
   audioContext: AudioContext;
   mixedStream: MediaStream;
   microphoneSource: MediaStreamAudioSourceNode | null;
   systemAudioSource: MediaStreamAudioSourceNode | null;
-}
-
-/**
- * Get AudioContext constructor (handles browser compatibility)
- * @throws Error if Web Audio API is not supported
- */
-function getAudioContextConstructor(): typeof AudioContext {
-  const AudioContextConstructor =
-    window.AudioContext ||
-    (window as unknown as { webkitAudioContext: typeof AudioContext })
-      .webkitAudioContext;
-
-  if (!AudioContextConstructor) {
-    throw new Error(
-      "Web Audio API is not supported in this environment. Please use a modern browser."
-    );
-  }
-
-  return AudioContextConstructor;
 }
 
 /**
@@ -36,8 +20,7 @@ function getAudioContextConstructor(): typeof AudioContext {
 export function mixAudioStreams(
   streams: MediaStream[]
 ): AudioMixerRefs {
-  const AudioContextConstructor = getAudioContextConstructor();
-  const audioContext = new AudioContextConstructor();
+  const audioContext = createAudioContext();
 
   // Create destination for mixed audio
   const destination = audioContext.createMediaStreamDestination();
@@ -54,7 +37,7 @@ export function mixAudioStreams(
         source.connect(destination);
         sources.push(source);
       } catch (error) {
-        console.warn("Failed to create audio source from stream:", error);
+        logger.warn("Failed to create audio source from stream", { component: "audio-mixer", error: error instanceof Error ? error : new Error(String(error)) });
       }
     }
   }
@@ -123,6 +106,6 @@ export function cleanupAudioMixer(refs: AudioMixerRefs): void {
 
   // Close audio context
   if (refs.audioContext && refs.audioContext.state !== "closed") {
-    refs.audioContext.close().catch(console.error);
+    refs.audioContext.close().catch((err) => logger.error("Failed to close audio context", { component: "audio-mixer", error: err instanceof Error ? err : new Error(String(err)) }));
   }
 }

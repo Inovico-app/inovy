@@ -2,30 +2,14 @@
  * Audio processing utilities for microphone gain control
  */
 
+import { createAudioContext } from "@/lib/audio/create-audio-context";
+import { logger } from "@/lib/logger";
+
 export interface AudioProcessorRefs {
   audioContext: AudioContext;
   gainNode: GainNode;
   rawStream: MediaStream;
   processedStream: MediaStream;
-}
-
-/**
- * Get AudioContext constructor (handles browser compatibility)
- * @throws Error if Web Audio API is not supported
- */
-function getAudioContextConstructor(): typeof AudioContext {
-  const AudioContextConstructor =
-    window.AudioContext ||
-    (window as unknown as { webkitAudioContext: typeof AudioContext })
-      .webkitAudioContext;
-
-  if (!AudioContextConstructor) {
-    throw new Error(
-      "Web Audio API is not supported in this environment. Please use a modern browser."
-    );
-  }
-
-  return AudioContextConstructor;
 }
 
 /**
@@ -38,8 +22,7 @@ export function createAudioProcessor(
   rawStream: MediaStream,
   initialGain: number
 ): AudioProcessorRefs {
-  const AudioContextConstructor = getAudioContextConstructor();
-  const audioContext = new AudioContextConstructor();
+  const audioContext = createAudioContext();
 
   // Create gain node with initial gain value
   const gainNode = audioContext.createGain();
@@ -83,6 +66,6 @@ export function cleanupAudioProcessor(refs: AudioProcessorRefs): void {
 
   // Close audio context
   if (refs.audioContext && refs.audioContext.state !== "closed") {
-    refs.audioContext.close().catch(console.error);
+    refs.audioContext.close().catch((err) => logger.error("Failed to close audio context", { component: "microphone-audio-processor", error: err instanceof Error ? err : new Error(String(err)) }));
   }
 }

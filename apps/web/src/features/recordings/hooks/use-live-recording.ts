@@ -3,7 +3,7 @@ import { useWakeLock } from "@/hooks/use-wake-lock";
 import { logger } from "@/lib/logger";
 import { useMicrophone } from "@/providers/microphone/MicrophoneProvider";
 import { useSystemAudio } from "@/providers/system-audio/SystemAudioProvider";
-import { useEffectEvent, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useInitialAudioSetup } from "./use-initial-audio-setup";
 import { useRecordingDuration } from "./use-recording-duration";
 import { useRecordingSetupErrors } from "./use-recording-setup-errors";
@@ -27,6 +27,7 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
     setupError: microphoneSetupError,
     startMicrophone,
     stopMicrophone,
+    releaseMicrophone,
   } = useMicrophone();
   const {
     systemAudio,
@@ -35,6 +36,7 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
     setupError: systemAudioSetupError,
     startSystemAudio,
     stopSystemAudio,
+    releaseSystemAudio,
   } = useSystemAudio();
   const { duration, startTimer, stopTimer, resetTimer } =
     useRecordingDuration();
@@ -63,6 +65,16 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
   // Refs
   const audioChunksRef = useRef<Blob[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+
+  // Release all audio resources on unmount (e.g., navigating away from recording page).
+  // Providers live in root layout and never unmount, so we must explicitly release here.
+  useEffect(() => {
+    return () => {
+      releaseMicrophone();
+      releaseSystemAudio();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handler: Start recording
   const handleStart = useEffectEvent(
@@ -298,13 +310,27 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
           });
         }
         // If recorder is null or already inactive, no need to wait
+
+        // Release provider streams that fed the combined stream
+        // (the local recorder is stopped but provider tracks are still alive)
+        const currentAudioSource = options?.audioSource || "microphone";
+        if (currentAudioSource === "both") {
+          releaseMicrophone();
+          releaseSystemAudio();
+        } else if (currentAudioSource === "system") {
+          releaseSystemAudio();
+        } else {
+          releaseMicrophone();
+        }
       } else {
-        // Stop provider recorders
+        // Fully release provider resources (stops tracks, closes AudioContext)
+        // Using release* instead of stop* because stop* only pauses,
+        // and providers are in root layout so they never unmount
         const currentAudioSource = options?.audioSource || "microphone";
         if (currentAudioSource === "system") {
-          stopSystemAudio();
+          releaseSystemAudio();
         } else {
-          stopMicrophone();
+          releaseMicrophone();
         }
       }
 

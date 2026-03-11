@@ -3,9 +3,13 @@
 import { useLiveRecording } from "@/features/recordings/hooks/use-live-recording";
 import { useLiveTranscription } from "@/features/recordings/hooks/use-live-transcription";
 import type { UseAudioSourceReturn } from "@/features/recordings/hooks/use-audio-source";
+import { useNavigationGuard } from "@/hooks/use-navigation-guard";
 import { logger } from "@/lib/logger";
+import { useMicrophone } from "@/providers/microphone/MicrophoneProvider";
+import { useSystemAudio } from "@/providers/system-audio/SystemAudioProvider";
 import { useEffect, useEffectEvent, useState } from "react";
 import { ConsentManager } from "./consent-manager";
+import { NavigationWarningDialog } from "./navigation-warning-dialog";
 import { RecordingSection } from "./recording-section";
 import { StopConfirmationDialog } from "./stop-confirmation-dialog";
 import { TranscriptionDisplay } from "./transcription-display";
@@ -35,6 +39,10 @@ export function LiveRecorder({
   const [consentGranted, setConsentGranted] = useState(false);
   const [consentGrantedAt, setConsentGrantedAt] = useState<Date | null>(null);
 
+  // Provider access for navigation guard cleanup
+  const { releaseMicrophone } = useMicrophone();
+  const { releaseSystemAudio } = useSystemAudio();
+
   // Custom hooks
   const recording = useLiveRecording({
     audioSource: audioSource.audioSource,
@@ -61,6 +69,26 @@ export function LiveRecorder({
   useEffect(() => {
     onRecordingStateChange?.(recording.isRecording);
   }, [recording.isRecording, onRecordingStateChange]);
+
+  // Navigation guard — warn user when navigating away during an active recording
+  const handleAbandonRecording = useEffectEvent(() => {
+    // Disconnect transcription
+    transcription.disconnectFromDeepgram();
+    transcription.clearTranscripts();
+
+    // Release all audio resources
+    releaseMicrophone();
+    releaseSystemAudio();
+
+    // Reset consent state
+    setConsentGranted(false);
+    setConsentGrantedAt(null);
+  });
+
+  const navigationGuard = useNavigationGuard({
+    enabled: recording.isRecording,
+    onConfirmNavigation: handleAbandonRecording,
+  });
 
   // Handle start recording
   const handleStart = useEffectEvent(async () => {
@@ -249,6 +277,12 @@ export function LiveRecorder({
         open={showStopConfirm}
         onOpenChange={setShowStopConfirm}
         onConfirm={handleFinalStop}
+      />
+
+      <NavigationWarningDialog
+        open={navigationGuard.showDialog}
+        onConfirm={navigationGuard.confirmNavigation}
+        onCancel={navigationGuard.cancelNavigation}
       />
     </>
   );
