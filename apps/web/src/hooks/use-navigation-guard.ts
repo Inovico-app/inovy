@@ -18,10 +18,36 @@ interface UseNavigationGuardReturn {
   cancelNavigation: () => void;
 }
 
+// Type for the Navigation API (Chrome 102+, Edge 102+)
+// Not yet in TypeScript's lib.dom.d.ts
+interface NavigateEvent {
+  canIntercept: boolean;
+  hashChange: boolean;
+  downloadRequest: string | null;
+  destination: { url: string };
+  preventDefault: () => void;
+}
+
+interface AppNavigation {
+  addEventListener(
+    type: "navigate",
+    listener: (event: NavigateEvent) => void,
+  ): void;
+  removeEventListener(
+    type: "navigate",
+    listener: (event: NavigateEvent) => void,
+  ): void;
+}
+
 /**
  * Intercepts navigation attempts when enabled and shows a confirmation dialog.
- * Handles both browser navigation (beforeunload) and Next.js client-side routing
- * (history.pushState/replaceState interception).
+ *
+ * Uses three complementary strategies:
+ * 1. Navigation API (Chrome/Edge 102+) — intercepts all navigation including
+ *    Next.js client-side routing, which captures history.pushState at module
+ *    load time (before our effects run), making monkey-patching ineffective.
+ * 2. beforeunload — browser-native dialog for hard navigation (refresh, close tab).
+ * 3. popstate — catches browser back/forward buttons.
  */
 export function useNavigationGuard({
   enabled,
@@ -39,55 +65,47 @@ export function useNavigationGuard({
       return;
     }
 
-    // Handle browser navigation (refresh, close tab, back/forward to external)
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-    };
+    // --- Strategy 1: Navigation API (modern browsers) ---
+    // This is the only reliable way to intercept Next.js App Router
+    // client-side navigation, since Next.js captures history.pushState
+    // at module load time before any useEffect can monkey-patch it.
+    const navigation =
+      "navigation" in window
+        ? (window.navigation as AppNavigation)
+        : null;
 
-    // Intercept history.pushState (Next.js client-side navigation)
-    const originalPushState = history.pushState.bind(history);
-    const originalReplaceState = history.replaceState.bind(history);
+    const handleNavigate = (e: NavigateEvent) => {
+      if (!enabledRef.current) return;
+      if (!e.canIntercept) return; // cross-origin — can't intercept
+      if (e.hashChange) return; // hash-only changes are fine
+      if (e.downloadRequest) return; // file downloads are fine
 
-    const interceptNavigation = (
-      original: typeof history.pushState,
-      data: unknown,
-      unused: string,
-      url?: string | URL | null,
-    ) => {
-      if (!enabledRef.current || !url) {
-        original(data, unused, url);
-        return;
-      }
-
-      const targetUrl = url.toString();
+      const targetUrl = new URL(e.destination.url).pathname;
       const currentUrl = window.location.pathname;
 
-      // Allow navigation to the same page (e.g., query param changes)
-      if (targetUrl === currentUrl) {
-        original(data, unused, url);
-        return;
-      }
+      // Allow same-page navigation (query param changes, etc.)
+      if (targetUrl === currentUrl) return;
 
-      // Block navigation and show dialog (deferred to escape synchronous
-      // pushState/replaceState context where React state updates are forbidden)
+      e.preventDefault();
       pendingUrlRef.current = targetUrl;
       queueMicrotask(() => setShowDialog(true));
     };
 
-    history.pushState = function (data: unknown, unused: string, url?: string | URL | null) {
-      interceptNavigation(originalPushState, data, unused, url);
+    navigation?.addEventListener("navigate", handleNavigate);
+
+    // --- Strategy 2: beforeunload (hard navigation: refresh, close tab) ---
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      // Required for Chrome/Safari to show the native dialog
+      e.returnValue = "";
     };
 
-    history.replaceState = function (data: unknown, unused: string, url?: string | URL | null) {
-      interceptNavigation(originalReplaceState, data, unused, url);
-    };
-
-    // Handle browser back/forward button
+    // --- Strategy 3: popstate (browser back/forward) ---
     const handlePopState = () => {
       if (!enabledRef.current) return;
 
-      // Push current URL back to prevent the navigation
-      history.pushState(null, "", window.location.href);
+      // Push current URL back onto the stack to undo the navigation
+      window.history.pushState(null, "", window.location.href);
       pendingUrlRef.current = "back";
       queueMicrotask(() => setShowDialog(true));
     };
@@ -96,10 +114,9 @@ export function useNavigationGuard({
     window.addEventListener("popstate", handlePopState);
 
     return () => {
+      navigation?.removeEventListener("navigate", handleNavigate);
       window.removeEventListener("beforeunload", handleBeforeUnload);
       window.removeEventListener("popstate", handlePopState);
-      history.pushState = originalPushState;
-      history.replaceState = originalReplaceState;
     };
   }, [enabled]);
 
@@ -110,13 +127,13 @@ export function useNavigationGuard({
     const url = pendingUrlRef.current;
     pendingUrlRef.current = null;
 
-    // Temporarily disable the guard to allow navigation through
+    // Temporarily disable the guard so the actual navigation goes through
     enabledRef.current = false;
 
     if (url === "back") {
-      history.back();
+      window.history.back();
     } else if (url) {
-      // Use the real pushState (which we've monkey-patched, but enabledRef is false)
+      // Full page navigation to ensure clean state
       window.location.href = url;
     }
   };
