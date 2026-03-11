@@ -32,6 +32,7 @@ import {
   resetToolCallCount,
   type ToolContext,
 } from "./tools";
+import { checkOutputGrounding } from "../ai/middleware/output-grounding.middleware";
 import { PromptIntegrityService } from "./prompt-integrity.service";
 import { SearchResultFormatter } from "./search-result-formatter.service";
 
@@ -733,6 +734,10 @@ export class ChatService {
           };
           await ChatQueries.createMessage(assistantMessageEntry);
 
+          // Check output grounding quality (non-blocking, metrics only)
+          const hadToolResults = (toolResults?.length ?? 0) > 0;
+          checkOutputGrounding(text, hadToolResults);
+
           // Update conversation title if it's the first exchange
           const conversationMessages =
             await ChatQueries.getMessagesByConversationId(conversationId);
@@ -1020,6 +1025,10 @@ export class ChatService {
             toolCalls: buildPersistedToolCalls(toolCalls, toolResults),
           };
           await ChatQueries.createMessage(assistantMessageEntry);
+
+          // Check output grounding quality (non-blocking, metrics only)
+          const hadToolResults = (toolResults?.length ?? 0) > 0;
+          checkOutputGrounding(text, hadToolResults);
 
           // Update conversation title if it's the first exchange
           const conversationMessages =
