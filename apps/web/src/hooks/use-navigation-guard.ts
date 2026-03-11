@@ -92,16 +92,15 @@ export function useNavigationGuard({
       setShowDialog(true);
     };
 
-    // Use capture phase (third arg = true) to run before Next.js handlers
-    document.addEventListener("click", handleLinkClick, true);
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("popstate", handlePopState);
+    const controller = new AbortController();
+    const { signal } = controller;
 
-    return () => {
-      document.removeEventListener("click", handleLinkClick, true);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("popstate", handlePopState);
-    };
+    // Use capture phase to run before Next.js handlers
+    document.addEventListener("click", handleLinkClick, { capture: true, signal });
+    window.addEventListener("beforeunload", handleBeforeUnload, { signal });
+    window.addEventListener("popstate", handlePopState, { signal });
+
+    return () => controller.abort();
   }, [enabled]);
 
   const confirmNavigation = () => {
