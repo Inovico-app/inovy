@@ -74,6 +74,7 @@ export function RecordPageClient({
         fileSize: audioFile.size,
         fileMimeType: audioFile.type,
         consentGiven: true,
+        consentGivenAt: new Date().toISOString(),
       });
 
       // Upload directly to Vercel Blob using the client upload pattern
