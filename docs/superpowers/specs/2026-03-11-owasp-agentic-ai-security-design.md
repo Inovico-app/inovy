@@ -20,7 +20,7 @@ Implement OWASP Top 10 for Agentic AI security improvements across 9 stacked PRs
 ### PR 1: AAI001 — Agent Authorization & Kill Switches
 
 **1a. Role-Based Tool Allowlist**
-- New `AgentPermissionService` in `/src/server/services/agent-permission.service.ts`
+- New `AgentPermissionService` in `apps/web/src/server/services/agent-permission.service.ts`
 - Define tool allowlists per role:
   - superadmin/admin: all tools
   - manager: all tools
@@ -33,8 +33,11 @@ Implement OWASP Top 10 for Agentic AI security improvements across 9 stacked PRs
 - `AGENT_GLOBAL_KILL_SWITCH` env var for instant global disable
 - Check order: global kill switch → org-level enable → proceed
 - New `AgentKillSwitchService` with Redis-backed runtime toggle
-- Admin API endpoint `POST /api/admin/agent/kill-switch` for superadmins
+- Admin API endpoint `GET/POST /api/admin/agent/kill-switch` for superadmins
+  - GET: returns current effective state
+  - POST: toggles runtime switch, returns `{ requested, effective }` (effective accounts for env var override)
 - Returns 503 "Agent temporarily unavailable" when active
+- **Redis outage policy:** `AgentKillSwitchService.isKilled()` currently fails open (agents remain available) when Redis is unavailable, deferring to per-org config. The env var `AGENT_GLOBAL_KILL_SWITCH=true` always takes precedence regardless of Redis state. Redis failures are logged at error level for alerting.
 
 **1c. Tool Execution Audit**
 - Wrap tool executions with authorization check + audit entry

@@ -825,7 +825,7 @@ export class ChatService {
     conversationId: string,
     userMessage: string,
     organizationId: string,
-    userRole: string = "admin"
+    userRole: string
   ) {
     try {
       logger.info("Streaming organization chat response", {

@@ -35,7 +35,12 @@ export async function POST(
     }
 
     const { user, organization, member } = authResult.value;
-    const userRole = member?.role ?? "user";
+
+    if (!member?.role) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const userRole = member.role;
 
     // Check global kill switch before anything else
     const isKilled = await AgentKillSwitchService.isKilled();
