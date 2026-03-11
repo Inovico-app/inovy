@@ -13,7 +13,6 @@ export function Loader({ label = "Laden..." }: LoaderProps) {
       aria-label={label}
     >
       <Loader2 className="animate-spin" aria-hidden="true" />
-      <span className="sr-only">{label}</span>
     </div>
   );
 }
