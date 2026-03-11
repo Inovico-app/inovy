@@ -40,6 +40,8 @@ function getSharedKeyCredential(): StorageSharedKeyCredential {
 }
 
 function getContainerName(access: "public" | "private"): string {
+  const shared = process.env.AZURE_STORAGE_CONTAINER_NAME;
+  if (shared) return shared;
   return access === "public"
     ? (process.env.AZURE_STORAGE_PUBLIC_CONTAINER ?? "public")
     : (process.env.AZURE_STORAGE_PRIVATE_CONTAINER ?? "private");
