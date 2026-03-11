@@ -1,6 +1,5 @@
 import { Badge } from "@/components/ui/badge";
 import { LiveWaveform } from "@/components/ui/live-waveform";
-import { ConsentStatus } from "@/features/recordings/components/consent-status";
 import { BrowserCompatibilityWarning } from "./browser-compatibility-warning";
 import { RecordingControls } from "./recording-controls";
 import { RecordingErrors } from "./recording-errors";
@@ -20,7 +19,6 @@ interface RecordingSectionProps {
   stream: MediaStream | null;
   liveTranscriptionEnabled: boolean;
   isTranscribing: boolean;
-  consentGranted: boolean;
   wakeLockActive: boolean;
   formattedDuration: string;
   audioSource: AudioSourceType;
@@ -44,7 +42,6 @@ export function RecordingSection({
   stream,
   liveTranscriptionEnabled,
   isTranscribing,
-  consentGranted,
   wakeLockActive,
   formattedDuration,
   audioSource,
@@ -150,12 +147,6 @@ export function RecordingSection({
 
         {/* Status indicators - Compact row */}
         <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground flex-shrink-0">
-          {consentGranted && (
-            <div className="flex items-center gap-1.5">
-              <ConsentStatus status="granted" />
-              <span>Consent granted</span>
-            </div>
-          )}
           {isRecording && wakeLockActive && (
             <div className="flex items-center gap-1.5 text-green-600">
               <svg

@@ -8,7 +8,6 @@ import { logger } from "@/lib/logger";
 import { useMicrophone } from "@/providers/microphone/MicrophoneProvider";
 import { useSystemAudio } from "@/providers/system-audio/SystemAudioProvider";
 import { useEffect, useEffectEvent, useState } from "react";
-import { ConsentManager } from "./consent-manager";
 import { NavigationWarningDialog } from "./navigation-warning-dialog";
 import { RecordingSection } from "./recording-section";
 import { StopConfirmationDialog } from "./stop-confirmation-dialog";
@@ -19,8 +18,6 @@ interface LiveRecorderProps {
   onRecordingComplete: (
     audioBlob: Blob,
     transcription: string,
-    consentGranted: boolean,
-    consentGrantedAt: Date
   ) => Promise<void>;
   liveTranscriptionEnabled: boolean;
   onTranscriptionToggle: (enabled: boolean) => void;
@@ -35,9 +32,6 @@ export function LiveRecorder({
   onRecordingStateChange,
 }: LiveRecorderProps) {
   const [showStopConfirm, setShowStopConfirm] = useState(false);
-  const [showConsentBanner, setShowConsentBanner] = useState(false);
-  const [consentGranted, setConsentGranted] = useState(false);
-  const [consentGrantedAt, setConsentGrantedAt] = useState<Date | null>(null);
 
   // Provider access for navigation guard cleanup
   const { releaseMicrophone } = useMicrophone();
@@ -79,10 +73,6 @@ export function LiveRecorder({
     // Release all audio resources
     releaseMicrophone();
     releaseSystemAudio();
-
-    // Reset consent state
-    setConsentGranted(false);
-    setConsentGrantedAt(null);
   });
 
   const navigationGuard = useNavigationGuard({
@@ -92,12 +82,6 @@ export function LiveRecorder({
 
   // Handle start recording
   const handleStart = useEffectEvent(async () => {
-    // Show consent banner if consent not yet granted
-    if (!consentGranted) {
-      setShowConsentBanner(true);
-      return;
-    }
-
     try {
       // Setup audio sources if needed (this requests permissions only when user starts recording)
       // This ensures we only ask for system audio permission when user explicitly wants it
@@ -136,21 +120,6 @@ export function LiveRecorder({
     }
   });
 
-  // Handle consent granted
-  const handleConsentGranted = useEffectEvent(() => {
-    const now = new Date();
-    setConsentGranted(true);
-    setConsentGrantedAt(now);
-    setShowConsentBanner(false);
-    // Start recording after consent is granted
-    void handleStart();
-  });
-
-  // Handle consent denied
-  const handleConsentDenied = useEffectEvent(() => {
-    setShowConsentBanner(false);
-  });
-
   // Handle final stop
   const handleFinalStop = useEffectEvent(async () => {
     try {
@@ -167,13 +136,7 @@ export function LiveRecorder({
         .map((t) => t.text)
         .join(" ");
 
-      // Call completion handler with consent information
-      await onRecordingComplete(
-        audioBlob,
-        fullTranscript,
-        consentGranted,
-        consentGrantedAt ?? new Date()
-      );
+      await onRecordingComplete(audioBlob, fullTranscript);
 
       // Clear transcripts
       transcription.clearTranscripts();
@@ -231,7 +194,6 @@ export function LiveRecorder({
             stream={recording.stream}
             liveTranscriptionEnabled={externalLiveTranscriptionEnabled}
             isTranscribing={transcription.isTranscribing}
-            consentGranted={consentGranted}
             wakeLockActive={recording.wakeLockActive}
             formattedDuration={formattedDuration}
             audioSource={audioSource.audioSource}
@@ -266,12 +228,6 @@ export function LiveRecorder({
           </div>
         )}
       </div>
-
-      <ConsentManager
-        showConsentBanner={showConsentBanner}
-        onConsentGranted={handleConsentGranted}
-        onConsentDenied={handleConsentDenied}
-      />
 
       <StopConfirmationDialog
         open={showStopConfirm}
