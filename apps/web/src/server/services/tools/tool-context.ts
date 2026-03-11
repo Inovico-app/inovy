@@ -4,4 +4,5 @@ export interface ToolContext {
   projectId?: string;
   chatContext: "project" | "organization";
   userRole: string;
+  conversationId?: string;
 }
