@@ -141,11 +141,9 @@ export function OrganizationListClient({
                       {format(new Date(org.createdAt), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" asChild>
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        <Link href={`/admin/organizations/${org.id}` as any}>
-                          View
-                        </Link>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      <Button variant="ghost" size="sm" render={<Link href={`/admin/organizations/${org.id}` as any} />} nativeButton={false}>
+                        View
                       </Button>
                     </TableCell>
                   </TableRow>

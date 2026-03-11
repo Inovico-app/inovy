@@ -1,5 +1,6 @@
 "use client";
 
+import { isValidElement } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -78,14 +79,15 @@ export function MoveRecordingDialog({
 
   const selectedProject = projects?.find((p) => p.id === targetProjectId);
 
+  const triggerElement = isValidElement(triggerContent) ? triggerContent : undefined;
   return (
     <Dialog open>
-      <DialogTrigger asChild>
-        {triggerContent || (
-          <Button variant={variant} size="sm">
+      <DialogTrigger render={triggerElement ?? <Button variant={variant} size="sm" />}>
+        {!triggerElement && (
+          <>
             <ArrowRightIcon className="h-4 w-4 mr-2" />
             Move
-          </Button>
+          </>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
@@ -102,7 +104,7 @@ export function MoveRecordingDialog({
             <label htmlFor="move-target-project" className="text-sm font-medium">Select Target Project</label>
             <Select
               value={targetProjectId}
-              onValueChange={setTargetProjectId}
+              onValueChange={(value) => setTargetProjectId(value ?? "")}
               disabled={isLoadingProjects || isMoving}
             >
               <SelectTrigger className="w-full">

@@ -32,19 +32,17 @@ export function NotificationBell() {
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <Badge
-              variant="destructive"
-              className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-            >
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </Badge>
-          )}
-          <span className="sr-only">Notificaties</span>
-        </Button>
+      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="relative" />}>
+        <Bell className="h-5 w-5" />
+        {unreadCount > 0 && (
+          <Badge
+            variant="destructive"
+            className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+          >
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </Badge>
+        )}
+        <span className="sr-only">Notificaties</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
         <div className="flex items-center justify-between p-3 border-b">
@@ -73,11 +71,14 @@ export function NotificationBell() {
           )}
         </div>
         <div className="p-2 border-t">
-          <Link href="/notifications" onClick={() => setIsOpen(false)}>
-            <Button variant="ghost" className="w-full">
-              Bekijk alle notificaties
-            </Button>
-          </Link>
+          <Button
+            variant="ghost"
+            className="w-full"
+            render={<Link href="/notifications" onClick={() => setIsOpen(false)} />}
+            nativeButton={false}
+          >
+            Bekijk alle notificaties
+          </Button>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -91,10 +91,8 @@ function MetricRow({ metric }: MetricRowProps) {
           <TableCell className="font-mono text-xs">
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="truncate cursor-help max-w-[120px]">
-                    {truncateText(metric.userId, 15)}
-                  </div>
+                <TooltipTrigger render={<div className="truncate cursor-help max-w-[120px]" />}>
+                  {truncateText(metric.userId, 15)}
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="font-mono">{metric.userId}</p>
@@ -105,10 +103,8 @@ function MetricRow({ metric }: MetricRowProps) {
           <TableCell className="font-mono text-xs">
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="truncate cursor-help max-w-[120px]">
-                    {truncateText(metric.organizationId, 15)}
-                  </div>
+                <TooltipTrigger render={<div className="truncate cursor-help max-w-[120px]" />}>
+                  {truncateText(metric.organizationId, 15)}
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="font-mono">{metric.organizationId}</p>
@@ -143,10 +139,8 @@ function MetricRow({ metric }: MetricRowProps) {
             {metric.query ? (
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="truncate cursor-help">
-                      {truncateText(metric.query, 40)}
-                    </div>
+                  <TooltipTrigger render={<div className="truncate cursor-help" />}>
+                    {truncateText(metric.query, 40)}
                   </TooltipTrigger>
                   <TooltipContent className="max-w-md">
                     <p className="break-words">{metric.query}</p>
@@ -159,14 +153,12 @@ function MetricRow({ metric }: MetricRowProps) {
           </TableCell>
           <TableCell>
             {hasDetails ? (
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  {isOpen ? (
-                    <ChevronUpIcon className="h-4 w-4" />
-                  ) : (
-                    <ChevronDownIcon className="h-4 w-4" />
-                  )}
-                </Button>
+              <CollapsibleTrigger render={<Button variant="ghost" size="sm" className="h-8 w-8 p-0" />}>
+                {isOpen ? (
+                  <ChevronUpIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronDownIcon className="h-4 w-4" />
+                )}
               </CollapsibleTrigger>
             ) : (
               <span className="text-muted-foreground text-xs">-</span>
@@ -174,9 +166,8 @@ function MetricRow({ metric }: MetricRowProps) {
           </TableCell>
         </TableRow>
         {hasDetails && (
-          <CollapsibleContent asChild>
-            <TableRow>
-              <TableCell colSpan={9} className="bg-muted/30">
+          <CollapsibleContent render={<TableRow />}>
+            <TableCell colSpan={9} className="bg-muted/30">
                 <div className="space-y-3 py-3">
                   {metric.conversationId && (
                     <div>
@@ -220,7 +211,6 @@ function MetricRow({ metric }: MetricRowProps) {
                   )}
                 </div>
               </TableCell>
-            </TableRow>
           </CollapsibleContent>
         )}
       </>

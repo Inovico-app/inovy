@@ -47,10 +47,8 @@ export function TranscriptionHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" title="Bekijk geschiedenis">
-          <History className="h-4 w-4" />
-        </Button>
+      <DialogTrigger render={<Button variant="ghost" size="sm" title="Bekijk geschiedenis" />}>
+        <History className="h-4 w-4" />
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>

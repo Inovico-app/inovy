@@ -79,12 +79,10 @@ export function KnowledgeUsageIndicator({
     return (
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge variant="outline" className="gap-1">
-              <BookOpenIcon className="h-3 w-3" />
-              {knowledgeEntryIds.length} term
-              {knowledgeEntryIds.length !== 1 ? "s" : ""}
-            </Badge>
+          <TooltipTrigger render={<Badge variant="outline" className="gap-1" />}>
+            <BookOpenIcon className="h-3 w-3" />
+            {knowledgeEntryIds.length} term
+            {knowledgeEntryIds.length !== 1 ? "s" : ""}
           </TooltipTrigger>
           <TooltipContent>
             <p>
@@ -116,9 +114,7 @@ export function KnowledgeUsageIndicator({
         <span className="text-sm font-medium">Knowledge Base Terms Used</span>
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <InfoIcon className="h-3 w-3 text-muted-foreground cursor-help" />
-            </TooltipTrigger>
+            <TooltipTrigger render={<InfoIcon className="h-3 w-3 text-muted-foreground cursor-help" />} />
             <TooltipContent>
               <p>
                 These terms from the knowledge base were used to improve the
@@ -137,10 +133,8 @@ export function KnowledgeUsageIndicator({
           {entries.map((entry) => (
             <TooltipProvider key={entry.id}>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="outline" className="cursor-help">
-                    {entry.term}
-                  </Badge>
+                <TooltipTrigger render={<Badge variant="outline" className="cursor-help" />}>
+                  {entry.term}
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
                   <div className="space-y-1">

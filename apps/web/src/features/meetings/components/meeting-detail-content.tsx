@@ -124,14 +124,9 @@ export function MeetingDetailContent({
           <CardContent className="space-y-4">
             {preNotes && (
               <Collapsible>
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-between font-medium text-sm"
-                  >
-                    Pre-Meeting Notes
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
+                <CollapsibleTrigger render={<Button variant="ghost" className="w-full justify-between font-medium text-sm" />}>
+                  Pre-Meeting Notes
+                  <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <p className="text-sm text-muted-foreground whitespace-pre-wrap p-3">

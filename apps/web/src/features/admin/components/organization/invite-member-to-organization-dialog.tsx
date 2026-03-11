@@ -149,11 +149,9 @@ export function InviteMemberToOrganizationDialog({
         }
       }}
     >
-      <DialogTrigger asChild>
-        <Button variant={variant} size={size}>
-          <UserPlusIcon className="mr-2 h-4 w-4" />
-          Invite Member
-        </Button>
+      <DialogTrigger render={<Button variant={variant} size={size} />}>
+        <UserPlusIcon className="mr-2 h-4 w-4" />
+        Invite Member
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -190,7 +188,7 @@ export function InviteMemberToOrganizationDialog({
             <Select
               value={role}
               onValueChange={(value) =>
-                setValue(
+                value && setValue(
                   "role",
                   value as "owner" | "admin" | "user" | "viewer" | "manager"
                 )

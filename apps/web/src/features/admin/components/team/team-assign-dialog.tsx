@@ -54,11 +54,9 @@ export function TeamAssignDialog({
 }: TeamAssignDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button>
-          <UserPlusIcon className="mr-2 h-4 w-4" />
-          Assign to Team
-        </Button>
+      <DialogTrigger render={<Button />}>
+        <UserPlusIcon className="mr-2 h-4 w-4" />
+        Assign to Team
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -71,7 +69,7 @@ export function TeamAssignDialog({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="user-select">User</Label>
-            <Select value={selectedUserId} onValueChange={onSelectedUserChange}>
+            <Select value={selectedUserId} onValueChange={(value) => value && onSelectedUserChange(value)}>
               <SelectTrigger id="user-select">
                 <SelectValue placeholder="Select a user" />
               </SelectTrigger>
@@ -90,7 +88,7 @@ export function TeamAssignDialog({
             <Label htmlFor="team-select">Team</Label>
             <Select
               value={selectedTeamId}
-              onValueChange={onSelectedTeamChange}
+              onValueChange={(value) => value && onSelectedTeamChange(value)}
               disabled={!selectedUserId}
             >
               <SelectTrigger id="team-select">
@@ -108,7 +106,7 @@ export function TeamAssignDialog({
 
           <div className="space-y-2">
             <Label htmlFor="role-select">Role</Label>
-            <Select value={selectedRole} onValueChange={onSelectedRoleChange}>
+            <Select value={selectedRole} onValueChange={(value) => value && onSelectedRoleChange(value)}>
               <SelectTrigger id="role-select">
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>

@@ -1,5 +1,6 @@
 "use client";
 
+import { isValidElement } from "react";
 import { PencilIcon } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import {
@@ -26,14 +27,15 @@ export function EditRecordingModal({
   triggerContent,
   onOpenChange,
 }: EditRecordingModalProps) {
+  const triggerElement = isValidElement(triggerContent) ? triggerContent : undefined;
   return (
     <Dialog open>
-      <DialogTrigger asChild>
-        {triggerContent || (
-          <Button variant={variant} size="sm">
+      <DialogTrigger render={triggerElement ?? <Button variant={variant} size="sm" />}>
+        {!triggerElement && (
+          <>
             <PencilIcon className="h-4 w-4 mr-2" />
             Edit
-          </Button>
+          </>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">

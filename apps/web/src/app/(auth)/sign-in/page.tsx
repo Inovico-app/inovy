@@ -71,7 +71,6 @@ function SignInPageContent() {
           variant="outline"
           onClick={() => handleSocialSignIn("google")}
           disabled={isLoading}
-          isLoading={isLoading && !isSigningIn && !isSendingMagicLink}
           className="w-full justify-start border-border bg-background hover:bg-accent"
         >
           {!isLoading && (

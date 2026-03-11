@@ -115,11 +115,6 @@ export function BulkMoveRecordingsDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
         className="sm:max-w-[600px]"
-        onPointerDownOutside={(e) => {
-          if (isMoving) {
-            e.preventDefault();
-          }
-        }}
       >
         <DialogHeader>
           <DialogTitle>
@@ -159,7 +154,7 @@ export function BulkMoveRecordingsDialog({
                 </label>
                 <Select
                   value={targetProjectId}
-                  onValueChange={setTargetProjectId}
+                  onValueChange={(value) => setTargetProjectId(value ?? "")}
                   disabled={isLoadingProjects || isMoving}
                 >
                   <SelectTrigger className="w-full">

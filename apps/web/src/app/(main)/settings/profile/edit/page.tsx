@@ -159,13 +159,15 @@ function EditProfileContent() {
                   <Button type="submit" disabled={isExecuting}>
                     {isExecuting ? "Saving..." : "Save Changes"}
                   </Button>
+
                   <Button
                     type="button"
                     variant="outline"
                     disabled={isExecuting}
-                    asChild
+                    render={<Link href="/settings/profile" />}
+                    nativeButton={false}
                   >
-                    <Link href="/settings/profile">Cancel</Link>
+                    Cancel
                   </Button>
                 </div>
               </form>

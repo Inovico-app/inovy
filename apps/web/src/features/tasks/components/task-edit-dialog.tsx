@@ -27,7 +27,7 @@ import { Pencil, Loader2 } from "lucide-react";
 
 interface TaskEditDialogProps {
   task: TaskDto;
-  trigger?: React.ReactNode;
+  trigger?: React.ReactElement;
 }
 
 const priorityLabels = {
@@ -87,13 +87,13 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="ghost" size="sm">
-            <Pencil className="h-4 w-4" />
-          </Button>
-        )}
-      </DialogTrigger>
+      {trigger ? (
+        <DialogTrigger render={trigger as React.ReactElement} />
+      ) : (
+        <DialogTrigger render={<Button variant="ghost" size="sm" />}>
+          <Pencil className="h-4 w-4" />
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[600px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
@@ -128,7 +128,7 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="priority">Prioriteit</Label>
-                <Select value={priority} onValueChange={(value) => setPriority(value as typeof priority)}>
+                <Select value={priority} onValueChange={(value) => value && setPriority(value as typeof priority)}>
                   <SelectTrigger id="priority">
                     <SelectValue />
                   </SelectTrigger>
@@ -143,7 +143,7 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
 
               <div className="grid gap-2">
                 <Label htmlFor="status">Status</Label>
-                <Select value={status} onValueChange={(value) => setStatus(value as typeof status)}>
+                <Select value={status} onValueChange={(value) => value && setStatus(value as typeof status)}>
                   <SelectTrigger id="status">
                     <SelectValue />
                   </SelectTrigger>

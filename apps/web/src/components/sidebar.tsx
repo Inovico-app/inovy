@@ -126,7 +126,7 @@ export function Sidebar() {
             if (collapsed) {
               return (
                 <Tooltip key={to}>
-                  <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                  <TooltipTrigger render={linkContent} />
                   <TooltipContent side="right">
                     <p>{label}</p>
                   </TooltipContent>
@@ -170,7 +170,7 @@ export function Sidebar() {
                 if (collapsed) {
                   return (
                     <Tooltip key={to}>
-                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                      <TooltipTrigger render={linkContent} />
                       <TooltipContent side="right">
                         <p>{label}</p>
                       </TooltipContent>
@@ -223,26 +223,14 @@ export function Sidebar() {
         ) : (
           <div className="flex flex-col items-center gap-1">
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  href="/privacy-policy"
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:text-muted-foreground"
-                  aria-label="Privacybeleid"
-                >
-                  <Scale className="h-3.5 w-3.5" />
-                </Link>
+              <TooltipTrigger render={<Link href="/privacy-policy" className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:text-muted-foreground" aria-label="Privacybeleid" />}>
+                <Scale className="h-3.5 w-3.5" />
               </TooltipTrigger>
               <TooltipContent side="right">Privacy</TooltipContent>
             </Tooltip>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  href="/terms-of-service"
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:text-muted-foreground"
-                  aria-label="Algemene Voorwaarden"
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                </Link>
+              <TooltipTrigger render={<Link href="/terms-of-service" className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:text-muted-foreground" aria-label="Algemene Voorwaarden" />}>
+                <FileText className="h-3.5 w-3.5" />
               </TooltipTrigger>
               <TooltipContent side="right">Voorwaarden</TooltipContent>
             </Tooltip>

@@ -138,7 +138,7 @@ export function UserAnalyticsFilters({
           <Select
             value={selectedUserId || "all"}
             onValueChange={(value) =>
-              setSelectedUserId(value === "all" ? "" : value)
+              setSelectedUserId(value === "all" ? "" : (value ?? ""))
             }
           >
             <SelectTrigger id="user" className="h-8 w-full text-xs">

@@ -82,7 +82,7 @@ export function AddBotConsentDialog({
             <Label htmlFor="project-select">Project</Label>
             <Select
               value={selectedProjectId}
-              onValueChange={setSelectedProjectId}
+              onValueChange={(value) => setSelectedProjectId(value ?? "")}
               disabled={isLoadingProjects || projects.length === 0}
             >
               <SelectTrigger id="project-select">

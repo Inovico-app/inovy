@@ -102,8 +102,7 @@ export function ArchiveProjectDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {!isControlled && (
-        <DialogTrigger asChild>
-          <Button variant={variant} size="sm">
+        <DialogTrigger render={<Button variant={variant} size="sm" />}>
             {isArchived ? (
               <>
                 <ArchiveRestoreIcon className="h-4 w-4 mr-2" />
@@ -115,7 +114,6 @@ export function ArchiveProjectDialog({
                 Archive Project
               </>
             )}
-          </Button>
         </DialogTrigger>
       )}
       <DialogContent>

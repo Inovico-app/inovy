@@ -57,11 +57,9 @@ export function RecordingDetailActionsDropdown({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon">
-            <MoreVerticalIcon className="h-4 w-4" />
-            <span className="sr-only">Open actions menu</span>
-          </Button>
+        <DropdownMenuTrigger render={<Button variant="outline" size="icon" />}>
+          <MoreVerticalIcon className="h-4 w-4" />
+          <span className="sr-only">Open actions menu</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           {/* Edit Recording */}

@@ -95,11 +95,9 @@ async function OrganizationPageContent({ params }: OrganizationPageProps) {
             View and manage organization settings
           </p>
         </div>
-        <Button variant="ghost" size="icon" className="w-fit px-4" asChild>
-          <Link href="/admin/organizations">
-            <ArrowLeftIcon className="h-5 w-5 mr-2" />
-            Back to organizations
-          </Link>
+        <Button variant="ghost" size="icon" className="w-fit px-4" render={<Link href="/admin/organizations" />} nativeButton={false}>
+          <ArrowLeftIcon className="h-5 w-5 mr-2" />
+          Back to organizations
         </Button>
       </div>
 

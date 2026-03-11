@@ -67,7 +67,7 @@ export function DataExportForm({
         <Label htmlFor="project">Project (Optional)</Label>
         <Select
           value={selectedProjectId}
-          onValueChange={setSelectedProjectId}
+          onValueChange={(value) => setSelectedProjectId(value ?? "")}
         >
           <SelectTrigger id="project">
             <SelectValue placeholder="All projects" />

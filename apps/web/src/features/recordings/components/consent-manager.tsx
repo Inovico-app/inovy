@@ -180,11 +180,9 @@ export function ConsentManager({
             </CardDescription>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" variant="outline" className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add Participant
-              </Button>
+            <DialogTrigger render={<Button size="sm" variant="outline" className="gap-2" />}>
+              <Plus className="h-4 w-4" />
+              Add Participant
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>

@@ -130,11 +130,9 @@ export function InviteUserDialog() {
         }
       }}
     >
-      <DialogTrigger asChild>
-        <Button>
-          <UserPlusIcon className="mr-2 h-4 w-4" />
-          Invite Members
-        </Button>
+      <DialogTrigger render={<Button />}>
+        <UserPlusIcon className="mr-2 h-4 w-4" />
+        Invite Members
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
@@ -163,7 +161,7 @@ export function InviteUserDialog() {
           {/* Role selector */}
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+            <Select value={role} onValueChange={(v) => v && setRole(v as Role)}>
               <SelectTrigger id="role">
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>

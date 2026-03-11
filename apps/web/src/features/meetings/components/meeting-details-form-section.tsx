@@ -174,7 +174,7 @@ export function MeetingDetailsFormSection({
             <Label htmlFor="start-time">Start Time</Label>
             <Select
               value={watch("startTime")}
-              onValueChange={(v) => setValue("startTime", v)}
+              onValueChange={(v) => setValue("startTime", v ?? "")}
             >
               <SelectTrigger id="start-time">
                 <SelectValue placeholder="Select time" />
@@ -215,7 +215,7 @@ export function MeetingDetailsFormSection({
             <Label htmlFor="end-time">End Time</Label>
             <Select
               value={watch("endTime")}
-              onValueChange={(v) => setValue("endTime", v)}
+              onValueChange={(v) => setValue("endTime", v ?? "")}
             >
               <SelectTrigger id="end-time">
                 <SelectValue placeholder="Select time" />

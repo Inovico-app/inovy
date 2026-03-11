@@ -75,13 +75,8 @@ export function AgentConfigToggle({
           disabled={isLoading}
         />
         {!enabled && (
-          <AlertDialogTrigger asChild>
-            <button
-              className="text-xs text-muted-foreground hover:text-foreground"
-              disabled={isLoading}
-            >
-              Confirm
-            </button>
+          <AlertDialogTrigger render={<button className="text-xs text-muted-foreground hover:text-foreground" disabled={isLoading} />}>
+            Confirm
           </AlertDialogTrigger>
         )}
       </div>

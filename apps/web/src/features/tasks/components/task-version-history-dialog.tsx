@@ -61,10 +61,8 @@ export function TaskVersionHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" title="View version history">
-          <History className="h-4 w-4" />
-        </Button>
+      <DialogTrigger render={<Button variant="ghost" size="sm" title="View version history" />}>
+        <History className="h-4 w-4" />
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>

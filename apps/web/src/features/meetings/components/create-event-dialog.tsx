@@ -114,7 +114,7 @@ export function CreateEventDialog({
                 </Label>
                 <Select
                   value={startTime || ""}
-                  onValueChange={(value) => setValue("startTime", value)}
+                  onValueChange={(value) => setValue("startTime", value ?? "")}
                   disabled={allDay}
                 >
                   <SelectTrigger id="startTime" className="w-full">
@@ -164,7 +164,7 @@ export function CreateEventDialog({
                 </Label>
                 <Select
                   value={endTime || ""}
-                  onValueChange={(value) => setValue("endTime", value)}
+                  onValueChange={(value) => setValue("endTime", value ?? "")}
                   disabled={allDay}
                 >
                   <SelectTrigger id="endTime" className="w-full">

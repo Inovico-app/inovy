@@ -41,7 +41,7 @@ export function InvitationEmailMismatch({
           variant="outline"
           className="w-full"
           onClick={handleSignOut}
-          isLoading={isSigningOut}
+          disabled={isSigningOut}
         >
           <LogOut className="h-4 w-4" />
           Uitloggen en opnieuw proberen

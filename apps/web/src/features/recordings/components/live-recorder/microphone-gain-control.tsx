@@ -22,7 +22,8 @@ export function MicrophoneGainControl({
 
   // Convert slider value (0-300) to gain (0.0-3.0)
   const handleSliderChange = useCallback(
-    (values: number[]) => {
+    (value: number | readonly number[]) => {
+      const values = Array.isArray(value) ? (value as number[]) : [value as number];
       const newGain = values[0] / 100;
       onGainChange(newGain);
       // Persist to localStorage

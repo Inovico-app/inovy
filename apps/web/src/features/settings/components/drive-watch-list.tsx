@@ -141,15 +141,8 @@ export function DriveWatchList({
                     <Edit className="h-4 w-4" />
                   </Button>
                   <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={isDeleting}
-                        aria-label="Delete watch"
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                    <AlertDialogTrigger render={<Button variant="ghost" size="sm" disabled={isDeleting} aria-label="Delete watch" />}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>

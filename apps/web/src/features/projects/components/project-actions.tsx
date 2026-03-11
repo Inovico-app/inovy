@@ -67,11 +67,9 @@ export function ProjectActions({
 
         {/* More Actions Dropdown */}
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon">
-              <MoreVerticalIcon className="h-4 w-4" />
-              <span className="sr-only">More actions</span>
-            </Button>
+          <DropdownMenuTrigger render={<Button variant="outline" size="icon" />}>
+            <MoreVerticalIcon className="h-4 w-4" />
+            <span className="sr-only">More actions</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             {/* Edit */}
@@ -87,11 +85,9 @@ export function ProjectActions({
             </DropdownMenuItem>
 
             {/* Settings */}
-            <DropdownMenuItem asChild>
-              <Link href={`/projects/${projectId}/settings` as Route}>
-                <SettingsIcon className="h-4 w-4 mr-2" />
-                Settings
-              </Link>
+            <DropdownMenuItem render={<Link href={`/projects/${projectId}/settings` as Route} />}>
+              <SettingsIcon className="h-4 w-4 mr-2" />
+              Settings
             </DropdownMenuItem>
 
             {/* Delete */}

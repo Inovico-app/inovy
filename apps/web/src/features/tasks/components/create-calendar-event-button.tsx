@@ -63,11 +63,9 @@ export function CreateCalendarEventButton({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant={variant} size={size}>
-          <Calendar className="h-4 w-4" />
-          {showLabel && <span className="ml-2">Add to Calendar</span>}
-        </Button>
+      <DialogTrigger render={<Button variant={variant} size={size} />}>
+        <Calendar className="h-4 w-4" />
+        {showLabel && <span className="ml-2">Add to Calendar</span>}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -133,17 +131,12 @@ export function CreateCalendarEventButton({
                 <Button
                   variant="outline"
                   size="sm"
-                  asChild
+                  render={<a href={eventUrl} target="_blank" rel="noopener noreferrer" />}
+                  nativeButton={false}
                   className="gap-2"
                 >
-                  <a
-                    href={eventUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Open in Google Calendar
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
+                  Open in Google Calendar
+                  <ExternalLink className="h-3 w-3" />
                 </Button>
               </div>
             </div>

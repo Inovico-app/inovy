@@ -214,12 +214,11 @@ export function BotSessionDetailsModal({
                       <span>{formatDate(session.recording.recordingDate)}</span>
                     </div>
                     <div className="pt-2">
-                      <Button asChild>
-                        <Link
-                          href={`/projects/${session.projectId}/recordings/${session.recording.id}`}
-                        >
-                          View Recording
-                        </Link>
+                      <Button
+                        render={<Link href={`/projects/${session.projectId}/recordings/${session.recording.id}`} />}
+                        nativeButton={false}
+                      >
+                        View Recording
                       </Button>
                     </div>
                   </div>

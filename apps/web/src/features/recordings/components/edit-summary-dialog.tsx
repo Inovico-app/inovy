@@ -74,11 +74,9 @@ export function EditSummaryDialog({
         }
       }}
     >
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Edit className="h-4 w-4 mr-2" />
-          Edit Summary
-        </Button>
+      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+        <Edit className="h-4 w-4 mr-2" />
+        Edit Summary
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>

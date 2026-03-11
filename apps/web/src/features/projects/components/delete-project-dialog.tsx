@@ -25,7 +25,7 @@ interface DeleteProjectDialogProps {
   projectName: string;
   recordingCount?: number;
   variant?: "default" | "outline" | "ghost" | "destructive";
-  triggerContent?: React.ReactNode;
+  triggerContent?: React.ReactElement;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -137,14 +137,14 @@ export function DeleteProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {triggerContent ?? (
-          <Button variant={variant} size="sm">
-            <Trash2Icon className="h-4 w-4 mr-2" />
-            Delete Project
-          </Button>
-        )}
-      </DialogTrigger>
+      {triggerContent ? (
+        <DialogTrigger render={triggerContent} />
+      ) : (
+        <DialogTrigger render={<Button variant={variant} size="sm" />}>
+          <Trash2Icon className="h-4 w-4 mr-2" />
+          Delete Project
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle className="text-destructive text-xl">

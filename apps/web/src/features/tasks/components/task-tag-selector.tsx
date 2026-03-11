@@ -72,11 +72,9 @@ export function TaskTagSelector({
       <div className="flex items-center justify-between">
         <Label>Tags</Label>
         <Dialog open={isCreating} onOpenChange={setIsCreating}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm" type="button">
-              <Plus className="h-3 w-3 mr-1" />
-              New Tag
-            </Button>
+          <DialogTrigger render={<Button variant="outline" size="sm" type="button" />}>
+            <Plus className="h-3 w-3 mr-1" />
+            New Tag
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>

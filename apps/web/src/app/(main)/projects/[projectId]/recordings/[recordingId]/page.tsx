@@ -128,11 +128,9 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
 
         {/* Navigation */}
         <div className="flex justify-between">
-          <Button variant="outline" asChild>
-            <Link href={`/projects/${projectId}`}>
-              <ArrowLeftIcon className="h-4 w-4 mr-2" />
-              Back to Project
-            </Link>
+          <Button variant="outline" render={<Link href={`/projects/${projectId}`} />} nativeButton={false}>
+            <ArrowLeftIcon className="h-4 w-4 mr-2" />
+            Back to Project
           </Button>
         </div>
       </div>

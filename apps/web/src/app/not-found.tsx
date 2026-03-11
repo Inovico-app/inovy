@@ -19,8 +19,8 @@ export default function NotFound() {
           The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
         <div className="flex gap-2 justify-center">
-          <Button asChild>
-            <Link href="/">Go Home</Link>
+          <Button render={<Link href="/" />} nativeButton={false}>
+            Go Home
           </Button>
           <Button variant="outline" onClick={() => window.history.back()}>
             Go Back

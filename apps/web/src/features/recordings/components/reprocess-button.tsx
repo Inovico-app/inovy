@@ -72,16 +72,9 @@ export function ReprocessButton({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant={variant}
-          size="sm"
-          disabled={isDisabled}
-          title={disabledReason ?? undefined}
-        >
-          <RefreshCwIcon className="h-4 w-4 mr-2" />
-          Reprocess
-        </Button>
+      <DialogTrigger render={<Button variant={variant} size="sm" disabled={isDisabled} title={disabledReason ?? undefined} />}>
+        <RefreshCwIcon className="h-4 w-4 mr-2" />
+        Reprocess
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

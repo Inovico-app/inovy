@@ -38,9 +38,9 @@ export function MicrophoneDeviceSelector({
     }
   }, [devices, deviceId, isLoading, onDeviceChange]);
 
-  const handleValueChange = (value: string) => {
+  const handleValueChange = (value: string | null) => {
     // "__default__" means "default device" (null)
-    const newDeviceId = value === "__default__" ? null : value;
+    const newDeviceId = value === "__default__" || value === null ? null : value;
     onDeviceChange(newDeviceId);
   };
 

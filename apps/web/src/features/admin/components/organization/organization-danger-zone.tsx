@@ -77,24 +77,18 @@ export function OrganizationDangerZone({
       </CardHeader>
       <CardContent>
         <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="destructive"
-              disabled={isDeleting}
-              className="gap-2"
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2Icon className="h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <TrashIcon className="h-4 w-4" />
-                  Delete Organization
-                </>
-              )}
-            </Button>
+          <AlertDialogTrigger render={<Button variant="destructive" disabled={isDeleting} className="gap-2" />}>
+            {isDeleting ? (
+              <>
+                <Loader2Icon className="h-4 w-4 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <TrashIcon className="h-4 w-4" />
+                Delete Organization
+              </>
+            )}
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>

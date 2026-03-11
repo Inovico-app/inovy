@@ -20,11 +20,9 @@ export function ChatButton({ projectId }: ChatButtonProps) {
   const href: Route = `/chat?context=project&projectId=${projectId}`;
 
   return (
-    <Button asChild className="gap-2" variant="default">
-      <Link href={href}>
-        <MessageSquare className="h-4 w-4" />
-        Ask AI
-      </Link>
+    <Button render={<Link href={href} />} className="gap-2" variant="default" nativeButton={false}>
+      <MessageSquare className="h-4 w-4" />
+      Ask AI
     </Button>
   );
 }

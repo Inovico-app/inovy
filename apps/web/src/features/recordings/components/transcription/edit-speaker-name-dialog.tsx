@@ -127,7 +127,7 @@ export function EditSpeakerNameDialog({
             </Label>
             <Select
               value={selectedUserId ?? "__none__"}
-              onValueChange={handleUserChange}
+              onValueChange={(value) => handleUserChange(value ?? "__none__")}
               disabled={isLoadingUsers || isSaving}
             >
               <SelectTrigger

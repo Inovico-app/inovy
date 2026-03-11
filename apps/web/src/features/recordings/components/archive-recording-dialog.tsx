@@ -77,20 +77,18 @@ export function ArchiveRecordingDialog({
 
   return (
     <Dialog open>
-      <DialogTrigger asChild>
-        <Button variant={variant} size="sm">
-          {isArchived ? (
-            <>
-              <ArchiveRestoreIcon className="h-4 w-4 mr-2" />
-              Restore
-            </>
-          ) : (
-            <>
-              <ArchiveIcon className="h-4 w-4 mr-2" />
-              Archive
-            </>
-          )}
-        </Button>
+      <DialogTrigger render={<Button variant={variant} size="sm" />}>
+        {isArchived ? (
+          <>
+            <ArchiveRestoreIcon className="h-4 w-4 mr-2" />
+            Restore
+          </>
+        ) : (
+          <>
+            <ArchiveIcon className="h-4 w-4 mr-2" />
+            Archive
+          </>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

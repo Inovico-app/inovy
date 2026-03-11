@@ -106,7 +106,6 @@ export function MagicLinkSignInForm({
                 type="submit"
                 className="flex-1"
                 disabled={isLoading}
-                isLoading={isSendingMagicLink}
               >
                 Versturen
               </Button>

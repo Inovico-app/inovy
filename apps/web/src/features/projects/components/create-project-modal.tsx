@@ -19,7 +19,7 @@ interface CreateProjectModalProps {
    * Optional custom trigger element to open the modal.
    * If omitted, a default "Create New Project" button with a plus icon is used.
    */
-  trigger?: React.ReactNode;
+  trigger?: React.ReactElement;
   /**
    * Optional controlled open state; when provided, the modal's visibility is driven by this value.
    */
@@ -69,14 +69,14 @@ export function CreateProjectModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button>
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Create New Project
-          </Button>
-        )}
-      </DialogTrigger>
+      {trigger ? (
+        <DialogTrigger render={trigger} />
+      ) : (
+        <DialogTrigger render={<Button />}>
+          <PlusIcon className="h-4 w-4 mr-2" />
+          Create New Project
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>

@@ -87,24 +87,12 @@ export function AddBotButton({
       <TooltipProvider>
         {consentDialog}
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 shrink-0 opacity-60 hover:opacity-100 transition-opacity"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleAddBot();
-              }}
-              disabled={isExecuting}
-              aria-label="Add bot to meeting"
-            >
-              {isExecuting ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Plus className="h-3 w-3" />
-              )}
-            </Button>
+          <TooltipTrigger render={<Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-60 hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); handleAddBot(); }} disabled={isExecuting} aria-label="Add bot to meeting" />}>
+            {isExecuting ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Plus className="h-3 w-3" />
+            )}
           </TooltipTrigger>
           <TooltipContent>Add bot to meeting</TooltipContent>
         </Tooltip>

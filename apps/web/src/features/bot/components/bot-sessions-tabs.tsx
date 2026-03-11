@@ -21,7 +21,7 @@ export function BotSessionsTabs({
   });
 
   return (
-    <Tabs value={tab} onValueChange={setTab} className="w-full">
+    <Tabs value={tab} onValueChange={(value) => setTab(value as string)} className="w-full">
       <TabsList>
         <TabsTrigger value="active" className="flex items-center gap-2">
           Active

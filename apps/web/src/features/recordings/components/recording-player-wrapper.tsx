@@ -120,10 +120,13 @@ function RecordingPlayerWrapperInner({
   return (
     <div className="text-center py-8 text-muted-foreground">
       <p>Playback not supported for this file type</p>
-      <Button variant="outline" className="mt-4" asChild>
-        <a href={downloadUrl} download={fileName}>
-          Download File
-        </a>
+      <Button
+        variant="outline"
+        className="mt-4"
+        render={<a href={downloadUrl} download={fileName} />}
+        nativeButton={false}
+      >
+        Download File
       </Button>
     </div>
   );

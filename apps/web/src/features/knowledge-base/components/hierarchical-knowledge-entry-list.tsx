@@ -108,10 +108,8 @@ export function HierarchicalKnowledgeEntryList({
                     </div>
                     {canEdit && entry.priority === 1 && (
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" aria-label={`Actions for ${entry.term}`}>
-                            <MoreVerticalIcon className="h-4 w-4" />
-                          </Button>
+                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label={`Actions for ${entry.term}`} />}>
+                          <MoreVerticalIcon className="h-4 w-4" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => setEditingEntry(entry)}>

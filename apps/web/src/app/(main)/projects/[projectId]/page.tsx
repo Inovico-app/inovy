@@ -230,8 +230,8 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
 
         {/* Navigation */}
         <div className="flex justify-between">
-          <Button variant="outline" asChild>
-            <Link href="/projects">← Back to Projects</Link>
+          <Button variant="outline" render={<Link href="/projects" />} nativeButton={false}>
+            ← Back to Projects
           </Button>
         </div>
       </div>

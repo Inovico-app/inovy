@@ -126,11 +126,9 @@ export function TeamManagementClient({
 
       {canEdit && (
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Team
-            </Button>
+          <DialogTrigger render={<Button />}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Team
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>

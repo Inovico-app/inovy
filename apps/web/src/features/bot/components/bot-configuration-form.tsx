@@ -164,8 +164,11 @@ export function BotConfigurationForm({
                       min={5}
                       max={60}
                       step={5}
-                      value={[field.value ?? 60]}
-                      onValueChange={([value]) => field.onChange(value ?? 60)}
+                      value={field.value ?? 60}
+                      onValueChange={(v) => {
+                        const val = Array.isArray(v) ? v[0] : v;
+                        field.onChange(val ?? 60);
+                      }}
                     />
                   </FormControl>
                   <FormDescription>

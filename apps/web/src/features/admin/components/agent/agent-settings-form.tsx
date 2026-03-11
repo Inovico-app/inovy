@@ -232,7 +232,10 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
                       max={2}
                       step={0.01}
                       value={[field.value]}
-                      onValueChange={([value]) => field.onChange(value)}
+                      onValueChange={(v) => {
+                        const arr = Array.isArray(v) ? v : [v];
+                        field.onChange(arr[0]);
+                      }}
                       disabled={isReasoningModel}
                       className={isReasoningModel ? "opacity-50" : ""}
                     />
@@ -268,7 +271,10 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
                       max={1}
                       step={0.01}
                       value={[field.value]}
-                      onValueChange={([value]) => field.onChange(value)}
+                      onValueChange={(v) => {
+                        const arr = Array.isArray(v) ? v : [v];
+                        field.onChange(arr[0]);
+                      }}
                       disabled={isReasoningModel}
                       className={isReasoningModel ? "opacity-50" : ""}
                     />
@@ -304,7 +310,10 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
                       max={2}
                       step={0.01}
                       value={[field.value]}
-                      onValueChange={([value]) => field.onChange(value)}
+                      onValueChange={(v) => {
+                        const arr = Array.isArray(v) ? v : [v];
+                        field.onChange(arr[0]);
+                      }}
                       disabled={isReasoningModel}
                       className={isReasoningModel ? "opacity-50" : ""}
                     />
@@ -340,7 +349,10 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
                       max={2}
                       step={0.01}
                       value={[field.value]}
-                      onValueChange={([value]) => field.onChange(value)}
+                      onValueChange={(v) => {
+                        const arr = Array.isArray(v) ? v : [v];
+                        field.onChange(arr[0]);
+                      }}
                       disabled={isReasoningModel}
                       className={isReasoningModel ? "opacity-50" : ""}
                     />
