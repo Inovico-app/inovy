@@ -33,6 +33,7 @@ import {
   type ToolContext,
 } from "./tools";
 import { checkOutputGrounding } from "../ai/middleware/output-grounding.middleware";
+import { AgentTokenBudgetService } from "./agent-token-budget.service";
 import { ConversationIntegrityService } from "./conversation-integrity.service";
 import { PromptIntegrityService } from "./prompt-integrity.service";
 import { SearchResultFormatter } from "./search-result-formatter.service";
@@ -730,6 +731,14 @@ export class ChatService {
             query: userMessage,
           });
 
+          // Record token usage against organization budget
+          if (usage?.totalTokens) {
+            await AgentTokenBudgetService.recordUsage(
+              organizationId,
+              usage.totalTokens
+            );
+          }
+
           // Extract sources from searchKnowledge tool results
           const sources = extractSourcesFromToolResults(toolCalls, toolResults);
 
@@ -1029,6 +1038,14 @@ export class ChatService {
             toolCalls: toolCallNames,
             query: userMessage,
           });
+
+          // Record token usage against organization budget
+          if (usage?.totalTokens) {
+            await AgentTokenBudgetService.recordUsage(
+              organizationId,
+              usage.totalTokens
+            );
+          }
 
           // Extract sources from searchKnowledge tool results
           const sources = extractSourcesFromToolResults(toolCalls, toolResults);
