@@ -34,6 +34,7 @@ import {
 } from "./tools";
 import { checkOutputGrounding } from "../ai/middleware/output-grounding.middleware";
 import { AgentTokenBudgetService } from "./agent-token-budget.service";
+import { ModelProvenanceService } from "./model-provenance.service";
 import { ConversationIntegrityService } from "./conversation-integrity.service";
 import { PromptIntegrityService } from "./prompt-integrity.service";
 import { SearchResultFormatter } from "./search-result-formatter.service";
@@ -739,6 +740,19 @@ export class ChatService {
             );
           }
 
+          // Log model provenance for audit trail
+          ModelProvenanceService.logInvocation({
+            modelId: agentSettings.model,
+            provider: "openai",
+            organizationId,
+            conversationId,
+            usage: {
+              promptTokens: usage?.inputTokens,
+              completionTokens: usage?.outputTokens,
+              totalTokens: usage?.totalTokens,
+            },
+          });
+
           // Extract sources from searchKnowledge tool results
           const sources = extractSourcesFromToolResults(toolCalls, toolResults);
 
@@ -1046,6 +1060,19 @@ export class ChatService {
               usage.totalTokens
             );
           }
+
+          // Log model provenance for audit trail
+          ModelProvenanceService.logInvocation({
+            modelId: agentSettings.model,
+            provider: "openai",
+            organizationId,
+            conversationId,
+            usage: {
+              promptTokens: usage?.inputTokens,
+              completionTokens: usage?.outputTokens,
+              totalTokens: usage?.totalTokens,
+            },
+          });
 
           // Extract sources from searchKnowledge tool results
           const sources = extractSourcesFromToolResults(toolCalls, toolResults);
