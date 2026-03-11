@@ -116,7 +116,7 @@ export function OrganizationSwitcher({
     >
       <div className="relative shrink-0">
         <Avatar className="h-8 w-8">
-          <AvatarImage src={activeOrganization.logo ?? undefined} alt="" />
+          <AvatarImage src={activeOrganization.logo ?? undefined} alt={activeOrganization.name} />
           <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
             {getOrgInitials(activeOrganization.name)}
           </AvatarFallback>
@@ -227,7 +227,7 @@ export function OrganizationSwitcher({
                     role="option"
                   >
                     <Avatar className="h-6 w-6 shrink-0">
-                      <AvatarImage src={org.logo ?? undefined} alt="" />
+                      <AvatarImage src={org.logo ?? undefined} alt={org.name} />
                       <AvatarFallback className="bg-muted text-muted-foreground text-xs">
                         {getOrgInitials(org.name)}
                       </AvatarFallback>

@@ -20,21 +20,24 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
   }, [error]);
 
   return (
-    <html lang="en">
+    <html lang="nl" suppressHydrationWarning>
       <body>
         <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-background">
           <div className="text-center space-y-4 max-w-md">
             <div className="flex justify-center">
               <div className="p-3 bg-destructive/10 rounded-full">
-                <AlertTriangle className="h-8 w-8 text-destructive" />
+                <AlertTriangle
+                  className="h-8 w-8 text-destructive"
+                  aria-hidden="true"
+                />
               </div>
             </div>
             <h1 className="text-2xl font-bold text-destructive">
               Something went wrong
             </h1>
             <p className="text-muted-foreground">
-              A critical error occurred. Please try refreshing the page or contact
-              support if the problem persists.
+              A critical error occurred. Please try refreshing the page or
+              contact support if the problem persists.
             </p>
             {process.env.NODE_ENV === "development" && error.message && (
               <p className="text-xs text-muted-foreground font-mono bg-muted p-2 rounded">

@@ -20,7 +20,7 @@ export default function ChatError({ error, reset }: ChatErrorProps) {
   }, [error]);
 
   return (
-    <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] p-8">
+    <div className="flex flex-col items-center justify-center h-[calc(100dvh-4rem)] p-8">
       <div className="text-center space-y-4 max-w-md">
         <div className="flex justify-center">
           <div className="p-3 bg-destructive/10 rounded-full">

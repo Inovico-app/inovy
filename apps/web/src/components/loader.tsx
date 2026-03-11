@@ -1,9 +1,18 @@
 import { Loader2 } from "lucide-react";
 
-export function Loader() {
+interface LoaderProps {
+  label?: string;
+}
+
+export function Loader({ label = "Laden..." }: LoaderProps) {
   return (
-    <div className="flex h-full items-center justify-center pt-8">
-      <Loader2 className="animate-spin" />
+    <div
+      className="flex h-full items-center justify-center pt-8"
+      role="status"
+      aria-busy="true"
+      aria-label={label}
+    >
+      <Loader2 className="animate-spin" aria-hidden="true" />
     </div>
   );
 }

@@ -218,7 +218,7 @@ export function DriveWatchForm({
                 : "Enter a Google Drive folder ID to monitor for file uploads"}
             </CardDescription>
           </div>
-          <Button variant="ghost" size="icon" onClick={onCancel}>
+          <Button variant="ghost" size="icon" onClick={onCancel} aria-label="Cancel">
             <X className="h-4 w-4" />
           </Button>
         </div>

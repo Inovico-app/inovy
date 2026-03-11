@@ -178,7 +178,7 @@ export function LiveRecorder({
             externalLiveTranscriptionEnabled ? "flex-1 min-w-0" : "w-full"
           }
           style={{
-            height: "calc(100vh - 12rem)",
+            height: "calc(100dvh - 12rem)",
             minHeight: "600px",
             maxHeight: "800px",
           }}
@@ -216,7 +216,7 @@ export function LiveRecorder({
           <div
             className="flex-1 min-w-0"
             style={{
-              height: "calc(100vh - 12rem)",
+              height: "calc(100dvh - 12rem)",
               minHeight: "600px",
               maxHeight: "800px",
             }}
