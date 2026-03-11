@@ -3,7 +3,7 @@ import { useWakeLock } from "@/hooks/use-wake-lock";
 import { logger } from "@/lib/logger";
 import { useMicrophone } from "@/providers/microphone/MicrophoneProvider";
 import { useSystemAudio } from "@/providers/system-audio/SystemAudioProvider";
-import { useEffectEvent, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useInitialAudioSetup } from "./use-initial-audio-setup";
 import { useRecordingDuration } from "./use-recording-duration";
 import { useRecordingSetupErrors } from "./use-recording-setup-errors";
@@ -65,6 +65,16 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
   // Refs
   const audioChunksRef = useRef<Blob[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+
+  // Release all audio resources on unmount (e.g., navigating away from recording page).
+  // Providers live in root layout and never unmount, so we must explicitly release here.
+  useEffect(() => {
+    return () => {
+      releaseMicrophone();
+      releaseSystemAudio();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handler: Start recording
   const handleStart = useEffectEvent(
