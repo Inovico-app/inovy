@@ -86,6 +86,8 @@ export function sandboxExecute<TInput, TOutput>(
     const startTime = Date.now();
 
     // 1. Circuit breaker check — skip execution if tool is in failure state
+    // organizationId is always provided by createChatTools via ToolContext;
+    // the guard exists because SandboxOptions types it as optional for flexibility.
     if (organizationId) {
       const allowed = await circuitBreaker.canExecute(organizationId, toolName);
       if (!allowed) {
