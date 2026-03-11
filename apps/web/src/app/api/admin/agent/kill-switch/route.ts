@@ -60,7 +60,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Malformed JSON body" },
+      { status: 400 }
+    );
+  }
+
   const parsed = killSwitchSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -79,11 +88,20 @@ export async function POST(request: Request) {
     );
   }
 
+  // Compute effective state without extra Redis round-trip:
+  // env var always overrides to true, otherwise the just-written value is effective
+  const effectiveState =
+    process.env.AGENT_GLOBAL_KILL_SWITCH === "true" || parsed.data.active;
+
   logger.info("Agent kill switch toggled", {
     component: "api/admin/agent/kill-switch",
-    active: parsed.data.active,
+    requested: parsed.data.active,
+    effective: effectiveState,
     userId: user?.id,
   });
 
-  return NextResponse.json({ active: parsed.data.active });
+  return NextResponse.json({
+    requested: parsed.data.active,
+    effective: effectiveState,
+  });
 }

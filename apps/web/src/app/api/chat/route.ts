@@ -77,7 +77,12 @@ export async function POST(request: NextRequest) {
 
     const { user, organization, member } = session;
     const organizationId = organization.id;
-    const userRole = member?.role ?? "user";
+
+    if (!member?.role) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const userRole = member.role;
 
     // Check global kill switch before anything else
     const isKilled = await AgentKillSwitchService.isKilled();
@@ -175,7 +180,7 @@ export async function POST(request: NextRequest) {
         ipAddress: metadata.ipAddress,
         userAgent: metadata.userAgent,
         metadata: {
-          userRole: user.role,
+          userRole,
           endpoint: "POST /api/chat (organization)",
         },
       });
@@ -184,7 +189,7 @@ export async function POST(request: NextRequest) {
         logger.warn("Organization chat access denied", {
           userId: user.id,
           organizationId: organizationId,
-          userRole: user.role,
+          userRole,
         });
 
         return NextResponse.json(

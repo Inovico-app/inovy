@@ -1,3 +1,4 @@
+import type { ToolExecutionOptions } from "ai";
 import { logger } from "@/lib/logger";
 import { PIIDetectionService } from "@/server/services/pii-detection.service";
 import { circuitBreaker } from "@/server/services/circuit-breaker.service";
@@ -68,9 +69,9 @@ interface SandboxOptions {
  * 7. Structured audit logging
  */
 export function sandboxExecute<TInput, TOutput>(
-  executeFn: (input: TInput) => Promise<TOutput>,
+  executeFn: (input: TInput, options: ToolExecutionOptions) => Promise<TOutput>,
   options: SandboxOptions = {}
-): (input: TInput) => Promise<TOutput | { error: string }> {
+): (input: TInput, execOptions: ToolExecutionOptions) => Promise<TOutput | { error: string }> {
   const {
     timeoutMs = DEFAULT_TIMEOUT_MS,
     maxOutputBytes = MAX_OUTPUT_BYTES,
@@ -81,10 +82,12 @@ export function sandboxExecute<TInput, TOutput>(
     organizationId,
   } = options;
 
-  return async (input: TInput): Promise<TOutput | { error: string }> => {
+  return async (input: TInput, execOptions: ToolExecutionOptions): Promise<TOutput | { error: string }> => {
     const startTime = Date.now();
 
     // 1. Circuit breaker check — skip execution if tool is in failure state
+    // organizationId is always provided by createChatTools via ToolContext;
+    // the guard exists because SandboxOptions types it as optional for flexibility.
     if (organizationId) {
       const allowed = await circuitBreaker.canExecute(organizationId, toolName);
       if (!allowed) {
@@ -135,7 +138,7 @@ export function sandboxExecute<TInput, TOutput>(
     let result: TOutput;
     try {
       result = await Promise.race([
-        executeFn(input),
+        executeFn(input, execOptions),
         new Promise<never>((_, reject) =>
           setTimeout(
             () => reject(new Error(`Tool "${toolName}" timed out after ${timeoutMs}ms`)),
@@ -156,15 +159,21 @@ export function sandboxExecute<TInput, TOutput>(
         await circuitBreaker.recordFailure(organizationId, toolName).catch(() => {});
       }
 
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isTimeout = errorMessage.includes("timed out after");
+
       logger.error("Tool execution failed in sandbox", {
         component: "ToolSandbox",
         toolName,
         latencyMs,
+        isTimeout,
         userId,
         organizationId,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage,
       });
-      return { error: `Tool "${toolName}" failed to execute.` } as TOutput | { error: string };
+      return {
+        error: isTimeout ? errorMessage : `Tool "${toolName}" failed to execute.`,
+      } as TOutput | { error: string };
     }
 
     const latencyMs = Date.now() - startTime;
@@ -182,20 +191,18 @@ export function sandboxExecute<TInput, TOutput>(
       return { error: "Tool returned non-serializable output." } as TOutput | { error: string };
     }
 
-    if (serialized.length > maxOutputBytes) {
+    const originalBytes = Buffer.byteLength(serialized, "utf8");
+    if (originalBytes > maxOutputBytes) {
       logger.warn("Tool output truncated", {
         component: "ToolSandbox",
         toolName,
-        originalBytes: serialized.length,
+        originalBytes,
         maxBytes: maxOutputBytes,
         userId,
         organizationId,
       });
-      // Truncate the serialized output and re-parse
-      serialized = serialized.slice(0, maxOutputBytes);
-      // Try to produce valid JSON by returning a wrapper
       return {
-        error: `Output truncated from ${serialized.length} bytes to ${maxOutputBytes} bytes. Try narrowing your query.`,
+        error: `Output truncated from ${originalBytes} bytes to ${maxOutputBytes} bytes. Try narrowing your query.`,
       } as TOutput | { error: string };
     }
 

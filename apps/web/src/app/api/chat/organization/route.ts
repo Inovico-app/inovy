@@ -52,7 +52,12 @@ export const POST = withRateLimit(
 
       const { user, organization, member } = session;
       const organizationId = organization.id;
-      const userRole = member?.role ?? "admin";
+
+      if (!member?.role) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+
+      const userRole = member.role;
 
       // Check global kill switch
       const isKilled = await AgentKillSwitchService.isKilled();

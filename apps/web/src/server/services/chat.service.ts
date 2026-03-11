@@ -34,6 +34,7 @@ import {
 } from "./tools";
 import { checkOutputGrounding } from "../ai/middleware/output-grounding.middleware";
 import { AgentTokenBudgetService } from "./agent-token-budget.service";
+import { ModelProvenanceService } from "./model-provenance.service";
 import { ConversationIntegrityService } from "./conversation-integrity.service";
 import { PromptIntegrityService } from "./prompt-integrity.service";
 import { SearchResultFormatter } from "./search-result-formatter.service";
@@ -739,6 +740,19 @@ export class ChatService {
             );
           }
 
+          // Log model provenance for audit trail
+          ModelProvenanceService.logInvocation({
+            modelId: agentSettings.model,
+            provider: "openai",
+            organizationId,
+            conversationId,
+            usage: {
+              inputTokens: usage?.inputTokens,
+              outputTokens: usage?.outputTokens,
+              totalTokens: usage?.totalTokens,
+            },
+          });
+
           // Extract sources from searchKnowledge tool results
           const sources = extractSourcesFromToolResults(toolCalls, toolResults);
 
@@ -757,13 +771,8 @@ export class ChatService {
           checkOutputGrounding(text, hadToolResults);
 
           // Update conversation title if it's the first exchange
-          const conversationMessages =
-            await ChatQueries.getMessagesByConversationId(conversationId);
-          /**
-           * At the time of the check, there are always at least 2 messages (user + assistant),
-           * so the condition should be === 2 to detect the first exchange and generate an auto-title.
-           */
-          if (conversationMessages.length === 2 && !conversation.title) {
+          // conversationHistory contains only the user message on first exchange
+          if (conversationHistory.length === 1 && !conversation.title) {
             const title =
               userMessage.length > 50
                 ? userMessage.substring(0, 50) + "..."
@@ -811,7 +820,7 @@ export class ChatService {
     conversationId: string,
     userMessage: string,
     organizationId: string,
-    userRole: string = "admin"
+    userRole: string
   ) {
     try {
       logger.info("Streaming organization chat response", {
@@ -1047,6 +1056,19 @@ export class ChatService {
             );
           }
 
+          // Log model provenance for audit trail
+          ModelProvenanceService.logInvocation({
+            modelId: agentSettings.model,
+            provider: "openai",
+            organizationId,
+            conversationId,
+            usage: {
+              inputTokens: usage?.inputTokens,
+              outputTokens: usage?.outputTokens,
+              totalTokens: usage?.totalTokens,
+            },
+          });
+
           // Extract sources from searchKnowledge tool results
           const sources = extractSourcesFromToolResults(toolCalls, toolResults);
 
@@ -1065,9 +1087,8 @@ export class ChatService {
           checkOutputGrounding(text, hadToolResults);
 
           // Update conversation title if it's the first exchange
-          const conversationMessages =
-            await ChatQueries.getMessagesByConversationId(conversationId);
-          if (conversationMessages.length === 2 && !conversation.title) {
+          // conversationHistory contains only the user message on first exchange
+          if (conversationHistory.length === 1 && !conversation.title) {
             const title =
               userMessage.length > 50
                 ? userMessage.substring(0, 50) + "..."
