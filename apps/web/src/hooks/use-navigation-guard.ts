@@ -68,9 +68,10 @@ export function useNavigationGuard({
         return;
       }
 
-      // Block navigation and show dialog
+      // Block navigation and show dialog (deferred to escape synchronous
+      // pushState/replaceState context where React state updates are forbidden)
       pendingUrlRef.current = targetUrl;
-      setShowDialog(true);
+      queueMicrotask(() => setShowDialog(true));
     };
 
     history.pushState = function (data: unknown, unused: string, url?: string | URL | null) {
@@ -88,7 +89,7 @@ export function useNavigationGuard({
       // Push current URL back to prevent the navigation
       history.pushState(null, "", window.location.href);
       pendingUrlRef.current = "back";
-      setShowDialog(true);
+      queueMicrotask(() => setShowDialog(true));
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
