@@ -62,6 +62,8 @@ interface MicrophoneContextType {
   stream: MediaStream | null;
   startMicrophone: () => void;
   stopMicrophone: () => void;
+  /** Fully releases microphone resources (stops tracks, closes AudioContext, resets state). Use after recording is complete. */
+  releaseMicrophone: () => void;
   /** Resolves when setup completes. Returns success, optional stream, and error info (toast shown on failure, never throws). */
   setupMicrophone: () => Promise<
     | { success: true; stream: MediaStream }
@@ -280,7 +282,25 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
     }
 
     // Note: We don't clean up streams/audio context here because they might be reused
-    // Cleanup happens in useEffect cleanup on unmount
+    // For full teardown, use releaseMicrophone() instead
+  };
+
+  /**
+   * Fully releases microphone resources (stops tracks, closes AudioContext, resets state).
+   * Use after recording is complete — unlike stopMicrophone() which only pauses.
+   */
+  const releaseMicrophone = () => {
+    // Stop the MediaRecorder if it's active
+    if (microphone && microphone.state !== "inactive") {
+      try {
+        microphone.stop();
+      } catch {
+        // Ignore — MediaRecorder may already be in an invalid state
+      }
+    }
+
+    cleanupResources();
+    dispatch({ type: "CLEANUP" });
   };
 
   // ==========================================================================
@@ -339,6 +359,7 @@ const MicrophoneContextProvider: React.FC<MicrophoneContextProviderProps> = ({
         stream,
         startMicrophone,
         stopMicrophone,
+        releaseMicrophone,
         setupMicrophone,
         microphoneState,
         setupError,

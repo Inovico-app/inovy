@@ -40,6 +40,8 @@ interface SystemAudioContextType {
   videoStream: MediaStream | null; // Video track is required by getDisplayMedia
   startSystemAudio: () => void;
   stopSystemAudio: () => void;
+  /** Fully releases system audio resources (stops tracks, closes AudioContext, resets state). Use after recording is complete. */
+  releaseSystemAudio: () => void;
   /** Resolves when setup completes. Returns success, optional stream, and error info (toast shown on failure, never throws). */
   setupSystemAudio: () => Promise<
     | { success: true; stream: MediaStream }
@@ -330,7 +332,25 @@ const SystemAudioContextProvider: React.FC<
     }
 
     // Note: We don't clean up streams/audio context here because they might be reused
-    // Cleanup happens in useEffect cleanup on unmount
+    // For full teardown, use releaseSystemAudio() instead
+  };
+
+  /**
+   * Fully releases system audio resources (stops tracks, closes AudioContext, resets state).
+   * Use after recording is complete — unlike stopSystemAudio() which only pauses.
+   */
+  const releaseSystemAudio = () => {
+    // Stop the MediaRecorder if it's active
+    if (systemAudio && systemAudio.state !== "inactive") {
+      try {
+        systemAudio.stop();
+      } catch {
+        // Ignore — MediaRecorder may already be in an invalid state
+      }
+    }
+
+    cleanupResources();
+    dispatch({ type: "CLEANUP" });
   };
 
   // ==========================================================================
@@ -356,6 +376,7 @@ const SystemAudioContextProvider: React.FC<
         videoStream,
         startSystemAudio,
         stopSystemAudio,
+        releaseSystemAudio,
         setupSystemAudio,
         systemAudioState,
         setupError,
