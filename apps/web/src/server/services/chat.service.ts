@@ -771,8 +771,8 @@ export class ChatService {
           checkOutputGrounding(text, hadToolResults);
 
           // Update conversation title if it's the first exchange
-          // Use in-scope conversationHistory length instead of a DB round-trip
-          if (conversationHistory.length === 0 && !conversation.title) {
+          // conversationHistory contains only the user message on first exchange
+          if (conversationHistory.length === 1 && !conversation.title) {
             const title =
               userMessage.length > 50
                 ? userMessage.substring(0, 50) + "..."
@@ -1087,8 +1087,8 @@ export class ChatService {
           checkOutputGrounding(text, hadToolResults);
 
           // Update conversation title if it's the first exchange
-          // Use in-scope conversationHistory length instead of a DB round-trip
-          if (conversationHistory.length === 0 && !conversation.title) {
+          // conversationHistory contains only the user message on first exchange
+          if (conversationHistory.length === 1 && !conversation.title) {
             const title =
               userMessage.length > 50
                 ? userMessage.substring(0, 50) + "..."
