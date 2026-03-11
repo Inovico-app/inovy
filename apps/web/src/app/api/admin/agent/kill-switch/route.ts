@@ -88,8 +88,10 @@ export async function POST(request: Request) {
     );
   }
 
-  // Re-read effective state (accounts for AGENT_GLOBAL_KILL_SWITCH env var)
-  const effectiveState = await AgentKillSwitchService.isKilled();
+  // Compute effective state without extra Redis round-trip:
+  // env var always overrides to true, otherwise the just-written value is effective
+  const effectiveState =
+    process.env.AGENT_GLOBAL_KILL_SWITCH === "true" || parsed.data.active;
 
   logger.info("Agent kill switch toggled", {
     component: "api/admin/agent/kill-switch",

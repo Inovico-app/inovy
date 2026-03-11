@@ -747,8 +747,8 @@ export class ChatService {
             organizationId,
             conversationId,
             usage: {
-              promptTokens: usage?.inputTokens,
-              completionTokens: usage?.outputTokens,
+              inputTokens: usage?.inputTokens,
+              outputTokens: usage?.outputTokens,
               totalTokens: usage?.totalTokens,
             },
           });
@@ -771,13 +771,8 @@ export class ChatService {
           checkOutputGrounding(text, hadToolResults);
 
           // Update conversation title if it's the first exchange
-          const conversationMessages =
-            await ChatQueries.getMessagesByConversationId(conversationId);
-          /**
-           * At the time of the check, there are always at least 2 messages (user + assistant),
-           * so the condition should be === 2 to detect the first exchange and generate an auto-title.
-           */
-          if (conversationMessages.length === 2 && !conversation.title) {
+          // Use in-scope conversationHistory length instead of a DB round-trip
+          if (conversationHistory.length === 0 && !conversation.title) {
             const title =
               userMessage.length > 50
                 ? userMessage.substring(0, 50) + "..."
@@ -1068,8 +1063,8 @@ export class ChatService {
             organizationId,
             conversationId,
             usage: {
-              promptTokens: usage?.inputTokens,
-              completionTokens: usage?.outputTokens,
+              inputTokens: usage?.inputTokens,
+              outputTokens: usage?.outputTokens,
               totalTokens: usage?.totalTokens,
             },
           });
@@ -1092,9 +1087,8 @@ export class ChatService {
           checkOutputGrounding(text, hadToolResults);
 
           // Update conversation title if it's the first exchange
-          const conversationMessages =
-            await ChatQueries.getMessagesByConversationId(conversationId);
-          if (conversationMessages.length === 2 && !conversation.title) {
+          // Use in-scope conversationHistory length instead of a DB round-trip
+          if (conversationHistory.length === 0 && !conversation.title) {
             const title =
               userMessage.length > 50
                 ? userMessage.substring(0, 50) + "..."

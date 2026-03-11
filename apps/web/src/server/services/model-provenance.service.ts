@@ -110,19 +110,21 @@ const MODEL_REGISTRY: readonly ModelEntry[] = [
   },
 ] as const;
 
+export type AIProvider = "openai";
+
 export interface ProvenanceRecord {
   /** Model ID used for this invocation */
   modelId: string;
   /** Provider name */
-  provider: string;
+  provider: AIProvider;
   /** Organization that triggered the call */
   organizationId: string;
   /** Conversation or request identifier */
   conversationId?: string;
-  /** Token counts from the response */
+  /** Token counts from the response (matches Vercel AI SDK naming) */
   usage?: {
-    promptTokens?: number;
-    completionTokens?: number;
+    inputTokens?: number;
+    outputTokens?: number;
     totalTokens?: number;
   };
 }
@@ -152,8 +154,8 @@ export class ModelProvenanceService {
       provider: record.provider,
       organizationId: record.organizationId,
       conversationId: record.conversationId,
-      promptTokens: record.usage?.promptTokens,
-      completionTokens: record.usage?.completionTokens,
+      inputTokens: record.usage?.inputTokens,
+      outputTokens: record.usage?.outputTokens,
       totalTokens: record.usage?.totalTokens,
     });
   }
