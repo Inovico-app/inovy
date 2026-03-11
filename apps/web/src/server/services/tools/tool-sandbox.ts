@@ -1,6 +1,7 @@
 import { logger } from "@/lib/logger";
 import { PIIDetectionService } from "@/server/services/pii-detection.service";
 import { circuitBreaker } from "@/server/services/circuit-breaker.service";
+import { CriticalActionRegistry } from "@/server/services/critical-action-registry";
 
 /**
  * Maximum size (in bytes) of a tool's JSON-serialized output before truncation.
@@ -59,11 +60,12 @@ interface SandboxOptions {
 /**
  * Wraps a tool execute function with:
  * 1. Circuit breaker check (skip if tool is in failure state)
- * 2. Per-conversation tool call budget
- * 3. Execution timeout
- * 4. Output size cap (truncation)
- * 5. PII redaction on output
- * 6. Structured audit logging
+ * 2. Human-in-the-loop gate (block tools requiring approval)
+ * 3. Per-conversation tool call budget
+ * 4. Execution timeout
+ * 5. Output size cap (truncation)
+ * 6. PII redaction on output
+ * 7. Structured audit logging
  */
 export function sandboxExecute<TInput, TOutput>(
   executeFn: (input: TInput) => Promise<TOutput>,
@@ -98,7 +100,21 @@ export function sandboxExecute<TInput, TOutput>(
       }
     }
 
-    // 2. Check per-conversation tool call budget
+    // 2. Human-in-the-loop gate — block tools that require approval
+    if (CriticalActionRegistry.requiresApproval(toolName)) {
+      logger.warn("Tool requires human approval — blocking execution", {
+        component: "ToolSandbox",
+        toolName,
+        classification: CriticalActionRegistry.getClassification(toolName),
+        userId,
+        organizationId,
+      });
+      return {
+        error: `Action "${toolName}" requires human approval before execution. This action has been blocked.`,
+      } as TOutput | { error: string };
+    }
+
+    // 3. Check per-conversation tool call budget
     if (conversationId) {
       const count = incrementToolCallCount(conversationId);
       if (count > MAX_TOOL_CALLS_PER_CONVERSATION) {
@@ -115,7 +131,7 @@ export function sandboxExecute<TInput, TOutput>(
       }
     }
 
-    // 3. Execute with timeout
+    // 4. Execute with timeout
     let result: TOutput;
     try {
       result = await Promise.race([
@@ -153,7 +169,7 @@ export function sandboxExecute<TInput, TOutput>(
 
     const latencyMs = Date.now() - startTime;
 
-    // 4. Serialize and check output size
+    // 5. Serialize and check output size
     let serialized: string;
     try {
       serialized = JSON.stringify(result);
@@ -183,7 +199,7 @@ export function sandboxExecute<TInput, TOutput>(
       } as TOutput | { error: string };
     }
 
-    // 5. PII redaction on output
+    // 6. PII redaction on output
     if (redactPII) {
       const detections = PIIDetectionService.detectPII(serialized, PII_MIN_CONFIDENCE);
       if (detections.length > 0) {
@@ -219,7 +235,7 @@ export function sandboxExecute<TInput, TOutput>(
       }
     }
 
-    // 6. Audit log
+    // 7. Audit log
     logger.debug("Tool execution completed", {
       component: "ToolSandbox",
       toolName,
