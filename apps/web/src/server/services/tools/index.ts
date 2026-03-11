@@ -5,17 +5,23 @@ import { createListRecordingsTool } from "./list-recordings.tool";
 import { createListTasksTool } from "./list-tasks.tool";
 import { createGetRecordingDetailsTool } from "./get-recording-details.tool";
 import { createSearchKnowledgeTool } from "./search-knowledge.tool";
+import { AgentPermissionService } from "../agent-permission.service";
 
 export type { ToolContext } from "./tool-context";
 
 export function createChatTools(ctx: ToolContext) {
-  return {
+  const allTools = {
     getRecordingDetails: createGetRecordingDetailsTool(ctx),
     listProjects: createListProjectsTool(ctx),
     listRecordings: createListRecordingsTool(ctx),
     listTasks: createListTasksTool(ctx),
     searchKnowledge: createSearchKnowledgeTool(ctx),
   };
+
+  return AgentPermissionService.filterToolsByRole(allTools, ctx.userRole, {
+    userId: ctx.userId,
+    organizationId: ctx.organizationId,
+  });
 }
 
 function ensureRecord(value: unknown): Record<string, unknown> {

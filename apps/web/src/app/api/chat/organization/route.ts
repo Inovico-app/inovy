@@ -4,6 +4,7 @@ import { withRateLimit } from "@/lib/rate-limit";
 import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
 import { GuardrailError } from "@/server/ai/middleware";
 import { moderateUserInput } from "@/server/ai/middleware/input-moderation.middleware";
+import { AgentKillSwitchService } from "@/server/services/agent-kill-switch.service";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
 import { ChatService } from "@/server/services/chat.service";
 import { type NextRequest, NextResponse } from "next/server";
@@ -48,8 +49,21 @@ export const POST = withRateLimit(
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      const { user, organization } = session;
+      const { user, organization, member } = session;
       const organizationId = organization.id;
+      const userRole = member?.role ?? "admin";
+
+      // Check global kill switch
+      const isKilled = await AgentKillSwitchService.isKilled();
+      if (isKilled) {
+        return NextResponse.json(
+          {
+            error: "Agent is temporarily unavailable",
+            code: "AGENT_KILLED",
+          },
+          { status: 503 }
+        );
+      }
 
       // Check if user has permission to access organization-level chat
       const hasAccess = canAccessOrganizationChat(user);
@@ -162,7 +176,8 @@ export const POST = withRateLimit(
       const streamResult = await ChatService.streamOrganizationResponse(
         activeConversationId,
         message,
-        organizationId
+        organizationId,
+        userRole
       );
 
       if (streamResult.isErr()) {
