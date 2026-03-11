@@ -261,7 +261,12 @@ const SystemAudioContextProvider: React.FC<
       const handleResume = () => handleSuccess();
 
       const handleError = (event: Event) => {
-        logger.error("MediaRecorder error", { component: "SystemAudioProvider", error: event instanceof Error ? event : new Error(String(event)) });
+        const errorMessage = event instanceof ErrorEvent ? event.message : String(event);
+        logger.error("MediaRecorder error", { component: "SystemAudioProvider", error: event instanceof Error ? event : new Error(errorMessage) });
+        toast.error("Systeemaudio fout", {
+          description: errorMessage,
+          duration: 8000,
+        });
         dispatch({ type: "SET_STATE", payload: SystemAudioState.Ready });
         systemAudio.removeEventListener("start", handleStart);
         systemAudio.removeEventListener("resume", handleResume);
@@ -279,6 +284,10 @@ const SystemAudioContextProvider: React.FC<
       }
     } catch (error) {
       logger.error("Failed to start system audio", { component: "SystemAudioProvider", error: error instanceof Error ? error : new Error(String(error)) });
+      toast.error("Kon systeemaudio niet starten", {
+        description: error instanceof Error ? error.message : String(error),
+        duration: 8000,
+      });
       dispatch({ type: "SET_STATE", payload: SystemAudioState.Ready });
     }
   };
@@ -312,6 +321,10 @@ const SystemAudioContextProvider: React.FC<
       dispatch({ type: "SET_STATE", payload: SystemAudioState.Paused });
     } catch (error) {
       logger.error("Failed to stop system audio", { component: "SystemAudioProvider", error: error instanceof Error ? error : new Error(String(error)) });
+      toast.error("Kon systeemaudio niet stoppen", {
+        description: error instanceof Error ? error.message : String(error),
+        duration: 8000,
+      });
       // Revert to previous valid state (was Open before Pausing)
       dispatch({ type: "SET_STATE", payload: SystemAudioState.Open });
     }
