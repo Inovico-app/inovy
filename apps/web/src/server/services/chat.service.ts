@@ -32,6 +32,7 @@ import {
   resetToolCallCount,
   type ToolContext,
 } from "./tools";
+import { PromptIntegrityService } from "./prompt-integrity.service";
 import { SearchResultFormatter } from "./search-result-formatter.service";
 
 
@@ -587,6 +588,11 @@ export class ChatService {
         isOrganizationLevel: false,
       });
 
+      // Stamp system prompt for integrity verification
+      const stampedPrompt = PromptIntegrityService.stamp(
+        promptResult.systemPrompt
+      );
+
       // Stream response with error handling, request tracking, and guardrails
       // Note: Streaming endpoints use single-attempt by design to avoid duplicate streamed answers.
       const { client: openai, pooled } =
@@ -623,7 +629,7 @@ export class ChatService {
 
       const streamTextOptions: Parameters<typeof streamText>[0] = {
         model: guardedModel,
-        system: promptResult.systemPrompt,
+        system: PromptIntegrityService.verifyOrThrow(stampedPrompt),
         tools: createChatTools(toolContext),
         stopWhen: stepCountIs(maxSteps),
         messages: [
@@ -873,6 +879,11 @@ export class ChatService {
         isOrganizationLevel: true,
       });
 
+      // Stamp system prompt for integrity verification
+      const stampedOrgPrompt = PromptIntegrityService.stamp(
+        promptResult.systemPrompt
+      );
+
       // Stream response with error handling, request tracking, and guardrails
       // Note: Streaming endpoints use single-attempt by design to avoid duplicate streamed answers.
       const { client: openai, pooled } =
@@ -906,7 +917,7 @@ export class ChatService {
 
       const streamTextOptions: Parameters<typeof streamText>[0] = {
         model: guardedModel,
-        system: promptResult.systemPrompt,
+        system: PromptIntegrityService.verifyOrThrow(stampedOrgPrompt),
         tools: createChatTools(orgToolContext),
         stopWhen: stepCountIs(orgMaxSteps),
         messages: [
