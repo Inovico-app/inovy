@@ -1,3 +1,4 @@
+import { getRequestId } from "@/server/middleware/request-id";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { auth, type BetterAuthUser } from "./lib/auth";
@@ -21,6 +22,8 @@ const isAlwaysPublic = (req: NextRequest) =>
   publicRoutes.some((route) => req.nextUrl.pathname.startsWith(route));
 
 export default async function proxy(req: NextRequest) {
+  const requestId = getRequestId(req.headers);
+
   // Handle CORS for API routes
   if (req.nextUrl.pathname.startsWith("/api/")) {
     const res = NextResponse.next();
@@ -33,8 +36,9 @@ export default async function proxy(req: NextRequest) {
     res.headers.append("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     res.headers.append(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization"
+      "Content-Type, Authorization",
     );
+    res.headers.set("x-request-id", requestId);
     return res;
   }
 
@@ -42,7 +46,9 @@ export default async function proxy(req: NextRequest) {
 
   if (publicRoute) {
     // Early return for public/auth routes
-    return NextResponse.next();
+    const res = NextResponse.next();
+    res.headers.set("x-request-id", requestId);
+    return res;
   }
 
   // Use a fresh session to avoid caching issues, this however has a minor performance impact
@@ -54,7 +60,9 @@ export default async function proxy(req: NextRequest) {
   const hasUserOnboarded = (session?.user as BetterAuthUser)
     ?.onboardingCompleted;
   if (!hasUserOnboarded) {
-    return NextResponse.redirect(new URL("/onboarding", req.url));
+    const res = NextResponse.redirect(new URL("/onboarding", req.url));
+    res.headers.set("x-request-id", requestId);
+    return res;
   }
 
   // For all other routes, require authentication
@@ -62,10 +70,14 @@ export default async function proxy(req: NextRequest) {
     // Redirect to sign-in, preserving the original URL for redirect after login
     const signInUrl = new URL("/sign-in", req.url);
     signInUrl.searchParams.set("redirect", req.nextUrl.pathname);
-    return NextResponse.redirect(signInUrl);
+    const res = NextResponse.redirect(signInUrl);
+    res.headers.set("x-request-id", requestId);
+    return res;
   }
 
-  return NextResponse.next();
+  const res = NextResponse.next();
+  res.headers.set("x-request-id", requestId);
+  return res;
 }
 
 export const config = {
@@ -77,4 +89,3 @@ export const config = {
     },
   ],
 };
-
