@@ -6,6 +6,11 @@
       "sourceType": "github",
       "computedHash": "063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67"
     },
+    "information-security-manager-iso27001": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "c9aed76f3932b4254782fafeae1a812f996e9a722bde4e1d1aadd91b2de89f8f"
+    },
     "next-best-practices": {
       "source": "vercel-labs/next-skills",
       "sourceType": "github",
