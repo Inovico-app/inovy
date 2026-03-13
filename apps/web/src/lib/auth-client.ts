@@ -5,6 +5,7 @@ import {
   magicLinkClient,
   organizationClient,
 } from "better-auth/client/plugins";
+import { twoFactorClient } from "better-auth/plugins/two-factor";
 import { createAuthClient } from "better-auth/react";
 import { ac, roleMapping, roles } from "./auth/access-control";
 
@@ -37,9 +38,13 @@ export const authClient = createAuthClient({
         viewer: roles.viewer,
       },
     }),
+    twoFactorClient({
+      onTwoFactorRedirect: () => {
+        window.location.href = "/sign-in/mfa-verify";
+      },
+    }),
   ],
 });
 
 // Export commonly used hooks and methods for convenience
 export const { useSession, signOut } = authClient;
-

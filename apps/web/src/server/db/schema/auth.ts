@@ -23,7 +23,7 @@ const organizationMemberRoles = [
 
 export const organizationMemberRoleEnum = pgEnum(
   "organization_member_role",
-  organizationMemberRoles
+  organizationMemberRoles,
 );
 
 /**
@@ -65,7 +65,7 @@ export const sessions = pgTable(
     activeOrganizationId: text("active_organization_id"),
     activeTeamId: text("active_team_id"),
   },
-  (table) => [index("sessions_userId_idx").on(table.userId)]
+  (table) => [index("sessions_userId_idx").on(table.userId)],
 );
 
 export const accounts = pgTable(
@@ -89,7 +89,7 @@ export const accounts = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("accounts_userId_idx").on(table.userId)]
+  (table) => [index("accounts_userId_idx").on(table.userId)],
 );
 
 export const verifications = pgTable(
@@ -105,7 +105,7 @@ export const verifications = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("verifications_identifier_idx").on(table.identifier)]
+  (table) => [index("verifications_identifier_idx").on(table.identifier)],
 );
 
 export const organizations = pgTable(
@@ -119,7 +119,7 @@ export const organizations = pgTable(
     metadata: text("metadata"),
     agentEnabled: boolean("agent_enabled").default(true).notNull(),
   },
-  (table) => [index("idx_organizations_agent_enabled").on(table.agentEnabled)]
+  (table) => [index("idx_organizations_agent_enabled").on(table.agentEnabled)],
 );
 
 export const teams = pgTable(
@@ -132,10 +132,10 @@ export const teams = pgTable(
       .references(() => organizations.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").notNull(),
     updatedAt: timestamp("updated_at").$onUpdate(
-      () => /* @__PURE__ */ new Date()
+      () => /* @__PURE__ */ new Date(),
     ),
   },
-  (table) => [index("teams_organizationId_idx").on(table.organizationId)]
+  (table) => [index("teams_organizationId_idx").on(table.organizationId)],
 );
 
 export const teamMembers = pgTable(
@@ -153,7 +153,7 @@ export const teamMembers = pgTable(
   (table) => [
     index("teamMembers_teamId_idx").on(table.teamId),
     index("teamMembers_userId_idx").on(table.userId),
-  ]
+  ],
 );
 
 export const members = pgTable(
@@ -172,7 +172,7 @@ export const members = pgTable(
   (table) => [
     index("members_organizationId_idx").on(table.organizationId),
     index("members_userId_idx").on(table.userId),
-  ]
+  ],
 );
 
 export const invitations = pgTable(
@@ -195,7 +195,7 @@ export const invitations = pgTable(
   (table) => [
     index("invitations_organizationId_idx").on(table.organizationId),
     index("invitations_email_idx").on(table.email),
-  ]
+  ],
 );
 
 export const passkeys = pgTable(
@@ -218,7 +218,20 @@ export const passkeys = pgTable(
   (table) => [
     index("passkeys_userId_idx").on(table.userId),
     index("passkeys_credentialID_idx").on(table.credentialID),
-  ]
+  ],
+);
+
+export const twoFactors = pgTable(
+  "two_factors",
+  {
+    id: text("id").primaryKey(),
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+  },
+  (table) => [index("twoFactors_userId_idx").on(table.userId)],
 );
 
 export const magicLinks = pgTable(
@@ -233,7 +246,7 @@ export const magicLinks = pgTable(
   (table) => [
     index("magic_link_email_idx").on(table.email),
     index("magic_link_token_idx").on(table.token),
-  ]
+  ],
 );
 
 export const userRelations = relations(users, ({ many }) => ({
@@ -243,6 +256,14 @@ export const userRelations = relations(users, ({ many }) => ({
   members: many(members),
   invitations: many(invitations),
   passkeys: many(passkeys),
+  twoFactors: many(twoFactors),
+}));
+
+export const twoFactorRelations = relations(twoFactors, ({ one }) => ({
+  users: one(users, {
+    fields: [twoFactors.userId],
+    references: [users.id],
+  }),
 }));
 
 export const sessionRelations = relations(sessions, ({ one }) => ({
@@ -312,4 +333,3 @@ export const passkeyRelations = relations(passkeys, ({ one }) => ({
     references: [users.id],
   }),
 }));
-
