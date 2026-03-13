@@ -89,28 +89,28 @@ Roles and responsibilities for information security are formally defined in ISMS
 
 The Inovy ISMS policy framework consists of 20 subordinate policies:
 
-| Policy ID | Policy Name                        | Key Controls                                         |
-| --------- | ---------------------------------- | ---------------------------------------------------- |
-| POL-01    | Acceptable Use Policy              | Authorized use of company systems and data           |
-| POL-02    | Access Control Policy              | User access management, RBAC, least privilege        |
-| POL-03    | Asset Management Policy            | Asset inventory, classification, ownership           |
-| POL-04    | Change Management Policy           | Change approval, testing, rollback                   |
-| POL-05    | Cryptography Policy                | Encryption standards, key management                 |
-| POL-06    | Data Classification Policy         | Data sensitivity levels, handling requirements       |
-| POL-07    | Data Retention and Disposal Policy | Retention schedules, secure deletion                 |
-| POL-08    | Disaster Recovery Policy           | RTO/RPO targets, recovery procedures                 |
-| POL-09    | Disciplinary Policy                | Consequences for security violations                 |
-| POL-10    | Endpoint Security Policy           | Device standards, MDM, remote wipe                   |
-| POL-11    | Identity and Authentication Policy | Password standards, MFA requirements                 |
-| POL-12    | Incident Response Policy           | Detection, response, reporting, post-incident review |
-| POL-13    | Information Transfer Policy        | Data transfer controls, DPA requirements             |
-| POL-14    | Logging and Monitoring Policy      | Log retention, SIEM, alert thresholds                |
-| POL-15    | Physical Security Policy           | Endpoint physical controls, screen locking           |
-| POL-16    | Privacy and Data Protection Policy | GDPR compliance, data subject rights                 |
-| POL-17    | Secure Development Policy          | SSDLC, code review, SAST, secret scanning            |
-| POL-18    | Supplier Security Policy           | Third-party assessment, DPA management               |
-| POL-19    | Vulnerability Management Policy    | Scanning, patch SLAs, penetration testing            |
-| POL-20    | Remote Working Policy              | Secure remote access, VPN, home office security      |
+| Policy ID | Policy Name                           | Key Controls                                              |
+| --------- | ------------------------------------- | --------------------------------------------------------- |
+| POL-01    | Access Control Policy                 | A.5.15-A.5.18, A.8.2-A.8.5 — RBAC, least privilege, MFA   |
+| POL-02    | Acceptable Use Policy                 | A.5.10 — Authorized use of company systems and data       |
+| POL-03    | Asset Management Policy               | A.5.9, A.5.11-A.5.13 — Asset inventory, classification    |
+| POL-04    | Information Classification & Handling | A.5.12-A.5.14 — Data sensitivity levels, handling rules   |
+| POL-05    | Cryptography & Key Management Policy  | A.8.24 — Encryption standards, key lifecycle              |
+| POL-06    | Supplier Security Policy              | A.5.19-A.5.23 — Third-party assessment, DPA management    |
+| POL-07    | Incident Response Plan                | A.5.24-A.5.28 — Detection, response, reporting, review    |
+| POL-08    | Business Continuity & DR Plan         | A.5.29-A.5.30, A.8.13-A.8.14 — RTO/RPO, backup, DR        |
+| POL-09    | HR Security Policy                    | A.6.1-A.6.6 — Screening, terms, disciplinary, offboarding |
+| POL-10    | Remote Working Policy                 | A.6.7 — Secure remote access, device security             |
+| POL-11    | Security Awareness & Training Program | A.6.3, A.6.8 — Training, security event reporting         |
+| POL-12    | Physical Security Policy              | A.7.1-A.7.14 — Reduced scope, remote-first controls       |
+| POL-13    | Secure Development Lifecycle Policy   | A.8.25-A.8.31, A.5.8 — SSDLC, code review, SAST           |
+| POL-14    | Change Management Policy              | A.8.32-A.8.33 — Change approval, testing, rollback        |
+| POL-15    | Data Protection & Privacy Policy      | A.5.34, A.8.10-A.8.12 — GDPR, data subject rights         |
+| POL-16    | Logging & Monitoring Policy           | A.8.15-A.8.17 — Log retention, monitoring, clock sync     |
+| POL-17    | Network Security Policy               | A.8.20-A.8.23 — Network controls, TLS, segmentation       |
+| POL-18    | Vulnerability Management Policy       | A.8.7-A.8.8 — Scanning, patch SLAs, malware protection    |
+| POL-19    | Endpoint & Capacity Management Policy | A.8.1, A.8.6, A.8.9, A.8.18-A.8.19 — Device, capacity     |
+| POL-20    | Legal & Compliance Register           | A.5.31-A.5.37 — Legal requirements, IP, compliance        |
 
 All policies are stored in the `docs/iso27001/policies/` directory, version-controlled in Git, and managed per ISMS-07 (Document Control Procedure).
 

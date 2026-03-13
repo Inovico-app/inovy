@@ -174,6 +174,76 @@ KPI data is recorded in the internal security metrics register maintained by the
 
 ---
 
+### KPI-11: Failed Login Attempt Rate
+
+| Attribute                | Detail                                                                                                                                    |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **What is measured**     | Number of failed login attempts per account per day, monitored via audit log queries on the account lockout service                       |
+| **Target**               | < 50 per day per account                                                                                                                  |
+| **Measurement method**   | Automated audit log query: count failed login events grouped by email per 24-hour window; Redis lockout counters as secondary data source |
+| **Frequency**            | Daily (automated); monthly aggregation for reporting                                                                                      |
+| **Responsible**          | ISM (monitoring); Engineering Lead (automated alerting)                                                                                   |
+| **Linked objective**     | OBJ-02                                                                                                                                    |
+| **Escalation threshold** | > 50 failed attempts per account per day triggers immediate ISM investigation for credential stuffing or brute force attack               |
+
+---
+
+### KPI-12: Audit Log Integrity
+
+| Attribute                | Detail                                                                                                                                                                  |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **What is measured**     | Percentage of audit log entries where the SHA-256 hash chain is verified intact (no gaps, no tampered entries)                                                          |
+| **Target**               | 100%                                                                                                                                                                    |
+| **Measurement method**   | Monthly hash chain verification script: walk the audit log table, recompute SHA-256 hash for each entry using previous hash + current data, compare against stored hash |
+| **Frequency**            | Monthly                                                                                                                                                                 |
+| **Responsible**          | ISM                                                                                                                                                                     |
+| **Linked objective**     | OBJ-03                                                                                                                                                                  |
+| **Escalation threshold** | Any integrity failure triggers immediate P1 incident investigation and forensic analysis                                                                                |
+
+---
+
+### KPI-13: Backup Verification
+
+| Attribute                | Detail                                                                                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **What is measured**     | Result of monthly backup restoration test: Neon PostgreSQL point-in-time recovery test and Azure Blob Storage accessibility verification         |
+| **Target**               | Pass (successful restoration verified each month)                                                                                                |
+| **Measurement method**   | Automated backup verification cron endpoint (`/api/cron/backup-verification`): DB connectivity check, Blob storage accessibility, results logged |
+| **Frequency**            | Monthly                                                                                                                                          |
+| **Responsible**          | Engineering Lead                                                                                                                                 |
+| **Linked objective**     | OBJ-03                                                                                                                                           |
+| **Escalation threshold** | Any failed verification triggers immediate investigation and CAR if backup integrity is compromised                                              |
+
+---
+
+### KPI-14: Security Header Compliance
+
+| Attribute                | Detail                                                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| **What is measured**     | Security header grade from securityheaders.com scan of the production application URL                                    |
+| **Target**               | A+ rating                                                                                                                |
+| **Measurement method**   | Monthly scan of production URL via securityheaders.com; screenshot and grade recorded in security metrics register       |
+| **Frequency**            | Monthly                                                                                                                  |
+| **Responsible**          | Engineering Lead                                                                                                         |
+| **Linked objective**     | OBJ-01                                                                                                                   |
+| **Escalation threshold** | Grade below A triggers immediate review of `next.config.ts` security headers configuration and remediation within 7 days |
+
+---
+
+### KPI-15: Dependency Freshness
+
+| Attribute                | Detail                                                                                                                                                      |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **What is measured**     | Maximum age (in days) of the oldest open Dependabot PR across all ecosystems (npm, Docker, GitHub Actions)                                                  |
+| **Target**               | < 30 days behind latest (no Dependabot PR open longer than 30 days)                                                                                         |
+| **Measurement method**   | Weekly review of open Dependabot PRs on GitHub; age calculated from PR creation date                                                                        |
+| **Frequency**            | Weekly                                                                                                                                                      |
+| **Responsible**          | Engineering Lead                                                                                                                                            |
+| **Linked objective**     | OBJ-01                                                                                                                                                      |
+| **Escalation threshold** | Any Dependabot PR open > 30 days for a security update triggers ISM notification; > 60 days triggers management escalation and mandatory remediation sprint |
+
+---
+
 ## 4. Reporting
 
 ### 4.1 Monthly Security Metrics Report

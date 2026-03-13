@@ -78,7 +78,7 @@ The ISM prepares a brief assessment of material external changes since the last 
 
 | External issue category              | Assessment                                                                            | Impact on ISMS                                                               |
 | ------------------------------------ | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Regulatory changes                   | [e.g., ICO updated guidance on AI-generated meeting summaries as personal data]       | [e.g., Review data retention periods for AI summaries]                       |
+| Regulatory changes                   | [e.g., AP updated guidance on AI-generated meeting summaries as personal data]        | [e.g., Review data retention periods for AI summaries]                       |
 | Threat landscape                     | [e.g., Surge in API key theft targeting SaaS platforms via CI/CD pipeline compromise] | [e.g., Review GitHub Actions secret management, A.8.18]                      |
 | AI/ML regulatory developments        | [e.g., EU AI Act enforcement milestones]                                              | [e.g., Review AI transparency obligations for meeting summarisation feature] |
 | Cloud provider changes               | [e.g., Neon PostgreSQL end-of-life for legacy TLS versions]                           | [e.g., Verify TLS 1.2+ enforcement in Prisma connection strings]             |
@@ -161,10 +161,10 @@ Summary statistics:
 | Interested party                          | Feedback received                                                           | Source                       | Impact on ISMS                                     |
 | ----------------------------------------- | --------------------------------------------------------------------------- | ---------------------------- | -------------------------------------------------- |
 | Enterprise customers                      | [e.g., Customer X requested SOC 2 Type II report]                           | [Customer call / DPA review] | [e.g., Evaluate SOC 2 alongside ISO 27001]         |
-| Supervisory authorities                   | [e.g., ICO updated guidance]                                                | [ICO website]                | [e.g., Review consent mechanism for AI processing] |
+| Supervisory authorities                   | [e.g., AP updated guidance on AI processing]                                | [AP website]                 | [e.g., Review consent mechanism for AI processing] |
 | Employees                                 | [e.g., Phishing simulation results — 2 staff clicked]                       | [Training records]           | [e.g., Targeted refresher training for 2 staff]    |
 | External auditors / CB                    | [e.g., Stage 1 audit identified missing procedure for access review]        | [Stage 1 report]             | [e.g., CAR raised, procedure created]              |
-| Suppliers (Vercel, Azure, Neon, Deepgram) | [e.g., Neon notified of upcoming maintenance window affecting availability] | [Supplier comms]             | [e.g., Update BCP, notify customers]               |
+| Suppliers (Azure, Neon, Deepgram, OpenAI) | [e.g., Neon notified of upcoming maintenance window affecting availability] | [Supplier comms]             | [e.g., Update BCP, notify customers]               |
 
 ---
 

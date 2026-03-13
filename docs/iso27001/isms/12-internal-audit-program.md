@@ -33,7 +33,7 @@ All internal audits cover the full ISMS boundary as defined in ISMS-03 (ISMS Sco
 
 - All ISO 27001:2022 clauses (Clauses 4 through 10)
 - All applicable Annex A controls as documented in ISMS-10 (Statement of Applicability)
-- All systems within scope: the Inovy web application (Next.js 16), Neon PostgreSQL database, Qdrant vector store, Azure Blob Storage, Vercel hosting infrastructure, and Deepgram speech processing integration
+- All systems within scope: the Inovy web application (Next.js 16), Neon PostgreSQL database, Qdrant vector store, Azure Blob Storage, Azure Container Apps hosting infrastructure, and Deepgram speech processing integration
 - All data processing activities: meeting recording ingestion, AI transcription, speaker diarisation, summary generation, and PII handling
 - All personnel with access to in-scope systems, including employees, contractors, and service accounts
 
@@ -41,7 +41,7 @@ All internal audits cover the full ISMS boundary as defined in ISMS-03 (ISMS Sco
 
 The following are explicitly **out of scope** for internal audits (managed as third-party supplier risk):
 
-- Internal controls within Vercel, Azure, Neon, Deepgram, or Qdrant cloud infrastructure (assessed via supplier assurance — ISMS-10 A.5.19–A.5.22)
+- Internal controls within Azure, Neon, Deepgram, or Qdrant cloud infrastructure (assessed via supplier assurance — ISMS-10 A.5.19–A.5.22)
 - Resend email delivery infrastructure beyond API key management
 
 ---
@@ -111,7 +111,7 @@ The internal audit process follows four phases:
 2. **Define Audit Criteria:** Confirm the criteria against which the ISMS will be evaluated:
    - ISO/IEC 27001:2022 clauses and Annex A controls
    - Inovy's internal ISMS policies (ISMS-01 through ISMS-14)
-   - Applicable legal and regulatory requirements (GDPR, UK GDPR)
+   - Applicable legal and regulatory requirements (EU GDPR, Dutch UAVG)
    - Contractual obligations with enterprise customers
 3. **Prepare Audit Checklist:** Develop a detailed audit checklist covering every Annex A control listed as "Applicable" in ISMS-10 and all ISO 27001 clause requirements. Checklist includes: control objective, audit question, expected evidence, and pass/fail criteria.
 4. **Request Evidence:** Send evidence request list to control owners at least 10 business days before fieldwork. Evidence typically includes: policy documents, configuration screenshots, access logs, training records, incident records, and code review history.
@@ -123,7 +123,7 @@ The internal audit process follows four phases:
 2. **Document Review:** Review all requested evidence against audit criteria. Document observations in the audit working papers.
 3. **Technical Testing:** For applicable Annex A technical controls, perform direct testing:
    - Review `apps/web/src/` codebase for implementation of controls (A.8.x)
-   - Review Vercel and Azure configuration for infrastructure controls
+   - Review Azure Container Apps and Azure infrastructure configuration for infrastructure controls
    - Review Neon PostgreSQL access controls and encryption configuration
    - Review Better Auth configuration for MFA enforcement, session management, and access controls
    - Review Qdrant access controls and data isolation
@@ -158,7 +158,7 @@ Audit criteria are the reference standards against which evidence is evaluated:
 | ---------------------- | -------------------------------------------------------------- |
 | International standard | ISO/IEC 27001:2022 (all clauses and Annex A)                   |
 | ISMS policies          | ISMS-01 through ISMS-14                                        |
-| Data protection        | UK GDPR, EU GDPR Article 32 technical measures                 |
+| Data protection        | EU GDPR, Dutch UAVG, Article 32 technical measures             |
 | Access control         | ISMS-05 (Roles and Responsibilities)                           |
 | Risk management        | ISMS-08 (Risk Assessment Methodology), ISMS-09 (Risk Register) |
 | Incident management    | TPL-05 (Incident Report Template)                              |

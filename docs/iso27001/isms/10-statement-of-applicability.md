@@ -165,12 +165,12 @@ This Statement of Applicability (SoA) is the master artifact of Inovy's ISMS. It
 
 | Status      | Count  | Percentage |
 | ----------- | ------ | ---------- |
-| IMPLEMENTED | 5      | 5%         |
-| PARTIAL     | 38     | 41%        |
-| DOC NEEDED  | 32     | 34%        |
-| CODE NEEDED | 4      | 4%         |
-| CODE+DOC    | 5      | 5%         |
-| N/A         | 1      | 1%         |
+| IMPLEMENTED | 4      | 4.3%       |
+| PARTIAL     | 45     | 48.4%      |
+| DOC NEEDED  | 34     | 36.6%      |
+| CODE NEEDED | 4      | 4.3%       |
+| CODE+DOC    | 5      | 5.4%       |
+| N/A         | 1      | 1.1%       |
 | **Total**   | **93** | **100%**   |
 
 > Note: The significant proportion of PARTIAL and DOC NEEDED controls reflects that many technical controls are implemented in the Inovy codebase but lack formal documented policies and procedures required for ISO 27001 conformance. The risk treatment plan (ISMS-09) and security objectives (ISMS-06) drive the roadmap to full implementation. Target: all applicable controls at IMPLEMENTED or PARTIAL by Stage 2 audit (Q4 2026).
