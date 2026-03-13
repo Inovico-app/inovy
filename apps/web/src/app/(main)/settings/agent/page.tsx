@@ -1,4 +1,5 @@
 import { AgentDisabledBanner } from "@/components/agent-disabled-banner";
+import { PageHeader } from "@/components/page-header";
 import { KnowledgeBaseBrowser } from "@/features/agent/components/knowledge-base-browser";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { getCachedAgentConfig } from "@/server/cache/organization.cache";
@@ -10,12 +11,10 @@ async function AgentContent() {
 
   if (authResult.isErr() || !authResult.value.organization) {
     return (
-      <div className="container mx-auto max-w-6xl py-8 px-4">
-        <div className="text-center">
-          <p className="text-red-500">
-            Failed to load organization information
-          </p>
-        </div>
+      <div className="text-center">
+        <p className="text-destructive">
+          Failed to load organization information
+        </p>
       </div>
     );
   }
@@ -30,14 +29,11 @@ async function AgentContent() {
   const agentEnabled = await getCachedAgentConfig(organizationId);
 
   return (
-    <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Knowledge Base Browser</h1>
-        <p className="text-muted-foreground mt-2">
-          Browse and manage indexed documents in your knowledge base
-        </p>
-      </div>
+    <>
+      <PageHeader
+        title="Knowledge Base Browser"
+        description="Browse and manage indexed documents in your knowledge base"
+      />
 
       {/* Agent Disabled Banner */}
       <Activity mode={!agentEnabled ? "visible" : "hidden"}>
@@ -52,7 +48,7 @@ async function AgentContent() {
         projects={projects}
         agentEnabled={agentEnabled}
       />
-    </div>
+    </>
   );
 }
 
@@ -60,11 +56,9 @@ export default function AgentPage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto max-w-6xl py-8 px-4">
-          <div className="space-y-8">
-            <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
-            <div className="h-64 bg-muted rounded animate-pulse" />
-          </div>
+        <div className="space-y-8">
+          <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
+          <div className="h-64 bg-muted rounded animate-pulse" />
         </div>
       }
     >
@@ -72,4 +66,3 @@ export default function AgentPage() {
     </Suspense>
   );
 }
-
