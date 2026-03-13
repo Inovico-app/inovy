@@ -9,6 +9,7 @@ import { getRecallApiKey } from "./recall-api.utils";
 interface CreateMeetingRequest {
   meeting_url: string;
   bot_name?: string;
+  webhook_url: string;
   metadata: Record<string, string>;
   automatic_leave: {
     noone_joined_timeout: number;
@@ -20,10 +21,8 @@ interface CreateMeetingRequest {
     participant_events?: Record<string, never>;
     realtime_endpoints?: Array<{
       type: "webhook";
-      config: {
-        url: string;
-        events: string[];
-      };
+      url: string;
+      events: string[];
     }>;
   };
   chat?: {
@@ -97,6 +96,7 @@ export class RecallApiService {
       const requestBody: CreateMeetingRequest = {
         meeting_url: meetingUrl,
         bot_name: options?.botDisplayName || "Inovy Recording Bot",
+        webhook_url: webhookUrl,
         metadata: customMetadata ?? {},
         automatic_leave: {
           noone_joined_timeout: (options?.inactivityTimeoutMinutes ?? 5) * 60,
@@ -109,10 +109,8 @@ export class RecallApiService {
           realtime_endpoints: [
             {
               type: "webhook",
-              config: {
-                url: webhookUrl,
-                events: ["participant_events.chat_message"],
-              },
+              url: webhookUrl,
+              events: ["participant_events.chat_message"],
             },
           ],
         },
