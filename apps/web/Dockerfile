@@ -3,7 +3,7 @@
 # Build context must be repo root for workspace dependencies
 
 # Stage 1: Builder
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 RUN corepack enable && corepack prepare pnpm@10.27.0 --activate
 WORKDIR /app
 
@@ -40,7 +40,7 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN pnpm build --filter=web
 
 # Stage 3: Runner
-FROM node:20-alpine AS runner
+FROM node:25-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
