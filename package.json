@@ -15,9 +15,13 @@
     "db:push": "turbo -F web db:push",
     "db:studio": "turbo -F web db:studio",
     "db:generate": "turbo -F web db:generate",
-    "db:migrate": "turbo -F web db:migrate"
+    "db:migrate": "turbo -F web db:migrate",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.3",
+    "prettier": "^3.7.1",
     "turbo": "^2.6.1"
   },
   "pnpm": {
@@ -27,6 +31,19 @@
       "@vercel/speed-insights",
       "esbuild",
       "sharp"
+    ],
+    "overrides": {
+      "@workflow/web>next": "16.1.6",
+      "devalue": ">=5.6.4",
+      "fast-xml-parser": ">=5.3.5",
+      "undici": ">=6.23.0",
+      "@esbuild-kit/core-utils>esbuild": ">=0.25.0",
+      "lodash-es": ">=4.17.23"
+    }
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md}": [
+      "prettier --write"
     ]
   }
 }

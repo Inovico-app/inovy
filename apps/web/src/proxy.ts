@@ -1,3 +1,4 @@
+import { getRequestId } from "@/server/middleware/request-id";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { auth, type BetterAuthUser } from "./lib/auth";
@@ -5,6 +6,7 @@ import { auth, type BetterAuthUser } from "./lib/auth";
 // Always allow these routes (no auth check needed)
 const publicRoutes = [
   "/api/auth",
+  "/api/health",
   "/_next",
   "/favicon.ico",
   "/accept-invitation",
@@ -21,9 +23,18 @@ const isAlwaysPublic = (req: NextRequest) =>
   publicRoutes.some((route) => req.nextUrl.pathname.startsWith(route));
 
 export default async function proxy(req: NextRequest) {
+  const requestId = getRequestId(req.headers);
+
+  // Forward request ID as a request header so downstream server code
+  // can read it via headers().get('x-request-id') for log correlation
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-request-id", requestId);
+
   // Handle CORS for API routes
   if (req.nextUrl.pathname.startsWith("/api/")) {
-    const res = NextResponse.next();
+    const res = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
     res.headers.append("Access-Control-Allow-Credentials", "true");
     const corsOrigin =
       process.env.CORS_ORIGIN ??
@@ -33,16 +44,20 @@ export default async function proxy(req: NextRequest) {
     res.headers.append("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     res.headers.append(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization"
+      "Content-Type, Authorization",
     );
+    res.headers.set("x-request-id", requestId);
     return res;
   }
 
   const publicRoute = isAlwaysPublic(req);
 
   if (publicRoute) {
-    // Early return for public/auth routes
-    return NextResponse.next();
+    const res = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+    res.headers.set("x-request-id", requestId);
+    return res;
   }
 
   // Use a fresh session to avoid caching issues, this however has a minor performance impact
@@ -54,7 +69,9 @@ export default async function proxy(req: NextRequest) {
   const hasUserOnboarded = (session?.user as BetterAuthUser)
     ?.onboardingCompleted;
   if (!hasUserOnboarded) {
-    return NextResponse.redirect(new URL("/onboarding", req.url));
+    const res = NextResponse.redirect(new URL("/onboarding", req.url));
+    res.headers.set("x-request-id", requestId);
+    return res;
   }
 
   // For all other routes, require authentication
@@ -62,10 +79,16 @@ export default async function proxy(req: NextRequest) {
     // Redirect to sign-in, preserving the original URL for redirect after login
     const signInUrl = new URL("/sign-in", req.url);
     signInUrl.searchParams.set("redirect", req.nextUrl.pathname);
-    return NextResponse.redirect(signInUrl);
+    const res = NextResponse.redirect(signInUrl);
+    res.headers.set("x-request-id", requestId);
+    return res;
   }
 
-  return NextResponse.next();
+  const res = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+  res.headers.set("x-request-id", requestId);
+  return res;
 }
 
 export const config = {
@@ -77,4 +100,3 @@ export const config = {
     },
   ],
 };
-

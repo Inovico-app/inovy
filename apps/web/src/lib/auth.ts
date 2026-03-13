@@ -12,6 +12,7 @@ import { UserQueries } from "@/server/data-access/user.queries";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema/auth";
 import { passkey } from "@better-auth/passkey";
+import { twoFactor } from "better-auth/plugins/two-factor";
 import type {
   AuthContext,
   BetterAuthOptions,
@@ -67,6 +68,7 @@ export const auth = betterAuth({
       invitations: schema.invitations,
       passkeys: schema.passkeys,
       magicLinks: schema.magicLinks,
+      twoFactors: schema.twoFactors,
       teams: schema.teams,
       teamMembers: schema.teamMembers,
     },
@@ -163,7 +165,7 @@ export const auth = betterAuth({
             ctx as MiddlewareContext<
               MiddlewareOptions,
               AuthContext<BetterAuthOptions>
-            >
+            >,
           );
 
           if (!organizationId) {
@@ -207,7 +209,7 @@ export const auth = betterAuth({
             ctx as MiddlewareContext<
               MiddlewareOptions,
               AuthContext<BetterAuthOptions>
-            >
+            >,
           );
 
           if (!organizationId) {
@@ -279,7 +281,7 @@ export const auth = betterAuth({
         }) => {
           // Set custom expiration to 7 days
           const customExpiration = new Date(
-            Date.now() + 1000 * 60 * 60 * 24 * 7
+            Date.now() + 1000 * 60 * 60 * 24 * 7,
           ); // 7 days
 
           logger.debug("Creating invitation with custom expiration", {
@@ -362,7 +364,7 @@ export const auth = betterAuth({
             // Get pending team assignments for this invitation
             const teamIds =
               await PendingTeamAssignmentsQueries.getPendingAssignmentsByInvitationId(
-                invitation.id
+                invitation.id,
               );
 
             if (teamIds.length > 0) {
@@ -376,13 +378,13 @@ export const auth = betterAuth({
                       userId: user.id,
                     },
                     headers: headersList,
-                  })
-                )
+                  }),
+                ),
               );
 
               // Clean up pending assignments after successful application
               await PendingTeamAssignmentsQueries.deletePendingAssignmentsByInvitationId(
-                invitation.id
+                invitation.id,
               );
 
               logger.info("Applied pending team assignments", {
@@ -519,7 +521,7 @@ export const auth = betterAuth({
         // Fetch team names for this invitation
         const teamNames =
           await PendingTeamAssignmentsQueries.getTeamNamesByInvitationId(
-            data.id
+            data.id,
           );
 
         await sendEmailFromTemplate({
@@ -561,6 +563,9 @@ export const auth = betterAuth({
         "localhost",
       rpName: "Inovy",
     }),
+    twoFactor({
+      issuer: "Inovy",
+    }),
     nextCookies(), // Must be last plugin
   ],
 });
@@ -578,7 +583,7 @@ const ensureUserHasOrganization = async (
       returned?: unknown | undefined;
       responseHeaders?: Headers | undefined;
     }
-  >
+  >,
 ) => {
   // Check if user already has an organization
   const existingOrganizationId =
@@ -611,17 +616,20 @@ const ensureUserHasOrganization = async (
           {
             userId,
             emailHash: anonymizeEmail(resolvedEmail),
-          }
+          },
         );
         return null;
       }
     }
   } catch (error) {
-    logger.error("Failed to check pending invitations, proceeding with org creation", {
-      userId,
-      emailHash: userEmail ? anonymizeEmail(userEmail) : "[no-email]",
-      error: error instanceof Error ? error : new Error(String(error)),
-    });
+    logger.error(
+      "Failed to check pending invitations, proceeding with org creation",
+      {
+        userId,
+        emailHash: userEmail ? anonymizeEmail(userEmail) : "[no-email]",
+        error: error instanceof Error ? error : new Error(String(error)),
+      },
+    );
   }
 
   try {
@@ -680,7 +688,7 @@ async function generateSlug(
       returned?: unknown | undefined;
       responseHeaders?: Headers | undefined;
     }
-  >
+  >,
 ) {
   // Fall back to userId-based slug if email is not available (e.g., session-based flows)
   let orgSlug: string;
@@ -698,7 +706,7 @@ async function generateSlug(
   while (attempts < 10) {
     const slugExists = await OrganizationQueries.slugExists(
       orgSlug,
-      ctx.headers ?? new Headers()
+      ctx.headers ?? new Headers(),
     );
 
     if (!slugExists) {
@@ -733,4 +741,3 @@ async function generateSlug(
   }
   return orgSlug;
 }
-

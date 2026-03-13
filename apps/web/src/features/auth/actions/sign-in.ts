@@ -1,5 +1,6 @@
 "use server";
 
+import { logger } from "@/lib/logger";
 import { auth } from "@/lib/auth";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import {
@@ -8,6 +9,7 @@ import {
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { OnboardingService } from "@/server/services/onboarding.service";
+import { AccountLockoutService } from "@/server/services/account-lockout.service";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
@@ -28,6 +30,18 @@ export const signInEmailAction = publicActionClient
   .inputSchema(signInEmailSchema)
   .action(async ({ parsedInput }) => {
     const { email, password, redirectTo } = parsedInput;
+    const lockoutService = AccountLockoutService.getInstance();
+
+    // Check lockout before attempting authentication (normalize email case)
+    const locked = await lockoutService.isLocked(email.toLowerCase());
+    if (locked) {
+      throw createErrorForNextSafeAction(
+        ActionErrors.forbidden(
+          "Account temporarily locked due to too many failed attempts. Please try again later.",
+          { email },
+        ),
+      );
+    }
 
     try {
       await auth.api.signInEmail({
@@ -41,20 +55,45 @@ export const signInEmailAction = publicActionClient
       const message =
         error instanceof Error ? error.message : "Failed to sign in";
 
-      // Check if it's an email verification error
+      // Check if it's an email verification error — do NOT count as failed attempt
       if (message.includes("email") && message.includes("verify")) {
         throw createErrorForNextSafeAction(
           ActionErrors.forbidden(
             "Please verify your email address before signing in",
-            { email }
-          )
+            { email },
+          ),
         );
       }
 
+      // Only record failed attempt for credential-related errors (wrong password),
+      // not for network errors or other internal failures
+      const isCredentialError =
+        message.includes("Invalid") ||
+        message.includes("invalid") ||
+        message.includes("credentials") ||
+        message.includes("password") ||
+        message.includes("not found") ||
+        message.includes("Incorrect");
+
+      if (isCredentialError) {
+        const lockoutResult = await lockoutService.recordFailedAttempt(
+          email.toLowerCase(),
+        );
+        if (lockoutResult.locked) {
+          logger.warn("Account locked after too many failed login attempts", {
+            component: "signInEmailAction",
+            email,
+          });
+        }
+      }
+
       throw createErrorForNextSafeAction(
-        ActionErrors.validation(message, { email })
+        ActionErrors.validation(message, { email }),
       );
     }
+
+    // Reset lockout state on successful authentication
+    await lockoutService.resetAttempts(email.toLowerCase());
 
     // Ensure onboarding record exists
     try {
@@ -64,7 +103,7 @@ export const signInEmailAction = publicActionClient
         const requestHeaders = await headers();
         await OnboardingService.ensureOnboardingRecordExists(
           user.id,
-          requestHeaders
+          requestHeaders,
         );
       }
     } catch (error) {
@@ -127,7 +166,7 @@ export const passkeySignInSuccessAction = publicActionClient
 
       if (!session?.user) {
         throw createErrorForNextSafeAction(
-          ActionErrors.unauthenticated("Passkey authentication failed")
+          ActionErrors.unauthenticated("Passkey authentication failed"),
         );
       }
     } catch (error) {
@@ -142,4 +181,3 @@ export const passkeySignInSuccessAction = publicActionClient
     // This is outside the try/catch to avoid catching Next.js's NEXT_REDIRECT error
     redirect("/");
   });
-

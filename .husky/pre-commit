@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+
+# Secret scanning — check staged files for potential secrets
+# Patterns: AWS keys, private keys, generic secrets/tokens in assignment context
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -n "$STAGED_FILES" ]; then
+  # Check for common secret patterns in staged content
+  SECRETS_FOUND=$(git diff --cached -U0 | grep -iE \
+    '(AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |DSA )?PRIVATE KEY-----|sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9_]{82}|xox[bpoas]-[a-zA-Z0-9-]+)' \
+    || true)
+
+  if [ -n "$SECRETS_FOUND" ]; then
+    echo "ERROR: Potential secrets detected in staged changes:"
+    echo "$SECRETS_FOUND"
+    echo ""
+    echo "If these are false positives, use: git commit --no-verify"
+    exit 1
+  fi
+fi
+
+# Lint staged files
+pnpm exec lint-staged

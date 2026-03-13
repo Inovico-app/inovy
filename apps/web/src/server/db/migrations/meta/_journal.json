@@ -386,6 +386,13 @@
       "when": 1772814762738,
       "tag": "0060_add_meeting_workflows_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1773404150431,
+      "tag": "0061_add-two-factors-table",
+      "breakpoints": true
     }
   ]
 }
