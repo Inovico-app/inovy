@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMfaSetup } from "@/features/auth/hooks/use-mfa-setup";
+import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useState } from "react";
 
 /**
@@ -116,13 +117,7 @@ export function MfaSetup() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex justify-center rounded-lg bg-white p-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(totpURI)}`}
-              alt="TOTP QR Code"
-              width={200}
-              height={200}
-            />
+            <QRCodeSVG value={totpURI} size={200} level="M" />
           </div>
 
           <div className="space-y-2">

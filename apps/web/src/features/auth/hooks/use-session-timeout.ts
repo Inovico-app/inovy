@@ -38,6 +38,7 @@ export function useSessionTimeout({
   const warningRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastThrottleRef = useRef(0);
+  const isWarningVisibleRef = useRef(false);
 
   const clearTimers = useCallback(() => {
     if (timeoutRef.current) {
@@ -82,18 +83,21 @@ export function useSessionTimeout({
 
     warningRef.current = setTimeout(() => {
       setIsWarningVisible(true);
+      isWarningVisibleRef.current = true;
       onWarning();
       startCountdown();
     }, WARNING_THRESHOLD_MS);
 
     timeoutRef.current = setTimeout(() => {
       setIsWarningVisible(false);
+      isWarningVisibleRef.current = false;
       onTimeout();
     }, IDLE_TIMEOUT_MS);
   }, [clearTimers, onTimeout, onWarning, startCountdown]);
 
   const extendSession = useCallback(() => {
     setIsWarningVisible(false);
+    isWarningVisibleRef.current = false;
     resetTimers();
     onExtend();
   }, [resetTimers, onExtend]);
@@ -108,10 +112,11 @@ export function useSessionTimeout({
 
     // Only reset timers if the warning is not visible
     // (user must explicitly click extend when warning is shown)
-    if (!isWarningVisible) {
+    // Use ref to avoid stale closure issues with event listeners
+    if (!isWarningVisibleRef.current) {
       resetTimers();
     }
-  }, [isWarningVisible, resetTimers]);
+  }, [resetTimers]);
 
   useEffect(() => {
     // Start initial timers
