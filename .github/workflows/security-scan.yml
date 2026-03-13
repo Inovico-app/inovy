@@ -38,7 +38,7 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - name: Generate CycloneDX SBOM
-        uses: CycloneDX/gh-node-module-generatebom@v2
+        uses: CycloneDX/gh-node-module-generatebom@v1
         with:
           output: "sbom.json"
       - name: Upload SBOM artifact
