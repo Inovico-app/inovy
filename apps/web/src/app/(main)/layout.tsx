@@ -1,4 +1,5 @@
 import { PageLayout } from "@/components/page-layout";
+import { SessionTimeoutProvider } from "@/features/auth/components/session-timeout-provider";
 import { Suspense } from "react";
 
 export default function MainLayout({
@@ -8,8 +9,9 @@ export default function MainLayout({
 }) {
   return (
     <Suspense>
-      <PageLayout>{children}</PageLayout>
+      <SessionTimeoutProvider>
+        <PageLayout>{children}</PageLayout>
+      </SessionTimeoutProvider>
     </Suspense>
   );
 }
-
