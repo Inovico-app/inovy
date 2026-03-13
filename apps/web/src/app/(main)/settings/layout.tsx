@@ -1,15 +1,7 @@
 import { ProtectedPage } from "@/components/protected-page";
 import { SettingsNav } from "@/features/settings/components/settings-nav";
-import dynamic from "next/dynamic";
+import { SettingsSidebar } from "@/features/settings/components/settings-sidebar";
 import { Suspense, type ReactNode } from "react";
-
-const SettingsSidebar = dynamic(
-  () =>
-    import("@/features/settings/components/settings-sidebar").then(
-      (m) => m.SettingsSidebar
-    ),
-  { ssr: false }
-);
 
 interface SettingsLayoutProps {
   children: ReactNode;
