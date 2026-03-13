@@ -1,24 +1,25 @@
-import { ProtectedPage } from "@/components/protected-page";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PageHeader } from "@/components/page-header";
 import { AutoProcessToggle } from "@/features/recordings/components/auto-process-toggle";
 import { DataDeletion } from "@/features/settings/components/data-deletion";
 import { DataExport } from "@/features/settings/components/data-export";
+import { ProfileForm } from "@/features/settings/components/profile-form";
 import { getDeletionStatus } from "@/features/settings/lib/get-deletion-status";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import {
   getCachedTeamsByOrganization,
   getCachedUserTeams,
 } from "@/server/cache/team.cache";
-import { Building2Icon, MailIcon, UserIcon, UsersIcon } from "lucide-react";
+import { UserService } from "@/server/services/user.service";
+import { Building2Icon, UsersIcon } from "lucide-react";
 import Link from "next/link";
+import type { Route } from "next";
 import { Suspense } from "react";
 
 async function ProfileContent() {
@@ -26,147 +27,107 @@ async function ProfileContent() {
 
   if (authResult.isErr() || !authResult.value.user) {
     return (
-      <div className="text-center">
-        <p className="text-red-500">Failed to load profile information</p>
+      <div className="text-center py-12">
+        <p className="text-destructive">Failed to load profile information</p>
       </div>
     );
   }
 
-  const user = authResult.value.user;
-  const organization = authResult.value.organization;
-  const orgName =
-    ((organization as unknown as Record<string, unknown>)?.display_name as
-      | string
-      | undefined) ??
-    ((organization as unknown as Record<string, unknown>)?.name as
-      | string
-      | undefined) ??
-    "Personal Organization";
-
+  const { user, organization } = authResult.value;
   const organizationId = organization?.id;
+  const orgName = organization?.name ?? "Personal Organization";
 
-  // Fetch user teams
-  const userTeams = organizationId
-    ? await getCachedUserTeams(user.id, organizationId)
-    : [];
-  const allTeams = organizationId
-    ? await getCachedTeamsByOrganization(organizationId)
-    : [];
+  const [userDetailResult, userTeams, allTeams, deletionStatus] =
+    await Promise.all([
+      UserService.getUserById(user.id),
+      organizationId
+        ? getCachedUserTeams(user.id, organizationId)
+        : Promise.resolve([]),
+      organizationId
+        ? getCachedTeamsByOrganization(organizationId)
+        : Promise.resolve([]),
+      getDeletionStatus(),
+    ]);
+
+  const givenName = userDetailResult.isOk()
+    ? userDetailResult.value.given_name ?? ""
+    : "";
+  const familyName = userDetailResult.isOk()
+    ? userDetailResult.value.family_name ?? ""
+    : "";
+
   const teamMap = new Map(allTeams.map((t) => [t.id, t]));
 
-  // Fetch deletion status server-side
-  const deletionStatus = await getDeletionStatus();
-
   return (
-    <div className="space-y-6">
-      {/* Profile Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Profile</h1>
-        <p className="text-muted-foreground">
-          View your account and organization information
-        </p>
-      </div>
+    <>
+      <PageHeader
+        title="Profile"
+        description="Manage your personal account information"
+      />
 
-      {/* User Profile Card */}
+      <ProfileForm
+        initialGivenName={givenName}
+        initialFamilyName={familyName}
+        email={user.email || ""}
+      />
+
+      {/* Organization (display-only) */}
       <Card>
         <CardHeader>
-          <CardTitle>Account Information</CardTitle>
-          <CardDescription>Your personal profile details</CardDescription>
+          <CardTitle className="text-base font-medium">Organization</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Name */}
-          <div className="flex items-start space-x-4">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-              <UserIcon className="h-5 w-5 text-blue-600 dark:text-blue-300" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-muted-foreground">
-                Full Name
-              </p>
-              <p className="text-lg font-semibold">
-                {user.name || user.email || "Not specified"}
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Building2Icon className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">{orgName}</p>
+              <p className="text-xs text-muted-foreground">
+                {allTeams.length} team{allTeams.length !== 1 ? "s" : ""}
               </p>
             </div>
           </div>
 
-          {/* Email */}
-          <div className="flex items-start space-x-4">
-            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-              <MailIcon className="h-5 w-5 text-green-600 dark:text-green-300" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-muted-foreground">Email</p>
-              <p className="text-lg font-semibold">
-                {user.email || "Not available"}
-              </p>
-            </div>
-          </div>
-
-          {/* Organization */}
-          <div className="flex items-start space-x-4">
-            <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-              <Building2Icon className="h-5 w-5 text-purple-600 dark:text-purple-300" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-muted-foreground">
-                Organization
-              </p>
-              <p className="text-lg font-semibold">{orgName}</p>
-            </div>
-          </div>
-
-          {/* Teams */}
           {userTeams.length > 0 && (
-            <div className="flex items-start space-x-4">
-              <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                <UsersIcon className="h-5 w-5 text-orange-600 dark:text-orange-300" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground">
-                  Teams
-                </p>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {userTeams.map((userTeam) => {
-                    const team = teamMap.get(userTeam.teamId);
-                    if (!team) return null;
-                    return (
-                      <Badge
-                        key={userTeam.teamId}
-                        variant="outline"
-                        className="text-sm"
-                      >
-                        {team.name}
-                        {userTeam.role !== "member" && (
-                          <span className="ml-1 text-xs text-muted-foreground">
-                            ({userTeam.role})
-                          </span>
-                        )}
-                      </Badge>
-                    );
-                  })}
-                </div>
+            <div className="flex items-start gap-3">
+              <UsersIcon className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <div className="flex flex-wrap gap-1.5">
+                {userTeams.map((userTeam) => {
+                  const team = teamMap.get(userTeam.teamId);
+                  if (!team) return null;
+                  return (
+                    <Badge key={userTeam.teamId} variant="outline" className="text-xs">
+                      {team.name}
+                      {userTeam.role !== "member" && (
+                        <span className="ml-1 text-muted-foreground">
+                          ({userTeam.role})
+                        </span>
+                      )}
+                    </Badge>
+                  );
+                })}
               </div>
             </div>
           )}
+
+          <Link
+            href={"/settings/organization" as Route}
+            className="text-xs text-primary hover:underline"
+          >
+            Manage organization settings
+          </Link>
         </CardContent>
       </Card>
 
-      {/* Recording Preferences */}
+      {/* Preferences */}
       <AutoProcessToggle />
 
-      {/* Data Export */}
+      {/* Data & Privacy */}
       <DataExport />
 
-      {/* Data Deletion */}
-      <DataDeletion initialDeletionRequest={deletionStatus} />
-
-      {/* Actions */}
-      <div className="flex gap-3">
-        <Button render={<Link href="/settings/profile/edit" />} nativeButton={false}>
-          Edit Profile
-        </Button>
+      <div className="border-l-2 border-destructive pl-4">
+        <DataDeletion initialDeletionRequest={deletionStatus} />
       </div>
-    </div>
+    </>
   );
 }
 
@@ -174,29 +135,17 @@ export default function ProfilePage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto max-w-2xl py-8 px-4">
-          <div className="space-y-4">
-            <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
-            <div className="h-64 bg-muted rounded animate-pulse" />
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <div className="h-8 w-32 bg-muted rounded animate-pulse" />
+            <div className="h-4 w-64 bg-muted rounded animate-pulse" />
           </div>
+          <div className="h-64 bg-muted rounded animate-pulse" />
+          <div className="h-32 bg-muted rounded animate-pulse" />
         </div>
       }
     >
-      <ProtectedPage>
-        <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
-          <Suspense
-            fallback={
-              <div className="space-y-4">
-                <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
-                <div className="h-64 bg-muted rounded animate-pulse" />
-              </div>
-            }
-          >
-            <ProfileContent />
-          </Suspense>
-        </div>
-      </ProtectedPage>
+      <ProfileContent />
     </Suspense>
   );
 }
-

@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import { DriveWatchSettings } from "@/features/settings/components/drive-watch-settings";
 import { GoogleConnection } from "@/features/settings/components/google-connection";
 import { GoogleSettings } from "@/features/settings/components/google-settings";
@@ -6,23 +7,18 @@ import { Suspense } from "react";
 
 function IntegrationsContent() {
   return (
-    <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Integrations</h1>
-        <p className="text-muted-foreground mt-2">
-          Connect and manage your third-party integrations
-        </p>
-      </div>
-
-      {/* Google Workspace Integration */}
+    <>
+      <PageHeader
+        title="Integrations"
+        description="Connect and manage your third-party integrations"
+      />
       <div className="space-y-6">
         <GoogleConnection />
         <GoogleSettings />
         <GoogleStatusDashboard />
         <DriveWatchSettings />
       </div>
-    </div>
+    </>
   );
 }
 
@@ -30,15 +26,12 @@ export default function IntegrationsPage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
-          <div className="space-y-8">
-            <div className="mb-8 space-y-4">
-              <div className="h-9 w-64 bg-muted rounded animate-pulse" />
-              <div className="h-5 w-96 bg-muted rounded animate-pulse" />
-            </div>
-            <div className="h-64 bg-muted rounded animate-pulse" />
-            <div className="h-64 bg-muted rounded animate-pulse" />
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <div className="h-8 w-48 bg-muted rounded animate-pulse" />
+            <div className="h-4 w-80 bg-muted rounded animate-pulse" />
           </div>
+          <div className="h-64 bg-muted rounded animate-pulse" />
         </div>
       }
     >
@@ -46,4 +39,3 @@ export default function IntegrationsPage() {
     </Suspense>
   );
 }
-

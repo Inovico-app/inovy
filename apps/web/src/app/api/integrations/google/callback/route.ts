@@ -1,5 +1,6 @@
 import { getGoogleRedirectUri } from "@/features/integrations/google/lib/google-oauth";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { type NextRequest, NextResponse } from "next/server";
@@ -148,6 +149,8 @@ export async function GET(request: NextRequest) {
       userId: user.id,
       email: result.value.email,
     });
+
+    CacheInvalidation.invalidateGoogleConnection(user.id);
 
     // If redirecting to onboarding, mark Google Calendar as connected during onboarding
     if (redirectUrl.includes("/onboarding")) {

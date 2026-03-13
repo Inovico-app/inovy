@@ -2,15 +2,16 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PageHeader } from "@/components/page-header";
 import { InviteUserDialog } from "@/features/admin/components/organization/invite-user-dialog";
 import { TeamManagement } from "@/features/admin/components/team/team-management";
 import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/components/organization-knowledge-base-section";
 import { getOrganizationSettings } from "@/features/settings/actions/organization-settings";
 import { OrganizationInstructionsSection } from "@/features/settings/components/organization-instructions-section";
+import { OrganizationTabs } from "@/features/settings/components/organization-tabs";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { formatDateShort } from "@/lib/formatters/date-formatters";
 import { getUserDisplayName } from "@/lib/formatters/display-formatters";
@@ -24,7 +25,12 @@ import {
   OrganizationService,
   type PendingInvitationDto,
 } from "@/server/services/organization.service";
-import { Building2Icon, ClockIcon, MailIcon, UserIcon } from "lucide-react";
+import {
+  Building2Icon,
+  ClockIcon,
+  MailIcon,
+  UsersIcon,
+} from "lucide-react";
 import { Suspense } from "react";
 
 async function OrganizationContent() {
@@ -32,8 +38,8 @@ async function OrganizationContent() {
 
   if (authResult.isErr()) {
     return (
-      <div className="text-center">
-        <p className="text-red-500">Failed to load organization information</p>
+      <div className="text-center py-12">
+        <p className="text-destructive">Failed to load organization information</p>
       </div>
     );
   }
@@ -43,7 +49,7 @@ async function OrganizationContent() {
 
   if (!organization) {
     return (
-      <div className="text-center">
+      <div className="text-center py-12">
         <p className="text-muted-foreground">No organization data available</p>
       </div>
     );
@@ -51,152 +57,86 @@ async function OrganizationContent() {
 
   const organizationId = organization.id;
   const orgName = organization.name ?? "Organization";
-
-  // Check if user is admin
   const canEdit = auth.user ? isOrganizationAdmin(auth.user) : false;
 
-  // Fetch organization members and pending invitations
-  let members: Array<{
-    id: string;
-    email: string | null;
-    given_name: string | null;
-    family_name: string | null;
-    roles?: string[];
-  }> = [];
-  let pendingInvitations: PendingInvitationDto[] = [];
-
-  if (organizationId) {
-    const [membersResult, invitationsResult] = await Promise.all([
+  // Parallel data fetching
+  const [
+    [membersResult, invitationsResult],
+    settingsResult,
+    [knowledgeEntries, knowledgeDocuments],
+  ] = await Promise.all([
+    Promise.all([
       OrganizationService.getOrganizationMembers(organizationId),
       OrganizationService.getPendingInvitations(organizationId),
-    ]);
-    if (membersResult.isOk()) {
-      members = membersResult.value;
-    }
-    if (invitationsResult.isOk()) {
-      pendingInvitations = invitationsResult.value;
-    }
-  }
+    ]),
+    getOrganizationSettings(),
+    Promise.all([
+      getCachedKnowledgeEntries("organization", organizationId).catch((error) => {
+        logger.error("Failed to fetch knowledge entries", {
+          component: "OrganizationPage",
+          organizationId,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
+        return [];
+      }),
+      getCachedKnowledgeDocuments("organization", organizationId).catch((error) => {
+        logger.error("Failed to fetch knowledge documents", {
+          component: "OrganizationPage",
+          organizationId,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
+        return [];
+      }),
+    ]),
+  ]);
 
-  // Fetch organization settings
-  const settingsResult = await getOrganizationSettings();
+  const members = membersResult.isOk() ? membersResult.value : [];
+  const pendingInvitations = invitationsResult.isOk() ? invitationsResult.value : [];
   const instructions =
     settingsResult && settingsResult.data?.instructions
       ? settingsResult.data.instructions
       : "";
 
-  // Fetch knowledge base entries and documents
-  let knowledgeEntries: Awaited<ReturnType<typeof getCachedKnowledgeEntries>> =
-    [];
-  let knowledgeDocuments: Awaited<
-    ReturnType<typeof getCachedKnowledgeDocuments>
-  > = [];
-
-  if (organizationId) {
-    try {
-      knowledgeEntries = await getCachedKnowledgeEntries(
-        "organization",
-        organizationId
-      );
-      knowledgeDocuments = await getCachedKnowledgeDocuments(
-        "organization",
-        organizationId
-      );
-    } catch (error) {
-      logger.error("Failed to fetch knowledge base data", {
-        component: "OrganizationPage",
-        organizationId,
-        error: error instanceof Error ? error : new Error(String(error)),
-      });
-      // Continue rendering with empty arrays
-    }
-  }
-
-  return (
-    <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Organization</h1>
-        <p className="text-muted-foreground">
-          View organization information and members
-        </p>
-      </div>
-
-      {/* Organization Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Organization Details</CardTitle>
-          <CardDescription>Your organization information</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center space-x-4">
-            <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-              <Building2Icon className="h-5 w-5 text-purple-600 dark:text-purple-300" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Organization Name
-              </p>
-              <p className="text-lg font-semibold">{orgName}</p>
-            </div>
+  // Tab content: General
+  const generalContent = (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base font-medium">Organization Details</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-3">
+          <Building2Icon className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <p className="text-sm text-muted-foreground">Organization Name</p>
+            <p className="text-sm font-medium">{orgName}</p>
           </div>
-
-          <div className="flex items-center space-x-4">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-              <UserIcon className="h-5 w-5 text-blue-600 dark:text-blue-300" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Member Count
-              </p>
-              <p className="text-lg font-semibold">
-                {members.length} {members.length === 1 ? "member" : "members"}
-              </p>
-            </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <UsersIcon className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <p className="text-sm text-muted-foreground">Members</p>
+            <p className="text-sm font-medium">
+              {members.length} {members.length === 1 ? "member" : "members"}
+            </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
-      {/* AI Instructions */}
-      {organizationId && (
-        <OrganizationInstructionsSection
-          initialInstructions={instructions}
-          organizationId={organizationId}
-          canEdit={canEdit}
-        />
-      )}
-
-      {/* Knowledge Base */}
-      {organizationId && (
-        <OrganizationKnowledgeBaseSection
-          canEdit
-          initialEntries={knowledgeEntries}
-          initialDocuments={knowledgeDocuments}
-          organizationId={organizationId}
-        />
-      )}
-
-      {/* Teams */}
-      {organizationId && <TeamManagement />}
-
-      {/* Members List */}
+  // Tab content: Members & Teams
+  const membersContent = (
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Organization Members</CardTitle>
-              <CardDescription>
-                {members.length > 0
-                  ? "All members in your organization"
-                  : "No members in this organization yet"}
-              </CardDescription>
-            </div>
+            <CardTitle className="text-base font-medium">Members</CardTitle>
             {canEdit && <InviteUserDialog />}
           </div>
         </CardHeader>
         <CardContent>
           {members.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {members.map((member) => (
                 <div
                   key={member.id}
@@ -204,7 +144,7 @@ async function OrganizationContent() {
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium">
+                      <p className="text-sm font-medium">
                         {getUserDisplayName({
                           email: member.email,
                           given_name: member.given_name,
@@ -214,11 +154,7 @@ async function OrganizationContent() {
                       {member.roles && member.roles.length > 0 && (
                         <div className="flex gap-1">
                           {member.roles.map((role) => (
-                            <Badge
-                              key={role}
-                              variant="outline"
-                              className="text-xs"
-                            >
+                            <Badge key={role} variant="outline" className="text-xs">
                               {role}
                             </Badge>
                           ))}
@@ -226,7 +162,7 @@ async function OrganizationContent() {
                       )}
                     </div>
                     {member.email && (
-                      <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
                         <MailIcon className="h-3 w-3" />
                         {member.email}
                       </div>
@@ -236,18 +172,17 @@ async function OrganizationContent() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-6">
-              <p className="text-muted-foreground">No members to display</p>
-            </div>
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              No members to display
+            </p>
           )}
 
-          {/* Pending Invitations */}
           {pendingInvitations.length > 0 && (
             <div className="mt-6">
-              <h4 className="text-sm font-medium text-muted-foreground mb-3">
+              <p className="text-sm font-medium text-muted-foreground mb-3">
                 Pending Invitations ({pendingInvitations.length})
-              </h4>
-              <div className="space-y-3">
+              </p>
+              <div className="space-y-2">
                 {pendingInvitations.map((invitation) => (
                   <div
                     key={invitation.id}
@@ -255,7 +190,7 @@ async function OrganizationContent() {
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-muted-foreground">
+                        <p className="text-sm text-muted-foreground">
                           {invitation.email}
                         </p>
                         <Badge
@@ -268,7 +203,7 @@ async function OrganizationContent() {
                           {invitation.role}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
                         <ClockIcon className="h-3 w-3" />
                         Expires {formatDateShort(invitation.expiresAt)}
                       </div>
@@ -280,15 +215,59 @@ async function OrganizationContent() {
           )}
         </CardContent>
       </Card>
+
+      <TeamManagement />
     </div>
+  );
+
+  // Tab content: AI & Knowledge Base
+  const aiContent = (
+    <div className="space-y-6">
+      <OrganizationInstructionsSection
+        initialInstructions={instructions}
+        organizationId={organizationId}
+        canEdit={canEdit}
+      />
+      <OrganizationKnowledgeBaseSection
+        canEdit
+        initialEntries={knowledgeEntries}
+        initialDocuments={knowledgeDocuments}
+        organizationId={organizationId}
+      />
+    </div>
+  );
+
+  return (
+    <>
+      <PageHeader
+        title="Organization"
+        description="Manage your organization settings and members"
+      />
+      {/* Outer Suspense (in OrganizationPage) satisfies nuqs useSearchParams requirement */}
+      <OrganizationTabs
+        generalContent={generalContent}
+        membersContent={membersContent}
+        aiContent={aiContent}
+      />
+    </>
   );
 }
 
 export default function OrganizationPage() {
   return (
-    <Suspense fallback={<div>Loading organization data...</div>}>
+    <Suspense
+      fallback={
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <div className="h-8 w-48 bg-muted rounded animate-pulse" />
+            <div className="h-4 w-72 bg-muted rounded animate-pulse" />
+          </div>
+          <div className="h-10 w-full bg-muted rounded animate-pulse" />
+          <div className="h-64 bg-muted rounded animate-pulse" />
+        </div>
+      }
+    >
       <OrganizationContent />
     </Suspense>
   );
 }
-

@@ -27,6 +27,16 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "500mb",
     },
     proxyClientMaxBodySize: "500mb",
+    optimizePackageImports: ["lucide-react"],
+  },
+  async redirects() {
+    return [
+      {
+        source: "/settings/profile/edit",
+        destination: "/settings/profile",
+        permanent: true,
+      },
+    ];
   },
   webpack: (config, { isServer }) => {
     // Exclude pino and related Node.js-only packages from client bundle
