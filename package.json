@@ -31,7 +31,41 @@
       "@vercel/speed-insights",
       "esbuild",
       "sharp"
-    ]
+    ],
+    "overrides": {
+      "@react-email/preview-server>next": "16.1.6",
+      "@workflow/web>next": "16.1.6",
+      "fast-xml-parser": ">=5.3.5",
+      "archiver-utils>glob": ">=10.5.0",
+      "rimraf>glob": ">=10.5.0",
+      "glob>minimatch": ">=10.2.3",
+      "jws": ">=4.0.1",
+      "tar": ">=7.5.7",
+      "@isaacs/brace-expansion": ">=5.0.1",
+      "devalue": ">=5.6.2",
+      "@eslint/config-array>minimatch": ">=3.1.4",
+      "@eslint/eslintrc>minimatch": ">=3.1.4",
+      "eslint-plugin-react>minimatch": ">=3.1.4",
+      "readdir-glob>minimatch": ">=10.2.3",
+      "filelist>minimatch": ">=5.1.8",
+      "@oclif/core>minimatch": ">=9.0.7",
+      "@typescript-eslint/typescript-estree>minimatch": ">=10.2.3",
+      "eslint>minimatch": ">=10.2.3",
+      "underscore": ">=1.13.8",
+      "lodash": ">=4.17.23",
+      "undici": ">=6.23.0",
+      "js-yaml": ">=4.1.1",
+      "mdast-util-to-hast": ">=13.2.1",
+      "markdown-it": ">=14.1.1",
+      "cookie": ">=1.0.2",
+      "eslint>ajv": ">=8.18.0",
+      "@eslint/eslintrc>ajv": ">=6.14.0",
+      "@modelcontextprotocol/sdk>ajv": ">=8.18.0",
+      "conf>ajv": ">=8.18.0",
+      "lodash-es": ">=4.17.23",
+      "@esbuild-kit/core-utils>esbuild": ">=0.25.0",
+      "qs": ">=6.14.2"
+    }
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,md}": [
