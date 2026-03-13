@@ -1,7 +1,7 @@
 "use server";
 
 import { logger } from "@/lib/logger";
-import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { Permissions } from "@/lib/rbac/permissions";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { GoogleCalendarService } from "@/server/services/google-calendar.service";
@@ -12,7 +12,7 @@ import { z } from "zod";
  * Get user's Google calendars
  */
 export const getCalendars = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:read") })
+  .metadata({ permissions: Permissions.integration.manage })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { user } = ctx;

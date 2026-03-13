@@ -1,7 +1,7 @@
 "use server";
 
 import { logger } from "@/lib/logger";
-import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { Permissions } from "@/lib/rbac/permissions";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { AutoActionsService } from "@/server/services/auto-actions.service";
@@ -16,7 +16,7 @@ const getGoogleIntegrationStatusSchema = z.object({
  * Get recent Google integration actions
  */
 export const getGoogleIntegrationStatus = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:read") })
+  .metadata({ permissions: Permissions.integration.manage })
   .schema(getGoogleIntegrationStatusSchema.optional())
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;
@@ -76,7 +76,7 @@ const retryFailedActionSchema = z.object({
  * Retry a failed action
  */
 export const retryFailedAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:update") })
+  .metadata({ permissions: Permissions.integration.manage })
   .schema(retryFailedActionSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;

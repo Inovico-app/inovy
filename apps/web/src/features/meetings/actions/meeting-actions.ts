@@ -73,7 +73,7 @@ const updateMeetingSchema = z.object({
 
 export const updateMeeting = authorizedActionClient
   .metadata({
-    permissions: policyToPermissions("recordings:create"),
+    permissions: policyToPermissions("recordings:update"),
     name: "update-meeting",
   })
   .schema(updateMeetingSchema)
@@ -98,7 +98,7 @@ const saveNotesSchema = z.object({
 
 export const saveMeetingNotes = authorizedActionClient
   .metadata({
-    permissions: policyToPermissions("recordings:create"),
+    permissions: policyToPermissions("recordings:update"),
     name: "save-meeting-notes",
   })
   .schema(saveNotesSchema)
@@ -131,7 +131,7 @@ const configurePostActionsSchema = z.object({
 
 export const configurePostActions = authorizedActionClient
   .metadata({
-    permissions: policyToPermissions("recordings:create"),
+    permissions: policyToPermissions("recordings:update"),
     name: "configure-post-actions",
   })
   .schema(configurePostActionsSchema)
