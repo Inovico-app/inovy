@@ -6,6 +6,7 @@ import { auth, type BetterAuthUser } from "./lib/auth";
 // Always allow these routes (no auth check needed)
 const publicRoutes = [
   "/api/auth",
+  "/api/health",
   "/_next",
   "/favicon.ico",
   "/accept-invitation",

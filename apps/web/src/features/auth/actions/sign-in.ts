@@ -32,8 +32,8 @@ export const signInEmailAction = publicActionClient
     const { email, password, redirectTo } = parsedInput;
     const lockoutService = AccountLockoutService.getInstance();
 
-    // Check lockout before attempting authentication
-    const locked = await lockoutService.isLocked(email);
+    // Check lockout before attempting authentication (normalize email case)
+    const locked = await lockoutService.isLocked(email.toLowerCase());
     if (locked) {
       throw createErrorForNextSafeAction(
         ActionErrors.forbidden(
@@ -55,16 +55,7 @@ export const signInEmailAction = publicActionClient
       const message =
         error instanceof Error ? error.message : "Failed to sign in";
 
-      // Record failed attempt for lockout tracking
-      const lockoutResult = await lockoutService.recordFailedAttempt(email);
-      if (lockoutResult.locked) {
-        logger.warn("Account locked after too many failed login attempts", {
-          component: "signInEmailAction",
-          email,
-        });
-      }
-
-      // Check if it's an email verification error
+      // Check if it's an email verification error — do NOT count as failed attempt
       if (message.includes("email") && message.includes("verify")) {
         throw createErrorForNextSafeAction(
           ActionErrors.forbidden(
@@ -74,13 +65,35 @@ export const signInEmailAction = publicActionClient
         );
       }
 
+      // Only record failed attempt for credential-related errors (wrong password),
+      // not for network errors or other internal failures
+      const isCredentialError =
+        message.includes("Invalid") ||
+        message.includes("invalid") ||
+        message.includes("credentials") ||
+        message.includes("password") ||
+        message.includes("not found") ||
+        message.includes("Incorrect");
+
+      if (isCredentialError) {
+        const lockoutResult = await lockoutService.recordFailedAttempt(
+          email.toLowerCase(),
+        );
+        if (lockoutResult.locked) {
+          logger.warn("Account locked after too many failed login attempts", {
+            component: "signInEmailAction",
+            email,
+          });
+        }
+      }
+
       throw createErrorForNextSafeAction(
         ActionErrors.validation(message, { email }),
       );
     }
 
     // Reset lockout state on successful authentication
-    await lockoutService.resetAttempts(email);
+    await lockoutService.resetAttempts(email.toLowerCase());
 
     // Ensure onboarding record exists
     try {

@@ -107,13 +107,13 @@ export class AccountLockoutService {
       const attemptsKey = `lockout:${email}:attempts`;
       const lockedKey = `lockout:${email}:locked`;
 
-      // Increment attempt counter, setting TTL on first attempt
-      const currentRaw = await client.get(attemptsKey);
-      const current =
-        currentRaw !== null ? parseInt(String(currentRaw), 10) : 0;
-      const newCount = current + 1;
+      // Atomically increment attempt counter to prevent race conditions
+      const newCount = await client.incr(attemptsKey);
 
-      await client.setex(attemptsKey, LOCKOUT_WINDOW_SECONDS, String(newCount));
+      // Set TTL on first attempt (INCR creates the key if it doesn't exist)
+      if (newCount === 1) {
+        await client.expire(attemptsKey, LOCKOUT_WINDOW_SECONDS);
+      }
 
       if (newCount >= MAX_FAILED_ATTEMPTS) {
         await client.setex(lockedKey, LOCKOUT_WINDOW_SECONDS, "1");

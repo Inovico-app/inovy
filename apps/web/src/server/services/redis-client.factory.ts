@@ -14,17 +14,18 @@ export interface RedisClient {
   mget(...keys: string[]): Promise<(string | null)[]>;
   zadd(
     key: string,
-    scoreOrOpts: { score: number; member: string }
+    scoreOrOpts: { score: number; member: string },
   ): Promise<unknown>;
   zcard(key: string): Promise<number>;
   zrange(
     key: string,
     start: number,
     stop: number,
-    opts?: { withScores: boolean }
+    opts?: { withScores: boolean },
   ): Promise<unknown[]>;
   zremrangebyscore(key: string, min: number, max: number): Promise<unknown>;
   expire(key: string, seconds: number): Promise<unknown>;
+  incr(key: string): Promise<number>;
   incrbyfloat(key: string, increment: number): Promise<unknown>;
 }
 
@@ -36,9 +37,10 @@ let _clientPromise: Promise<RedisClient | null> | null = null;
  */
 export function createRedisClient(): Promise<RedisClient | null> {
   if (!_clientPromise) {
-    _clientPromise = platform === "azure"
-      ? createIoRedisClient()
-      : Promise.resolve(createUpstashClient());
+    _clientPromise =
+      platform === "azure"
+        ? createIoRedisClient()
+        : Promise.resolve(createUpstashClient());
   }
   return _clientPromise;
 }
@@ -125,6 +127,7 @@ async function createIoRedisClient(): Promise<RedisClient | null> {
       zremrangebyscore: (key, min, max) =>
         ioredis.zremrangebyscore(key, min, max),
       expire: (key, seconds) => ioredis.expire(key, seconds),
+      incr: (key) => ioredis.incr(key),
       incrbyfloat: (key, increment) => ioredis.incrbyfloat(key, increment),
     };
   } catch (error) {
@@ -135,4 +138,3 @@ async function createIoRedisClient(): Promise<RedisClient | null> {
     return null;
   }
 }
-
