@@ -72,7 +72,6 @@ export function InvitationAcceptForm({
               <Button
                 onClick={onAccept}
                 disabled={isAccepting}
-                isLoading={isAccepting}
                 className="flex-1"
               >
                 {isAccepting ? "Accepteren..." : "Uitnodiging accepteren"}

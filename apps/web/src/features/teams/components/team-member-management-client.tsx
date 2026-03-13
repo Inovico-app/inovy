@@ -171,11 +171,9 @@ export function TeamMemberManagementClient({
         </div>
 
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <UserPlusIcon className="mr-2 h-4 w-4" />
-              Add Member
-            </Button>
+          <DialogTrigger render={<Button />}>
+            <UserPlusIcon className="mr-2 h-4 w-4" />
+            Add Member
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -188,7 +186,7 @@ export function TeamMemberManagementClient({
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="user-select">User</Label>
-                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                <Select value={selectedUserId} onValueChange={(value) => setSelectedUserId(value ?? "")}>
                   <SelectTrigger id="user-select">
                     <SelectValue placeholder="Select a user" />
                   </SelectTrigger>
@@ -210,7 +208,7 @@ export function TeamMemberManagementClient({
 
               <div className="space-y-2">
                 <Label htmlFor="role-select">Role</Label>
-                <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value ?? "member")}>
                   <SelectTrigger id="role-select">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>

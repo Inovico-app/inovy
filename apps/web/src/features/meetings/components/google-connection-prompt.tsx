@@ -44,8 +44,8 @@ export function GoogleConnectionPrompt() {
             <Button className="flex-1" onClick={() => setShowDialog(true)}>
               Connect Google Calendar
             </Button>
-            <Button variant="outline" asChild className="flex-1">
-              <Link href="/settings/integrations">Manage Integrations</Link>
+            <Button variant="outline" render={<Link href="/settings/integrations" />} nativeButton={false} className="flex-1">
+              Manage Integrations
             </Button>
           </div>
         </CardContent>

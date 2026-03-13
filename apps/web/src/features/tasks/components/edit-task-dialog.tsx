@@ -102,10 +102,8 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
         }
       }}
     >
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm">
-          <Edit2 className="h-4 w-4" />
-        </Button>
+      <DialogTrigger render={<Button variant="ghost" size="sm" />}>
+        <Edit2 className="h-4 w-4" />
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
@@ -158,7 +156,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
                 </Label>
                 <Select
                   value={priority}
-                  onValueChange={(value) => setPriority(value as TaskPriority)}
+                  onValueChange={(value) => value && setPriority(value as TaskPriority)}
                 >
                   <SelectTrigger id="priority">
                     <SelectValue placeholder="Select priority" />
@@ -179,7 +177,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
                 </Label>
                 <Select
                   value={status}
-                  onValueChange={(value) => setStatus(value as TaskStatus)}
+                  onValueChange={(value) => value && setStatus(value as TaskStatus)}
                 >
                   <SelectTrigger id="status">
                     <SelectValue placeholder="Select status" />
@@ -200,7 +198,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
               <Select
                 value={assigneeId ?? "unassigned"}
                 onValueChange={(value) =>
-                  setAssigneeId(value === "unassigned" ? null : value)
+                  setAssigneeId(value === "unassigned" || value === null ? null : value)
                 }
                 disabled={membersLoading}
               >

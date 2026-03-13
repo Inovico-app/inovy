@@ -116,7 +116,7 @@ export function RecordPageClient({
               </Label>
               <Select
                 value={selectedProjectId}
-                onValueChange={setSelectedProjectId}
+                onValueChange={(value) => setSelectedProjectId(value ?? "")}
               >
                 <SelectTrigger
                   id="project-select"

@@ -44,16 +44,9 @@ export function MeetingSettingsMenu({
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          aria-label="Open meeting settings"
-          className="shrink-0 gap-2"
-        >
-          <Settings2 className="h-4 w-4" />
-          <span className="hidden sm:inline">Settings</span>
-        </Button>
+      <PopoverTrigger render={<Button variant="outline" size="sm" aria-label="Open meeting settings" className="shrink-0 gap-2" />}>
+        <Settings2 className="h-4 w-4" />
+        <span className="hidden sm:inline">Settings</span>
       </PopoverTrigger>
       <PopoverContent
         className="w-96"

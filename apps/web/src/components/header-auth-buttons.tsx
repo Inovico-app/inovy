@@ -94,18 +94,16 @@ export function HeaderAuthButtons() {
 
     return (
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-            <Avatar className="h-9 w-9">
-              <AvatarImage
-                src={user.image ?? undefined}
-                alt={user.email ?? "User"}
-              />
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-          </Button>
+        <DropdownMenuTrigger render={<Button variant="ghost" className="relative h-9 w-9 rounded-full" />}>
+          <Avatar className="h-9 w-9">
+            <AvatarImage
+              src={user.image ?? undefined}
+              alt={user.email ?? "User"}
+            />
+            <AvatarFallback>{initials}</AvatarFallback>
+          </Avatar>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" forceMount>
+        <DropdownMenuContent align="end">
           <DropdownMenuLabel className="font-normal">
             <div className="flex justify-between gap-4 items-center">
               <div className="flex flex-col gap-2">
@@ -122,26 +120,20 @@ export function HeaderAuthButtons() {
           <DropdownMenuSeparator />
           {isAdmin && (
             <>
-              <DropdownMenuItem asChild>
-                <Link href="/admin" className="cursor-pointer">
-                  <Shield className="mr-2 h-4 w-4" />
-                  <span>Admin Panel</span>
-                </Link>
+              <DropdownMenuItem render={<Link href="/admin" className="cursor-pointer" />}>
+                <Shield className="mr-2 h-4 w-4" />
+                <span>Admin Panel</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </>
           )}
-          <DropdownMenuItem asChild>
-            <Link href="/settings/profile" className="cursor-pointer">
-              <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
-            </Link>
+          <DropdownMenuItem render={<Link href="/settings/profile" className="cursor-pointer" />}>
+            <User className="mr-2 h-4 w-4" />
+            <span>Profile</span>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/settings" className="cursor-pointer">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-            </Link>
+          <DropdownMenuItem render={<Link href="/settings" className="cursor-pointer" />}>
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

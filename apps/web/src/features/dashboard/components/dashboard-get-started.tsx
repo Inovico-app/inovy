@@ -13,8 +13,8 @@ export function DashboardGetStarted() {
     {
       label: "Create your first project to organize recordings",
       action: (
-        <Button size="sm" asChild>
-          <Link href="/projects/create">Create Project</Link>
+        <Button size="sm" render={<Link href="/projects/create" />} nativeButton={false}>
+          Create Project
         </Button>
       ),
     },

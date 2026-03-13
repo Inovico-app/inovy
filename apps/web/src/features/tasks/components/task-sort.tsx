@@ -40,11 +40,9 @@ export function TaskSort({ sortBy, sortOrder, onSortChange }: TaskSortProps) {
     <div className="flex items-center gap-2">
       <span className="text-sm text-muted-foreground">Sort by:</span>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8">
-            <ArrowUpDown className="h-3 w-3 mr-2" />
-            {currentSortLabel}
-          </Button>
+        <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="h-8" />}>
+          <ArrowUpDown className="h-3 w-3 mr-2" />
+          {currentSortLabel}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
           <DropdownMenuLabel>Sort by</DropdownMenuLabel>

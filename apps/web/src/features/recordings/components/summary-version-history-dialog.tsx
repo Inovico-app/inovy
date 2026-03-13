@@ -27,11 +27,9 @@ export function SummaryVersionHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" title="View version history">
-          <History className="h-4 w-4 mr-2" />
-          History
-        </Button>
+      <DialogTrigger render={<Button variant="ghost" size="sm" title="View version history" />}>
+        <History className="h-4 w-4 mr-2" />
+        History
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>

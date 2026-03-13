@@ -126,7 +126,7 @@ export function BotStatusBadge({
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>{badge}</TooltipTrigger>
+      <TooltipTrigger render={badge} />
       <TooltipContent sideOffset={4}>{tooltipContent}</TooltipContent>
     </Tooltip>
   );

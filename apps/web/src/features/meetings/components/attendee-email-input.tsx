@@ -74,47 +74,45 @@ export function AttendeeEmailInput({
       onOpenChange={setEmailSuggestionsOpen}
     >
       <div className="flex gap-2">
-        <PopoverTrigger asChild>
-          <div className="flex-1 relative">
-            <Input
-              type="email"
-              placeholder="Enter email address"
-              value={value}
-              onChange={(e) => {
-                onChange(e.target.value);
-                setEmailSuggestionsOpen(e.target.value.trim().length > 0);
-                if (emailError) {
-                  setEmailError(null);
-                }
-              }}
-              aria-invalid={emailError ? "true" : "false"}
-              aria-describedby={emailError ? "email-error" : undefined}
-              onFocus={() => {
-                if (value.trim().length > 0 && emailSuggestions.length > 0) {
-                  setEmailSuggestionsOpen(true);
-                }
-              }}
-              onBlur={() => {
-                // Delay closing to allow for clicks on suggestions
-                setTimeout(() => setEmailSuggestionsOpen(false), 200);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAdd();
-                  setEmailSuggestionsOpen(false);
-                } else if (e.key === "Escape") {
-                  setEmailSuggestionsOpen(false);
-                }
-              }}
-              disabled={disabled}
-            />
-            {emailError && (
-              <p id="email-error" className="text-sm text-destructive mt-1">
-                {emailError}
-              </p>
-            )}
-          </div>
+        <PopoverTrigger render={<div className="flex-1 relative" />} nativeButton={false}>
+          <Input
+            type="email"
+            placeholder="Enter email address"
+            value={value}
+            onChange={(e) => {
+              onChange(e.target.value);
+              setEmailSuggestionsOpen(e.target.value.trim().length > 0);
+              if (emailError) {
+                setEmailError(null);
+              }
+            }}
+            aria-invalid={emailError ? "true" : "false"}
+            aria-describedby={emailError ? "email-error" : undefined}
+            onFocus={() => {
+              if (value.trim().length > 0 && emailSuggestions.length > 0) {
+                setEmailSuggestionsOpen(true);
+              }
+            }}
+            onBlur={() => {
+              // Delay closing to allow for clicks on suggestions
+              setTimeout(() => setEmailSuggestionsOpen(false), 200);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAdd();
+                setEmailSuggestionsOpen(false);
+              } else if (e.key === "Escape") {
+                setEmailSuggestionsOpen(false);
+              }
+            }}
+            disabled={disabled}
+          />
+          {emailError && (
+            <p id="email-error" className="text-sm text-destructive mt-1">
+              {emailError}
+            </p>
+          )}
         </PopoverTrigger>
         <PopoverContent
           className="w-[var(--radix-popover-trigger-width)] p-0"

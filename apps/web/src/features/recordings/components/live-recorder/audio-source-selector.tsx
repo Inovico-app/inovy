@@ -24,7 +24,7 @@ export function AudioSourceSelector({
   isSystemAudioSupported,
   disabled = false,
 }: AudioSourceSelectorProps) {
-  const handleValueChange = (value: string) => {
+  const handleValueChange = (value: string | null) => {
     if (value === "microphone" || value === "system" || value === "both") {
       onAudioSourceChange(value as AudioSourceType);
     }

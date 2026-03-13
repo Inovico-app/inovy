@@ -50,17 +50,13 @@ export function DashboardGreeting({
         </p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        <Button size="sm" variant="secondary" asChild>
-          <Link href="/chat">
-            <BotMessageSquareIcon className="mr-1.5 h-3.5 w-3.5" />
-            Ask AI
-          </Link>
+        <Button size="sm" variant="secondary" render={<Link href="/chat" />} nativeButton={false}>
+          <BotMessageSquareIcon className="mr-1.5 h-3.5 w-3.5" />
+          Ask AI
         </Button>
-        <Button size="default" asChild>
-          <Link href="/record">
-            <MicIcon className="mr-1.5 h-4 w-4" />
-            New Recording
-          </Link>
+        <Button size="default" render={<Link href="/record" />} nativeButton={false}>
+          <MicIcon className="mr-1.5 h-4 w-4" />
+          New Recording
         </Button>
       </div>
     </div>

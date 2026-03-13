@@ -135,7 +135,7 @@ export function PIIRedaction({
 
         {(isDetectingPII || isLoadingRedactions) && (
           <div className="space-y-2">
-            <Progress value={undefined} className="w-full" />
+            <Progress value={null} className="w-full" />
             <p className="text-sm text-muted-foreground">
               {isDetectingPII ? "PII detecteren..." : "Redacties laden..."}
             </p>

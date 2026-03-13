@@ -99,7 +99,7 @@ export function BotDetailsSection({
               <Select
                 value={botSession.projectId ?? ""}
                 onValueChange={(projectId) =>
-                  onProjectChange(botSession.id, projectId)
+                  projectId && onProjectChange(botSession.id, projectId)
                 }
                 disabled={isUpdatingProject || isLoadingProjects}
               >

@@ -103,9 +103,10 @@ export function AgendaBuilder({
         {templates.length > 0 && (
           <Select
             onValueChange={(templateId) => {
+              if (!templateId) return;
               applyTemplate({
                 meetingId,
-                templateId,
+                templateId: templateId as string,
                 replaceExisting: items.length === 0,
               });
             }}

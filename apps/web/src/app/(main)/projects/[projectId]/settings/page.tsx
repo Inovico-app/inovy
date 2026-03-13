@@ -59,11 +59,9 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild className="gap-2">
-            <Link href={`/projects/${projectId}`}>
-              <ArrowLeftIcon className="h-4 w-4" />
-              Back to Project
-            </Link>
+          <Button variant="ghost" size="sm" className="gap-2" render={<Link href={`/projects/${projectId}`} />} nativeButton={false}>
+            <ArrowLeftIcon className="h-4 w-4" />
+            Back to Project
           </Button>
           <div className="flex-1">
             <div className="flex items-center gap-2">

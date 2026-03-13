@@ -135,11 +135,9 @@ export function BotSessionCard({
               onOpenChange={setShowDetailsModal}
             />
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="flex-shrink-0">
-                  <MoreVerticalIcon className="h-4 w-4" />
-                  <span className="sr-only">More actions</span>
-                </Button>
+              <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="flex-shrink-0" />}>
+                <MoreVerticalIcon className="h-4 w-4" />
+                <span className="sr-only">More actions</span>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem onClick={() => setShowDetailsModal(true)}>
@@ -147,12 +145,10 @@ export function BotSessionCard({
                   View Details
                 </DropdownMenuItem>
                 {hasRecording && (
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={`/projects/${session.projectId}/recordings/${session.recordingId}`}
-                    >
-                      View Recording
-                    </Link>
+                  <DropdownMenuItem
+                    render={<Link href={`/projects/${session.projectId}/recordings/${session.recordingId}`} />}
+                  >
+                    View Recording
                   </DropdownMenuItem>
                 )}
                 {(canCancel || canRetry) && <DropdownMenuSeparator />}

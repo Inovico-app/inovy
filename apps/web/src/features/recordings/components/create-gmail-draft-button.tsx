@@ -67,11 +67,9 @@ export function CreateGmailDraftButton({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant={variant} size={size}>
-          <Mail className="h-4 w-4" />
-          {showLabel && <span className="ml-2">Create Email Draft</span>}
-        </Button>
+      <DialogTrigger render={<Button variant={variant} size={size} />}>
+        <Mail className="h-4 w-4" />
+        {showLabel && <span className="ml-2">Create Email Draft</span>}
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
@@ -157,13 +155,12 @@ export function CreateGmailDraftButton({
                 <Button
                   variant="outline"
                   size="sm"
-                  asChild
+                  render={<a href={draftUrl} target="_blank" rel="noopener noreferrer" />}
+                  nativeButton={false}
                   className="gap-2"
                 >
-                  <a href={draftUrl} target="_blank" rel="noopener noreferrer">
-                    Open in Gmail
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
+                  Open in Gmail
+                  <ExternalLink className="h-3 w-3" />
                 </Button>
               </div>
             </div>

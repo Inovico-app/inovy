@@ -34,11 +34,9 @@ async function UploadRecordingContent({ params }: UploadRecordingPageProps) {
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
         <div>
-          <Button variant="ghost" size="sm" asChild className="mb-4">
-            <Link href={`/projects/${projectId}` as Route}>
-              <ArrowLeftIcon className="h-4 w-4 mr-2" />
-              Back to Project
-            </Link>
+          <Button variant="ghost" size="sm" className="mb-4" render={<Link href={`/projects/${projectId}` as Route} />} nativeButton={false}>
+            <ArrowLeftIcon className="h-4 w-4 mr-2" />
+            Back to Project
           </Button>
 
           <h1 className="text-3xl font-bold">Opname toevoegen</h1>

@@ -34,14 +34,13 @@ export async function RecordingList({
             : "No recordings yet"}
         </p>
         {!isArchived && (
-          <Button variant="outline" asChild>
-            <Link
-              href={`/record?projectId=${encodeURIComponent(projectId)}`}
-              className="inline-flex items-center gap-2"
-            >
-              <MicIcon className="h-4 w-4" />
-              Start Live Recording
-            </Link>
+          <Button
+            variant="outline"
+            render={<Link href={`/record?projectId=${encodeURIComponent(projectId)}`} className="inline-flex items-center gap-2" />}
+            nativeButton={false}
+          >
+            <MicIcon className="h-4 w-4" />
+            Start Live Recording
           </Button>
         )}
       </div>

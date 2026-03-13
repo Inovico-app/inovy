@@ -97,7 +97,7 @@ export function ChangeUtteranceSpeakerDialog({
             </label>
             <Select
               value={selectedSpeaker.toString()}
-              onValueChange={(value) => setSelectedSpeaker(parseInt(value, 10))}
+              onValueChange={(value) => value && setSelectedSpeaker(parseInt(value, 10))}
               disabled={isUpdating}
             >
               <SelectTrigger

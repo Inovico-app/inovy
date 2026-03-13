@@ -47,7 +47,7 @@ export function ChatContextSelector({
   };
 
   return (
-    <Select value={currentValue} onValueChange={handleValueChange}>
+    <Select value={currentValue} onValueChange={(value) => value && handleValueChange(value)}>
       <SelectTrigger className="w-[280px]">
         <SelectValue placeholder="Select context..." />
       </SelectTrigger>

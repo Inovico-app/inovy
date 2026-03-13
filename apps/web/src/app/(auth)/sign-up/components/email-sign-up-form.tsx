@@ -150,7 +150,6 @@ export function EmailSignUpForm({
                 type="submit"
                 className="flex-1"
                 disabled={isLoading}
-                isLoading={isSigningUp}
               >
                 Registreren
               </Button>

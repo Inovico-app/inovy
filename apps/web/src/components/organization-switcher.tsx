@@ -157,10 +157,8 @@ export function OrganizationSwitcher({
     if (collapsed) {
       return (
         <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex justify-center px-2 py-2">
-              {triggerContent}
-            </div>
+          <TooltipTrigger render={<div className="flex justify-center px-2 py-2" />}>
+            {triggerContent}
           </TooltipTrigger>
           <TooltipContent side="right">
             <p>{activeOrganization.name}</p>
@@ -185,24 +183,26 @@ export function OrganizationSwitcher({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            "w-full text-left outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg",
-            collapsed && "flex justify-center"
-          )}
-          aria-expanded={open}
-          aria-haspopup="listbox"
-          aria-label={`Switch organization. Current: ${activeOrganization.name}`}
-          title={
-            collapsed
-              ? `${activeOrganization.name}. Click to switch.`
-              : undefined
-          }
-        >
-          {triggerContent}
-        </button>
+      <PopoverTrigger
+        render={
+          <button
+            type="button"
+            className={cn(
+              "w-full text-left outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg",
+              collapsed && "flex justify-center"
+            )}
+            aria-expanded={open}
+            aria-haspopup="listbox"
+            aria-label={`Switch organization. Current: ${activeOrganization.name}`}
+            title={
+              collapsed
+                ? `${activeOrganization.name}. Click to switch.`
+                : undefined
+            }
+          />
+        }
+      >
+        {triggerContent}
       </PopoverTrigger>
       <PopoverContent
         className="min-w-64 w-[var(--radix-popover-trigger-width)] p-0"

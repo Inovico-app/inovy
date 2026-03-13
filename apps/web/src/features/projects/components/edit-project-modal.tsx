@@ -57,11 +57,9 @@ export function EditProjectModal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant={variant} size="sm">
-          <PencilIcon className="h-4 w-4 mr-2" />
-          Edit Project
-        </Button>
+      <DialogTrigger render={<Button variant={variant} size="sm" />}>
+        <PencilIcon className="h-4 w-4 mr-2" />
+        Edit Project
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>

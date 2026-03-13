@@ -1,7 +1,7 @@
 "use client";
 
 import { PlusIcon } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "../../../components/ui/button";
 import {
   Dialog,
@@ -58,12 +58,12 @@ export function UploadRecordingModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button variant="outline">
+      <DialogTrigger render={React.isValidElement(trigger) ? trigger : <Button variant="outline" />}>
+        {React.isValidElement(trigger) ? null : (
+          <>
             <PlusIcon className="size-4 mr-2" />
             New Recording
-          </Button>
+          </>
         )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">

@@ -222,14 +222,13 @@ export function GoogleStatusDashboard() {
                     {getStatusBadge(action.status)}
 
                     {action.status === "completed" && action.externalUrl && (
-                      <Button variant="ghost" size="sm" asChild>
-                        <a
-                          href={action.externalUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        render={<a href={action.externalUrl} target="_blank" rel="noopener noreferrer" />}
+                        nativeButton={false}
+                      >
+                        <ExternalLink className="h-4 w-4" />
                       </Button>
                     )}
 

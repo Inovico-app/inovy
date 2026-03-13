@@ -84,11 +84,11 @@ export function InvitationNotAuthenticated({
             </Alert>
 
             <div className="flex gap-2">
-              <Button asChild variant="outline" className="flex-1">
-                <Link href={signInUrl as Route}>Inloggen</Link>
+              <Button variant="outline" className="flex-1" render={<Link href={signInUrl as Route} />} nativeButton={false}>
+                Inloggen
               </Button>
-              <Button asChild className="flex-1">
-                <Link href={signUpUrl as Route}>Account aanmaken</Link>
+              <Button className="flex-1" render={<Link href={signUpUrl as Route} />} nativeButton={false}>
+                Account aanmaken
               </Button>
             </div>
           </CardContent>

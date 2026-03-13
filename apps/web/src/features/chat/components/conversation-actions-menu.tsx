@@ -1,5 +1,6 @@
 "use client";
 
+import type React from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,7 +73,7 @@ export function ConversationActionsMenu({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+        <DropdownMenuTrigger render={trigger as React.ReactElement} />
         <DropdownMenuContent align="end">
           {!isDeleted && (
             <>

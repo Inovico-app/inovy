@@ -72,11 +72,9 @@ export function ExportTranscriptionButton({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" title="Exporteer transcriptie">
-          <Download className="h-4 w-4 mr-1" />
-          Exporteren
-        </Button>
+      <DropdownMenuTrigger render={<Button variant="ghost" size="sm" title="Exporteer transcriptie" />}>
+        <Download className="h-4 w-4 mr-1" />
+        Exporteren
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={handleExportText}>

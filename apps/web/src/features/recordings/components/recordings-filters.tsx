@@ -95,11 +95,9 @@ export function RecordingsFilters({
               Projects
             </h3>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full justify-between">
-                  <span className="text-sm">{buttonText}</span>
-                  <ChevronDown className="h-4 w-4 opacity-50" />
-                </Button>
+              <DropdownMenuTrigger render={<Button variant="outline" className="w-full justify-between" />}>
+                <span className="text-sm">{buttonText}</span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="start">
                 <DropdownMenuLabel>Select Projects</DropdownMenuLabel>

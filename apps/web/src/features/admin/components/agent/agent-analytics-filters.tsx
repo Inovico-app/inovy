@@ -196,7 +196,7 @@ export function AgentAnalyticsFilters({
         <Select
           value={selectedUserId || "all"}
           onValueChange={(value) =>
-            setSelectedUserId(value === "all" ? "" : value)
+            setSelectedUserId(value === "all" ? "" : (value ?? ""))
           }
           disabled={
             isSuperAdmin &&

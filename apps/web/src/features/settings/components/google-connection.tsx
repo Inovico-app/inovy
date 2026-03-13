@@ -217,13 +217,11 @@ export function GoogleConnection() {
         <div className="flex gap-2">
           {status.connected ? (
             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={disconnecting}>
-                  {disconnecting && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Disconnect
-                </Button>
+              <AlertDialogTrigger render={<Button variant="destructive" disabled={disconnecting} />}>
+                {disconnecting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Disconnect
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>

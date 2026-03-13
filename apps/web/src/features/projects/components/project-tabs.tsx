@@ -10,7 +10,7 @@ export function ProjectTabs() {
   });
 
   return (
-    <Tabs value={status} onValueChange={setStatus} className="w-full">
+    <Tabs value={status} onValueChange={(value) => setStatus(value as string)} className="w-full">
       <TabsList>
         <TabsTrigger value="active">Active Projects</TabsTrigger>
         <TabsTrigger value="archived">Archived Projects</TabsTrigger>

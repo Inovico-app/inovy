@@ -162,8 +162,8 @@ async function ProfileContent() {
 
       {/* Actions */}
       <div className="flex gap-3">
-        <Button asChild>
-          <Link href="/settings/profile/edit">Edit Profile</Link>
+        <Button render={<Link href="/settings/profile/edit" />} nativeButton={false}>
+          Edit Profile
         </Button>
       </div>
     </div>

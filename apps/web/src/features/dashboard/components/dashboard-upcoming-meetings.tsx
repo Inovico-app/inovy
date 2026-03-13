@@ -104,26 +104,20 @@ function MeetingCard({
             size={isNext ? "default" : "sm"}
             variant={isNext ? "default" : "outline"}
             className="shrink-0"
-            asChild
+            render={<a href={meeting.meetingUrl} target="_blank" rel="noopener noreferrer" aria-label={`Join ${meeting.title}`} />}
+            nativeButton={false}
           >
-            <a
-              href={meeting.meetingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`Join ${meeting.title}`}
-            >
-              {isNext ? (
-                <>
-                  <VideoIcon className="mr-1.5 h-4 w-4" />
-                  Join Meeting
-                </>
-              ) : (
-                <>
-                  Join
-                  <ExternalLinkIcon className="ml-1 h-3 w-3" />
-                </>
-              )}
-            </a>
+            {isNext ? (
+              <>
+                <VideoIcon className="mr-1.5 h-4 w-4" />
+                Join Meeting
+              </>
+            ) : (
+              <>
+                Join
+                <ExternalLinkIcon className="ml-1 h-3 w-3" />
+              </>
+            )}
           </Button>
         )}
       </div>

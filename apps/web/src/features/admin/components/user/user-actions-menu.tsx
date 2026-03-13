@@ -113,11 +113,9 @@ export function UserActionsMenu({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <MoreVerticalIcon className="h-4 w-4" />
-            <span className="sr-only">Open menu</span>
-          </Button>
+        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
+          <MoreVerticalIcon className="h-4 w-4" />
+          <span className="sr-only">Open menu</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
@@ -174,7 +172,7 @@ export function UserActionsMenu({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4">
-            <Select value={selectedRole} onValueChange={setSelectedRole}>
+            <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value ?? currentRole)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>

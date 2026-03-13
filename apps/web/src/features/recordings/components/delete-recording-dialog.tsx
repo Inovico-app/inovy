@@ -94,30 +94,26 @@ export function DeleteRecordingDialog({
 
   return (
     <Dialog open>
-      <DialogTrigger asChild>
-        <Button variant={variant} size="sm">
-          <Trash2Icon className="h-4 w-4 mr-2" />
-          Delete
-        </Button>
+      <DialogTrigger render={<Button variant={variant} size="sm" />}>
+        <Trash2Icon className="h-4 w-4 mr-2" />
+        Delete
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="text-destructive">
             Delete Recording Permanently?
           </DialogTitle>
-          <DialogDescription asChild className="space-y-2">
-            <div>
-              <p className="font-medium">
-                This action <strong>CANNOT</strong> be undone. This will
-                permanently delete:
-              </p>
-              <ul className="list-disc list-inside pl-2 space-y-1">
-                <li>The recording file from storage</li>
-                <li>All transcriptions</li>
-                <li>All AI-generated summaries</li>
-                <li>All extracted action items and tasks</li>
-              </ul>
-            </div>
+          <DialogDescription className="space-y-2">
+            <p className="font-medium">
+              This action <strong>CANNOT</strong> be undone. This will
+              permanently delete:
+            </p>
+            <ul className="list-disc list-inside pl-2 space-y-1">
+              <li>The recording file from storage</li>
+              <li>All transcriptions</li>
+              <li>All AI-generated summaries</li>
+              <li>All extracted action items and tasks</li>
+            </ul>
           </DialogDescription>
         </DialogHeader>
 

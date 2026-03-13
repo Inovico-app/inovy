@@ -35,19 +35,15 @@ export function RecordingActionsDropdown({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline">
-            <PlusIcon className="h-4 w-4 mr-2" />
-            New Recording
-          </Button>
+        <DropdownMenuTrigger render={<Button variant="outline" />}>
+          <PlusIcon className="h-4 w-4 mr-2" />
+          New Recording
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           {/* Live Recording */}
-          <DropdownMenuItem asChild>
-            <Link href={`/record?projectId=${encodeURIComponent(projectId)}`}>
-              <MicIcon className="h-4 w-4 mr-2" />
-              Live
-            </Link>
+          <DropdownMenuItem render={<Link href={`/record?projectId=${encodeURIComponent(projectId)}`} />}>
+            <MicIcon className="h-4 w-4 mr-2" />
+            Live
           </DropdownMenuItem>
 
           {/* Upload Recording */}

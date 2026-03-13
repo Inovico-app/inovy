@@ -45,13 +45,8 @@ export function CalendarEventItem({
         {meeting.isOrganizer === false && (
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge
-                  variant="secondary"
-                  className="shrink-0 text-[10px] px-1.5 py-0"
-                >
-                  Invited
-                </Badge>
+              <TooltipTrigger render={<Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0" />}>
+                Invited
               </TooltipTrigger>
               <TooltipContent>You were invited to this meeting</TooltipContent>
             </Tooltip>
@@ -149,10 +144,8 @@ export function CalendarEventItem({
           {meeting.isOrganizer === false && (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="secondary" className="shrink-0">
-                    Invited
-                  </Badge>
+                <TooltipTrigger render={<Badge variant="secondary" className="shrink-0" />}>
+                  Invited
                 </TooltipTrigger>
                 <TooltipContent>
                   You were invited to this meeting

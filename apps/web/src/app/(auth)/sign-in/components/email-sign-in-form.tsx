@@ -159,8 +159,7 @@ export function EmailSignInForm({
               <Button
                 type="submit"
                 className="flex-1"
-                disabled={isLoading}
-                isLoading={isSigningIn}
+                disabled={isLoading || isSigningIn}
               >
                 Inloggen
               </Button>
