@@ -92,6 +92,9 @@ export const CacheTags = {
   // Drive Watch tags
   driveWatches: (userId: string) => `drive-watches:user:${userId}`,
 
+  // Google Connection tags
+  googleConnection: (userId: string) => `google-connection-${userId}`,
+
   // Bot Settings tags
   // Note: Uses organizationId (UUID) instead of orgCode (slug) for consistency with bot settings schema
   botSettings: (userId: string, organizationId: string) =>
