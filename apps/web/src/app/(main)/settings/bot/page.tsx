@@ -1,33 +1,9 @@
-import { ProtectedPage } from "@/components/protected-page";
+import { PageHeader } from "@/components/page-header";
 import { BotSettingsContent } from "@/features/bot/components/bot-settings-content";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger, serializeError } from "@/lib/logger";
 import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
 import { Suspense } from "react";
-
-function BotSettingsLoading() {
-  return (
-    <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
-      <div className="max-w-4xl space-y-6">
-        <div className="space-y-2">
-          <div className="h-9 w-64 bg-muted rounded animate-pulse" />
-          <div className="h-5 w-96 bg-muted rounded animate-pulse" />
-        </div>
-        <div className="h-64 bg-muted rounded animate-pulse" />
-        <div className="h-96 bg-muted rounded animate-pulse" />
-      </div>
-    </div>
-  );
-}
-
-function BotSettingsContentLoading() {
-  return (
-    <div className="space-y-6">
-      <div className="h-64 bg-muted rounded animate-pulse" />
-      <div className="h-96 bg-muted rounded animate-pulse" />
-    </div>
-  );
-}
 
 async function BotSettingsContentWrapper() {
   const authResult = await getBetterAuthSession();
@@ -42,8 +18,7 @@ async function BotSettingsContentWrapper() {
     );
   }
 
-  const user = authResult.value.user;
-  const organization = authResult.value.organization;
+  const { user, organization } = authResult.value;
 
   if (!organization) {
     return (
@@ -77,24 +52,20 @@ async function BotSettingsContentWrapper() {
 
 export default function BotSettingsPage() {
   return (
-    <Suspense fallback={<BotSettingsLoading />}>
-      <ProtectedPage>
-        <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
-          <div className="max-w-4xl space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold">Bot Settings</h1>
-              <p className="text-muted-foreground mt-2">
-                Configure your meeting bot preferences and manage recording
-                consent
-              </p>
-            </div>
-            <Suspense fallback={<BotSettingsContentLoading />}>
-              <BotSettingsContentWrapper />
-            </Suspense>
+    <>
+      <PageHeader
+        title="Bot Settings"
+        description="Configure your meeting bot preferences and manage recording consent"
+      />
+      <Suspense
+        fallback={
+          <div className="space-y-6">
+            <div className="h-64 bg-muted rounded animate-pulse" />
           </div>
-        </div>
-      </ProtectedPage>
-    </Suspense>
+        }
+      >
+        <BotSettingsContentWrapper />
+      </Suspense>
+    </>
   );
 }
-
