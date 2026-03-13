@@ -1,6 +1,6 @@
 import { ProtectedPage } from "@/components/protected-page";
 import { SettingsNav } from "@/features/settings/components/settings-nav";
-import { SettingsSidebar } from "@/features/settings/components/settings-sidebar";
+import { SettingsSidebarDynamic } from "@/features/settings/components/settings-sidebar-dynamic";
 import { Suspense, type ReactNode } from "react";
 
 interface SettingsLayoutProps {
@@ -14,7 +14,7 @@ export default async function SettingsLayout({
     <ProtectedPage>
       <div className="flex h-full min-h-0">
         <Suspense>
-          <SettingsSidebar />
+          <SettingsSidebarDynamic />
         </Suspense>
         <div className="flex flex-col flex-1 min-w-0">
           <Suspense>
