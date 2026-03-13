@@ -1,113 +1,141 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRightIcon } from "lucide-react";
-import type { Route } from "next";
+import { PageHeader } from "@/components/page-header";
+import { OverviewActionItems } from "@/features/settings/components/overview-action-items";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
+import {
+  getCachedKnowledgeDocuments,
+} from "@/server/cache/knowledge-base.cache";
+import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
+import { getCachedGoogleConnectionStatus } from "@/server/cache/google-connection.cache";
+import {
+  OrganizationService,
+} from "@/server/services/organization.service";
+import {
+  BotIcon,
+  BookOpenIcon,
+  LinkIcon,
+  UsersIcon,
+} from "lucide-react";
 import Link from "next/link";
-import { Suspense } from "react";
+import type { Route } from "next";
+import { Suspense, type ReactNode } from "react";
 
-const quickLinks = [
-  {
-    title: "Profile",
-    description: "Manage your personal account information",
-    href: "/settings/profile" as Route,
-  },
-  {
-    title: "Organization",
-    description: "View organization information and members",
-    href: "/settings/organization" as Route,
-  },
-  {
-    title: "Agent",
-    description: "Browse and manage knowledge base documents",
-    href: "/settings/agent" as Route,
-  },
-  {
-    title: "Integrations",
-    description: "Connect and manage third-party services",
-    href: "/settings/integrations" as Route,
-  },
-];
-
-function SettingsDashboard() {
+function StatusDot({ status }: { status: "active" | "pending" | "inactive" }) {
+  const colors = {
+    active: "bg-green-500",
+    pending: "bg-amber-500",
+    inactive: "bg-muted-foreground/40",
+  };
   return (
-    <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
-      <div className="max-w-4xl">
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold">Settings Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
-            Welcome to the settings panel. Select a section above to get
-            started.
-          </p>
-        </div>
+    <span
+      className={`inline-block h-2 w-2 rounded-full ${colors[status]}`}
+      aria-label={status}
+    />
+  );
+}
 
-        <div className="grid gap-4 md:grid-cols-2">
-          {quickLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="group">
-              <Card className="transition-all hover:shadow-md hover:border-primary/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between text-lg">
-                    {link.title}
-                    <ArrowRightIcon className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                  </CardTitle>
-                  <CardDescription>{link.description}</CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
-          ))}
-        </div>
+async function OverviewContent() {
+  const authResult = await getBetterAuthSession();
 
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Getting Started</CardTitle>
-            <CardDescription>
-              Quick tips for managing your settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-3 text-sm">
-              <li className="flex items-start gap-3">
-                <span className="font-semibold text-primary">Profile:</span>
-                <span className="text-muted-foreground">
-                  Update your personal information, email, and account
-                  preferences
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="font-semibold text-primary">
-                  Organization:
-                </span>
-                <span className="text-muted-foreground">
-                  View organization details, manage members, and configure
-                  organization-wide settings
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="font-semibold text-primary">Agent:</span>
-                <span className="text-muted-foreground">
-                  Browse and manage your knowledge base documents, upload new
-                  content, and configure AI agent settings
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="font-semibold text-primary">
-                  Integrations:
-                </span>
-                <span className="text-muted-foreground">
-                  Connect Google Workspace, manage API connections, and
-                  configure third-party service integrations
-                </span>
-              </li>
-            </ul>
-          </CardContent>
-        </Card>
+  if (authResult.isErr() || !authResult.value.user || !authResult.value.organization) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Failed to load settings overview</p>
       </div>
-    </div>
+    );
+  }
+
+  const { user, organization } = authResult.value;
+  const organizationId = organization.id;
+
+  const [membersResult, invitationsResult, botSettings, knowledgeDocs, googleStatus] =
+    await Promise.all([
+      OrganizationService.getOrganizationMembers(organizationId),
+      OrganizationService.getPendingInvitations(organizationId),
+      getCachedBotSettings(user.id, organizationId),
+      getCachedKnowledgeDocuments("organization", organizationId),
+      getCachedGoogleConnectionStatus(user.id),
+    ]);
+
+  const members = membersResult.isOk() ? membersResult.value : [];
+  const invitations = invitationsResult.isOk() ? invitationsResult.value : [];
+  const botEnabled = botSettings.isOk() ? botSettings.value.botEnabled : false;
+  const docCount = knowledgeDocs?.length ?? 0;
+
+  const statusCards: Array<{
+    label: string;
+    value: string;
+    status: "active" | "pending" | "inactive";
+    icon: ReactNode;
+    href: Route;
+  }> = [
+    {
+      label: "Members",
+      value: `${members.length} member${members.length !== 1 ? "s" : ""}${invitations.length > 0 ? ` · ${invitations.length} pending` : ""}`,
+      status: invitations.length > 0 ? "pending" : "active",
+      icon: <UsersIcon className="h-4 w-4 text-muted-foreground" />,
+      href: "/settings/organization?tab=members" as Route,
+    },
+    {
+      label: "Google",
+      value: googleStatus.connected ? "Connected" : "Not connected",
+      status: googleStatus.connected ? "active" : "inactive",
+      icon: <LinkIcon className="h-4 w-4 text-muted-foreground" />,
+      href: "/settings/integrations" as Route,
+    },
+    {
+      label: "Bot",
+      value: botEnabled ? "Enabled" : "Disabled",
+      status: botEnabled ? "active" : "inactive",
+      icon: <BotIcon className="h-4 w-4 text-muted-foreground" />,
+      href: "/settings/bot" as Route,
+    },
+    {
+      label: "Knowledge Base",
+      value: `${docCount} document${docCount !== 1 ? "s" : ""}`,
+      status: docCount > 0 ? "active" : "inactive",
+      icon: <BookOpenIcon className="h-4 w-4 text-muted-foreground" />,
+      href: "/settings/agent" as Route,
+    },
+  ];
+
+  return (
+    <>
+      <PageHeader
+        title="Settings"
+        description="Overview of your workspace configuration"
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {statusCards.map((card) => (
+          <Link key={card.label} href={card.href} className="group">
+            <Card className="transition-colors hover:border-border/80" size="sm">
+              <CardHeader className="flex-row items-center gap-3 pb-1">
+                {card.icon}
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {card.label}
+                </CardTitle>
+                <StatusDot status={card.status} />
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm font-semibold">{card.value}</p>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+
+      <OverviewActionItems
+        pendingInvitations={invitations}
+        googleConnected={googleStatus.connected}
+        botEnabled={botEnabled}
+      />
+    </>
   );
 }
 
@@ -115,30 +143,20 @@ export default function SettingsPage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
-          <div className="max-w-4xl">
-            <div className="mb-10 space-y-4">
-              <Skeleton className="h-9 w-64 animate-pulse" />
-              <Skeleton className="h-5 w-96 animate-pulse" />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Skeleton className="h-24 w-full animate-pulse" />
-              <Skeleton className="h-24 w-full animate-pulse" />
-              <Skeleton className="h-24 w-full animate-pulse" />
-              <Skeleton className="h-24 w-full animate-pulse" />
-            </div>
-            <Card className="mt-6">
-              <Skeleton className="h-12 w-full animate-pulse" />
-              <Skeleton className="h-5 w-96 animate-pulse" />
-              <Skeleton className="h-5 w-96 animate-pulse" />
-              <Skeleton className="h-5 w-96 animate-pulse" />
-            </Card>
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <div className="h-8 w-48 bg-muted rounded animate-pulse" />
+            <div className="h-4 w-72 bg-muted rounded animate-pulse" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-20 bg-muted rounded animate-pulse" />
+            ))}
           </div>
         </div>
       }
     >
-      <SettingsDashboard />
+      <OverviewContent />
     </Suspense>
   );
 }
-
