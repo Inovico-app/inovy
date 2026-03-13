@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
     output: "standalone",
     outputFileTracingRoot: path.join(__dirname, "../../"),
   }),
+  // SSD-24.1.05: Suppress X-Powered-By header to prevent server info leakage
+  poweredByHeader: false,
   typedRoutes: true,
   cacheComponents: true,
   reactCompiler: true,
@@ -45,7 +47,12 @@ const nextConfig: NextConfig = {
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
+          // SSD-33: Disable legacy XSS filter (modern CSP is the replacement)
+          { key: "X-XSS-Protection", value: "0" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // SSD-33: Cross-Origin isolation headers
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
           {
             key: "Strict-Transport-Security",
             value: "max-age=31536000; includeSubDomains",
@@ -68,6 +75,29 @@ const nextConfig: NextConfig = {
               "base-uri 'self'",
               "form-action 'self'",
             ].join("; "),
+          },
+        ],
+      },
+      // SSD-33/SSD-4: Prevent caching of authentication-related pages
+      {
+        source:
+          "/(sign-in|sign-up|forgot-password|reset-password|verify-email|onboarding)(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, no-cache, must-revalidate, proxy-revalidate",
+          },
+          { key: "Pragma", value: "no-cache" },
+          { key: "Expires", value: "0" },
+        ],
+      },
+      // SSD-33: Prevent caching of API responses containing sensitive data
+      {
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, no-cache, must-revalidate",
           },
         ],
       },
@@ -114,4 +144,3 @@ const nextConfig: NextConfig = {
 };
 
 export default withWorkflow(nextConfig);
-

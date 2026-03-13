@@ -25,6 +25,8 @@ export const requestPasswordResetAction = publicActionClient
   .action(async ({ parsedInput }) => {
     const { email } = parsedInput;
 
+    // SSD-5.2.03: Always return the same response regardless of whether
+    // the email exists, to prevent username enumeration during password reset.
     try {
       await auth.api.requestPasswordReset({
         body: {
@@ -33,15 +35,15 @@ export const requestPasswordResetAction = publicActionClient
         },
         headers: await headers(),
       });
-
-      return { success: true, message: "Password reset email sent" };
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Failed to send password reset email";
-      throw ActionErrors.validation(message, { email });
+    } catch {
+      // Silently swallow errors — do not reveal whether the email exists
     }
+
+    return {
+      success: true,
+      message:
+        "If an account with that email exists, a password reset link has been sent.",
+    };
   });
 
 /**
