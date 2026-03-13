@@ -99,7 +99,7 @@ export const admin = ac.newRole({
   chat: ["project", "organization"],
   admin: ["all"],
   orgInstruction: ["read", "write"],
-  deepgram: [], // No deepgram access for admin (superadmin only)
+  deepgram: ["token"],
   setting: ["read", "update"],
   integration: ["manage"],
   team: ["create", "read", "update", "delete"],
@@ -152,7 +152,7 @@ export const viewer = ac.newRole({
   chat: ["project"],
   admin: [], // No admin access
   orgInstruction: ["read"],
-  deepgram: [], // No deepgram access
+  deepgram: ["token"],
   setting: ["read"],
   integration: [], // No integration management
   team: ["read"],
