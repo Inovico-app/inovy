@@ -25,9 +25,16 @@ const isAlwaysPublic = (req: NextRequest) =>
 export default async function proxy(req: NextRequest) {
   const requestId = getRequestId(req.headers);
 
+  // Forward request ID as a request header so downstream server code
+  // can read it via headers().get('x-request-id') for log correlation
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-request-id", requestId);
+
   // Handle CORS for API routes
   if (req.nextUrl.pathname.startsWith("/api/")) {
-    const res = NextResponse.next();
+    const res = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
     res.headers.append("Access-Control-Allow-Credentials", "true");
     const corsOrigin =
       process.env.CORS_ORIGIN ??
@@ -46,8 +53,9 @@ export default async function proxy(req: NextRequest) {
   const publicRoute = isAlwaysPublic(req);
 
   if (publicRoute) {
-    // Early return for public/auth routes
-    const res = NextResponse.next();
+    const res = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
     res.headers.set("x-request-id", requestId);
     return res;
   }
@@ -76,7 +84,9 @@ export default async function proxy(req: NextRequest) {
     return res;
   }
 
-  const res = NextResponse.next();
+  const res = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
   res.headers.set("x-request-id", requestId);
   return res;
 }
