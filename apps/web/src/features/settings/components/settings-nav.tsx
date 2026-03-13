@@ -1,24 +1,18 @@
 "use client";
 
 import { HorizontalNav } from "@/components/horizontal-nav";
-import {
-  BotIcon,
-  Building2Icon,
-  SettingsIcon,
-  UserIcon,
-  VideoIcon,
-} from "lucide-react";
-
-const SETTINGS_NAV_ITEMS = [
-  { href: "/settings/profile", icon: UserIcon, label: "Profile" },
-  { href: "/settings/organization", icon: Building2Icon, label: "Organization" },
-  { href: "/settings/agent", icon: BotIcon, label: "Agent" },
-  { href: "/settings/bot", icon: VideoIcon, label: "Bot" },
-  { href: "/settings/integrations", icon: SettingsIcon, label: "Integrations" },
-];
+import { SETTINGS_NAV_ITEMS } from "@/features/settings/lib/settings-nav-items";
 
 export function SettingsNav() {
+  const items = SETTINGS_NAV_ITEMS.map((item) => ({
+    href: item.href,
+    icon: item.icon,
+    label: item.label,
+  }));
+
   return (
-    <HorizontalNav items={SETTINGS_NAV_ITEMS} ariaLabel="Settings navigation" />
+    <div className="md:hidden">
+      <HorizontalNav items={items} ariaLabel="Settings navigation" />
+    </div>
   );
 }
