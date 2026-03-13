@@ -117,7 +117,7 @@ export const manager = ac.newRole({
   user: ["read"],
   chat: ["project"],
   orgInstruction: ["read"],
-  deepgram: [], // No deepgram access for manager
+  deepgram: ["token"],
   setting: ["read", "update"],
   integration: ["manage"],
   team: ["read"],
@@ -135,7 +135,7 @@ export const user = ac.newRole({
   chat: ["project"],
   admin: [], // No admin access
   orgInstruction: ["read"],
-  deepgram: [], // No deepgram access
+  deepgram: ["token"],
   setting: ["read", "update"],
   integration: [], // No integration management
   team: ["read"],

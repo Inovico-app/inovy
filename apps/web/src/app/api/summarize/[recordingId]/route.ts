@@ -6,6 +6,8 @@ import { AIInsightService } from "@/server/services/ai-insight.service";
 import { rateLimiter } from "@/server/services/rate-limiter.service";
 import { RecordingService } from "@/server/services/recording.service";
 import { SummaryService } from "@/server/services/summary.service";
+import { checkPermission } from "@/lib/rbac/permissions-server";
+import { Permissions } from "@/lib/rbac/permissions";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const POST = withRateLimit(
@@ -27,6 +29,12 @@ export const POST = withRateLimit(
       }
 
       const user = authResult.value.user;
+
+      // Verify RBAC permission (viewers cannot trigger summarization)
+      const hasPermission = await checkPermission(Permissions.recording.update);
+      if (!hasPermission) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
 
       // Get recording
       const recordingResult =
@@ -153,6 +161,12 @@ export async function GET(
       !authResult.value.user
     ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify RBAC permission for reading summaries
+    const hasReadPermission = await checkPermission(Permissions.recording.read);
+    if (!hasReadPermission) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Get recording

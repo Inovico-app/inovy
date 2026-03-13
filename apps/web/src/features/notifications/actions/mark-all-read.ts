@@ -1,5 +1,6 @@
 "use server";
 
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { NotificationService } from "@/server/services/notification.service";
 
@@ -9,6 +10,12 @@ export async function markAllNotificationsRead(): Promise<{
   error?: string;
 }> {
   try {
+    // Verify authentication at action boundary
+    const authResult = await getBetterAuthSession();
+    if (authResult.isErr() || !authResult.value.isAuthenticated) {
+      return { success: false, error: "Unauthorized" };
+    }
+
     const result = await NotificationService.markAllAsRead();
 
     if (result.isErr()) {

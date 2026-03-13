@@ -1,35 +1,30 @@
 "use server";
 
-import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { getTemporaryDeepgramToken } from "@/lib/deepgram";
 import { logger } from "@/lib/logger";
-import { publicActionClient } from "@/lib/server-action-client/action-client";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 
-export const getDeepgramClientTokenAction = publicActionClient
+export const getDeepgramClientTokenAction = authorizedActionClient
   .metadata({
-    permissions: {},
+    permissions: { deepgram: ["token"] },
     name: "get-deepgram-client-token",
   })
-  .action(async () => {
-    const authResult = await getBetterAuthSession();
-    if (
-      authResult.isErr() ||
-      !authResult.value.user ||
-      !authResult.value.organization
-    ) {
+  .action(async ({ ctx }) => {
+    const { user, organizationId } = ctx;
+
+    if (!user || !organizationId) {
       throw ActionErrors.unauthenticated(
         "User or organization not found",
         "getDeepgramClientTokenAction"
       );
     }
 
-    const { user, organization } = authResult.value;
     logger.info("Generating temporary Deepgram client token", {
       component: "getDeepgramClientTokenAction",
       action: "getDeepgramClientTokenAction",
       userId: user.id,
-      organizationId: organization.id,
+      organizationId,
     });
 
     const { result: tokenResult, error: tokenError } =
@@ -58,4 +53,3 @@ export const getDeepgramClientTokenAction = publicActionClient
 
     return { data: { token: tokenResult.access_token, success: true } };
   });
-

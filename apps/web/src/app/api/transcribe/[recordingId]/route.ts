@@ -5,6 +5,8 @@ import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { rateLimiter } from "@/server/services/rate-limiter.service";
 import { RecordingService } from "@/server/services/recording.service";
 import { TranscriptionService } from "@/server/services/transcription.service";
+import { checkPermission } from "@/lib/rbac/permissions-server";
+import { Permissions } from "@/lib/rbac/permissions";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const POST = withRateLimit(
@@ -26,6 +28,12 @@ export const POST = withRateLimit(
       }
 
       const user = authResult.value.user;
+
+      // Verify RBAC permission (viewers cannot trigger transcription)
+      const hasPermission = await checkPermission(Permissions.recording.update);
+      if (!hasPermission) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
 
       // Get recording
       const recordingResult =

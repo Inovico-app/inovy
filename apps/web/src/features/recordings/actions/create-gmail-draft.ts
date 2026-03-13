@@ -23,7 +23,7 @@ const createGmailDraftSchema = z.object({
  * Server action to create a Gmail draft from a recording summary
  */
 export const createGmailDraft = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:update") })
+  .metadata({ permissions: policyToPermissions("recordings:read") })
   .schema(createGmailDraftSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId, user } = ctx;

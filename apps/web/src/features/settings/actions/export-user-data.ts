@@ -13,7 +13,7 @@ import { z } from "zod";
  * Server action to request a GDPR data export
  */
 export const requestDataExport = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:update") })
+  .metadata({ permissions: policyToPermissions("settings:read") })
   .schema(exportUserDataSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;

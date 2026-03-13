@@ -1,5 +1,6 @@
 "use server";
 
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { NotificationService } from "@/server/services/notification.service";
 import {
@@ -16,6 +17,12 @@ export async function markNotificationRead(
   error?: string;
 }> {
   try {
+    // Verify authentication at action boundary
+    const authResult = await getBetterAuthSession();
+    if (authResult.isErr() || !authResult.value.isAuthenticated) {
+      return { success: false, error: "Unauthorized" };
+    }
+
     // Validate input
     const validation = markAsReadSchema.safeParse(input);
     if (!validation.success) {

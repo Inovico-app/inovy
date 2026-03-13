@@ -26,7 +26,7 @@ async function OrganizationsContent() {
 
   // Check if user has superadmin permissions
   const hasSuperAdminPermission = await checkPermission(
-    Permissions.organization.list
+    Permissions.superadmin.all
   );
 
   if (!hasSuperAdminPermission) {
