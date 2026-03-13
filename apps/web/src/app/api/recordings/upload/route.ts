@@ -63,7 +63,7 @@ function verifySignedPayload(payload: string, signature: string): boolean {
   return timingSafeEqual(sigBuf, expectedBuf);
 }
 
-const RETRYABLE_STATUS_CODES = [429, 500, 502, 503];
+const RETRYABLE_STATUS_CODES = [404, 429, 500, 502, 503];
 
 function isRetryableError(err: unknown): boolean {
   const statusCode = (err as { statusCode?: number }).statusCode;
@@ -75,8 +75,13 @@ function isRetryableError(err: unknown): boolean {
 async function getBlobPropertiesWithRetry(
   getBlobProperties: (url: string) => Promise<{ contentLength?: number; contentType?: string }>,
   blobUrl: string,
-  maxAttempts = 3
+  maxAttempts = 3,
+  options?: { initialDelayMs?: number }
 ): Promise<{ contentLength?: number; contentType?: string }> {
+  const initialDelayMs = options?.initialDelayMs ?? 0;
+  if (initialDelayMs > 0) {
+    await new Promise((r) => setTimeout(r, initialDelayMs));
+  }
   let lastError: unknown;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -449,7 +454,9 @@ async function handleAzureUpload(request: NextRequest) {
       try {
         const props = await getBlobPropertiesWithRetry(
           storage.getBlobProperties.bind(storage),
-          body.blobUrl
+          body.blobUrl,
+          3,
+          { initialDelayMs: 1500 }
         );
         if (props?.contentLength && props.contentLength > MAX_FILE_SIZE) {
           await storage.del(body.blobUrl);
