@@ -178,7 +178,9 @@ export class AzureStorageProvider implements StorageProvider {
       credential
     ).toString();
 
-    return `${blobUrl}?${sasToken}`;
+    // Strip any existing query params before appending SAS (avoids malformed URLs)
+    const baseUrl = `${url.origin}${url.pathname}`;
+    return `${baseUrl}?${sasToken}`;
   }
 }
 

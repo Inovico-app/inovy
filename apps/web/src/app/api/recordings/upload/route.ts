@@ -63,7 +63,7 @@ function verifySignedPayload(payload: string, signature: string): boolean {
   return timingSafeEqual(sigBuf, expectedBuf);
 }
 
-const RETRYABLE_STATUS_CODES = [404, 429, 500, 502, 503];
+const RETRYABLE_STATUS_CODES = [404, 403, 429, 500, 502, 503];
 
 function isRetryableError(err: unknown): boolean {
   const statusCode = (err as { statusCode?: number }).statusCode;
@@ -448,15 +448,15 @@ async function handleAzureUpload(request: NextRequest) {
       throw new Error("Invalid token payload");
     }
 
-    // Verify uploaded blob size doesn't exceed limit (best-effort; proceed if verification fails)
+    // Verify blob exists and size doesn't exceed limit (required for playback/transcription)
     const storage = await getStorageProvider();
     if (storage.getBlobProperties) {
       try {
         const props = await getBlobPropertiesWithRetry(
           storage.getBlobProperties.bind(storage),
           body.blobUrl,
-          3,
-          { initialDelayMs: 1500 }
+          5,
+          { initialDelayMs: 2500 }
         );
         if (props?.contentLength && props.contentLength > MAX_FILE_SIZE) {
           await storage.del(body.blobUrl);
@@ -465,11 +465,14 @@ async function handleAzureUpload(request: NextRequest) {
           );
         }
       } catch (verifyError) {
-        logger.warn("Could not verify blob size after upload; proceeding anyway", {
+        logger.error("Blob verification failed after retries; upload rejected", {
           component: "POST /api/recordings/upload - upload-complete",
           blobUrl: body.blobUrl,
           error: serializeError(verifyError),
         });
+        throw new Error(
+          "Upload could not be verified. The file may not have finished uploading. Please try again."
+        );
       }
     }
 
