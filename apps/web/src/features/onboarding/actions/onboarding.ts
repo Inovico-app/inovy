@@ -30,7 +30,7 @@ const updateOnboardingSchema = z.object({
  */
 export const completeOnboardingAction = authorizedActionClient
   .inputSchema(updateOnboardingSchema)
-  .metadata({ permissions: {}, name: "complete-onboarding" })
+  .metadata({ permissions: { onboarding: ["complete"] }, name: "complete-onboarding" })
   .action(async ({ parsedInput, ctx }) => {
     const {
       onboardingId,
@@ -190,7 +190,7 @@ export const createOnboardingRecordAction = authorizedActionClient
  */
 export const updateOnboardingDataAction = authorizedActionClient
   .inputSchema(updateOnboardingSchema)
-  .metadata({ permissions: {}, name: "update-onboarding-data" })
+  .metadata({ permissions: { onboarding: ["update"] }, name: "update-onboarding-data" })
   .action(async ({ parsedInput, ctx }) => {
     const {
       onboardingId,

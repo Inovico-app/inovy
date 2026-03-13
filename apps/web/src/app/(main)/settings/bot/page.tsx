@@ -2,7 +2,10 @@ import { PageHeader } from "@/components/page-header";
 import { BotSettingsContent } from "@/features/bot/components/bot-settings-content";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger, serializeError } from "@/lib/logger";
+import { Permissions } from "@/lib/rbac/permissions";
+import { checkPermission } from "@/lib/rbac/permissions-server";
 import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 async function BotSettingsContentWrapper() {
@@ -28,6 +31,12 @@ async function BotSettingsContentWrapper() {
         </p>
       </div>
     );
+  }
+
+  // Verify user has permission to manage bot settings
+  const hasPermission = await checkPermission(Permissions.setting.update);
+  if (!hasPermission) {
+    redirect("/settings");
   }
 
   const settingsResult = await getCachedBotSettings(user.id, organization.id);

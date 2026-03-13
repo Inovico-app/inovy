@@ -1,6 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrganizationList } from "@/features/admin/components/organization/organization-list";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { redirect } from "next/navigation";
@@ -12,21 +11,9 @@ export const metadata = {
 };
 
 async function OrganizationsContent() {
-  const authResult = await getBetterAuthSession();
-
-  if (authResult.isErr()) {
-    redirect("/sign-in");
-  }
-
-  const { user } = authResult.value;
-
-  if (!user) {
-    redirect("/sign-in");
-  }
-
-  // Check if user has superadmin permissions
+  // Layout already guards auth + admin. This adds the superadmin check.
   const hasSuperAdminPermission = await checkPermission(
-    Permissions.organization.list
+    Permissions.superadmin.all
   );
 
   if (!hasSuperAdminPermission) {

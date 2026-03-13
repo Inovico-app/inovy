@@ -1,5 +1,8 @@
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { getDeepgramClient } from "@/lib/deepgram";
 import { logger } from "@/lib/logger";
+import { checkPermission } from "@/lib/rbac/permissions-server";
+import { Permissions } from "@/lib/rbac/permissions";
 import { LiveTranscriptionEvents } from "@deepgram/sdk";
 import { type NextRequest } from "next/server";
 
@@ -13,6 +16,28 @@ import { type NextRequest } from "next/server";
  */
 export async function GET(request: NextRequest) {
   try {
+    // Verify authentication
+    const authResult = await getBetterAuthSession();
+    if (
+      authResult.isErr() ||
+      !authResult.value.isAuthenticated ||
+      !authResult.value.user
+    ) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Verify RBAC permission
+    const hasPermission = await checkPermission(Permissions.recording.create);
+    if (!hasPermission) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const deepgram = getDeepgramClient();
 
     // Check if we can upgrade to WebSocket

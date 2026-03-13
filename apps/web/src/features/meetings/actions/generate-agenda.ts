@@ -28,7 +28,7 @@ const aiAgendaResultSchema = z.object({
 
 export const generateAgendaFromAI = authorizedActionClient
   .metadata({
-    permissions: policyToPermissions("recordings:create"),
+    permissions: policyToPermissions("recordings:update"),
     name: "generate-agenda-from-ai",
   })
   .schema(generateAgendaSchema)

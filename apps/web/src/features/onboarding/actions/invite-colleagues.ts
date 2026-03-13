@@ -22,7 +22,7 @@ const inviteColleaguesSchema = z.object({
  */
 export const inviteColleaguesAction = authorizedActionClient
   .inputSchema(inviteColleaguesSchema)
-  .metadata({ permissions: {}, name: "invite-colleagues" })
+  .metadata({ permissions: { invitation: ["create"] }, name: "invite-colleagues" })
   .action(async ({ parsedInput, ctx }) => {
     const { emails } = parsedInput;
     const userId = ctx.user?.id;

@@ -2,8 +2,11 @@ import { AgentDisabledBanner } from "@/components/agent-disabled-banner";
 import { PageHeader } from "@/components/page-header";
 import { KnowledgeBaseBrowser } from "@/features/agent/components/knowledge-base-browser";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { Permissions } from "@/lib/rbac/permissions";
+import { checkPermission } from "@/lib/rbac/permissions-server";
 import { getCachedAgentConfig } from "@/server/cache/organization.cache";
 import { getCachedUserProjects } from "@/server/cache/project.cache";
+import { redirect } from "next/navigation";
 import { Activity, Suspense } from "react";
 
 async function AgentContent() {
@@ -17,6 +20,12 @@ async function AgentContent() {
         </p>
       </div>
     );
+  }
+
+  // Verify user has permission to manage agent settings
+  const hasPermission = await checkPermission(Permissions.setting.update);
+  if (!hasPermission) {
+    redirect("/settings");
   }
 
   const organization = authResult.value.organization;

@@ -1,7 +1,7 @@
 "use server";
 
 import { CacheInvalidation } from "@/lib/cache-utils";
-import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { Permissions } from "@/lib/rbac/permissions";
 import {
   authorizedActionClient,
   createErrorForNextSafeAction,
@@ -22,7 +22,7 @@ const updateEntryInputSchema = updateKnowledgeEntrySchema.safeExtend({
 
 export const updateKnowledgeEntryAction = authorizedActionClient
   .metadata({
-    permissions: policyToPermissions("projects:update"), // Project knowledge requires project access
+    permissions: Permissions.orgInstruction.write,
   })
   .inputSchema(updateEntryInputSchema)
   .action(async ({ parsedInput, ctx }) => {

@@ -1,5 +1,6 @@
 "use server";
 
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import type {
   NotificationFiltersDto,
@@ -15,6 +16,12 @@ export async function getNotifications(
   error?: string;
 }> {
   try {
+    // Verify authentication at action boundary
+    const authResult = await getBetterAuthSession();
+    if (authResult.isErr() || !authResult.value.isAuthenticated) {
+      return { success: false, error: "Unauthorized" };
+    }
+
     const result = await NotificationService.getNotifications(filters);
 
     if (result.isErr()) {

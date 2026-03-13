@@ -1,7 +1,7 @@
 "use server";
 
 import { CacheInvalidation } from "@/lib/cache-utils";
-import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { Permissions } from "@/lib/rbac/permissions";
 import {
   authorizedActionClient,
   resultToActionResponse,
@@ -17,7 +17,7 @@ import { revalidatePath } from "next/cache";
  */
 export const deleteKnowledgeEntryAction = authorizedActionClient
   .metadata({
-    permissions: policyToPermissions("projects:update"), // Project knowledge requires project access
+    permissions: Permissions.orgInstruction.write,
   })
   .inputSchema(deleteKnowledgeEntrySchema)
   .action(async ({ parsedInput, ctx }) => {

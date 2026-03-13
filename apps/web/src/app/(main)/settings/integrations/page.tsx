@@ -3,9 +3,23 @@ import { DriveWatchSettings } from "@/features/settings/components/drive-watch-s
 import { GoogleConnection } from "@/features/settings/components/google-connection";
 import { GoogleSettings } from "@/features/settings/components/google-settings";
 import { GoogleStatusDashboard } from "@/features/settings/components/google-status-dashboard";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { Permissions } from "@/lib/rbac/permissions";
+import { checkPermission } from "@/lib/rbac/permissions-server";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-function IntegrationsContent() {
+async function IntegrationsContent() {
+  const authResult = await getBetterAuthSession();
+  if (authResult.isErr() || !authResult.value.organization) {
+    redirect("/settings");
+  }
+
+  const hasPermission = await checkPermission(Permissions.integration.manage);
+  if (!hasPermission) {
+    redirect("/settings");
+  }
+
   return (
     <>
       <PageHeader
