@@ -34,7 +34,7 @@ function StatusDot({ status }: { status: "active" | "pending" | "inactive" }) {
   return (
     <span
       className={`inline-block h-2 w-2 rounded-full ${colors[status]}`}
-      aria-label={status}
+      aria-hidden="true"
     />
   );
 }

@@ -243,13 +243,12 @@ async function OrganizationContent() {
         title="Organization"
         description="Manage your organization settings and members"
       />
-      <Suspense>
-        <OrganizationTabs
-          generalContent={generalContent}
-          membersContent={membersContent}
-          aiContent={aiContent}
-        />
-      </Suspense>
+      {/* Outer Suspense (in OrganizationPage) satisfies nuqs useSearchParams requirement */}
+      <OrganizationTabs
+        generalContent={generalContent}
+        membersContent={membersContent}
+        aiContent={aiContent}
+      />
     </>
   );
 }

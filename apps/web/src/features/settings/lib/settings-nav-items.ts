@@ -15,7 +15,7 @@ export interface SettingsNavItem {
   description?: string;
 }
 
-export const SETTINGS_NAV_ITEMS: SettingsNavItem[] = [
+export const SETTINGS_NAV_ITEMS = [
   {
     href: "/settings",
     icon: LayoutDashboardIcon,
@@ -52,4 +52,4 @@ export const SETTINGS_NAV_ITEMS: SettingsNavItem[] = [
     label: "Integrations",
     description: "Manage third-party connections",
   },
-];
+] as const satisfies readonly SettingsNavItem[];

@@ -1,6 +1,11 @@
 "use client";
 
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { useQueryState } from "nuqs";
 import type { ReactNode } from "react";
 
@@ -32,11 +37,15 @@ export function OrganizationTabs({
         <TabsTrigger value="ai">AI & Knowledge Base</TabsTrigger>
       </TabsList>
 
-      <div className="mt-6">
-        {tab === "general" && generalContent}
-        {tab === "members" && membersContent}
-        {tab === "ai" && aiContent}
-      </div>
+      <TabsContent value="general" className="mt-6">
+        {generalContent}
+      </TabsContent>
+      <TabsContent value="members" className="mt-6">
+        {membersContent}
+      </TabsContent>
+      <TabsContent value="ai" className="mt-6">
+        {aiContent}
+      </TabsContent>
     </Tabs>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { SETTINGS_NAV_ITEMS } from "@/features/settings/lib/settings-nav-items";
-import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -27,7 +26,8 @@ export function SettingsSidebar() {
           return (
             <Link
               key={item.href}
-              href={item.href as Route}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
               className={`group flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                 active
                   ? "bg-primary/10 text-primary border-l-2 border-primary -ml-px"

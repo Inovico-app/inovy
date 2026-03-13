@@ -13,7 +13,11 @@ export default async function SettingsLayout({
   return (
     <ProtectedPage>
       <div className="flex h-full min-h-0">
-        <Suspense>
+        <Suspense
+          fallback={
+            <div className="w-64 border-r bg-card/50 flex-shrink-0 hidden md:flex flex-col animate-pulse" />
+          }
+        >
           <SettingsSidebarDynamic />
         </Suspense>
         <div className="flex flex-col flex-1 min-w-0">

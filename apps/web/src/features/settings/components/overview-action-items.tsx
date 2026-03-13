@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CheckCircle2Icon, MailIcon, LinkIcon } from "lucide-react";
+import { BotIcon, CheckCircle2Icon, LinkIcon, MailIcon } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 
@@ -37,7 +37,7 @@ export function OverviewActionItems({
     actionItems.push({
       id: "pending-invitations",
       label: `${pendingInvitations.length} pending invitation${pendingInvitations.length > 1 ? "s" : ""}`,
-      description: `Awaiting response from ${pendingInvitations.map((i) => i.email).join(", ")}`,
+      description: `Awaiting response from ${pendingInvitations.slice(0, 3).map((i) => i.email).join(", ")}${pendingInvitations.length > 3 ? ` +${pendingInvitations.length - 3} more` : ""}`,
       href: "/settings/organization?tab=members" as Route,
       icon: <MailIcon className="h-4 w-4 text-amber-500" />,
       badge: "Pending",
@@ -60,7 +60,7 @@ export function OverviewActionItems({
       label: "Configure meeting bot",
       description: "Set up automatic meeting recording and transcription",
       href: "/settings/bot" as Route,
-      icon: <LinkIcon className="h-4 w-4 text-muted-foreground" />,
+      icon: <BotIcon className="h-4 w-4 text-muted-foreground" />,
     });
   }
 

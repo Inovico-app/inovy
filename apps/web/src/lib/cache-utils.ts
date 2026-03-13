@@ -556,6 +556,10 @@ export const CacheInvalidation = {
     invalidateCache(CacheTags.teamMembers(teamId));
   },
 
+  invalidateGoogleConnection(userId: string): void {
+    invalidateCache(CacheTags.googleConnection(userId));
+  },
+
   invalidateMeetings(organizationId: string): void {
     invalidateCache(CacheTags.meetings(organizationId));
   },
