@@ -1,8 +1,12 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { publicActionClient } from "@/lib/server-action-client/action-client";
+import {
+  createErrorForNextSafeAction,
+  publicActionClient,
+} from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { checkBreachedPassword } from "@/server/services/password-breach-check.service";
 import { headers } from "next/headers";
 import {
   requestPasswordResetSchema,
@@ -52,6 +56,17 @@ export const resetPasswordAction = publicActionClient
   .action(async ({ parsedInput }) => {
     const { token, password } = parsedInput;
 
+    // Check password against known breach databases (HIBP k-anonymity API)
+    const breachCount = await checkBreachedPassword(password);
+    if (breachCount > 0) {
+      throw createErrorForNextSafeAction(
+        ActionErrors.validation(
+          "This password has been found in a data breach. Please choose a different password.",
+          { token },
+        ),
+      );
+    }
+
     try {
       await auth.api.resetPassword({
         body: {
@@ -68,4 +83,3 @@ export const resetPasswordAction = publicActionClient
       throw ActionErrors.validation(message, { token });
     }
   });
-

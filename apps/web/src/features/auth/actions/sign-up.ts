@@ -6,6 +6,7 @@ import {
   publicActionClient,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { checkBreachedPassword } from "@/server/services/password-breach-check.service";
 import { headers as nextHeaders } from "next/headers";
 import { signUpEmailSchema } from "../validation/auth.schema";
 
@@ -20,6 +21,17 @@ export const signUpEmailAction = publicActionClient
   .inputSchema(signUpEmailSchema)
   .action(async ({ parsedInput }) => {
     const { email, password, name, callbackUrl } = parsedInput;
+
+    // Check password against known breach databases (HIBP k-anonymity API)
+    const breachCount = await checkBreachedPassword(password);
+    if (breachCount > 0) {
+      throw createErrorForNextSafeAction(
+        ActionErrors.validation(
+          "This password has been found in a data breach. Please choose a different password.",
+          { email },
+        ),
+      );
+    }
 
     const headers = await nextHeaders();
 
@@ -44,23 +56,22 @@ export const signUpEmailAction = publicActionClient
         (message.includes("already") || message.includes("exists"))
       ) {
         throw createErrorForNextSafeAction(
-          ActionErrors.conflict("An account with this email already exists")
+          ActionErrors.conflict("An account with this email already exists"),
         );
       }
 
       if (message.includes("password")) {
         throw createErrorForNextSafeAction(
-          ActionErrors.validation(message, { email })
+          ActionErrors.validation(message, { email }),
         );
       }
 
       // Default to validation error
       throw createErrorForNextSafeAction(
-        ActionErrors.validation(message, { email })
+        ActionErrors.validation(message, { email }),
       );
     }
 
     // Return success - the hook will handle navigation
     return { success: true };
   });
-
