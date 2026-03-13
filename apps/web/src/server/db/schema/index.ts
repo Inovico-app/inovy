@@ -15,6 +15,7 @@ export * from "./consent-audit-log";
 export * from "./data-exports";
 export * from "./drive-watches";
 export * from "./embedding-cache";
+export * from "./guardrails";
 export * from "./integration-settings";
 export * from "./integration-templates";
 export * from "./knowledge-base-documents";

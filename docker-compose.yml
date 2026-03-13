@@ -1,8 +1,7 @@
 version: "3.8"
 
-# Qdrant Docker Compose Configuration
-# NOTE: This is optional and only for local development.
-# Production uses cloud-hosted Qdrant (configured via QDRANT_URL and QDRANT_API_KEY environment variables).
+# Local Development Docker Compose
+# NOTE: These services are optional and only for local development.
 
 services:
   qdrant:
@@ -17,6 +16,22 @@ services:
       - QDRANT__SERVICE__GRPC_PORT=6334
       - QDRANT__LOG_LEVEL=INFO
     restart: unless-stopped
-    # Healthcheck removed - curl is not available in qdrant/qdrant:latest image
-    # Use the application-level health check endpoint instead: /api/qdrant/health
+
+  guardrails:
+    build:
+      context: ./docker/guardrails
+      dockerfile: Dockerfile
+    container_name: inovy-guardrails
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GUARDRAILS_LOG_LEVEL=INFO
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
