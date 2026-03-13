@@ -87,8 +87,22 @@ export const signInEmailAction = publicActionClient
         }
       }
 
+      // SSD-5.2.03: Return a generic error message that does not reveal
+      // whether the email exists in the system or not, preventing username enumeration.
+      // The original error is logged server-side for debugging.
+      logger.auth.loginAttempt({
+        email,
+        success: false,
+        errorType: isCredentialError ? "credential" : "other",
+        originalMessage: message,
+      });
+
+      const genericMessage = isCredentialError
+        ? "Invalid email or password"
+        : message;
+
       throw createErrorForNextSafeAction(
-        ActionErrors.validation(message, { email }),
+        ActionErrors.validation(genericMessage, { email }),
       );
     }
 
