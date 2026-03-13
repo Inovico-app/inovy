@@ -139,6 +139,7 @@ Environment variables are set by Terraform from GitHub secrets and variables. Se
 | `AZURE_STORAGE_CONNECTION_STRING` | Storage connection string |
 | `AZURE_STORAGE_CONTAINER_NAME` | Application storage container name (inovy). Contains folders: recordings/, gdpr-exports/, knowledge-base/ |
 | `BLOB_STORAGE_PROVIDER` | Always `azure` |
+| `NEXT_PUBLIC_BLOB_STORAGE_PROVIDER` | Always `azure` (client-side blob provider) |
 | `NEXT_PUBLIC_PLATFORM` | `azure` (from `next_public_platform` var) |
 | `NEXT_PUBLIC_APP_URL` | Derived from Container App URL |
 | `BETTER_AUTH_URL` | Same as app URL |
@@ -173,7 +174,7 @@ Environment variables are set by Terraform from GitHub secrets and variables. Se
 
 ### Docker Build Args (Azure)
 
-For the client bundle to use Azure blob, the Docker build must receive `NEXT_PUBLIC_BLOB_STORAGE_PROVIDER=azure`. This is typically set via `next.config.ts` injecting `BLOB_STORAGE_PROVIDER` into `NEXT_PUBLIC_BLOB_STORAGE_PROVIDER`, or by passing it as a build arg in `.github/workflows/build-push-acr.yml`.
+For the client bundle to use Azure blob, the Docker build must receive `NEXT_PUBLIC_BLOB_STORAGE_PROVIDER=azure`. This is typically set via `next.config.ts` injecting `BLOB_STORAGE_PROVIDER` into `NEXT_PUBLIC_BLOB_STORAGE_PROVIDER`, or by passing it as a build arg in `.github/workflows/build-push-acr.yml`. Terraform also sets `NEXT_PUBLIC_BLOB_STORAGE_PROVIDER=azure` as a Container App env var for runtime use.
 
 ---
 
