@@ -21,7 +21,7 @@ export default async function SettingsLayout({
             <SettingsNav />
           </Suspense>
           <main className="flex-1 overflow-auto p-6 md:p-8">
-            <div className="max-w-3xl space-y-6">{children}</div>
+            <div className="mx-auto max-w-3xl space-y-6">{children}</div>
           </main>
         </div>
       </div>
