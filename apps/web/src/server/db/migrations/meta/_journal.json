@@ -393,6 +393,13 @@
       "when": 1773404150431,
       "tag": "0061_add-two-factors-table",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1773411920663,
+      "tag": "0062_add-privacy-requests-table",
+      "breakpoints": true
     }
   ]
 }

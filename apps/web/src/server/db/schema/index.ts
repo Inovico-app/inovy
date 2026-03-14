@@ -24,6 +24,7 @@ export * from "./oauth-connections";
 export * from "./onboardings";
 export * from "./organization-settings";
 export * from "./pending-team-assignments";
+export * from "./privacy-requests";
 export * from "./project-templates";
 export * from "./projects";
 export * from "./recordings";

@@ -1,16 +1,13 @@
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { AutoProcessToggle } from "@/features/recordings/components/auto-process-toggle";
 import { DataDeletion } from "@/features/settings/components/data-deletion";
 import { DataExport } from "@/features/settings/components/data-export";
+import { PrivacyRights } from "@/features/settings/components/privacy-rights";
 import { ProfileForm } from "@/features/settings/components/profile-form";
 import { getDeletionStatus } from "@/features/settings/lib/get-deletion-status";
+import { getPrivacyRequests } from "@/features/settings/lib/get-privacy-requests";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import {
   getCachedTeamsByOrganization,
@@ -37,23 +34,29 @@ async function ProfileContent() {
   const organizationId = organization?.id;
   const orgName = organization?.name ?? "Personal Organization";
 
-  const [userDetailResult, userTeams, allTeams, deletionStatus] =
-    await Promise.all([
-      UserService.getUserById(user.id),
-      organizationId
-        ? getCachedUserTeams(user.id, organizationId)
-        : Promise.resolve([]),
-      organizationId
-        ? getCachedTeamsByOrganization(organizationId)
-        : Promise.resolve([]),
-      getDeletionStatus(),
-    ]);
+  const [
+    userDetailResult,
+    userTeams,
+    allTeams,
+    deletionStatus,
+    privacyRequests,
+  ] = await Promise.all([
+    UserService.getUserById(user.id),
+    organizationId
+      ? getCachedUserTeams(user.id, organizationId)
+      : Promise.resolve([]),
+    organizationId
+      ? getCachedTeamsByOrganization(organizationId)
+      : Promise.resolve([]),
+    getDeletionStatus(),
+    getPrivacyRequests(),
+  ]);
 
   const givenName = userDetailResult.isOk()
-    ? userDetailResult.value.given_name ?? ""
+    ? (userDetailResult.value.given_name ?? "")
     : "";
   const familyName = userDetailResult.isOk()
-    ? userDetailResult.value.family_name ?? ""
+    ? (userDetailResult.value.family_name ?? "")
     : "";
 
   const teamMap = new Map(allTeams.map((t) => [t.id, t]));
@@ -95,7 +98,11 @@ async function ProfileContent() {
                   const team = teamMap.get(userTeam.teamId);
                   if (!team) return null;
                   return (
-                    <Badge key={userTeam.teamId} variant="outline" className="text-xs">
+                    <Badge
+                      key={userTeam.teamId}
+                      variant="outline"
+                      className="text-xs"
+                    >
                       {team.name}
                       {userTeam.role !== "member" && (
                         <span className="ml-1 text-muted-foreground">
@@ -123,6 +130,8 @@ async function ProfileContent() {
 
       {/* Data & Privacy */}
       <DataExport />
+
+      <PrivacyRights initialRequests={privacyRequests} />
 
       <div className="border-l-2 border-destructive pl-4">
         <DataDeletion initialDeletionRequest={deletionStatus} />
