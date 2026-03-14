@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertCircle, FileDown, Loader2 } from "lucide-react";
+import { useMemo } from "react";
 
 interface DataExportFormProps {
   startDate: string;
@@ -35,6 +36,14 @@ export function DataExportForm({
   isRequesting,
   onRequestExport,
 }: DataExportFormProps) {
+  const projectItems = useMemo(
+    () => ({
+      all: "All projects",
+      ...Object.fromEntries(projects.map((p) => [p.id, p.name])),
+    }),
+    [projects],
+  );
+
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-semibold">Request New Export</h3>
@@ -68,6 +77,7 @@ export function DataExportForm({
         <Select
           value={selectedProjectId}
           onValueChange={(value) => setSelectedProjectId(value ?? "")}
+          items={projectItems}
         >
           <SelectTrigger id="project">
             <SelectValue placeholder="All projects" />
@@ -86,9 +96,7 @@ export function DataExportForm({
       <Button
         onClick={onRequestExport}
         disabled={
-          isRequesting ||
-          !!(startDate && !endDate) ||
-          !!(!startDate && endDate)
+          isRequesting || !!(startDate && !endDate) || !!(!startDate && endDate)
         }
         className="w-full"
       >

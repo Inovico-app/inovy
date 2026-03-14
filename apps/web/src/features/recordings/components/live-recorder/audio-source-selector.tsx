@@ -45,6 +45,11 @@ export function AudioSourceSelector({
         value={audioSource}
         onValueChange={handleValueChange}
         disabled={disabled}
+        items={{
+          microphone: "Microphone Only",
+          system: "System Audio Only",
+          both: "Microphone + System Audio",
+        }}
       >
         <SelectTrigger
           id="audio-source-select"

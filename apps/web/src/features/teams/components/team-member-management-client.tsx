@@ -28,7 +28,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { assignUserToTeam, removeUserFromTeam } from "@/features/admin/actions/teams";
+import {
+  assignUserToTeam,
+  removeUserFromTeam,
+} from "@/features/admin/actions/teams";
 import { Loader2Icon, Search, TrashIcon, UserPlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -76,7 +79,7 @@ export function TeamMemberManagementClient({
 
     const query = searchQuery.toLowerCase();
     return teamMembers.filter((member) =>
-      member.userId.toLowerCase().includes(query)
+      member.userId.toLowerCase().includes(query),
     );
   }, [teamMembers, searchQuery]);
 
@@ -148,6 +151,24 @@ export function TeamMemberManagementClient({
     }
   };
 
+  const memberItems = useMemo(
+    () =>
+      Object.fromEntries(
+        availableMembers.map((member) => {
+          const name =
+            member.given_name && member.family_name
+              ? `${member.given_name} ${member.family_name}`
+              : member.given_name ||
+                member.family_name ||
+                member.email ||
+                "Unknown";
+          const label = member.email ? `${name} (${member.email})` : name;
+          return [member.id, label];
+        }),
+      ),
+    [availableMembers],
+  );
+
   const getUserName = (member: OrgMember) => {
     if (member.given_name && member.family_name) {
       return `${member.given_name} ${member.family_name}`;
@@ -186,7 +207,11 @@ export function TeamMemberManagementClient({
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="user-select">User</Label>
-                <Select value={selectedUserId} onValueChange={(value) => setSelectedUserId(value ?? "")}>
+                <Select
+                  value={selectedUserId}
+                  onValueChange={(value) => setSelectedUserId(value ?? "")}
+                  items={memberItems}
+                >
                   <SelectTrigger id="user-select">
                     <SelectValue placeholder="Select a user" />
                   </SelectTrigger>
@@ -198,7 +223,8 @@ export function TeamMemberManagementClient({
                     ) : (
                       availableMembers.map((member) => (
                         <SelectItem key={member.id} value={member.id}>
-                          {getUserName(member)} {member.email && `(${member.email})`}
+                          {getUserName(member)}{" "}
+                          {member.email && `(${member.email})`}
                         </SelectItem>
                       ))
                     )}
@@ -208,7 +234,11 @@ export function TeamMemberManagementClient({
 
               <div className="space-y-2">
                 <Label htmlFor="role-select">Role</Label>
-                <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value ?? "member")}>
+                <Select
+                  value={selectedRole}
+                  onValueChange={(value) => setSelectedRole(value ?? "member")}
+                  items={{ member: "Member", lead: "Lead", admin: "Admin" }}
+                >
                   <SelectTrigger id="role-select">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
@@ -265,9 +295,14 @@ export function TeamMemberManagementClient({
                   </span>
                 </div>
                 <div>
-                  <div className="font-medium">User {member.userId.substring(0, 8)}...</div>
+                  <div className="font-medium">
+                    User {member.userId.substring(0, 8)}...
+                  </div>
                   <div className="text-xs text-muted-foreground">
-                    Joined {new Date(member.createdAt ?? new Date()).toLocaleDateString()}
+                    Joined{" "}
+                    {new Date(
+                      member.createdAt ?? new Date(),
+                    ).toLocaleDateString()}
                   </div>
                 </div>
               </div>
@@ -303,13 +338,17 @@ export function TeamMemberManagementClient({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isSubmitting}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRemoveMember}
               disabled={isSubmitting}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isSubmitting && <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting && (
+                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Remove
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -318,4 +357,3 @@ export function TeamMemberManagementClient({
     </div>
   );
 }
-

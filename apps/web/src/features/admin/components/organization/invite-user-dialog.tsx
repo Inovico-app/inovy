@@ -70,7 +70,7 @@ export function InviteUserDialog() {
 
             if (result?.validationErrors) {
               const firstFieldErrors = Object.values(
-                result.validationErrors
+                result.validationErrors,
               )[0];
               const firstError = Array.isArray(firstFieldErrors)
                 ? firstFieldErrors[0]
@@ -90,7 +90,7 @@ export function InviteUserDialog() {
               error: "Failed to send",
             };
           }
-        })
+        }),
       );
 
       const successCount = results.filter((r) => r.success).length;
@@ -100,20 +100,16 @@ export function InviteUserDialog() {
         toast.success(
           successCount === 1
             ? "Invitation sent successfully"
-            : `${successCount} invitations sent successfully`
+            : `${successCount} invitations sent successfully`,
         );
         setOpen(false);
       } else if (successCount > 0 && failures.length > 0) {
         toast.warning(`${successCount} sent, ${failures.length} failed`, {
-          description: failures
-            .map((r) => `${r.email}: ${r.error}`)
-            .join(", "),
+          description: failures.map((r) => `${r.email}: ${r.error}`).join(", "),
         });
       } else {
         toast.error("Failed to send invitations", {
-          description: failures
-            .map((r) => `${r.email}: ${r.error}`)
-            .join(", "),
+          description: failures.map((r) => `${r.email}: ${r.error}`).join(", "),
         });
       }
     });
@@ -161,7 +157,17 @@ export function InviteUserDialog() {
           {/* Role selector */}
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select value={role} onValueChange={(v) => v && setRole(v as Role)}>
+            <Select
+              value={role}
+              onValueChange={(v) => v && setRole(v as Role)}
+              items={{
+                user: "User",
+                admin: "Admin",
+                owner: "Owner",
+                viewer: "Viewer",
+                manager: "Manager",
+              }}
+            >
               <SelectTrigger id="role">
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>

@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useMemo } from "react";
 import {
   RECURRENCE_PRESETS,
   type MonthlyRecurrenceType,
@@ -47,12 +48,27 @@ const WEEK_DAYS: Array<{ value: WeekDay; label: string; short: string }> = [
   { value: "SU", label: "Sunday", short: "Su" },
 ];
 
+const FREQUENCY_ITEMS = {
+  DAILY: "day(s)",
+  WEEKLY: "week(s)",
+  MONTHLY: "month(s)",
+  YEARLY: "year(s)",
+};
+
 export function RecurrenceForm({
   value,
   onChange,
   eventStartDate,
   disabled,
 }: RecurrenceFormProps) {
+  const presetItems = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.values(RECURRENCE_PRESETS).map((p) => [p.value, p.label]),
+      ),
+    [],
+  );
+
   const isCustom = value.preset === "custom";
   const showWeekDays = isCustom && value.customFrequency === "WEEKLY";
   const showMonthlyOptions = isCustom && value.customFrequency === "MONTHLY";
@@ -126,6 +142,7 @@ export function RecurrenceForm({
             handlePresetChange(val as RecurrencePresetValue)
           }
           disabled={disabled}
+          items={presetItems}
         >
           <SelectTrigger id="recurrence-preset">
             <SelectValue />
@@ -166,6 +183,7 @@ export function RecurrenceForm({
                   })
                 }
                 disabled={disabled}
+                items={FREQUENCY_ITEMS}
               >
                 <SelectTrigger id="custom-frequency">
                   <SelectValue />
@@ -305,4 +323,3 @@ export function RecurrenceForm({
     </div>
   );
 }
-

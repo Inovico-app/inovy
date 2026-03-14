@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +41,11 @@ export function AgendaBuilder({
   items,
   templates,
 }: AgendaBuilderProps) {
+  const templateItems = useMemo(
+    () => Object.fromEntries(templates.map((t) => [t.id, t.name])),
+    [templates],
+  );
+
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [aiPrompt, setAiPrompt] = useState("");
@@ -111,6 +116,7 @@ export function AgendaBuilder({
               });
             }}
             disabled={isApplyingTemplate}
+            items={templateItems}
           >
             <SelectTrigger className="w-[170px] h-8 text-xs">
               <LayoutTemplate className="mr-1.5 h-3.5 w-3.5" />

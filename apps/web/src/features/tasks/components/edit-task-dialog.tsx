@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,17 +41,21 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
   const [description, setDescription] = useState(task.description ?? "");
   const [priority, setPriority] = useState<TaskPriority>(task.priority);
   const [status, setStatus] = useState<TaskStatus>(task.status);
-  const [assigneeId, setAssigneeId] = useState<string | null>(
-    task.assigneeId
-  );
+  const [assigneeId, setAssigneeId] = useState<string | null>(task.assigneeId);
   const [dueDate, setDueDate] = useState<string>(
-    task.dueDate
-      ? new Date(task.dueDate).toISOString().slice(0, 16)
-      : ""
+    task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : "",
   );
   const [selectedTagIds, setSelectedTagIds] = useState<string[] | null>(null);
 
   const { members, isLoading: membersLoading } = useOrganizationMembers();
+
+  const assigneeItems = useMemo(
+    () => ({
+      unassigned: "Unassigned",
+      ...Object.fromEntries(members.map((m) => [m.id, m.displayName])),
+    }),
+    [members],
+  );
   const { data: taskTags, isLoading: tagsLoading } = useTaskTags(task.id);
   const mutation = useUpdateTaskMetadataMutation({
     onSuccess: () => {
@@ -61,7 +65,8 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
   });
 
   // Derive effective tag IDs: use local overrides if set, otherwise fall back to fetched data
-  const effectiveTagIds = selectedTagIds ?? taskTags?.map((tag) => tag.id) ?? [];
+  const effectiveTagIds =
+    selectedTagIds ?? taskTags?.map((tag) => tag.id) ?? [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +78,9 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
       priority,
       status,
       assigneeId: assigneeId ?? undefined,
-      dueDate: dueDate ? (new Date(dueDate) as unknown as Date | null) : undefined,
+      dueDate: dueDate
+        ? (new Date(dueDate) as unknown as Date | null)
+        : undefined,
       tagIds: effectiveTagIds,
     });
   };
@@ -85,9 +92,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
     setStatus(task.status);
     setAssigneeId(task.assigneeId);
     setDueDate(
-      task.dueDate
-        ? new Date(task.dueDate).toISOString().slice(0, 16)
-        : ""
+      task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : "",
     );
     setSelectedTagIds(null);
   };
@@ -156,7 +161,15 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
                 </Label>
                 <Select
                   value={priority}
-                  onValueChange={(value) => value && setPriority(value as TaskPriority)}
+                  onValueChange={(value) =>
+                    value && setPriority(value as TaskPriority)
+                  }
+                  items={{
+                    low: "Low",
+                    medium: "Medium",
+                    high: "High",
+                    urgent: "Urgent",
+                  }}
                 >
                   <SelectTrigger id="priority">
                     <SelectValue placeholder="Select priority" />
@@ -177,7 +190,15 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
                 </Label>
                 <Select
                   value={status}
-                  onValueChange={(value) => value && setStatus(value as TaskStatus)}
+                  onValueChange={(value) =>
+                    value && setStatus(value as TaskStatus)
+                  }
+                  items={{
+                    pending: "Pending",
+                    in_progress: "In Progress",
+                    completed: "Completed",
+                    cancelled: "Cancelled",
+                  }}
                 >
                   <SelectTrigger id="status">
                     <SelectValue placeholder="Select status" />
@@ -198,9 +219,12 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
               <Select
                 value={assigneeId ?? "unassigned"}
                 onValueChange={(value) =>
-                  setAssigneeId(value === "unassigned" || value === null ? null : value)
+                  setAssigneeId(
+                    value === "unassigned" || value === null ? null : value,
+                  )
                 }
                 disabled={membersLoading}
+                items={assigneeItems}
               >
                 <SelectTrigger id="assignee">
                   <SelectValue placeholder="Select assignee" />
@@ -245,7 +269,10 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={mutation.isPending || !title.trim()}>
+            <Button
+              type="submit"
+              disabled={mutation.isPending || !title.trim()}
+            >
               {mutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
@@ -254,4 +281,3 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
     </Dialog>
   );
 }
-

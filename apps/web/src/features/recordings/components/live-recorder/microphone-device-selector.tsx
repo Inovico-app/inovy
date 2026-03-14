@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { useAudioDevices } from "@/features/recordings/hooks/use-audio-devices";
 import { Loader2, Mic } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 interface MicrophoneDeviceSelectorProps {
   deviceId: string | null;
@@ -40,9 +40,18 @@ export function MicrophoneDeviceSelector({
 
   const handleValueChange = (value: string | null) => {
     // "__default__" means "default device" (null)
-    const newDeviceId = value === "__default__" || value === null ? null : value;
+    const newDeviceId =
+      value === "__default__" || value === null ? null : value;
     onDeviceChange(newDeviceId);
   };
+
+  const deviceItems = useMemo(
+    () => ({
+      __default__: "Default Device",
+      ...Object.fromEntries(devices.map((d) => [d.deviceId, d.label])),
+    }),
+    [devices],
+  );
 
   // Current value for Select component ("__default__" for null/default)
   // If deviceId is not in available devices, show default
@@ -71,6 +80,7 @@ export function MicrophoneDeviceSelector({
         value={selectValue}
         onValueChange={handleValueChange}
         disabled={disabled || isLoading}
+        items={deviceItems}
       >
         <SelectTrigger
           id="microphone-device-select"
@@ -88,8 +98,8 @@ export function MicrophoneDeviceSelector({
             {selectValue === "__default__" ? (
               <span className="text-muted-foreground">Default Device</span>
             ) : (
-              devices.find((d) => d.deviceId === selectValue)?.label ??
-                "Unknown Device"
+              (devices.find((d) => d.deviceId === selectValue)?.label ??
+              "Unknown Device")
             )}
           </SelectValue>
         </SelectTrigger>
@@ -159,4 +169,3 @@ export function MicrophoneDeviceSelector({
     </div>
   );
 }
-

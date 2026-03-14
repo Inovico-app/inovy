@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import type { TeamWithMemberCount } from "@/server/cache/team.cache";
 import { Loader2Icon, UserPlusIcon } from "lucide-react";
+import { useMemo } from "react";
 import type { TeamMember } from "./team-member-assignment";
 
 interface TeamAssignDialogProps {
@@ -52,6 +53,20 @@ export function TeamAssignDialog({
   isSubmitting,
   getUserName,
 }: TeamAssignDialogProps) {
+  const memberItems = useMemo(
+    () =>
+      Object.fromEntries(
+        members.map((member) => [member.id, getUserName(member)]),
+      ),
+    [members, getUserName],
+  );
+
+  const teamItems = useMemo(
+    () =>
+      Object.fromEntries(availableTeams.map((team) => [team.id, team.name])),
+    [availableTeams],
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger render={<Button />}>
@@ -69,15 +84,18 @@ export function TeamAssignDialog({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="user-select">User</Label>
-            <Select value={selectedUserId} onValueChange={(value) => value && onSelectedUserChange(value)}>
+            <Select
+              value={selectedUserId}
+              onValueChange={(value) => value && onSelectedUserChange(value)}
+              items={memberItems}
+            >
               <SelectTrigger id="user-select">
                 <SelectValue placeholder="Select a user" />
               </SelectTrigger>
               <SelectContent>
                 {members.map((member) => (
                   <SelectItem key={member.id} value={member.id}>
-                    {getUserName(member)}{" "}
-                    {member.email && `(${member.email})`}
+                    {getUserName(member)} {member.email && `(${member.email})`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -90,6 +108,7 @@ export function TeamAssignDialog({
               value={selectedTeamId}
               onValueChange={(value) => value && onSelectedTeamChange(value)}
               disabled={!selectedUserId}
+              items={teamItems}
             >
               <SelectTrigger id="team-select">
                 <SelectValue placeholder="Select a team" />
@@ -106,7 +125,11 @@ export function TeamAssignDialog({
 
           <div className="space-y-2">
             <Label htmlFor="role-select">Role</Label>
-            <Select value={selectedRole} onValueChange={(value) => value && onSelectedRoleChange(value)}>
+            <Select
+              value={selectedRole}
+              onValueChange={(value) => value && onSelectedRoleChange(value)}
+              items={{ member: "Member", lead: "Lead", admin: "Admin" }}
+            >
               <SelectTrigger id="role-select">
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>

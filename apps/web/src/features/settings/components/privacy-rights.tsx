@@ -153,6 +153,10 @@ export function PrivacyRights({ initialRequests = [] }: PrivacyRightsProps) {
                 onValueChange={(val) =>
                   setSelectedType(val as PrivacyRequestType)
                 }
+                items={{
+                  restriction: "Restrict Processing",
+                  objection: "Object to Processing",
+                }}
               >
                 <SelectTrigger id="request-type">
                   <SelectValue placeholder="Select type" />
@@ -181,6 +185,12 @@ export function PrivacyRights({ initialRequests = [] }: PrivacyRightsProps) {
                 onValueChange={(val) =>
                   setSelectedScope(val as ProcessingScope)
                 }
+                items={{
+                  ai_analysis: "AI Analysis",
+                  usage_analytics: "Usage Analytics",
+                  marketing: "Marketing",
+                  all_processing: "All Processing",
+                }}
               >
                 <SelectTrigger id="processing-scope">
                   <SelectValue placeholder="Select scope" />

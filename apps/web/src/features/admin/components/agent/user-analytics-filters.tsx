@@ -13,7 +13,7 @@ import {
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { parseAsString, useQueryStates } from "nuqs";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 interface UserAnalyticsFiltersProps {
   initialStartDate: Date;
@@ -37,10 +37,10 @@ export function UserAnalyticsFilters({
 }: UserAnalyticsFiltersProps) {
   const router = useRouter();
   const [startDate, setStartDate] = useState(
-    initialStartDate.toISOString().slice(0, 16)
+    initialStartDate.toISOString().slice(0, 16),
   );
   const [endDate, setEndDate] = useState(
-    initialEndDate.toISOString().slice(0, 16)
+    initialEndDate.toISOString().slice(0, 16),
   );
   const [userId, setUserId] = useQueryStates(
     {
@@ -48,10 +48,20 @@ export function UserAnalyticsFilters({
     },
     {
       shallow: false,
-    }
+    },
   );
 
   const [selectedUserId, setSelectedUserId] = useState(initialUserId ?? "");
+
+  const userItems = useMemo(
+    () => ({
+      all: "All users",
+      ...Object.fromEntries(
+        users.map((user) => [user.id, user.name || user.email]),
+      ),
+    }),
+    [users],
+  );
 
   const handlePresetClick = useCallback((days: number) => {
     const end = new Date();
@@ -73,7 +83,9 @@ export function UserAnalyticsFilters({
 
   const handleReset = useCallback(() => {
     setStartDate(
-      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)
+      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 16),
     );
     setEndDate(new Date().toISOString().slice(0, 16));
     setUserId({ userId: null });
@@ -140,6 +152,7 @@ export function UserAnalyticsFilters({
             onValueChange={(value) =>
               setSelectedUserId(value === "all" ? "" : (value ?? ""))
             }
+            items={userItems}
           >
             <SelectTrigger id="user" className="h-8 w-full text-xs">
               <SelectValue placeholder="Select user" />
@@ -172,4 +185,3 @@ export function UserAnalyticsFilters({
     </div>
   );
 }
-

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { BotStatusBadge } from "@/features/bot/components/bot-status-badge";
 import { Loader2Icon, Trash2Icon } from "lucide-react";
+import { useMemo } from "react";
 import type { MeetingWithSession } from "../lib/calendar-utils";
 
 interface BotDetailsSectionProps {
@@ -43,6 +44,11 @@ export function BotDetailsSection({
   onRemoveBot,
   isRemovingBot,
 }: BotDetailsSectionProps) {
+  const projectItems = useMemo(
+    () => Object.fromEntries(projects.map((p) => [p.id, p.name])),
+    [projects],
+  );
+
   return (
     <section aria-labelledby="bot-details-heading">
       <h3 id="bot-details-heading" className="font-semibold mb-3">
@@ -50,9 +56,7 @@ export function BotDetailsSection({
       </h3>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            Status:
-          </span>
+          <span className="text-sm text-muted-foreground">Status:</span>
           <BotStatusBadge
             status={botSession.botStatus}
             error={botSession.error}
@@ -61,13 +65,8 @@ export function BotDetailsSection({
 
         {canEditBot && (
           <>
-            <form
-              onSubmit={onBotMeetingUrlSubmit}
-              className="space-y-2"
-            >
-              <Label htmlFor="bot-meeting-url">
-                Bot Meeting URL
-              </Label>
+            <form onSubmit={onBotMeetingUrlSubmit} className="space-y-2">
+              <Label htmlFor="bot-meeting-url">Bot Meeting URL</Label>
               <Input
                 id="bot-meeting-url"
                 type="url"
@@ -102,6 +101,7 @@ export function BotDetailsSection({
                   projectId && onProjectChange(botSession.id, projectId)
                 }
                 disabled={isUpdatingProject || isLoadingProjects}
+                items={projectItems}
               >
                 <SelectTrigger id="bot-project">
                   <SelectValue placeholder="Select project" />

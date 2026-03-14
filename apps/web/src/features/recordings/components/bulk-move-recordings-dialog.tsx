@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import type { RecordingDto } from "@/server/dto/recording.dto";
 import { AlertCircleIcon, CheckCircleIcon, FolderIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useBulkMoveRecordingsMutation } from "../hooks/use-bulk-move-recordings-mutation";
 import { useProjectsForMove } from "../hooks/use-projects-for-move";
@@ -59,6 +59,11 @@ export function BulkMoveRecordingsDialog({
     enabled: open,
     currentProjectId,
   });
+
+  const projectItems = useMemo(
+    () => Object.fromEntries(projects.map((p) => [p.id, p.name])),
+    [projects],
+  );
 
   const prevProjectsErrorRef = useRef(projectsError);
   if (projectsError && projectsError !== prevProjectsErrorRef.current) {
@@ -113,9 +118,7 @@ export function BulkMoveRecordingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent
-        className="sm:max-w-[600px]"
-      >
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>
             {showResults ? "Move Results" : "Move Multiple Recordings"}
@@ -149,13 +152,17 @@ export function BulkMoveRecordingsDialog({
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="bulk-move-target-project" className="text-sm font-medium">
+                <label
+                  htmlFor="bulk-move-target-project"
+                  className="text-sm font-medium"
+                >
                   Select Target Project
                 </label>
                 <Select
                   value={targetProjectId}
                   onValueChange={(value) => setTargetProjectId(value ?? "")}
                   disabled={isLoadingProjects || isMoving}
+                  items={projectItems}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue
@@ -265,10 +272,16 @@ export function BulkMoveRecordingsDialog({
 
               {failureCount > 0 && (
                 <div className="space-y-2">
-                  <label htmlFor="bulk-move-failed-list" className="text-sm font-medium text-destructive">
+                  <label
+                    htmlFor="bulk-move-failed-list"
+                    className="text-sm font-medium text-destructive"
+                  >
                     Failed Recordings:
                   </label>
-                  <div id="bulk-move-failed-list" className="rounded-lg border border-destructive/20 p-3 bg-destructive/5 max-h-48 overflow-y-auto">
+                  <div
+                    id="bulk-move-failed-list"
+                    className="rounded-lg border border-destructive/20 p-3 bg-destructive/5 max-h-48 overflow-y-auto"
+                  >
                     <ul className="text-sm space-y-2">
                       {results
                         .filter((r) => !r.success)
@@ -295,10 +308,16 @@ export function BulkMoveRecordingsDialog({
 
               {successCount > 0 && (
                 <div className="space-y-2">
-                  <label htmlFor="bulk-move-success-list" className="text-sm font-medium text-green-600 dark:text-green-500">
+                  <label
+                    htmlFor="bulk-move-success-list"
+                    className="text-sm font-medium text-green-600 dark:text-green-500"
+                  >
                     Successfully Moved:
                   </label>
-                  <div id="bulk-move-success-list" className="rounded-lg border p-3 bg-muted/50 max-h-48 overflow-y-auto">
+                  <div
+                    id="bulk-move-success-list"
+                    className="rounded-lg border p-3 bg-muted/50 max-h-48 overflow-y-auto"
+                  >
                     <ul className="text-sm space-y-1">
                       {results
                         .filter((r) => r.success)
@@ -322,4 +341,3 @@ export function BulkMoveRecordingsDialog({
     </Dialog>
   );
 }
-
