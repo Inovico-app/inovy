@@ -5,11 +5,13 @@ import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { sendMagicLinkAction } from "../actions/magic-link";
-import { getSocialSignInUrlAction } from "../actions/sign-in";
 import { signUpEmailAction } from "../actions/sign-up";
+import { useSocialSignIn } from "./use-social-sign-in";
 
 export function useSignUp(redirectUrl?: string) {
   const router = useRouter();
+  const { executeSocialSignIn, isSocialSigningIn, socialSignInError } =
+    useSocialSignIn("/sign-up");
 
   const {
     execute: executeSignUp,
@@ -18,28 +20,12 @@ export function useSignUp(redirectUrl?: string) {
   } = useAction(signUpEmailAction, {
     onSuccess: () => {
       toast.success(
-        "Account aangemaakt! Controleer je e-mail om je account te verifiëren."
+        "Account aangemaakt! Controleer je e-mail om je account te verifiëren.",
       );
       const target = redirectUrl
         ? `/sign-in?redirect=${encodeURIComponent(redirectUrl)}`
         : "/sign-in";
       router.push(target as Route);
-    },
-  });
-
-  const {
-    execute: executeSocialSignIn,
-    isExecuting: isSocialSigningIn,
-    result: socialSignInResult,
-  } = useAction(getSocialSignInUrlAction, {
-    onSuccess: ({ data }) => {
-      const url = typeof data?.url === "string" ? data.url : undefined;
-      if (url) {
-        window.location.href = url;
-      }
-    },
-    onError: ({ error }) => {
-      toast.error(error.serverError ?? "Social login starten mislukt");
     },
   });
 
@@ -65,7 +51,6 @@ export function useSignUp(redirectUrl?: string) {
     isSendingMagicLink,
     signUpError: signUpResult.serverError,
     magicLinkError: magicLinkResult.serverError,
-    socialSignInError: socialSignInResult.serverError,
+    socialSignInError,
   };
 }
-

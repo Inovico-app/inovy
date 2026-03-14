@@ -4,12 +4,13 @@ import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
 import { sendMagicLinkAction } from "../actions/magic-link";
 import { requestPasswordResetAction } from "../actions/password-reset";
-import {
-  getSocialSignInUrlAction,
-  signInEmailAction,
-} from "../actions/sign-in";
+import { signInEmailAction } from "../actions/sign-in";
+import { useSocialSignIn } from "./use-social-sign-in";
 
 export function useSignIn() {
+  const { executeSocialSignIn, isSocialSigningIn, socialSignInError } =
+    useSocialSignIn("/sign-in");
+
   const {
     execute: executeSignIn,
     isExecuting: isSigningIn,
@@ -24,22 +25,6 @@ export function useSignIn() {
         toast.error("Verifieer eerst je e-mailadres voordat je inlogt");
       }
       // Validation errors are handled by the form UI
-    },
-  });
-
-  const {
-    execute: executeSocialSignIn,
-    isExecuting: isSocialSigningIn,
-    result: socialSignInResult,
-  } = useAction(getSocialSignInUrlAction, {
-    onSuccess: ({ data }) => {
-      const url = typeof data?.url === "string" ? data.url : undefined;
-      if (url) {
-        window.location.href = url;
-      }
-    },
-    onError: ({ error }) => {
-      toast.error(error.serverError ?? "Social login starten mislukt");
     },
   });
 
@@ -82,7 +67,6 @@ export function useSignIn() {
     signInError: signInResult.serverError,
     magicLinkError: magicLinkResult.serverError,
     passwordResetError: passwordResetResult.serverError,
-    socialSignInError: socialSignInResult.serverError,
+    socialSignInError,
   };
 }
-
