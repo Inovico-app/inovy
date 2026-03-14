@@ -1,18 +1,15 @@
 "use client";
 
-import { authClient } from "@/lib/auth-client";
 import { useAction } from "next-safe-action/hooks";
-import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { sendMagicLinkAction } from "../actions/magic-link";
 import { requestPasswordResetAction } from "../actions/password-reset";
 import { signInEmailAction } from "../actions/sign-in";
+import { useSocialSignIn } from "./use-social-sign-in";
 
 export function useSignIn() {
-  const [isSocialSigningIn, setIsSocialSigningIn] = useState(false);
-  const [socialSignInError, setSocialSignInError] = useState<
-    string | undefined
-  >();
+  const { executeSocialSignIn, isSocialSigningIn, socialSignInError } =
+    useSocialSignIn("/sign-in");
 
   const {
     execute: executeSignIn,
@@ -30,28 +27,6 @@ export function useSignIn() {
       // Validation errors are handled by the form UI
     },
   });
-
-  const executeSocialSignIn = useCallback(
-    async (input: {
-      provider: "google" | "microsoft";
-      callbackUrl?: string;
-    }) => {
-      setIsSocialSigningIn(true);
-      setSocialSignInError(undefined);
-      const { error } = await authClient.signIn.social({
-        provider: input.provider,
-        callbackURL: input.callbackUrl || "/",
-        errorCallbackURL: "/sign-in",
-      });
-      if (error) {
-        const message = error.message ?? "Social login starten mislukt";
-        toast.error(message);
-        setSocialSignInError(message);
-        setIsSocialSigningIn(false);
-      }
-    },
-    [],
-  );
 
   const {
     execute: executeMagicLink,
