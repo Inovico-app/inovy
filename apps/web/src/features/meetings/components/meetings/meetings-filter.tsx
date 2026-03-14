@@ -11,6 +11,7 @@ import type { MeetingBotStatusFilter } from "@/features/meetings/lib/calendar-ut
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { useMemo } from "react";
 
 interface MeetingsFilterProps {
   selectedStatus: MeetingBotStatusFilter;
@@ -41,6 +42,11 @@ export function MeetingsFilter({
   totalCount,
   onClear,
 }: MeetingsFilterProps) {
+  const statusItems = useMemo(
+    () => Object.fromEntries(STATUS_OPTIONS.map((o) => [o.value, o.label])),
+    [],
+  );
+
   const isFiltered = selectedStatus !== "all";
   const showCount =
     isFiltered &&
@@ -58,6 +64,7 @@ export function MeetingsFilter({
         onValueChange={(value) =>
           onStatusChange(value as MeetingBotStatusFilter)
         }
+        items={statusItems}
       >
         <SelectTrigger id="bot-status-filter" className="w-[180px]">
           <SelectValue />

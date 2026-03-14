@@ -46,6 +46,10 @@ const AVAILABLE_MODELS = [
   { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
 ];
 
+const MODEL_ITEMS = Object.fromEntries(
+  AVAILABLE_MODELS.map((m) => [m.value, m.label]),
+);
+
 const agentSettingsSchema = z.object({
   model: z.string().min(1, "Model is required"),
   maxTokens: z
@@ -116,7 +120,11 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Model</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    items={MODEL_ITEMS}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a model" />
@@ -383,4 +391,3 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
     </Card>
   );
 }
-

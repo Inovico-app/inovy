@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2Icon } from "lucide-react";
+import { useMemo } from "react";
 import { useCreateEventForm } from "../hooks/use-create-event-form";
 import { TIME_OPTIONS } from "../lib/create-event-schema";
 import { AttendeeSelector } from "./attendee-selector";
@@ -54,6 +55,11 @@ export function CreateEventDialog({
     setValue,
     watch,
   } = form;
+
+  const timeItems = useMemo(
+    () => Object.fromEntries(TIME_OPTIONS.map((opt) => [opt.value, opt.label])),
+    [],
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -116,6 +122,7 @@ export function CreateEventDialog({
                   value={startTime || ""}
                   onValueChange={(value) => setValue("startTime", value ?? "")}
                   disabled={allDay}
+                  items={timeItems}
                 >
                   <SelectTrigger id="startTime" className="w-full">
                     <SelectValue
@@ -166,6 +173,7 @@ export function CreateEventDialog({
                   value={endTime || ""}
                   onValueChange={(value) => setValue("endTime", value ?? "")}
                   disabled={allDay}
+                  items={timeItems}
                 >
                   <SelectTrigger id="endTime" className="w-full">
                     <SelectValue

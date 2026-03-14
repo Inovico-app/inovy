@@ -55,6 +55,19 @@ export function KnowledgeBaseBrowser({
     limit: parseAsString.withDefault("100"),
   });
 
+  const projectItems = useMemo(
+    () => ({
+      [ALL_PROJECTS_VALUE]: "All Projects",
+      ...Object.fromEntries(projects.map((p) => [p.id, p.name])),
+    }),
+    [projects],
+  );
+
+  const typeItems = useMemo(
+    () => Object.fromEntries(CONTENT_TYPES.map((t) => [t.value, t.label])),
+    [],
+  );
+
   // Build query params
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -185,6 +198,7 @@ export function KnowledgeBaseBrowser({
               projectId: value === ALL_PROJECTS_VALUE ? "" : value,
             });
           }}
+          items={projectItems}
         >
           <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue placeholder="All Projects" />
@@ -203,6 +217,7 @@ export function KnowledgeBaseBrowser({
           onValueChange={(value) => {
             void setFilters({ contentType: value === "__all__" ? "" : value });
           }}
+          items={typeItems}
         >
           <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue placeholder="All Types" />
@@ -292,4 +307,3 @@ export function KnowledgeBaseBrowser({
     </div>
   );
 }
-

@@ -13,7 +13,7 @@ import {
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { parseAsString, useQueryStates } from "nuqs";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface AgentMetricsFiltersProps {
   initialStartDate: Date;
@@ -43,10 +43,10 @@ export function AgentMetricsFilters({
 }: AgentMetricsFiltersProps) {
   const router = useRouter();
   const [startDate, setStartDate] = useState(
-    initialStartDate.toISOString().slice(0, 16)
+    initialStartDate.toISOString().slice(0, 16),
   );
   const [endDate, setEndDate] = useState(
-    initialEndDate.toISOString().slice(0, 16)
+    initialEndDate.toISOString().slice(0, 16),
   );
   const [organizationId, setOrganizationId] = useQueryStates(
     {
@@ -55,7 +55,7 @@ export function AgentMetricsFilters({
     },
     {
       shallow: false,
-    }
+    },
   );
 
   const [selectedUserId, setSelectedUserId] = useState(initialUserId ?? "");
@@ -83,6 +83,24 @@ export function AgentMetricsFilters({
       router.refresh();
     }
   }, [organizationId.organizationId, router]);
+
+  const orgItems = useMemo(
+    () => ({
+      all: "All organizations",
+      ...Object.fromEntries(organizations.map((org) => [org.id, org.name])),
+    }),
+    [organizations],
+  );
+
+  const userItems = useMemo(
+    () => ({
+      all: "All users",
+      ...Object.fromEntries(
+        users.map((user) => [user.id, user.name || user.email]),
+      ),
+    }),
+    [users],
+  );
 
   const handlePresetClick = useCallback((hours: number) => {
     const end = new Date();
@@ -113,7 +131,7 @@ export function AgentMetricsFilters({
 
   const handleReset = useCallback(() => {
     setStartDate(
-      new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)
+      new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
     );
     setEndDate(new Date().toISOString().slice(0, 16));
     setOrganizationId({ organizationId: null, userId: null });
@@ -182,6 +200,7 @@ export function AgentMetricsFilters({
                 organizationId: value === "all" ? null : value,
               })
             }
+            items={orgItems}
           >
             <SelectTrigger id="organization" className="h-8 w-full text-xs">
               <SelectValue placeholder="All organizations" />
@@ -212,6 +231,7 @@ export function AgentMetricsFilters({
             !organizationId.organizationId &&
             organizations.length > 0
           }
+          items={userItems}
         >
           <SelectTrigger id="user" className="h-8 w-full text-xs">
             <SelectValue placeholder="All users" />
@@ -243,4 +263,3 @@ export function AgentMetricsFilters({
     </div>
   );
 }
-

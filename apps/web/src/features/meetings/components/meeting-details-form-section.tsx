@@ -45,6 +45,10 @@ const TIME_OPTIONS = Array.from({ length: 96 }, (_, i) => {
   return { value: timeString, label: formatted };
 });
 
+const TIME_ITEMS = Object.fromEntries(
+  TIME_OPTIONS.map((opt) => [opt.value, opt.label]),
+);
+
 function formatDateForInput(date: Date): string {
   return format(date, "yyyy-MM-dd");
 }
@@ -120,7 +124,7 @@ export function MeetingDetailsFormSection({
     const start = new Date(`${data.startDate}T${data.startTime}:00`);
     const end = new Date(`${data.endDate}T${data.endTime}:00`);
     const durationMinutes = Math.round(
-      (end.getTime() - start.getTime()) / (60 * 1000)
+      (end.getTime() - start.getTime()) / (60 * 1000),
     );
 
     if (durationMinutes < 15) {
@@ -136,10 +140,7 @@ export function MeetingDetailsFormSection({
       <h3 id="meeting-details-heading" className="font-semibold mb-3">
         Meeting Details
       </h3>
-      <form
-        onSubmit={handleSubmit(handleFormSubmit)}
-        className="space-y-4"
-      >
+      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="meeting-title">Title</Label>
           <Input
@@ -149,9 +150,7 @@ export function MeetingDetailsFormSection({
             aria-invalid={errors.title ? "true" : "false"}
           />
           {errors.title && (
-            <p className="text-sm text-destructive">
-              {errors.title.message}
-            </p>
+            <p className="text-sm text-destructive">{errors.title.message}</p>
           )}
         </div>
 
@@ -175,6 +174,7 @@ export function MeetingDetailsFormSection({
             <Select
               value={watch("startTime")}
               onValueChange={(v) => setValue("startTime", v ?? "")}
+              items={TIME_ITEMS}
             >
               <SelectTrigger id="start-time">
                 <SelectValue placeholder="Select time" />
@@ -216,6 +216,7 @@ export function MeetingDetailsFormSection({
             <Select
               value={watch("endTime")}
               onValueChange={(v) => setValue("endTime", v ?? "")}
+              items={TIME_ITEMS}
             >
               <SelectTrigger id="end-time">
                 <SelectValue placeholder="Select time" />

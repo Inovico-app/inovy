@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -42,8 +42,13 @@ export function AddBotConsentDialog({
   defaultProjectId,
   isLoadingProjects,
 }: AddBotConsentDialogProps) {
+  const projectItems = useMemo(
+    () => Object.fromEntries(projects.map((p) => [p.id, p.name])),
+    [projects],
+  );
+
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
-    defaultProjectId ?? ""
+    defaultProjectId ?? "",
   );
   const prevOpenRef = useRef(open);
   const prevDefaultProjectIdRef = useRef(defaultProjectId);
@@ -51,7 +56,9 @@ export function AddBotConsentDialog({
   // Reset selected project when dialog opens or defaultProjectId changes (during render)
   if (
     (open && !prevOpenRef.current && defaultProjectId) ||
-    (open && defaultProjectId && defaultProjectId !== prevDefaultProjectIdRef.current)
+    (open &&
+      defaultProjectId &&
+      defaultProjectId !== prevDefaultProjectIdRef.current)
   ) {
     setSelectedProjectId(defaultProjectId);
   }
@@ -84,6 +91,7 @@ export function AddBotConsentDialog({
               value={selectedProjectId}
               onValueChange={(value) => setSelectedProjectId(value ?? "")}
               disabled={isLoadingProjects || projects.length === 0}
+              items={projectItems}
             >
               <SelectTrigger id="project-select">
                 <SelectValue placeholder="Select a project" />

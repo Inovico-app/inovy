@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { updateSpeakerNames } from "@/features/recordings/actions/update-speaker-names";
 import { useOrganizationMembers } from "@/features/tasks/hooks/use-organization-members";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 interface EditSpeakerNameDialogProps {
@@ -42,11 +42,26 @@ export function EditSpeakerNameDialog({
 }: EditSpeakerNameDialogProps) {
   const [name, setName] = useState(currentName || "");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(
-    currentUserId || null
+    currentUserId || null,
   );
   const [isSaving, setIsSaving] = useState(false);
   const { members: users = [], isLoading: isLoadingUsers } =
     useOrganizationMembers();
+
+  const userItems = useMemo(
+    () => ({
+      __none__: "Geen gebruiker (externe spreker)",
+      ...Object.fromEntries(
+        users.map((user) => {
+          const fullName = [user.given_name, user.family_name]
+            .filter(Boolean)
+            .join(" ");
+          return [user.id, fullName || user.email || user.id];
+        }),
+      ),
+    }),
+    [users],
+  );
 
   // Auto-fill name when user is selected (only if name field is empty)
   const handleUserChange = (value: string) => {
@@ -76,7 +91,7 @@ export function EditSpeakerNameDialog({
     const validNamePattern = /^[a-zA-Z0-9\s\-.]+$/;
     if (!validNamePattern.test(name.trim())) {
       toast.error(
-        "Naam mag alleen letters, cijfers, spaties, streepjes en punten bevatten"
+        "Naam mag alleen letters, cijfers, spaties, streepjes en punten bevatten",
       );
       return;
     }
@@ -129,6 +144,7 @@ export function EditSpeakerNameDialog({
               value={selectedUserId ?? "__none__"}
               onValueChange={(value) => handleUserChange(value ?? "__none__")}
               disabled={isLoadingUsers || isSaving}
+              items={userItems}
             >
               <SelectTrigger
                 id="speaker-user"
@@ -198,4 +214,3 @@ export function EditSpeakerNameDialog({
     </Dialog>
   );
 }
-

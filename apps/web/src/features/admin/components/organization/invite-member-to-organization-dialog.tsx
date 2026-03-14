@@ -94,7 +94,7 @@ export function InviteMemberToOrganizationDialog({
       if (result?.data) {
         const teamCount = selectedTeams.length;
         toast.success(
-          `Invitation sent successfully${teamCount > 0 ? ` with ${teamCount} team assignment(s)` : ""}`
+          `Invitation sent successfully${teamCount > 0 ? ` with ${teamCount} team assignment(s)` : ""}`,
         );
         reset();
         setSelectedTeams([]);
@@ -188,11 +188,19 @@ export function InviteMemberToOrganizationDialog({
             <Select
               value={role}
               onValueChange={(value) =>
-                value && setValue(
+                value &&
+                setValue(
                   "role",
-                  value as "owner" | "admin" | "user" | "viewer" | "manager"
+                  value as "owner" | "admin" | "user" | "viewer" | "manager",
                 )
               }
+              items={{
+                user: "User",
+                admin: "Admin",
+                owner: "Owner",
+                viewer: "Viewer",
+                manager: "Manager",
+              }}
             >
               <SelectTrigger id="role" className="w-full">
                 <SelectValue placeholder="Select a role" />
@@ -288,4 +296,3 @@ export function InviteMemberToOrganizationDialog({
     </Dialog>
   );
 }
-

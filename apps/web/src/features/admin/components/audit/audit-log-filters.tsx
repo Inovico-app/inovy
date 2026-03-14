@@ -77,6 +77,18 @@ const ACTION_OPTIONS = [
   { value: "revoke", label: "Revoke" },
 ];
 
+const EVENT_TYPE_ITEMS = Object.fromEntries(
+  EVENT_TYPE_OPTIONS.map((o) => [o.value, o.label]),
+);
+
+const RESOURCE_TYPE_ITEMS = Object.fromEntries(
+  RESOURCE_TYPE_OPTIONS.map((o) => [o.value, o.label]),
+);
+
+const ACTION_ITEMS = Object.fromEntries(
+  ACTION_OPTIONS.map((o) => [o.value, o.label]),
+);
+
 export function AuditLogFilters({
   eventTypes,
   onEventTypesChange,
@@ -97,7 +109,7 @@ export function AuditLogFilters({
   const toggleEventType = useArrayToggle(eventTypes, onEventTypesChange);
   const toggleResourceType = useArrayToggle(
     resourceTypes,
-    onResourceTypesChange
+    onResourceTypesChange,
   );
   const toggleAction = useArrayToggle(actions, onActionsChange);
 
@@ -138,6 +150,7 @@ export function AuditLogFilters({
                 onEventTypesChange([...eventTypes, value]);
               }
             }}
+            items={EVENT_TYPE_ITEMS}
           >
             <SelectTrigger id="event-type" className="w-full">
               <SelectValue placeholder="Select event type" />
@@ -178,6 +191,7 @@ export function AuditLogFilters({
                 onResourceTypesChange([...resourceTypes, value]);
               }
             }}
+            items={RESOURCE_TYPE_ITEMS}
           >
             <SelectTrigger id="resource-type" className="w-full">
               <SelectValue placeholder="Select resource type" />
@@ -218,6 +232,7 @@ export function AuditLogFilters({
                 onActionsChange([...actions, value]);
               }
             }}
+            items={ACTION_ITEMS}
           >
             <SelectTrigger id="action" className="w-full">
               <SelectValue placeholder="Select action" />
@@ -296,4 +311,3 @@ export function AuditLogFilters({
     </Card>
   );
 }
-

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import type { RecordingDto } from "@/server/dto/recording.dto";
 import { ArrowRightIcon, FolderIcon } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useMoveRecordingMutation } from "../hooks/use-move-recording-mutation";
 import { useProjectsForMove } from "../hooks/use-projects-for-move";
@@ -52,6 +52,11 @@ export function MoveRecordingDialog({
     currentProjectId,
   });
 
+  const projectItems = useMemo(
+    () => Object.fromEntries(projects.map((p) => [p.id, p.name])),
+    [projects],
+  );
+
   // Show error toast if projects fail to load
   if (projectsError) {
     toast.error("Failed to load projects");
@@ -79,10 +84,14 @@ export function MoveRecordingDialog({
 
   const selectedProject = projects?.find((p) => p.id === targetProjectId);
 
-  const triggerElement = isValidElement(triggerContent) ? triggerContent : undefined;
+  const triggerElement = isValidElement(triggerContent)
+    ? triggerContent
+    : undefined;
   return (
     <Dialog open>
-      <DialogTrigger render={triggerElement ?? <Button variant={variant} size="sm" />}>
+      <DialogTrigger
+        render={triggerElement ?? <Button variant={variant} size="sm" />}
+      >
         {!triggerElement && (
           <>
             <ArrowRightIcon className="h-4 w-4 mr-2" />
@@ -101,11 +110,17 @@ export function MoveRecordingDialog({
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <label htmlFor="move-target-project" className="text-sm font-medium">Select Target Project</label>
+            <label
+              htmlFor="move-target-project"
+              className="text-sm font-medium"
+            >
+              Select Target Project
+            </label>
             <Select
               value={targetProjectId}
               onValueChange={(value) => setTargetProjectId(value ?? "")}
               disabled={isLoadingProjects || isMoving}
+              items={projectItems}
             >
               <SelectTrigger className="w-full">
                 <SelectValue
@@ -167,4 +182,3 @@ export function MoveRecordingDialog({
     </Dialog>
   );
 }
-

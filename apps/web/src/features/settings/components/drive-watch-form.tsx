@@ -39,6 +39,7 @@ import {
 } from "@/features/settings/validation/drive-watch.schema";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2, X } from "lucide-react";
+import { useMemo } from "react";
 import { useAction } from "next-safe-action/hooks";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -65,6 +66,11 @@ export function DriveWatchForm({
   onSuccess,
   onCancel,
 }: DriveWatchFormProps) {
+  const projectItems = useMemo(
+    () => Object.fromEntries(projects.map((p) => [p.id, p.name])),
+    [projects],
+  );
+
   const form = useForm<DriveWatchFormValues>({
     resolver: standardSchemaResolver(driveWatchFormSchema),
     defaultValues: {
@@ -125,7 +131,7 @@ export function DriveWatchForm({
       onError: ({ error }) => {
         toast.error(error.serverError || "Failed to start watch");
       },
-    }
+    },
   );
 
   const { execute: executeUpdate, isExecuting: isUpdating } = useAction(
@@ -185,7 +191,7 @@ export function DriveWatchForm({
       onError: ({ error }) => {
         toast.error(error.serverError || "Failed to update watch");
       },
-    }
+    },
   );
 
   const handleSubmit = (values: DriveWatchFormValues) => {
@@ -218,7 +224,12 @@ export function DriveWatchForm({
                 : "Enter a Google Drive folder ID to monitor for file uploads"}
             </CardDescription>
           </div>
-          <Button variant="ghost" size="icon" onClick={onCancel} aria-label="Cancel">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCancel}
+            aria-label="Cancel"
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -272,6 +283,7 @@ export function DriveWatchForm({
                     value={field.value}
                     onValueChange={field.onChange}
                     disabled={isLoading}
+                    items={projectItems}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -303,9 +315,7 @@ export function DriveWatchForm({
 
             <div className="flex items-center gap-2">
               <Button type="submit" disabled={isLoading}>
-                {isLoading && (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                )}
+                {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {editingWatch ? "Update Watch" : "Start Watching"}
               </Button>
               <Button type="button" variant="outline" onClick={onCancel}>

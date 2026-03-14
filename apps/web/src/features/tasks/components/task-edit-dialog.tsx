@@ -51,7 +51,7 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
   const [priority, setPriority] = useState(task.priority);
   const [status, setStatus] = useState(task.status);
   const [dueDate, setDueDate] = useState(
-    task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : ""
+    task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
   );
 
   const updateMutation = useUpdateTaskMutation();
@@ -79,7 +79,7 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
       setPriority(task.priority);
       setStatus(task.status);
       setDueDate(
-        task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : ""
+        task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
       );
     }
     setOpen(newOpen);
@@ -99,7 +99,8 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
           <DialogHeader>
             <DialogTitle>Taak bewerken</DialogTitle>
             <DialogDescription>
-              Wijzig de details van deze taak. Klik op opslaan wanneer je klaar bent.
+              Wijzig de details van deze taak. Klik op opslaan wanneer je klaar
+              bent.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -128,30 +129,54 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="priority">Prioriteit</Label>
-                <Select value={priority} onValueChange={(value) => value && setPriority(value as typeof priority)}>
+                <Select
+                  value={priority}
+                  onValueChange={(value) =>
+                    value && setPriority(value as typeof priority)
+                  }
+                  items={priorityLabels}
+                >
                   <SelectTrigger id="priority">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="low">{priorityLabels.low}</SelectItem>
-                    <SelectItem value="medium">{priorityLabels.medium}</SelectItem>
+                    <SelectItem value="medium">
+                      {priorityLabels.medium}
+                    </SelectItem>
                     <SelectItem value="high">{priorityLabels.high}</SelectItem>
-                    <SelectItem value="urgent">{priorityLabels.urgent}</SelectItem>
+                    <SelectItem value="urgent">
+                      {priorityLabels.urgent}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="status">Status</Label>
-                <Select value={status} onValueChange={(value) => value && setStatus(value as typeof status)}>
+                <Select
+                  value={status}
+                  onValueChange={(value) =>
+                    value && setStatus(value as typeof status)
+                  }
+                  items={statusLabels}
+                >
                   <SelectTrigger id="status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pending">{statusLabels.pending}</SelectItem>
-                    <SelectItem value="in_progress">{statusLabels.in_progress}</SelectItem>
-                    <SelectItem value="completed">{statusLabels.completed}</SelectItem>
-                    <SelectItem value="cancelled">{statusLabels.cancelled}</SelectItem>
+                    <SelectItem value="pending">
+                      {statusLabels.pending}
+                    </SelectItem>
+                    <SelectItem value="in_progress">
+                      {statusLabels.in_progress}
+                    </SelectItem>
+                    <SelectItem value="completed">
+                      {statusLabels.completed}
+                    </SelectItem>
+                    <SelectItem value="cancelled">
+                      {statusLabels.cancelled}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -188,4 +213,3 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
     </Dialog>
   );
 }
-

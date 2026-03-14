@@ -18,7 +18,7 @@ import { uploadRecordingToBlob } from "@/lib/vercel-blob";
 import type { ProjectWithCreatorDto } from "@/server/dto/project.dto";
 import { FolderIcon, InfoIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 interface RecordPageClientProps {
@@ -32,7 +32,11 @@ export function RecordPageClient({
 }: RecordPageClientProps) {
   const router = useRouter();
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
-    projects[0]?.id ?? ""
+    projects[0]?.id ?? "",
+  );
+  const projectItems = useMemo(
+    () => Object.fromEntries(projects.map((p) => [p.id, p.name])),
+    [projects],
   );
   const showProjectSelector = projectIdFromParams === undefined;
   const effectiveProjectId = projectIdFromParams ?? selectedProjectId;
@@ -60,7 +64,7 @@ export function RecordPageClient({
     try {
       const audioFile = await convertBlobToMp3(
         audioBlob,
-        `live-recording-${Date.now()}`
+        `live-recording-${Date.now()}`,
       );
 
       // Prepare metadata to send with the upload
@@ -87,7 +91,7 @@ export function RecordPageClient({
     } catch (error) {
       console.error("Error saving live recording:", error);
       toast.error(
-        error instanceof Error ? error.message : "Fout bij opslaan van opname"
+        error instanceof Error ? error.message : "Fout bij opslaan van opname",
       );
     }
   };
@@ -117,6 +121,7 @@ export function RecordPageClient({
               <Select
                 value={selectedProjectId}
                 onValueChange={(value) => setSelectedProjectId(value ?? "")}
+                items={projectItems}
               >
                 <SelectTrigger
                   id="project-select"

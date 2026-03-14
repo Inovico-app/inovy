@@ -94,7 +94,7 @@ export function UserActionsMenu({
 
       if (result?.data) {
         toast.success(
-          `${memberName}'s role has been updated to ${selectedRole}`
+          `${memberName}'s role has been updated to ${selectedRole}`,
         );
         setShowRoleDialog(false);
       } else if (result?.validationErrors) {
@@ -172,7 +172,11 @@ export function UserActionsMenu({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4">
-            <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value ?? currentRole)}>
+            <Select
+              value={selectedRole}
+              onValueChange={(value) => setSelectedRole(value ?? currentRole)}
+              items={{ member: "Member", admin: "Admin", owner: "Owner" }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
@@ -202,4 +206,3 @@ export function UserActionsMenu({
     </>
   );
 }
-

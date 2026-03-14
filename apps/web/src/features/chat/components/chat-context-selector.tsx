@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Building2, FolderOpen } from "lucide-react";
+import { useMemo } from "react";
 
 interface Project {
   id: string;
@@ -21,7 +22,7 @@ interface ChatContextSelectorProps {
   projects: Project[];
   onContextChange: (
     context: "organization" | "project",
-    projectId?: string
+    projectId?: string,
   ) => void;
 }
 
@@ -32,6 +33,14 @@ export function ChatContextSelector({
   projects,
   onContextChange,
 }: ChatContextSelectorProps) {
+  const contextItems = useMemo(
+    () => ({
+      organization: "Organization-Wide",
+      ...Object.fromEntries(projects.map((p) => [`project-${p.id}`, p.name])),
+    }),
+    [projects],
+  );
+
   const currentValue =
     currentContext === "organization"
       ? "organization"
@@ -47,7 +56,11 @@ export function ChatContextSelector({
   };
 
   return (
-    <Select value={currentValue} onValueChange={(value) => value && handleValueChange(value)}>
+    <Select
+      value={currentValue}
+      onValueChange={(value) => value && handleValueChange(value)}
+      items={contextItems}
+    >
       <SelectTrigger className="w-[280px]">
         <SelectValue placeholder="Select context..." />
       </SelectTrigger>
@@ -79,4 +92,3 @@ export function ChatContextSelector({
     </Select>
   );
 }
-
