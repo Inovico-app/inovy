@@ -1,15 +1,20 @@
 "use client";
 
+import { authClient } from "@/lib/auth-client";
 import type { Route } from "next";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { sendMagicLinkAction } from "../actions/magic-link";
-import { getSocialSignInUrlAction } from "../actions/sign-in";
 import { signUpEmailAction } from "../actions/sign-up";
 
 export function useSignUp(redirectUrl?: string) {
   const router = useRouter();
+  const [isSocialSigningIn, setIsSocialSigningIn] = useState(false);
+  const [socialSignInError, setSocialSignInError] = useState<
+    string | undefined
+  >();
 
   const {
     execute: executeSignUp,
@@ -18,7 +23,7 @@ export function useSignUp(redirectUrl?: string) {
   } = useAction(signUpEmailAction, {
     onSuccess: () => {
       toast.success(
-        "Account aangemaakt! Controleer je e-mail om je account te verifiëren."
+        "Account aangemaakt! Controleer je e-mail om je account te verifiëren.",
       );
       const target = redirectUrl
         ? `/sign-in?redirect=${encodeURIComponent(redirectUrl)}`
@@ -27,21 +32,27 @@ export function useSignUp(redirectUrl?: string) {
     },
   });
 
-  const {
-    execute: executeSocialSignIn,
-    isExecuting: isSocialSigningIn,
-    result: socialSignInResult,
-  } = useAction(getSocialSignInUrlAction, {
-    onSuccess: ({ data }) => {
-      const url = typeof data?.url === "string" ? data.url : undefined;
-      if (url) {
-        window.location.href = url;
+  const executeSocialSignIn = useCallback(
+    async (input: {
+      provider: "google" | "microsoft";
+      callbackUrl?: string;
+    }) => {
+      setIsSocialSigningIn(true);
+      setSocialSignInError(undefined);
+      const { error } = await authClient.signIn.social({
+        provider: input.provider,
+        callbackURL: input.callbackUrl || "/",
+        errorCallbackURL: "/sign-up",
+      });
+      if (error) {
+        const message = error.message ?? "Social login starten mislukt";
+        toast.error(message);
+        setSocialSignInError(message);
+        setIsSocialSigningIn(false);
       }
     },
-    onError: ({ error }) => {
-      toast.error(error.serverError ?? "Social login starten mislukt");
-    },
-  });
+    [],
+  );
 
   const {
     execute: executeMagicLink,
@@ -65,7 +76,6 @@ export function useSignUp(redirectUrl?: string) {
     isSendingMagicLink,
     signUpError: signUpResult.serverError,
     magicLinkError: magicLinkResult.serverError,
-    socialSignInError: socialSignInResult.serverError,
+    socialSignInError,
   };
 }
-

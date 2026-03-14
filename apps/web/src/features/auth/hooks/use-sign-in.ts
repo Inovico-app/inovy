@@ -1,15 +1,19 @@
 "use client";
 
+import { authClient } from "@/lib/auth-client";
 import { useAction } from "next-safe-action/hooks";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { sendMagicLinkAction } from "../actions/magic-link";
 import { requestPasswordResetAction } from "../actions/password-reset";
-import {
-  getSocialSignInUrlAction,
-  signInEmailAction,
-} from "../actions/sign-in";
+import { signInEmailAction } from "../actions/sign-in";
 
 export function useSignIn() {
+  const [isSocialSigningIn, setIsSocialSigningIn] = useState(false);
+  const [socialSignInError, setSocialSignInError] = useState<
+    string | undefined
+  >();
+
   const {
     execute: executeSignIn,
     isExecuting: isSigningIn,
@@ -27,21 +31,27 @@ export function useSignIn() {
     },
   });
 
-  const {
-    execute: executeSocialSignIn,
-    isExecuting: isSocialSigningIn,
-    result: socialSignInResult,
-  } = useAction(getSocialSignInUrlAction, {
-    onSuccess: ({ data }) => {
-      const url = typeof data?.url === "string" ? data.url : undefined;
-      if (url) {
-        window.location.href = url;
+  const executeSocialSignIn = useCallback(
+    async (input: {
+      provider: "google" | "microsoft";
+      callbackUrl?: string;
+    }) => {
+      setIsSocialSigningIn(true);
+      setSocialSignInError(undefined);
+      const { error } = await authClient.signIn.social({
+        provider: input.provider,
+        callbackURL: input.callbackUrl || "/",
+        errorCallbackURL: "/sign-in",
+      });
+      if (error) {
+        const message = error.message ?? "Social login starten mislukt";
+        toast.error(message);
+        setSocialSignInError(message);
+        setIsSocialSigningIn(false);
       }
     },
-    onError: ({ error }) => {
-      toast.error(error.serverError ?? "Social login starten mislukt");
-    },
-  });
+    [],
+  );
 
   const {
     execute: executeMagicLink,
@@ -82,7 +92,6 @@ export function useSignIn() {
     signInError: signInResult.serverError,
     magicLinkError: magicLinkResult.serverError,
     passwordResetError: passwordResetResult.serverError,
-    socialSignInError: socialSignInResult.serverError,
+    socialSignInError,
   };
 }
-
