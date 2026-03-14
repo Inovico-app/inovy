@@ -19,6 +19,9 @@ import {
  */
 export function usePrivacyRequests(initialRequests: PrivacyRequest[] = []) {
   const [requests, setRequests] = useState<PrivacyRequest[]>(initialRequests);
+  const [withdrawingRequestId, setWithdrawingRequestId] = useState<
+    string | null
+  >(null);
 
   const { execute: executeSubmit, isExecuting: isSubmitting } = useAction(
     submitPrivacyRequestAction,
@@ -33,18 +36,17 @@ export function usePrivacyRequests(initialRequests: PrivacyRequest[] = []) {
     },
   );
 
-  const { execute: executeWithdraw, isExecuting: isWithdrawing } = useAction(
-    withdrawPrivacyRequestAction,
-    {
-      onSuccess: () => {
-        toast.success("Privacy request withdrawn");
-        reloadRequests();
-      },
-      onError: ({ error }) => {
-        toast.error(error.serverError || "Failed to withdraw privacy request");
-      },
+  const { execute: executeWithdraw } = useAction(withdrawPrivacyRequestAction, {
+    onSuccess: () => {
+      toast.success("Privacy request withdrawn");
+      setWithdrawingRequestId(null);
+      reloadRequests();
     },
-  );
+    onError: ({ error }) => {
+      toast.error(error.serverError || "Failed to withdraw privacy request");
+      setWithdrawingRequestId(null);
+    },
+  });
 
   const { execute: executeGetRequests } = useAction(getPrivacyRequestsAction, {
     onSuccess: ({ data }) => {
@@ -69,6 +71,7 @@ export function usePrivacyRequests(initialRequests: PrivacyRequest[] = []) {
   };
 
   const withdrawRequest = (requestId: string) => {
+    setWithdrawingRequestId(requestId);
     executeWithdraw({ requestId });
   };
 
@@ -94,7 +97,7 @@ export function usePrivacyRequests(initialRequests: PrivacyRequest[] = []) {
     requests,
     activeRequests,
     isSubmitting,
-    isWithdrawing,
+    withdrawingRequestId,
     submitRequest,
     withdrawRequest,
     hasActiveRestriction,

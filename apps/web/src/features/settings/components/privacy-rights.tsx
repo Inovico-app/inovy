@@ -54,7 +54,7 @@ export function PrivacyRights({ initialRequests = [] }: PrivacyRightsProps) {
     requests,
     activeRequests,
     isSubmitting,
-    isWithdrawing,
+    withdrawingRequestId,
     submitRequest,
     withdrawRequest,
   } = usePrivacyRequests(initialRequests);
@@ -127,9 +127,9 @@ export function PrivacyRights({ initialRequests = [] }: PrivacyRightsProps) {
                   variant="ghost"
                   size="sm"
                   onClick={() => withdrawRequest(request.id)}
-                  disabled={isWithdrawing}
+                  disabled={withdrawingRequestId === request.id}
                 >
-                  {isWithdrawing ? (
+                  {withdrawingRequestId === request.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <X className="h-4 w-4" />

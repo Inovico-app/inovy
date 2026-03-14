@@ -17,14 +17,23 @@ export function CookieConsent() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const acknowledged = localStorage.getItem(CONSENT_KEY);
-    if (!acknowledged) {
+    try {
+      const acknowledged = localStorage.getItem(CONSENT_KEY);
+      if (!acknowledged) {
+        setIsVisible(true);
+      }
+    } catch {
+      console.warn("[CookieConsent] localStorage read failed");
       setIsVisible(true);
     }
   }, []);
 
   const handleAcknowledge = () => {
-    localStorage.setItem(CONSENT_KEY, new Date().toISOString());
+    try {
+      localStorage.setItem(CONSENT_KEY, new Date().toISOString());
+    } catch {
+      console.warn("[CookieConsent] localStorage write failed");
+    }
     setIsVisible(false);
   };
 
