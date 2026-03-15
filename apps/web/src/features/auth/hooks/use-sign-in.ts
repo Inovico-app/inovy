@@ -16,8 +16,12 @@ export function useSignIn() {
     isExecuting: isSigningIn,
     result: signInResult,
   } = useAction(signInEmailAction, {
-    onSuccess: () => {
+    onSuccess: ({ data }) => {
       toast.success("Succesvol ingelogd");
+      // Use hard navigation to ensure iOS Safari persists cookies
+      // before the next page load. Soft navigation (router.push) can
+      // race the cookie store on mobile WebKit.
+      window.location.href = data?.redirectTo ?? "/";
     },
     onError: ({ error }) => {
       const errorMessage = error.serverError ?? "Inloggen mislukt";

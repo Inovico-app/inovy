@@ -12,13 +12,14 @@ export function usePasskeySignIn() {
 
   const { execute: executePasskeySuccess, isExecuting: isPasskeyRedirecting } =
     useAction(passkeySignInSuccessAction, {
-      onSuccess: () => {
-        // Redirect is handled by the server action
+      onSuccess: ({ data }) => {
         toast.success("Signed in successfully with passkey");
+        // Use hard navigation to ensure iOS Safari persists cookies
+        window.location.href = data?.redirectTo ?? "/";
       },
       onError: ({ error }) => {
         toast.error(
-          error.serverError ?? "Failed to complete passkey authentication"
+          error.serverError ?? "Failed to complete passkey authentication",
         );
       },
     });
@@ -67,4 +68,3 @@ export function usePasskeySignIn() {
     isPasskeyRedirecting,
   };
 }
-

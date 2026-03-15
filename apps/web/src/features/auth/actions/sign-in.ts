@@ -11,7 +11,6 @@ import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { OnboardingService } from "@/server/services/onboarding.service";
 import { AccountLockoutService } from "@/server/services/account-lockout.service";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import {
   passkeySignInSchema,
   signInEmailSchema,
@@ -20,7 +19,12 @@ import {
 
 /**
  * Sign in with email and password
- * Cookies are automatically handled by Better Auth's nextCookies plugin
+ * Cookies are automatically handled by Better Auth's nextCookies plugin.
+ *
+ * Returns the redirect URL instead of calling redirect() server-side.
+ * iOS Safari does not reliably persist cookies from server action fetch()
+ * responses before a soft navigation occurs. The client must perform a
+ * hard navigation (window.location.href) to ensure cookies are sent.
  */
 export const signInEmailAction = publicActionClient
   .metadata({
@@ -125,7 +129,8 @@ export const signInEmailAction = publicActionClient
       console.error("Failed to ensure onboarding record exists:", error);
     }
 
-    redirect((redirectTo || "/") as "/");
+    // Return redirect URL for client-side hard navigation
+    return { redirectTo: redirectTo || "/" };
   });
 
 /**
@@ -163,7 +168,10 @@ export const getSocialSignInUrlAction = publicActionClient
 /**
  * Passkey sign-in success handler
  * This action is called after successful client-side passkey authentication
- * to handle server-side redirect logic
+ * to handle server-side redirect logic.
+ *
+ * Returns the redirect URL for client-side hard navigation (same iOS Safari
+ * cookie persistence fix as email/password sign-in).
  */
 export const passkeySignInSuccessAction = publicActionClient
   .metadata({
@@ -191,7 +199,5 @@ export const passkeySignInSuccessAction = publicActionClient
       throw createErrorForNextSafeAction(ActionErrors.internal(message, error));
     }
 
-    // Redirect to home page after successful sign-in
-    // This is outside the try/catch to avoid catching Next.js's NEXT_REDIRECT error
-    redirect("/");
+    return { redirectTo: "/" };
   });
