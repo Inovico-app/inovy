@@ -1,6 +1,9 @@
 "use client";
 
+import { isSafari } from "@/lib/browser-utils";
+import type { Route } from "next";
 import { useAction } from "next-safe-action/hooks";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { sendMagicLinkAction } from "../actions/magic-link";
 import { requestPasswordResetAction } from "../actions/password-reset";
@@ -8,6 +11,7 @@ import { signInEmailAction } from "../actions/sign-in";
 import { useSocialSignIn } from "./use-social-sign-in";
 
 export function useSignIn() {
+  const router = useRouter();
   const { executeSocialSignIn, isSocialSigningIn, socialSignInError } =
     useSocialSignIn("/sign-in");
 
@@ -18,10 +22,15 @@ export function useSignIn() {
   } = useAction(signInEmailAction, {
     onSuccess: ({ data }) => {
       toast.success("Succesvol ingelogd");
-      // Use hard navigation to ensure iOS Safari persists cookies
-      // before the next page load. Soft navigation (router.push) can
-      // race the cookie store on mobile WebKit.
-      window.location.href = data?.redirectTo ?? "/";
+      const target = data?.redirectTo ?? "/";
+      if (isSafari()) {
+        // iOS/macOS Safari does not reliably persist cookies from server
+        // action fetch() responses before a soft navigation. Force a full
+        // page load so the browser includes the freshly-set session cookie.
+        window.location.href = target;
+      } else {
+        router.push(target as Route);
+      }
     },
     onError: ({ error }) => {
       const errorMessage = error.serverError ?? "Inloggen mislukt";
