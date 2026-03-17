@@ -250,15 +250,22 @@ export class MicrosoftCalendarProvider implements CalendarProvider {
       const calendarIds = options.calendarIds;
 
       if (calendarIds && calendarIds.length > 0) {
-        // Fetch events per calendar
+        // Fetch events for all calendars in parallel
+        const results = await Promise.all(
+          calendarIds.map((calendarId) =>
+            graphRequest<{ value: GraphEvent[] }>(
+              tokenResult.value,
+              "GET",
+              `/me/calendars/${calendarId}/calendarView?${queryParams}`,
+            ),
+          ),
+        );
+
         const allEvents: CalendarEvent[] = [];
 
-        for (const calendarId of calendarIds) {
-          const result = await graphRequest<{ value: GraphEvent[] }>(
-            tokenResult.value,
-            "GET",
-            `/me/calendars/${calendarId}/calendarView?${queryParams}`,
-          );
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          const calendarId = calendarIds[i];
 
           if (result.isErr()) {
             logger.warn(

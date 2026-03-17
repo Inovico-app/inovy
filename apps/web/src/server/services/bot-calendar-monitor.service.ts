@@ -179,7 +179,33 @@ export class BotCalendarMonitorService {
         settings.organizationId,
       );
 
-      // Phase 3: Create bot sessions for new meetings
+      // Phase 3: Batch-fetch existing sessions by calendar event ID (avoid N+1)
+      const remainingMeetings = enrichedMeetings.filter(
+        ({ meetingUrl }) => !existingMeetingUrls.has(meetingUrl),
+      );
+
+      const remainingEventIds = remainingMeetings.map(({ event }) => event.id);
+      const existingSessionsByEventId =
+        await BotSessionsQueries.findByCalendarEventIds(
+          remainingEventIds,
+          settings.organizationId,
+        );
+
+      // Hoist project lookup outside the loop — organizationId is constant
+      const project = await ProjectQueries.findFirstActiveByOrganization(
+        settings.organizationId,
+      );
+
+      if (!project) {
+        logger.warn("No active project found for organization", {
+          component: "BotCalendarMonitorService.processUserCalendar",
+          userId: settings.userId,
+          organizationId: settings.organizationId,
+        });
+        return ok({ sessionsCreated: 0 });
+      }
+
+      // Phase 4: Create bot sessions for new meetings
       let sessionsCreated = 0;
 
       for (const { event, meetingUrl, provider } of enrichedMeetings) {
@@ -196,12 +222,8 @@ export class BotCalendarMonitorService {
             continue;
           }
 
-          // Same-provider dedup: check by calendar event ID
-          const existingSession =
-            await BotSessionsQueries.findByCalendarEventId(
-              event.id,
-              settings.organizationId,
-            );
+          // Same-provider dedup: check in-memory map instead of per-iteration query
+          const existingSession = existingSessionsByEventId.get(event.id);
 
           if (existingSession) {
             logger.debug("Bot session already exists for calendar event", {
@@ -210,21 +232,6 @@ export class BotCalendarMonitorService {
               calendarEventId: event.id,
               sessionId: existingSession.id,
               provider,
-            });
-            continue;
-          }
-
-          // Get project for this organization
-          const project = await ProjectQueries.findFirstActiveByOrganization(
-            settings.organizationId,
-          );
-
-          if (!project) {
-            logger.warn("No active project found for organization", {
-              component: "BotCalendarMonitorService.processUserCalendar",
-              userId: settings.userId,
-              organizationId: settings.organizationId,
-              calendarEventId: event.id,
             });
             continue;
           }

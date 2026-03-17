@@ -85,12 +85,9 @@ export function MicrosoftConnection() {
 
   useEffect(() => {
     loadStatus();
-  }, []);
 
-  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("microsoft_success") === "true") {
-      loadStatus();
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);

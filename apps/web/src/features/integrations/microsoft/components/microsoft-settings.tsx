@@ -16,7 +16,6 @@ import {
   resetMicrosoftSettings,
   updateMicrosoftSettings,
 } from "@/features/settings/actions/microsoft-settings";
-import type { IntegrationSettings } from "@/server/db/schema/integration-settings";
 import { Loader2, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -28,7 +27,6 @@ interface MicrosoftSettingsProps {
 export function MicrosoftSettings({ projectId }: MicrosoftSettingsProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [_settings, setSettings] = useState<IntegrationSettings | null>(null);
 
   // Form state
   const [autoCalendarEnabled, setAutoCalendarEnabled] = useState(false);
@@ -54,7 +52,6 @@ export function MicrosoftSettings({ projectId }: MicrosoftSettingsProps) {
     );
 
     if (result?.data) {
-      setSettings(result.data);
       setAutoCalendarEnabled(result.data.autoCalendarEnabled);
       setAutoEmailEnabled(result.data.autoEmailEnabled);
       setDefaultEventDuration(result.data.defaultEventDuration);
@@ -108,7 +105,6 @@ export function MicrosoftSettings({ projectId }: MicrosoftSettingsProps) {
 
     if (result?.data) {
       toast.success("Settings saved successfully!");
-      setSettings(result.data);
     } else {
       toast.error(result?.serverError ?? "Failed to save settings");
     }
