@@ -26,6 +26,7 @@ export interface UpdateOnboardingData {
   referralSource?: string | null;
   referralSourceOther?: string | null;
   googleCalendarConnectedDuringOnboarding?: boolean;
+  microsoftCalendarConnectedDuringOnboarding?: boolean;
   newsletterOptIn?: boolean | null;
   organizationId?: string | null;
 }
@@ -48,7 +49,7 @@ export class OnboardingQueries {
    * Create a new onboarding record
    */
   static async createOnboarding(
-    data: CreateOnboardingData
+    data: CreateOnboardingData,
   ): Promise<Onboarding> {
     const newOnboarding: NewOnboarding = {
       userId: data.userId ?? null,
@@ -85,7 +86,7 @@ export class OnboardingQueries {
    * Get onboarding record by user ID
    */
   static async getOnboardingByUserId(
-    userId: string
+    userId: string,
   ): Promise<Onboarding | null> {
     const [onboarding] = await db
       .select()
@@ -100,7 +101,7 @@ export class OnboardingQueries {
    * Get onboarding record by organization ID
    */
   static async getOnboardingByOrganizationId(
-    organizationId: string
+    organizationId: string,
   ): Promise<Onboarding | null> {
     const [onboarding] = await db
       .select()
@@ -157,8 +158,8 @@ export class OnboardingQueries {
       .where(
         and(
           eq(onboardings.signupType, "organization"),
-          sql`${onboardings.orgSize} IS NOT NULL`
-        )
+          sql`${onboardings.orgSize} IS NOT NULL`,
+        ),
       );
 
     // Transform results
@@ -191,7 +192,7 @@ export class OnboardingQueries {
    */
   static async updateOnboardingCompleted(
     id: string,
-    completed: boolean
+    completed: boolean,
   ): Promise<void> {
     await db
       .update(onboardings)
@@ -207,7 +208,7 @@ export class OnboardingQueries {
    */
   static async updateOnboardingData(
     id: string,
-    data: UpdateOnboardingData
+    data: UpdateOnboardingData,
   ): Promise<Onboarding> {
     // Build update object, only including fields that are explicitly provided
     const updateData: Record<string, unknown> = {
@@ -233,6 +234,10 @@ export class OnboardingQueries {
       updateData.googleCalendarConnectedDuringOnboarding =
         data.googleCalendarConnectedDuringOnboarding;
     }
+    if (data.microsoftCalendarConnectedDuringOnboarding !== undefined) {
+      updateData.microsoftCalendarConnectedDuringOnboarding =
+        data.microsoftCalendarConnectedDuringOnboarding;
+    }
     // Only include newsletterOptIn if it's explicitly provided as a boolean (not null)
     if (data.newsletterOptIn !== undefined && data.newsletterOptIn !== null) {
       updateData.newsletterOptIn = data.newsletterOptIn;
@@ -250,4 +255,3 @@ export class OnboardingQueries {
     return updated ?? null;
   }
 }
-

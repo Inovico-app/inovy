@@ -95,6 +95,9 @@ export const CacheTags = {
   // Google Connection tags
   googleConnection: (userId: string) => `google-connection-${userId}`,
 
+  // Microsoft Connection tags
+  microsoftConnection: (userId: string) => `microsoft-connection-${userId}`,
+
   // Bot Settings tags
   // Note: Uses organizationId (UUID) instead of orgCode (slug) for consistency with bot settings schema
   botSettings: (userId: string, organizationId: string) =>
@@ -114,14 +117,14 @@ export const CacheTags = {
   // Knowledge Base tags
   knowledgeEntries: (
     scope: "project" | "org" | "global",
-    scopeId?: string
+    scopeId?: string,
   ): string => {
     if (scope === "global") {
       return `knowledge-entries:global`;
     }
     if (!scopeId) {
       throw new Error(
-        `scopeId is required for ${scope} scope in knowledgeEntries`
+        `scopeId is required for ${scope} scope in knowledgeEntries`,
       );
     }
     return scope === "org"
@@ -130,14 +133,14 @@ export const CacheTags = {
   },
   knowledgeDocuments: (
     scope: "project" | "org" | "global",
-    scopeId?: string
+    scopeId?: string,
   ): string => {
     if (scope === "global") {
       return `knowledge-documents:global`;
     }
     if (!scopeId) {
       throw new Error(
-        `scopeId is required for ${scope} scope in knowledgeDocuments`
+        `scopeId is required for ${scope} scope in knowledgeDocuments`,
       );
     }
     return scope === "org"
@@ -201,7 +204,7 @@ export const CacheInvalidation = {
       CacheTags.projectsByOrg(orgCode),
       CacheTags.projectCount(orgCode),
       CacheTags.dashboardStats(orgCode),
-      CacheTags.recentProjects(orgCode)
+      CacheTags.recentProjects(orgCode),
     );
   },
 
@@ -215,7 +218,7 @@ export const CacheInvalidation = {
       CacheTags.projectCount(orgCode),
       CacheTags.projectTemplate(projectId),
       CacheTags.dashboardStats(orgCode),
-      CacheTags.recentProjects(orgCode)
+      CacheTags.recentProjects(orgCode),
     );
   },
 
@@ -261,7 +264,7 @@ export const CacheInvalidation = {
     invalidateCache(
       CacheTags.tasksByUser(userId, orgCode),
       CacheTags.taskStats(userId, orgCode),
-      CacheTags.tasksByOrg(orgCode)
+      CacheTags.tasksByOrg(orgCode),
     );
   },
 
@@ -295,7 +298,7 @@ export const CacheInvalidation = {
    */
   invalidateConsentParticipants(
     recordingId: string,
-    organizationId: string
+    organizationId: string,
   ): void {
     invalidateCache(CacheTags.consentParticipants(recordingId, organizationId));
   },
@@ -306,7 +309,7 @@ export const CacheInvalidation = {
   invalidateNotifications(userId: string, orgCode: string): void {
     invalidateCache(
       CacheTags.notifications(userId, orgCode),
-      CacheTags.notificationUnreadCount(userId, orgCode)
+      CacheTags.notificationUnreadCount(userId, orgCode),
     );
   },
 
@@ -330,7 +333,7 @@ export const CacheInvalidation = {
   invalidateBotSession(sessionId: string, organizationId: string): void {
     invalidateCache(
       CacheTags.botSession(sessionId),
-      CacheTags.botSessions(organizationId)
+      CacheTags.botSessions(organizationId),
     );
   },
 
@@ -347,14 +350,14 @@ export const CacheInvalidation = {
   invalidateRecording(
     recordingId: string,
     projectId: string,
-    orgCode: string
+    orgCode: string,
   ): void {
     invalidateCache(
       CacheTags.recording(recordingId),
       CacheTags.recordingsByProject(projectId),
       CacheTags.recordingsByOrg(orgCode),
       CacheTags.dashboardStats(orgCode),
-      CacheTags.recentRecordings(orgCode)
+      CacheTags.recentRecordings(orgCode),
     );
   },
 
@@ -366,7 +369,7 @@ export const CacheInvalidation = {
       CacheTags.recordingsByProject(projectId),
       CacheTags.recordingsByOrg(orgCode),
       CacheTags.dashboardStats(orgCode),
-      CacheTags.recentRecordings(orgCode)
+      CacheTags.recentRecordings(orgCode),
     );
   },
 
@@ -377,7 +380,7 @@ export const CacheInvalidation = {
     invalidateCache(
       CacheTags.dashboardStats(orgCode),
       CacheTags.recentProjects(orgCode),
-      CacheTags.recentRecordings(orgCode)
+      CacheTags.recentRecordings(orgCode),
     );
   },
 
@@ -387,7 +390,7 @@ export const CacheInvalidation = {
   invalidateAutoActions(userId: string): void {
     invalidateCache(
       CacheTags.autoActions(userId),
-      CacheTags.autoActionStats(userId)
+      CacheTags.autoActionStats(userId),
     );
   },
 
@@ -397,7 +400,7 @@ export const CacheInvalidation = {
   invalidateTaskTags(taskId: string, orgCode: string): void {
     invalidateCache(
       CacheTags.taskTagsForTask(taskId),
-      CacheTags.taskTags(orgCode)
+      CacheTags.taskTags(orgCode),
     );
   },
 
@@ -407,7 +410,7 @@ export const CacheInvalidation = {
   invalidateTranscriptionHistory(recordingId: string): void {
     invalidateCache(
       CacheTags.transcriptionHistory(recordingId),
-      CacheTags.recording(recordingId)
+      CacheTags.recording(recordingId),
     );
   },
 
@@ -417,7 +420,7 @@ export const CacheInvalidation = {
   invalidateSummaryHistory(recordingId: string): void {
     invalidateCache(
       CacheTags.summaryHistory(recordingId),
-      CacheTags.summary(recordingId)
+      CacheTags.summary(recordingId),
     );
   },
 
@@ -427,7 +430,7 @@ export const CacheInvalidation = {
   invalidateConversations(
     userId: string,
     orgCode: string,
-    conversationId?: string
+    conversationId?: string,
   ): void {
     const tags = [CacheTags.conversations(userId, orgCode)];
     if (conversationId) {
@@ -442,13 +445,13 @@ export const CacheInvalidation = {
    */
   invalidateKnowledge(
     scope: "project" | "organization" | "global",
-    scopeId?: string | null
+    scopeId?: string | null,
   ): void {
     // Early return for global scope - no scopeId needed
     if (scope === "global") {
       invalidateCache(
         CacheTags.knowledgeEntries("global"),
-        CacheTags.knowledgeDocuments("global")
+        CacheTags.knowledgeDocuments("global"),
       );
       return;
     }
@@ -456,7 +459,7 @@ export const CacheInvalidation = {
     // For non-global scopes, scopeId is required
     if (!scopeId) {
       throw new Error(
-        `scopeId is required for ${scope} scope in invalidateKnowledge`
+        `scopeId is required for ${scope} scope in invalidateKnowledge`,
       );
     }
 
@@ -465,13 +468,13 @@ export const CacheInvalidation = {
     if (scope === "organization") {
       tags.push(
         CacheTags.knowledgeEntries("org", scopeId),
-        CacheTags.knowledgeDocuments("org", scopeId)
+        CacheTags.knowledgeDocuments("org", scopeId),
       );
     } else {
       // scope === "project"
       tags.push(
         CacheTags.knowledgeEntries("project", scopeId),
-        CacheTags.knowledgeDocuments("project", scopeId)
+        CacheTags.knowledgeDocuments("project", scopeId),
       );
     }
     invalidateCache(...tags);
@@ -483,7 +486,7 @@ export const CacheInvalidation = {
    */
   invalidateKnowledgeHierarchy(
     projectId: string | null,
-    orgId: string | null
+    orgId: string | null,
   ): void {
     const tags: string[] = [];
 
@@ -518,7 +521,7 @@ export const CacheInvalidation = {
   invalidateTeamCache(
     orgCode: string,
     teamId?: string,
-    _departmentId?: string
+    _departmentId?: string,
   ): void {
     const tags = [CacheTags.teamsByOrg(orgCode)];
     if (teamId) {
@@ -560,6 +563,10 @@ export const CacheInvalidation = {
     invalidateCache(CacheTags.googleConnection(userId));
   },
 
+  invalidateMicrosoftConnection(userId: string): void {
+    invalidateCache(CacheTags.microsoftConnection(userId));
+  },
+
   invalidateMeetings(organizationId: string): void {
     invalidateCache(CacheTags.meetings(organizationId));
   },
@@ -576,4 +583,3 @@ export const CacheInvalidation = {
     invalidateCache(CacheTags.meetingNotes(meetingId));
   },
 } as const;
-
