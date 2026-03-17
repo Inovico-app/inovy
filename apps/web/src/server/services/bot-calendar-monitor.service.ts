@@ -8,10 +8,24 @@ import { BotSessionsQueries } from "../data-access/bot-sessions.queries";
 import { BotSettingsQueries } from "../data-access/bot-settings.queries";
 import { ProjectQueries } from "../data-access/projects.queries";
 import { BotProviderFactory } from "./bot-providers/factory";
-import { GoogleCalendarService } from "./google-calendar.service";
-import { GoogleOAuthService } from "./google-oauth.service";
+import {
+  getCalendarProvider,
+  getConnectedProviders,
+  getMeetingLinkProvider,
+  type ProviderType,
+} from "./calendar/calendar-provider-factory";
+import type { CalendarEvent } from "./calendar/types";
 import { MeetingService } from "./meeting.service";
 import { NotificationService } from "./notification.service";
+
+/**
+ * A calendar event enriched with its extracted meeting URL and originating provider.
+ */
+interface EnrichedMeeting {
+  event: CalendarEvent;
+  meetingUrl: string;
+  provider: ProviderType;
+}
 
 /**
  * Bot Calendar Monitor Service
@@ -93,14 +107,14 @@ export class BotCalendarMonitorService {
         ActionErrors.internal(
           "Failed to monitor calendars",
           error as Error,
-          "BotCalendarMonitorService.monitorCalendars"
-        )
+          "BotCalendarMonitorService.monitorCalendars",
+        ),
       );
     }
   }
 
   /**
-   * Process calendar for a single user
+   * Process calendar for a single user across all connected providers
    */
   private static async processUserCalendar(settings: {
     userId: string;
@@ -111,64 +125,98 @@ export class BotCalendarMonitorService {
     botJoinMessage: string | null;
   }): Promise<ActionResult<{ sessionsCreated: number }>> {
     try {
-      // Verify user has Google OAuth connection
-      const connectionResult = await GoogleOAuthService.hasConnection(
-        settings.userId
-      );
+      // Discover all connected calendar providers for this user
+      const connectedProviders = await getConnectedProviders(settings.userId);
 
-      if (connectionResult.isErr() || !connectionResult.value) {
-        logger.debug("User does not have Google connection", {
+      if (connectedProviders.length === 0) {
+        logger.debug("User does not have any calendar provider connected", {
           component: "BotCalendarMonitorService.processUserCalendar",
           userId: settings.userId,
         });
         return ok({ sessionsCreated: 0 });
       }
 
-      // Get upcoming meetings (10-20 minutes window to allow scheduled bot creation)
+      // Time window: 10-20 minutes from now
       const now = new Date();
       // timeMin = now + 10min + 15s (join_at offset) + 5s (safety margin) so joinAt is always > 10min from API call (Recall.ai threshold)
       const timeMin = new Date(now.getTime() + (10 * 60 + 15 + 5) * 1000);
       const timeMax = new Date(now.getTime() + 20 * 60 * 1000); // 20 minutes from now
 
-      const meetingsResult = await GoogleCalendarService.getUpcomingMeetings(
-        settings.userId,
-        {
-          timeMin,
-          timeMax,
-          calendarIds: settings.calendarIds ?? undefined,
-        }
-      );
+      // Phase 1: Collect meetings from all providers
+      const enrichedMeetings: EnrichedMeeting[] = [];
 
-      if (meetingsResult.isErr()) {
-        return err(meetingsResult.error);
+      for (const providerType of connectedProviders) {
+        try {
+          const meetings = await this.fetchMeetingsFromProvider(
+            settings.userId,
+            providerType,
+            {
+              timeMin,
+              timeMax,
+              calendarIds: settings.calendarIds ?? undefined,
+            },
+          );
+          enrichedMeetings.push(...meetings);
+        } catch (error) {
+          // Log and continue with the next provider
+          logger.error("Failed to fetch meetings from provider", {
+            component: "BotCalendarMonitorService.processUserCalendar",
+            userId: settings.userId,
+            provider: providerType,
+            error: serializeError(error),
+          });
+        }
       }
 
-      const meetings = meetingsResult.value;
+      if (enrichedMeetings.length === 0) {
+        return ok({ sessionsCreated: 0 });
+      }
+
+      // Phase 2: Cross-provider deduplication by meeting URL
+      const allMeetingUrls = enrichedMeetings.map((m) => m.meetingUrl);
+      const existingMeetingUrls = await BotSessionsQueries.findByMeetingUrls(
+        allMeetingUrls,
+        settings.organizationId,
+      );
+
+      // Phase 3: Create bot sessions for new meetings
       let sessionsCreated = 0;
 
-      // Process each meeting
-      for (const meeting of meetings) {
+      for (const { event, meetingUrl, provider } of enrichedMeetings) {
         try {
-          // Check if session already exists
+          // Cross-provider dedup: skip if meeting URL is already tracked
+          if (existingMeetingUrls.has(meetingUrl)) {
+            logger.debug("Meeting URL already tracked (cross-provider dedup)", {
+              component: "BotCalendarMonitorService.processUserCalendar",
+              userId: settings.userId,
+              meetingUrl,
+              provider,
+              calendarEventId: event.id,
+            });
+            continue;
+          }
+
+          // Same-provider dedup: check by calendar event ID
           const existingSession =
             await BotSessionsQueries.findByCalendarEventId(
-              meeting.id,
-              settings.organizationId
+              event.id,
+              settings.organizationId,
             );
 
           if (existingSession) {
             logger.debug("Bot session already exists for calendar event", {
               component: "BotCalendarMonitorService.processUserCalendar",
               userId: settings.userId,
-              calendarEventId: meeting.id,
+              calendarEventId: event.id,
               sessionId: existingSession.id,
+              provider,
             });
             continue;
           }
 
           // Get project for this organization
           const project = await ProjectQueries.findFirstActiveByOrganization(
-            settings.organizationId
+            settings.organizationId,
           );
 
           if (!project) {
@@ -176,7 +224,7 @@ export class BotCalendarMonitorService {
               component: "BotCalendarMonitorService.processUserCalendar",
               userId: settings.userId,
               organizationId: settings.organizationId,
-              calendarEventId: meeting.id,
+              calendarEventId: event.id,
             });
             continue;
           }
@@ -186,26 +234,27 @@ export class BotCalendarMonitorService {
             settings.requirePerMeetingConsent ? "pending_consent" : "scheduled";
 
           // Calculate join time: 15 seconds before meeting start for precision
-          if (!meeting.start) {
+          if (!event.start) {
             logger.warn("Skipping meeting without start time", {
               component: "BotCalendarMonitorService.processUserCalendar",
               userId: settings.userId,
-              calendarEventId: meeting.id,
+              calendarEventId: event.id,
             });
             continue;
           }
-          const joinAt = new Date(meeting.start.getTime() - 15 * 1000);
+          const joinAt = new Date(event.start.getTime() - 15 * 1000);
 
-          // Create bot session via provider
-          const provider = BotProviderFactory.getDefault();
-          const sessionResult = await provider.createSession({
-            meetingUrl: meeting.meetingUrl,
+          // Create bot session via bot provider
+          const botProvider = BotProviderFactory.getDefault();
+          const sessionResult = await botProvider.createSession({
+            meetingUrl,
             joinAt,
             customMetadata: {
               projectId: project.id,
               organizationId: settings.organizationId,
               userId: settings.userId,
-              calendarEventId: meeting.id,
+              calendarEventId: event.id,
+              provider,
             },
             botDisplayName: settings.botDisplayName,
             botJoinMessage: settings.botJoinMessage,
@@ -215,13 +264,14 @@ export class BotCalendarMonitorService {
             logger.error("Failed to create bot session", {
               component: "BotCalendarMonitorService.processUserCalendar",
               userId: settings.userId,
-              calendarEventId: meeting.id,
+              calendarEventId: event.id,
+              provider,
               error: sessionResult.error.message,
             });
             continue;
           }
 
-          const { providerId, internalStatus } = sessionResult.value;
+          const { providerId } = sessionResult.value;
 
           // Persist bot session to database
           const session = await BotSessionsQueries.insert({
@@ -230,46 +280,45 @@ export class BotCalendarMonitorService {
             userId: settings.userId,
             recallBotId: providerId,
             recallStatus: sessionResult.value.status,
-            meetingUrl: meeting.meetingUrl,
-            meetingTitle: meeting.title,
-            calendarEventId: meeting.id,
+            meetingUrl,
+            meetingTitle: event.title,
+            calendarEventId: event.id,
             botStatus: botStatus,
             meetingParticipants:
-              meeting.attendees?.map((a) => a.email).filter(Boolean) ??
-              undefined,
+              event.attendees?.map((a) => a.email).filter(Boolean) ?? undefined,
           });
 
           // Create or find meeting for this calendar event
           const meetingResult =
             await MeetingService.findOrCreateForCalendarEvent(
-              meeting.id,
+              event.id,
               settings.organizationId,
               {
                 organizationId: settings.organizationId,
                 projectId: project.id,
                 createdById: settings.userId,
-                calendarEventId: meeting.id,
-                externalCalendarId: meeting.id,
-                title: meeting.title || "Untitled Meeting",
+                calendarEventId: event.id,
+                externalCalendarId: event.id,
+                title: event.title || "Untitled Meeting",
                 description: null,
-                scheduledStartAt: meeting.start ?? new Date(),
-                scheduledEndAt: meeting.end ?? undefined,
+                scheduledStartAt: event.start ?? new Date(),
+                scheduledEndAt: event.end ?? undefined,
                 status: "scheduled",
-                meetingUrl: meeting.meetingUrl,
+                meetingUrl,
                 participants:
-                  meeting.attendees?.map((a) => ({
+                  event.attendees?.map((a) => ({
                     email: a.email,
                     name: null,
                     role: null,
                   })) ?? [],
-              }
+              },
             );
 
           if (meetingResult.isOk()) {
             await BotSessionsQueries.update(
               session.id,
               settings.organizationId,
-              { meetingId: meetingResult.value.id }
+              { meetingId: meetingResult.value.id },
             );
           }
 
@@ -283,14 +332,14 @@ export class BotCalendarMonitorService {
                 organizationId: settings.organizationId,
                 type: "bot_consent_request",
                 title: "Bot consent required",
-                message: `Bot wants to join "${meeting.title || "meeting"}"`,
+                message: `Bot wants to join "${event.title || "meeting"}"`,
                 metadata: {
                   sessionId: session.id,
-                  meetingTitle: meeting.title,
-                  meetingTime: meeting.start
-                    ? new Date(meeting.start).toISOString()
+                  meetingTitle: event.title,
+                  meetingTime: event.start
+                    ? new Date(event.start).toISOString()
                     : undefined,
-                  meetingUrl: meeting.meetingUrl,
+                  meetingUrl,
                 },
               });
 
@@ -311,16 +360,18 @@ export class BotCalendarMonitorService {
           logger.info("Created bot session for calendar event", {
             component: "BotCalendarMonitorService.processUserCalendar",
             userId: settings.userId,
-            calendarEventId: meeting.id,
+            calendarEventId: event.id,
             botId: providerId,
             botStatus,
             projectId: project.id,
+            provider,
           });
         } catch (error) {
           logger.error("Error processing meeting", {
             component: "BotCalendarMonitorService.processUserCalendar",
             userId: settings.userId,
-            calendarEventId: meeting.id,
+            calendarEventId: event.id,
+            provider,
             error: serializeError(error),
           });
           // Continue with next meeting
@@ -339,10 +390,90 @@ export class BotCalendarMonitorService {
         ActionErrors.internal(
           "Failed to process user calendar",
           error as Error,
-          "BotCalendarMonitorService.processUserCalendar"
-        )
+          "BotCalendarMonitorService.processUserCalendar",
+        ),
       );
     }
   }
-}
 
+  /**
+   * Fetch meetings from a single calendar provider and enrich with meeting URLs.
+   * Returns only meetings that have a valid meeting URL.
+   */
+  private static async fetchMeetingsFromProvider(
+    userId: string,
+    providerType: ProviderType,
+    options: { timeMin: Date; timeMax: Date; calendarIds?: string[] },
+  ): Promise<EnrichedMeeting[]> {
+    const calendarResult = await getCalendarProvider(userId, providerType);
+    if (calendarResult.isErr()) {
+      logger.warn("Could not get calendar provider", {
+        component: "BotCalendarMonitorService.fetchMeetingsFromProvider",
+        userId,
+        provider: providerType,
+        error: calendarResult.error.message,
+      });
+      return [];
+    }
+
+    const meetingLinkResult = await getMeetingLinkProvider(
+      userId,
+      providerType,
+    );
+    if (meetingLinkResult.isErr()) {
+      logger.warn("Could not get meeting link provider", {
+        component: "BotCalendarMonitorService.fetchMeetingsFromProvider",
+        userId,
+        provider: providerType,
+        error: meetingLinkResult.error.message,
+      });
+      return [];
+    }
+
+    const { provider: calendarProvider } = calendarResult.value;
+    const { provider: meetingLinkProvider } = meetingLinkResult.value;
+
+    const meetingsResult = await calendarProvider.getUpcomingMeetings(userId, {
+      timeMin: options.timeMin,
+      timeMax: options.timeMax,
+      calendarIds: options.calendarIds,
+    });
+
+    if (meetingsResult.isErr()) {
+      logger.error("Failed to fetch upcoming meetings from provider", {
+        component: "BotCalendarMonitorService.fetchMeetingsFromProvider",
+        userId,
+        provider: providerType,
+        error: meetingsResult.error.message,
+      });
+      return [];
+    }
+
+    const enriched: EnrichedMeeting[] = [];
+
+    for (const event of meetingsResult.value) {
+      const meetingUrl = meetingLinkProvider.extractMeetingUrl(event);
+      if (meetingUrl) {
+        enriched.push({ event, meetingUrl, provider: providerType });
+      } else {
+        logger.debug("Skipping event without meeting URL", {
+          component: "BotCalendarMonitorService.fetchMeetingsFromProvider",
+          userId,
+          provider: providerType,
+          calendarEventId: event.id,
+          title: event.title,
+        });
+      }
+    }
+
+    logger.info("Fetched meetings from provider", {
+      component: "BotCalendarMonitorService.fetchMeetingsFromProvider",
+      userId,
+      provider: providerType,
+      totalEvents: meetingsResult.value.length,
+      withMeetingUrl: enriched.length,
+    });
+
+    return enriched;
+  }
+}
