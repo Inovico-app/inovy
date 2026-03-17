@@ -33,7 +33,7 @@ OAuthBaseService (abstract)
 ├── Token CRUD on oauth_connections table
 ├── getValidAccessToken() — checks expiry (5-min buffer), calls refresh
 ├── hasScopes(), getConnectionStatus(), hasConnection()
-├── Abstract: refreshAccessToken(refreshToken) — provider-specific
+├── Abstract: refreshAccessToken(connection: OAuthConnection) — provider-specific (receives full connection so Microsoft can include scopes)
 ├── Abstract: revokeToken(token) — provider-specific
 │
 ├── GoogleOAuthService extends OAuthBaseService
@@ -57,6 +57,8 @@ src/server/services/
 └── microsoft-oauth.service.ts           # New — extends base
 ```
 
+**Encryption single source of truth:** The `encryptToken`/`decryptToken` functions currently live in `src/features/integrations/google/lib/google-oauth.ts`. These must be moved into `OAuthBaseService` as the single source of truth. The Google-specific `google-oauth.ts` file should import from the base service or have its local copies removed entirely. This prevents divergence if the encryption algorithm or key rotation logic changes.
+
 **Constraint:** Refactoring `GoogleOAuthService` must be a pure extraction — no behavior changes.
 
 ### Calendar Provider Interface
@@ -66,8 +68,11 @@ interface CalendarProvider {
   listCalendars(userId: string): Promise<Calendar[]>;
   getUpcomingMeetings(
     userId: string,
-    startDate: Date,
-    endDate: Date,
+    options: {
+      startDate: Date;
+      endDate: Date;
+      calendarIds?: string[];
+    },
   ): Promise<Meeting[]>;
   createEvent(userId: string, event: CreateEventInput): Promise<CalendarEvent>;
   updateEvent(
@@ -146,6 +151,16 @@ Note: `offline_access` is required in base tier to obtain a refresh token.
 - **POST** `/api/integrations/microsoft/authorize` — generates authorization URL with scope tier, state param, `prompt=consent`
 - **GET** `/api/integrations/microsoft/callback` — exchanges code for tokens, encrypts, stores in `oauth_connections`
 
+### CSRF State Parameter
+
+The Microsoft authorize/callback routes must use the same anti-CSRF state structure as Google. The state parameter is a base64-encoded JSON object: `{ userId, timestamp, redirectUrl }`. The callback route must:
+
+1. Verify `state.userId` matches the authenticated session user
+2. Enforce a 10-minute expiry from `state.timestamp`
+3. Redirect to `state.redirectUrl` on success
+
+This prevents CSRF attacks where a malicious site initiates an OAuth flow that binds an attacker's Microsoft account to the victim's Inovy account.
+
 ### Microsoft-Specific Differences from Google
 
 - Uses `/oauth2/v2.0/authorize` and `/oauth2/v2.0/token` endpoints (tenant-aware: `https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/...`)
@@ -195,7 +210,11 @@ src/app/api/integrations/microsoft/
 5. Use `MeetingLinkProvider` to extract meeting URLs (Meet or Teams)
 6. Create bot sessions as before — Recall.ai supports both Google Meet and Teams
 
-**Edge case:** User connected to both providers with overlapping events. Existing dedup by `meetingUrl` handles this — same Teams URL from both providers won't create duplicate bot sessions.
+**Deduplication for dual-provider users:** The current dedup logic in `BotCalendarMonitorService.processUserCalendar` uses `findByCalendarEventId`, which checks `calendarEventId` — not `meetingUrl`. When a user has both providers connected, the same Teams meeting appears with different calendar event IDs (Google vs. Outlook), which would create duplicate bot sessions.
+
+**Fix:** Add a `findByMeetingUrls(meetingUrls: string[], organizationId: string)` batch query to `BotSessionsQueries`. Before processing each provider's events, collect all meeting URLs that already have active bot sessions. Skip any event whose extracted meeting URL is already in the set. This is a pre-loop URL dedup that works across providers.
+
+**`meetingUrl` type change:** The shared `CalendarEvent` type must make `meetingUrl` optional (`string | null`) since not all calendar events have online meetings. The monitor service filters `if (!meetingUrl) continue` — this already works with `null`.
 
 **No changes to cron route** — `/api/cron/monitor-calendar` stays as-is.
 
@@ -239,7 +258,7 @@ Action signatures and return types stay the same — transparent to frontend.
 When a user has both Google and Microsoft connected:
 
 - Show provider selector (dropdown or tabs)
-- Default to `preferredCalendarProvider` from `integration_settings`
+- Default to `preferredCalendarProvider` from `bot_settings`
 - If no preference set, prompt user to choose
 
 ## Database Changes
@@ -256,7 +275,7 @@ When a user has both Google and Microsoft connected:
 
 **`XXXX_add_preferred_calendar_provider.ts`:**
 
-- Add `preferredCalendarProvider` column to `integration_settings` (`"google" | "microsoft" | null`, default `null`)
+- Add `preferredCalendarProvider` column to `bot_settings` table (`"google" | "microsoft" | null`, default `null`). This belongs in `bot_settings` (per-user, no provider column) rather than `integration_settings` (per-provider rows where the preference would have no natural home).
 
 ### Bot Session Metadata Convention
 
@@ -290,7 +309,7 @@ interface MailProvider {
 }
 ```
 
-Google: `gmail.users.drafts.*` | Microsoft: `POST /me/messages` with `isDraft: true`
+Google: `gmail.users.drafts.*` | Microsoft: `POST /me/mailFolders/Drafts/messages`
 
 ### File Watch Provider Interface (Planned)
 
@@ -330,8 +349,16 @@ Teams meeting creation is a separate API call (`POST /me/onlineMeetings`) — th
 
 ### Token Revocation
 
-Microsoft does not support programmatic token revocation like Google. The `revokeToken()` implementation deletes the connection and clears stored tokens.
+Microsoft does not support programmatic token revocation like Google. The `revokeToken()` implementation deletes the connection and clears stored tokens. The `disconnect` flow must also invalidate cache tags (add `CacheInvalidation.invalidateMicrosoftConnection(userId)` alongside the existing `invalidateGoogleConnection` pattern) to ensure the UI reflects disconnected status immediately.
 
 ### Incremental Consent
 
 Microsoft requires passing all previously granted scopes + new ones in each authorization request. The `MicrosoftOAuthService` must merge existing scopes with requested new scopes before redirecting.
+
+### Onboarding Gap
+
+The Google OAuth callback updates `googleCalendarConnectedDuringOnboarding` on the onboarding record. A corresponding `microsoftCalendarConnectedDuringOnboarding` flag is needed so the onboarding completion check works for users who connect Microsoft first. This requires a minor addition to the onboarding schema.
+
+### Template Color Mapping
+
+The `integration_templates` schema has `colorId` in `CalendarTemplateContent` which is Google-specific (numeric 1-11). Microsoft uses string-based `categories`. The template rendering must handle this divergence: when rendering for Microsoft, ignore `colorId` and map to the closest `category` string, or add a `categories` field to `CalendarTemplateContent` for Microsoft templates.
