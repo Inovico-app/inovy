@@ -40,6 +40,21 @@ function mapGoogleEventToCalendarEvent(
  * Maps a raw Google Calendar API event (Schema$Event) to the shared CalendarEvent type.
  * Used for getEvent which returns the raw API response.
  */
+function isGoogleMeetUrl(rawUrl: string | null | undefined): boolean {
+  if (!rawUrl) return false;
+  try {
+    const url = new URL(rawUrl);
+    // Accept meet.google.com and any subdomain of meet.google.com
+    const hostname = url.hostname.toLowerCase();
+    return (
+      hostname === "meet.google.com" ||
+      hostname.endsWith(".meet.google.com")
+    );
+  } catch {
+    return false;
+  }
+}
+
 function mapRawEventToCalendarEvent(
   event: calendar_v3.Schema$Event,
   calendarId: string,
@@ -63,14 +78,14 @@ function mapRawEventToCalendarEvent(
     const meetEntry = event.conferenceData.entryPoints.find(
       (entry) =>
         entry.entryPointType === "video" &&
-        entry.uri?.includes("meet.google.com"),
+        isGoogleMeetUrl(entry.uri),
     );
     if (meetEntry?.uri) {
       meetingUrl = meetEntry.uri;
     }
   }
 
-  if (!meetingUrl && event.hangoutLink?.includes("meet.google.com")) {
+  if (!meetingUrl && isGoogleMeetUrl(event.hangoutLink)) {
     meetingUrl = event.hangoutLink;
   }
 
