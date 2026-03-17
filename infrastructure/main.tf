@@ -243,6 +243,7 @@ module "storage" {
   environment                         = var.environment
   location                            = var.location
   resource_group_name                 = azurerm_resource_group.inovy.name
+  storage_container_name              = "inovy"
   storage_account_tier                 = var.storage_account_tier
   storage_account_replication_type    = var.storage_account_replication_type
   storage_blob_retention_days          = var.storage_blob_retention_days

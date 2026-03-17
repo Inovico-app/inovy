@@ -48,6 +48,12 @@ variable "uuid_namespace" {
   type        = string
 }
 
+variable "storage_container_name" {
+  description = "Name of the application storage container (recordings, gdpr-exports, knowledge-base folders)"
+  type        = string
+  default     = "inovy"
+}
+
 variable "cors_allowed_origins" {
   description = "Origins allowed for CORS on blob storage (e.g. app URL for client uploads)"
   type        = list(string)

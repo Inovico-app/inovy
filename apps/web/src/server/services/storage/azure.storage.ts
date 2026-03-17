@@ -1,6 +1,8 @@
 import {
+  BlobClient,
   BlobSASPermissions,
   BlobServiceClient,
+  BlockBlobClient,
   generateBlobSASQueryParameters,
   StorageSharedKeyCredential,
 } from "@azure/storage-blob";
@@ -47,15 +49,66 @@ function getContainerName(access: "public" | "private"): string {
     : (process.env.AZURE_STORAGE_PRIVATE_CONTAINER ?? "private");
 }
 
+function getAccountName(): string {
+  const name = process.env.AZURE_STORAGE_ACCOUNT_NAME;
+  if (!name) {
+    throw new Error("AZURE_STORAGE_ACCOUNT_NAME is not set");
+  }
+  return name;
+}
+
+/** Encode blob path for URL use (handles spaces and other special chars) */
+function encodeBlobPathForUrl(blobPath: string): string {
+  return blobPath.split("/").map(encodeURIComponent).join("/");
+}
+
+/**
+ * Generate a SAS URL for a blob with the given permissions.
+ * All Azure blob operations use SAS tokens for authentication.
+ */
+function generateBlobSasUrl(
+  blobUrl: string,
+  permissions: string,
+  expiresInMinutes = 15
+): string {
+  const credential = getSharedKeyCredential();
+  const url = new URL(blobUrl);
+  const pathParts = url.pathname.split("/").filter(Boolean);
+  const containerName = pathParts[0]!;
+  const blobName = pathParts.slice(1).join("/");
+
+  const expiresOn = new Date();
+  expiresOn.setMinutes(expiresOn.getMinutes() + expiresInMinutes);
+
+  const sasToken = generateBlobSASQueryParameters(
+    {
+      containerName,
+      blobName,
+      permissions: BlobSASPermissions.parse(permissions),
+      startsOn: new Date(),
+      expiresOn,
+    },
+    credential
+  ).toString();
+
+  const encodedPath =
+    "/" +
+    url.pathname
+      .split("/")
+      .filter(Boolean)
+      .map(encodeURIComponent)
+      .join("/");
+  return `${url.origin}${encodedPath}?${sasToken}`;
+}
+
 export class AzureStorageProvider implements StorageProvider {
   async put(
     blobPath: string,
     data: File | Buffer | Blob,
     options: StoragePutOptions
   ): Promise<StoragePutResult> {
-    const client = getClient();
     const containerName = getContainerName(options.access);
-    const containerClient = client.getContainerClient(containerName);
+    const accountName = getAccountName();
 
     let finalPath = blobPath;
     if (options.addRandomSuffix) {
@@ -64,7 +117,9 @@ export class AzureStorageProvider implements StorageProvider {
       finalPath = `${base}-${randomUUID().slice(0, 8)}${ext}`;
     }
 
-    const blockBlobClient = containerClient.getBlockBlobClient(finalPath);
+    const blobUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${encodeBlobPathForUrl(finalPath)}`;
+    const sasUrl = generateBlobSasUrl(blobUrl, "cw", 15);
+    const blockBlobClient = new BlockBlobClient(sasUrl);
 
     let buffer: Buffer;
     if (Buffer.isBuffer(data)) {
@@ -83,31 +138,31 @@ export class AzureStorageProvider implements StorageProvider {
     });
 
     return {
-      url: blockBlobClient.url,
+      url: blobUrl,
       pathname: finalPath,
     };
   }
 
   async del(url: string): Promise<void> {
-    const client = getClient();
-
-    const blobUrl = new URL(url);
-    const pathParts = blobUrl.pathname.split("/").filter(Boolean);
-    const containerName = pathParts[0]!;
-    const blobName = pathParts.slice(1).join("/");
-
-    const containerClient = client.getContainerClient(containerName);
-    const blobClient = containerClient.getBlobClient(blobName);
+    const sasUrl = generateBlobSasUrl(url, "d", 5);
+    const blobClient = new BlobClient(sasUrl);
     await blobClient.deleteIfExists();
   }
 
-  async getBlobProperties(url: string): Promise<BlobProperties> {
+  async getBlobProperties(
+    url: string,
+    options?: { pathname?: string }
+  ): Promise<BlobProperties> {
+    // Use connection string (SharedKey) for server-side property checks.
+    // SAS can fail with 403 due to storage firewall, IP restrictions, or URL parsing.
     const client = getClient();
-
     const blobUrl = new URL(url);
     const pathParts = blobUrl.pathname.split("/").filter(Boolean);
     const containerName = pathParts[0]!;
-    const blobName = pathParts.slice(1).join("/");
+    // When pathname is provided, use it directly to avoid URL encoding/decoding mismatches
+    // that can cause BlobNotFound (e.g. spaces, special chars in the blob path).
+    const blobName =
+      options?.pathname ?? pathParts.slice(1).join("/");
 
     const containerClient = client.getContainerClient(containerName);
     const blobClient = containerClient.getBlobClient(blobName);
@@ -126,7 +181,9 @@ export class AzureStorageProvider implements StorageProvider {
     const containerName = getContainerName(options.access);
     const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME!;
 
-    const finalPath = `${options.path}-${randomUUID().slice(0, 8)}${path.extname(options.path)}`;
+    const ext = path.extname(options.path);
+    const pathWithoutExt = options.path.slice(0, -ext.length || undefined);
+    const finalPath = `${pathWithoutExt}-${randomUUID().slice(0, 8)}${ext}`;
 
     const expiresOn = new Date();
     expiresOn.setMinutes(
@@ -140,12 +197,13 @@ export class AzureStorageProvider implements StorageProvider {
         permissions: BlobSASPermissions.parse("cw"), // create + write
         startsOn: new Date(),
         expiresOn,
-        contentType: options.contentType,
+        // Omit contentType: SAS with contentType can reject uploads when client sends
+        // a different Content-Type (e.g. mp4 as audio/mp4 vs video/mp4, or empty on Safari)
       },
       credential
     ).toString();
 
-    const blobUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${finalPath}`;
+    const blobUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${encodeBlobPathForUrl(finalPath)}`;
 
     return {
       uploadUrl: `${blobUrl}?${sasToken}`,
@@ -158,27 +216,7 @@ export class AzureStorageProvider implements StorageProvider {
     blobUrl: string,
     expiresInMinutes = 60
   ): Promise<string> {
-    const credential = getSharedKeyCredential();
-    const url = new URL(blobUrl);
-    const pathParts = url.pathname.split("/").filter(Boolean);
-    const containerName = pathParts[0]!;
-    const blobName = pathParts.slice(1).join("/");
-
-    const expiresOn = new Date();
-    expiresOn.setMinutes(expiresOn.getMinutes() + expiresInMinutes);
-
-    const sasToken = generateBlobSASQueryParameters(
-      {
-        containerName,
-        blobName,
-        permissions: BlobSASPermissions.parse("r"), // read only
-        startsOn: new Date(),
-        expiresOn,
-      },
-      credential
-    ).toString();
-
-    return `${blobUrl}?${sasToken}`;
+    return generateBlobSasUrl(blobUrl, "r", expiresInMinutes);
   }
 }
 

@@ -92,6 +92,11 @@ resource "azurerm_container_app" "inovy" {
       }
 
       env {
+        name  = "NEXT_PUBLIC_BLOB_STORAGE_PROVIDER"
+        value = "azure"
+      }
+
+      env {
         name  = "NEXT_PUBLIC_PLATFORM"
         value = var.next_public_platform
       }

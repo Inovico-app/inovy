@@ -30,7 +30,7 @@ resource "azurerm_storage_account" "recordings" {
       for_each = length(var.cors_allowed_origins) > 0 ? [1] : []
       content {
         allowed_origins    = var.cors_allowed_origins
-        allowed_methods    = ["GET", "HEAD", "PUT", "OPTIONS"]
+        allowed_methods    = ["GET", "HEAD", "PUT", "POST", "OPTIONS"]
         allowed_headers    = ["*"]
         exposed_headers    = ["*"]
         max_age_in_seconds = 3600
@@ -45,16 +45,9 @@ resource "azurerm_storage_account" "recordings" {
   })
 }
 
-# Container for recordings (server-side uploads)
-resource "azurerm_storage_container" "recordings" {
-  name                  = "recordings"
-  storage_account_id    = azurerm_storage_account.recordings.id
-  container_access_type = "private"
-}
-
-# Container for client-side uploads (SAS token; CORS required)
-resource "azurerm_storage_container" "public" {
-  name                  = "public"
+# Container for application-wide blob storage (recordings, gdpr-exports, knowledge-base)
+resource "azurerm_storage_container" "app" {
+  name                  = var.storage_container_name
   storage_account_id    = azurerm_storage_account.recordings.id
   container_access_type = "private"
 }

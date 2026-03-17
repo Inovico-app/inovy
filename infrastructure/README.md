@@ -8,6 +8,7 @@ This directory contains Terraform configuration files for managing Azure infrast
 
 - **[WORKFLOWS.md](./WORKFLOWS.md)** - Detailed explanation of GitHub Actions workflows and Terraform deployment process
 - **[TERRAFORM_VARIABLES.md](./TERRAFORM_VARIABLES.md)** - GitHub Environment variables and secrets configuration
+- **[../docs/ENVIRONMENT_VARIABLES.md](../docs/ENVIRONMENT_VARIABLES.md)** - Full environment variables reference (Local, Vercel, Azure)
 - **[README.md](./README.md)** - This file (quick reference)
 
 ## Structure

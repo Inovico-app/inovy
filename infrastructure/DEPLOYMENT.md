@@ -122,6 +122,8 @@ postgresql_admin_password = "YourSecurePassword123!"
 
 ### Environment Variables
 
+For a complete reference of all environment variables across Local, Vercel, and Azure deployments, see [docs/ENVIRONMENT_VARIABLES.md](../docs/ENVIRONMENT_VARIABLES.md).
+
 The Container App is configured with environment variables from Terraform outputs:
 - `DATABASE_URL` - PostgreSQL connection string
 - `REDIS_URL` - Redis connection URL (redis://) for ioredis client
@@ -129,6 +131,7 @@ The Container App is configured with environment variables from Terraform output
 - `AZURE_STORAGE_ACCOUNT_NAME` - Blob storage account name
 - `AZURE_STORAGE_ACCOUNT_KEY` - Blob storage access key (for SAS token generation)
 - `AZURE_STORAGE_CONNECTION_STRING` - Blob storage connection string
+- `AZURE_STORAGE_CONTAINER_NAME` - Application storage container (default: inovy). Contains folders: recordings/, gdpr-exports/, knowledge-base/
 - `BLOB_STORAGE_PROVIDER` - Set to `azure` to enable Azure blob storage. When set, only storage uses Azure; DB and Redis remain driven by `NEXT_PUBLIC_PLATFORM`. Can be used independently (e.g. `BLOB_STORAGE_PROVIDER=azure` with `NEXT_PUBLIC_PLATFORM=vercel` for Azure blob + Vercel DB/Redis).
 
 ### Database Migration

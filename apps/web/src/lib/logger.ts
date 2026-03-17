@@ -353,6 +353,16 @@ export function serializeError(error: unknown): unknown {
       serialized.params = (error as { params?: unknown }).params;
     }
 
+    // Include Azure RestError properties (statusCode, statusMessage, details)
+    const errWithRest = error as Error & {
+      statusCode?: number;
+      statusMessage?: string;
+      details?: Record<string, unknown>;
+    };
+    if (errWithRest.statusCode != null) serialized.statusCode = errWithRest.statusCode;
+    if (errWithRest.statusMessage != null) serialized.statusMessage = errWithRest.statusMessage;
+    if (errWithRest.details != null) serialized.details = errWithRest.details;
+
     return serialized;
   }
   return error;
