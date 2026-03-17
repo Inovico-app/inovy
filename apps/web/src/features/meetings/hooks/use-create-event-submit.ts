@@ -19,18 +19,21 @@ export interface CreateEventInput {
   endDate?: string;
   recurrence?: string[];
   userTimezone: string;
+  provider?: "google" | "microsoft";
 }
 
 interface UseCreateEventSubmitProps {
   createEvent: (input: CreateEventInput) => void;
   buildRecurrenceRules: (
-    data: CreateEventFormData
+    data: CreateEventFormData,
   ) => string[] | null | undefined;
+  provider?: "google" | "microsoft";
 }
 
 export function useCreateEventSubmit({
   createEvent,
   buildRecurrenceRules,
+  provider,
 }: UseCreateEventSubmitProps) {
   const onSubmit = useCallback(
     (data: CreateEventFormData) => {
@@ -56,16 +59,17 @@ export function useCreateEventSubmit({
           endDate: data.endDate,
           recurrence: rruleArray,
           userTimezone,
+          provider,
         });
         return;
       }
 
       const start = new Date(
-        `${data.startDate}T${data.startTime || "00:00"}:00`
+        `${data.startDate}T${data.startTime || "00:00"}:00`,
       );
       const end = new Date(`${data.endDate}T${data.endTime || "00:00"}:00`);
       const calculatedDuration = Math.round(
-        (end.getTime() - start.getTime()) / (60 * 1000)
+        (end.getTime() - start.getTime()) / (60 * 1000),
       );
 
       if (calculatedDuration < 15) {
@@ -86,11 +90,11 @@ export function useCreateEventSubmit({
         allDay: false,
         recurrence: rruleArray,
         userTimezone,
+        provider,
       });
     },
-    [createEvent, buildRecurrenceRules]
+    [createEvent, buildRecurrenceRules, provider],
   );
 
   return { onSubmit };
 }
-

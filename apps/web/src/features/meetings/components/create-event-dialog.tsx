@@ -31,6 +31,11 @@ interface CreateEventDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const PROVIDER_LABELS: Record<"google" | "microsoft", string> = {
+  google: "Google Calendar",
+  microsoft: "Outlook Calendar",
+};
+
 export function CreateEventDialog({
   open,
   onOpenChange,
@@ -47,6 +52,10 @@ export function CreateEventDialog({
     isCreating,
     onSubmit,
     handleCancel,
+    providers,
+    isLoadingProviders,
+    selectedProvider,
+    setSelectedProvider,
   } = useCreateEventForm({ open, onOpenChange });
 
   const {
@@ -69,6 +78,33 @@ export function CreateEventDialog({
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="space-y-4">
+          {/* Provider selector — only shown when the user has both providers connected */}
+          {!isLoadingProviders && providers.length > 1 && (
+            <div className="space-y-2">
+              <Label htmlFor="provider">Calendar Provider</Label>
+              <Select
+                value={selectedProvider ?? ""}
+                onValueChange={(value) =>
+                  setSelectedProvider(value as "google" | "microsoft")
+                }
+                items={Object.fromEntries(
+                  providers.map((p) => [p, PROVIDER_LABELS[p]]),
+                )}
+              >
+                <SelectTrigger id="provider" className="w-full">
+                  <SelectValue placeholder="Select calendar provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  {providers.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {PROVIDER_LABELS[p]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="title">
               Title <span className="text-destructive">*</span>
