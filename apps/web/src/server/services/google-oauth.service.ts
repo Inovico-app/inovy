@@ -1,12 +1,10 @@
 import { err, ok } from "neverthrow";
 import type { ScopeTier } from "../../features/integrations/google/lib/google-oauth";
 import {
-  decryptToken,
-  encryptToken,
   exchangeCodeForTokens,
   getUserEmail,
-  refreshAccessToken,
-  revokeToken,
+  refreshAccessToken as googleRefreshAccessToken,
+  revokeToken as googleRevokeToken,
 } from "../../features/integrations/google/lib/google-oauth";
 import { hasRequiredScopes } from "../../features/integrations/google/lib/scope-utils";
 import { logger } from "../../lib/logger";
@@ -16,11 +14,50 @@ import {
 } from "../../lib/server-action-client/action-errors";
 import { OAuthConnectionsQueries } from "../data-access/oauth-connections.queries";
 import type { OAuthConnection } from "../db/schema/oauth-connections";
+import { OAuthBaseService } from "./oauth/oauth-base.service";
 
 /**
  * Google OAuth Service
  * Manages OAuth connections for Google Workspace integration
  * Handles token storage, refresh, and revocation
+ *
+ * Extends OAuthBaseService for shared token CRUD and encryption.
+ * Maintains backward-compatible static API via a private singleton.
+ */
+class GoogleOAuthServiceImpl extends OAuthBaseService {
+  protected readonly provider = "google" as const;
+  protected readonly providerDisplayName = "Google";
+  protected readonly serviceName = "GoogleOAuthService";
+
+  /**
+   * Refresh access token using Google's OAuth2 API.
+   */
+  protected async refreshAccessToken(
+    connection: OAuthConnection,
+  ): Promise<{ accessToken: string; expiresAt: Date }> {
+    const decryptedRefreshToken = OAuthBaseService.decryptToken(
+      connection.refreshToken,
+    );
+    return googleRefreshAccessToken(decryptedRefreshToken);
+  }
+
+  /**
+   * Revoke a token using Google's OAuth2 API.
+   */
+  protected async revokeToken(token: string): Promise<void> {
+    await googleRevokeToken(token);
+  }
+}
+
+/** Singleton instance for delegation from static methods */
+const instance = new GoogleOAuthServiceImpl();
+
+/**
+ * GoogleOAuthService — public API (all static, backward-compatible).
+ *
+ * Static methods delegate to the singleton `GoogleOAuthServiceImpl` instance
+ * for shared CRUD, while Google-specific operations (storeConnection, hasScopes)
+ * are implemented directly.
  */
 export class GoogleOAuthService {
   /**
@@ -32,7 +69,7 @@ export class GoogleOAuthService {
   static async storeConnection(
     userId: string,
     code: string,
-    redirectUri?: string
+    redirectUri?: string,
   ): Promise<ActionResult<OAuthConnection>> {
     try {
       // Exchange code for tokens (must use same redirect URI as authorization)
@@ -44,7 +81,7 @@ export class GoogleOAuthService {
       // Check if connection already exists
       const existing = await OAuthConnectionsQueries.getOAuthConnection(
         userId,
-        "google"
+        "google",
       );
 
       if (existing) {
@@ -53,12 +90,12 @@ export class GoogleOAuthService {
           userId,
           "google",
           {
-            accessToken: encryptToken(tokens.accessToken),
-            refreshToken: encryptToken(tokens.refreshToken),
+            accessToken: OAuthBaseService.encryptToken(tokens.accessToken),
+            refreshToken: OAuthBaseService.encryptToken(tokens.refreshToken),
             expiresAt: tokens.expiresAt,
             scopes: tokens.scopes,
             email,
-          }
+          },
         );
 
         if (!updated) {
@@ -66,8 +103,8 @@ export class GoogleOAuthService {
             ActionErrors.internal(
               "Failed to update OAuth connection",
               undefined,
-              "GoogleOAuthService.storeConnection"
-            )
+              "GoogleOAuthService.storeConnection",
+            ),
           );
         }
 
@@ -79,8 +116,8 @@ export class GoogleOAuthService {
       const connection = await OAuthConnectionsQueries.createOAuthConnection({
         userId,
         provider: "google",
-        accessToken: encryptToken(tokens.accessToken),
-        refreshToken: encryptToken(tokens.refreshToken),
+        accessToken: OAuthBaseService.encryptToken(tokens.accessToken),
+        refreshToken: OAuthBaseService.encryptToken(tokens.refreshToken),
         expiresAt: tokens.expiresAt,
         scopes: tokens.scopes,
         email,
@@ -92,14 +129,14 @@ export class GoogleOAuthService {
       logger.error(
         "Failed to store Google OAuth connection",
         { userId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to store Google OAuth connection",
           error as Error,
-          "GoogleOAuthService.storeConnection"
-        )
+          "GoogleOAuthService.storeConnection",
+        ),
       );
     }
   }
@@ -108,166 +145,32 @@ export class GoogleOAuthService {
    * Get OAuth connection for user
    */
   static async getConnection(
-    userId: string
+    userId: string,
   ): Promise<ActionResult<OAuthConnection | null>> {
-    try {
-      const connection = await OAuthConnectionsQueries.getOAuthConnection(
-        userId,
-        "google"
-      );
-      return ok(connection);
-    } catch (error) {
-      logger.error(
-        "Failed to get Google OAuth connection",
-        { userId },
-        error as Error
-      );
-      return err(
-        ActionErrors.internal(
-          "Failed to get Google OAuth connection",
-          error as Error,
-          "GoogleOAuthService.getConnection"
-        )
-      );
-    }
+    return instance.getConnection(userId);
   }
 
   /**
    * Get valid access token (refresh if needed)
    */
   static async getValidAccessToken(
-    userId: string
+    userId: string,
   ): Promise<ActionResult<string>> {
-    try {
-      const connection = await OAuthConnectionsQueries.getOAuthConnection(
-        userId,
-        "google"
-      );
-
-      if (!connection) {
-        return err(
-          ActionErrors.notFound(
-            "Google OAuth connection",
-            "GoogleOAuthService.getValidAccessToken"
-          )
-        );
-      }
-
-      // Check if token is still valid (with 5-minute buffer)
-      const now = new Date();
-      const expiresAt = new Date(connection.expiresAt);
-      const bufferMs = 5 * 60 * 1000; // 5 minutes
-
-      if (expiresAt.getTime() > now.getTime() + bufferMs) {
-        // Token is still valid
-        return ok(decryptToken(connection.accessToken));
-      }
-
-      // Token expired or expiring soon, refresh it
-      const decryptedRefreshToken = decryptToken(connection.refreshToken);
-      const refreshed = await refreshAccessToken(decryptedRefreshToken);
-
-      // Update stored token
-      await OAuthConnectionsQueries.updateOAuthConnection(userId, "google", {
-        accessToken: encryptToken(refreshed.accessToken),
-        expiresAt: refreshed.expiresAt,
-      });
-
-      logger.info("Refreshed Google access token", { userId });
-      return ok(refreshed.accessToken);
-    } catch (error) {
-      logger.error(
-        "Failed to get valid Google access token",
-        { userId },
-        error as Error
-      );
-      return err(
-        ActionErrors.internal(
-          "Failed to get valid Google access token",
-          error as Error,
-          "GoogleOAuthService.getValidAccessToken"
-        )
-      );
-    }
+    return instance.getValidAccessToken(userId);
   }
 
   /**
    * Disconnect Google account (revoke and delete)
    */
   static async disconnect(userId: string): Promise<ActionResult<boolean>> {
-    try {
-      const connection = await OAuthConnectionsQueries.getOAuthConnection(
-        userId,
-        "google"
-      );
-
-      if (!connection) {
-        return err(
-          ActionErrors.notFound(
-            "Google OAuth connection",
-            "GoogleOAuthService.disconnect"
-          )
-        );
-      }
-
-      // Revoke token with Google
-      try {
-        const accessToken = decryptToken(connection.accessToken);
-        await revokeToken(accessToken);
-      } catch (revokeError) {
-        // Log but continue with deletion
-        logger.error(
-          "Failed to revoke Google token, continuing with deletion",
-          { userId },
-          revokeError as Error
-        );
-      }
-
-      // Delete connection from database
-      await OAuthConnectionsQueries.deleteOAuthConnection(userId, "google");
-
-      logger.info("Disconnected Google OAuth connection", { userId });
-      return ok(true);
-    } catch (error) {
-      logger.error(
-        "Failed to disconnect Google OAuth",
-        { userId },
-        error as Error
-      );
-      return err(
-        ActionErrors.internal(
-          "Failed to disconnect Google OAuth",
-          error as Error,
-          "GoogleOAuthService.disconnect"
-        )
-      );
-    }
+    return instance.disconnect(userId);
   }
 
   /**
    * Check if user has active Google connection
    */
   static async hasConnection(userId: string): Promise<ActionResult<boolean>> {
-    try {
-      const connection = await OAuthConnectionsQueries.getOAuthConnection(
-        userId,
-        "google"
-      );
-      return ok(connection !== null);
-    } catch (error) {
-      logger.error(
-        "Failed to check Google connection",
-        { userId },
-        error as Error
-      );
-      return err(
-        ActionErrors.internal(
-          "Failed to check Google connection",
-          error as Error,
-          "GoogleOAuthService.hasConnection"
-        )
-      );
-    }
+    return instance.hasConnection(userId);
   }
 
   /**
@@ -281,36 +184,7 @@ export class GoogleOAuthService {
       expiresAt?: Date;
     }>
   > {
-    try {
-      const connection = await OAuthConnectionsQueries.getOAuthConnection(
-        userId,
-        "google"
-      );
-
-      if (!connection) {
-        return ok({ connected: false });
-      }
-
-      return ok({
-        connected: true,
-        email: connection.email,
-        scopes: connection.scopes,
-        expiresAt: connection.expiresAt,
-      });
-    } catch (error) {
-      logger.error(
-        "Failed to get connection status",
-        { userId },
-        error as Error
-      );
-      return err(
-        ActionErrors.internal(
-          "Failed to get connection status",
-          error as Error,
-          "GoogleOAuthService.getConnectionStatus"
-        )
-      );
-    }
+    return instance.getConnectionStatus(userId);
   }
 
   /**
@@ -319,12 +193,12 @@ export class GoogleOAuthService {
    */
   static async hasScopes(
     userId: string,
-    tier: ScopeTier
+    tier: ScopeTier,
   ): Promise<ActionResult<boolean>> {
     try {
       const connection = await OAuthConnectionsQueries.getOAuthConnection(
         userId,
-        "google"
+        "google",
       );
 
       if (!connection) {
@@ -336,16 +210,15 @@ export class GoogleOAuthService {
       logger.error(
         "Failed to check Google scopes",
         { userId, tier },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to check Google scopes",
           error as Error,
-          "GoogleOAuthService.hasScopes"
-        )
+          "GoogleOAuthService.hasScopes",
+        ),
       );
     }
   }
 }
-
