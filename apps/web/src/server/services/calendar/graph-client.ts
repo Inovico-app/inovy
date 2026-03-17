@@ -49,65 +49,80 @@ export async function graphRequest<T>(
   path: string,
   body?: Record<string, unknown>,
 ): Promise<ActionResult<T>> {
-  const url = `${GRAPH_BASE_URL}${path}`;
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${accessToken}`,
-    "Content-Type": "application/json",
-  };
+  try {
+    const url = `${GRAPH_BASE_URL}${path}`;
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    };
 
-  const response = await fetch(url, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    logger.error("Microsoft Graph API request failed", {
-      status: String(response.status),
-      path,
-      errorBody,
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
     });
 
-    if (response.status === 401) {
-      return err(
-        ActionErrors.unauthenticated(
-          "Microsoft Graph API authentication failed",
-          "graphRequest",
-        ),
-      );
-    }
+    if (!response.ok) {
+      const errorBody = await response.text();
+      logger.error("Microsoft Graph API request failed", {
+        status: String(response.status),
+        path,
+        errorBody,
+      });
 
-    if (response.status === 403) {
+      if (response.status === 401) {
+        return err(
+          ActionErrors.unauthenticated(
+            "Microsoft Graph API authentication failed",
+            "graphRequest",
+          ),
+        );
+      }
+
+      if (response.status === 403) {
+        return err(
+          ActionErrors.forbidden(
+            "Insufficient permissions for Microsoft Graph API",
+            undefined,
+            "graphRequest",
+          ),
+        );
+      }
+
+      if (response.status === 404) {
+        return err(
+          ActionErrors.notFound("Microsoft Graph resource", "graphRequest"),
+        );
+      }
+
       return err(
-        ActionErrors.forbidden(
-          "Insufficient permissions for Microsoft Graph API",
+        ActionErrors.internal(
+          `Microsoft Graph API error (${response.status}): ${errorBody}`,
           undefined,
           "graphRequest",
         ),
       );
     }
 
-    if (response.status === 404) {
-      return err(
-        ActionErrors.notFound("Microsoft Graph resource", "graphRequest"),
-      );
+    // Handle 204 No Content responses
+    if (response.status === 204) {
+      return ok({} as T);
     }
 
+    const data = (await response.json()) as T;
+    return ok(data);
+  } catch (error) {
+    logger.error(
+      "Microsoft Graph API unexpected error",
+      { method, path },
+      error as Error,
+    );
     return err(
       ActionErrors.internal(
-        `Microsoft Graph API error (${response.status}): ${errorBody}`,
-        undefined,
+        "Microsoft Graph API request failed",
+        error as Error,
         "graphRequest",
       ),
     );
   }
-
-  // Handle 204 No Content responses
-  if (response.status === 204) {
-    return ok({} as T);
-  }
-
-  const data = (await response.json()) as T;
-  return ok(data);
 }

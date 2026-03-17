@@ -1,9 +1,10 @@
 import { getMicrosoftRedirectUri } from "@/features/integrations/microsoft/lib/microsoft-oauth";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { CacheInvalidation } from "@/lib/cache-utils";
+import { CacheTags } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { validateRedirectUrl } from "@/lib/oauth/validate-redirect-url";
 import { MicrosoftOAuthService } from "@/server/services/microsoft-oauth.service";
+import { revalidateTag } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 import { connection } from "next/server";
 
@@ -132,7 +133,7 @@ export async function GET(request: NextRequest) {
       email: result.value.email,
     });
 
-    CacheInvalidation.invalidateMicrosoftConnection(user.id);
+    revalidateTag(CacheTags.microsoftConnection(user.id), "max");
 
     // If redirecting to onboarding, mark Microsoft Calendar as connected during onboarding
     if (redirectUrl.includes("/onboarding")) {

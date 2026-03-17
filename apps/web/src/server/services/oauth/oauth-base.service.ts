@@ -318,7 +318,7 @@ export abstract class OAuthBaseService {
     userId: string,
     tokens: {
       accessToken: string;
-      refreshToken: string;
+      refreshToken?: string | null;
       expiresAt: Date;
       scopes: string[];
     },
@@ -328,9 +328,9 @@ export abstract class OAuthBaseService {
       const encryptedAccessToken = OAuthBaseService.encryptToken(
         tokens.accessToken,
       );
-      const encryptedRefreshToken = OAuthBaseService.encryptToken(
-        tokens.refreshToken,
-      );
+      const encryptedRefreshToken = tokens.refreshToken
+        ? OAuthBaseService.encryptToken(tokens.refreshToken)
+        : undefined;
 
       // Check if connection already exists so we can merge scopes
       const existing = await OAuthConnectionsQueries.getOAuthConnection(
@@ -349,7 +349,9 @@ export abstract class OAuthBaseService {
           this.provider,
           {
             accessToken: encryptedAccessToken,
-            refreshToken: encryptedRefreshToken,
+            ...(encryptedRefreshToken && {
+              refreshToken: encryptedRefreshToken,
+            }),
             expiresAt: tokens.expiresAt,
             scopes: mergedScopes,
             email,
@@ -378,7 +380,7 @@ export abstract class OAuthBaseService {
         userId,
         provider: this.provider,
         accessToken: encryptedAccessToken,
-        refreshToken: encryptedRefreshToken,
+        refreshToken: encryptedRefreshToken ?? "",
         expiresAt: tokens.expiresAt,
         scopes: tokens.scopes,
         email,
