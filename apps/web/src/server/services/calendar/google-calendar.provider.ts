@@ -38,7 +38,7 @@ function mapGoogleEventToCalendarEvent(
 
 /**
  * Returns true if the given URL string points to a Google Meet host.
- * This avoids substring checks on the full URL by validating the hostname.
+ * Uses proper URL parsing instead of substring matching.
  */
 function isGoogleMeetUrl(url: string | undefined | null): boolean {
   if (!url) return false;
@@ -46,8 +46,7 @@ function isGoogleMeetUrl(url: string | undefined | null): boolean {
     const parsed = new URL(url);
     const hostname = parsed.hostname.toLowerCase();
     return (
-      hostname === "meet.google.com" ||
-      hostname.endsWith(".meet.google.com")
+      hostname === "meet.google.com" || hostname.endsWith(".meet.google.com")
     );
   } catch {
     return false;
@@ -58,20 +57,6 @@ function isGoogleMeetUrl(url: string | undefined | null): boolean {
  * Maps a raw Google Calendar API event (Schema$Event) to the shared CalendarEvent type.
  * Used for getEvent which returns the raw API response.
  */
-function isGoogleMeetUrl(rawUrl: string | null | undefined): boolean {
-  if (!rawUrl) return false;
-  try {
-    const url = new URL(rawUrl);
-    // Accept meet.google.com and any subdomain of meet.google.com
-    const hostname = url.hostname.toLowerCase();
-    return (
-      hostname === "meet.google.com" ||
-      hostname.endsWith(".meet.google.com")
-    );
-  } catch {
-    return false;
-  }
-}
 
 function mapRawEventToCalendarEvent(
   event: calendar_v3.Schema$Event,
@@ -81,23 +66,19 @@ function mapRawEventToCalendarEvent(
     ? new Date(event.start.dateTime)
     : event.start?.date
       ? new Date(event.start.date)
-        entry.uri != null &&
-        isGoogleMeetUrl(entry.uri),
+      : new Date();
 
   const endDate = event.end?.dateTime
     ? new Date(event.end.dateTime)
     : event.end?.date
       ? new Date(event.end.date)
       : new Date();
-  if (!meetingUrl && isGoogleMeetUrl(event.hangoutLink)) {
-    meetingUrl = event.hangoutLink || null;
+
   let meetingUrl: string | null = null;
 
   if (event.conferenceData?.entryPoints) {
     const meetEntry = event.conferenceData.entryPoints.find(
-      (entry) =>
-        entry.entryPointType === "video" &&
-        isGoogleMeetUrl(entry.uri),
+      (entry) => entry.entryPointType === "video" && isGoogleMeetUrl(entry.uri),
     );
     if (meetEntry?.uri) {
       meetingUrl = meetEntry.uri;
@@ -105,7 +86,7 @@ function mapRawEventToCalendarEvent(
   }
 
   if (!meetingUrl && isGoogleMeetUrl(event.hangoutLink)) {
-    meetingUrl = event.hangoutLink;
+    meetingUrl = event.hangoutLink ?? null;
   }
 
   return {
