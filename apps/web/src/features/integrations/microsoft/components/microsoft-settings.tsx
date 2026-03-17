@@ -28,7 +28,7 @@ interface MicrosoftSettingsProps {
 export function MicrosoftSettings({ projectId }: MicrosoftSettingsProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState<IntegrationSettings | null>(null);
+  const [_settings, setSettings] = useState<IntegrationSettings | null>(null);
 
   // Form state
   const [autoCalendarEnabled, setAutoCalendarEnabled] = useState(false);
@@ -85,6 +85,7 @@ export function MicrosoftSettings({ projectId }: MicrosoftSettingsProps) {
 
   useEffect(() => {
     loadSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   async function handleSave() {
