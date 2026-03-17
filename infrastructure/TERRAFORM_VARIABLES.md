@@ -9,11 +9,13 @@ For a complete environment variables reference (Local, Vercel, Azure), see [docs
 Configure these in the GitHub repository's `prd` environment:
 
 ### Azure Authentication
+
 - `AZURE_CLIENT_ID` - Service principal client ID for Azure authentication
 - `AZURE_TENANT_ID` - Azure AD tenant ID
 - `AZURE_SUBSCRIPTION_ID` - Azure subscription ID
 
-### Docker Build (NEXT_PUBLIC_* at build time)
+### Docker Build (NEXT*PUBLIC*\* at build time)
+
 These are passed as Docker build args when building the app image:
 
 - `NEXT_PUBLIC_APP_URL` - Resolved automatically by querying the Azure Container App Environment (`inovy-env-<env>`). Fallback: set `NEXT_PUBLIC_APP_URL` or `APP_URL` as env vars when infra is not deployed yet.
@@ -24,20 +26,22 @@ These are passed as Docker build args when building the app image:
 `DEEPGRAM_API_KEY` (secret) is also passed as `NEXT_PUBLIC_DEEPGRAM_API_KEY` for client-side live transcription.
 
 ### Terraform Variables
+
 - `TF_VARS` - **Required**: GitHub Environment variable that contains either:
   1. **File path** to a Terraform variables file (e.g., `/tmp/terraform.tfvars`), OR
   2. **HCL content** that will be written to a file and used as `-var-file`
-  
+
   If using HCL content, it should include all non-sensitive variables like:
   - `acr_name` - (optional) Azure Container Registry name; defaults to `inovyacr<env>` when empty
   - `entra_tenant_id` - Microsoft Entra tenant ID for PostgreSQL authentication
   - `entra_administrators` - List of Entra administrators with object IDs and principal names
   - Any other non-sensitive configuration variables
-  
+
   Example HCL content:
+
   ```hcl
   entra_tenant_id = "your-tenant-id-here"
-  
+
   entra_administrators = [
     {
       object_id      = "57774c6c-a23e-4734-82f9-c131a2fe540f"
@@ -57,12 +61,14 @@ These are passed as Docker build args when building the app image:
 Configure these in the GitHub repository's `prd` environment:
 
 ### Core
+
 - `POSTGRESQL_ADMIN_LOGIN` - PostgreSQL administrator username
 - `POSTGRESQL_ADMIN_PASSWORD` - PostgreSQL administrator password
 - `REDIS_PASSWORD` - Redis password for the Redis Container App
 - `BETTER_AUTH_SECRET` - Better Auth secret for the Container App
 
 ### API Keys
+
 - `OPENAI_API_KEY` - OpenAI API key for the Container App
 - `ANTHROPIC_API_KEY` - Anthropic API key for the Container App
 - `DEEPGRAM_API_KEY` - Deepgram API key (server-side)
@@ -73,12 +79,20 @@ Configure these in the GitHub repository's `prd` environment:
 - `OAUTH_ENCRYPTION_KEY` - OAuth encryption key for token storage (32 bytes hex)
 
 ### OAuth
+
+#### Google
+
 - `GOOGLE_CLIENT_ID` - Google OAuth client ID
 - `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
-- `MICROSOFT_CLIENT_ID` - Microsoft OAuth client ID
-- `MICROSOFT_CLIENT_SECRET` - Microsoft OAuth client secret
+
+#### Microsoft
+
+- `MICROSOFT_CLIENT_ID` - Microsoft OAuth client ID (Azure App Registration)
+- `MICROSOFT_CLIENT_SECRET` - Microsoft OAuth client secret (Azure App Registration)
+- `MICROSOFT_TENANT_ID` - (optional) Microsoft tenant ID (defaults to `common`; use `organizations` for work accounts only, or a specific tenant GUID)
 
 ### Container App (additional)
+
 - `CRON_SECRET` - Secret for authenticating cron job requests
 - `RESEND_FROM_EMAIL` - Resend from email (e.g., Inovy <app@inovico.nl>)
 - `NEXT_PUBLIC_WEBHOOK_URL` - Public webhook URL for Google Drive (optional; derived from app URL if empty)
@@ -96,6 +110,7 @@ The GitHub Actions workflow (`.github/workflows/azure-infra.yml`) uses the follo
 4. **Variable File**: The `TF_VARS` content is used directly via `-var-file` flag
 
 The workflow executes terraform plan with:
+
 ```bash
 terraform plan \
   -var="environment=${{ inputs.environment }}" \
@@ -105,7 +120,8 @@ terraform plan \
   -var-file="$TF_VARS"
 ```
 
-**Important Notes**: 
+**Important Notes**:
+
 - The `TF_VARS` environment variable is set in the workflow step and used directly with `-var-file=$TF_VARS`
 - If `TF_VARS` contains HCL content (not a file path), the workflow should write it to a file first, then use that file path
 - Sensitive values (PostgreSQL credentials) are passed via `-var` flags from GitHub Secrets
@@ -122,6 +138,7 @@ cp infrastructure/terraform.tfvars.example infrastructure/terraform.tfvars
 ```
 
 Then run Terraform commands:
+
 ```bash
 cd infrastructure
 terraform plan -var-file=terraform.tfvars

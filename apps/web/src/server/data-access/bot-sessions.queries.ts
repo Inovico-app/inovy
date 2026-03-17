@@ -26,7 +26,7 @@ export class BotSessionsQueries {
    */
   static async findById(
     id: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<BotSession | null> {
     const result = await db
       .select()
@@ -34,8 +34,8 @@ export class BotSessionsQueries {
       .where(
         and(
           eq(botSessions.id, id),
-          eq(botSessions.organizationId, organizationId)
-        )
+          eq(botSessions.organizationId, organizationId),
+        ),
       )
       .limit(1);
 
@@ -47,7 +47,7 @@ export class BotSessionsQueries {
    */
   static async findByRecallBotId(
     recallBotId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<BotSession | null> {
     const result = await db
       .select()
@@ -55,8 +55,8 @@ export class BotSessionsQueries {
       .where(
         and(
           eq(botSessions.recallBotId, recallBotId),
-          eq(botSessions.organizationId, organizationId)
-        )
+          eq(botSessions.organizationId, organizationId),
+        ),
       )
       .limit(1);
 
@@ -71,7 +71,7 @@ export class BotSessionsQueries {
    * user-facing code paths.
    */
   static async findByRecallBotIdOnly(
-    recallBotId: string
+    recallBotId: string,
   ): Promise<BotSession | null> {
     const result = await db
       .select()
@@ -87,7 +87,7 @@ export class BotSessionsQueries {
    */
   static async findByProjectId(
     projectId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<BotSession[]> {
     return await db
       .select()
@@ -95,8 +95,8 @@ export class BotSessionsQueries {
       .where(
         and(
           eq(botSessions.projectId, projectId),
-          eq(botSessions.organizationId, organizationId)
-        )
+          eq(botSessions.organizationId, organizationId),
+        ),
       )
       .orderBy(desc(botSessions.createdAt));
   }
@@ -124,7 +124,7 @@ export class BotSessionsQueries {
         | "projectId"
         | "meetingId"
       >
-    >
+    >,
   ): Promise<BotSession | null> {
     const [session] = await db
       .update(botSessions)
@@ -135,8 +135,8 @@ export class BotSessionsQueries {
       .where(
         and(
           eq(botSessions.id, id),
-          eq(botSessions.organizationId, organizationId)
-        )
+          eq(botSessions.organizationId, organizationId),
+        ),
       )
       .returning();
 
@@ -170,7 +170,7 @@ export class BotSessionsQueries {
         | "error"
         | "meetingId"
       >
-    >
+    >,
   ): Promise<BotSession | null> {
     const [session] = await db
       .update(botSessions)
@@ -181,12 +181,38 @@ export class BotSessionsQueries {
       .where(
         and(
           eq(botSessions.recallBotId, recallBotId),
-          eq(botSessions.organizationId, organizationId)
-        )
+          eq(botSessions.organizationId, organizationId),
+        ),
       )
       .returning();
 
     return session ?? null;
+  }
+
+  /**
+   * Find which meeting URLs already have bot sessions
+   * Used for cross-provider deduplication in calendar monitoring
+   * Returns a Set of meeting URLs that already exist
+   */
+  static async findByMeetingUrls(
+    meetingUrls: string[],
+    organizationId: string,
+  ): Promise<Set<string>> {
+    if (meetingUrls.length === 0) return new Set();
+
+    const results = await db
+      .select({ meetingUrl: botSessions.meetingUrl })
+      .from(botSessions)
+      .where(
+        and(
+          inArray(botSessions.meetingUrl, meetingUrls),
+          eq(botSessions.organizationId, organizationId),
+        ),
+      );
+
+    return new Set(
+      results.map((r) => r.meetingUrl).filter(Boolean) as string[],
+    );
   }
 
   /**
@@ -195,7 +221,7 @@ export class BotSessionsQueries {
    */
   static async findByCalendarEventId(
     calendarEventId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<BotSession | null> {
     const result = await db
       .select()
@@ -203,8 +229,8 @@ export class BotSessionsQueries {
       .where(
         and(
           eq(botSessions.calendarEventId, calendarEventId),
-          eq(botSessions.organizationId, organizationId)
-        )
+          eq(botSessions.organizationId, organizationId),
+        ),
       )
       .limit(1);
 
@@ -217,7 +243,7 @@ export class BotSessionsQueries {
    */
   static async findByCalendarEventIds(
     calendarEventIds: string[],
-    organizationId: string
+    organizationId: string,
   ): Promise<Map<string, BotSession>> {
     if (calendarEventIds.length === 0) {
       return new Map();
@@ -229,8 +255,8 @@ export class BotSessionsQueries {
       .where(
         and(
           inArray(botSessions.calendarEventId, calendarEventIds),
-          eq(botSessions.organizationId, organizationId)
-        )
+          eq(botSessions.organizationId, organizationId),
+        ),
       )
       .orderBy(desc(botSessions.createdAt));
 
@@ -253,7 +279,7 @@ export class BotSessionsQueries {
   static async findByStatus(
     status: BotStatus,
     organizationId: string,
-    limit?: number
+    limit?: number,
   ): Promise<BotSession[]> {
     const query = db
       .select()
@@ -261,8 +287,8 @@ export class BotSessionsQueries {
       .where(
         and(
           eq(botSessions.botStatus, status),
-          eq(botSessions.organizationId, organizationId)
-        )
+          eq(botSessions.organizationId, organizationId),
+        ),
       )
       .orderBy(desc(botSessions.createdAt));
 
@@ -283,7 +309,7 @@ export class BotSessionsQueries {
       maxAgeHours?: number; // Default: 4 hours
       statuses?: BotStatus[]; // Default: ['joining', 'active']
       limit?: number; // Default: 100
-    }
+    },
   ): Promise<BotSession[]> {
     const maxAgeHours = options?.maxAgeHours ?? 4;
     const statuses = options?.statuses ?? ["joining", "active"];
@@ -300,8 +326,8 @@ export class BotSessionsQueries {
         and(
           eq(botSessions.organizationId, organizationId),
           inArray(botSessions.botStatus, statuses),
-          gte(botSessions.createdAt, minCreatedAt)
-        )
+          gte(botSessions.createdAt, minCreatedAt),
+        ),
       )
       .orderBy(desc(botSessions.createdAt))
       .limit(limit);
@@ -315,7 +341,7 @@ export class BotSessionsQueries {
   static async findByUserId(
     userId: string,
     organizationId: string,
-    options?: { status?: BotStatus; limit?: number }
+    options?: { status?: BotStatus; limit?: number },
   ): Promise<BotSession[]> {
     const conditions = [
       eq(botSessions.userId, userId),
@@ -346,7 +372,7 @@ export class BotSessionsQueries {
     id: string,
     organizationId: string,
     status: BotStatus,
-    error?: string
+    error?: string,
   ): Promise<BotSession | null> {
     const [session] = await db
       .update(botSessions)
@@ -358,8 +384,8 @@ export class BotSessionsQueries {
       .where(
         and(
           eq(botSessions.id, id),
-          eq(botSessions.organizationId, organizationId)
-        )
+          eq(botSessions.organizationId, organizationId),
+        ),
       )
       .returning();
 
@@ -371,7 +397,7 @@ export class BotSessionsQueries {
    */
   static async incrementRetryCount(
     id: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<BotSession | null> {
     const session = await this.findById(id, organizationId);
     if (!session) {
@@ -387,8 +413,8 @@ export class BotSessionsQueries {
       .where(
         and(
           eq(botSessions.id, id),
-          eq(botSessions.organizationId, organizationId)
-        )
+          eq(botSessions.organizationId, organizationId),
+        ),
       )
       .returning();
 
@@ -402,7 +428,7 @@ export class BotSessionsQueries {
     id: string,
     organizationId: string,
     joinedAt?: Date,
-    leftAt?: Date
+    leftAt?: Date,
   ): Promise<BotSession | null> {
     const [session] = await db
       .update(botSessions)
@@ -414,8 +440,8 @@ export class BotSessionsQueries {
       .where(
         and(
           eq(botSessions.id, id),
-          eq(botSessions.organizationId, organizationId)
-        )
+          eq(botSessions.organizationId, organizationId),
+        ),
       )
       .returning();
 
@@ -428,7 +454,7 @@ export class BotSessionsQueries {
   static async updateParticipants(
     id: string,
     organizationId: string,
-    participants: string[]
+    participants: string[],
   ): Promise<BotSession | null> {
     const [session] = await db
       .update(botSessions)
@@ -439,8 +465,8 @@ export class BotSessionsQueries {
       .where(
         and(
           eq(botSessions.id, id),
-          eq(botSessions.organizationId, organizationId)
-        )
+          eq(botSessions.organizationId, organizationId),
+        ),
       )
       .returning();
 
@@ -471,8 +497,8 @@ export class BotSessionsQueries {
       .where(
         and(
           inArray(botSessions.botStatus, statuses),
-          gte(botSessions.createdAt, minCreatedAt)
-        )
+          gte(botSessions.createdAt, minCreatedAt),
+        ),
       )
       .limit(limit);
 
@@ -505,8 +531,8 @@ export class BotSessionsQueries {
         and(
           eq(botSessions.botStatus, "failed"),
           gte(botSessions.createdAt, minCreatedAt),
-          lt(botSessions.retryCount, maxRetries)
-        )
+          lt(botSessions.retryCount, maxRetries),
+        ),
       )
       .limit(limit);
 
@@ -521,7 +547,7 @@ export class BotSessionsQueries {
     recallBotId: string,
     organizationId: string,
     recordingId: string,
-    recallStatus: BotSession["recallStatus"]
+    recallStatus: BotSession["recallStatus"],
   ): Promise<BotSession | null> {
     const [updatedSession] = await db
       .update(botSessions)
@@ -533,8 +559,8 @@ export class BotSessionsQueries {
       .where(
         and(
           eq(botSessions.recallBotId, recallBotId),
-          eq(botSessions.organizationId, organizationId)
-        )
+          eq(botSessions.organizationId, organizationId),
+        ),
       )
       .returning();
 
@@ -550,7 +576,7 @@ export class BotSessionsQueries {
     organizationId: string,
     updates: Partial<
       Pick<BotSession, "recallBotId" | "recallStatus" | "botStatus" | "error">
-    >
+    >,
   ): Promise<BotSession | null> {
     // Get current session to read retryCount
     const session = await this.findById(id, organizationId);
@@ -568,8 +594,8 @@ export class BotSessionsQueries {
       .where(
         and(
           eq(botSessions.id, id),
-          eq(botSessions.organizationId, organizationId)
-        )
+          eq(botSessions.organizationId, organizationId),
+        ),
       )
       .returning();
 
@@ -586,7 +612,7 @@ export class BotSessionsQueries {
       status?: BotStatus | BotStatus[];
       limit?: number;
       offset?: number;
-    }
+    },
   ): Promise<{
     sessions: BotSession[];
     total: number;
@@ -643,7 +669,7 @@ export class BotSessionsQueries {
    */
   static async findByIdWithRecording(
     id: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<
     | (BotSession & {
         recording?: {
@@ -695,8 +721,8 @@ export class BotSessionsQueries {
       .where(
         and(
           eq(botSessions.id, id),
-          eq(botSessions.organizationId, organizationId)
-        )
+          eq(botSessions.organizationId, organizationId),
+        ),
       )
       .limit(1);
 
@@ -747,4 +773,3 @@ export class BotSessionsQueries {
     };
   }
 }
-

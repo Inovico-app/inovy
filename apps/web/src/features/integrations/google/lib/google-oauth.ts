@@ -1,5 +1,5 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { google } from "googleapis";
+import { OAuthBaseService } from "@/server/services/oauth/oauth-base.service";
 import { SCOPE_TIERS } from "./scope-constants";
 
 type OAuth2Client = InstanceType<typeof google.auth.OAuth2>;
@@ -14,7 +14,6 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT_URI =
   process.env.GOOGLE_REDIRECT_URI ||
   `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/integrations/google/callback`;
-const OAUTH_ENCRYPTION_KEY = process.env.OAUTH_ENCRYPTION_KEY;
 
 /**
  * Get the redirect URI for the OAuth flow.
@@ -34,7 +33,7 @@ export function getGoogleRedirectUri(requestUrl?: string): string {
 function validateEnvironment() {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
     throw new Error(
-      "Missing required Google OAuth environment variables: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, OAUTH_ENCRYPTION_KEY"
+      "Missing required Google OAuth environment variables: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, OAUTH_ENCRYPTION_KEY",
     );
   }
 }
@@ -52,7 +51,7 @@ export function createGoogleOAuthClient(): OAuth2Client {
   return new google.auth.OAuth2(
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
-    GOOGLE_REDIRECT_URI
+    GOOGLE_REDIRECT_URI,
   );
 }
 
@@ -68,13 +67,13 @@ export function getAuthorizationUrl(
   state?: string,
   redirectUri?: string,
   scopes?: readonly string[],
-  forceConsent = true
+  forceConsent = true,
 ): string {
   const oauth2Client = redirectUri
     ? new google.auth.OAuth2(
         GOOGLE_CLIENT_ID,
         GOOGLE_CLIENT_SECRET,
-        redirectUri
+        redirectUri,
       )
     : createGoogleOAuthClient();
 
@@ -94,7 +93,7 @@ export function getAuthorizationUrl(
  */
 export async function exchangeCodeForTokens(
   code: string,
-  redirectUri?: string
+  redirectUri?: string,
 ): Promise<{
   accessToken: string;
   refreshToken: string;
@@ -105,7 +104,7 @@ export async function exchangeCodeForTokens(
     ? new google.auth.OAuth2(
         GOOGLE_CLIENT_ID,
         GOOGLE_CLIENT_SECRET,
-        redirectUri
+        redirectUri,
       )
     : createGoogleOAuthClient();
 
@@ -117,7 +116,7 @@ export async function exchangeCodeForTokens(
 
   if (!tokens.refresh_token) {
     throw new Error(
-      "No refresh token received from Google. User may need to revoke access and reconnect."
+      "No refresh token received from Google. User may need to revoke access and reconnect.",
     );
   }
 
@@ -190,76 +189,8 @@ export async function getUserEmail(accessToken: string): Promise<string> {
 
 /**
  * Encryption utilities for storing OAuth tokens
- * Uses AES-256-GCM encryption with authentication
+ * Re-exported from the shared OAuthBaseService (single source of truth).
  */
-
-const ALGORITHM = "aes-256-gcm";
-const KEY_LENGTH = 32; // 256 bits
-const IV_LENGTH = 16; // 128 bits
-const AUTH_TAG_LENGTH = 16; // 128 bits
-
-/**
- * Encrypt a string value (access token, refresh token)
- * Returns base64 encoded string: iv:authTag:encryptedData
- */
-export function encryptToken(token: string): string {
-  validateEnvironment();
-  if (!OAUTH_ENCRYPTION_KEY) {
-    throw new Error("OAUTH_ENCRYPTION_KEY not configured");
-  }
-
-  // Ensure key is exactly 32 bytes
-  const key = Buffer.from(OAUTH_ENCRYPTION_KEY, "hex");
-  if (key.length !== KEY_LENGTH) {
-    throw new Error(
-      `OAUTH_ENCRYPTION_KEY must be ${KEY_LENGTH} bytes (64 hex characters)`
-    );
-  }
-
-  const iv = randomBytes(IV_LENGTH);
-  const cipher = createCipheriv(ALGORITHM, key, iv);
-
-  let encrypted = cipher.update(token, "utf8", "hex");
-  encrypted += cipher.final("hex");
-
-  const authTag = cipher.getAuthTag();
-
-  // Combine iv, authTag, and encrypted data
-  return `${iv.toString("hex")}:${authTag.toString("hex")}:${encrypted}`;
-}
-
-/**
- * Decrypt an encrypted token
- * Expects format: iv:authTag:encryptedData
- */
-export function decryptToken(encryptedToken: string): string {
-  validateEnvironment();
-  if (!OAUTH_ENCRYPTION_KEY) {
-    throw new Error("OAUTH_ENCRYPTION_KEY not configured");
-  }
-
-  const key = Buffer.from(OAUTH_ENCRYPTION_KEY, "hex");
-  if (key.length !== KEY_LENGTH) {
-    throw new Error(
-      `OAUTH_ENCRYPTION_KEY must be ${KEY_LENGTH} bytes (64 hex characters)`
-    );
-  }
-
-  const parts = encryptedToken.split(":");
-  if (parts.length !== 3) {
-    throw new Error("Invalid encrypted token format");
-  }
-
-  const iv = Buffer.from(parts[0], "hex");
-  const authTag = Buffer.from(parts[1], "hex");
-  const encrypted = parts[2];
-
-  const decipher = createDecipheriv(ALGORITHM, key, iv);
-  decipher.setAuthTag(authTag);
-
-  let decrypted = decipher.update(encrypted, "hex", "utf8");
-  decrypted += decipher.final("utf8");
-
-  return decrypted;
-}
-
+export { OAuthBaseService };
+export const encryptToken = OAuthBaseService.encryptToken;
+export const decryptToken = OAuthBaseService.decryptToken;

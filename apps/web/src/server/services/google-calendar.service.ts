@@ -23,7 +23,7 @@ const MEET_URL_REGEX = /https?:\/\/meet\.google\.com\/[a-z0-9-]+/i;
  * @returns The extracted URL or null if not found
  */
 function extractMeetUrlFromText(
-  text: string | null | undefined
+  text: string | null | undefined,
 ): string | null {
   if (!text?.trim()) {
     return null;
@@ -47,7 +47,7 @@ function extractMeetingUrl(event: calendar_v3.Schema$Event): string | null {
     const meetEntry = event.conferenceData.entryPoints.find(
       (entry) =>
         entry.entryPointType === "video" &&
-        entry.uri?.includes("meet.google.com")
+        entry.uri?.includes("meet.google.com"),
     );
     if (meetEntry?.uri) {
       return meetEntry.uri;
@@ -110,7 +110,7 @@ export class GoogleCalendarService {
       duration?: number; // in minutes, default 30
       description?: string;
       userTimezone?: string;
-    }
+    },
   ): Promise<ActionResult<{ eventId: string; eventUrl: string }>> {
     try {
       // Verify task belongs to organization
@@ -118,14 +118,14 @@ export class GoogleCalendarService {
         assertOrganizationAccess(
           task.organizationId,
           organizationId,
-          "GoogleCalendarService.createEventFromTask"
+          "GoogleCalendarService.createEventFromTask",
         );
       } catch (error) {
         return err(
           ActionErrors.notFound(
             "Task not found",
-            "GoogleCalendarService.createEventFromTask"
-          )
+            "GoogleCalendarService.createEventFromTask",
+          ),
         );
       }
 
@@ -137,8 +137,8 @@ export class GoogleCalendarService {
           ActionErrors.internal(
             "Failed to get valid access token",
             tokenResult.error,
-            "GoogleCalendarService.createEventFromTask"
-          )
+            "GoogleCalendarService.createEventFromTask",
+          ),
         );
       }
 
@@ -202,8 +202,8 @@ export class GoogleCalendarService {
           ActionErrors.internal(
             "Failed to create calendar event - no event ID returned",
             undefined,
-            "GoogleCalendarService.createEventFromTask"
-          )
+            "GoogleCalendarService.createEventFromTask",
+          ),
         );
       }
 
@@ -256,8 +256,8 @@ export class GoogleCalendarService {
         ActionErrors.internal(
           errorMessage,
           error as Error,
-          "GoogleCalendarService.createEventFromTask"
-        )
+          "GoogleCalendarService.createEventFromTask",
+        ),
       );
     }
   }
@@ -271,7 +271,7 @@ export class GoogleCalendarService {
     tasks: Task[],
     options?: {
       duration?: number;
-    }
+    },
   ): Promise<
     ActionResult<{
       successful: Array<{
@@ -289,14 +289,14 @@ export class GoogleCalendarService {
           assertOrganizationAccess(
             task.organizationId,
             organizationId,
-            "GoogleCalendarService.createEventsFromTasks"
+            "GoogleCalendarService.createEventsFromTasks",
           );
         } catch (error) {
           return err(
             ActionErrors.notFound(
               "One or more tasks not found",
-              "GoogleCalendarService.createEventsFromTasks"
-            )
+              "GoogleCalendarService.createEventsFromTasks",
+            ),
           );
         }
       }
@@ -315,7 +315,7 @@ export class GoogleCalendarService {
           userId,
           organizationId,
           task,
-          options
+          options,
         );
 
         if (result.isOk()) {
@@ -344,14 +344,14 @@ export class GoogleCalendarService {
       logger.error(
         "Failed to create calendar events",
         { userId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to create calendar events",
           error as Error,
-          "GoogleCalendarService.createEventsFromTasks"
-        )
+          "GoogleCalendarService.createEventsFromTasks",
+        ),
       );
     }
   }
@@ -361,7 +361,8 @@ export class GoogleCalendarService {
    */
   static async getEvent(
     userId: string,
-    eventId: string
+    eventId: string,
+    calendarId?: string,
   ): Promise<ActionResult<unknown>> {
     try {
       const tokenResult = await GoogleOAuthService.getValidAccessToken(userId);
@@ -371,8 +372,8 @@ export class GoogleCalendarService {
           ActionErrors.internal(
             "Failed to get valid access token",
             tokenResult.error,
-            "GoogleCalendarService.getEvent"
-          )
+            "GoogleCalendarService.getEvent",
+          ),
         );
       }
 
@@ -386,7 +387,7 @@ export class GoogleCalendarService {
       const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
       const response = await calendar.events.get({
-        calendarId: "primary",
+        calendarId: calendarId || "primary",
         eventId,
       });
 
@@ -394,15 +395,15 @@ export class GoogleCalendarService {
     } catch (error) {
       logger.error(
         "Failed to get calendar event",
-        { userId, eventId },
-        error as Error
+        { userId, eventId, calendarId },
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to get calendar event",
           error as Error,
-          "GoogleCalendarService.getEvent"
-        )
+          "GoogleCalendarService.getEvent",
+        ),
       );
     }
   }
@@ -424,7 +425,7 @@ export class GoogleCalendarService {
       addMeetLinkIfMissing?: boolean;
       calendarId?: string;
       userTimezone?: string;
-    }
+    },
   ): Promise<
     ActionResult<{
       eventUrl: string;
@@ -439,8 +440,8 @@ export class GoogleCalendarService {
           ActionErrors.internal(
             "Failed to get valid access token",
             tokenResult.error,
-            "GoogleCalendarService.updateEvent"
-          )
+            "GoogleCalendarService.updateEvent",
+          ),
         );
       }
 
@@ -470,8 +471,8 @@ export class GoogleCalendarService {
           return err(
             ActionErrors.notFound(
               "Calendar event not found",
-              "GoogleCalendarService.updateEvent"
-            )
+              "GoogleCalendarService.updateEvent",
+            ),
           );
         }
         throw getError;
@@ -481,8 +482,8 @@ export class GoogleCalendarService {
         return err(
           ActionErrors.notFound(
             "Calendar event not found",
-            "GoogleCalendarService.updateEvent"
-          )
+            "GoogleCalendarService.updateEvent",
+          ),
         );
       }
 
@@ -490,7 +491,8 @@ export class GoogleCalendarService {
         existing.hangoutLink?.includes("meet.google.com") ||
         existing.conferenceData?.entryPoints?.some(
           (ep) =>
-            ep.entryPointType === "video" && ep.uri?.includes("meet.google.com")
+            ep.entryPointType === "video" &&
+            ep.uri?.includes("meet.google.com"),
         );
 
       type PatchPayload = {
@@ -583,7 +585,8 @@ export class GoogleCalendarService {
       ) {
         const meetEntry = response.data.conferenceData.entryPoints.find(
           (ep) =>
-            ep.entryPointType === "video" && ep.uri?.includes("meet.google.com")
+            ep.entryPointType === "video" &&
+            ep.uri?.includes("meet.google.com"),
         );
         if (meetEntry?.uri) meetingUrl = meetEntry.uri;
       }
@@ -609,14 +612,14 @@ export class GoogleCalendarService {
       logger.error(
         "Failed to update calendar event",
         { userId, eventId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           `Failed to update calendar event: ${message}`,
           error as Error,
-          "GoogleCalendarService.updateEvent"
-        )
+          "GoogleCalendarService.updateEvent",
+        ),
       );
     }
   }
@@ -640,7 +643,8 @@ export class GoogleCalendarService {
       allDay?: boolean;
       userTimezone?: string;
       recurrence?: string[]; // RRULE strings for recurring events
-    }
+      addOnlineMeeting?: boolean; // Whether to add a Google Meet link (defaults to true for timed events)
+    },
   ): Promise<
     ActionResult<{
       eventId: string;
@@ -657,8 +661,8 @@ export class GoogleCalendarService {
           ActionErrors.internal(
             "Failed to get valid access token",
             tokenResult.error,
-            "GoogleCalendarService.createEvent"
-          )
+            "GoogleCalendarService.createEvent",
+          ),
         );
       }
 
@@ -720,6 +724,9 @@ export class GoogleCalendarService {
         };
       } else {
         // Timed events use dateTime with timezone
+        // Add conference data by default unless explicitly disabled
+        const shouldAddMeetLink = eventDetails.addOnlineMeeting !== false;
+
         event = {
           summary: eventDetails.title,
           description: eventDetails.description || "",
@@ -733,15 +740,17 @@ export class GoogleCalendarService {
             dateTime: eventDetails.end.toISOString(),
             timeZone,
           },
-          // Only add conference data for timed events (all-day events don't support Meet links)
-          conferenceData: {
-            createRequest: {
-              requestId: `${Date.now()}-${Math.random()}`,
-              conferenceSolutionKey: {
-                type: "hangoutsMeet",
-              },
-            },
-          },
+          // Only add conference data for timed events when requested (all-day events don't support Meet links)
+          conferenceData: shouldAddMeetLink
+            ? {
+                createRequest: {
+                  requestId: `${Date.now()}-${Math.random()}`,
+                  conferenceSolutionKey: {
+                    type: "hangoutsMeet",
+                  },
+                },
+              }
+            : undefined,
           recurrence: eventDetails.recurrence,
         };
       }
@@ -757,8 +766,8 @@ export class GoogleCalendarService {
           ActionErrors.internal(
             "Failed to create calendar event - no event ID returned",
             undefined,
-            "GoogleCalendarService.createEvent"
-          )
+            "GoogleCalendarService.createEvent",
+          ),
         );
       }
 
@@ -771,7 +780,7 @@ export class GoogleCalendarService {
         const meetEntry = response.data.conferenceData.entryPoints.find(
           (entry) =>
             entry.entryPointType === "video" &&
-            entry.uri?.includes("meet.google.com")
+            entry.uri?.includes("meet.google.com"),
         );
         if (meetEntry?.uri) {
           meetingUrl = meetEntry.uri;
@@ -807,8 +816,8 @@ export class GoogleCalendarService {
         ActionErrors.internal(
           errorMessage,
           error as Error,
-          "GoogleCalendarService.createEvent"
-        )
+          "GoogleCalendarService.createEvent",
+        ),
       );
     }
   }
@@ -819,7 +828,7 @@ export class GoogleCalendarService {
    * @returns Result containing list of calendars
    */
   static async getCalendarsList(
-    userId: string
+    userId: string,
   ): Promise<
     ActionResult<Array<{ id: string; summary: string; accessRole: string }>>
   > {
@@ -832,8 +841,8 @@ export class GoogleCalendarService {
           ActionErrors.internal(
             "Failed to get valid access token",
             tokenResult.error,
-            "GoogleCalendarService.getCalendarsList"
-          )
+            "GoogleCalendarService.getCalendarsList",
+          ),
         );
       }
 
@@ -886,8 +895,8 @@ export class GoogleCalendarService {
         return err(
           ActionErrors.badRequest(
             "Your Google account connection is missing required permissions. Please disconnect and reconnect your Google account in settings to grant calendar access.",
-            "GoogleCalendarService.getCalendarsList"
-          )
+            "GoogleCalendarService.getCalendarsList",
+          ),
         );
       }
 
@@ -896,8 +905,8 @@ export class GoogleCalendarService {
         ActionErrors.internal(
           "Failed to get calendars list",
           error as Error,
-          "GoogleCalendarService.getCalendarsList"
-        )
+          "GoogleCalendarService.getCalendarsList",
+        ),
       );
     }
   }
@@ -914,7 +923,7 @@ export class GoogleCalendarService {
       timeMin?: Date; // Default: now
       timeMax?: Date; // Default: now + 30 minutes
       calendarIds?: string[]; // Default: ['primary']
-    }
+    },
   ): Promise<ActionResult<CalendarEvent[]>> {
     try {
       const tokenResult = await GoogleOAuthService.getValidAccessToken(userId);
@@ -924,8 +933,8 @@ export class GoogleCalendarService {
           ActionErrors.internal(
             "Failed to get valid access token",
             tokenResult.error,
-            "GoogleCalendarService.getUpcomingMeetings"
-          )
+            "GoogleCalendarService.getUpcomingMeetings",
+          ),
         );
       }
 
@@ -958,8 +967,8 @@ export class GoogleCalendarService {
         return err(
           ActionErrors.badRequest(
             "Could not resolve Google account email. Please reconnect your Google account in settings.",
-            "GoogleCalendarService.getUpcomingMeetings"
-          )
+            "GoogleCalendarService.getUpcomingMeetings",
+          ),
         );
       }
 
@@ -999,7 +1008,7 @@ export class GoogleCalendarService {
                   (attendee) =>
                     attendee.email?.toLowerCase() === userEmail &&
                     (attendee.responseStatus === "accepted" ||
-                      attendee.responseStatus === "tentative")
+                      attendee.responseStatus === "tentative"),
                 ) ?? false;
 
               if (!isOrganizer && !isAttending) {
@@ -1047,7 +1056,7 @@ export class GoogleCalendarService {
               calendarId,
               error: calendarError,
             },
-            calendarError as Error
+            calendarError as Error,
           );
         }
       }
@@ -1064,16 +1073,15 @@ export class GoogleCalendarService {
       logger.error(
         "Failed to get upcoming meetings",
         { userId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to get upcoming meetings",
           error as Error,
-          "GoogleCalendarService.getUpcomingMeetings"
-        )
+          "GoogleCalendarService.getUpcomingMeetings",
+        ),
       );
     }
   }
 }
-

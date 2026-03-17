@@ -30,6 +30,9 @@ export const botSettings = pgTable(
       .default("Inovy Recording Bot"), // Bot name in meetings
     botJoinMessage: text("bot_join_message"), // Custom join message
     calendarIds: text("calendar_ids").array(), // Specific calendars to monitor (null = all)
+    preferredCalendarProvider: text("preferred_calendar_provider", {
+      enum: ["google", "microsoft"],
+    }),
     inactivityTimeoutMinutes: integer("inactivity_timeout_minutes")
       .notNull()
       .default(60), // Auto-leave after inactivity (minutes)
@@ -43,19 +46,18 @@ export const botSettings = pgTable(
   (table) => ({
     userIdOrgUnique: unique("bot_settings_user_id_org_unique").on(
       table.userId,
-      table.organizationId
+      table.organizationId,
     ),
     userIdOrgIdx: index("bot_settings_user_id_org_idx").on(
       table.userId,
-      table.organizationId
+      table.organizationId,
     ),
     botEnabledOrgIdx: index("bot_settings_bot_enabled_org_idx").on(
       table.botEnabled,
-      table.organizationId
+      table.organizationId,
     ),
-  })
+  }),
 );
 
 export type BotSettings = typeof botSettings.$inferSelect;
 export type NewBotSettings = typeof botSettings.$inferInsert;
-

@@ -1,7 +1,7 @@
 "use client";
 
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   createEventFormSchema,
@@ -11,6 +11,7 @@ import { useCreateCalendarEvent } from "./use-create-calendar-event";
 import { useCreateEventSubmit } from "./use-create-event-submit";
 import { useEventDateTimeDefaults } from "./use-event-datetime-defaults";
 import { useEventRecurrence } from "./use-event-recurrence";
+import { useConnectedProviders } from "./use-connected-providers";
 
 interface UseCreateEventFormProps {
   open: boolean;
@@ -51,6 +52,20 @@ export function useCreateEventForm({
   const { recurrence, setRecurrence, resetRecurrence, buildRecurrenceRules } =
     useEventRecurrence();
 
+  const { providers, isLoading: isLoadingProviders } = useConnectedProviders();
+
+  // Default to the first connected provider; user can override when multiple are connected.
+  const [selectedProvider, setSelectedProvider] = useState<
+    "google" | "microsoft" | undefined
+  >(undefined);
+
+  // Once providers are loaded, pre-select the first available one.
+  useEffect(() => {
+    if (!isLoadingProviders && providers.length > 0 && !selectedProvider) {
+      setSelectedProvider(providers[0]);
+    }
+  }, [isLoadingProviders, providers, selectedProvider]);
+
   const { createEvent, isCreating } = useCreateCalendarEvent({
     onSuccess: () => {
       reset();
@@ -61,6 +76,7 @@ export function useCreateEventForm({
   const { onSubmit } = useCreateEventSubmit({
     createEvent,
     buildRecurrenceRules,
+    provider: providers.length > 1 ? selectedProvider : undefined,
   });
 
   useEffect(() => {
@@ -87,6 +103,10 @@ export function useCreateEventForm({
     isCreating,
     onSubmit: form.handleSubmit(onSubmit),
     handleCancel,
+    // Provider selector
+    providers,
+    isLoadingProviders,
+    selectedProvider,
+    setSelectedProvider,
   };
 }
-

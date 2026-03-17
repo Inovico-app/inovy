@@ -53,10 +53,15 @@ export const onboardings = pgTable(
     referralSource: text("referral_source"), // e.g., 'google', 'linkedin', 'referral', 'direct', 'other', etc.
     referralSourceOther: text("referral_source_other"), // Free text when referralSource is 'other'
     googleConnectedDuringOnboarding: boolean(
-      "google_connected_during_onboarding"
+      "google_connected_during_onboarding",
     )
       .default(false)
       .notNull(), // Track if user connected Google Calendar during onboarding
+    microsoftCalendarConnectedDuringOnboarding: boolean(
+      "microsoft_connected_during_onboarding",
+    )
+      .default(false)
+      .notNull(),
     newsletterOptIn: boolean("newsletter_opt_in").default(false).notNull(), // Track if user opted into newsletter during onboarding
     signupMethod: signupMethodEnum("signup_method").notNull(),
     onboardingCompleted: boolean("onboarding_completed")
@@ -73,14 +78,14 @@ export const onboardings = pgTable(
   (table) => ({
     userIdIdx: index("onboardings_user_id_idx").on(table.userId),
     organizationIdIdx: index("onboardings_organization_id_idx").on(
-      table.organizationId
+      table.organizationId,
     ),
     signupTypeIdx: index("onboardings_signup_type_idx").on(table.signupType),
     signupMethodIdx: index("onboardings_signup_method_idx").on(
-      table.signupMethod
+      table.signupMethod,
     ),
     createdAtIdx: index("onboardings_created_at_idx").on(table.createdAt),
-  })
+  }),
 );
 
 export const onboardingsRelations = relations(onboardings, ({ one }) => ({
@@ -96,4 +101,3 @@ export const onboardingsRelations = relations(onboardings, ({ one }) => ({
 
 export type Onboarding = typeof onboardings.$inferSelect;
 export type NewOnboarding = typeof onboardings.$inferInsert;
-

@@ -1,4 +1,7 @@
 import { PageHeader } from "@/components/page-header";
+import { MicrosoftConnection } from "@/features/integrations/microsoft/components/microsoft-connection";
+import { MicrosoftSettings } from "@/features/integrations/microsoft/components/microsoft-settings";
+import { MicrosoftStatusDashboard } from "@/features/integrations/microsoft/components/microsoft-status-dashboard";
 import { DriveWatchSettings } from "@/features/settings/components/drive-watch-settings";
 import { GoogleConnection } from "@/features/settings/components/google-connection";
 import { GoogleSettings } from "@/features/settings/components/google-settings";
@@ -26,11 +29,36 @@ async function IntegrationsContent() {
         title="Integrations"
         description="Connect and manage your third-party integrations"
       />
-      <div className="space-y-6">
-        <GoogleConnection />
-        <GoogleSettings />
-        <GoogleStatusDashboard />
-        <DriveWatchSettings />
+      <div className="space-y-10">
+        {/* Google Workspace */}
+        <section className="space-y-6">
+          <div>
+            <h2 className="text-lg font-semibold">Google Workspace</h2>
+            <p className="text-sm text-muted-foreground">
+              Connect your Google account to enable Calendar and Gmail features
+            </p>
+          </div>
+          <GoogleConnection />
+          <GoogleSettings />
+          <GoogleStatusDashboard />
+          <DriveWatchSettings />
+        </section>
+
+        <hr className="border-border" />
+
+        {/* Microsoft 365 */}
+        <section className="space-y-6">
+          <div>
+            <h2 className="text-lg font-semibold">Microsoft 365</h2>
+            <p className="text-sm text-muted-foreground">
+              Connect your Microsoft account to enable Outlook Calendar, Teams,
+              and OneDrive features
+            </p>
+          </div>
+          <MicrosoftConnection />
+          <MicrosoftSettings />
+          <MicrosoftStatusDashboard />
+        </section>
       </div>
     </>
   );

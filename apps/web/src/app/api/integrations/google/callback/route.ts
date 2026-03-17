@@ -1,35 +1,14 @@
 import { getGoogleRedirectUri } from "@/features/integrations/google/lib/google-oauth";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { CacheInvalidation } from "@/lib/cache-utils";
+import { CacheTags } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
+import { validateRedirectUrl } from "@/lib/oauth/validate-redirect-url";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
+import { revalidateTag } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 import { connection } from "next/server";
 
 const SAFE_REDIRECT_FALLBACK = "/settings?google_success=true";
-
-function validateRedirectUrl(
-  redirectUrl: string,
-  requestUrl: string
-): string {
-  try {
-    const resolved = new URL(redirectUrl, requestUrl);
-    const origin = new URL(requestUrl).origin;
-
-    if (resolved.origin !== origin) {
-      logger.warn("Rejected off-origin redirect URL in OAuth callback", {
-        redirectUrl,
-        resolvedOrigin: resolved.origin,
-        expectedOrigin: origin,
-      });
-      return SAFE_REDIRECT_FALLBACK;
-    }
-
-    return redirectUrl;
-  } catch {
-    return SAFE_REDIRECT_FALLBACK;
-  }
-}
 
 /**
  * GET /api/integrations/google/callback
@@ -49,15 +28,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(
         new URL(
           `/settings?google_error=${encodeURIComponent(error)}`,
-          request.url
-        )
+          request.url,
+        ),
       );
     }
 
     if (!code) {
       logger.error("No authorization code received from Google");
       return NextResponse.redirect(
-        new URL("/settings?google_error=no_code", request.url)
+        new URL("/settings?google_error=no_code", request.url),
       );
     }
 
@@ -68,10 +47,10 @@ export async function GET(request: NextRequest) {
       logger.error(
         "Failed to get user session in OAuth callback",
         {},
-        new Error(sessionResult.error)
+        new Error(sessionResult.error),
       );
       return NextResponse.redirect(
-        new URL("/settings?google_error=auth_required", request.url)
+        new URL("/settings?google_error=auth_required", request.url),
       );
     }
 
@@ -79,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.redirect(
-        new URL("/settings?google_error=auth_required", request.url)
+        new URL("/settings?google_error=auth_required", request.url),
       );
     }
 
@@ -89,7 +68,7 @@ export async function GET(request: NextRequest) {
     if (state) {
       try {
         const stateData = JSON.parse(
-          Buffer.from(state, "base64").toString("utf-8")
+          Buffer.from(state, "base64").toString("utf-8"),
         );
 
         if (stateData.userId !== user.id) {
@@ -98,7 +77,7 @@ export async function GET(request: NextRequest) {
             received: stateData.userId,
           });
           return NextResponse.redirect(
-            new URL("/settings?google_error=invalid_state", request.url)
+            new URL("/settings?google_error=invalid_state", request.url),
           );
         }
 
@@ -107,17 +86,21 @@ export async function GET(request: NextRequest) {
         if (stateAge > 10 * 60 * 1000) {
           logger.error("State parameter expired", { stateAge });
           return NextResponse.redirect(
-            new URL("/settings?google_error=state_expired", request.url)
+            new URL("/settings?google_error=state_expired", request.url),
           );
         }
 
         if (stateData.redirectUrl) {
-          redirectUrl = validateRedirectUrl(stateData.redirectUrl, request.url);
+          redirectUrl = validateRedirectUrl(
+            stateData.redirectUrl,
+            request.url,
+            SAFE_REDIRECT_FALLBACK,
+          );
         }
       } catch (stateError) {
         logger.error("Invalid state parameter", {}, stateError as Error);
         return NextResponse.redirect(
-          new URL("/settings?google_error=invalid_state", request.url)
+          new URL("/settings?google_error=invalid_state", request.url),
         );
       }
     }
@@ -129,7 +112,7 @@ export async function GET(request: NextRequest) {
     const result = await GoogleOAuthService.storeConnection(
       user.id,
       code,
-      callbackUrl
+      callbackUrl,
     );
 
     if (result.isErr()) {
@@ -140,8 +123,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(
         new URL(
           `/settings?google_error=${encodeURIComponent(result.error.message)}`,
-          request.url
-        )
+          request.url,
+        ),
       );
     }
 
@@ -150,14 +133,14 @@ export async function GET(request: NextRequest) {
       email: result.value.email,
     });
 
-    CacheInvalidation.invalidateGoogleConnection(user.id);
+    revalidateTag(CacheTags.googleConnection(user.id), "max");
 
     // If redirecting to onboarding, mark Google Calendar as connected during onboarding
     if (redirectUrl.includes("/onboarding")) {
       const { OnboardingService } =
         await import("@/server/services/onboarding.service");
       const onboardingResult = await OnboardingService.getOnboardingByUserId(
-        user.id
+        user.id,
       );
       if (onboardingResult.isOk() && onboardingResult.value) {
         const { OnboardingQueries } =
@@ -166,7 +149,7 @@ export async function GET(request: NextRequest) {
           onboardingResult.value.id,
           {
             googleCalendarConnectedDuringOnboarding: true,
-          }
+          },
         );
       }
     }
@@ -178,9 +161,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(
       new URL(
         "/settings?google_error=callback_failed",
-        new URL(request.url).origin
-      )
+        new URL(request.url).origin,
+      ),
     );
   }
 }
-

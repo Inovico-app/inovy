@@ -5,8 +5,8 @@ import { getCalendars } from "../actions/get-calendars";
 
 export interface Calendar {
   id: string;
-  summary: string;
-  accessRole: string;
+  name: string;
+  accessRole?: string;
 }
 
 /**
