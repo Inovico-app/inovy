@@ -37,6 +37,24 @@ function mapGoogleEventToCalendarEvent(
 }
 
 /**
+ * Returns true if the given URL string points to a Google Meet host.
+ * This avoids substring checks on the full URL by validating the hostname.
+ */
+function isGoogleMeetUrl(url: string | undefined | null): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.toLowerCase();
+    return (
+      hostname === "meet.google.com" ||
+      hostname.endsWith(".meet.google.com")
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Maps a raw Google Calendar API event (Schema$Event) to the shared CalendarEvent type.
  * Used for getEvent which returns the raw API response.
  */
@@ -63,15 +81,16 @@ function mapRawEventToCalendarEvent(
     ? new Date(event.start.dateTime)
     : event.start?.date
       ? new Date(event.start.date)
-      : new Date();
+        entry.uri != null &&
+        isGoogleMeetUrl(entry.uri),
 
   const endDate = event.end?.dateTime
     ? new Date(event.end.dateTime)
     : event.end?.date
       ? new Date(event.end.date)
       : new Date();
-
-  // Extract meeting URL using the same priority order as the original service
+  if (!meetingUrl && isGoogleMeetUrl(event.hangoutLink)) {
+    meetingUrl = event.hangoutLink || null;
   let meetingUrl: string | null = null;
 
   if (event.conferenceData?.entryPoints) {
