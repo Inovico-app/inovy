@@ -30,7 +30,7 @@ resource "azurerm_storage_account" "recordings" {
       for_each = length(var.cors_allowed_origins) > 0 ? [1] : []
       content {
         allowed_origins    = var.cors_allowed_origins
-        allowed_methods    = ["GET", "HEAD", "PUT", "OPTIONS"]
+        allowed_methods    = ["GET", "HEAD", "PUT", "POST", "OPTIONS"]
         allowed_headers    = ["*"]
         exposed_headers    = ["*"]
         max_age_in_seconds = 3600
