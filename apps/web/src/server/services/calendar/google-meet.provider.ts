@@ -1,5 +1,6 @@
 import { err, ok } from "neverthrow";
 import type { ActionResult } from "@/lib/server-action-client/action-errors";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { GoogleCalendarService } from "@/server/services/google-calendar.service";
 import type { MeetingLinkProvider } from "./meeting-link-provider";
 import type { CalendarEvent, MeetingLink, MeetingOptions } from "./types";
@@ -70,8 +71,18 @@ export class GoogleMeetProvider implements MeetingLinkProvider {
 
     const { meetingUrl } = result.value;
 
+    if (!meetingUrl) {
+      return err(
+        ActionErrors.internal(
+          "Failed to create Google Meet link",
+          undefined,
+          "GoogleMeetProvider.createOnlineMeeting",
+        ),
+      );
+    }
+
     return ok({
-      joinUrl: meetingUrl ?? "",
+      joinUrl: meetingUrl,
       meetingId: result.value.eventId,
     });
   }

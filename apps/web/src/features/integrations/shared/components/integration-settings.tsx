@@ -70,35 +70,39 @@ export function IntegrationSettings({
   async function loadSettings() {
     setLoading(true);
 
-    const result = await getSettings(projectId ? { projectId } : undefined);
+    try {
+      const result = await getSettings(projectId ? { projectId } : undefined);
 
-    if (result?.data) {
-      setAutoCalendarEnabled(result.data.autoCalendarEnabled);
-      setAutoEmailEnabled(result.data.autoEmailEnabled);
-      setDefaultEventDuration(result.data.defaultEventDuration);
+      if (result?.data) {
+        setAutoCalendarEnabled(result.data.autoCalendarEnabled);
+        setAutoEmailEnabled(result.data.autoEmailEnabled);
+        setDefaultEventDuration(result.data.defaultEventDuration);
 
-      // Load priority filter
-      if (result.data.taskPriorityFilter) {
-        setPriorityFilter({
-          low: result.data.taskPriorityFilter.includes("low"),
-          medium: result.data.taskPriorityFilter.includes("medium"),
-          high: result.data.taskPriorityFilter.includes("high"),
-          urgent: result.data.taskPriorityFilter.includes("urgent"),
-        });
+        // Load priority filter
+        if (result.data.taskPriorityFilter) {
+          setPriorityFilter({
+            low: result.data.taskPriorityFilter.includes("low"),
+            medium: result.data.taskPriorityFilter.includes("medium"),
+            high: result.data.taskPriorityFilter.includes("high"),
+            urgent: result.data.taskPriorityFilter.includes("urgent"),
+          });
+        } else {
+          // All enabled by default if null
+          setPriorityFilter({
+            low: true,
+            medium: true,
+            high: true,
+            urgent: true,
+          });
+        }
       } else {
-        // All enabled by default if null
-        setPriorityFilter({
-          low: true,
-          medium: true,
-          high: true,
-          urgent: true,
-        });
+        toast.error(result?.serverError ?? "Failed to load settings");
       }
-    } else {
-      toast.error(result?.serverError ?? "Failed to load settings");
+    } catch {
+      toast.error("Failed to load settings");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   useEffect(() => {
@@ -109,28 +113,32 @@ export function IntegrationSettings({
   async function handleSave() {
     setSaving(true);
 
-    // Build priority filter array
-    const priorities: Array<"low" | "medium" | "high" | "urgent"> = [];
-    if (priorityFilter.low) priorities.push("low");
-    if (priorityFilter.medium) priorities.push("medium");
-    if (priorityFilter.high) priorities.push("high");
-    if (priorityFilter.urgent) priorities.push("urgent");
+    try {
+      // Build priority filter array
+      const priorities: Array<"low" | "medium" | "high" | "urgent"> = [];
+      if (priorityFilter.low) priorities.push("low");
+      if (priorityFilter.medium) priorities.push("medium");
+      if (priorityFilter.high) priorities.push("high");
+      if (priorityFilter.urgent) priorities.push("urgent");
 
-    const result = await updateSettings({
-      projectId,
-      autoCalendarEnabled,
-      autoEmailEnabled,
-      defaultEventDuration,
-      taskPriorityFilter: priorities.length > 0 ? priorities : undefined,
-    });
+      const result = await updateSettings({
+        projectId,
+        autoCalendarEnabled,
+        autoEmailEnabled,
+        defaultEventDuration,
+        taskPriorityFilter: priorities.length > 0 ? priorities : undefined,
+      });
 
-    if (result?.data) {
-      toast.success("Settings saved successfully!");
-    } else {
-      toast.error(result?.serverError ?? "Failed to save settings");
+      if (result?.data) {
+        toast.success("Settings saved successfully!");
+      } else {
+        toast.error(result?.serverError ?? "Failed to save settings");
+      }
+    } catch {
+      toast.error("Failed to save settings");
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
   }
 
   async function handleReset() {
@@ -140,16 +148,20 @@ export function IntegrationSettings({
 
     setSaving(true);
 
-    const result = await resetSettings(projectId ? { projectId } : undefined);
+    try {
+      const result = await resetSettings(projectId ? { projectId } : undefined);
 
-    if (result?.data) {
-      toast.success("Settings reset to defaults");
-      await loadSettings();
-    } else {
-      toast.error(result?.serverError ?? "Failed to reset settings");
+      if (result?.data) {
+        toast.success("Settings reset to defaults");
+        await loadSettings();
+      } else {
+        toast.error(result?.serverError ?? "Failed to reset settings");
+      }
+    } catch {
+      toast.error("Failed to reset settings");
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
   }
 
   if (loading) {

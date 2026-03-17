@@ -7,6 +7,7 @@ import type { ProviderType } from "@/server/services/calendar/calendar-provider-
 interface UseConnectedProvidersResult {
   providers: ProviderType[];
   isLoading: boolean;
+  error: string | null;
 }
 
 /**
@@ -16,19 +17,36 @@ interface UseConnectedProvidersResult {
 export function useConnectedProviders(): UseConnectedProvidersResult {
   const [providers, setProviders] = useState<ProviderType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     async function fetchProviders() {
       setIsLoading(true);
+      setError(null);
       try {
         const result = await getConnectedCalendarProviders();
         if (!cancelled) {
-          setProviders(result?.data?.providers ?? []);
+          if (result?.data?.providers) {
+            setProviders(result.data.providers);
+          } else {
+            const message =
+              result?.serverError ?? "Failed to fetch connected providers";
+            setError(message);
+            console.error(
+              "[useConnectedProviders] Failed to fetch providers:",
+              message,
+            );
+          }
         }
-      } catch {
-        if (!cancelled) setProviders([]);
+      } catch (e) {
+        if (!cancelled) {
+          const message =
+            e instanceof Error ? e.message : "Unknown error fetching providers";
+          setError(message);
+          console.error("[useConnectedProviders] Error:", message);
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -40,5 +58,5 @@ export function useConnectedProviders(): UseConnectedProvidersResult {
     };
   }, []);
 
-  return { providers, isLoading };
+  return { providers, isLoading, error };
 }

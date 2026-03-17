@@ -185,6 +185,7 @@ export class GoogleCalendarProvider implements CalendarProvider {
       allDay: false,
       userTimezone: event.timeZone,
       recurrence: event.recurrence as string[] | undefined,
+      addOnlineMeeting: event.addOnlineMeeting,
     });
   }
 
@@ -206,9 +207,11 @@ export class GoogleCalendarProvider implements CalendarProvider {
     calendarId: string,
     eventId: string,
   ): Promise<ActionResult<CalendarEvent>> {
-    // The existing service always uses "primary" as calendarId,
-    // but we accept it as a parameter for interface conformance.
-    const result = await GoogleCalendarService.getEvent(userId, eventId);
+    const result = await GoogleCalendarService.getEvent(
+      userId,
+      eventId,
+      calendarId,
+    );
 
     if (result.isErr()) {
       return err(result.error);

@@ -1,0 +1,1 @@
+CREATE INDEX "bot_sessions_meeting_url_org_idx" ON "bot_sessions" USING btree ("meeting_url","organization_id");

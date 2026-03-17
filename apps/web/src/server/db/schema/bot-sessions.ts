@@ -78,6 +78,10 @@ export const botSessions = pgTable(
       table.organizationId,
     ),
     meetingIdIdx: index("bot_sessions_meeting_id_idx").on(table.meetingId),
+    meetingUrlOrgIdx: index("bot_sessions_meeting_url_org_idx").on(
+      table.meetingUrl,
+      table.organizationId,
+    ),
   }),
 );
 
