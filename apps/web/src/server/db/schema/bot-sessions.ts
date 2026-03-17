@@ -40,9 +40,9 @@ export const botSessions = pgTable(
     userId: text("user_id").notNull(), // Better Auth user ID
     recallBotId: text("recall_bot_id").notNull(), // Recall.ai bot session ID
     recallStatus: text("recall_status").notNull(), // Status from Recall.ai
-    meetingUrl: text("meeting_url").notNull(),
+    meetingUrl: text("meeting_url"),
     meetingTitle: text("meeting_title"),
-    calendarEventId: text("calendar_event_id"), // Google Calendar event ID for deduplication
+    calendarEventId: text("calendar_event_id"), // Calendar event ID (Google or Microsoft) for deduplication
     botStatus: text("bot_status", { enum: botStatusEnum })
       .notNull()
       .default("scheduled"), // Lifecycle status
@@ -63,24 +63,23 @@ export const botSessions = pgTable(
   },
   (table) => ({
     recallBotIdIdx: index("bot_sessions_recall_bot_id_idx").on(
-      table.recallBotId
+      table.recallBotId,
     ),
     calendarEventIdOrgIdx: index("bot_sessions_calendar_event_id_org_idx").on(
       table.calendarEventId,
-      table.organizationId
+      table.organizationId,
     ),
     botStatusOrgIdx: index("bot_sessions_bot_status_org_idx").on(
       table.botStatus,
-      table.organizationId
+      table.organizationId,
     ),
     userIdOrgIdx: index("bot_sessions_user_id_org_idx").on(
       table.userId,
-      table.organizationId
+      table.organizationId,
     ),
     meetingIdIdx: index("bot_sessions_meeting_id_idx").on(table.meetingId),
-  })
+  }),
 );
 
 export type BotSession = typeof botSessions.$inferSelect;
 export type NewBotSession = typeof botSessions.$inferInsert;
-

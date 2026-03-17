@@ -106,7 +106,7 @@ export function BotSessionDetailsModal({
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Meeting URL:</span>
                   <a
-                    href={session.meetingUrl}
+                    href={session.meetingUrl ?? undefined}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline"
@@ -175,7 +175,10 @@ export function BotSessionDetailsModal({
                     <h3 className="font-semibold mb-3">Participants</h3>
                     <div className="space-y-1">
                       {session.meetingParticipants.map((participant, index) => (
-                        <div key={`participant-${index}-${participant}`} className="text-sm">
+                        <div
+                          key={`participant-${index}-${participant}`}
+                          className="text-sm"
+                        >
                           {participant}
                         </div>
                       ))}
@@ -215,7 +218,11 @@ export function BotSessionDetailsModal({
                     </div>
                     <div className="pt-2">
                       <Button
-                        render={<Link href={`/projects/${session.projectId}/recordings/${session.recording.id}`} />}
+                        render={
+                          <Link
+                            href={`/projects/${session.projectId}/recordings/${session.recording.id}`}
+                          />
+                        }
                         nativeButton={false}
                       >
                         View Recording
@@ -255,4 +262,3 @@ export function BotSessionDetailsModal({
     </Dialog>
   );
 }
-
