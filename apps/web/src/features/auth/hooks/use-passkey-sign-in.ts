@@ -1,24 +1,33 @@
 "use client";
 
 import { authClient } from "@/lib/auth-client";
+import { isSafari } from "@/lib/browser-utils";
 import { logger } from "@/lib/logger";
+import type { Route } from "next";
 import { useAction } from "next-safe-action/hooks";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { passkeySignInSuccessAction } from "../actions/sign-in";
 
 export function usePasskeySignIn() {
+  const router = useRouter();
   const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
 
   const { execute: executePasskeySuccess, isExecuting: isPasskeyRedirecting } =
     useAction(passkeySignInSuccessAction, {
-      onSuccess: () => {
-        // Redirect is handled by the server action
+      onSuccess: ({ data }) => {
         toast.success("Signed in successfully with passkey");
+        const target = data?.redirectTo ?? "/";
+        if (isSafari()) {
+          window.location.href = target;
+        } else {
+          router.push(target as Route);
+        }
       },
       onError: ({ error }) => {
         toast.error(
-          error.serverError ?? "Failed to complete passkey authentication"
+          error.serverError ?? "Failed to complete passkey authentication",
         );
       },
     });
@@ -67,4 +76,3 @@ export function usePasskeySignIn() {
     isPasskeyRedirecting,
   };
 }
-
