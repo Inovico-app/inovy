@@ -8,10 +8,53 @@ import { ConsentService } from "@/server/services/consent.service";
 import { rateLimiter } from "@/server/services/rate-limiter.service";
 import { RecordingService } from "@/server/services/recording.service";
 import { getStorageProvider } from "@/server/services/storage";
+import path from "path";
 import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE,
 } from "@/server/validation/recordings/upload-recording";
+
+/** Infer MIME type from extension when file.type is empty (e.g. Safari mp4) */
+const EXTENSION_TO_MIME: Record<string, (typeof ALLOWED_MIME_TYPES)[number]> = {
+  ".mp4": "video/mp4",
+  ".m4a": "audio/mp4",
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+  ".webm": "video/webm",
+};
+
+function resolveFileMimeType(
+  fileMimeType: string,
+  fileName: string
+): (typeof ALLOWED_MIME_TYPES)[number] {
+  const trimmed = fileMimeType?.trim();
+  if (trimmed && ALLOWED_MIME_TYPES.includes(trimmed as (typeof ALLOWED_MIME_TYPES)[number])) {
+    return trimmed as (typeof ALLOWED_MIME_TYPES)[number];
+  }
+  const ext = path.extname(fileName).toLowerCase();
+  const inferred = EXTENSION_TO_MIME[ext];
+  if (inferred) return inferred;
+  throw new Error(
+    trimmed
+      ? `Unsupported file type: ${trimmed}`
+      : `Could not determine file type for ${fileName}. Supported: mp4, m4a, mp3, wav, webm`
+  );
+}
+
+/**
+ * Sanitize filename for use in blob path (Azure).
+ * Replaces spaces and problematic chars to avoid encoding/decoding mismatches
+ * that cause BlobNotFound.
+ */
+function sanitizeFilenameForBlobPath(fileName: string): string {
+  const ext = path.extname(fileName);
+  const base = path.basename(fileName, ext) || "file";
+  const safe = base
+    .replace(/[\s?#/\\<>:"|*]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return (safe || "file") + ext.toLowerCase();
+}
 import { convertRecordingIntoAiInsights } from "@/workflows/convert-recording";
 import type { HandleUploadBody } from "@vercel/blob/client";
 import { revalidatePath } from "next/cache";
@@ -73,10 +116,13 @@ function isRetryableError(err: unknown): boolean {
 }
 
 async function getBlobPropertiesWithRetry(
-  getBlobProperties: (url: string) => Promise<{ contentLength?: number; contentType?: string }>,
+  getBlobProperties: (
+    url: string,
+    options?: { pathname?: string }
+  ) => Promise<{ contentLength?: number; contentType?: string }>,
   blobUrl: string,
   maxAttempts = 3,
-  options?: { initialDelayMs?: number }
+  options?: { initialDelayMs?: number; pathname?: string }
 ): Promise<{ contentLength?: number; contentType?: string }> {
   const initialDelayMs = options?.initialDelayMs ?? 0;
   if (initialDelayMs > 0) {
@@ -85,7 +131,9 @@ async function getBlobPropertiesWithRetry(
   let lastError: unknown;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      return await getBlobProperties(blobUrl);
+      return await getBlobProperties(blobUrl, {
+        pathname: options?.pathname,
+      });
     } catch (err) {
       lastError = err;
       if (attempt === maxAttempts || !isRetryableError(err)) throw err;
@@ -272,23 +320,17 @@ async function validateAndAuthenticate(
     !metadata.title ||
     !metadata.recordingDate ||
     !metadata.fileName ||
-    !metadata.fileSize ||
-    !metadata.fileMimeType
+    metadata.fileSize == null
   ) {
     throw new Error(
-      "Missing required metadata: projectId, title, recordingDate, fileName, fileSize, or fileMimeType"
+      "Missing required metadata: projectId, title, recordingDate, fileName, or fileSize"
     );
   }
 
-  if (
-    !ALLOWED_MIME_TYPES.includes(
-      metadata.fileMimeType as (typeof ALLOWED_MIME_TYPES)[number]
-    )
-  ) {
-    throw new Error(
-      `Unsupported file type: ${metadata.fileMimeType}`
-    );
-  }
+  const resolvedMimeType = resolveFileMimeType(
+    metadata.fileMimeType ?? "",
+    metadata.fileName
+  );
 
   const project = await ProjectQueries.findById(
     metadata.projectId,
@@ -303,6 +345,7 @@ async function validateAndAuthenticate(
 
   return {
     ...metadata,
+    fileMimeType: resolvedMimeType,
     userId: user.id,
     organizationId: organization.id,
   };
@@ -407,7 +450,7 @@ async function handleAzureUpload(request: NextRequest) {
     }
 
     const token = await storage.generateClientUploadToken({
-      path: `recordings/${Date.now()}-${metadata.fileName}`,
+      path: `recordings/${Date.now()}-${sanitizeFilenameForBlobPath(metadata.fileName)}`,
       access: "public",
       contentType: metadata.fileMimeType,
       maxSizeInBytes: MAX_FILE_SIZE,
@@ -448,32 +491,36 @@ async function handleAzureUpload(request: NextRequest) {
       throw new Error("Invalid token payload");
     }
 
-    // Verify blob exists and size doesn't exceed limit (required for playback/transcription)
+    // Verify blob size doesn't exceed limit. Use getBlobProperties when available;
+    // on failure (e.g. SDK verification mismatch for MP4, eventual consistency),
+    // fall back to client-reported fileSize from metadata.
     const storage = await getStorageProvider();
+    let verifiedSize: number | undefined;
     if (storage.getBlobProperties) {
       try {
         const props = await getBlobPropertiesWithRetry(
           storage.getBlobProperties.bind(storage),
           body.blobUrl,
           5,
-          { initialDelayMs: 2500 }
+          { initialDelayMs: 2500, pathname: body.pathname ?? undefined }
         );
-        if (props?.contentLength && props.contentLength > MAX_FILE_SIZE) {
-          await storage.del(body.blobUrl);
-          throw new Error(
-            `Uploaded file exceeds maximum size of ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB`
-          );
-        }
+        verifiedSize = props?.contentLength;
       } catch (verifyError) {
-        logger.error("Blob verification failed after retries; upload rejected", {
+        logger.warn("getBlobProperties failed; using client-reported fileSize", {
           component: "POST /api/recordings/upload - upload-complete",
           blobUrl: body.blobUrl,
           error: serializeError(verifyError),
         });
-        throw new Error(
-          "Upload could not be verified. The file may not have finished uploading. Please try again."
-        );
+        verifiedSize = payload.fileSize;
       }
+    } else {
+      verifiedSize = payload.fileSize;
+    }
+    if (verifiedSize != null && verifiedSize > MAX_FILE_SIZE) {
+      await storage.del(body.blobUrl);
+      throw new Error(
+        `Uploaded file exceeds maximum size of ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB`
+      );
     }
 
     await processUploadCompleted(body.blobUrl, body.pathname ?? "", payload);

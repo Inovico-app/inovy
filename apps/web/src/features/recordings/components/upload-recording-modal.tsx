@@ -36,10 +36,14 @@ export function UploadRecordingModal({
   onOpenChange: controlledOnOpenChange,
 }: UploadRecordingModalProps) {
   const [internalOpen, setInternalOpen] = useState(false);
+  const [formKey, setFormKey] = useState(0);
 
   // Use controlled state if provided, otherwise use internal state
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setFormKey((k) => k + 1);
+    }
     if (controlledOnOpenChange) {
       controlledOnOpenChange(open);
     } else {
@@ -66,7 +70,7 @@ export function UploadRecordingModal({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden min-w-0">
         <DialogHeader>
           <DialogTitle>Upload Recording</DialogTitle>
           <DialogDescription>
@@ -74,6 +78,7 @@ export function UploadRecordingModal({
           </DialogDescription>
         </DialogHeader>
         <UploadRecordingForm
+          key={formKey}
           projectId={projectId}
           onSuccess={handleSuccess}
           onCancel={handleCancel}

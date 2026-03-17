@@ -130,8 +130,24 @@ async function uploadViaAzure(
   return { url: blobUrl, pathname };
 }
 
+const EXT_TO_MIME: Record<string, string> = {
+  ".mp4": "video/mp4",
+  ".m4a": "audio/mp4",
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+  ".webm": "video/webm",
+};
+
+function getContentType(file: File): string {
+  if (file.type) return file.type;
+  const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+  return EXT_TO_MIME[ext] ?? "application/octet-stream";
+}
+
 /**
- * Upload file to Azure Blob Storage using XMLHttpRequest for progress tracking
+ * Upload file to Azure Blob Storage using XMLHttpRequest for progress tracking.
+ * Sends the raw File directly (xhr.send(file)) — no transformation, no manual
+ * contentLength/contentMD5 — to avoid SDK verification mismatches (e.g. MP4).
  */
 function uploadToAzureWithProgress(
   sasUrl: string,
@@ -148,7 +164,7 @@ function uploadToAzureWithProgress(
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", sasUrl);
     xhr.setRequestHeader("x-ms-blob-type", "BlockBlob");
-    xhr.setRequestHeader("Content-Type", file.type);
+    xhr.setRequestHeader("Content-Type", getContentType(file));
 
     if (onProgress) {
       xhr.upload.onprogress = (event) => {

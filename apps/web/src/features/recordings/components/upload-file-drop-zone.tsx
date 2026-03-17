@@ -34,7 +34,7 @@ export function FileDropZone({
   return (
     <div
       className={`
-        border-2 border-dashed rounded-lg p-8 text-center transition-colors
+        border-2 border-dashed rounded-lg p-8 text-center transition-colors min-w-0
         ${
           isDragging
             ? "border-primary bg-primary/5"
@@ -82,8 +82,8 @@ export function FileDropZone({
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 text-left">
+        <div className="flex items-center justify-between gap-4 min-w-0">
+          <div className="flex-1 min-w-0 text-left overflow-hidden">
             <p className="text-sm font-medium truncate">{file.name}</p>
             <p className="text-xs text-muted-foreground">
               {formatFileSizePrecise(file.size)}
