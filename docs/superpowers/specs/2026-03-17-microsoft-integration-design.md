@@ -69,8 +69,8 @@ interface CalendarProvider {
   getUpcomingMeetings(
     userId: string,
     options: {
-      startDate: Date;
-      endDate: Date;
+      timeMin: Date;
+      timeMax: Date;
       calendarIds?: string[];
     },
   ): Promise<Meeting[]>;
@@ -148,7 +148,7 @@ Note: `offline_access` is required in base tier to obtain a refresh token.
 
 ### API Routes
 
-- **POST** `/api/integrations/microsoft/authorize` — generates authorization URL with scope tier, state param, `prompt=consent`
+- **POST** `/api/integrations/microsoft/authorize` — reads the user's existing `oauth_connections.scopes` for Microsoft (if any), merges them with the requested scope tier, and generates the authorization URL with the combined scopes, state param, and `prompt=consent`. The scope merge must happen here (before redirect), not in the callback.
 - **GET** `/api/integrations/microsoft/callback` — exchanges code for tokens, encrypts, stores in `oauth_connections`
 
 ### CSRF State Parameter
@@ -231,7 +231,7 @@ Action signatures and return types stay the same — transparent to frontend.
 ### New Server Actions
 
 - `connectMicrosoft` — initiates OAuth flow with scope tier
-- `disconnectMicrosoft` — revokes and deletes connection
+- `disconnectMicrosoft` — revokes and deletes connection, calls `CacheInvalidation.invalidateMicrosoftConnection(userId)` and `revalidatePath("/settings")` (matching Google pattern)
 - `getMicrosoftConnectionStatus` — returns connection info
 
 ## UI Components
@@ -271,7 +271,16 @@ When a user has both Google and Microsoft connected:
 - `integration_templates` — `provider` enum already includes `"microsoft"`
 - `meetings` — `calendarEventId` and `meetingUrl` are provider-agnostic
 
-### New Migration
+### Schema Updates (Existing Columns)
+
+- `bot_sessions.meetingUrl` — change from `notNull` to nullable. Non-online calendar events have no meeting URL, and the monitor service filters these with `if (!meetingUrl) continue`. Without this, inserting a bot session for a non-online event would crash with a `NOT NULL` constraint violation.
+- `bot_sessions.calendarEventId` — update column comment from "Google Calendar event ID" to "Calendar event ID (Google or Microsoft)" for schema clarity.
+
+### New Migrations
+
+**`XXXX_make_bot_session_meeting_url_nullable.ts`:**
+
+- `ALTER TABLE bot_sessions ALTER COLUMN meeting_url DROP NOT NULL`
 
 **`XXXX_add_preferred_calendar_provider.ts`:**
 
