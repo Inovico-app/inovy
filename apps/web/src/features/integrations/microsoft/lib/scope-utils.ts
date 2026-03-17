@@ -1,30 +1,31 @@
 import {
+  hasRequiredScopes as _hasRequiredScopes,
+  getMissingScopes as _getMissingScopes,
+} from "@/features/integrations/shared/lib/scope-utils";
+import {
   MS_SCOPE_TIERS,
   type MsScope,
   type MsScopeTier,
 } from "./scope-constants";
 
 /**
- * Check whether the user's granted scopes satisfy a given tier.
+ * Check whether the user's granted scopes satisfy a given Microsoft tier.
  */
 export function hasRequiredMsScopes(
   userScopes: string[],
   tier: MsScopeTier,
 ): boolean {
-  const required = MS_SCOPE_TIERS[tier];
-  const granted = new Set(userScopes);
-  return required.every((s) => granted.has(s));
+  return _hasRequiredScopes(userScopes, MS_SCOPE_TIERS, tier);
 }
 
 /**
- * Return the scopes from a tier that the user has NOT yet granted.
+ * Return the scopes from a Microsoft tier that the user has NOT yet granted.
  */
 export function getMissingMsScopes(
   userScopes: string[],
   tier: MsScopeTier,
 ): string[] {
-  const granted = new Set(userScopes);
-  return MS_SCOPE_TIERS[tier].filter((s) => !granted.has(s));
+  return _getMissingScopes(userScopes, MS_SCOPE_TIERS, tier);
 }
 
 /**

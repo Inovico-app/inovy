@@ -1,30 +1,31 @@
 import {
+  hasRequiredScopes as _hasRequiredScopes,
+  getMissingScopes as _getMissingScopes,
+} from "@/features/integrations/shared/lib/scope-utils";
+import {
   SCOPE_TIERS,
   type GoogleScope,
   type ScopeTier,
 } from "./scope-constants";
 
 /**
- * Check whether the user's granted scopes satisfy a given tier.
+ * Check whether the user's granted scopes satisfy a given Google tier.
  */
 export function hasRequiredScopes(
   userScopes: string[],
-  tier: ScopeTier
+  tier: ScopeTier,
 ): boolean {
-  const required = SCOPE_TIERS[tier];
-  const granted = new Set(userScopes);
-  return required.every((s) => granted.has(s));
+  return _hasRequiredScopes(userScopes, SCOPE_TIERS, tier);
 }
 
 /**
- * Return the scopes from a tier that the user has NOT yet granted.
+ * Return the scopes from a Google tier that the user has NOT yet granted.
  */
 export function getMissingScopes(
   userScopes: string[],
-  tier: ScopeTier
+  tier: ScopeTier,
 ): string[] {
-  const granted = new Set(userScopes);
-  return SCOPE_TIERS[tier].filter((s) => !granted.has(s));
+  return _getMissingScopes(userScopes, SCOPE_TIERS, tier);
 }
 
 /**
@@ -34,7 +35,7 @@ export function getMissingScopes(
  */
 export function getIncrementalAuthUrl(
   tier: ScopeTier,
-  redirectUrl: string
+  redirectUrl: string,
 ): string {
   const params = new URLSearchParams({
     tier,

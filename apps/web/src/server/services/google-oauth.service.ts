@@ -16,6 +16,9 @@ import { OAuthConnectionsQueries } from "../data-access/oauth-connections.querie
 import type { OAuthConnection } from "../db/schema/oauth-connections";
 import { OAuthBaseService } from "./oauth/oauth-base.service";
 
+// Re-export for backward compatibility — callers that imported from here still work.
+export type { ScopeTier };
+
 /**
  * Google OAuth Service
  * Manages OAuth connections for Google Workspace integration
@@ -61,7 +64,10 @@ const instance = new GoogleOAuthServiceImpl();
  */
 export class GoogleOAuthService {
   /**
-   * Store OAuth connection after successful authorization
+   * Store OAuth connection after successful authorization.
+   * Exchanges the authorization code for tokens, retrieves the user email,
+   * then delegates to the shared base-class upsert helper.
+   *
    * @param userId - User ID
    * @param code - Authorization code from Google
    * @param redirectUri - Redirect URI used during authorization (must match exactly)
@@ -71,74 +77,14 @@ export class GoogleOAuthService {
     code: string,
     redirectUri?: string,
   ): Promise<ActionResult<OAuthConnection>> {
-    try {
-      // Exchange code for tokens (must use same redirect URI as authorization)
-      const tokens = await exchangeCodeForTokens(code, redirectUri);
+    // Exchange code for tokens (must use same redirect URI as authorization)
+    const tokens = await exchangeCodeForTokens(code, redirectUri);
 
-      // Get user email
-      const email = await getUserEmail(tokens.accessToken);
+    // Get user email
+    const email = await getUserEmail(tokens.accessToken);
 
-      // Check if connection already exists
-      const existing = await OAuthConnectionsQueries.getOAuthConnection(
-        userId,
-        "google",
-      );
-
-      if (existing) {
-        // Update existing connection
-        const updated = await OAuthConnectionsQueries.updateOAuthConnection(
-          userId,
-          "google",
-          {
-            accessToken: OAuthBaseService.encryptToken(tokens.accessToken),
-            refreshToken: OAuthBaseService.encryptToken(tokens.refreshToken),
-            expiresAt: tokens.expiresAt,
-            scopes: tokens.scopes,
-            email,
-          },
-        );
-
-        if (!updated) {
-          return err(
-            ActionErrors.internal(
-              "Failed to update OAuth connection",
-              undefined,
-              "GoogleOAuthService.storeConnection",
-            ),
-          );
-        }
-
-        logger.info("Updated Google OAuth connection", { userId, email });
-        return ok(updated);
-      }
-
-      // Create new connection
-      const connection = await OAuthConnectionsQueries.createOAuthConnection({
-        userId,
-        provider: "google",
-        accessToken: OAuthBaseService.encryptToken(tokens.accessToken),
-        refreshToken: OAuthBaseService.encryptToken(tokens.refreshToken),
-        expiresAt: tokens.expiresAt,
-        scopes: tokens.scopes,
-        email,
-      });
-
-      logger.info("Created Google OAuth connection", { userId, email });
-      return ok(connection);
-    } catch (error) {
-      logger.error(
-        "Failed to store Google OAuth connection",
-        { userId },
-        error as Error,
-      );
-      return err(
-        ActionErrors.internal(
-          "Failed to store Google OAuth connection",
-          error as Error,
-          "GoogleOAuthService.storeConnection",
-        ),
-      );
-    }
+    // Delegate to shared encrypt-and-upsert helper
+    return instance.storeConnectionTokens(userId, tokens, email);
   }
 
   /**

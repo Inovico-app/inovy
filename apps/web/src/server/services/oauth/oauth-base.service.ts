@@ -302,6 +302,113 @@ export abstract class OAuthBaseService {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Shared store-connection helper
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Encrypt tokens, check for an existing connection, merge scopes if one
+   * exists, and upsert to the database.
+   *
+   * Provider-specific `storeConnection` methods should exchange the auth code
+   * for tokens and resolve the user email, then delegate here for the common
+   * encrypt-and-upsert pattern.
+   */
+  async storeConnectionTokens(
+    userId: string,
+    tokens: {
+      accessToken: string;
+      refreshToken: string;
+      expiresAt: Date;
+      scopes: string[];
+    },
+    email: string,
+  ): Promise<ActionResult<OAuthConnection>> {
+    try {
+      const encryptedAccessToken = OAuthBaseService.encryptToken(
+        tokens.accessToken,
+      );
+      const encryptedRefreshToken = OAuthBaseService.encryptToken(
+        tokens.refreshToken,
+      );
+
+      // Check if connection already exists so we can merge scopes
+      const existing = await OAuthConnectionsQueries.getOAuthConnection(
+        userId,
+        this.provider,
+      );
+
+      if (existing) {
+        // Merge new scopes with previously granted scopes
+        const mergedScopes = Array.from(
+          new Set([...existing.scopes, ...tokens.scopes]),
+        );
+
+        const updated = await OAuthConnectionsQueries.updateOAuthConnection(
+          userId,
+          this.provider,
+          {
+            accessToken: encryptedAccessToken,
+            refreshToken: encryptedRefreshToken,
+            expiresAt: tokens.expiresAt,
+            scopes: mergedScopes,
+            email,
+          },
+        );
+
+        if (!updated) {
+          return err(
+            ActionErrors.internal(
+              `Failed to update ${this.providerDisplayName} OAuth connection`,
+              undefined,
+              `${this.serviceName}.storeConnection`,
+            ),
+          );
+        }
+
+        logger.info(`Updated ${this.providerDisplayName} OAuth connection`, {
+          userId,
+          email,
+        });
+        return ok(updated);
+      }
+
+      // Create new connection
+      const connection = await OAuthConnectionsQueries.createOAuthConnection({
+        userId,
+        provider: this.provider,
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
+        expiresAt: tokens.expiresAt,
+        scopes: tokens.scopes,
+        email,
+      });
+
+      logger.info(`Created ${this.providerDisplayName} OAuth connection`, {
+        userId,
+        email,
+      });
+      return ok(connection);
+    } catch (error) {
+      logger.error(
+        `Failed to store ${this.providerDisplayName} OAuth connection`,
+        { userId },
+        error as Error,
+      );
+      return err(
+        ActionErrors.internal(
+          `Failed to store ${this.providerDisplayName} OAuth connection`,
+          error as Error,
+          `${this.serviceName}.storeConnection`,
+        ),
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Connection status
+  // ---------------------------------------------------------------------------
+
   /**
    * Get connection status details
    */

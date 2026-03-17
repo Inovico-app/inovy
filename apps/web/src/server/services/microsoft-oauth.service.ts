@@ -88,7 +88,7 @@ export class MicrosoftOAuthService {
   /**
    * Store OAuth connection after successful authorization.
    * Exchanges the authorization code for tokens, retrieves the user email,
-   * and upserts the connection — merging scopes with any previously stored ones.
+   * then delegates to the shared base-class upsert helper.
    *
    * @param userId - User ID
    * @param code - Authorization code from Microsoft
@@ -99,78 +99,14 @@ export class MicrosoftOAuthService {
     code: string,
     redirectUri?: string,
   ): Promise<ActionResult<OAuthConnection>> {
-    try {
-      // Exchange code for tokens (must use same redirect URI as authorization)
-      const tokens = await exchangeCodeForTokens(code, redirectUri);
+    // Exchange code for tokens (must use same redirect URI as authorization)
+    const tokens = await exchangeCodeForTokens(code, redirectUri);
 
-      // Get user email from Microsoft Graph
-      const email = await getUserEmail(tokens.accessToken);
+    // Get user email from Microsoft Graph
+    const email = await getUserEmail(tokens.accessToken);
 
-      // Check if connection already exists so we can merge scopes
-      const existing = await OAuthConnectionsQueries.getOAuthConnection(
-        userId,
-        "microsoft",
-      );
-
-      if (existing) {
-        // Merge new scopes with previously granted scopes
-        const mergedScopes = Array.from(
-          new Set([...existing.scopes, ...tokens.scopes]),
-        );
-
-        const updated = await OAuthConnectionsQueries.updateOAuthConnection(
-          userId,
-          "microsoft",
-          {
-            accessToken: OAuthBaseService.encryptToken(tokens.accessToken),
-            refreshToken: OAuthBaseService.encryptToken(tokens.refreshToken),
-            expiresAt: tokens.expiresAt,
-            scopes: mergedScopes,
-            email,
-          },
-        );
-
-        if (!updated) {
-          return err(
-            ActionErrors.internal(
-              "Failed to update Microsoft OAuth connection",
-              undefined,
-              "MicrosoftOAuthService.storeConnection",
-            ),
-          );
-        }
-
-        logger.info("Updated Microsoft OAuth connection", { userId, email });
-        return ok(updated);
-      }
-
-      // Create new connection
-      const connection = await OAuthConnectionsQueries.createOAuthConnection({
-        userId,
-        provider: "microsoft",
-        accessToken: OAuthBaseService.encryptToken(tokens.accessToken),
-        refreshToken: OAuthBaseService.encryptToken(tokens.refreshToken),
-        expiresAt: tokens.expiresAt,
-        scopes: tokens.scopes,
-        email,
-      });
-
-      logger.info("Created Microsoft OAuth connection", { userId, email });
-      return ok(connection);
-    } catch (error) {
-      logger.error(
-        "Failed to store Microsoft OAuth connection",
-        { userId },
-        error as Error,
-      );
-      return err(
-        ActionErrors.internal(
-          "Failed to store Microsoft OAuth connection",
-          error as Error,
-          "MicrosoftOAuthService.storeConnection",
-        ),
-      );
-    }
+    // Delegate to shared encrypt-and-upsert helper
+    return instance.storeConnectionTokens(userId, tokens, email);
   }
 
   /**
