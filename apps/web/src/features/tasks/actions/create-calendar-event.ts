@@ -72,7 +72,8 @@ export const createCalendarEvent = authorizedActionClient
       taskId: task.id,
     });
 
-    // Create calendar event
+    // TODO: createEventFromTask is Google-specific. To support Microsoft,
+    // add a task-to-event mapping layer that uses CalendarProvider.createEvent.
     const result = await GoogleCalendarService.createEventFromTask(
       user.id,
       organizationId,
@@ -152,7 +153,8 @@ export const createCalendarEventsForTasks = authorizedActionClient
       throw ActionErrors.notFound("Tasks", "create-calendar-events-for-tasks");
     }
 
-    // Create events
+    // TODO: createEventsFromTasks is Google-specific. To support Microsoft,
+    // add a task-to-event mapping layer that uses CalendarProvider.createEvent.
     const result = await GoogleCalendarService.createEventsFromTasks(
       user.id,
       organizationId,

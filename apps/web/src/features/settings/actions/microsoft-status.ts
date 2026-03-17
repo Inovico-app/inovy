@@ -48,6 +48,12 @@ export const getMicrosoftIntegrationStatus = authorizedActionClient
         userId: user.id,
         error: actions.error,
       });
+
+      throw ActionErrors.internal(
+        "Failed to retrieve recent Microsoft actions",
+        actions.error,
+        "get-microsoft-integration-status",
+      );
     }
 
     if (stats.isErr()) {
@@ -55,20 +61,17 @@ export const getMicrosoftIntegrationStatus = authorizedActionClient
         userId: user.id,
         error: stats.error,
       });
+
+      throw ActionErrors.internal(
+        "Failed to retrieve Microsoft action statistics",
+        stats.error,
+        "get-microsoft-integration-status",
+      );
     }
 
     return {
-      actions: actions.isOk() ? actions.value : [],
-      stats: stats.isOk()
-        ? stats.value
-        : {
-            total: 0,
-            completed: 0,
-            failed: 0,
-            pending: 0,
-            calendarEvents: 0,
-            emailDrafts: 0,
-          },
+      actions: actions.value,
+      stats: stats.value,
     };
   });
 

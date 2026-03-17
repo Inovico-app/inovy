@@ -16,6 +16,15 @@ export interface CalendarEvent {
   calendarId: string;
 }
 
+/**
+ * RRULE strings array for calendar event recurrence (RFC 5545 format).
+ * Example: ["RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,FR"]
+ *
+ * Use {@link generateRRule} from `@/features/meetings/lib/recurrence`
+ * to build these from a user-facing RecurrencePattern.
+ */
+export type RecurrenceRule = string[];
+
 export interface CreateEventInput {
   title: string;
   description?: string;
@@ -25,7 +34,7 @@ export interface CreateEventInput {
   calendarId?: string;
   attendees?: string[];
   addOnlineMeeting?: boolean;
-  recurrence?: unknown;
+  recurrence?: RecurrenceRule;
   timeZone?: string;
 }
 

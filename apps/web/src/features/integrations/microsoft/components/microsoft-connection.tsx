@@ -31,8 +31,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { disconnectMicrosoftAccount } from "../actions/disconnect";
 import { getMicrosoftConnectionStatus } from "../actions/connection-status";
+import { useMicrosoftDisconnect } from "../hooks/use-microsoft-disconnect";
 import type { MsScopeTier } from "../lib/scope-constants";
 import { hasRequiredMsScopes, msTierToLabel } from "../lib/scope-utils";
 import { MsIncrementalPermissionDialog } from "./incremental-permission-dialog";
@@ -54,7 +54,9 @@ export function MicrosoftConnection() {
     connected: false,
     loading: true,
   });
-  const [disconnecting, setDisconnecting] = useState(false);
+  const { disconnect, isDisconnecting } = useMicrosoftDisconnect(() => {
+    setStatus({ connected: false, loading: false });
+  });
   const [showConnectDialog, setShowConnectDialog] = useState(false);
   const [incrementalTier, setIncrementalTier] = useState<MsScopeTier | null>(
     null,
@@ -91,21 +93,6 @@ export function MicrosoftConnection() {
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
-
-  async function handleDisconnect() {
-    setDisconnecting(true);
-
-    const result = await disconnectMicrosoftAccount();
-
-    if (result?.data) {
-      toast.success("Microsoft account disconnected successfully");
-      setStatus({ connected: false, loading: false });
-    } else {
-      toast.error(result?.serverError ?? "Failed to disconnect account");
-    }
-
-    setDisconnecting(false);
-  }
 
   if (status.loading) {
     return (
@@ -210,10 +197,10 @@ export function MicrosoftConnection() {
             <AlertDialog>
               <AlertDialogTrigger
                 render={
-                  <Button variant="destructive" disabled={disconnecting} />
+                  <Button variant="destructive" disabled={isDisconnecting} />
                 }
               >
-                {disconnecting && (
+                {isDisconnecting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 Disconnect
@@ -233,7 +220,7 @@ export function MicrosoftConnection() {
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
-                    onClick={handleDisconnect}
+                    onClick={() => disconnect()}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
                     Disconnect
