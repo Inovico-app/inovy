@@ -44,8 +44,12 @@ export interface StorageProvider {
   /**
    * Get blob properties (size, content type) by URL.
    * Used to verify uploaded file size after client-side uploads.
+   * When pathname is provided, uses (container, pathname) for lookup to avoid URL encoding issues.
    */
-  getBlobProperties?(url: string): Promise<BlobProperties>;
+  getBlobProperties?(
+    url: string,
+    options?: { pathname?: string }
+  ): Promise<BlobProperties>;
 
   /**
    * Generate a client upload token for direct browser-to-storage uploads.

@@ -115,6 +115,9 @@ export function UploadRecordingForm({
   };
 
   const handleFileSelect = (selectedFile: File) => {
+    // Clear any previous upload state so a new upload starts fresh
+    cancelUpload();
+
     // Validate file type
     if (
       !ALLOWED_MIME_TYPES.includes(
@@ -196,6 +199,9 @@ export function UploadRecordingForm({
         signal: abortControllerRef.current.signal,
       });
 
+      // Clear upload state so progress bar disappears and form is ready for next upload
+      cancelUpload();
+
       // Refresh the router cache to get updated data
       router.refresh();
 
@@ -226,9 +232,9 @@ export function UploadRecordingForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 min-w-0 overflow-hidden">
         {/* File Upload Area */}
-        <div className="space-y-2">
+        <div className="space-y-2 min-w-0 overflow-hidden">
           <FormLabel htmlFor="file">Recording File *</FormLabel>
           <FileDropZone
             file={state.file}

@@ -16,8 +16,8 @@ output "storage_account_primary_access_key" {
 }
 
 output "storage_container_name" {
-  description = "Name of the recordings container"
-  value       = azurerm_storage_container.recordings.name
+  description = "Name of the application storage container"
+  value       = azurerm_storage_container.app.name
 }
 
 output "storage_account_primary_blob_endpoint" {

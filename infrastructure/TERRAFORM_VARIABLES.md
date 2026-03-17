@@ -2,6 +2,8 @@
 
 This document describes the required GitHub Environment variables and secrets for the Terraform deployment workflow.
 
+For a complete environment variables reference (Local, Vercel, Azure), see [docs/ENVIRONMENT_VARIABLES.md](../docs/ENVIRONMENT_VARIABLES.md).
+
 ## GitHub Environment Variables
 
 Configure these in the GitHub repository's `prd` environment:
