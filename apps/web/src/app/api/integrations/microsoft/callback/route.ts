@@ -2,34 +2,12 @@ import { getMicrosoftRedirectUri } from "@/features/integrations/microsoft/lib/m
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
+import { validateRedirectUrl } from "@/lib/oauth/validate-redirect-url";
 import { MicrosoftOAuthService } from "@/server/services/microsoft-oauth.service";
 import { type NextRequest, NextResponse } from "next/server";
 import { connection } from "next/server";
 
 const SAFE_REDIRECT_FALLBACK = "/settings?microsoft_success=true";
-
-function validateRedirectUrl(redirectUrl: string, requestUrl: string): string {
-  try {
-    const resolved = new URL(redirectUrl, requestUrl);
-    const origin = new URL(requestUrl).origin;
-
-    if (resolved.origin !== origin) {
-      logger.warn(
-        "Rejected off-origin redirect URL in Microsoft OAuth callback",
-        {
-          redirectUrl,
-          resolvedOrigin: resolved.origin,
-          expectedOrigin: origin,
-        },
-      );
-      return SAFE_REDIRECT_FALLBACK;
-    }
-
-    return redirectUrl;
-  } catch {
-    return SAFE_REDIRECT_FALLBACK;
-  }
-}
 
 /**
  * GET /api/integrations/microsoft/callback
@@ -112,7 +90,11 @@ export async function GET(request: NextRequest) {
         }
 
         if (stateData.redirectUrl) {
-          redirectUrl = validateRedirectUrl(stateData.redirectUrl, request.url);
+          redirectUrl = validateRedirectUrl(
+            stateData.redirectUrl,
+            request.url,
+            SAFE_REDIRECT_FALLBACK,
+          );
         }
       } catch (stateError) {
         logger.error("Invalid state parameter", {}, stateError as Error);

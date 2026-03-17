@@ -3,17 +3,9 @@ import type { ActionResult } from "@/lib/server-action-client/action-errors";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { logger } from "@/lib/logger";
 import { MicrosoftOAuthService } from "@/server/services/microsoft-oauth.service";
+import { TEAMS_URL_REGEX, graphRequest } from "./graph-client";
 import type { MeetingLinkProvider } from "./meeting-link-provider";
 import type { CalendarEvent, MeetingLink, MeetingOptions } from "./types";
-
-const GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0";
-
-/**
- * Regular expression to extract Microsoft Teams meeting join URLs from text.
- * Matches URLs like: https://teams.microsoft.com/l/meetup-join/...
- */
-const TEAMS_URL_REGEX =
-  /https:\/\/teams\.microsoft\.com\/l\/meetup-join\/[^\s"<>]+/;
 
 /**
  * Microsoft Graph API response type for online meetings.
@@ -50,56 +42,20 @@ export class MicrosoftTeamsProvider implements MeetingLinkProvider {
         endDateTime: options.endDateTime.toISOString(),
       };
 
-      const response = await fetch(`${GRAPH_BASE_URL}/me/onlineMeetings`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${tokenResult.value}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
+      const result = await graphRequest<GraphOnlineMeeting>(
+        tokenResult.value,
+        "POST",
+        "/me/onlineMeetings",
+        requestBody as unknown as Record<string, unknown>,
+      );
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        logger.error("Failed to create Microsoft Teams meeting", {
-          userId,
-          status: String(response.status),
-          errorBody,
-        });
-
-        if (response.status === 401) {
-          return err(
-            ActionErrors.unauthenticated(
-              "Microsoft Graph API authentication failed",
-              "MicrosoftTeamsProvider.createOnlineMeeting",
-            ),
-          );
-        }
-
-        if (response.status === 403) {
-          return err(
-            ActionErrors.forbidden(
-              "Insufficient permissions to create Teams meeting",
-              undefined,
-              "MicrosoftTeamsProvider.createOnlineMeeting",
-            ),
-          );
-        }
-
-        return err(
-          ActionErrors.internal(
-            `Failed to create Teams meeting (${response.status}): ${errorBody}`,
-            undefined,
-            "MicrosoftTeamsProvider.createOnlineMeeting",
-          ),
-        );
+      if (result.isErr()) {
+        return err(result.error);
       }
 
-      const data = (await response.json()) as GraphOnlineMeeting;
-
       return ok({
-        joinUrl: data.joinWebUrl,
-        meetingId: data.id,
+        joinUrl: result.value.joinWebUrl,
+        meetingId: result.value.id,
       });
     } catch (error) {
       logger.error(

@@ -5,6 +5,7 @@ import {
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
 import { OAuthConnectionsQueries } from "@/server/data-access/oauth-connections.queries";
+import type { OAuthConnection } from "@/server/db/schema/oauth-connections";
 
 import type { CalendarProvider } from "./calendar-provider";
 import { GoogleCalendarProvider } from "./google-calendar.provider";
@@ -15,49 +16,53 @@ import { MicrosoftTeamsProvider } from "./microsoft-teams.provider";
 
 export type ProviderType = "google" | "microsoft";
 
-export async function getCalendarProvider(
+/**
+ * Resolve the best available provider connection for a user.
+ * If a preferred provider is specified and connected, use it.
+ * Otherwise, fall back to Google then Microsoft (checked in parallel).
+ */
+async function resolveProviderConnection(
   userId: string,
   preferredProvider?: ProviderType,
-): Promise<
-  ActionResult<{ provider: CalendarProvider; providerType: ProviderType }>
-> {
+): Promise<{ providerType: ProviderType; connection: OAuthConnection } | null> {
   if (preferredProvider) {
     const connection = await OAuthConnectionsQueries.getOAuthConnection(
       userId,
       preferredProvider,
     );
     if (connection) {
-      const provider =
-        preferredProvider === "google"
-          ? new GoogleCalendarProvider()
-          : new MicrosoftCalendarProvider();
-      return ok({ provider, providerType: preferredProvider });
+      return { providerType: preferredProvider, connection };
     }
   }
 
-  const google = await OAuthConnectionsQueries.getOAuthConnection(
-    userId,
-    "google",
-  );
-  if (google) {
-    return ok({
-      provider: new GoogleCalendarProvider(),
-      providerType: "google",
-    });
+  const [google, microsoft] = await Promise.all([
+    OAuthConnectionsQueries.getOAuthConnection(userId, "google"),
+    OAuthConnectionsQueries.getOAuthConnection(userId, "microsoft"),
+  ]);
+
+  if (google) return { providerType: "google", connection: google };
+  if (microsoft) return { providerType: "microsoft", connection: microsoft };
+  return null;
+}
+
+export async function getCalendarProvider(
+  userId: string,
+  preferredProvider?: ProviderType,
+): Promise<
+  ActionResult<{ provider: CalendarProvider; providerType: ProviderType }>
+> {
+  const resolved = await resolveProviderConnection(userId, preferredProvider);
+
+  if (!resolved) {
+    return err(ActionErrors.notFound("No calendar provider connected"));
   }
 
-  const microsoft = await OAuthConnectionsQueries.getOAuthConnection(
-    userId,
-    "microsoft",
-  );
-  if (microsoft) {
-    return ok({
-      provider: new MicrosoftCalendarProvider(),
-      providerType: "microsoft",
-    });
-  }
+  const provider =
+    resolved.providerType === "google"
+      ? new GoogleCalendarProvider()
+      : new MicrosoftCalendarProvider();
 
-  return err(ActionErrors.notFound("No calendar provider connected"));
+  return ok({ provider, providerType: resolved.providerType });
 }
 
 export async function getMeetingLinkProvider(
@@ -66,55 +71,30 @@ export async function getMeetingLinkProvider(
 ): Promise<
   ActionResult<{ provider: MeetingLinkProvider; providerType: ProviderType }>
 > {
-  if (preferredProvider) {
-    const connection = await OAuthConnectionsQueries.getOAuthConnection(
-      userId,
-      preferredProvider,
-    );
-    if (connection) {
-      const provider =
-        preferredProvider === "google"
-          ? new GoogleMeetProvider()
-          : new MicrosoftTeamsProvider();
-      return ok({ provider, providerType: preferredProvider });
-    }
+  const resolved = await resolveProviderConnection(userId, preferredProvider);
+
+  if (!resolved) {
+    return err(ActionErrors.notFound("No meeting link provider connected"));
   }
 
-  const google = await OAuthConnectionsQueries.getOAuthConnection(
-    userId,
-    "google",
-  );
-  if (google) {
-    return ok({ provider: new GoogleMeetProvider(), providerType: "google" });
-  }
+  const provider =
+    resolved.providerType === "google"
+      ? new GoogleMeetProvider()
+      : new MicrosoftTeamsProvider();
 
-  const microsoft = await OAuthConnectionsQueries.getOAuthConnection(
-    userId,
-    "microsoft",
-  );
-  if (microsoft) {
-    return ok({
-      provider: new MicrosoftTeamsProvider(),
-      providerType: "microsoft",
-    });
-  }
-
-  return err(ActionErrors.notFound("No meeting link provider connected"));
+  return ok({ provider, providerType: resolved.providerType });
 }
 
 export async function getConnectedProviders(
   userId: string,
 ): Promise<ProviderType[]> {
+  const [google, microsoft] = await Promise.all([
+    OAuthConnectionsQueries.getOAuthConnection(userId, "google"),
+    OAuthConnectionsQueries.getOAuthConnection(userId, "microsoft"),
+  ]);
+
   const providers: ProviderType[] = [];
-  const google = await OAuthConnectionsQueries.getOAuthConnection(
-    userId,
-    "google",
-  );
   if (google) providers.push("google");
-  const microsoft = await OAuthConnectionsQueries.getOAuthConnection(
-    userId,
-    "microsoft",
-  );
   if (microsoft) providers.push("microsoft");
   return providers;
 }

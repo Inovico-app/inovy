@@ -6,6 +6,7 @@ import {
 } from "@/features/integrations/google/lib/google-oauth";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
+import { validateRedirectUrl } from "@/lib/oauth/validate-redirect-url";
 import { type NextRequest, NextResponse } from "next/server";
 
 const VALID_TIERS = new Set<string>(Object.keys(SCOPE_TIERS));
@@ -26,42 +27,18 @@ function resolveScopeTiers(tierParam: string | null): readonly string[] {
 const SAFE_REDIRECT_FALLBACK = "/settings?google_success=true";
 
 /**
- * Validate that a redirect URL is same-origin (relative path or matches app origin).
- * Returns the safe URL or falls back to a default.
- */
-function validateRedirectUrl(
-  redirectUrl: string,
-  requestUrl: string
-): string {
-  try {
-    const resolved = new URL(redirectUrl, requestUrl);
-    const origin = new URL(requestUrl).origin;
-
-    if (resolved.origin !== origin) {
-      logger.warn("Rejected off-origin redirect URL", {
-        redirectUrl,
-        resolvedOrigin: resolved.origin,
-        expectedOrigin: origin,
-      });
-      return SAFE_REDIRECT_FALLBACK;
-    }
-
-    return redirectUrl;
-  } catch {
-    return SAFE_REDIRECT_FALLBACK;
-  }
-}
-
-/**
  * GET /api/integrations/google/authorize
  * Initiates Google OAuth flow.
  * Accepts `tier` query param with comma-separated tier names (e.g. "base", "calendarWrite").
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const rawRedirect =
-    searchParams.get("redirect") || SAFE_REDIRECT_FALLBACK;
-  const redirectUrl = validateRedirectUrl(rawRedirect, request.url);
+  const rawRedirect = searchParams.get("redirect") || SAFE_REDIRECT_FALLBACK;
+  const redirectUrl = validateRedirectUrl(
+    rawRedirect,
+    request.url,
+    SAFE_REDIRECT_FALLBACK,
+  );
   const tierParam = searchParams.get("tier") ?? searchParams.get("scopes");
   const requestedScopes = resolveScopeTiers(tierParam);
   const isIncremental = tierParam !== null && tierParam !== "base";
@@ -73,11 +50,13 @@ export async function GET(request: NextRequest) {
       logger.error(
         "Failed to get user session for Google OAuth",
         {},
-        new Error(sessionResult.isErr() ? sessionResult.error : "No user found")
+        new Error(
+          sessionResult.isErr() ? sessionResult.error : "No user found",
+        ),
       );
       return NextResponse.json(
         { error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -88,7 +67,7 @@ export async function GET(request: NextRequest) {
         userId: user.id,
         timestamp: Date.now(),
         redirectUrl,
-      })
+      }),
     ).toString("base64");
 
     const callbackUrl = getGoogleRedirectUri(request.url);
@@ -96,7 +75,7 @@ export async function GET(request: NextRequest) {
       state,
       callbackUrl,
       requestedScopes,
-      !isIncremental
+      !isIncremental,
     );
 
     logger.info("Initiating Google OAuth flow", {
@@ -110,7 +89,7 @@ export async function GET(request: NextRequest) {
     logger.error("Error initiating Google OAuth flow", {}, error as Error);
     return NextResponse.json(
       { error: "Failed to initiate authorization" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

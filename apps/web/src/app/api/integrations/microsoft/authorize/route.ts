@@ -7,36 +7,13 @@ import {
 } from "@/features/integrations/microsoft/lib/microsoft-oauth";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
+import { validateRedirectUrl } from "@/lib/oauth/validate-redirect-url";
 import { OAuthConnectionsQueries } from "@/server/data-access/oauth-connections.queries";
 import { type NextRequest, NextResponse } from "next/server";
 
 const VALID_TIERS = new Set<string>(Object.keys(MS_SCOPE_TIERS));
 
 const SAFE_REDIRECT_FALLBACK = "/settings?microsoft_success=true";
-
-/**
- * Validate that a redirect URL is same-origin (relative path or matches app origin).
- * Returns the safe URL or falls back to a default.
- */
-function validateRedirectUrl(redirectUrl: string, requestUrl: string): string {
-  try {
-    const resolved = new URL(redirectUrl, requestUrl);
-    const origin = new URL(requestUrl).origin;
-
-    if (resolved.origin !== origin) {
-      logger.warn("Rejected off-origin redirect URL", {
-        redirectUrl,
-        resolvedOrigin: resolved.origin,
-        expectedOrigin: origin,
-      });
-      return SAFE_REDIRECT_FALLBACK;
-    }
-
-    return redirectUrl;
-  } catch {
-    return SAFE_REDIRECT_FALLBACK;
-  }
-}
 
 /**
  * GET /api/integrations/microsoft/authorize
@@ -48,7 +25,11 @@ function validateRedirectUrl(redirectUrl: string, requestUrl: string): string {
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const rawRedirect = searchParams.get("redirect") || SAFE_REDIRECT_FALLBACK;
-  const redirectUrl = validateRedirectUrl(rawRedirect, request.url);
+  const redirectUrl = validateRedirectUrl(
+    rawRedirect,
+    request.url,
+    SAFE_REDIRECT_FALLBACK,
+  );
   const tierParam = searchParams.get("tier") ?? searchParams.get("scopes");
   const tier =
     tierParam && VALID_TIERS.has(tierParam)
