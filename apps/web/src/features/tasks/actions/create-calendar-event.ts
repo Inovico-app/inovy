@@ -7,8 +7,8 @@ import { authorizedActionClient } from "@/lib/server-action-client/action-client
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { db } from "@/server/db";
 import { tasks } from "@/server/db/schema/tasks";
+import { getCalendarProvider } from "@/server/services/calendar/calendar-provider-factory";
 import { GoogleCalendarService } from "@/server/services/google-calendar.service";
-import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -18,7 +18,9 @@ const createCalendarEventSchema = z.object({
 });
 
 /**
- * Server action to create a Google Calendar event from a task
+ * Server action to create a Google Calendar event from a task.
+ * Uses the factory to verify calendar connectivity before delegating to
+ * GoogleCalendarService for the task-specific event creation logic.
  */
 export const createCalendarEvent = authorizedActionClient
   .metadata({ permissions: policyToPermissions("tasks:update") })
@@ -34,31 +36,12 @@ export const createCalendarEvent = authorizedActionClient
       throw ActionErrors.unauthenticated("User context required");
     }
 
-    // Check if user has Google connection with calendarWrite scope
-    const hasConnection = await GoogleOAuthService.hasConnection(user.id);
+    // Check if user has a connected calendar provider
+    const providerResult = await getCalendarProvider(user.id);
 
-    if (hasConnection.isErr() || !hasConnection.value) {
+    if (providerResult.isErr()) {
       throw ActionErrors.badRequest(
-        "Google account not connected. Please connect in settings first."
-      );
-    }
-
-    const hasScopeResult = await GoogleOAuthService.hasScopes(
-      user.id,
-      "calendarWrite"
-    );
-
-    if (hasScopeResult.isErr()) {
-      throw ActionErrors.internal(
-        "Failed to verify calendar scopes",
-        hasScopeResult.error,
-        "createCalendarEvent"
-      );
-    }
-
-    if (!hasScopeResult.value) {
-      throw ActionErrors.badRequest(
-        "Missing permission: Calendar (create & edit events). Please grant this permission in Settings > Integrations."
+        "No calendar account connected. Please connect Google or Microsoft in settings first.",
       );
     }
 
@@ -78,9 +61,9 @@ export const createCalendarEvent = authorizedActionClient
       assertOrganizationAccess(
         task.organizationId,
         organizationId,
-        "createCalendarEvent"
+        "createCalendarEvent",
       );
-    } catch (error) {
+    } catch {
       throw ActionErrors.notFound("Task", "create-calendar-event");
     }
 
@@ -96,7 +79,7 @@ export const createCalendarEvent = authorizedActionClient
       task,
       {
         duration: parsedInput.duration,
-      }
+      },
     );
 
     if (result.isErr()) {
@@ -109,7 +92,7 @@ export const createCalendarEvent = authorizedActionClient
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "create-calendar-event"
+        "create-calendar-event",
       );
     }
 
@@ -128,7 +111,9 @@ const createCalendarEventsForTasksSchema = z.object({
 });
 
 /**
- * Server action to create calendar events for multiple tasks
+ * Server action to create calendar events for multiple tasks.
+ * Uses the factory to verify calendar connectivity before delegating to
+ * GoogleCalendarService for the task-specific event creation logic.
  */
 export const createCalendarEventsForTasks = authorizedActionClient
   .metadata({ permissions: policyToPermissions("tasks:update") })
@@ -144,29 +129,12 @@ export const createCalendarEventsForTasks = authorizedActionClient
       throw ActionErrors.unauthenticated("User context required");
     }
 
-    // Check Google connection with calendarWrite scope
-    const hasConnection = await GoogleOAuthService.hasConnection(user.id);
+    // Check if user has a connected calendar provider
+    const providerResult = await getCalendarProvider(user.id);
 
-    if (hasConnection.isErr() || !hasConnection.value) {
-      throw ActionErrors.badRequest("Google account not connected");
-    }
-
-    const hasScopeResult = await GoogleOAuthService.hasScopes(
-      user.id,
-      "calendarWrite"
-    );
-
-    if (hasScopeResult.isErr()) {
-      throw ActionErrors.internal(
-        "Failed to verify calendar scopes",
-        hasScopeResult.error,
-        "createCalendarEventsForTasks"
-      );
-    }
-
-    if (!hasScopeResult.value) {
+    if (providerResult.isErr()) {
       throw ActionErrors.badRequest(
-        "Missing permission: Calendar (create & edit events). Please grant this permission in Settings > Integrations."
+        "No calendar account connected. Please connect Google or Microsoft in settings first.",
       );
     }
 
@@ -177,7 +145,7 @@ export const createCalendarEventsForTasks = authorizedActionClient
       .where(eq(tasks.organizationId, organizationId));
 
     const tasksToCreate = userTasks.filter((task) =>
-      parsedInput.taskIds.includes(task.id)
+      parsedInput.taskIds.includes(task.id),
     );
 
     if (tasksToCreate.length === 0) {
@@ -189,17 +157,16 @@ export const createCalendarEventsForTasks = authorizedActionClient
       user.id,
       organizationId,
       tasksToCreate,
-      { duration: parsedInput.duration }
+      { duration: parsedInput.duration },
     );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "create-calendar-events-for-tasks"
+        "create-calendar-events-for-tasks",
       );
     }
 
     return result.value;
   });
-

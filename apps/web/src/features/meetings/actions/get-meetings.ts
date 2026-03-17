@@ -5,8 +5,7 @@ import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
-import { GoogleCalendarService } from "@/server/services/google-calendar.service";
-import { GoogleOAuthService } from "@/server/services/google-oauth.service";
+import { getCalendarProvider } from "@/server/services/calendar/calendar-provider-factory";
 import { z } from "zod";
 
 const getMeetingsSchema = z.object({
@@ -15,7 +14,8 @@ const getMeetingsSchema = z.object({
 });
 
 /**
- * Get calendar meetings for a date range
+ * Get calendar meetings for a date range.
+ * Uses the factory to resolve the connected calendar provider (Google or Microsoft).
  */
 export const getMeetings = authorizedActionClient
   .metadata({ permissions: policyToPermissions("recordings:read") })
@@ -31,14 +31,16 @@ export const getMeetings = authorizedActionClient
       throw ActionErrors.forbidden("Organization context required");
     }
 
-    // Check if user has Google connection
-    const hasConnection = await GoogleOAuthService.hasConnection(user.id);
+    // Resolve connected calendar provider (Google or Microsoft)
+    const providerResult = await getCalendarProvider(user.id);
 
-    if (hasConnection.isErr() || !hasConnection.value) {
+    if (providerResult.isErr()) {
       throw ActionErrors.badRequest(
-        "Google account not connected. Please connect in settings first."
+        "No calendar account connected. Please connect Google or Microsoft in settings first.",
       );
     }
+
+    const { provider } = providerResult.value;
 
     // Get bot settings to determine which calendars to fetch
     const settingsResult = await getCachedBotSettings(user.id, organizationId);
@@ -52,7 +54,7 @@ export const getMeetings = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to load bot settings",
         settingsResult.error,
-        "get-meetings"
+        "get-meetings",
       );
     }
 
@@ -66,7 +68,7 @@ export const getMeetings = authorizedActionClient
       calendarIds: settingsResult.value.calendarIds,
     });
 
-    const result = await GoogleCalendarService.getUpcomingMeetings(user.id, {
+    const result = await provider.getUpcomingMeetings(user.id, {
       timeMin,
       timeMax,
       calendarIds: settingsResult.value.calendarIds ?? undefined,
@@ -81,16 +83,13 @@ export const getMeetings = authorizedActionClient
       });
 
       if (result.error.code === "BAD_REQUEST") {
-        throw ActionErrors.badRequest(
-          result.error.message,
-          "get-meetings"
-        );
+        throw ActionErrors.badRequest(result.error.message, "get-meetings");
       }
 
       throw ActionErrors.internal(
         result.error.message,
         result.error.cause,
-        "get-meetings"
+        "get-meetings",
       );
     }
 

@@ -4,12 +4,11 @@ import { logger } from "@/lib/logger";
 import { Permissions } from "@/lib/rbac/permissions";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { GoogleCalendarService } from "@/server/services/google-calendar.service";
-import { GoogleOAuthService } from "@/server/services/google-oauth.service";
+import { getCalendarProvider } from "@/server/services/calendar/calendar-provider-factory";
 import { z } from "zod";
 
 /**
- * Get user's Google calendars
+ * Get user's calendars from the connected calendar provider (Google or Microsoft).
  */
 export const getCalendars = authorizedActionClient
   .metadata({ permissions: Permissions.integration.manage })
@@ -21,32 +20,26 @@ export const getCalendars = authorizedActionClient
       throw ActionErrors.unauthenticated("User context required");
     }
 
-    // Check if user has Google connection
-    const hasConnection = await GoogleOAuthService.hasConnection(user.id);
+    // Resolve connected calendar provider (Google or Microsoft)
+    const providerResult = await getCalendarProvider(user.id);
 
-    if (hasConnection.isErr()) {
-      logger.error("Failed to check Google connection", {
+    if (providerResult.isErr()) {
+      logger.error("Failed to resolve calendar provider", {
         userId: user.id,
-        error: hasConnection.error,
+        error: providerResult.error,
       });
-      throw ActionErrors.internal(
-        "Failed to check Google account connection",
-        hasConnection.error,
-        "get-calendars"
+      throw ActionErrors.badRequest(
+        "No calendar account connected. Please connect Google or Microsoft in settings first.",
       );
     }
 
-    if (!hasConnection.value) {
-      throw ActionErrors.badRequest(
-        "Google account not connected. Please connect in settings first."
-      );
-    }
+    const { provider } = providerResult.value;
 
     logger.info("Fetching user calendars", {
       userId: user.id,
     });
 
-    const result = await GoogleCalendarService.getCalendarsList(user.id);
+    const result = await provider.listCalendars(user.id);
 
     if (result.isErr()) {
       logger.error("Failed to fetch calendars", {
@@ -57,19 +50,15 @@ export const getCalendars = authorizedActionClient
 
       // Preserve the error type (badRequest for insufficient scopes, internal for others)
       if (result.error.code === "BAD_REQUEST") {
-        throw ActionErrors.badRequest(
-          result.error.message,
-          "get-calendars"
-        );
+        throw ActionErrors.badRequest(result.error.message, "get-calendars");
       }
 
       throw ActionErrors.internal(
         result.error.message,
         result.error.cause,
-        "get-calendars"
+        "get-calendars",
       );
     }
 
     return result.value;
   });
-

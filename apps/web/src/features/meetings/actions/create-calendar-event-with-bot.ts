@@ -9,8 +9,8 @@ import { BotSessionsQueries } from "@/server/data-access/bot-sessions.queries";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
 import { ProjectQueries } from "@/server/data-access/projects.queries";
 import { BotProviderFactory } from "@/server/services/bot-providers/factory";
-import { GoogleCalendarService } from "@/server/services/google-calendar.service";
-import { GoogleOAuthService } from "@/server/services/google-oauth.service";
+import { getCalendarProvider } from "@/server/services/calendar/calendar-provider-factory";
+import type { ProviderType } from "@/server/services/calendar/calendar-provider-factory";
 import { z } from "zod";
 
 const createCalendarEventWithBotSchema = z.object({
@@ -28,10 +28,14 @@ const createCalendarEventWithBotSchema = z.object({
   endDate: z.string().optional(),
   recurrence: z.array(z.string()).optional(),
   userTimezone: z.string().optional(),
+  provider: z
+    .enum(["google", "microsoft"] satisfies [ProviderType, ...ProviderType[]])
+    .optional(),
 });
 
 /**
- * Create a Google Calendar event with optional bot session
+ * Create a calendar event with optional bot session.
+ * Uses the factory to resolve the connected calendar provider (Google or Microsoft).
  */
 export const createCalendarEventWithBot = authorizedActionClient
   .metadata({ permissions: policyToPermissions("recordings:create") })
@@ -47,33 +51,19 @@ export const createCalendarEventWithBot = authorizedActionClient
       throw ActionErrors.unauthenticated("User context required");
     }
 
-    // Check if user has Google connection with calendarWrite scope
-    const hasConnection = await GoogleOAuthService.hasConnection(user.id);
-
-    if (hasConnection.isErr() || !hasConnection.value) {
-      throw ActionErrors.badRequest(
-        "Google account not connected. Please connect in settings first."
-      );
-    }
-
-    const hasScopeResult = await GoogleOAuthService.hasScopes(
+    // Resolve connected calendar provider (Google or Microsoft)
+    const providerResult = await getCalendarProvider(
       user.id,
-      "calendarWrite"
+      parsedInput.provider,
     );
 
-    if (hasScopeResult.isErr()) {
-      throw ActionErrors.internal(
-        "Failed to verify calendar scopes",
-        hasScopeResult.error,
-        "createCalendarEventWithBot"
+    if (providerResult.isErr()) {
+      throw ActionErrors.badRequest(
+        "No calendar account connected. Please connect Google or Microsoft in settings first.",
       );
     }
 
-    if (!hasScopeResult.value) {
-      throw ActionErrors.badRequest(
-        "Missing permission: Calendar (create & edit events). Please grant this permission in Settings > Integrations."
-      );
-    }
+    const { provider } = providerResult.value;
 
     const {
       title,
@@ -136,23 +126,23 @@ export const createCalendarEventWithBot = authorizedActionClient
             userId: user.id,
             organizationId,
             error,
-          }
+          },
         );
         // Continue without organization user emails - custom emails will still be added
       }
     }
 
-    // Create calendar event
-    const eventResult = await GoogleCalendarService.createEvent(user.id, {
+    // Create calendar event via provider
+    const eventResult = await provider.createEvent(user.id, {
       title,
-      start,
-      end,
+      startDateTime: start,
+      endDateTime: end,
       description,
       location,
       calendarId,
       attendees: attendeeEmailList.length > 0 ? attendeeEmailList : undefined,
-      allDay: allDay || false,
-      userTimezone:
+      addOnlineMeeting: true,
+      timeZone:
         userTimezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
       recurrence,
     });
@@ -166,7 +156,7 @@ export const createCalendarEventWithBot = authorizedActionClient
       throw ActionErrors.internal(
         eventResult.error.message,
         eventResult.error,
-        "create-calendar-event-with-bot"
+        "create-calendar-event-with-bot",
       );
     }
 
@@ -179,7 +169,7 @@ export const createCalendarEventWithBot = authorizedActionClient
     if (addBot) {
       if (!meetingUrl) {
         botError =
-          "Calendar event created successfully, but no Google Meet link was generated. Bot session cannot be created.";
+          "Calendar event created successfully, but no meeting link was generated. Bot session cannot be created.";
         logger.warn("No meeting URL in calendar event", {
           userId: user.id,
           eventId,
@@ -189,7 +179,7 @@ export const createCalendarEventWithBot = authorizedActionClient
           // Get bot settings to determine bot status
           const settingsResult = await getCachedBotSettings(
             user.id,
-            organizationId
+            organizationId,
           );
 
           if (settingsResult.isErr()) {
@@ -203,7 +193,7 @@ export const createCalendarEventWithBot = authorizedActionClient
             // Get active project for organization
             const project =
               await ProjectQueries.findFirstActiveByOrganization(
-                organizationId
+                organizationId,
               );
 
             if (!project) {
@@ -221,8 +211,8 @@ export const createCalendarEventWithBot = authorizedActionClient
               } = settingsResult.value;
 
               // Create bot session via provider
-              const provider = BotProviderFactory.getDefault();
-              const sessionResult = await provider.createSession({
+              const botProvider = BotProviderFactory.getDefault();
+              const sessionResult = await botProvider.createSession({
                 meetingUrl,
                 customMetadata: {
                   projectId: project.id,
@@ -288,4 +278,3 @@ export const createCalendarEventWithBot = authorizedActionClient
       error: botError,
     };
   });
-
