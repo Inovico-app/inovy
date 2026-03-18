@@ -9,12 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PermissionExplanationDialog } from "@/features/integrations/google/components/permission-explanation-dialog";
+import { MsIncrementalPermissionDialog } from "@/features/integrations/microsoft/components/incremental-permission-dialog";
 import { Calendar } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
-export function GoogleConnectionPrompt() {
-  const [showDialog, setShowDialog] = useState(false);
+export function CalendarConnectionPrompt() {
+  const [showGoogleDialog, setShowGoogleDialog] = useState(false);
+  const [showMicrosoftDialog, setShowMicrosoftDialog] = useState(false);
 
   return (
     <div className="container mx-auto max-w-2xl py-12 px-4">
@@ -25,26 +27,42 @@ export function GoogleConnectionPrompt() {
               <Calendar className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Connect Google Calendar</CardTitle>
+          <CardTitle className="text-2xl">Connect Your Calendar</CardTitle>
           <CardDescription className="text-base">
-            To view your calendar meetings, you need to connect your Google
-            Calendar account.
+            To view your calendar meetings, connect your Google or Microsoft
+            calendar account.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>Once connected, you&apos;ll be able to:</p>
             <ul className="list-disc list-inside space-y-1 ml-4">
-              <li>View all your Google Calendar meetings</li>
+              <li>View all your calendar meetings</li>
               <li>See bot session status for each meeting</li>
               <li>Navigate through your calendar months</li>
             </ul>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 pt-4">
-            <Button className="flex-1" onClick={() => setShowDialog(true)}>
+            <Button
+              className="flex-1"
+              onClick={() => setShowGoogleDialog(true)}
+            >
               Connect Google Calendar
             </Button>
-            <Button variant="outline" render={<Link href="/settings/integrations" />} nativeButton={false} className="flex-1">
+            <Button
+              className="flex-1"
+              variant="outline"
+              onClick={() => setShowMicrosoftDialog(true)}
+            >
+              Connect Microsoft Calendar
+            </Button>
+          </div>
+          <div className="flex justify-center pt-2">
+            <Button
+              variant="link"
+              render={<Link href="/settings/integrations" />}
+              nativeButton={false}
+            >
               Manage Integrations
             </Button>
           </div>
@@ -52,12 +70,18 @@ export function GoogleConnectionPrompt() {
       </Card>
 
       <PermissionExplanationDialog
-        open={showDialog}
-        onOpenChange={setShowDialog}
+        open={showGoogleDialog}
+        onOpenChange={setShowGoogleDialog}
         tiers={["base"]}
         redirectUrl="/meetings"
+      />
+
+      <MsIncrementalPermissionDialog
+        open={showMicrosoftDialog}
+        onOpenChange={setShowMicrosoftDialog}
+        tier="base"
+        returnUrl="/meetings"
       />
     </div>
   );
 }
-
