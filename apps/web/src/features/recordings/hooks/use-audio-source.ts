@@ -46,17 +46,29 @@ export interface UseAudioSourceReturn {
 export function useAudioSource(): UseAudioSourceReturn {
   // State
   const [audioSource, setAudioSourceState] = useState<AudioSourceType>(() =>
-    getAudioSourcePreferenceClient()
+    getAudioSourcePreferenceClient(),
   );
   const [combinedStream, setCombinedStream] = useState<MediaStream | null>(
-    null
+    null,
   );
   const [isSettingUp, setIsSettingUp] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
 
-  // Compatibility check
-  const compatibility = detectSystemAudioSupport();
+  // Compatibility check — deferred to client to avoid hydration mismatch
+  // (server has no navigator/window so detectSystemAudioSupport returns different values)
+  const [compatibility, setCompatibility] = useState<SystemAudioCompatibility>(
+    () => ({
+      isSupported: false,
+      isAudioSupported: true, // optimistic default to avoid flashing warning
+      message: "",
+      browserName: "Unknown",
+    }),
+  );
   const isSystemAudioSupported = compatibility.isAudioSupported;
+
+  useEffect(() => {
+    setCompatibility(detectSystemAudioSupport());
+  }, []);
 
   // Hooks
   const microphoneHook = useMicrophone();
@@ -70,7 +82,7 @@ export function useAudioSource(): UseAudioSourceReturn {
   // Track latest stream values in refs to avoid stale closures
   const { microphoneStreamRef, systemAudioStreamRef } = useStreamRefs(
     microphoneHook.stream,
-    systemAudioHook.systemAudioStream
+    systemAudioHook.systemAudioStream,
   );
 
   // Update audio source preference when changed
@@ -79,7 +91,7 @@ export function useAudioSource(): UseAudioSourceReturn {
     if (source === "system" || source === "both") {
       if (!isSystemAudioSupported) {
         setSetupError(
-          "System audio is not supported in this browser. Please use Chrome, Edge, or Opera."
+          "System audio is not supported in this browser. Please use Chrome, Edge, or Opera.",
         );
         return;
       }
@@ -155,7 +167,11 @@ export function useAudioSource(): UseAudioSourceReturn {
     setAudioSource,
     compatibility,
     isSystemAudioSupported,
-    combinedStream: getActiveStream(),
+    // Only pass combinedStream when audio source is "both" — this signals
+    // useLiveRecording to create its own MediaRecorder for the mixed stream.
+    // For "microphone" and "system", the provider's recorder is used directly,
+    // which is required for the Deepgram transcription data flow.
+    combinedStream: audioSource === "both" ? combinedStream : null,
     microphoneStream: microphoneHook.stream,
     systemAudioStream: systemAudioHook.systemAudioStream,
     setupAudioSources: handleSetupAudioSources,
@@ -163,4 +179,3 @@ export function useAudioSource(): UseAudioSourceReturn {
     setupError,
   };
 }
-

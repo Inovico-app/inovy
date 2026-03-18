@@ -65,11 +65,11 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.neon.tech https://*.qdrant.io https://*.openai.com https://*.deepgram.com wss://*.deepgram.com https://*.anthropic.com https://*.azure.com https://*.stripe.com https://*.resend.com https://*.recall.ai",
+              "connect-src 'self' https://*.neon.tech https://*.qdrant.io https://*.openai.com https://*.deepgram.com wss://*.deepgram.com https://*.anthropic.com https://*.azure.com https://*.stripe.com https://*.resend.com https://*.recall.ai https://va.vercel-scripts.com",
               "media-src 'self' blob: https://*.blob.core.windows.net",
               "frame-ancestors 'none'",
               "base-uri 'self'",

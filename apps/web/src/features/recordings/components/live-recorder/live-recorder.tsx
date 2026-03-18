@@ -85,7 +85,10 @@ export function LiveRecorder({
     try {
       // Setup audio sources if needed (this requests permissions only when user starts recording)
       // This ensures we only ask for system audio permission when user explicitly wants it
-      if (audioSource.audioSource === "system" || audioSource.audioSource === "both") {
+      if (
+        audioSource.audioSource === "system" ||
+        audioSource.audioSource === "both"
+      ) {
         await audioSource.setupAudioSources();
       }
 
@@ -110,12 +113,10 @@ export function LiveRecorder({
     } catch (error) {
       logger.warn(
         "Failed to start recording:",
-        error instanceof Error ? { error } : { error: String(error) }
+        error instanceof Error ? { error } : { error: String(error) },
       );
       const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to start recording";
+        error instanceof Error ? error.message : "Failed to start recording";
       recording.setRecorderError(errorMessage);
     }
   });
@@ -143,7 +144,7 @@ export function LiveRecorder({
     } catch (error) {
       console.error("Error in handleFinalStop:", error);
       recording.setRecorderError(
-        "Kon transcriptie niet starten. Probeer het opnieuw."
+        "Kon transcriptie niet starten. Probeer het opnieuw.",
       );
     }
   });
@@ -194,6 +195,7 @@ export function LiveRecorder({
             stream={recording.stream}
             liveTranscriptionEnabled={externalLiveTranscriptionEnabled}
             isTranscribing={transcription.isTranscribing}
+            connectionState={transcription.connectionState}
             wakeLockActive={recording.wakeLockActive}
             formattedDuration={formattedDuration}
             audioSource={audioSource.audioSource}
@@ -243,4 +245,3 @@ export function LiveRecorder({
     </>
   );
 }
-
