@@ -109,7 +109,7 @@ export function CalendarEventItem({
     const wrapperClassName = cn(
       "group w-full rounded-md p-1.5 text-xs transition-colors",
       "hover:bg-accent",
-      hasBotSession && "bg-primary/5",
+      hasBotSession ? "bg-primary/5" : "bg-card",
       onMeetingClick && "cursor-pointer",
     );
     return (
