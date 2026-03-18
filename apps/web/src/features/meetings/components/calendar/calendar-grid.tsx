@@ -37,7 +37,11 @@ export function CalendarGrid({
   };
 
   return (
-    <div className="rounded-lg border bg-card" role="grid" aria-label="Calendar">
+    <div
+      className="rounded-lg border bg-card"
+      role="grid"
+      aria-label="Calendar"
+    >
       {/* Days of week header */}
       <div className="grid grid-cols-7 border-b" role="row">
         {DAYS_OF_WEEK.map((day) => (
@@ -68,12 +72,13 @@ export function CalendarGrid({
               aria-current={day.isToday ? "date" : undefined}
               aria-disabled={!isInteractive}
               className={cn(
-                "min-h-[100px] w-full text-left border-b border-r p-2 transition-colors last:border-r-0",
+                "min-h-[140px] w-full text-left border-b border-r p-2 transition-colors last:border-r-0",
                 !day.isCurrentMonth && "bg-muted/30",
                 day.isToday && "bg-primary/5",
                 day.isCurrentMonth && "hover:bg-accent/50",
-                isInteractive && "cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
-                !isInteractive && "cursor-default"
+                isInteractive &&
+                  "cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                !isInteractive && "cursor-default",
               )}
               onClick={() => handleDayClick(day)}
               onKeyDown={(e) => {
@@ -89,7 +94,7 @@ export function CalendarGrid({
                   day.isToday &&
                     "flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground",
                   !day.isToday && day.isCurrentMonth && "text-foreground",
-                  !day.isCurrentMonth && "text-muted-foreground"
+                  !day.isCurrentMonth && "text-muted-foreground",
                 )}
               >
                 {day.dayOfMonth}
