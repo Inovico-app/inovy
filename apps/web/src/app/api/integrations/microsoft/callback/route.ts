@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
     }
 
     let redirectUrl = SAFE_REDIRECT_FALLBACK;
+    let requestedScopes: string[] | undefined;
 
     // Verify state parameter (CSRF protection)
     if (state) {
@@ -97,6 +98,14 @@ export async function GET(request: NextRequest) {
             SAFE_REDIRECT_FALLBACK,
           );
         }
+
+        // Carry forward the scopes that were requested during authorization.
+        // Microsoft's token response may omit some granted scopes (e.g.
+        // OnlineMeetings.ReadWrite), so we merge the requested scopes with
+        // what the token response returns to get the full picture.
+        if (Array.isArray(stateData.requestedScopes)) {
+          requestedScopes = stateData.requestedScopes;
+        }
       } catch (stateError) {
         logger.error("Invalid state parameter", {}, stateError as Error);
         return NextResponse.redirect(
@@ -113,6 +122,7 @@ export async function GET(request: NextRequest) {
       user.id,
       code,
       callbackUrl,
+      requestedScopes,
     );
 
     if (result.isErr()) {
