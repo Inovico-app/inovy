@@ -59,7 +59,8 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Permissions-Policy",
-            value: "geolocation=(), microphone=(self), camera=()",
+            value:
+              "geolocation=(), microphone=(self), camera=(self), display-capture=(self)",
           },
           {
             key: "Content-Security-Policy",
@@ -69,7 +70,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.neon.tech https://*.qdrant.io https://*.openai.com https://*.deepgram.com wss://*.deepgram.com https://*.anthropic.com https://*.azure.com https://*.stripe.com https://*.resend.com https://*.recall.ai https://va.vercel-scripts.com",
+              "connect-src 'self' https://*.neon.tech https://*.qdrant.io https://*.openai.com https://*.deepgram.com wss://*.deepgram.com https://*.anthropic.com https://*.azure.com https://*.blob.core.windows.net https://*.stripe.com https://*.resend.com https://*.recall.ai https://va.vercel-scripts.com",
               "media-src 'self' blob: https://*.blob.core.windows.net",
               "frame-ancestors 'none'",
               "base-uri 'self'",

@@ -44,6 +44,8 @@ export function LiveRecorder({
   });
   const transcription = useLiveTranscription({
     microphone: recording.microphone,
+    startRecorder: recording.startRecorder,
+    recorderSavesChunks: recording.recorderSavesChunks,
     isRecording: recording.isRecording,
     isPaused: recording.isPaused,
     audioChunksRef: recording.audioChunksRef,
@@ -83,14 +85,9 @@ export function LiveRecorder({
   // Handle start recording
   const handleStart = useEffectEvent(async () => {
     try {
-      // Setup audio sources if needed (this requests permissions only when user starts recording)
-      // This ensures we only ask for system audio permission when user explicitly wants it
-      if (
-        audioSource.audioSource === "system" ||
-        audioSource.audioSource === "both"
-      ) {
-        await audioSource.setupAudioSources();
-      }
+      // Setup audio sources first (permissions, mixer for "both" mode).
+      // This must happen before handleStart so streams are available.
+      await audioSource.setupAudioSources();
 
       if (externalLiveTranscriptionEnabled) {
         // Start recording with transcription

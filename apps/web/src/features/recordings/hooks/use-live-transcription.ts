@@ -8,10 +8,7 @@ import {
   LiveTranscriptionEvents,
   useDeepgram,
 } from "@/providers/DeepgramProvider";
-import {
-  MicrophoneEvents,
-  useMicrophone,
-} from "@/providers/microphone/MicrophoneProvider";
+import { MicrophoneEvents } from "@/providers/microphone/MicrophoneProvider";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -24,6 +21,9 @@ export interface TranscriptSegment {
 
 interface UseLiveTranscriptionProps {
   microphone: MediaRecorder | null;
+  startRecorder: () => void;
+  /** True when the recorder saves chunks via its own ondataavailable (combined recorder) */
+  recorderSavesChunks: boolean;
   isRecording: boolean;
   isPaused: boolean;
   audioChunksRef: React.MutableRefObject<Blob[]>;
@@ -31,6 +31,8 @@ interface UseLiveTranscriptionProps {
 
 export function useLiveTranscription({
   microphone,
+  startRecorder,
+  recorderSavesChunks,
   isRecording,
   isPaused,
   audioChunksRef,
@@ -51,9 +53,6 @@ export function useLiveTranscription({
     disconnectFromDeepgram,
     connectionState,
   } = useDeepgram();
-
-  // Microphone
-  const { startMicrophone } = useMicrophone();
 
   // Refs
   const captionTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -78,10 +77,12 @@ export function useLiveTranscription({
 
   // Effect Event: Handle audio data with transcription
   const onAudioDataWithTranscription = useEffectEvent((e: BlobEvent) => {
-    // iOS SAFARI FIX: Prevent packetZero from being sent
     if (e.data.size > 0) {
-      // Save audio chunk
-      audioChunksRef.current.push(e.data);
+      // Save chunk locally only if the recorder doesn't already handle it
+      // via its own ondataavailable (combined recorder does, providers don't)
+      if (!recorderSavesChunks) {
+        audioChunksRef.current.push(e.data);
+      }
       // Stream to Deepgram
       connection?.send(e.data);
     }
@@ -89,7 +90,7 @@ export function useLiveTranscription({
 
   // Effect Event: Handle transcript
   const onTranscript = useEffectEvent((data: LiveTranscriptionEvent) => {
-    const { is_final: isFinal, speech_final: speechFinal } = data;
+    const { is_final: isFinal } = data;
     const thisCaption = data.channel.alternatives[0].transcript;
 
     // Update current caption for temporary display
@@ -126,10 +127,10 @@ export function useLiveTranscription({
     }
   });
 
-  // Effect Event: Start microphone when ready
-  const onStartMicrophone = useEffectEvent(() => {
+  // Effect Event: Start recorder when ready (uses the correct start function for the active audio source)
+  const onStartRecorder = useEffectEvent(() => {
     if (!isPaused && microphone?.state !== "recording") {
-      startMicrophone();
+      startRecorder();
     }
   });
 
@@ -144,7 +145,7 @@ export function useLiveTranscription({
 
       // Start microphone if not already started
       if (!isPaused && microphone.state !== "recording") {
-        onStartMicrophone();
+        onStartRecorder();
       }
 
       return () => {
@@ -167,7 +168,7 @@ export function useLiveTranscription({
 
     // Start microphone if not already started
     if (!isPaused && microphone.state !== "recording") {
-      onStartMicrophone();
+      onStartRecorder();
     }
 
     return () => {
@@ -183,7 +184,7 @@ export function useLiveTranscription({
         clearTimeout(captionTimeout.current);
       }
     };
-    // Effect Events (onAudioData, onAudioDataWithTranscription, onTranscript, onStartMicrophone)
+    // Effect Events (onAudioData, onAudioDataWithTranscription, onTranscript, onStartRecorder)
     // are intentionally NOT in the dependency array - they're non-reactive by design via useEffectEvent
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
