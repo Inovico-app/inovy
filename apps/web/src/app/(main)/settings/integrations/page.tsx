@@ -6,6 +6,7 @@ import { DriveWatchSettings } from "@/features/settings/components/drive-watch-s
 import { GoogleConnection } from "@/features/settings/components/google-connection";
 import { GoogleSettings } from "@/features/settings/components/google-settings";
 import { GoogleStatusDashboard } from "@/features/settings/components/google-status-dashboard";
+import { IntegrationsTabs } from "@/features/settings/components/integrations-tabs";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
@@ -29,37 +30,23 @@ async function IntegrationsContent() {
         title="Integrations"
         description="Connect and manage your third-party integrations"
       />
-      <div className="space-y-10">
-        {/* Google Workspace */}
-        <section className="space-y-6">
-          <div>
-            <h2 className="text-lg font-semibold">Google Workspace</h2>
-            <p className="text-sm text-muted-foreground">
-              Connect your Google account to enable Calendar and Gmail features
-            </p>
-          </div>
-          <GoogleConnection />
-          <GoogleSettings />
-          <GoogleStatusDashboard />
-          <DriveWatchSettings />
-        </section>
-
-        <hr className="border-border" />
-
-        {/* Microsoft 365 */}
-        <section className="space-y-6">
-          <div>
-            <h2 className="text-lg font-semibold">Microsoft 365</h2>
-            <p className="text-sm text-muted-foreground">
-              Connect your Microsoft account to enable Outlook Calendar, Teams,
-              and OneDrive features
-            </p>
-          </div>
-          <MicrosoftConnection />
-          <MicrosoftSettings />
-          <MicrosoftStatusDashboard />
-        </section>
-      </div>
+      <IntegrationsTabs
+        googleContent={
+          <>
+            <GoogleConnection />
+            <GoogleSettings />
+            <GoogleStatusDashboard />
+            <DriveWatchSettings />
+          </>
+        }
+        microsoftContent={
+          <>
+            <MicrosoftConnection />
+            <MicrosoftSettings />
+            <MicrosoftStatusDashboard />
+          </>
+        }
+      />
     </>
   );
 }
@@ -73,6 +60,7 @@ export default function IntegrationsPage() {
             <div className="h-8 w-48 bg-muted rounded animate-pulse" />
             <div className="h-4 w-80 bg-muted rounded animate-pulse" />
           </div>
+          <div className="h-11 w-full bg-muted rounded-lg animate-pulse" />
           <div className="h-64 bg-muted rounded animate-pulse" />
         </div>
       }
