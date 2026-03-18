@@ -76,7 +76,7 @@ export function CalendarTimeGrid({
       <div
         ref={scrollRef}
         className="overflow-y-auto"
-        style={{ maxHeight: "calc(100vh - 280px)" }}
+        style={{ maxHeight: "calc(100vh - 200px)" }}
       >
         <div
           className="grid relative"

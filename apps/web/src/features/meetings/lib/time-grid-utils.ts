@@ -1,8 +1,8 @@
 import { isSameDay, startOfDay, endOfDay, differenceInMinutes } from "date-fns";
 import type { MeetingWithSession } from "./calendar-utils";
 
-/** Height of one hour in the time grid (px). 60px = 1px per minute. */
-export const HOUR_HEIGHT = 60;
+/** Height of one hour in the time grid (px). 72px gives more room for event details. */
+export const HOUR_HEIGHT = 72;
 
 /** Array of hours 0–23 for rendering the time gutter. */
 export const HOURS = Array.from({ length: 24 }, (_, i) => i);
