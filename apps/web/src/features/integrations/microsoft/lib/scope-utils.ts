@@ -8,24 +8,46 @@ import {
   type MsScopeTier,
 } from "./scope-constants";
 
+const MS_GRAPH_PREFIX = "https://graph.microsoft.com/";
+
+/**
+ * Normalize Microsoft scopes to short form.
+ * Personal Microsoft accounts (MSA) return scopes with the full Graph URL
+ * prefix (e.g. "https://graph.microsoft.com/User.Read") while the codebase
+ * uses the short form ("User.Read"). OIDC scopes like "openid", "profile",
+ * "email", "offline_access" are returned without a prefix and kept as-is.
+ */
+export function normalizeMsScopes(scopes: string[]): string[] {
+  return scopes.map((s) =>
+    s.startsWith(MS_GRAPH_PREFIX) ? s.slice(MS_GRAPH_PREFIX.length) : s,
+  );
+}
+
 /**
  * Check whether the user's granted scopes satisfy a given Microsoft tier.
+ * Normalizes scopes before comparison to handle the full Graph URL format
+ * that personal Microsoft accounts return.
  */
 export function hasRequiredMsScopes(
   userScopes: string[],
   tier: MsScopeTier,
 ): boolean {
-  return _hasRequiredScopes(userScopes, MS_SCOPE_TIERS, tier);
+  return _hasRequiredScopes(
+    normalizeMsScopes(userScopes),
+    MS_SCOPE_TIERS,
+    tier,
+  );
 }
 
 /**
  * Return the scopes from a Microsoft tier that the user has NOT yet granted.
+ * Normalizes scopes before comparison to handle the full Graph URL format.
  */
 export function getMissingMsScopes(
   userScopes: string[],
   tier: MsScopeTier,
 ): string[] {
-  return _getMissingScopes(userScopes, MS_SCOPE_TIERS, tier);
+  return _getMissingScopes(normalizeMsScopes(userScopes), MS_SCOPE_TIERS, tier);
 }
 
 /**
