@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { meetingId } = await params;
   return { title: `Meeting Prep ${meetingId}` };
 }
@@ -10,7 +12,6 @@ import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
 import { MeetingNotesQueries } from "@/server/data-access/meeting-notes.queries";
-import { MeetingPostActionsQueries } from "@/server/data-access/meeting-post-actions.queries";
 import { MeetingAgendaTemplatesQueries } from "@/server/data-access/meeting-agenda-templates.queries";
 import { MeetingPrepContent } from "@/features/meetings/components/meeting-prep-content";
 
@@ -34,10 +35,9 @@ async function MeetingPrepLoader({ meetingId }: { meetingId: string }) {
   const meeting = await MeetingsQueries.findById(meetingId, organization.id);
   if (!meeting) return notFound();
 
-  const [agendaItems, notes, postActions, templates] = await Promise.all([
+  const [agendaItems, notes, templates] = await Promise.all([
     MeetingAgendaItemsQueries.findByMeetingId(meetingId),
     MeetingNotesQueries.findByMeetingId(meetingId),
-    MeetingPostActionsQueries.findByMeetingId(meetingId),
     MeetingAgendaTemplatesQueries.findAvailable(organization.id),
   ]);
 
@@ -48,7 +48,6 @@ async function MeetingPrepLoader({ meetingId }: { meetingId: string }) {
       meeting={meeting}
       agendaItems={agendaItems}
       preNotes={preNotes}
-      postActions={postActions}
       templates={templates}
     />
   );
