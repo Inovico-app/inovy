@@ -18,6 +18,7 @@ import { AddBotConsentDialog } from "./add-bot-consent-dialog";
 interface AddBotButtonProps {
   meeting: MeetingWithSession;
   variant?: "button" | "icon";
+  onSuccess?: () => void;
 }
 
 /**
@@ -27,21 +28,41 @@ interface AddBotButtonProps {
 export function AddBotButton({
   meeting,
   variant = "button",
+  onSuccess,
 }: AddBotButtonProps) {
   const [isConsentDialogOpen, setIsConsentDialogOpen] = useState(false);
   const [pendingMeeting, setPendingMeeting] =
     useState<MeetingWithSession | null>(null);
 
-  const { projects, isLoadingProjects, defaultProjectId } = useUserProjects();
+  const {
+    projects,
+    isLoadingProjects,
+    defaultProjectId,
+    hasOnlyOneProject,
+    setLastUsedProjectId,
+  } = useUserProjects();
 
   const { execute, isExecuting } = useAddBotToMeeting({
     onConsentRequired: () => {
       setPendingMeeting(meeting);
       setIsConsentDialogOpen(true);
     },
+    onSuccess,
   });
 
   const handleAddBot = () => {
+    // One-click: skip dialog when there's only one project
+    // Omit consentGiven so the server-side requirePerMeetingConsent check applies
+    if (hasOnlyOneProject && defaultProjectId) {
+      setLastUsedProjectId(defaultProjectId);
+      execute({
+        calendarEventId: meeting.id,
+        meetingUrl: meeting.meetingUrl,
+        meetingTitle: meeting.title,
+        projectId: defaultProjectId,
+      });
+      return;
+    }
     setIsConsentDialogOpen(true);
     setPendingMeeting(meeting);
   };
@@ -49,6 +70,7 @@ export function AddBotButton({
   const handleConsentAccept = (projectId: string) => {
     if (!pendingMeeting) return;
 
+    setLastUsedProjectId(projectId);
     execute({
       calendarEventId: pendingMeeting.id,
       meetingUrl: pendingMeeting.meetingUrl,
@@ -98,7 +120,7 @@ export function AddBotButton({
                   handleAddBot();
                 }}
                 disabled={isExecuting}
-                aria-label="Add bot to meeting"
+                aria-label="Add notetaker to meeting"
               />
             }
           >
@@ -108,7 +130,7 @@ export function AddBotButton({
               <Plus className="h-3 w-3" />
             )}
           </TooltipTrigger>
-          <TooltipContent>Add bot to meeting</TooltipContent>
+          <TooltipContent>Add notetaker to meeting</TooltipContent>
         </Tooltip>
       </TooltipProvider>
     );
@@ -129,7 +151,7 @@ export function AddBotButton({
             Adding...
           </>
         ) : (
-          "Add Bot"
+          "Add Notetaker"
         )}
       </Button>
     </>

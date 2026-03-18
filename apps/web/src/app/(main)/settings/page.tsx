@@ -1,26 +1,12 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { OverviewActionItems } from "@/features/settings/components/overview-action-items";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
-import {
-  getCachedKnowledgeDocuments,
-} from "@/server/cache/knowledge-base.cache";
+import { getCachedKnowledgeDocuments } from "@/server/cache/knowledge-base.cache";
 import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
 import { getCachedGoogleConnectionStatus } from "@/server/cache/google-connection.cache";
-import {
-  OrganizationService,
-} from "@/server/services/organization.service";
-import {
-  BotIcon,
-  BookOpenIcon,
-  LinkIcon,
-  UsersIcon,
-} from "lucide-react";
+import { OrganizationService } from "@/server/services/organization.service";
+import { BotIcon, BookOpenIcon, LinkIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 import { Suspense, type ReactNode } from "react";
@@ -42,10 +28,16 @@ function StatusDot({ status }: { status: "active" | "pending" | "inactive" }) {
 async function OverviewContent() {
   const authResult = await getBetterAuthSession();
 
-  if (authResult.isErr() || !authResult.value.user || !authResult.value.organization) {
+  if (
+    authResult.isErr() ||
+    !authResult.value.user ||
+    !authResult.value.organization
+  ) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Failed to load settings overview</p>
+        <p className="text-muted-foreground">
+          Failed to load settings overview
+        </p>
       </div>
     );
   }
@@ -53,14 +45,19 @@ async function OverviewContent() {
   const { user, organization } = authResult.value;
   const organizationId = organization.id;
 
-  const [membersResult, invitationsResult, botSettings, knowledgeDocs, googleStatus] =
-    await Promise.all([
-      OrganizationService.getOrganizationMembers(organizationId),
-      OrganizationService.getPendingInvitations(organizationId),
-      getCachedBotSettings(user.id, organizationId),
-      getCachedKnowledgeDocuments("organization", organizationId),
-      getCachedGoogleConnectionStatus(user.id),
-    ]);
+  const [
+    membersResult,
+    invitationsResult,
+    botSettings,
+    knowledgeDocs,
+    googleStatus,
+  ] = await Promise.all([
+    OrganizationService.getOrganizationMembers(organizationId),
+    OrganizationService.getPendingInvitations(organizationId),
+    getCachedBotSettings(user.id, organizationId),
+    getCachedKnowledgeDocuments("organization", organizationId),
+    getCachedGoogleConnectionStatus(user.id),
+  ]);
 
   const members = membersResult.isOk() ? membersResult.value : [];
   const invitations = invitationsResult.isOk() ? invitationsResult.value : [];
@@ -89,7 +86,7 @@ async function OverviewContent() {
       href: "/settings/integrations" as Route,
     },
     {
-      label: "Bot",
+      label: "Notetaker",
       value: botEnabled ? "Enabled" : "Disabled",
       status: botEnabled ? "active" : "inactive",
       icon: <BotIcon className="h-4 w-4 text-muted-foreground" />,
@@ -114,7 +111,10 @@ async function OverviewContent() {
       <div className="grid gap-3 sm:grid-cols-2">
         {statusCards.map((card) => (
           <Link key={card.label} href={card.href} className="group">
-            <Card className="transition-colors hover:border-border/80" size="sm">
+            <Card
+              className="transition-colors hover:border-border/80"
+              size="sm"
+            >
               <CardHeader className="flex-row items-center gap-3 pb-1">
                 {card.icon}
                 <CardTitle className="text-sm font-medium text-muted-foreground">

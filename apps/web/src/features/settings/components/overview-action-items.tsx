@@ -1,12 +1,7 @@
 import type { ReactNode } from "react";
 import type { PendingInvitationDto } from "@/server/services/organization.service";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BotIcon, CheckCircle2Icon, LinkIcon, MailIcon } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
@@ -37,7 +32,12 @@ export function OverviewActionItems({
     actionItems.push({
       id: "pending-invitations",
       label: `${pendingInvitations.length} pending invitation${pendingInvitations.length > 1 ? "s" : ""}`,
-      description: `Awaiting response from ${pendingInvitations.slice(0, 3).map((i) => i.email).join(", ")}${pendingInvitations.length > 3 ? ` +${pendingInvitations.length - 3} more` : ""}`,
+      description: `Awaiting response from ${pendingInvitations
+        .slice(0, 3)
+        .map((i) => i.email)
+        .join(
+          ", ",
+        )}${pendingInvitations.length > 3 ? ` +${pendingInvitations.length - 3} more` : ""}`,
       href: "/settings/organization?tab=members" as Route,
       icon: <MailIcon className="h-4 w-4 text-amber-500" />,
       badge: "Pending",
@@ -48,7 +48,8 @@ export function OverviewActionItems({
     actionItems.push({
       id: "connect-google",
       label: "Connect Google Workspace",
-      description: "Enable calendar sync, email integration, and Drive monitoring",
+      description:
+        "Enable calendar sync, email integration, and Drive monitoring",
       href: "/settings/integrations" as Route,
       icon: <LinkIcon className="h-4 w-4 text-muted-foreground" />,
     });
@@ -57,7 +58,7 @@ export function OverviewActionItems({
   if (!botEnabled) {
     actionItems.push({
       id: "enable-bot",
-      label: "Configure meeting bot",
+      label: "Configure notetaker assistant",
       description: "Set up automatic meeting recording and transcription",
       href: "/settings/bot" as Route,
       icon: <BotIcon className="h-4 w-4 text-muted-foreground" />,

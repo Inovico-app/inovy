@@ -63,7 +63,7 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
       }
 
       if (!result?.data) {
-        throw new Error("Failed to add bot to meeting");
+        throw new Error("Failed to add notetaker to meeting");
       }
 
       return result.data;
@@ -73,9 +73,9 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
         queryKey: queryKeys.botSessions.all,
       });
 
-      const previousData = queryClient.getQueriesData<Record<string, BotSession>>(
-        { queryKey: queryKeys.botSessions.all }
-      );
+      const previousData = queryClient.getQueriesData<
+        Record<string, BotSession>
+      >({ queryKey: queryKeys.botSessions.all });
 
       // Skip optimistic update when consent may be required (avoids flicker on consent dialog)
       if (input.consentGiven !== true) {
@@ -90,13 +90,13 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
           if (!old) return old;
           if (old[input.calendarEventId]) return old;
           return { ...old, [input.calendarEventId]: optimisticSession };
-        }
+        },
       );
 
       return { previousData, calendarEventId: input.calendarEventId };
     },
     onError: (error, _input, context) => {
-      toast.error("Failed to add bot", {
+      toast.error("Failed to add notetaker", {
         description: error.message || "Please try again",
       });
 
@@ -118,8 +118,8 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
       }
 
       if ("success" in data && data.success && data.sessionId) {
-        toast.success("Bot added to meeting", {
-          description: "The bot will join when the meeting starts.",
+        toast.success("Notetaker added to meeting", {
+          description: "The notetaker will join when the meeting starts.",
         });
         queryClient.invalidateQueries({
           queryKey: queryKeys.botSessions.all,

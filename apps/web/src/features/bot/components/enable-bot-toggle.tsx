@@ -21,7 +21,7 @@ interface EnableBotToggleProps {
 }
 
 /**
- * Enable/disable bot toggle component with consent dialog
+ * Enable/disable notetaker toggle component with consent dialog
  */
 export function EnableBotToggle({ settings, onUpdate }: EnableBotToggleProps) {
   const [isConsentDialogOpen, setIsConsentDialogOpen] = useState(false);
@@ -69,19 +69,20 @@ export function EnableBotToggle({ settings, onUpdate }: EnableBotToggleProps) {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Meeting Bot</CardTitle>
+          <CardTitle>Notetaker Assistant</CardTitle>
           <CardDescription>
-            Enable automatic bot joining for your Google Meet meetings
+            Enable automatic notetaker joining for your meetings
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between space-x-4">
             <div className="flex-1 space-y-1">
               <Label htmlFor="bot-enabled" className="text-base font-medium">
-                Enable Bot
+                Enable Notetaker
               </Label>
               <p className="text-sm text-muted-foreground">
-                Allow the bot to automatically join and record your meetings
+                Allow the notetaker to automatically join and record your
+                meetings
               </p>
             </div>
             <Button
@@ -106,10 +107,10 @@ export function EnableBotToggle({ settings, onUpdate }: EnableBotToggleProps) {
 
           {settings.botEnabled && (
             <div className="rounded-lg bg-muted p-4 text-sm">
-              <p className="font-medium mb-2">Bot is active</p>
+              <p className="font-medium mb-2">Notetaker is active</p>
               <p className="text-muted-foreground">
-                The bot will automatically join your Google Meet meetings based
-                on your calendar and configuration settings below.
+                The notetaker will automatically join your meetings based on
+                your calendar and configuration settings below.
               </p>
             </div>
           )}
@@ -124,4 +125,3 @@ export function EnableBotToggle({ settings, onUpdate }: EnableBotToggleProps) {
     </>
   );
 }
-

@@ -39,19 +39,21 @@ export function RemoveBotConfirmDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Remove Bot from Meeting</DialogTitle>
+          <DialogTitle>Remove Notetaker from Meeting</DialogTitle>
           <DialogDescription>
             {meetingTitle
-              ? `Remove the recording bot from "${meetingTitle}"?`
-              : "Remove the recording bot from this meeting?"}
+              ? `Remove the notetaker from "${meetingTitle}"?`
+              : "Remove the notetaker from this meeting?"}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="rounded-lg bg-muted p-4 space-y-2">
-            <p className="text-sm font-medium">What happens when you remove the bot</p>
+            <p className="text-sm font-medium">
+              What happens when you remove the notetaker
+            </p>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
-              <li>The bot will not join the meeting</li>
-              <li>If the bot is already in the meeting, it will leave</li>
+              <li>The notetaker will not join the meeting</li>
+              <li>If the notetaker is already in the meeting, it will leave</li>
               <li>No new recording will be created for this meeting</li>
             </ul>
           </div>
@@ -78,7 +80,7 @@ export function RemoveBotConfirmDialog({
                 Removing...
               </>
             ) : (
-              "Remove Bot"
+              "Remove Notetaker"
             )}
           </Button>
         </DialogFooter>

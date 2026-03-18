@@ -31,8 +31,8 @@ export function CalendarEventItem({
   const botSession = meeting.botSession;
   const isPast = meeting.end <= new Date();
   const hasRecording = !!(botSession?.recordingId && botSession?.projectId);
-  const NoBotFallback = (
-    <span className="text-xs text-muted-foreground">No bot</span>
+  const NoNotetakerFallback = (
+    <span className="text-xs text-muted-foreground">No notetaker</span>
   );
 
   const content = (
@@ -45,7 +45,14 @@ export function CalendarEventItem({
         {meeting.isOrganizer === false && (
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger render={<Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0" />}>
+              <TooltipTrigger
+                render={
+                  <Badge
+                    variant="secondary"
+                    className="shrink-0 text-[10px] px-1.5 py-0"
+                  />
+                }
+              >
                 Invited
               </TooltipTrigger>
               <TooltipContent>You were invited to this meeting</TooltipContent>
@@ -59,7 +66,7 @@ export function CalendarEventItem({
           <>
             <div
               role="group"
-              aria-label="Bot session controls"
+              aria-label="Notetaker session controls"
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
             >
@@ -83,11 +90,11 @@ export function CalendarEventItem({
             )}
           </>
         ) : isPast ? (
-          NoBotFallback
+          NoNotetakerFallback
         ) : (
           <div
             role="group"
-            aria-label="Add bot controls"
+            aria-label="Add notetaker controls"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >
@@ -103,7 +110,7 @@ export function CalendarEventItem({
       "group w-full rounded-md p-1.5 text-xs transition-colors",
       "hover:bg-accent",
       hasBotSession && "bg-primary/5",
-      onMeetingClick && "cursor-pointer"
+      onMeetingClick && "cursor-pointer",
     );
     return (
       <div
@@ -144,7 +151,9 @@ export function CalendarEventItem({
           {meeting.isOrganizer === false && (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger render={<Badge variant="secondary" className="shrink-0" />}>
+                <TooltipTrigger
+                  render={<Badge variant="secondary" className="shrink-0" />}
+                >
                   Invited
                 </TooltipTrigger>
                 <TooltipContent>
@@ -188,7 +197,7 @@ export function CalendarEventItem({
             )}
           </>
         ) : isPast ? (
-          NoBotFallback
+          NoNotetakerFallback
         ) : (
           <AddBotButton meeting={meeting} variant="icon" />
         )}
@@ -200,7 +209,7 @@ export function CalendarEventItem({
     "group w-full rounded-lg border p-2 text-sm transition-colors",
     "hover:bg-accent",
     hasBotSession && "border-primary/20 bg-primary/5",
-    onMeetingClick && "cursor-pointer"
+    onMeetingClick && "cursor-pointer",
   );
 
   return (
@@ -232,4 +241,3 @@ export function CalendarEventItem({
     </div>
   );
 }
-

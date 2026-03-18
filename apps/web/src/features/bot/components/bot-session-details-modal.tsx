@@ -75,14 +75,14 @@ export function BotSessionDetailsModal({
                 />
               </>
             ) : (
-              "Bot Session Details"
+              "Notetaker Session Details"
             )}
           </DialogTitle>
           <DialogDescription>
             {isLoading
               ? "Loading session details..."
               : hasSession
-                ? "Bot session details and timeline"
+                ? "Notetaker session details and timeline"
                 : error
                   ? "Failed to load session details"
                   : "Session not found"}
@@ -94,7 +94,7 @@ export function BotSessionDetailsModal({
           <p className="text-sm text-muted-foreground py-6 text-center">
             {error
               ? error.message
-              : "This bot session could not be found or you do not have access to it."}
+              : "This notetaker session could not be found or you do not have access to it."}
           </p>
         )}
         {hasSession && (

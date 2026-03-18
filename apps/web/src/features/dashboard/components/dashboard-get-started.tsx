@@ -13,13 +13,29 @@ export function DashboardGetStarted() {
     {
       label: "Create your first project to organize recordings",
       action: (
-        <Button size="sm" render={<Link href="/projects/create" />} nativeButton={false}>
+        <Button
+          size="sm"
+          render={<Link href="/projects/create" />}
+          nativeButton={false}
+        >
           Create Project
         </Button>
       ),
     },
-    { label: "Upload a meeting recording for AI processing" },
-    { label: "Review AI-generated summaries and action items" },
+    {
+      label: "Add a notetaker to your next meeting for automatic recording",
+      action: (
+        <Button
+          size="sm"
+          variant="outline"
+          render={<Link href="/meetings" />}
+          nativeButton={false}
+        >
+          View Meetings
+        </Button>
+      ),
+    },
+    { label: "Review AI-generated notes, transcripts, and action items" },
     { label: "Track and manage your tasks across all projects" },
   ];
 
@@ -34,7 +50,10 @@ export function DashboardGetStarted() {
       <CardContent>
         <div className="space-y-3">
           {steps.map((step, i) => (
-            <div key={`step-${step.label.slice(0, 20)}`} className="flex items-center gap-3">
+            <div
+              key={`step-${step.label.slice(0, 20)}`}
+              className="flex items-center gap-3"
+            >
               <div
                 className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${
                   i === 0
