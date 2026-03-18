@@ -23,7 +23,6 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
   const {
     microphone,
     stream: microphoneStream,
-    setupMicrophone,
     setupError: microphoneSetupError,
     startMicrophone,
     stopMicrophone,
@@ -32,7 +31,6 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
   const {
     systemAudio,
     systemAudioStream,
-    setupSystemAudio,
     setupError: systemAudioSetupError,
     startSystemAudio,
     stopSystemAudio,
@@ -85,44 +83,14 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
 
         const currentAudioSource = options?.audioSource || "microphone";
 
-        // Setup audio sources if needed (this is when we request permissions)
-        // Capture streams from setup results (state may not have updated yet)
-        let micStreamFromSetup: MediaStream | null = null;
-        let sysStreamFromSetup: MediaStream | null = null;
-
-        if (currentAudioSource === "system" || currentAudioSource === "both") {
-          if (!systemAudioStream) {
-            const result = await setupSystemAudio();
-            if (!result.success && result.error) {
-              setPermissionDenied(result.error.type === "permission_denied");
-              setRecorderError(result.error.message);
-              return;
-            }
-            if (result.success) sysStreamFromSetup = result.stream;
-          }
-        }
-
-        if (
-          currentAudioSource === "microphone" ||
-          currentAudioSource === "both"
-        ) {
-          if (!microphoneStream) {
-            const result = await setupMicrophone();
-            if (!result.success && result.error) {
-              setPermissionDenied(result.error.type === "permission_denied");
-              setRecorderError(result.error.message);
-              return;
-            }
-            if (result.success) micStreamFromSetup = result.stream;
-          }
-        }
-
-        // Re-determine active stream (use freshly-set-up streams when state hasn't propagated yet)
+        // Audio sources are set up by the caller (live-recorder.tsx) via
+        // audioSource.setupAudioSources() BEFORE calling handleStart.
+        // This avoids double-setup that would destroy the first stream.
         const finalActiveStream =
           options?.combinedStream ||
           (currentAudioSource === "system"
-            ? (sysStreamFromSetup ?? systemAudioStream)
-            : (micStreamFromSetup ?? microphoneStream));
+            ? systemAudioStream
+            : microphoneStream);
         if (!finalActiveStream) {
           setRecorderError(
             "Geen audio stream beschikbaar. Controleer je microfoon of systeemaudio-instellingen.",
@@ -210,9 +178,9 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
         // Request wake lock to prevent screen from locking during recording
         await wakeLock.request();
 
-        // Connect to Deepgram first (if transcription enabled), then start recorder.
-        // Deepgram must be connected before the recorder starts so the
-        // useLiveTranscription effect can add its DataAvailable listener.
+        // Connect to Deepgram first (if transcription enabled).
+        // Must happen before starting recorder so useLiveTranscription
+        // can attach DataAvailable listeners in time.
         if (enableTranscription && onTranscriptionReady) {
           await onTranscriptionReady();
         }
@@ -223,7 +191,7 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
         } else if (currentAudioSource === "system") {
           startSystemAudio();
         } else if (!enableTranscription) {
-          // Mic-only without transcription — start directly.
+          // Without transcription, start mic directly.
           // With transcription, useLiveTranscription's effect starts it.
           startMicrophone();
         }
