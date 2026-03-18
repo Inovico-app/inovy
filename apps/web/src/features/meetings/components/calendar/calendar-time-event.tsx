@@ -26,7 +26,7 @@ export function CalendarTimeEvent({
   const isShort = height < 40;
   const leftPercent = (column / totalColumns) * 100;
   const widthPercent = (1 / totalColumns) * 100;
-  const isUpcoming = meeting.start > new Date();
+  const hasNotEnded = meeting.end > new Date();
 
   return (
     <div
@@ -82,7 +82,7 @@ export function CalendarTimeEvent({
               className="scale-75 origin-left"
             />
           ) : (
-            isUpcoming && <AddBotButton meeting={meeting} variant="icon" />
+            hasNotEnded && <AddBotButton meeting={meeting} variant="icon" />
           )}
         </div>
       )}
