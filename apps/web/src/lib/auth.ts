@@ -133,6 +133,15 @@ export const auth = betterAuth({
       clientId: process.env.MICROSOFT_CLIENT_ID ?? "",
       clientSecret: process.env.MICROSOFT_CLIENT_SECRET ?? "",
       tenantId: process.env.MICROSOFT_TENANT_ID ?? "common",
+      // Microsoft's ID token may omit the `email` claim depending on
+      // Azure AD app registration token configuration and account type.
+      // Fall back to `preferred_username` (UPN) which is always present.
+      mapProfileToUser: (profile: Record<string, unknown>) => {
+        if (!profile.email && profile.preferred_username) {
+          return { email: profile.preferred_username as string };
+        }
+        return {};
+      },
     },
   },
   session: {
