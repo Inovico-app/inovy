@@ -107,7 +107,7 @@ export function CalendarEventItem({
 
   if (compact) {
     const wrapperClassName = cn(
-      "group w-full rounded-md p-1.5 text-xs transition-colors bg-card",
+      "group w-full rounded-md border border-border/60 p-1.5 text-xs transition-colors bg-accent/50",
       "hover:bg-accent",
       onMeetingClick && "cursor-pointer",
     );
