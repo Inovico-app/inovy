@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
         userId: user.id,
         timestamp: Date.now(),
         redirectUrl,
+        requestedScopes,
       }),
     ).toString("base64");
 

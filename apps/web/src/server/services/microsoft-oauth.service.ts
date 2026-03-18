@@ -93,14 +93,26 @@ export class MicrosoftOAuthService {
    * @param userId - User ID
    * @param code - Authorization code from Microsoft
    * @param redirectUri - Redirect URI used during authorization (must match exactly)
+   * @param requestedScopes - Scopes that were requested during authorization.
+   *   Microsoft's token response may omit some granted scopes, so we merge
+   *   the requested scopes to get the full picture.
    */
   static async storeConnection(
     userId: string,
     code: string,
     redirectUri?: string,
+    requestedScopes?: string[],
   ): Promise<ActionResult<OAuthConnection>> {
     // Exchange code for tokens (must use same redirect URI as authorization)
     const tokens = await exchangeCodeForTokens(code, redirectUri);
+
+    // Merge requested scopes with what Microsoft returned in the token
+    // response. Microsoft may omit some granted scopes (e.g.
+    // OnlineMeetings.ReadWrite) from the response even though they work.
+    if (requestedScopes?.length) {
+      const merged = new Set([...tokens.scopes, ...requestedScopes]);
+      tokens.scopes = Array.from(merged);
+    }
 
     // Get user email from Microsoft Graph
     const email = await getUserEmail(tokens.accessToken);
