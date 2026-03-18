@@ -106,16 +106,14 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
           });
           mediaRecorderRef.current = recorder;
 
-          // Only set ondataavailable for audio-only mode.
-          // When transcription is enabled, useLiveTranscription's DataAvailable
-          // handler both saves chunks and sends to Deepgram.
-          if (!enableTranscription) {
-            recorder.ondataavailable = (event) => {
-              if (event.data.size > 0) {
-                audioChunksRef.current.push(event.data);
-              }
-            };
-          }
+          // Always persist audio chunks locally — this must not depend on
+          // Deepgram connectivity. useLiveTranscription separately handles
+          // sending data to Deepgram via its own addEventListener handler.
+          recorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+              audioChunksRef.current.push(event.data);
+            }
+          };
 
           recorder.onerror = (event) => {
             logger.error("MediaRecorder error", {
@@ -185,14 +183,13 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
           await onTranscriptionReady();
         }
 
-        // Start the appropriate recorder
+        // Start the appropriate recorder.
+        // For mic + transcription, useLiveTranscription's effect handles it.
         if (options?.combinedStream && mediaRecorderRef.current) {
           mediaRecorderRef.current.start(250);
         } else if (currentAudioSource === "system") {
           startSystemAudio();
         } else if (!enableTranscription) {
-          // Without transcription, start mic directly.
-          // With transcription, useLiveTranscription's effect starts it.
           startMicrophone();
         }
       } catch (error) {
@@ -363,8 +360,22 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
     // Audio sources — use combined recorder when active, otherwise provider's recorder
     microphone: mediaRecorderRef.current ?? currentActiveRecorder,
     stream: currentActiveStream,
-    startMicrophone:
-      currentAudioSource === "system" ? startSystemAudio : startMicrophone,
+    // Unified start function that matches the exposed microphone recorder
+    startRecorder: mediaRecorderRef.current
+      ? () => {
+          if (
+            mediaRecorderRef.current &&
+            mediaRecorderRef.current.state === "inactive"
+          ) {
+            mediaRecorderRef.current.start(250);
+          }
+        }
+      : currentAudioSource === "system"
+        ? startSystemAudio
+        : startMicrophone,
+    // Whether the exposed recorder saves chunks via its own ondataavailable
+    // (true for combined recorder, false for provider recorders)
+    recorderSavesChunks: !!mediaRecorderRef.current,
 
     // Handlers
     handleStart,

@@ -22,6 +22,8 @@ export interface TranscriptSegment {
 interface UseLiveTranscriptionProps {
   microphone: MediaRecorder | null;
   startRecorder: () => void;
+  /** True when the recorder saves chunks via its own ondataavailable (combined recorder) */
+  recorderSavesChunks: boolean;
   isRecording: boolean;
   isPaused: boolean;
   audioChunksRef: React.MutableRefObject<Blob[]>;
@@ -30,6 +32,7 @@ interface UseLiveTranscriptionProps {
 export function useLiveTranscription({
   microphone,
   startRecorder,
+  recorderSavesChunks,
   isRecording,
   isPaused,
   audioChunksRef,
@@ -74,10 +77,12 @@ export function useLiveTranscription({
 
   // Effect Event: Handle audio data with transcription
   const onAudioDataWithTranscription = useEffectEvent((e: BlobEvent) => {
-    // iOS SAFARI FIX: Prevent packetZero from being sent
     if (e.data.size > 0) {
-      // Save audio chunk
-      audioChunksRef.current.push(e.data);
+      // Save chunk locally only if the recorder doesn't already handle it
+      // via its own ondataavailable (combined recorder does, providers don't)
+      if (!recorderSavesChunks) {
+        audioChunksRef.current.push(e.data);
+      }
       // Stream to Deepgram
       connection?.send(e.data);
     }

@@ -44,7 +44,8 @@ export function LiveRecorder({
   });
   const transcription = useLiveTranscription({
     microphone: recording.microphone,
-    startRecorder: recording.startMicrophone,
+    startRecorder: recording.startRecorder,
+    recorderSavesChunks: recording.recorderSavesChunks,
     isRecording: recording.isRecording,
     isPaused: recording.isPaused,
     audioChunksRef: recording.audioChunksRef,
