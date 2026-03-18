@@ -164,7 +164,7 @@ function EmptyState() {
       <div className="space-y-1">
         <p className="text-sm font-medium">No upcoming meetings today</p>
         <p className="text-xs text-muted-foreground">
-          Connect Google Calendar in{" "}
+          Connect a calendar in{" "}
           <Link
             href="/settings"
             className="text-primary underline underline-offset-2"
