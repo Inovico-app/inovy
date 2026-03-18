@@ -50,6 +50,7 @@ export function CreateEventDialog({
     recurrence,
     setRecurrence,
     isCreating,
+    isNavigating,
     onSubmit,
     handleCancel,
     providers,
@@ -57,6 +58,8 @@ export function CreateEventDialog({
     selectedProvider,
     setSelectedProvider,
   } = useCreateEventForm({ open, onOpenChange });
+
+  const isBusy = isCreating || isNavigating;
 
   const {
     register,
@@ -262,7 +265,7 @@ export function CreateEventDialog({
             value={recurrence}
             onChange={setRecurrence}
             eventStartDate={startDate}
-            disabled={isCreating}
+            disabled={isBusy}
           />
 
           <AttendeeSelector
@@ -270,7 +273,7 @@ export function CreateEventDialog({
             selectedEmails={watch("attendeeEmails") || []}
             onUserIdsChange={(userIds) => setValue("attendeeUserIds", userIds)}
             onEmailsChange={(emails) => setValue("attendeeEmails", emails)}
-            disabled={isCreating}
+            disabled={isBusy}
           />
 
           <div className="flex items-center space-x-2">
@@ -285,7 +288,7 @@ export function CreateEventDialog({
               htmlFor="addBot"
               className="text-sm font-normal cursor-pointer"
             >
-              Add bot to this meeting
+              Add notetaker to this meeting
             </Label>
           </div>
 
@@ -294,15 +297,15 @@ export function CreateEventDialog({
               type="button"
               variant="outline"
               onClick={handleCancel}
-              disabled={isCreating}
+              disabled={isBusy}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isCreating}>
-              {isCreating ? (
+            <Button type="submit" disabled={isBusy}>
+              {isBusy ? (
                 <>
                   <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
+                  {isNavigating ? "Opening prep..." : "Creating..."}
                 </>
               ) : (
                 "Save"

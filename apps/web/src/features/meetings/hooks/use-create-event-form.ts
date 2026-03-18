@@ -12,6 +12,7 @@ import { useCreateEventSubmit } from "./use-create-event-submit";
 import { useEventDateTimeDefaults } from "./use-event-datetime-defaults";
 import { useEventRecurrence } from "./use-event-recurrence";
 import { useConnectedProviders } from "./use-connected-providers";
+import { useNavigateToMeeting } from "./use-navigate-to-meeting";
 
 interface UseCreateEventFormProps {
   open: boolean;
@@ -66,10 +67,29 @@ export function useCreateEventForm({
     }
   }, [isLoadingProviders, providers, selectedProvider]);
 
+  const { navigateToMeeting, isNavigating } = useNavigateToMeeting();
+
   const { createEvent, isCreating } = useCreateCalendarEvent({
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Capture form values before reset for navigation
+      const values = form.getValues();
       reset();
       onOpenChange(false);
+
+      // Navigate to the meeting prep page
+      const startDateTime = values.allDay
+        ? new Date(`${values.startDate}T00:00:00`)
+        : new Date(`${values.startDate}T${values.startTime || "00:00"}:00`);
+      const endDateTime = values.allDay
+        ? new Date(`${values.endDate}T23:59:59`)
+        : new Date(`${values.endDate}T${values.endTime || "00:00"}:00`);
+
+      navigateToMeeting({
+        calendarEventId: data.eventId,
+        title: values.title,
+        scheduledStartAt: startDateTime.toISOString(),
+        scheduledEndAt: endDateTime.toISOString(),
+      });
     },
   });
 
@@ -101,6 +121,7 @@ export function useCreateEventForm({
     recurrence,
     setRecurrence,
     isCreating,
+    isNavigating,
     onSubmit: form.handleSubmit(onSubmit),
     handleCancel,
     // Provider selector
