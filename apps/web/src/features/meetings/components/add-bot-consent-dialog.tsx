@@ -77,11 +77,11 @@ export function AddBotConsentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Add Bot to Meeting</DialogTitle>
+          <DialogTitle>Add Notetaker Assistant</DialogTitle>
           <DialogDescription>
             {meetingTitle
-              ? `Add a recording bot to "${meetingTitle}"?`
-              : "Add a recording bot to this meeting?"}
+              ? `Add a notetaker assistant to "${meetingTitle}"?`
+              : "Add a notetaker assistant to this meeting?"}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -112,17 +112,17 @@ export function AddBotConsentDialog({
           </div>
 
           <div className="space-y-2">
-            <h4 className="font-medium text-sm">The bot will:</h4>
+            <h4 className="font-medium text-sm">The notetaker will:</h4>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
-              <li>Join the Google Meet when it starts</li>
+              <li>Join your meeting when it starts</li>
               <li>Record the meeting audio and video</li>
-              <li>Process the recording for transcripts and AI insights</li>
+              <li>Generate transcripts, summaries, and action items</li>
             </ul>
           </div>
           <div className="rounded-lg bg-muted p-4 space-y-2">
             <p className="text-sm font-medium">Recording consent</p>
             <p className="text-sm text-muted-foreground">
-              By adding the bot, you consent to recording this meeting.
+              By adding the notetaker, you consent to recording this meeting.
               Recordings will be processed using AI to generate transcripts,
               summaries, and action items.
             </p>
@@ -133,7 +133,7 @@ export function AddBotConsentDialog({
             Cancel
           </Button>
           <Button onClick={handleAccept} disabled={!selectedProjectId}>
-            Add Bot
+            Add Notetaker
           </Button>
         </DialogFooter>
       </DialogContent>

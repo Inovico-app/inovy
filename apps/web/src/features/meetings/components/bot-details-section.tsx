@@ -50,9 +50,9 @@ export function BotDetailsSection({
   );
 
   return (
-    <section aria-labelledby="bot-details-heading">
-      <h3 id="bot-details-heading" className="font-semibold mb-3">
-        Bot Details
+    <section aria-labelledby="notetaker-details-heading">
+      <h3 id="notetaker-details-heading" className="font-semibold mb-3">
+        Notetaker Details
       </h3>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
@@ -66,7 +66,7 @@ export function BotDetailsSection({
         {canEditBot && (
           <>
             <form onSubmit={onBotMeetingUrlSubmit} className="space-y-2">
-              <Label htmlFor="bot-meeting-url">Bot Meeting URL</Label>
+              <Label htmlFor="bot-meeting-url">Meeting URL</Label>
               <Input
                 id="bot-meeting-url"
                 type="url"
@@ -129,7 +129,7 @@ export function BotDetailsSection({
           ) : (
             <Trash2Icon className="h-4 w-4 mr-2" />
           )}
-          Remove Bot
+          Remove Notetaker
         </Button>
       </div>
     </section>

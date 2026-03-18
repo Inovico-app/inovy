@@ -43,8 +43,8 @@ export const SETTINGS_NAV_ITEMS = [
   {
     href: "/settings/bot",
     icon: VideoIcon,
-    label: "Bot",
-    description: "Configure meeting bot preferences",
+    label: "Notetaker",
+    description: "Configure notetaker assistant preferences",
   },
   {
     href: "/settings/integrations",

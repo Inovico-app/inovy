@@ -19,15 +19,15 @@ interface UseRemoveBotFromMeetingOptions {
  * Invalidates bot sessions cache on success (client-side React Query)
  */
 export function useRemoveBotFromMeeting(
-  options?: UseRemoveBotFromMeetingOptions
+  options?: UseRemoveBotFromMeetingOptions,
 ) {
   const queryClient = useQueryClient();
 
   const { execute, isExecuting } = useAction(removeBotFromMeeting, {
     onSuccess: ({ data }) => {
       if (data?.success) {
-        toast.success("Bot removed from meeting", {
-          description: "The bot will not join this meeting.",
+        toast.success("Notetaker removed from meeting", {
+          description: "The notetaker will not join this meeting.",
         });
         queryClient.invalidateQueries({
           queryKey: queryKeys.botSessions.all,
@@ -39,7 +39,7 @@ export function useRemoveBotFromMeeting(
       }
     },
     onError: ({ error }) => {
-      toast.error("Failed to remove bot", {
+      toast.error("Failed to remove notetaker", {
         description: error.serverError || "Please try again",
       });
     },

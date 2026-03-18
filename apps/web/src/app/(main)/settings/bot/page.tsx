@@ -63,8 +63,8 @@ export default function BotSettingsPage() {
   return (
     <>
       <PageHeader
-        title="Bot Settings"
-        description="Configure your meeting bot preferences and manage recording consent"
+        title="Notetaker Settings"
+        description="Configure your notetaker assistant preferences and manage recording consent"
       />
       <Suspense
         fallback={

@@ -25,49 +25,49 @@ const GREEN_SUCCESS_STATUS_CLASS =
 
 const STATUS_CONFIG = {
   scheduled: {
-    label: "Scheduled",
+    label: "Notetaker Scheduled",
     variant: "outline" as const,
     icon: <ClockIcon className="h-3 w-3" />,
     className: GRAY_NEUTRAL_STATUS_CLASS,
-    tooltip: "Bot will join when the meeting starts",
+    tooltip: "The notetaker will join when the meeting starts",
   },
   joining: {
-    label: "Joining",
+    label: "Notetaker Joining",
     variant: "default" as const,
     icon: <LoaderIcon className="h-3 w-3 animate-spin" />,
     className: "bg-blue-500 text-white border-blue-500",
-    tooltip: "Bot is connecting to the meeting",
+    tooltip: "The notetaker is connecting to the meeting",
   },
   active: {
-    label: "Active",
+    label: "Notetaker Recording",
     variant: "secondary" as const,
     icon: <CheckCircleIcon className="h-3 w-3" />,
     className: GREEN_SUCCESS_STATUS_CLASS,
-    tooltip: "Bot is recording the meeting",
+    tooltip: "The notetaker is recording the meeting",
   },
   leaving: {
-    label: "Leaving",
+    label: "Notetaker Leaving",
     variant: "outline" as const,
     icon: <LogOutIcon className="h-3 w-3" />,
     className: GRAY_NEUTRAL_STATUS_CLASS,
-    tooltip: "Bot is leaving the meeting",
+    tooltip: "The notetaker is leaving the meeting",
   },
   completed: {
-    label: "Completed",
+    label: "Processing Notes",
     variant: "outline" as const,
     icon: <CheckCircleIcon className="h-3 w-3" />,
     className: GREEN_SUCCESS_STATUS_CLASS,
-    tooltip: "Meeting finished, recording is processing",
+    tooltip: "Meeting finished, recording is being processed",
   },
   failed: {
     label: "Failed",
     variant: "destructive" as const,
     icon: <AlertCircleIcon className="h-3 w-3" />,
     className: undefined,
-    tooltip: "Bot failed to join",
+    tooltip: "Notetaker failed to join the meeting",
   },
   pending_consent: {
-    label: "Pending Consent",
+    label: "Waiting for Approval",
     variant: "outline" as const,
     icon: <AlertCircleIcon className="h-3 w-3" />,
     className:
@@ -75,12 +75,12 @@ const STATUS_CONFIG = {
     tooltip: "Waiting for host approval to join",
   },
   no_bot: {
-    label: "No Bot",
+    label: "No Notetaker",
     variant: "outline" as const,
     icon: <MinusIcon className="h-3 w-3" />,
     className:
       "text-gray-600 border-gray-400/30 dark:text-gray-500 bg-gray-500/10",
-    tooltip: "No bot session for this meeting",
+    tooltip: "No notetaker was added to this meeting",
   },
 } satisfies Record<
   MeetingBotStatus,
@@ -110,7 +110,9 @@ export function BotStatusBadge({
 }: BotStatusBadgeProps) {
   const config = STATUS_CONFIG[status];
   const tooltipContent =
-    status === "failed" && error ? `${config.tooltip}: ${error}` : config.tooltip;
+    status === "failed" && error
+      ? `${config.tooltip}: ${error}`
+      : config.tooltip;
 
   const badge = (
     <Badge

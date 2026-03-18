@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { CalendarViewComponent } from "@/features/meetings/components/calendar/calendar-view";
+import { NotetakerGuidanceBanner } from "@/features/meetings/components/notetaker-guidance-banner";
+import { PasteMeetingLink } from "@/features/meetings/components/paste-meeting-link";
 
 export const metadata: Metadata = { title: "Meetings" };
 import { GoogleConnectionPrompt } from "@/features/meetings/components/google-connection-prompt";
@@ -32,7 +34,7 @@ async function MeetingsContent({
 
   // Check Google Calendar connection status
   const connectionStatusResult = await GoogleOAuthService.getConnectionStatus(
-    user.id
+    user.id,
   );
 
   if (connectionStatusResult.isErr()) {
@@ -61,8 +63,14 @@ async function MeetingsContent({
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground">Meetings</h1>
           <p className="text-muted-foreground mt-2">
-            View your Google Calendar meetings and bot session status
+            View your calendar meetings and manage notetaker assistants
           </p>
+        </div>
+
+        <NotetakerGuidanceBanner />
+
+        <div className="mb-6">
+          <PasteMeetingLink />
         </div>
 
         <CalendarViewComponent />
@@ -110,4 +118,3 @@ export default function MeetingsPage({
     </Suspense>
   );
 }
-

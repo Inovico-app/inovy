@@ -52,7 +52,9 @@ export function MeetingsListItem({
         {meeting.isOrganizer === false && (
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger render={<Badge variant="secondary" className="shrink-0" />}>
+              <TooltipTrigger
+                render={<Badge variant="secondary" className="shrink-0" />}
+              >
                 Invited
               </TooltipTrigger>
               <TooltipContent>You were invited to this meeting</TooltipContent>
@@ -94,7 +96,7 @@ export function MeetingsListItem({
       className={cn(
         "transition-all hover:shadow-md",
         isPast && "opacity-75",
-        onMeetingClick && "cursor-pointer"
+        onMeetingClick && "cursor-pointer",
       )}
     >
       <CardContent className="p-4">
@@ -124,7 +126,9 @@ export function MeetingsListItem({
               isUpcoming ? (
                 <AddBotButton meeting={meeting} variant="button" />
               ) : (
-                <span className="text-xs text-muted-foreground">No bot</span>
+                <span className="text-xs text-muted-foreground">
+                  No notetaker
+                </span>
               )
             ) : (
               <>
@@ -151,4 +155,3 @@ export function MeetingsListItem({
     </Card>
   );
 }
-

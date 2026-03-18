@@ -96,9 +96,9 @@ export function BotConfigurationForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Bot Configuration</CardTitle>
+        <CardTitle>Notetaker Configuration</CardTitle>
         <CardDescription>
-          Customize how the bot behaves when joining your meetings
+          Customize how the notetaker behaves when joining your meetings
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -111,7 +111,9 @@ export function BotConfigurationForm({
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base">Auto-join Meetings</FormLabel>
+                    <FormLabel className="text-base">
+                      Auto-join Meetings
+                    </FormLabel>
                     <FormDescription>
                       Automatically join meetings without manual approval
                     </FormDescription>
@@ -137,7 +139,8 @@ export function BotConfigurationForm({
                       Per-meeting Consent
                     </FormLabel>
                     <FormDescription>
-                      Require approval for each meeting before the bot joins
+                      Require approval for each meeting before the notetaker
+                      joins
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -172,8 +175,8 @@ export function BotConfigurationForm({
                     />
                   </FormControl>
                   <FormDescription>
-                    Bot will automatically leave if no audio is detected for this
-                    duration
+                    Notetaker will automatically leave if no audio is detected
+                    for this duration
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -186,7 +189,7 @@ export function BotConfigurationForm({
               name="botDisplayName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Bot Display Name</FormLabel>
+                  <FormLabel>Notetaker Display Name</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -195,7 +198,7 @@ export function BotConfigurationForm({
                     />
                   </FormControl>
                   <FormDescription>
-                    Name shown when the bot joins meetings
+                    Name shown when the notetaker joins meetings
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -219,7 +222,7 @@ export function BotConfigurationForm({
                     />
                   </FormControl>
                   <FormDescription>
-                    Message the bot sends when joining (optional)
+                    Message the notetaker sends when joining (optional)
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

@@ -1,4 +1,7 @@
 import { Button } from "@/components/ui/button";
+import { AddBotButton } from "@/features/meetings/components/add-bot-button";
+import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
+import type { BotSession } from "@/server/db/schema/bot-sessions";
 import type { CalendarEvent } from "@/server/services/google-calendar.service";
 import {
   CalendarIcon,
@@ -11,6 +14,7 @@ import Link from "next/link";
 
 interface DashboardUpcomingMeetingsProps {
   meetings: CalendarEvent[];
+  botSessionsMap: Record<string, BotSession>;
   now: number;
 }
 
@@ -52,15 +56,21 @@ function isHappeningSoon(date: Date): boolean {
 
 function MeetingCard({
   meeting,
+  botSession,
   isNext,
 }: {
   meeting: CalendarEvent;
+  botSession?: BotSession;
   isNext: boolean;
 }) {
   const attendeeCount = meeting.attendees?.length ?? 0;
   const startDate = new Date(meeting.start);
   const endDate = new Date(meeting.end);
   const soon = isHappeningSoon(startDate);
+  const meetingWithSession: MeetingWithSession = {
+    ...meeting,
+    botSession,
+  };
 
   return (
     <div
@@ -99,27 +109,39 @@ function MeetingCard({
             )}
           </div>
         </div>
-        {meeting.meetingUrl && (
-          <Button
-            size={isNext ? "default" : "sm"}
-            variant={isNext ? "default" : "outline"}
-            className="shrink-0"
-            render={<a href={meeting.meetingUrl} target="_blank" rel="noopener noreferrer" aria-label={`Join ${meeting.title}`} />}
-            nativeButton={false}
-          >
-            {isNext ? (
-              <>
-                <VideoIcon className="mr-1.5 h-4 w-4" />
-                Join Meeting
-              </>
-            ) : (
-              <>
-                Join
-                <ExternalLinkIcon className="ml-1 h-3 w-3" />
-              </>
-            )}
-          </Button>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {!botSession && (
+            <AddBotButton meeting={meetingWithSession} variant="icon" />
+          )}
+          {meeting.meetingUrl && (
+            <Button
+              size={isNext ? "default" : "sm"}
+              variant={isNext ? "default" : "outline"}
+              className="shrink-0"
+              render={
+                <a
+                  href={meeting.meetingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Join ${meeting.title}`}
+                />
+              }
+              nativeButton={false}
+            >
+              {isNext ? (
+                <>
+                  <VideoIcon className="mr-1.5 h-4 w-4" />
+                  Join Meeting
+                </>
+              ) : (
+                <>
+                  Join
+                  <ExternalLinkIcon className="ml-1 h-3 w-3" />
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -150,6 +172,7 @@ function EmptyState() {
 
 export function DashboardUpcomingMeetings({
   meetings,
+  botSessionsMap,
   now,
 }: DashboardUpcomingMeetingsProps) {
   const sorted = [...meetings]
@@ -177,11 +200,15 @@ export function DashboardUpcomingMeetings({
       ) : (
         <div className="space-y-2">
           {sorted.map((meeting, i) => (
-            <MeetingCard key={meeting.id} meeting={meeting} isNext={i === 0} />
+            <MeetingCard
+              key={meeting.id}
+              meeting={meeting}
+              botSession={botSessionsMap[meeting.id]}
+              isNext={i === 0}
+            />
           ))}
         </div>
       )}
     </section>
   );
 }
-

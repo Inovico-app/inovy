@@ -78,8 +78,13 @@ export function MeetingDetailsModal({
     onBeforeNavigate: () => onOpenChange(false),
   });
 
-  const { projects, isLoadingProjects, defaultProjectId } = useUserProjects({
-    enabled: open && !!meeting?.botSession,
+  const {
+    projects,
+    isLoadingProjects,
+    defaultProjectId,
+    setLastUsedProjectId,
+  } = useUserProjects({
+    enabled: open,
   });
 
   const botSession = meeting?.botSession;
@@ -148,6 +153,7 @@ export function MeetingDetailsModal({
 
   const handleConsentAccept = (projectId: string) => {
     if (!meeting) return;
+    setLastUsedProjectId(projectId);
     addBot({
       calendarEventId: meeting.id,
       meetingUrl: meeting.meetingUrl,

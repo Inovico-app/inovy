@@ -10,12 +10,12 @@ interface AddBotSectionProps {
 
 export function AddBotSection({ onAddBot, isAddingBot }: AddBotSectionProps) {
   return (
-    <section aria-labelledby="add-bot-heading">
-      <h3 id="add-bot-heading" className="font-semibold mb-3">
-        Add Bot
+    <section aria-labelledby="add-notetaker-heading">
+      <h3 id="add-notetaker-heading" className="font-semibold mb-3">
+        Add Notetaker Assistant
       </h3>
       <p className="text-sm text-muted-foreground mb-3">
-        Add a recording bot to join this meeting when it starts.
+        Add a notetaker assistant to join this meeting when it starts.
       </p>
       <Button onClick={onAddBot} disabled={isAddingBot}>
         {isAddingBot ? (
@@ -24,7 +24,7 @@ export function AddBotSection({ onAddBot, isAddingBot }: AddBotSectionProps) {
             Adding...
           </>
         ) : (
-          "Add Bot to Meeting"
+          "Add Notetaker Assistant"
         )}
       </Button>
     </section>

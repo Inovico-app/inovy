@@ -45,11 +45,14 @@ export function BotSessionStatusTrigger({
   const hasSession = status !== "no_bot";
   const canOpenDetails = Boolean(hasSession && (sessionId || preloadedSession));
 
-  const { data: fetchedSession, isLoading, error: fetchError } =
-    useBotSessionDetails({
-      sessionId: canOpenDetails && !preloadedSession ? sessionId ?? null : null,
-      enabled: showModal && !preloadedSession,
-    });
+  const {
+    data: fetchedSession,
+    isLoading,
+    error: fetchError,
+  } = useBotSessionDetails({
+    sessionId: canOpenDetails && !preloadedSession ? (sessionId ?? null) : null,
+    enabled: showModal && !preloadedSession,
+  });
 
   if (fetchError) {
     logger.warn("Failed to fetch bot session details", {
@@ -76,7 +79,7 @@ export function BotSessionStatusTrigger({
           type="button"
           onClick={() => setShowModal(true)}
           className="cursor-pointer rounded-md transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          aria-label="View bot session details"
+          aria-label="View notetaker session details"
         >
           {badge}
         </button>
@@ -91,7 +94,5 @@ export function BotSessionStatusTrigger({
     );
   }
 
-  return (
-    <BotStatusBadge status={status} error={error} className={className} />
-  );
+  return <BotStatusBadge status={status} error={error} className={className} />;
 }

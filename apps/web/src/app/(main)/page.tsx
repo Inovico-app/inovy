@@ -9,6 +9,7 @@ import { DashboardUpcomingMeetings } from "@/features/dashboard/components/dashb
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { filterTasksByStatus } from "@/lib/filters/task-filters";
 import { logger } from "@/lib/logger";
+import { getCachedBotSessionsByCalendarEventIds } from "@/server/cache/bot-sessions.cache";
 import { getCachedCalendarMeetings } from "@/server/cache/calendar-meetings.cache";
 import { getCachedDashboardOverview } from "@/server/cache/dashboard.cache";
 import {
@@ -99,9 +100,19 @@ async function DashboardContent() {
       getCachedTaskStats(user.id, organizationId),
       getCachedTasksWithContext(user.id, organizationId),
       getCachedCalendarMeetings(user.id, organizationId, now, endOfDay).catch(
-        () => []
+        () => [],
       ),
     ]);
+
+  // Fetch bot sessions for today's meetings to show notetaker status
+  const calendarEventIds = upcomingMeetings.map((m) => m.id);
+  const botSessionsMap =
+    calendarEventIds.length > 0
+      ? await getCachedBotSessionsByCalendarEventIds(
+          calendarEventIds,
+          organizationId,
+        ).catch(() => new Map())
+      : new Map();
 
   const filteredTasks = filterTasksByStatus(recentTasks, [
     "pending",
@@ -133,7 +144,11 @@ async function DashboardContent() {
         />
 
         {/* Today's meetings */}
-        <DashboardUpcomingMeetings meetings={upcomingMeetings} now={now.getTime()} />
+        <DashboardUpcomingMeetings
+          meetings={upcomingMeetings}
+          botSessionsMap={Object.fromEntries(botSessionsMap)}
+          now={now.getTime()}
+        />
 
         {/* Tasks and recordings side by side */}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
@@ -156,4 +171,3 @@ export default async function Home() {
     </ProtectedPage>
   );
 }
-
