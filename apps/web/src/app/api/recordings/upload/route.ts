@@ -84,6 +84,9 @@ interface UploadMetadata {
 interface TokenPayload extends UploadMetadata {
   userId: string;
   organizationId: string;
+  /** Server-signed blob identity (Azure flow); must match body at upload-complete */
+  blobUrl?: string;
+  pathname?: string;
 }
 
 function getSigningSecret(): string {
@@ -327,6 +330,12 @@ async function validateAndAuthenticate(
     );
   }
 
+  if (metadata.fileSize > MAX_FILE_SIZE) {
+    throw new Error(
+      `File size exceeds maximum of ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB`
+    );
+  }
+
   const resolvedMimeType = resolveFileMimeType(
     metadata.fileMimeType ?? "",
     metadata.fileName
@@ -463,7 +472,14 @@ async function handleAzureUpload(request: NextRequest) {
       pathname: token.pathname,
     });
 
-    const serializedPayload = JSON.stringify(tokenPayload);
+    // Include server-assigned blob identity in signed payload so upload-complete
+    // can verify client-supplied blobUrl/pathname match and trust signed fileSize
+    const signedPayload: TokenPayload = {
+      ...tokenPayload,
+      blobUrl: token.blobUrl,
+      pathname: token.pathname,
+    };
+    const serializedPayload = JSON.stringify(signedPayload);
     const tokenSignature = signPayload(serializedPayload);
 
     return NextResponse.json({
@@ -491,24 +507,29 @@ async function handleAzureUpload(request: NextRequest) {
       throw new Error("Invalid token payload");
     }
 
-    // Verify blob size doesn't exceed limit. Use getBlobProperties when available;
-    // on failure (e.g. SDK verification mismatch for MP4, eventual consistency),
-    // fall back to client-reported fileSize from metadata.
+    // Require server-signed blob identity; reject if client sends different blob
+    if (!payload.blobUrl || !payload.pathname) {
+      throw new Error("Invalid token: missing signed blob identity");
+    }
+    if (body.blobUrl !== payload.blobUrl || body.pathname !== payload.pathname) {
+      throw new Error("Blob URL or pathname does not match signed token");
+    }
+
     const storage = await getStorageProvider();
     let verifiedSize: number | undefined;
     if (storage.getBlobProperties) {
       try {
         const props = await getBlobPropertiesWithRetry(
           storage.getBlobProperties.bind(storage),
-          body.blobUrl,
+          payload.blobUrl,
           5,
-          { initialDelayMs: 2500, pathname: body.pathname ?? undefined }
+          { initialDelayMs: 2500, pathname: payload.pathname }
         );
         verifiedSize = props?.contentLength;
       } catch (verifyError) {
-        logger.warn("getBlobProperties failed; using client-reported fileSize", {
+        logger.warn("getBlobProperties failed; using signed fileSize from token", {
           component: "POST /api/recordings/upload - upload-complete",
-          blobUrl: body.blobUrl,
+          blobUrl: payload.blobUrl,
           error: serializeError(verifyError),
         });
         verifiedSize = payload.fileSize;
@@ -516,14 +537,21 @@ async function handleAzureUpload(request: NextRequest) {
     } else {
       verifiedSize = payload.fileSize;
     }
-    if (verifiedSize != null && verifiedSize > MAX_FILE_SIZE) {
-      await storage.del(body.blobUrl);
+
+    if (verifiedSize == null) {
+      await storage.del(payload.blobUrl);
+      throw new Error(
+        "Cannot verify blob size and no signed size claim available; upload rejected"
+      );
+    }
+    if (verifiedSize > MAX_FILE_SIZE) {
+      await storage.del(payload.blobUrl);
       throw new Error(
         `Uploaded file exceeds maximum size of ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB`
       );
     }
 
-    await processUploadCompleted(body.blobUrl, body.pathname ?? "", payload);
+    await processUploadCompleted(payload.blobUrl, payload.pathname, payload);
 
     return NextResponse.json({ success: true });
   }

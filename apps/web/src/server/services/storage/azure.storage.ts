@@ -74,8 +74,11 @@ function generateBlobSasUrl(
   const credential = getSharedKeyCredential();
   const url = new URL(blobUrl);
   const pathParts = url.pathname.split("/").filter(Boolean);
-  const containerName = pathParts[0]!;
-  const blobName = pathParts.slice(1).join("/");
+  // Decode each segment first so we never double-encode; blobName for SAS must match
+  // the canonical path, and the returned URL path must be encoded exactly once.
+  const decodedParts = pathParts.map((p) => decodeURIComponent(p));
+  const containerName = decodedParts[0]!;
+  const blobName = decodedParts.slice(1).join("/");
 
   const expiresOn = new Date();
   expiresOn.setMinutes(expiresOn.getMinutes() + expiresInMinutes);
@@ -92,12 +95,7 @@ function generateBlobSasUrl(
   ).toString();
 
   const encodedPath =
-    "/" +
-    url.pathname
-      .split("/")
-      .filter(Boolean)
-      .map(encodeURIComponent)
-      .join("/");
+    "/" + decodedParts.map(encodeURIComponent).join("/");
   return `${url.origin}${encodedPath}?${sasToken}`;
 }
 
@@ -158,11 +156,12 @@ export class AzureStorageProvider implements StorageProvider {
     const client = getClient();
     const blobUrl = new URL(url);
     const pathParts = blobUrl.pathname.split("/").filter(Boolean);
-    const containerName = pathParts[0]!;
+    const decodedParts = pathParts.map((p) => decodeURIComponent(p));
+    const containerName = decodedParts[0]!;
     // When pathname is provided, use it directly to avoid URL encoding/decoding mismatches
     // that can cause BlobNotFound (e.g. spaces, special chars in the blob path).
     const blobName =
-      options?.pathname ?? pathParts.slice(1).join("/");
+      options?.pathname ?? decodedParts.slice(1).join("/");
 
     const containerClient = client.getContainerClient(containerName);
     const blobClient = containerClient.getBlobClient(blobName);
