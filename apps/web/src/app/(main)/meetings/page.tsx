@@ -4,9 +4,9 @@ import { NotetakerGuidanceBanner } from "@/features/meetings/components/notetake
 import { PasteMeetingLink } from "@/features/meetings/components/paste-meeting-link";
 
 export const metadata: Metadata = { title: "Meetings" };
-import { GoogleConnectionPrompt } from "@/features/meetings/components/google-connection-prompt";
+import { CalendarConnectionPrompt } from "@/features/meetings/components/calendar-connection-prompt";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { GoogleOAuthService } from "@/server/services/google-oauth.service";
+import { getConnectedProviders } from "@/server/services/calendar/calendar-provider-factory";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -32,28 +32,9 @@ async function MeetingsContent({
     redirect("/sign-in");
   }
 
-  // Check Google Calendar connection status
-  const connectionStatusResult = await GoogleOAuthService.getConnectionStatus(
-    user.id,
-  );
-
-  if (connectionStatusResult.isErr()) {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="max-w-2xl mx-auto rounded-lg border border-destructive bg-destructive/10 p-4">
-          <p className="text-sm text-destructive font-medium mb-2">
-            Failed to check Google Calendar connection
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Please try refreshing the page. If the problem persists, check your
-            connection and try again.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const isGoogleConnected = connectionStatusResult.value.connected;
+  // Check if any calendar provider (Google or Microsoft) is connected
+  const connectedProviders = await getConnectedProviders(user.id);
+  const hasCalendarConnection = connectedProviders.length > 0;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -71,10 +52,10 @@ async function MeetingsContent({
           <PasteMeetingLink />
         </div>
 
-        {isGoogleConnected ? (
+        {hasCalendarConnection ? (
           <CalendarViewComponent />
         ) : (
-          <GoogleConnectionPrompt />
+          <CalendarConnectionPrompt />
         )}
       </div>
     </div>
