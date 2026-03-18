@@ -41,7 +41,7 @@ export function useLiveTranscription({
   const [transcripts, setTranscripts] = useState<TranscriptSegment[]>([]);
   const [currentCaption, setCurrentCaption] = useState<string | undefined>();
   const [transcriptionError, setTranscriptionError] = useState<string | null>(
-    null
+    null,
   );
 
   // Deepgram
@@ -64,18 +64,13 @@ export function useLiveTranscription({
     try {
       const preference = getLiveTranscriptionPreferenceClient();
       setLiveTranscriptionEnabled(preference);
-    } catch (error) {
-      console.error("Failed to load live transcription preference:", error);
+    } catch {
+      // Silently fall back to default
     }
   }, []);
 
   // Effect Event: Handle audio data (no transcription mode)
   const onAudioData = useEffectEvent((e: BlobEvent) => {
-    console.log(
-      "Audio data received (no transcription):",
-      e.data.size,
-      "bytes"
-    );
     if (e.data.size > 0) {
       audioChunksRef.current.push(e.data);
     }
@@ -85,11 +80,6 @@ export function useLiveTranscription({
   const onAudioDataWithTranscription = useEffectEvent((e: BlobEvent) => {
     // iOS SAFARI FIX: Prevent packetZero from being sent
     if (e.data.size > 0) {
-      console.log(
-        "Audio data received (with transcription):",
-        e.data.size,
-        "bytes"
-      );
       // Save audio chunk
       audioChunksRef.current.push(e.data);
       // Stream to Deepgram
@@ -107,8 +97,8 @@ export function useLiveTranscription({
       setCurrentCaption(thisCaption);
     }
 
-    // Add to final transcripts when both flags are true
-    if (isFinal && speechFinal && thisCaption !== "") {
+    // Add to final transcripts when segment is finalized
+    if (isFinal && thisCaption !== "") {
       // Extract speaker info if available
       const words = data.channel.alternatives[0].words;
       const speaker = words && words.length > 0 ? words[0].speaker : undefined;
@@ -139,78 +129,55 @@ export function useLiveTranscription({
   // Effect Event: Start microphone when ready
   const onStartMicrophone = useEffectEvent(() => {
     if (!isPaused && microphone?.state !== "recording") {
-      console.log("Starting microphone, current state:", microphone?.state);
       startMicrophone();
     }
   });
 
   // Main effect: Handle audio data and transcription
   useEffect(() => {
-    if (!microphone) {
-      console.log("No microphone available");
-      return;
-    }
-    if (!isRecording) {
-      console.log("Not recording");
-      return;
-    }
+    if (!microphone) return;
+    if (!isRecording) return;
 
     if (!liveTranscriptionEnabled) {
-      console.log(
-        "Live transcription disabled - setting up audio-only recording"
-      );
       // Audio-only mode
       microphone.addEventListener(MicrophoneEvents.DataAvailable, onAudioData);
 
       // Start microphone if not already started
       if (!isPaused && microphone.state !== "recording") {
-        console.log("Starting microphone (no transcription mode)");
         onStartMicrophone();
       }
 
       return () => {
         microphone.removeEventListener(
           MicrophoneEvents.DataAvailable,
-          onAudioData
+          onAudioData,
         );
       };
     }
 
-    if (!connection) {
-      console.log("No Deepgram connection available yet");
-      return;
-    }
-    if (connectionState !== LiveConnectionState.open) {
-      console.log("Deepgram connection not open yet, state:", connectionState);
-      return;
-    }
-
-    console.log("Setting up live transcription recording");
+    if (!connection) return;
+    if (connectionState !== LiveConnectionState.open) return;
 
     // Transcription mode
     connection.addListener(LiveTranscriptionEvents.Transcript, onTranscript);
     microphone.addEventListener(
       MicrophoneEvents.DataAvailable,
-      onAudioDataWithTranscription
+      onAudioDataWithTranscription,
     );
 
     // Start microphone if not already started
     if (!isPaused && microphone.state !== "recording") {
-      console.log(
-        "Starting microphone (with transcription mode), current state:",
-        microphone.state
-      );
       onStartMicrophone();
     }
 
     return () => {
       connection.removeListener(
         LiveTranscriptionEvents.Transcript,
-        onTranscript
+        onTranscript,
       );
       microphone.removeEventListener(
         MicrophoneEvents.DataAvailable,
-        onAudioDataWithTranscription
+        onAudioDataWithTranscription,
       );
       if (captionTimeout.current) {
         clearTimeout(captionTimeout.current);
@@ -274,10 +241,9 @@ export function useLiveTranscription({
           description: enabled
             ? "Gesproken tekst wordt live getranscribeerd tijdens opname"
             : "Alleen audio wordt opgenomen, zonder live transcriptie",
-        }
+        },
       );
-    } catch (error) {
-      console.error("Failed to update live transcription preference:", error);
+    } catch {
       toast.error("Fout bij opslaan van voorkeuren", {
         description: "Probeer het opnieuw",
       });
@@ -313,4 +279,3 @@ export function useLiveTranscription({
     connectionState,
   };
 }
-

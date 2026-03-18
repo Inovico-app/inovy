@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { LiveWaveform } from "@/components/ui/live-waveform";
+import type { LiveConnectionState } from "@/providers/DeepgramProvider";
 import { BrowserCompatibilityWarning } from "./browser-compatibility-warning";
 import { RecordingControls } from "./recording-controls";
 import { RecordingErrors } from "./recording-errors";
@@ -23,6 +24,7 @@ interface RecordingSectionProps {
   formattedDuration: string;
   audioSource: AudioSourceType;
   compatibility: SystemAudioCompatibility;
+  connectionState: LiveConnectionState;
   isSystemAudioActive?: boolean;
   systemAudioSetupError?: string | null;
   onStart: () => void;
@@ -46,6 +48,7 @@ export function RecordingSection({
   formattedDuration,
   audioSource,
   compatibility,
+  connectionState,
   isSystemAudioActive = false,
   systemAudioSetupError,
   onStart,
@@ -176,10 +179,10 @@ export function RecordingSection({
             isRecording={isRecording}
             liveTranscriptionEnabled={liveTranscriptionEnabled}
             isTranscribing={isTranscribing}
+            connectionState={connectionState}
           />
         </div>
       </div>
     </div>
   );
 }
-

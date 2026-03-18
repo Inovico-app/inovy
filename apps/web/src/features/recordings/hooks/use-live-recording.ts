@@ -55,9 +55,6 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
   });
 
   useInitialAudioSetup({
-    audioSource: options?.audioSource,
-    combinedStream: options?.combinedStream,
-    setupMicrophone,
     stopMicrophone,
     stopSystemAudio,
   });
@@ -80,7 +77,7 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
   const handleStart = useEffectEvent(
     async (
       enableTranscription: boolean,
-      onTranscriptionReady?: () => void | Promise<void>
+      onTranscriptionReady?: () => void | Promise<void>,
     ) => {
       try {
         clearErrors();
@@ -131,7 +128,7 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
 
         if (!finalActiveStream) {
           setRecorderError(
-            "Geen audio stream beschikbaar. Controleer je microfoon of systeemaudio-instellingen."
+            "Geen audio stream beschikbaar. Controleer je microfoon of systeemaudio-instellingen.",
           );
           return;
         }
@@ -184,7 +181,7 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
             setRecorderError(
               event instanceof ErrorEvent && event.error
                 ? event.error.message
-                : "MediaRecorder error occurred"
+                : "MediaRecorder error occurred",
             );
 
             // Release wake lock
@@ -197,7 +194,7 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
                     releaseError instanceof Error
                       ? releaseError
                       : new Error(String(releaseError)),
-                }
+                },
               );
             });
           };
@@ -244,39 +241,45 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
         // Release wake lock if recording failed
         await wakeLock.release();
       }
-    }
+    },
   );
 
   // Handler: Pause recording
   const handlePause = useEffectEvent(() => {
-    const audioSource = options?.audioSource || "microphone";
-    const recorder = options?.combinedStream
-      ? mediaRecorderRef.current
-      : audioSource === "system"
-        ? systemAudio
-        : microphone;
-
-    if (recorder && recorder.state === "recording") {
-      recorder.pause();
-      setIsPaused(true);
-      stopTimer();
+    if (options?.combinedStream && mediaRecorderRef.current) {
+      // Combined stream mode — directly control our own MediaRecorder
+      if (mediaRecorderRef.current.state === "recording") {
+        mediaRecorderRef.current.pause();
+      }
+    } else {
+      // Provider mode — use provider methods to keep state machine in sync
+      const currentAudioSource = options?.audioSource || "microphone";
+      if (currentAudioSource === "system") {
+        stopSystemAudio();
+      } else {
+        stopMicrophone();
+      }
     }
+    setIsPaused(true);
+    stopTimer();
   });
 
   // Handler: Resume recording
   const handleResume = useEffectEvent(() => {
-    const audioSource = options?.audioSource || "microphone";
-    const recorder = options?.combinedStream
-      ? mediaRecorderRef.current
-      : audioSource === "system"
-        ? systemAudio
-        : microphone;
-
-    if (recorder && recorder.state === "paused") {
-      recorder.resume();
-      setIsPaused(false);
-      startTimer();
+    if (options?.combinedStream && mediaRecorderRef.current) {
+      if (mediaRecorderRef.current.state === "paused") {
+        mediaRecorderRef.current.resume();
+      }
+    } else {
+      const currentAudioSource = options?.audioSource || "microphone";
+      if (currentAudioSource === "system") {
+        startSystemAudio();
+      } else {
+        startMicrophone();
+      }
     }
+    setIsPaused(false);
+    startTimer();
   });
 
   // Handler: Stop recording and return audio blob
@@ -360,7 +363,7 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
         error: error instanceof Error ? error : new Error(String(error)),
       });
       setRecorderError(
-        error instanceof Error ? error.message : "Fout bij stoppen van opname"
+        error instanceof Error ? error.message : "Fout bij stoppen van opname",
       );
       throw error;
     } finally {
@@ -409,4 +412,3 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
     wakeLockActive: wakeLock.isActive,
   };
 }
-

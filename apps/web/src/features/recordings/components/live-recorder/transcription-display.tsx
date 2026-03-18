@@ -1,5 +1,5 @@
 import type { TranscriptSegment } from "@/features/recordings/hooks/use-live-transcription";
-import { Mic, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 interface TranscriptionDisplayProps {
@@ -29,7 +29,9 @@ export function TranscriptionDisplay({
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl font-bold tracking-tight">Live Transcription</h2>
+            <h2 className="text-xl font-bold tracking-tight">
+              Live Transcription
+            </h2>
             <p className="text-sm text-muted-foreground">
               Real-time speech-to-text conversion
             </p>
@@ -54,9 +56,6 @@ export function TranscriptionDisplay({
       >
         {transcripts.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-            <div className="p-4 rounded-full bg-muted/50">
-              <Mic className="w-8 h-8 text-muted-foreground" />
-            </div>
             <div className="space-y-1">
               <p className="text-sm font-medium text-foreground">
                 {isRecording
@@ -99,4 +98,3 @@ export function TranscriptionDisplay({
     </div>
   );
 }
-
