@@ -8,6 +8,7 @@ import {
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { CacheInvalidation } from "@/lib/cache-utils";
+import { isValidMeetingUrl } from "@/lib/meeting-url";
 import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
 import { BotSessionsQueries } from "@/server/data-access/bot-sessions.queries";
 import { ProjectQueries } from "@/server/data-access/projects.queries";
@@ -44,54 +45,53 @@ export const addBotToMeeting = authorizedActionClient
       throw ActionErrors.forbidden("Organization context required");
     }
 
-    const { calendarEventId, meetingUrl, meetingTitle, consentGiven, projectId } =
-      parsedInput;
+    const {
+      calendarEventId,
+      meetingUrl,
+      meetingTitle,
+      consentGiven,
+      projectId,
+    } = parsedInput;
 
-    // Validate meeting has Google Meet URL (strict hostname check)
-    let isValidMeetUrl = false;
-    try {
-      const url = new URL(meetingUrl.trim());
-      isValidMeetUrl = url.hostname === "meet.google.com";
-    } catch {
-      isValidMeetUrl = false;
-    }
-
-    if (!meetingUrl?.trim() || !isValidMeetUrl) {
+    // Validate meeting has a supported meeting URL (Google Meet or Microsoft Teams)
+    if (!meetingUrl?.trim() || !isValidMeetingUrl(meetingUrl)) {
       throw ActionErrors.badRequest(
-        "Meeting must have a Google Meet link",
-        "add-bot-to-meeting"
+        "Meeting must have a Google Meet or Microsoft Teams link",
+        "add-bot-to-meeting",
       );
     }
 
     // Check if bot session already exists
-    const existingSession =
-      await BotSessionsQueries.findByCalendarEventId(
-        calendarEventId,
-        organizationId
-      );
+    const existingSession = await BotSessionsQueries.findByCalendarEventId(
+      calendarEventId,
+      organizationId,
+    );
 
     if (existingSession) {
       throw ActionErrors.conflict(
         "Bot is already added to this meeting",
-        "add-bot-to-meeting"
+        "add-bot-to-meeting",
       );
     }
 
     // Get project - use provided projectId or fallback to first active project
     let project;
     if (projectId) {
-      const projectById = await ProjectQueries.findById(projectId, organizationId);
+      const projectById = await ProjectQueries.findById(
+        projectId,
+        organizationId,
+      );
       if (!projectById) {
         throw ActionErrors.badRequest(
           "Selected project not found",
-          "add-bot-to-meeting"
+          "add-bot-to-meeting",
         );
       }
       // Verify project is active
       if (projectById.status !== "active") {
         throw ActionErrors.badRequest(
           "Selected project is not active",
-          "add-bot-to-meeting"
+          "add-bot-to-meeting",
         );
       }
       project = projectById;
@@ -103,7 +103,7 @@ export const addBotToMeeting = authorizedActionClient
       if (!project) {
         throw ActionErrors.badRequest(
           "No active project found. Please create or activate a project first.",
-          "add-bot-to-meeting"
+          "add-bot-to-meeting",
         );
       }
     }
@@ -120,7 +120,7 @@ export const addBotToMeeting = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to load bot settings",
         settingsResult.error,
-        "add-bot-to-meeting"
+        "add-bot-to-meeting",
       );
     }
 
@@ -184,19 +184,22 @@ export const addBotToMeeting = authorizedActionClient
     } catch (insertError) {
       const terminateResult = await provider.terminateSession(providerId);
       if (terminateResult.isErr()) {
-        logger.error("Failed to terminate provider session after DB insert error", {
-          component: "addBotToMeeting",
-          providerId,
-          originalError: insertError,
-          terminateError: terminateResult.error.message,
-        });
+        logger.error(
+          "Failed to terminate provider session after DB insert error",
+          {
+            component: "addBotToMeeting",
+            providerId,
+            originalError: insertError,
+            terminateError: terminateResult.error.message,
+          },
+        );
       }
       throw createErrorForNextSafeAction(
         ActionErrors.internal(
           "Failed to create bot session",
           insertError,
-          "add-bot-to-meeting"
-        )
+          "add-bot-to-meeting",
+        ),
       );
     }
 
@@ -213,7 +216,7 @@ export const addBotToMeeting = authorizedActionClient
         scheduledStartAt: new Date(),
         status: "scheduled",
         meetingUrl: meetingUrl.trim(),
-      }
+      },
     );
 
     if (meetingResult.isOk()) {

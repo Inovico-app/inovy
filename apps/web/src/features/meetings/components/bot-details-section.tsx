@@ -70,7 +70,7 @@ export function BotDetailsSection({
               <Input
                 id="bot-meeting-url"
                 type="url"
-                placeholder="https://meet.google.com/..."
+                placeholder="Meeting URL (Google Meet or Teams)"
                 value={botMeetingUrl}
                 onChange={(e) => onBotMeetingUrlChange(e.target.value)}
                 className="font-mono text-sm"

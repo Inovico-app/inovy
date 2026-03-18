@@ -11,6 +11,7 @@ import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils"
 import { useUserProjects } from "@/features/projects/hooks/use-user-projects";
 import { Loader2, Plus } from "lucide-react";
 import { useState } from "react";
+import { isValidMeetingUrl } from "@/lib/meeting-url";
 import { useAddBotToMeeting } from "../hooks/use-add-bot-to-meeting";
 import { AddBotConsentDialog } from "./add-bot-consent-dialog";
 
@@ -60,8 +61,7 @@ export function AddBotButton({
 
   const isUpcoming = meeting.start > new Date();
   const hasMeetingUrl =
-    meeting.meetingUrl?.trim() &&
-    meeting.meetingUrl.includes("meet.google.com");
+    !!meeting.meetingUrl?.trim() && isValidMeetingUrl(meeting.meetingUrl);
 
   if (!isUpcoming || !hasMeetingUrl) {
     return null;
@@ -87,7 +87,21 @@ export function AddBotButton({
       <TooltipProvider>
         {consentDialog}
         <Tooltip>
-          <TooltipTrigger render={<Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-60 hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); handleAddBot(); }} disabled={isExecuting} aria-label="Add bot to meeting" />}>
+          <TooltipTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddBot();
+                }}
+                disabled={isExecuting}
+                aria-label="Add bot to meeting"
+              />
+            }
+          >
             {isExecuting ? (
               <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
@@ -121,4 +135,3 @@ export function AddBotButton({
     </>
   );
 }
-
