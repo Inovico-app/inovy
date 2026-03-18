@@ -61,11 +61,16 @@ export function getAuthorizationUrl({
 
   const resolvedRedirectUri = redirectUri ?? getMicrosoftRedirectUri();
 
+  // Always include offline_access to ensure we receive a refresh token.
+  // Microsoft does not return it in the token response `scope` field, so
+  // it is excluded from MS_SCOPE_TIERS and added here instead.
+  const allScopes = new Set([...scopes, "offline_access"]);
+
   const params = new URLSearchParams({
     client_id: MICROSOFT_CLIENT_ID!,
     response_type: "code",
     redirect_uri: resolvedRedirectUri,
-    scope: scopes.join(" "),
+    scope: Array.from(allScopes).join(" "),
     response_mode: "query",
     prompt: "consent",
   });

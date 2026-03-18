@@ -109,7 +109,6 @@ export function msTierToDescription(tier: MsScopeTier): string {
 const HUMAN_LABELS = {
   "User.Read": "View your Microsoft account profile",
   "Calendars.Read": "View your Outlook calendar events",
-  offline_access: "Maintain access while you're not using the app",
   "Calendars.ReadWrite": "Create and edit calendar events",
   "OnlineMeetings.ReadWrite": "Create and manage Teams meeting links",
   "Mail.ReadWrite": "Create email drafts in Outlook",
