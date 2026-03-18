@@ -53,9 +53,7 @@ async function MeetingsContent({
     );
   }
 
-  if (!connectionStatusResult.value.connected) {
-    return <GoogleConnectionPrompt />;
-  }
+  const isGoogleConnected = connectionStatusResult.value.connected;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -73,7 +71,11 @@ async function MeetingsContent({
           <PasteMeetingLink />
         </div>
 
-        <CalendarViewComponent />
+        {isGoogleConnected ? (
+          <CalendarViewComponent />
+        ) : (
+          <GoogleConnectionPrompt />
+        )}
       </div>
     </div>
   );

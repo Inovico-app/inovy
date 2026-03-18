@@ -25,10 +25,14 @@ export function useUserProjects({
   });
 
   // Determine default project: last-used > single project > first project
-  const lastUsedProjectId =
-    typeof window !== "undefined"
-      ? localStorage.getItem(LAST_USED_PROJECT_KEY)
-      : null;
+  let lastUsedProjectId: string | null = null;
+  if (typeof window !== "undefined") {
+    try {
+      lastUsedProjectId = localStorage.getItem(LAST_USED_PROJECT_KEY);
+    } catch {
+      // localStorage may be unavailable in restricted environments
+    }
+  }
 
   const defaultProjectId =
     projects.find((p) => p.id === lastUsedProjectId)?.id ??

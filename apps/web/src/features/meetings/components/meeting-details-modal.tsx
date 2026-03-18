@@ -82,6 +82,7 @@ export function MeetingDetailsModal({
     projects,
     isLoadingProjects,
     defaultProjectId,
+    hasOnlyOneProject,
     setLastUsedProjectId,
   } = useUserProjects({
     enabled: open,
@@ -148,6 +149,19 @@ export function MeetingDetailsModal({
 
   const handleAddBot = () => {
     if (!meeting) return;
+
+    // Fast path: skip dialog when there's only one project
+    if (hasOnlyOneProject && defaultProjectId) {
+      setLastUsedProjectId(defaultProjectId);
+      addBot({
+        calendarEventId: meeting.id,
+        meetingUrl: meeting.meetingUrl,
+        meetingTitle: meeting.title,
+        projectId: defaultProjectId,
+      });
+      return;
+    }
+
     setIsConsentDialogOpen(true);
   };
 

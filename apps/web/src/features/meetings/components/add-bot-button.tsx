@@ -18,6 +18,7 @@ import { AddBotConsentDialog } from "./add-bot-consent-dialog";
 interface AddBotButtonProps {
   meeting: MeetingWithSession;
   variant?: "button" | "icon";
+  onSuccess?: () => void;
 }
 
 /**
@@ -27,6 +28,7 @@ interface AddBotButtonProps {
 export function AddBotButton({
   meeting,
   variant = "button",
+  onSuccess,
 }: AddBotButtonProps) {
   const [isConsentDialogOpen, setIsConsentDialogOpen] = useState(false);
   const [pendingMeeting, setPendingMeeting] =
@@ -45,17 +47,18 @@ export function AddBotButton({
       setPendingMeeting(meeting);
       setIsConsentDialogOpen(true);
     },
+    onSuccess,
   });
 
   const handleAddBot = () => {
     // One-click: skip dialog when there's only one project
+    // Omit consentGiven so the server-side requirePerMeetingConsent check applies
     if (hasOnlyOneProject && defaultProjectId) {
       setLastUsedProjectId(defaultProjectId);
       execute({
         calendarEventId: meeting.id,
         meetingUrl: meeting.meetingUrl,
         meetingTitle: meeting.title,
-        consentGiven: true,
         projectId: defaultProjectId,
       });
       return;

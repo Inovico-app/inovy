@@ -15,7 +15,7 @@ async function BotSettingsContentWrapper() {
     return (
       <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
         <p className="text-sm text-destructive">
-          Failed to load bot settings. Please try again.
+          Failed to load notetaker settings. Please try again.
         </p>
       </div>
     );
@@ -50,7 +50,7 @@ async function BotSettingsContentWrapper() {
     return (
       <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
         <p className="text-sm text-destructive">
-          Failed to load bot settings. Please try again.
+          Failed to load notetaker settings. Please try again.
         </p>
       </div>
     );

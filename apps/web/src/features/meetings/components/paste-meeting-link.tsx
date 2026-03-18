@@ -18,6 +18,7 @@ import { useAddNotetakerByUrl } from "../hooks/use-add-notetaker-by-url";
 export function PasteMeetingLink() {
   const [meetingUrl, setMeetingUrl] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
 
   const {
     projects,
@@ -30,6 +31,7 @@ export function PasteMeetingLink() {
   const { execute, isExecuting } = useAddNotetakerByUrl({
     onSuccess: () => {
       setMeetingUrl("");
+      setHasAttemptedSubmit(false);
     },
   });
 
@@ -39,11 +41,14 @@ export function PasteMeetingLink() {
   );
 
   const effectiveProjectId = selectedProjectId || defaultProjectId || "";
-  const isValidUrl = meetingUrl.trim() !== "" && isValidMeetingUrl(meetingUrl);
+  const hasInput = meetingUrl.trim() !== "";
+  const isValidUrl = hasInput && isValidMeetingUrl(meetingUrl);
+  const showUrlError = hasAttemptedSubmit && hasInput && !isValidUrl;
   const canSubmit = isValidUrl && effectiveProjectId && !isExecuting;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setHasAttemptedSubmit(true);
     if (!canSubmit) return;
 
     setLastUsedProjectId(effectiveProjectId);
@@ -54,47 +59,65 @@ export function PasteMeetingLink() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-2">
-      <div className="relative flex-1">
-        <LinkIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="url"
-          placeholder="Paste a Google Meet or Teams link to add a notetaker..."
-          value={meetingUrl}
-          onChange={(e) => setMeetingUrl(e.target.value)}
-          className="pl-9"
-          disabled={isExecuting}
-        />
-      </div>
-      {!hasOnlyOneProject && projects.length > 1 && (
-        <Select
-          value={effectiveProjectId}
-          onValueChange={(value) => setSelectedProjectId(value ?? "")}
-          disabled={isLoadingProjects || isExecuting}
-          items={projectItems}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Project" />
-          </SelectTrigger>
-          <SelectContent>
-            {projects.map((project) => (
-              <SelectItem key={project.id} value={project.id}>
-                {project.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-      <Button type="submit" disabled={!canSubmit} size="default">
-        {isExecuting ? (
-          <>
-            <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
-            Adding...
-          </>
-        ) : (
-          "Add Notetaker"
+    <form onSubmit={handleSubmit} className="space-y-2">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <LinkIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="url"
+            placeholder="Paste a Google Meet or Teams link to add a notetaker..."
+            value={meetingUrl}
+            onChange={(e) => {
+              setMeetingUrl(e.target.value);
+              if (hasAttemptedSubmit) setHasAttemptedSubmit(false);
+            }}
+            className="pl-9"
+            disabled={isExecuting}
+            aria-label="Meeting URL"
+            aria-invalid={showUrlError}
+            aria-describedby={showUrlError ? "meeting-url-error" : undefined}
+          />
+        </div>
+        {!hasOnlyOneProject && projects.length > 1 && (
+          <Select
+            value={effectiveProjectId}
+            onValueChange={(value) => setSelectedProjectId(value ?? "")}
+            disabled={isLoadingProjects || isExecuting}
+            items={projectItems}
+            aria-label="Project"
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Project" />
+            </SelectTrigger>
+            <SelectContent>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
-      </Button>
+        <Button type="submit" disabled={!canSubmit} size="default">
+          {isExecuting ? (
+            <>
+              <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+              Adding...
+            </>
+          ) : (
+            "Add Notetaker"
+          )}
+        </Button>
+      </div>
+      {showUrlError && (
+        <p
+          id="meeting-url-error"
+          role="alert"
+          className="text-sm text-destructive"
+        >
+          Please enter a valid Google Meet or Microsoft Teams link
+        </p>
+      )}
     </form>
   );
 }

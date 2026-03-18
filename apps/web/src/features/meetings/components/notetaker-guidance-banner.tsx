@@ -9,7 +9,11 @@ const DISMISSED_KEY = "inovy:notetaker-guidance-dismissed";
 export function NotetakerGuidanceBanner() {
   const [isDismissed, setIsDismissed] = useState(() => {
     if (typeof window === "undefined") return false;
-    return localStorage.getItem(DISMISSED_KEY) === "true";
+    try {
+      return localStorage.getItem(DISMISSED_KEY) === "true";
+    } catch {
+      return false;
+    }
   });
 
   if (isDismissed) return null;

@@ -89,7 +89,7 @@ export const addNotetakerByUrl = authorizedActionClient
     if (sessionResult.isErr()) {
       logger.error("Failed to create notetaker session from URL", {
         userId: user.id,
-        meetingUrl,
+        projectId: project.id,
         error: sessionResult.error.message,
       });
       throw createErrorForNextSafeAction(sessionResult.error);

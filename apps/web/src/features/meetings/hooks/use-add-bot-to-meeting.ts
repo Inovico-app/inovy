@@ -63,7 +63,7 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
       }
 
       if (!result?.data) {
-        throw new Error("Failed to add bot to meeting");
+        throw new Error("Failed to add notetaker to meeting");
       }
 
       return result.data;

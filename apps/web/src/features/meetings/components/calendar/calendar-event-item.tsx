@@ -31,7 +31,7 @@ export function CalendarEventItem({
   const botSession = meeting.botSession;
   const isPast = meeting.end <= new Date();
   const hasRecording = !!(botSession?.recordingId && botSession?.projectId);
-  const NoBotFallback = (
+  const NoNotetakerFallback = (
     <span className="text-xs text-muted-foreground">No notetaker</span>
   );
 
@@ -90,7 +90,7 @@ export function CalendarEventItem({
             )}
           </>
         ) : isPast ? (
-          NoBotFallback
+          NoNotetakerFallback
         ) : (
           <div
             role="group"
@@ -197,7 +197,7 @@ export function CalendarEventItem({
             )}
           </>
         ) : isPast ? (
-          NoBotFallback
+          NoNotetakerFallback
         ) : (
           <AddBotButton meeting={meeting} variant="icon" />
         )}

@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { AddBotButton } from "@/features/meetings/components/add-bot-button";
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
@@ -11,6 +13,7 @@ import {
   VideoIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface DashboardUpcomingMeetingsProps {
   meetings: CalendarEvent[];
@@ -63,6 +66,7 @@ function MeetingCard({
   botSession?: BotSession;
   isNext: boolean;
 }) {
+  const router = useRouter();
   const attendeeCount = meeting.attendees?.length ?? 0;
   const startDate = new Date(meeting.start);
   const endDate = new Date(meeting.end);
@@ -111,7 +115,11 @@ function MeetingCard({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {!botSession && (
-            <AddBotButton meeting={meetingWithSession} variant="icon" />
+            <AddBotButton
+              meeting={meetingWithSession}
+              variant="icon"
+              onSuccess={() => router.refresh()}
+            />
           )}
           {meeting.meetingUrl && (
             <Button

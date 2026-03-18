@@ -14,9 +14,9 @@ interface UseRemoveBotFromMeetingOptions {
 }
 
 /**
- * Hook for removing a bot from a meeting
+ * Hook for removing a notetaker from a meeting
  * Supports both calendarEventId (meetings UI) and sessionId (bot sessions page)
- * Invalidates bot sessions cache on success (client-side React Query)
+ * Invalidates notetaker sessions cache on success (client-side React Query)
  */
 export function useRemoveBotFromMeeting(
   options?: UseRemoveBotFromMeetingOptions,

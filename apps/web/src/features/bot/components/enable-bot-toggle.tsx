@@ -21,7 +21,7 @@ interface EnableBotToggleProps {
 }
 
 /**
- * Enable/disable bot toggle component with consent dialog
+ * Enable/disable notetaker toggle component with consent dialog
  */
 export function EnableBotToggle({ settings, onUpdate }: EnableBotToggleProps) {
   const [isConsentDialogOpen, setIsConsentDialogOpen] = useState(false);
