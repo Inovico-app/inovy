@@ -199,7 +199,7 @@ export function CalendarEventItem({
         ) : isPast ? (
           NoNotetakerFallback
         ) : (
-          <AddBotButton meeting={meeting} variant="icon" />
+          <AddBotButton meeting={meeting} variant="button" />
         )}
       </div>
     </div>

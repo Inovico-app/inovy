@@ -114,7 +114,7 @@ export function AddBotButton({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+                className="h-7 w-7 shrink-0 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleAddBot();
@@ -125,9 +125,9 @@ export function AddBotButton({
             }
           >
             {isExecuting ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <Plus className="h-3 w-3" />
+              <Plus className="h-3.5 w-3.5" />
             )}
           </TooltipTrigger>
           <TooltipContent>Add notetaker to meeting</TooltipContent>
