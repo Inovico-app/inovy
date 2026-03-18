@@ -29,6 +29,7 @@ import {
   MeetingDetailsFormSection,
   type MeetingDetailsFormData,
 } from "./meeting-details-form-section";
+import { RemoveBotConfirmDialog } from "./remove-bot-confirm-dialog";
 
 const EDITABLE_BOT_STATUSES = ["scheduled", "failed"] as const;
 
@@ -47,6 +48,10 @@ export function MeetingDetailsModal({
 }: MeetingDetailsModalProps) {
   const [botMeetingUrl, setBotMeetingUrl] = useState("");
   const [isConsentDialogOpen, setIsConsentDialogOpen] = useState(false);
+  const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+  const [pendingRemoveSessionId, setPendingRemoveSessionId] = useState<
+    string | null
+  >(null);
 
   const { updateMeetingDetails, isUpdating } = useUpdateMeetingDetails({
     onSuccess,
@@ -62,6 +67,8 @@ export function MeetingDetailsModal({
   const { execute: removeBot, isExecuting: isRemovingBot } =
     useRemoveBotFromMeeting({
       onSuccess: () => {
+        setIsRemoveDialogOpen(false);
+        setPendingRemoveSessionId(null);
         onOpenChange(false);
         onSuccess?.();
       },
@@ -183,7 +190,13 @@ export function MeetingDetailsModal({
   };
 
   const handleRemoveBot = (sessionId: string) => {
-    removeBot({ sessionId });
+    setPendingRemoveSessionId(sessionId);
+    setIsRemoveDialogOpen(true);
+  };
+
+  const handleConfirmRemove = () => {
+    if (!pendingRemoveSessionId) return;
+    removeBot({ sessionId: pendingRemoveSessionId });
   };
 
   if (!meeting) {
@@ -201,6 +214,16 @@ export function MeetingDetailsModal({
 
   return (
     <>
+      <RemoveBotConfirmDialog
+        open={isRemoveDialogOpen}
+        onOpenChange={(open) => {
+          setIsRemoveDialogOpen(open);
+          if (!open) setPendingRemoveSessionId(null);
+        }}
+        onConfirm={handleConfirmRemove}
+        meetingTitle={meeting.title}
+        isRemoving={isRemovingBot}
+      />
       <AddBotConsentDialog
         open={isConsentDialogOpen}
         onOpenChange={(open) => {
