@@ -1,42 +1,52 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Calendar, List } from "lucide-react";
-import type { CalendarView } from "./calendar-header";
+import type { CalendarView } from "@/features/meetings/lib/calendar-utils";
+import {
+  CalendarIcon,
+  CalendarDaysIcon,
+  BriefcaseIcon,
+  ClockIcon,
+  ListIcon,
+} from "lucide-react";
 
 interface CalendarViewToggleProps {
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
 }
 
+const VIEW_OPTIONS: Array<{
+  value: CalendarView;
+  label: string;
+  icon: React.ElementType;
+}> = [
+  { value: "day", label: "Day", icon: ClockIcon },
+  { value: "work-week", label: "Work Week", icon: BriefcaseIcon },
+  { value: "week", label: "Week", icon: CalendarDaysIcon },
+  { value: "month", label: "Month", icon: CalendarIcon },
+  { value: "list", label: "List", icon: ListIcon },
+];
+
 export function CalendarViewToggle({
   view,
   onViewChange,
 }: CalendarViewToggleProps) {
   return (
-    <div className="flex items-center gap-2">
-      <Button
-        variant={view === "month" ? "default" : "outline"}
-        size="sm"
-        onClick={() => onViewChange("month")}
-        className={view !== "month" ? "gap-2 cursor-pointer" : "gap-2"}
-        aria-label="Calendar view"
-        aria-pressed={view === "month"}
-      >
-        <Calendar className="h-4 w-4" />
-        Calendar
-      </Button>
-      <Button
-        variant={view === "list" ? "default" : "outline"}
-        size="sm"
-        onClick={() => onViewChange("list")}
-        className={view !== "list" ? "gap-2 cursor-pointer" : "gap-2"}
-        aria-label="List view"
-        aria-pressed={view === "list"}
-      >
-        <List className="h-4 w-4" />
-        List
-      </Button>
+    <div className="flex items-center rounded-lg border bg-muted/30 p-0.5">
+      {VIEW_OPTIONS.map(({ value, label, icon: Icon }) => (
+        <Button
+          key={value}
+          variant={view === value ? "default" : "ghost"}
+          size="sm"
+          onClick={() => onViewChange(value)}
+          className="gap-1.5 h-7 px-2.5 text-xs"
+          aria-label={`${label} view`}
+          aria-pressed={view === value}
+        >
+          <Icon className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">{label}</span>
+        </Button>
+      ))}
     </div>
   );
 }

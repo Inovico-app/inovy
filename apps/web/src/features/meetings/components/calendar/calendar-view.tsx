@@ -1,14 +1,19 @@
 "use client";
 
 import { useIsMobile } from "@/hooks/use-media-query";
-import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
+import type {
+  CalendarView,
+  MeetingWithSession,
+} from "@/features/meetings/lib/calendar-utils";
+import { getVisibleDates } from "@/features/meetings/lib/calendar-utils";
 import { useCalendarViewState } from "@/features/meetings/hooks/use-calendar-view-state";
 import { AnimatePresence, motion } from "motion/react";
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { MeetingDetailsModal } from "../meeting-details-modal";
 import { MeetingsList } from "../meetings/meetings-list";
 import { CalendarGrid } from "./calendar-grid";
-import { CalendarHeader, type CalendarView } from "./calendar-header";
+import { CalendarHeader } from "./calendar-header";
+import { CalendarTimeGrid } from "./calendar-time-grid";
 import type { MeetingBotStatusFilter } from "@/features/meetings/lib/calendar-utils";
 
 interface CalendarViewProps {
@@ -22,6 +27,10 @@ export function CalendarViewComponent(props: CalendarViewProps) {
       <CalendarViewInner {...props} />
     </Suspense>
   );
+}
+
+function isTimeGridView(view: CalendarView): boolean {
+  return view === "day" || view === "week" || view === "work-week";
 }
 
 function CalendarViewInner({
@@ -46,8 +55,8 @@ function CalendarViewInner({
     filteredCount,
     totalCount,
     viewContainerRef,
-    handlePreviousMonth,
-    handleNextMonth,
+    handlePrevious,
+    handleNext,
     handleToday,
     handleDayClick,
     handleViewChange,
@@ -57,13 +66,30 @@ function CalendarViewInner({
     handleClearFilters,
   } = useCalendarViewState({ initialDate, initialSelectedStatus, isMobile });
 
-  // On mobile, always force list view — the 7-column calendar grid can't fit
-  const effectiveView = isMobile ? "list" : (view as CalendarView);
+  const effectiveView = view;
 
   const handleMeetingClick = (meeting: MeetingWithSession) => {
     setSelectedMeeting(meeting);
     setMeetingModalOpen(true);
   };
+
+  // Compute dates for time-grid views
+  const timeGridDates = useMemo(() => {
+    if (!isTimeGridView(effectiveView)) return [];
+    return getVisibleDates(currentDate, effectiveView);
+  }, [effectiveView, currentDate]);
+
+  const loadingPlaceholder = (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      className="rounded-lg border bg-card p-8 text-center text-muted-foreground"
+    >
+      <span className="sr-only">Loading calendar…</span>
+      Loading calendar...
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -72,8 +98,8 @@ function CalendarViewInner({
         view={effectiveView}
         onViewChange={handleViewChange}
         isMobile={isMobile}
-        onPreviousMonth={handlePreviousMonth}
-        onNextMonth={handleNextMonth}
+        onPrevious={handlePrevious}
+        onNext={handleNext}
         onToday={handleToday}
         selectedStatus={selectedStatus}
         onStatusChange={handleStatusChange}
@@ -95,15 +121,7 @@ function CalendarViewInner({
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
               {isLoading ? (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  aria-busy="true"
-                  className="rounded-lg border bg-card p-8 text-center text-muted-foreground"
-                >
-                  <span className="sr-only">Loading calendar…</span>
-                  Loading calendar...
-                </div>
+                loadingPlaceholder
               ) : (
                 <CalendarGrid
                   currentDate={currentDate}
@@ -114,6 +132,7 @@ function CalendarViewInner({
               )}
             </motion.div>
           )}
+
           {effectiveView === "list" && (
             <motion.div
               key="list-view"
@@ -123,15 +142,7 @@ function CalendarViewInner({
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
               {isLoading ? (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  aria-busy="true"
-                  className="rounded-lg border bg-card p-8 text-center text-muted-foreground"
-                >
-                  <span className="sr-only">Loading meetings…</span>
-                  Loading meetings...
-                </div>
+                loadingPlaceholder
               ) : loadMoreResult ? (
                 <MeetingsList
                   meetings={loadMoreResult.meetings}
@@ -148,30 +159,24 @@ function CalendarViewInner({
               ) : null}
             </motion.div>
           )}
-          {effectiveView === "week" && (
+
+          {isTimeGridView(effectiveView) && (
             <motion.div
-              key="week-view"
+              key={`${effectiveView}-view`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-                Week view coming soon
-              </div>
-            </motion.div>
-          )}
-          {effectiveView === "day" && (
-            <motion.div
-              key="day-view"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
-              <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-                Day view coming soon
-              </div>
+              {isLoading ? (
+                loadingPlaceholder
+              ) : (
+                <CalendarTimeGrid
+                  dates={timeGridDates}
+                  meetings={calendarFilteredMeetings}
+                  onMeetingClick={handleMeetingClick}
+                />
+              )}
             </motion.div>
           )}
         </AnimatePresence>

@@ -1,14 +1,18 @@
 import type { BotSession, BotStatus } from "@/server/db/schema/bot-sessions";
 import type { CalendarEvent } from "@/server/services/google-calendar.service";
 import {
+  addDays,
   addMonths,
   differenceInMinutes,
   eachDayOfInterval,
+  endOfDay,
   endOfMonth,
   endOfWeek,
   format,
   isSameMonth,
+  isSameYear,
   isToday,
+  startOfDay,
   startOfMonth,
   startOfWeek,
   subMonths,
@@ -48,7 +52,7 @@ export function getMonthRange(date: Date): { start: Date; end: Date } {
  */
 export function getPaddedMonthRange(
   date: Date,
-  paddingMonths: number = 2
+  paddingMonths: number = 2,
 ): { start: Date; end: Date } {
   const paddedStart = subMonths(startOfMonth(date), paddingMonths);
   const paddedEnd = endOfMonth(addMonths(date, paddingMonths));
@@ -68,7 +72,7 @@ export function getPaddedMonthRange(
 export function getCalendarDays(
   year: number,
   month: number,
-  weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6 = 0
+  weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6 = 0,
 ): CalendarDay[] {
   const monthStart = new Date(year, month, 1);
   const monthEnd = endOfMonth(monthStart);
@@ -92,7 +96,7 @@ export function getCalendarDays(
  * Group meetings by date (YYYY-MM-DD key)
  */
 export function groupMeetingsByDate(
-  meetings: CalendarEvent[]
+  meetings: CalendarEvent[],
 ): Map<string, CalendarEvent[]> {
   const grouped = new Map<string, CalendarEvent[]>();
 
@@ -111,7 +115,7 @@ export function groupMeetingsByDate(
  */
 export function matchMeetingsWithSessions(
   meetings: CalendarEvent[],
-  sessions: Map<string, BotSession>
+  sessions: Map<string, BotSession>,
 ): MeetingWithSession[] {
   return meetings.map((meeting) => {
     const session = sessions.get(meeting.id);
@@ -238,7 +242,7 @@ const VALID_BOT_STATUS_FILTERS: MeetingBotStatusFilter[] = [
  * Validate and normalize bot status filter parameter
  */
 export function validateBotStatus(
-  status: string | undefined
+  status: string | undefined,
 ): MeetingBotStatusFilter {
   if (!status) {
     return "all";
@@ -250,7 +254,7 @@ export function validateBotStatus(
 
 export function getMeetingBotStatus(
   meeting: CalendarEvent,
-  botSession?: BotSession
+  botSession?: BotSession,
 ): MeetingBotStatus {
   if (!botSession) {
     return "no_bot";
@@ -277,7 +281,7 @@ function assertUnreachable(value: never): never {
  */
 function meetingMatchesFilter(
   meeting: MeetingWithSession,
-  filter: MeetingBotStatusFilter
+  filter: MeetingBotStatusFilter,
 ): boolean {
   const status = getMeetingBotStatus(meeting, meeting.botSession);
 
@@ -304,7 +308,7 @@ function meetingMatchesFilter(
  */
 export function filterMeetingsByBotStatus(
   meetings: MeetingWithSession[],
-  status: MeetingBotStatusFilter
+  status: MeetingBotStatusFilter,
 ): MeetingWithSession[] {
   if (status === "all") {
     return meetings;
@@ -316,7 +320,7 @@ export function filterMeetingsByBotStatus(
  * Sort meetings chronologically (earliest first)
  */
 export function sortMeetingsChronologically(
-  meetings: MeetingWithSession[]
+  meetings: MeetingWithSession[],
 ): MeetingWithSession[] {
   return [...meetings].sort((a, b) => {
     return a.start.getTime() - b.start.getTime();
@@ -327,11 +331,106 @@ export function sortMeetingsChronologically(
  * Sort meetings reverse chronologically (most recent first)
  */
 export function sortMeetingsReverseChronologically(
-  meetings: MeetingWithSession[]
+  meetings: MeetingWithSession[],
 ): MeetingWithSession[] {
   return [...meetings].sort((a, b) => {
     return b.start.getTime() - a.start.getTime();
   });
+}
+
+/**
+ * Calendar view types
+ */
+export type CalendarView = "day" | "work-week" | "week" | "month" | "list";
+
+/**
+ * Get start and end of a single day
+ */
+export function getDayRange(date: Date): { start: Date; end: Date } {
+  return { start: startOfDay(date), end: endOfDay(date) };
+}
+
+/**
+ * Get start and end of a week (Sunday–Saturday)
+ */
+export function getWeekRange(date: Date): { start: Date; end: Date } {
+  return {
+    start: startOfWeek(date, { weekStartsOn: 0 }),
+    end: endOfWeek(date, { weekStartsOn: 0 }),
+  };
+}
+
+/**
+ * Get start and end of a work week (Monday–Friday)
+ */
+export function getWorkWeekRange(date: Date): { start: Date; end: Date } {
+  const monday = startOfWeek(date, { weekStartsOn: 1 });
+  const friday = endOfDay(addDays(monday, 4));
+  return { start: monday, end: friday };
+}
+
+/**
+ * Get the visible date range for a given calendar view
+ */
+export function getVisibleRange(
+  date: Date,
+  view: CalendarView,
+): { start: Date; end: Date } {
+  switch (view) {
+    case "day":
+      return getDayRange(date);
+    case "week":
+      return getWeekRange(date);
+    case "work-week":
+      return getWorkWeekRange(date);
+    case "month":
+    case "list":
+      return getMonthRange(date);
+  }
+}
+
+/**
+ * Get the array of dates to display in a time-grid view
+ */
+export function getVisibleDates(date: Date, view: CalendarView): Date[] {
+  switch (view) {
+    case "day":
+      return [startOfDay(date)];
+    case "week":
+      return eachDayOfInterval(getWeekRange(date));
+    case "work-week":
+      return eachDayOfInterval(getWorkWeekRange(date));
+    default:
+      return [];
+  }
+}
+
+/**
+ * Format week range for display (e.g., "Mar 15 – 21, 2026" or "Dec 29, 2025 – Jan 4, 2026")
+ */
+export function formatWeekRange(date: Date): string {
+  const { start, end } = getWeekRange(date);
+  if (isSameMonth(start, end)) {
+    return `${format(start, "MMM d")} – ${format(end, "d, yyyy")}`;
+  }
+  if (isSameYear(start, end)) {
+    return `${format(start, "MMM d")} – ${format(end, "MMM d, yyyy")}`;
+  }
+  return `${format(start, "MMM d, yyyy")} – ${format(end, "MMM d, yyyy")}`;
+}
+
+/**
+ * Format work week range for display
+ */
+export function formatWorkWeekRange(date: Date): string {
+  const { start, end } = getWorkWeekRange(date);
+  if (isSameMonth(start, end)) {
+    return `${format(start, "MMM d")} – ${format(end, "d, yyyy")}`;
+  }
+  if (isSameYear(start, end)) {
+    return `${format(start, "MMM d")} – ${format(end, "MMM d, yyyy")}`;
+  }
+  return `${format(start, "MMM d, yyyy")} – ${format(end, "MMM d, yyyy")}`;
 }
 
 export type TimePeriod = "upcoming" | "past";
@@ -341,7 +440,7 @@ export type TimePeriod = "upcoming" | "past";
  */
 export function filterMeetingsByTimePeriod(
   meetings: MeetingWithSession[],
-  timePeriod: TimePeriod
+  timePeriod: TimePeriod,
 ): MeetingWithSession[] {
   const now = new Date();
   switch (timePeriod) {
@@ -355,4 +454,3 @@ export function filterMeetingsByTimePeriod(
     }
   }
 }
-

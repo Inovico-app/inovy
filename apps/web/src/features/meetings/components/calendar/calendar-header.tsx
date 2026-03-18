@@ -2,27 +2,32 @@
 
 import { Button } from "@/components/ui/button";
 import type {
+  CalendarView,
   MeetingBotStatusFilter,
   TimePeriod,
 } from "@/features/meetings/lib/calendar-utils";
 import {
   formatDateRange,
   formatMonthYear,
+  formatWeekRange,
+  formatWorkWeekRange,
 } from "@/features/meetings/lib/calendar-utils";
+import { format } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
 import { CreateEventDialog } from "../create-event-dialog";
 import { MeetingsFilter } from "../meetings/meetings-filter";
 import { MeetingsTimePeriodToggle } from "../meetings/meetings-time-period-toggle";
 import { CalendarViewToggle } from "./calendar-view-toggle";
-export type CalendarView = "month" | "week" | "day" | "list";
+
+export type { CalendarView };
 
 interface CalendarHeaderProps {
   currentDate: Date;
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
-  onPreviousMonth: () => void;
-  onNextMonth: () => void;
+  onPrevious: () => void;
+  onNext: () => void;
   onToday: () => void;
   selectedStatus: MeetingBotStatusFilter;
   onStatusChange: (status: MeetingBotStatusFilter) => void;
@@ -35,12 +40,39 @@ interface CalendarHeaderProps {
   isMobile?: boolean;
 }
 
+function getHeading(date: Date, view: CalendarView): string {
+  switch (view) {
+    case "day":
+      return format(date, "EEEE, MMMM d, yyyy");
+    case "week":
+      return formatWeekRange(date);
+    case "work-week":
+      return formatWorkWeekRange(date);
+    case "month":
+    case "list":
+      return formatMonthYear(date);
+  }
+}
+
+function getNavLabel(view: CalendarView): { prev: string; next: string } {
+  switch (view) {
+    case "day":
+      return { prev: "Previous day", next: "Next day" };
+    case "week":
+    case "work-week":
+      return { prev: "Previous week", next: "Next week" };
+    case "month":
+    case "list":
+      return { prev: "Previous month", next: "Next month" };
+  }
+}
+
 export function CalendarHeader({
   currentDate,
   view,
   onViewChange,
-  onPreviousMonth,
-  onNextMonth,
+  onPrevious,
+  onNext,
   onToday,
   selectedStatus,
   onStatusChange,
@@ -53,6 +85,7 @@ export function CalendarHeader({
   isMobile = false,
 }: CalendarHeaderProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const navLabels = getNavLabel(view);
 
   return (
     <>
@@ -66,23 +99,23 @@ export function CalendarHeader({
               <Button
                 variant="outline"
                 size="icon"
-                onClick={onPreviousMonth}
-                aria-label="Previous month"
+                onClick={onPrevious}
+                aria-label={navLabels.prev}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button
                 variant="outline"
                 size="icon"
-                onClick={onNextMonth}
-                aria-label="Next month"
+                onClick={onNext}
+                aria-label={navLabels.next}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
             <div>
               <h2 className="text-xl font-semibold">
-                {formatMonthYear(currentDate)}
+                {getHeading(currentDate, view)}
               </h2>
               {view === "list" && (
                 <p className="text-xs text-muted-foreground">
@@ -126,4 +159,3 @@ export function CalendarHeader({
     </>
   );
 }
-
