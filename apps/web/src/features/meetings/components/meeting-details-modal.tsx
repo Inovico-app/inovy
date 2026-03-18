@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { BotStatusBadge } from "@/features/bot/components/bot-status-badge";
+import { isValidMeetingUrl } from "@/lib/meeting-url";
 import { useUserProjects } from "@/features/projects/hooks/use-user-projects";
 import { ClipboardList, Loader2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -94,12 +95,11 @@ export function MeetingDetailsModal({
   const canEditBot =
     botSession &&
     EDITABLE_BOT_STATUSES.includes(
-      botSession.botStatus as (typeof EDITABLE_BOT_STATUSES)[number]
+      botSession.botStatus as (typeof EDITABLE_BOT_STATUSES)[number],
     );
   const isUpcoming = meeting ? meeting.start > new Date() : false;
   const hasMeetingUrl =
-    meeting?.meetingUrl?.trim() &&
-    meeting.meetingUrl.includes("meet.google.com");
+    !!meeting?.meetingUrl?.trim() && isValidMeetingUrl(meeting.meetingUrl);
 
   const handleMeetingDetailsSubmit = (data: MeetingDetailsFormData) => {
     if (!meeting) return;
@@ -122,10 +122,12 @@ export function MeetingDetailsModal({
     const trimmed = botMeetingUrl.trim();
     try {
       const url = new URL(
-        trimmed.startsWith("http") ? trimmed : `https://${trimmed}`
+        trimmed.startsWith("http") ? trimmed : `https://${trimmed}`,
       );
-      if (url.hostname !== "meet.google.com") {
-        toast.error("Meeting URL must be a Google Meet link");
+      if (!isValidMeetingUrl(url.href)) {
+        toast.error(
+          "Meeting URL must be a Google Meet or Microsoft Teams link",
+        );
         return;
       }
     } catch {
