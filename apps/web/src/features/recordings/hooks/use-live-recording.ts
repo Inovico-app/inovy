@@ -123,9 +123,6 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
           (currentAudioSource === "system"
             ? (sysStreamFromSetup ?? systemAudioStream)
             : (micStreamFromSetup ?? microphoneStream));
-        const finalActiveRecorder =
-          currentAudioSource === "system" ? systemAudio : microphone;
-
         if (!finalActiveStream) {
           setRecorderError(
             "Geen audio stream beschikbaar. Controleer je microfoon of systeemaudio-instellingen.",
@@ -141,11 +138,16 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
           });
           mediaRecorderRef.current = recorder;
 
-          recorder.ondataavailable = (event) => {
-            if (event.data.size > 0) {
-              audioChunksRef.current.push(event.data);
-            }
-          };
+          // Only set ondataavailable for audio-only mode.
+          // When transcription is enabled, useLiveTranscription's DataAvailable
+          // handler both saves chunks and sends to Deepgram.
+          if (!enableTranscription) {
+            recorder.ondataavailable = (event) => {
+              if (event.data.size > 0) {
+                audioChunksRef.current.push(event.data);
+              }
+            };
+          }
 
           recorder.onerror = (event) => {
             logger.error("MediaRecorder error", {
@@ -208,24 +210,22 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
         // Request wake lock to prevent screen from locking during recording
         await wakeLock.request();
 
-        // Start the appropriate recorder based on audio source
+        // Connect to Deepgram first (if transcription enabled), then start recorder.
+        // Deepgram must be connected before the recorder starts so the
+        // useLiveTranscription effect can add its DataAvailable listener.
+        if (enableTranscription && onTranscriptionReady) {
+          await onTranscriptionReady();
+        }
+
+        // Start the appropriate recorder
         if (options?.combinedStream && mediaRecorderRef.current) {
-          // Using combined stream - start our own MediaRecorder
           mediaRecorderRef.current.start(250);
-        } else {
-          // Using provider's recorder
-          if (currentAudioSource === "system") {
-            if (finalActiveRecorder) {
-              startSystemAudio();
-            }
-          } else {
-            // Microphone or both (both uses microphone's recorder)
-            if (!enableTranscription) {
-              startMicrophone();
-            } else if (onTranscriptionReady) {
-              await onTranscriptionReady();
-            }
-          }
+        } else if (currentAudioSource === "system") {
+          startSystemAudio();
+        } else if (!enableTranscription) {
+          // Mic-only without transcription — start directly.
+          // With transcription, useLiveTranscription's effect starts it.
+          startMicrophone();
         }
       } catch (error) {
         logger.error("Error starting recording", {
@@ -392,8 +392,8 @@ export function useLiveRecording(options?: UseLiveRecordingOptions) {
     permissionDenied,
     setRecorderError,
 
-    // Audio sources
-    microphone: currentActiveRecorder,
+    // Audio sources — use combined recorder when active, otherwise provider's recorder
+    microphone: mediaRecorderRef.current ?? currentActiveRecorder,
     stream: currentActiveStream,
     startMicrophone:
       currentAudioSource === "system" ? startSystemAudio : startMicrophone,
