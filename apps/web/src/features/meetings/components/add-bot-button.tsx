@@ -81,11 +81,11 @@ export function AddBotButton({
     setPendingMeeting(null);
   };
 
-  const isUpcoming = meeting.start > new Date();
+  const hasNotEnded = meeting.end > new Date();
   const hasMeetingUrl =
     !!meeting.meetingUrl?.trim() && isValidMeetingUrl(meeting.meetingUrl);
 
-  if (!isUpcoming || !hasMeetingUrl) {
+  if (!hasNotEnded || !hasMeetingUrl) {
     return null;
   }
 

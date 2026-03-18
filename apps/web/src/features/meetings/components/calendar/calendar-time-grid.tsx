@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { format, isToday } from "date-fns";
 import { useRef } from "react";
-import { CalendarTimeEvent } from "./calendar-time-event";
+import { CalendarEventItem } from "./calendar-event-item";
 
 interface CalendarTimeGridProps {
   dates: Date[];
@@ -76,7 +76,7 @@ export function CalendarTimeGrid({
       <div
         ref={scrollRef}
         className="overflow-y-auto"
-        style={{ maxHeight: "calc(100vh - 280px)" }}
+        style={{ maxHeight: "calc(100vh - 200px)" }}
       >
         <div
           className="grid relative"
@@ -147,17 +147,30 @@ export function CalendarTimeGrid({
 
                 {/* Events */}
                 <div className="absolute inset-0 px-0.5">
-                  {layouts.map((layout) => (
-                    <CalendarTimeEvent
-                      key={layout.meeting.id}
-                      meeting={layout.meeting}
-                      top={layout.top}
-                      height={layout.height}
-                      column={layout.column}
-                      totalColumns={layout.totalColumns}
-                      onMeetingClick={onMeetingClick}
-                    />
-                  ))}
+                  {layouts.map((layout) => {
+                    const leftPercent =
+                      (layout.column / layout.totalColumns) * 100;
+                    const widthPercent = (1 / layout.totalColumns) * 100;
+
+                    return (
+                      <div
+                        key={layout.meeting.id}
+                        className="absolute"
+                        style={{
+                          top: `${layout.top}px`,
+                          height: `${layout.height}px`,
+                          left: `${leftPercent}%`,
+                          width: `calc(${widthPercent}% - 2px)`,
+                        }}
+                      >
+                        <CalendarEventItem
+                          meeting={layout.meeting}
+                          compact
+                          onMeetingClick={onMeetingClick}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
