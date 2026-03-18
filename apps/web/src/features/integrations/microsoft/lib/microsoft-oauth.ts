@@ -1,6 +1,6 @@
 import { OAuthBaseService } from "@/server/services/oauth/oauth-base.service";
 import { MS_SCOPE_TIERS, type MsScopeTier } from "./scope-constants";
-import { mergeWithExistingScopes } from "./scope-utils";
+import { mergeWithExistingScopes, normalizeMsScopes } from "./scope-utils";
 
 /**
  * Microsoft OAuth Configuration
@@ -142,7 +142,9 @@ export async function exchangeCodeForTokens(
     accessToken: data.access_token,
     refreshToken: data.refresh_token,
     expiresAt,
-    scopes: data.scope ? data.scope.split(" ") : [...MS_SCOPE_TIERS.base],
+    scopes: data.scope
+      ? normalizeMsScopes(data.scope.split(" "))
+      : [...MS_SCOPE_TIERS.base],
   };
 }
 
