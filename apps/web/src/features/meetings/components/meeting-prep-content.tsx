@@ -7,19 +7,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Save, ListChecks, StickyNote, Zap } from "lucide-react";
 import { AgendaBuilder } from "./agenda-builder";
 import { MeetingHeader } from "./meeting-header";
-import { PostActionConfig } from "./post-action-config";
 import { useMeetingActions } from "../hooks/use-meeting-actions";
 import type { Meeting } from "@/server/db/schema/meetings";
 import type { MeetingAgendaItem } from "@/server/db/schema/meeting-agenda-items";
 import type { MeetingNote } from "@/server/db/schema/meeting-notes";
-import type { MeetingPostAction } from "@/server/db/schema/meeting-post-actions";
 import type { MeetingAgendaTemplate } from "@/server/db/schema/meeting-agenda-templates";
 
 interface MeetingPrepContentProps {
   meeting: Meeting;
   agendaItems: MeetingAgendaItem[];
   preNotes: MeetingNote | null;
-  postActions: MeetingPostAction[];
   templates: MeetingAgendaTemplate[];
 }
 
@@ -54,7 +51,6 @@ export function MeetingPrepContent({
   meeting,
   agendaItems,
   preNotes,
-  postActions,
   templates,
 }: MeetingPrepContentProps) {
   const [notes, setNotes] = useState(preNotes?.content ?? "");
@@ -121,20 +117,24 @@ export function MeetingPrepContent({
         </Card>
       </section>
 
-      {/* Section 3: Post-Meeting Actions */}
-      <section>
+      {/* Section 3: Post-Meeting Actions (Coming Soon) */}
+      <section className="opacity-60">
         <SectionHeader
           step={3}
           icon={Zap}
           title="Post-Meeting Actions"
           description="Configure what happens automatically after the meeting ends."
         />
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="pt-6">
-            <PostActionConfig
-              meetingId={meeting.id}
-              postActions={postActions}
-            />
+        <Card className="border-border/60 shadow-sm border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-3">
+              <Zap className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-medium">Coming soon</p>
+            <p className="mt-1 text-sm text-muted-foreground max-w-sm">
+              Automated post-meeting actions like email summaries, task
+              extraction, and follow-up scheduling are on the way.
+            </p>
           </CardContent>
         </Card>
       </section>
