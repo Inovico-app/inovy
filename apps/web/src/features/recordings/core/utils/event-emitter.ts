@@ -1,9 +1,13 @@
 import type { Unsubscribe } from "../recording-session.types";
 
-type EventMap = Record<string, unknown[]>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Listener = (...args: any[]) => void;
 
-export class TypedEventEmitter<T extends EventMap> {
-  private listeners = new Map<keyof T, Set<(...args: never[]) => void>>();
+export class TypedEventEmitter<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends Record<keyof T, any[]>,
+> {
+  private listeners = new Map<keyof T, Set<Listener>>();
 
   on<K extends keyof T>(
     event: K,
@@ -13,9 +17,9 @@ export class TypedEventEmitter<T extends EventMap> {
       this.listeners.set(event, new Set());
     }
     const set = this.listeners.get(event)!;
-    set.add(listener as (...args: never[]) => void);
+    set.add(listener as Listener);
     return () => {
-      set.delete(listener as (...args: never[]) => void);
+      set.delete(listener as Listener);
     };
   }
 
