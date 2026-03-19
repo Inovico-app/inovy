@@ -109,15 +109,35 @@ export class RecordingSession {
   }
 
   async start(): Promise<void> {
-    if (!this.transition("initializing")) return;
+    console.log(
+      "[RecordingSession] start() called, current status:",
+      this.state.status,
+    );
+    if (!this.transition("initializing")) {
+      console.warn(
+        "[RecordingSession] start: transition to initializing BLOCKED from status:",
+        this.state.status,
+      );
+      return;
+    }
+
+    console.log("[RecordingSession] start: initializing audio capture...");
 
     // Initialize audio capture
     const initResult = await this.deps.audioCapture.initialize();
 
     if (initResult.isErr()) {
+      console.error(
+        "[RecordingSession] start: audio capture init failed",
+        initResult.error,
+      );
       this.transitionToError(initResult.error);
       return;
     }
+
+    console.log(
+      "[RecordingSession] start: audio capture ready, initializing persistence...",
+    );
 
     // Initialize chunk persistence
     const persistInitResult = await this.deps.chunkPersistence.initialize(
@@ -132,9 +152,17 @@ export class RecordingSession {
     );
 
     if (persistInitResult.isErr()) {
+      console.error(
+        "[RecordingSession] start: persistence init failed",
+        persistInitResult.error,
+      );
       this.transitionToError(persistInitResult.error);
       return;
     }
+
+    console.log(
+      "[RecordingSession] start: persistence ready, transitioning to recording...",
+    );
 
     // Set up chunk routing and error handling BEFORE starting capture
     this.setupChunkRouting();
@@ -148,6 +176,7 @@ export class RecordingSession {
 
     // Transition to recording NOW — user can start talking immediately
     this.transition("recording");
+    console.log("[RecordingSession] start: now RECORDING");
 
     // Connect live transcription in the BACKGROUND (non-blocking).
     // Transcription is a UX preview, not critical. If it fails, recording
