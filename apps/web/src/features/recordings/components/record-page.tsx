@@ -169,7 +169,7 @@ export function RecordPage({
   if (consentGiven && effectiveProjectId) {
     return (
       <>
-        <RecordingSession key={configKey} config={sessionConfig} />
+        <RecordingSession key={configKey} config={sessionConfig} autoStart />
         <ConsentBanner
           isOpen={showConsentBanner}
           onConsentGranted={handleConsentGranted}

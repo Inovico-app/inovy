@@ -17,14 +17,27 @@ import { TranscriptionPanel } from "./transcription-panel";
 
 interface RecordingSessionProps {
   config: UseRecordingSessionConfig;
+  autoStart?: boolean;
 }
 
-export function RecordingSession({ config }: RecordingSessionProps) {
+export function RecordingSession({
+  config,
+  autoStart = false,
+}: RecordingSessionProps) {
   const router = useRouter();
   const session = useRecordingSession(config);
+  const autoStartedRef = useRef(false);
 
   // Track which warnings we've already shown
   const shownWarningsRef = useRef(new Set<string>());
+
+  // Auto-start recording on mount if requested
+  useEffect(() => {
+    if (autoStart && session.status === "idle" && !autoStartedRef.current) {
+      autoStartedRef.current = true;
+      void session.start();
+    }
+  }, [autoStart, session.status, session.start]);
 
   // Navigate on completion
   useEffect(() => {
