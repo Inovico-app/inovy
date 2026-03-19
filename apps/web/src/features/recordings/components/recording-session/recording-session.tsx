@@ -60,9 +60,10 @@ export function RecordingSession({
     return () => clearTimeout(timer);
   }, [autoStart, session.start]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Show spinner only during the initial auto-start window (before FSM transitions)
-  const showAutoStartSpinner =
-    autoStart && session.status === "idle" && !autoStartFired.current;
+  // When autoStart was used (even if already fired), hide the idle start button
+  // so the user never sees the double-mic screen. After error→reset, onDiscard
+  // unmounts this component entirely, so this flag doesn't cause issues.
+  const hideIdleStartButton = autoStart;
 
   // Navigate on completion
   useEffect(() => {
@@ -174,7 +175,7 @@ export function RecordingSession({
                   status={session.status}
                   duration={session.duration}
                   errorIsRecoverable={session.error?.recoverable ?? false}
-                  autoStarting={showAutoStartSpinner}
+                  autoStarting={hideIdleStartButton}
                   onStart={session.start}
                   onPause={session.pause}
                   onResume={session.resume}
