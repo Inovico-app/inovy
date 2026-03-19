@@ -25,10 +25,13 @@ const EXTENSION_TO_MIME: Record<string, (typeof ALLOWED_MIME_TYPES)[number]> = {
 
 function resolveFileMimeType(
   fileMimeType: string,
-  fileName: string
+  fileName: string,
 ): (typeof ALLOWED_MIME_TYPES)[number] {
   const trimmed = fileMimeType?.trim();
-  if (trimmed && ALLOWED_MIME_TYPES.includes(trimmed as (typeof ALLOWED_MIME_TYPES)[number])) {
+  if (
+    trimmed &&
+    ALLOWED_MIME_TYPES.includes(trimmed as (typeof ALLOWED_MIME_TYPES)[number])
+  ) {
     return trimmed as (typeof ALLOWED_MIME_TYPES)[number];
   }
   const ext = path.extname(fileName).toLowerCase();
@@ -37,7 +40,7 @@ function resolveFileMimeType(
   throw new Error(
     trimmed
       ? `Unsupported file type: ${trimmed}`
-      : `Could not determine file type for ${fileName}. Supported: mp4, m4a, mp3, wav, webm`
+      : `Could not determine file type for ${fileName}. Supported: mp4, m4a, mp3, wav, webm`,
   );
 }
 
@@ -89,7 +92,9 @@ interface TokenPayload extends UploadMetadata {
 function getSigningSecret(): string {
   const secret = process.env.UPLOAD_TOKEN_SECRET ?? process.env.CRON_SECRET;
   if (!secret) {
-    throw new Error("UPLOAD_TOKEN_SECRET or CRON_SECRET must be set for Azure upload flow");
+    throw new Error(
+      "UPLOAD_TOKEN_SECRET or CRON_SECRET must be set for Azure upload flow",
+    );
   }
   return secret;
 }
@@ -118,11 +123,11 @@ function isRetryableError(err: unknown): boolean {
 async function getBlobPropertiesWithRetry(
   getBlobProperties: (
     url: string,
-    options?: { pathname?: string }
+    options?: { pathname?: string },
   ) => Promise<{ contentLength?: number; contentType?: string }>,
   blobUrl: string,
   maxAttempts = 3,
-  options?: { initialDelayMs?: number; pathname?: string }
+  options?: { initialDelayMs?: number; pathname?: string },
 ): Promise<{ contentLength?: number; contentType?: string }> {
   const initialDelayMs = options?.initialDelayMs ?? 0;
   if (initialDelayMs > 0) {
@@ -157,7 +162,8 @@ async function getBlobPropertiesWithRetry(
 async function processUploadCompleted(
   blobUrl: string,
   blobPathname: string,
-  payload: TokenPayload
+  payload: TokenPayload,
+  duration: number | null = null,
 ) {
   logger.info("Upload completed, processing recording", {
     component: "POST /api/recordings/upload - processUploadCompleted",
@@ -173,7 +179,7 @@ async function processUploadCompleted(
       fileName: payload.fileName,
       fileSize: payload.fileSize,
       fileMimeType: payload.fileMimeType,
-      duration: null,
+      duration,
       recordingDate: new Date(payload.recordingDate),
       recordingMode: payload.recordingMode,
       transcriptionStatus: "pending",
@@ -187,7 +193,7 @@ async function processUploadCompleted(
           ? new Date(payload.consentGivenAt)
           : null,
     },
-    false
+    false,
   );
 
   if (result.isErr()) {
@@ -203,7 +209,7 @@ async function processUploadCompleted(
     throw new Error(
       result.error.code === "FORBIDDEN"
         ? result.error.message
-        : "Failed to create recording"
+        : "Failed to create recording",
     );
   }
 
@@ -236,13 +242,13 @@ async function processUploadCompleted(
             payload.userId,
             payload.organizationId,
             ipAddress,
-            userAgent
-          )
-        )
+            userAgent,
+          ),
+        ),
       );
 
       const successful = consentResults.filter(
-        (r) => r.status === "fulfilled" && r.value.isOk()
+        (r) => r.status === "fulfilled" && r.value.isOk(),
       ).length;
       const failed = consentResults.length - successful;
 
@@ -300,7 +306,7 @@ async function processUploadCompleted(
  * Returns the token payload with user/org info.
  */
 async function validateAndAuthenticate(
-  metadata: UploadMetadata
+  metadata: UploadMetadata,
 ): Promise<TokenPayload> {
   const authResult = await getBetterAuthSession();
 
@@ -323,18 +329,18 @@ async function validateAndAuthenticate(
     metadata.fileSize == null
   ) {
     throw new Error(
-      "Missing required metadata: projectId, title, recordingDate, fileName, or fileSize"
+      "Missing required metadata: projectId, title, recordingDate, fileName, or fileSize",
     );
   }
 
   const resolvedMimeType = resolveFileMimeType(
     metadata.fileMimeType ?? "",
-    metadata.fileName
+    metadata.fileName,
   );
 
   const project = await ProjectQueries.findById(
     metadata.projectId,
-    organization.id
+    organization.id,
   );
   if (!project) {
     throw new Error("Project not found");
@@ -432,6 +438,7 @@ async function handleAzureUpload(request: NextRequest) {
     pathname?: string;
     tokenPayload?: string;
     tokenSignature?: string;
+    duration?: number;
   };
 
   if (body.action === "generate-token") {
@@ -481,7 +488,9 @@ async function handleAzureUpload(request: NextRequest) {
     }
 
     if (!verifySignedPayload(body.tokenPayload, body.tokenSignature)) {
-      throw new Error("Invalid token signature — payload may have been tampered with");
+      throw new Error(
+        "Invalid token signature — payload may have been tampered with",
+      );
     }
 
     let payload: TokenPayload;
@@ -502,15 +511,18 @@ async function handleAzureUpload(request: NextRequest) {
           storage.getBlobProperties.bind(storage),
           body.blobUrl,
           5,
-          { initialDelayMs: 2500, pathname: body.pathname ?? undefined }
+          { initialDelayMs: 2500, pathname: body.pathname ?? undefined },
         );
         verifiedSize = props?.contentLength;
       } catch (verifyError) {
-        logger.warn("getBlobProperties failed; using client-reported fileSize", {
-          component: "POST /api/recordings/upload - upload-complete",
-          blobUrl: body.blobUrl,
-          error: serializeError(verifyError),
-        });
+        logger.warn(
+          "getBlobProperties failed; using client-reported fileSize",
+          {
+            component: "POST /api/recordings/upload - upload-complete",
+            blobUrl: body.blobUrl,
+            error: serializeError(verifyError),
+          },
+        );
         verifiedSize = payload.fileSize;
       }
     } else {
@@ -519,11 +531,28 @@ async function handleAzureUpload(request: NextRequest) {
     if (verifiedSize != null && verifiedSize > MAX_FILE_SIZE) {
       await storage.del(body.blobUrl);
       throw new Error(
-        `Uploaded file exceeds maximum size of ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB`
+        `Uploaded file exceeds maximum size of ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB`,
       );
     }
 
-    await processUploadCompleted(body.blobUrl, body.pathname ?? "", payload);
+    // Use server-verified blob size instead of client-reported fileSize
+    // (live recordings report fileSize: 0 at token generation time)
+    if (verifiedSize != null && verifiedSize > 0) {
+      payload.fileSize = verifiedSize;
+    }
+
+    // Accept client-reported duration (seconds) for live recordings
+    const clientDuration =
+      typeof body.duration === "number" && body.duration > 0
+        ? Math.round(body.duration)
+        : null;
+
+    await processUploadCompleted(
+      body.blobUrl,
+      body.pathname ?? "",
+      payload,
+      clientDuration,
+    );
 
     return NextResponse.json({ success: true });
   }
@@ -553,7 +582,7 @@ export const POST = withRateLimit(
           error:
             error instanceof Error ? error.message : "Unknown error occurred",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
   },
@@ -571,8 +600,7 @@ export const POST = withRateLimit(
       authResult.value.user
       ? authResult.value.user.id
       : null;
-  }
+  },
 );
 
 export const maxDuration = 300;
-

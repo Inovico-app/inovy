@@ -25,6 +25,7 @@ export interface ChunkPersistenceConfig {
     blobUrl: string;
     pathname: string;
     fileSize: number;
+    duration: number;
     metadata: SessionMetadata;
   }) => Promise<{ recordingId: string }>;
 }
@@ -212,13 +213,18 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
             ),
         ),
       )
-      .andThen(() =>
+      .andThen(() => {
+        // Compute duration before notifying server
+        const wallClockDuration = (Date.now() - this.manifest.startedAt) / 1000;
+        const computedDuration = actualDuration ?? wallClockDuration;
+
         // Notify server (blobUrl/pathname are set after SAS token resolves)
-        ResultAsync.fromPromise(
+        return ResultAsync.fromPromise(
           this.config.onUploadComplete({
             blobUrl: this.blobUrl ?? "",
             pathname: this.pathname ?? "",
             fileSize: this.manifest.totalBytes,
+            duration: computedDuration,
             metadata,
           }),
           (error) =>
@@ -227,8 +233,8 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
               "Failed to notify server of upload completion",
               { cause: error },
             ),
-        ),
-      )
+        );
+      })
       .andThen((uploadResult) =>
         // Clean up IndexedDB
         ResultAsync.fromPromise(

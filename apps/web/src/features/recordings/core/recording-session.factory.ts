@@ -134,6 +134,7 @@ export function createRecordingSession(
           action: "upload-complete",
           blobUrl: params.blobUrl,
           pathname: params.pathname,
+          duration: params.duration,
           // Send the EXACT signed payload from generate-token — not a new one
           tokenPayload: signedTokenPayload,
           tokenSignature: signedTokenSignature,
