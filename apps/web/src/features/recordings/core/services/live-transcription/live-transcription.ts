@@ -1,0 +1,447 @@
+import {
+  createClient,
+  type LiveClient,
+  LiveTranscriptionEvents,
+} from "@deepgram/sdk";
+import { ResultAsync } from "neverthrow";
+
+import { createTranscriptionError } from "../../recording-session.errors";
+import type { TranscriptionError } from "../../recording-session.errors";
+import type {
+  AudioChunk,
+  ConnectionStatus,
+  TranscriptionConfig,
+  TranscriptSegment,
+  Unsubscribe,
+} from "../../recording-session.types";
+import { TypedEventEmitter } from "../../utils/event-emitter";
+import type { LiveTranscriptionService } from "./live-transcription.interface";
+import { processDeepgramTranscript } from "./transcript-processor";
+
+// ---------------------------------------------------------------------------
+// Config
+// ---------------------------------------------------------------------------
+
+export interface LiveTranscriptionDeps {
+  /** Server action callback that returns a short-lived Deepgram API token. */
+  getToken: () => Promise<string>;
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const CONNECTION_TIMEOUT_MS = 5_000;
+const KEEP_ALIVE_INTERVAL_MS = 8_000;
+const TOKEN_TTL_MS = 600_000; // Deepgram tokens last ~600s
+const TOKEN_REFRESH_BUFFER_MS = 60_000;
+const TOKEN_REFRESH_MS = TOKEN_TTL_MS - TOKEN_REFRESH_BUFFER_MS; // 540s
+const MAX_RECONNECT_ATTEMPTS = 3;
+const RECONNECT_DELAYS_MS = [1_000, 2_000, 4_000];
+
+// ---------------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------------
+
+interface TranscriptionEvents {
+  segment: [TranscriptSegment];
+  statusChange: [ConnectionStatus];
+}
+
+// ---------------------------------------------------------------------------
+// Implementation
+// ---------------------------------------------------------------------------
+
+export class LiveTranscriptionServiceImpl implements LiveTranscriptionService {
+  private readonly deps: LiveTranscriptionDeps;
+  private readonly emitter = new TypedEventEmitter<TranscriptionEvents>();
+
+  private connection: LiveClient | null = null;
+  private status: ConnectionStatus = "disconnected";
+  private segments: TranscriptSegment[] = [];
+
+  private keepAliveTimer: ReturnType<typeof setInterval> | null = null;
+  private tokenRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastChunkTime = 0;
+  private explicitDisconnect = false;
+  private isRefreshing = false;
+  private currentConfig: TranscriptionConfig | null = null;
+
+  constructor(deps: LiveTranscriptionDeps) {
+    this.deps = deps;
+  }
+
+  // -----------------------------------------------------------------------
+  // Public API
+  // -----------------------------------------------------------------------
+
+  connect(config: TranscriptionConfig): ResultAsync<void, TranscriptionError> {
+    this.explicitDisconnect = false;
+    this.currentConfig = config;
+
+    return this.doConnect(config);
+  }
+
+  disconnect(): void {
+    this.explicitDisconnect = true;
+    this.cleanup();
+    this.setStatus("disconnected");
+  }
+
+  sendChunk(chunk: AudioChunk): void {
+    if (this.status !== "connected" || !this.connection) return;
+
+    this.connection.send(chunk.data);
+    this.lastChunkTime = Date.now();
+    this.resetKeepAliveTimer();
+  }
+
+  onSegment(callback: (segment: TranscriptSegment) => void): Unsubscribe {
+    return this.emitter.on("segment", callback);
+  }
+
+  onStatusChange(callback: (status: ConnectionStatus) => void): Unsubscribe {
+    return this.emitter.on("statusChange", callback);
+  }
+
+  getStatus(): ConnectionStatus {
+    return this.status;
+  }
+
+  getSegments(): TranscriptSegment[] {
+    return [...this.segments];
+  }
+
+  // -----------------------------------------------------------------------
+  // Private — connection lifecycle
+  // -----------------------------------------------------------------------
+
+  private doConnect(
+    config: TranscriptionConfig,
+  ): ResultAsync<void, TranscriptionError> {
+    this.setStatus("connecting");
+
+    return ResultAsync.fromPromise(
+      this.connectAsync(config),
+      (err) => err as TranscriptionError,
+    );
+  }
+
+  private async connectAsync(config: TranscriptionConfig): Promise<void> {
+    // 1. Request token
+    let token: string;
+    try {
+      token = await this.deps.getToken();
+    } catch (cause) {
+      this.setStatus("disconnected");
+      throw createTranscriptionError(
+        "TOKEN_ERROR",
+        "Failed to obtain Deepgram token",
+        {
+          severity: "warning",
+          recoverable: true,
+          cause,
+        },
+      );
+    }
+
+    // 2. Create client & live connection
+    // Temporary tokens must be passed via { accessToken } — passing as a bare
+    // string makes the SDK treat it as an API key, which won't work for
+    // short-lived tokens generated by deepgram.auth.grantToken().
+    const client = createClient({ accessToken: token });
+    // When sending container formats (WebM/Opus, MP4/AAC) from MediaRecorder,
+    // Deepgram auto-detects encoding from the container. Only specify encoding
+    // and sample_rate when sending raw PCM data.
+    // Match the proven options from the old DeepgramProvider
+    const deepgramOptions = {
+      model: config.model,
+      language: config.language,
+      smart_format: true,
+      diarize: config.enableDiarization,
+      punctuate: true,
+      utterances: true,
+      interim_results: config.interimResults,
+    };
+
+    const conn = client.listen.live(deepgramOptions);
+    this.connection = conn;
+
+    // 3. Wait for open (or timeout / error)
+    await new Promise<void>((resolve, reject) => {
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+      let settled = false;
+
+      const settle = () => {
+        if (settled) return;
+        settled = true;
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        conn.removeListener(LiveTranscriptionEvents.Open, onOpen);
+        conn.removeListener(LiveTranscriptionEvents.Error, onError);
+        conn.removeListener(LiveTranscriptionEvents.Close, onClose);
+      };
+
+      const onOpen = () => {
+        settle();
+        this.setStatus("connected");
+        resolve();
+      };
+
+      const onError = (err: unknown) => {
+        settle();
+        this.connection = null;
+        this.setStatus("disconnected");
+        reject(
+          createTranscriptionError(
+            "WEBSOCKET_ERROR",
+            "Deepgram WebSocket error during connect",
+            {
+              severity: "warning",
+              recoverable: true,
+              cause: err,
+            },
+          ),
+        );
+      };
+
+      const onClose = () => {
+        settle();
+        this.connection = null;
+        this.setStatus("disconnected");
+        reject(
+          createTranscriptionError(
+            "CONNECTION_FAILED",
+            "Deepgram connection closed before open",
+            {
+              severity: "warning",
+              recoverable: true,
+            },
+          ),
+        );
+      };
+
+      conn.addListener(LiveTranscriptionEvents.Open, onOpen);
+      conn.addListener(LiveTranscriptionEvents.Error, onError);
+      conn.addListener(LiveTranscriptionEvents.Close, onClose);
+
+      timeoutId = setTimeout(() => {
+        settle();
+        conn.requestClose();
+        this.connection = null;
+        this.setStatus("disconnected");
+        reject(
+          createTranscriptionError(
+            "CONNECTION_FAILED",
+            "Deepgram connection timed out after 10 seconds",
+            {
+              severity: "warning",
+              recoverable: true,
+            },
+          ),
+        );
+      }, CONNECTION_TIMEOUT_MS);
+    });
+
+    // 4. Attach persistent event listeners
+    this.attachPersistentListeners(conn);
+
+    // 5. Start keep-alive & token refresh timers
+    this.startKeepAliveTimer();
+    this.startTokenRefreshTimer();
+  }
+
+  private attachPersistentListeners(conn: LiveClient): void {
+    // Capture the connection reference so stale connections don't trigger
+    // reconnect loops when a newer connection has already replaced them.
+    const thisConn = conn;
+
+    conn.addListener(LiveTranscriptionEvents.Transcript, (data: unknown) => {
+      if (this.connection !== thisConn) return; // stale connection
+      this.handleTranscriptEvent(data);
+    });
+
+    conn.addListener(LiveTranscriptionEvents.Close, () => {
+      if (this.connection !== thisConn) return; // stale connection
+      this.handleUnexpectedClose();
+    });
+
+    conn.addListener(LiveTranscriptionEvents.Error, () => {
+      if (this.connection !== thisConn) return; // stale connection
+      this.handleUnexpectedClose();
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Private — event handlers
+  // -----------------------------------------------------------------------
+
+  private handleTranscriptEvent(data: unknown): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const segment = processDeepgramTranscript(data as any);
+    if (!segment) return;
+
+    // Only accumulate final segments
+    if (segment.isFinal) {
+      this.segments.push(segment);
+    }
+
+    this.emitter.emit("segment", segment);
+  }
+
+  private handleUnexpectedClose(): void {
+    console.warn("[LiveTranscription] Unexpected close/error", {
+      explicitDisconnect: this.explicitDisconnect,
+      isRefreshing: this.isRefreshing,
+      status: this.status,
+    });
+
+    if (this.explicitDisconnect) return;
+    if (this.isRefreshing) return;
+    if (this.status === "reconnecting" || this.status === "failed") return;
+
+    this.clearTimers();
+    this.connection = null;
+    this.attemptReconnect(0);
+  }
+
+  // -----------------------------------------------------------------------
+  // Private — reconnection
+  // -----------------------------------------------------------------------
+
+  private attemptReconnect(attempt: number): void {
+    if (this.explicitDisconnect) return;
+
+    if (attempt >= MAX_RECONNECT_ATTEMPTS) {
+      this.setStatus("failed");
+      return;
+    }
+
+    this.setStatus("reconnecting");
+
+    const delay = RECONNECT_DELAYS_MS[attempt] ?? 4_000;
+
+    setTimeout(async () => {
+      if (this.explicitDisconnect) return;
+
+      try {
+        const config = this.currentConfig;
+        if (!config) {
+          this.setStatus("failed");
+          return;
+        }
+
+        await this.connectAsync(config);
+
+        // Re-check after async connect — disconnect() may have been called while connecting
+        if (this.explicitDisconnect) {
+          this.connection?.requestClose();
+          this.connection = null;
+          this.setStatus("disconnected");
+        }
+      } catch {
+        if (!this.explicitDisconnect) {
+          this.attemptReconnect(attempt + 1);
+        }
+      }
+    }, delay);
+  }
+
+  // -----------------------------------------------------------------------
+  // Private — keep-alive
+  // -----------------------------------------------------------------------
+
+  private startKeepAliveTimer(): void {
+    this.clearKeepAliveTimer();
+    this.lastChunkTime = Date.now();
+
+    this.keepAliveTimer = setInterval(() => {
+      if (!this.connection || this.status !== "connected") return;
+
+      const elapsed = Date.now() - this.lastChunkTime;
+      if (elapsed >= KEEP_ALIVE_INTERVAL_MS) {
+        this.connection.keepAlive();
+      }
+    }, KEEP_ALIVE_INTERVAL_MS);
+  }
+
+  private resetKeepAliveTimer(): void {
+    // Reset by updating lastChunkTime — the interval checks elapsed time
+    this.lastChunkTime = Date.now();
+  }
+
+  private clearKeepAliveTimer(): void {
+    if (this.keepAliveTimer) {
+      clearInterval(this.keepAliveTimer);
+      this.keepAliveTimer = null;
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Private — token refresh
+  // -----------------------------------------------------------------------
+
+  private startTokenRefreshTimer(): void {
+    this.clearTokenRefreshTimer();
+
+    this.tokenRefreshTimer = setTimeout(async () => {
+      if (this.explicitDisconnect) return;
+      if (!this.currentConfig) return;
+
+      // Mark as refreshing to prevent handleUnexpectedClose from triggering
+      this.isRefreshing = true;
+
+      // Disconnect current connection and reconnect with fresh token
+      this.clearTimers();
+      if (this.connection) {
+        this.connection.requestClose();
+        this.connection = null;
+      }
+
+      try {
+        await this.connectAsync(this.currentConfig);
+      } catch {
+        this.setStatus("failed");
+      } finally {
+        this.isRefreshing = false;
+      }
+    }, TOKEN_REFRESH_MS);
+  }
+
+  private clearTokenRefreshTimer(): void {
+    if (this.tokenRefreshTimer) {
+      clearTimeout(this.tokenRefreshTimer);
+      this.tokenRefreshTimer = null;
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Private — cleanup
+  // -----------------------------------------------------------------------
+
+  private clearTimers(): void {
+    this.clearKeepAliveTimer();
+    this.clearTokenRefreshTimer();
+  }
+
+  private cleanup(): void {
+    this.clearTimers();
+
+    if (this.connection) {
+      this.connection.requestClose();
+      this.connection = null;
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Private — status
+  // -----------------------------------------------------------------------
+
+  private setStatus(status: ConnectionStatus): void {
+    if (this.status === status) return;
+    this.status = status;
+    this.emitter.emit("statusChange", status);
+  }
+}

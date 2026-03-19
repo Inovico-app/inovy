@@ -1,10 +1,7 @@
 import { AriaLiveRegion } from "@/components/aria-live-region";
 import { CookieConsent } from "@/components/cookie-consent";
 import { BetterAuthProvider } from "@/providers/AuthProvider";
-import { DeepgramContextProvider } from "@/providers/DeepgramProvider";
-import { MicrophoneContextProvider } from "@/providers/microphone/MicrophoneProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
-import { SystemAudioContextProvider } from "@/providers/system-audio/SystemAudioProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 import { SpeedInsights as VercelSpeedInsights } from "@vercel/speed-insights/next";
@@ -57,23 +54,17 @@ export default function RootLayout({
         </a>
         <AriaLiveRegion />
         <BetterAuthProvider>
-          <DeepgramContextProvider>
-            <MicrophoneContextProvider>
-              <SystemAudioContextProvider>
-                <QueryProvider>
-                  <NuqsAdapter>
-                    <ThemeProvider>
-                      <VercelAnalytics />
-                      <VercelSpeedInsights />
-                      {children}
-                      <CookieConsent />
-                      <Toaster richColors />
-                    </ThemeProvider>
-                  </NuqsAdapter>
-                </QueryProvider>
-              </SystemAudioContextProvider>
-            </MicrophoneContextProvider>
-          </DeepgramContextProvider>
+          <QueryProvider>
+            <NuqsAdapter>
+              <ThemeProvider>
+                <VercelAnalytics />
+                <VercelSpeedInsights />
+                {children}
+                <CookieConsent />
+                <Toaster richColors />
+              </ThemeProvider>
+            </NuqsAdapter>
+          </QueryProvider>
         </BetterAuthProvider>
       </body>
     </html>

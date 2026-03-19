@@ -22,6 +22,7 @@
         "name": "workflow"
       }
     ],
+    "types": ["vitest/globals"],
     "paths": {
       "@/*": ["./src/*"]
     }
@@ -37,4 +38,3 @@
   ],
   "exclude": ["./node_modules"]
 }
-
