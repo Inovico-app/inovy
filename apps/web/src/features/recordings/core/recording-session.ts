@@ -8,6 +8,7 @@ import type {
   FinalizedRecording,
   RecordingSessionState,
   RecordingStatus,
+  RecoveredSession,
   Unsubscribe,
 } from "./recording-session.types";
 import type { RecordingError } from "./recording-session.errors";
@@ -87,8 +88,10 @@ export class RecordingSession {
         currentCaption: null,
       },
       error: null,
+      errorIsRecoverable: false,
       warnings: [],
       consent: config.consent,
+      orphanedSession: null,
     };
   }
 
@@ -176,6 +179,10 @@ export class RecordingSession {
 
     this.deps.audioCapture.pause();
     this.stopDurationTimer();
+
+    // Note: Deepgram keep-alive during pause is managed internally by the
+    // LiveTranscriptionService based on chunk activity. The FSM does not
+    // need to send explicit keep-alive signals.
   }
 
   resume(): void {
@@ -183,6 +190,10 @@ export class RecordingSession {
 
     this.deps.audioCapture.resume();
     this.startDurationTimer();
+
+    // Note: Deepgram keep-alive is managed internally by the
+    // LiveTranscriptionService. When chunks resume flowing, the service
+    // automatically transitions back from keep-alive mode.
   }
 
   async stop(): Promise<FinalizedRecording | null> {
@@ -198,6 +209,9 @@ export class RecordingSession {
     if (this.deps.liveTranscription) {
       this.deps.liveTranscription.disconnect();
     }
+
+    // TODO: Release WakeLock here. The WakeLock acquired in start() should be
+    // released at this point to allow the screen to sleep again.
 
     // Transition to finalizing
     this.transition("finalizing");
@@ -244,7 +258,85 @@ export class RecordingSession {
   }
 
   async checkForOrphanedSession(): Promise<boolean> {
-    return this.deps.chunkPersistence.hasOrphanedSession();
+    const hasOrphaned = await this.deps.chunkPersistence.hasOrphanedSession();
+
+    if (hasOrphaned) {
+      const recovered = await this.deps.chunkPersistence.recoverSession();
+      this.setState({ orphanedSession: recovered });
+    }
+
+    return hasOrphaned;
+  }
+
+  async recoverOrphanedSession(): Promise<RecoveredSession | null> {
+    const session = this.state.orphanedSession;
+    this.setState({ orphanedSession: null });
+    return session;
+  }
+
+  async discardOrphanedSession(): Promise<void> {
+    await this.deps.chunkPersistence.discardOrphanedSession();
+    this.setState({ orphanedSession: null });
+  }
+
+  async savePartial(): Promise<FinalizedRecording | null> {
+    // Only allowed from error state when the error was recoverable
+    if (this.state.status !== "error" || !this.state.errorIsRecoverable) {
+      console.warn(
+        "[RecordingSession] savePartial() is only available from a recoverable error state",
+      );
+      return null;
+    }
+
+    if (!this.transition("finalizing")) return null;
+
+    const finalizeResult = await this.deps.chunkPersistence.finalize();
+
+    if (finalizeResult.isErr()) {
+      this.transitionToError(finalizeResult.error);
+      return null;
+    }
+
+    this.finalizedRecording = finalizeResult.value;
+    this.transition("complete");
+    this.cleanupSubscriptions();
+
+    return this.finalizedRecording;
+  }
+
+  reset(): void {
+    if (this.state.status !== "error") {
+      console.warn(
+        "[RecordingSession] reset() is only available from error state",
+      );
+      return;
+    }
+
+    this.transition("idle");
+
+    // Generate a new session ID for the next recording
+    this.sessionId = crypto.randomUUID();
+
+    this.setState({
+      duration: 0,
+      chunks: {
+        sessionId: this.sessionId,
+        totalChunks: 0,
+        uploadedChunks: 0,
+        pendingChunks: 0,
+        totalBytes: 0,
+        startedAt: 0,
+      },
+      transcription: {
+        status: "disconnected",
+        segments: [],
+        currentCaption: null,
+      },
+      error: null,
+      errorIsRecoverable: false,
+      warnings: [],
+      orphanedSession: null,
+    });
   }
 
   // --- Private: State management ---
@@ -263,7 +355,32 @@ export class RecordingSession {
   }
 
   private transitionToError(error: RecordingError): void {
-    this.setState({ status: "error", error });
+    const isRecoverable = error.recoverable;
+
+    // For non-recoverable (fatal) errors, release all resources immediately.
+    // For recoverable errors, keep ChunkPersistenceService alive so we can
+    // attempt to save partial data via savePartial().
+    if (!isRecoverable) {
+      this.stopDurationTimer();
+      this.deps.audioCapture.stop();
+      if (this.deps.liveTranscription) {
+        this.deps.liveTranscription.disconnect();
+      }
+      this.cleanupSubscriptions();
+    } else {
+      // Recoverable: stop capture and transcription but keep persistence alive
+      this.stopDurationTimer();
+      this.deps.audioCapture.stop();
+      if (this.deps.liveTranscription) {
+        this.deps.liveTranscription.disconnect();
+      }
+    }
+
+    this.setState({
+      status: "error",
+      error,
+      errorIsRecoverable: isRecoverable,
+    });
   }
 
   private setState(patch: Partial<RecordingSessionState>): void {

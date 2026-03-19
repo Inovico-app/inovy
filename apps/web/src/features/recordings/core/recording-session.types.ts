@@ -43,8 +43,10 @@ export interface RecordingSessionState {
   chunks: ChunkManifest;
   transcription: TranscriptionState;
   error: RecordingError | null;
+  errorIsRecoverable: boolean;
   warnings: RecordingError[];
   consent: ConsentState;
+  orphanedSession: RecoveredSession | null;
 }
 
 // --- Chunk Persistence ---
