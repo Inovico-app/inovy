@@ -153,14 +153,15 @@ export class LiveTranscriptionServiceImpl implements LiveTranscriptionService {
     // When sending container formats (WebM/Opus, MP4/AAC) from MediaRecorder,
     // Deepgram auto-detects encoding from the container. Only specify encoding
     // and sample_rate when sending raw PCM data.
+    // Match the proven options from the old DeepgramProvider
     const deepgramOptions = {
       model: config.model,
       language: config.language,
       smart_format: true,
       diarize: config.enableDiarization,
+      punctuate: true,
+      utterances: true,
       interim_results: config.interimResults,
-      utterance_end_ms: 1000,
-      vad_events: true,
     };
 
     const conn = client.listen.live(deepgramOptions);
@@ -253,15 +254,22 @@ export class LiveTranscriptionServiceImpl implements LiveTranscriptionService {
   }
 
   private attachPersistentListeners(conn: LiveClient): void {
+    // Capture the connection reference so stale connections don't trigger
+    // reconnect loops when a newer connection has already replaced them.
+    const thisConn = conn;
+
     conn.addListener(LiveTranscriptionEvents.Transcript, (data: unknown) => {
+      if (this.connection !== thisConn) return; // stale connection
       this.handleTranscriptEvent(data);
     });
 
     conn.addListener(LiveTranscriptionEvents.Close, () => {
+      if (this.connection !== thisConn) return; // stale connection
       this.handleUnexpectedClose();
     });
 
     conn.addListener(LiveTranscriptionEvents.Error, () => {
+      if (this.connection !== thisConn) return; // stale connection
       this.handleUnexpectedClose();
     });
   }
@@ -284,6 +292,12 @@ export class LiveTranscriptionServiceImpl implements LiveTranscriptionService {
   }
 
   private handleUnexpectedClose(): void {
+    console.warn("[LiveTranscription] Unexpected close/error", {
+      explicitDisconnect: this.explicitDisconnect,
+      isRefreshing: this.isRefreshing,
+      status: this.status,
+    });
+
     if (this.explicitDisconnect) return;
     if (this.isRefreshing) return;
     if (this.status === "reconnecting" || this.status === "failed") return;
