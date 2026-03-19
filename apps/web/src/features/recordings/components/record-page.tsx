@@ -161,156 +161,178 @@ export function RecordPage({
     ],
   );
 
+  const selectedAudioLabel =
+    AUDIO_SOURCE_OPTIONS.find((o) => o.value === audioSource)?.label ??
+    "Microfoon";
+
+  // Active recording view — full width, no hero
+  if (consentGiven && effectiveProjectId) {
+    return (
+      <>
+        <RecordingSession key={configKey} config={sessionConfig} />
+        <ConsentBanner
+          isOpen={showConsentBanner}
+          onConsentGranted={handleConsentGranted}
+          onConsentDenied={handleConsentDenied}
+        />
+      </>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="pb-1 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Opname starten
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1.5">
-            Neem audio op vanuit uw browser met optionele live transcriptie
-          </p>
-        </div>
-
-        {/* Project selector + settings dropdown */}
-        <div className="flex items-center gap-2 shrink-0 flex-wrap">
-          {showProjectSelector && (
-            <div className="flex items-center gap-2">
-              <Label
-                htmlFor="project-select-new"
-                className="text-sm font-medium flex items-center gap-1.5 text-muted-foreground whitespace-nowrap"
-              >
-                <FolderIcon className="w-4 h-4" />
-                Project
-              </Label>
-              <Select
-                value={selectedProjectId}
-                onValueChange={(value) => setSelectedProjectId(value ?? "")}
-                disabled={consentGiven}
-              >
-                <SelectTrigger
-                  id="project-select-new"
-                  className="w-[200px] sm:w-[240px]"
-                  aria-label="Selecteer een project voor deze opname"
-                >
-                  <SelectValue placeholder="Selecteer een project">
-                    {(value: string | null) => {
-                      const project = projects.find((p) => p.id === value);
-                      return project?.name ?? "Selecteer een project";
-                    }}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem
-                      key={project.id}
-                      value={project.id}
-                      label={project.name}
-                    >
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Settings dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              disabled={consentGiven}
-              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+    <div className="flex flex-col min-h-[calc(100vh-10rem)]">
+      {/* Top bar — project + settings */}
+      <div className="flex items-center justify-between gap-3 pb-6">
+        {showProjectSelector ? (
+          <div className="flex items-center gap-2">
+            <Label
+              htmlFor="project-select-new"
+              className="text-sm font-medium flex items-center gap-1.5 text-muted-foreground whitespace-nowrap"
             >
-              <Settings2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Instellingen</span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72 p-2">
-              <DropdownMenuLabel className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-                Audiobron
-              </DropdownMenuLabel>
-              <DropdownMenuRadioGroup
-                value={audioSource}
-                onValueChange={(value) => setAudioSource(value as AudioSource)}
+              <FolderIcon className="w-4 h-4" />
+              Project
+            </Label>
+            <Select
+              value={selectedProjectId}
+              onValueChange={(value) => setSelectedProjectId(value ?? "")}
+            >
+              <SelectTrigger
+                id="project-select-new"
+                className="w-[200px] sm:w-[240px]"
+                aria-label="Selecteer een project voor deze opname"
               >
-                {availableSources.map((opt) => {
-                  const Icon = opt.icon;
-                  return (
-                    <DropdownMenuRadioItem
-                      key={opt.value}
-                      value={opt.value}
-                      className="flex items-start gap-2.5 rounded-md px-2 py-2"
-                    >
-                      <div className="mt-0.5 shrink-0 rounded-md bg-muted p-1.5">
-                        <Icon className="w-3.5 h-3.5" />
-                      </div>
-                      <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="text-sm font-medium leading-tight">
-                          {opt.label}
-                        </span>
-                        <span className="text-[11px] leading-tight text-muted-foreground">
-                          {opt.description}
-                        </span>
-                      </div>
-                    </DropdownMenuRadioItem>
-                  );
-                })}
-              </DropdownMenuRadioGroup>
-              <DropdownMenuSeparator className="my-2" />
-              <DropdownMenuLabel className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-                Transcriptie
-              </DropdownMenuLabel>
-              <DropdownMenuCheckboxItem
-                checked={liveTranscriptionEnabled}
-                onCheckedChange={setLiveTranscriptionEnabled}
-                className="flex items-start gap-2.5 rounded-md px-2 py-2"
-              >
-                <div className="mt-0.5 shrink-0 rounded-md bg-muted p-1.5">
-                  <Sparkles className="w-3.5 h-3.5" />
-                </div>
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-sm font-medium leading-tight">
-                    Live transcriptie
-                  </span>
-                  <span className="text-[11px] leading-tight text-muted-foreground">
-                    Real-time spraak naar tekst
-                  </span>
-                </div>
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+                <SelectValue placeholder="Selecteer een project">
+                  {(value: string | null) => {
+                    const project = projects.find((p) => p.id === value);
+                    return project?.name ?? "Selecteer een project";
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((project) => (
+                  <SelectItem
+                    key={project.id}
+                    value={project.id}
+                    label={project.name}
+                  >
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <div />
+        )}
+
+        {/* Settings dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger className="inline-flex items-center justify-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
+            <Settings2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Instellingen</span>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-72 p-2">
+            <DropdownMenuLabel className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+              Audiobron
+            </DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={audioSource}
+              onValueChange={(value) => setAudioSource(value as AudioSource)}
+            >
+              {availableSources.map((opt) => {
+                const Icon = opt.icon;
+                return (
+                  <DropdownMenuRadioItem
+                    key={opt.value}
+                    value={opt.value}
+                    className="flex items-start gap-2.5 rounded-md px-2 py-2"
+                  >
+                    <div className="mt-0.5 shrink-0 rounded-md bg-muted p-1.5">
+                      <Icon className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <span className="text-sm font-medium leading-tight">
+                        {opt.label}
+                      </span>
+                      <span className="text-[11px] leading-tight text-muted-foreground">
+                        {opt.description}
+                      </span>
+                    </div>
+                  </DropdownMenuRadioItem>
+                );
+              })}
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator className="my-2" />
+            <DropdownMenuLabel className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+              Transcriptie
+            </DropdownMenuLabel>
+            <DropdownMenuCheckboxItem
+              checked={liveTranscriptionEnabled}
+              onCheckedChange={setLiveTranscriptionEnabled}
+              className="flex items-start gap-2.5 rounded-md px-2 py-2"
+            >
+              <div className="mt-0.5 shrink-0 rounded-md bg-muted p-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+              </div>
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-sm font-medium leading-tight">
+                  Live transcriptie
+                </span>
+                <span className="text-[11px] leading-tight text-muted-foreground">
+                  Real-time spraak naar tekst
+                </span>
+              </div>
+            </DropdownMenuCheckboxItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {/* Start button (visible before consent) */}
-      {!consentGiven && effectiveProjectId && (
-        <div>
-          <button
-            type="button"
-            onClick={handleRequestConsent}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary/35 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Mic className="w-4 h-4" />
-            Opname starten
-          </button>
-        </div>
-      )}
+      {/* Hero — centered mic button */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-8 -mt-8">
+        {effectiveProjectId ? (
+          <>
+            {/* Pulsing mic button */}
+            <div className="relative">
+              {/* Outer pulse rings */}
+              <div className="absolute inset-0 -m-4 animate-ping rounded-full bg-primary/10 [animation-duration:2.5s]" />
+              <div className="absolute inset-0 -m-2 animate-ping rounded-full bg-primary/5 [animation-duration:3s] [animation-delay:0.5s]" />
 
-      {/* No project selected */}
-      {!effectiveProjectId && (
-        <Alert>
-          <InfoIcon className="h-4 w-4" />
-          <AlertDescription>
-            Selecteer een project om te beginnen met opnemen
-          </AlertDescription>
-        </Alert>
-      )}
+              <button
+                type="button"
+                onClick={handleRequestConsent}
+                className="relative z-10 flex items-center justify-center size-28 sm:size-32 rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 transition-all duration-200 hover:shadow-2xl hover:shadow-primary/40 hover:scale-105 active:scale-95 focus-visible:ring-4 focus-visible:ring-ring"
+                aria-label="Start opname"
+              >
+                <Mic className="size-10 sm:size-12" strokeWidth={1.5} />
+              </button>
+            </div>
 
-      {/* Recording session (after consent) */}
-      {consentGiven && effectiveProjectId && (
-        <RecordingSession key={configKey} config={sessionConfig} />
-      )}
+            {/* Label */}
+            <div className="text-center space-y-2">
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">
+                Tik om op te nemen
+              </h1>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                {selectedAudioLabel}
+                {liveTranscriptionEnabled && " \u00B7 Live transcriptie"}
+              </p>
+            </div>
+          </>
+        ) : (
+          /* No project selected state */
+          <div className="text-center space-y-3">
+            <div className="flex items-center justify-center size-20 rounded-full bg-muted/50 mx-auto">
+              <Mic className="size-8 text-muted-foreground/50" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Geen project geselecteerd</p>
+              <p className="text-sm text-muted-foreground">
+                Selecteer een project om te beginnen met opnemen
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Consent dialog */}
       <ConsentBanner
