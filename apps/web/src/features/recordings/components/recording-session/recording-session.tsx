@@ -29,11 +29,14 @@ import { TranscriptionPanel } from "./transcription-panel";
 interface RecordingSessionProps {
   config: UseRecordingSessionConfig;
   autoStart?: boolean;
+  /** Called when the session is discarded/reset — parent should unmount this component */
+  onDiscard?: () => void;
 }
 
 export function RecordingSession({
   config,
   autoStart = false,
+  onDiscard,
 }: RecordingSessionProps) {
   const router = useRouter();
   const session = useRecordingSession(config);
@@ -177,7 +180,10 @@ export function RecordingSession({
                   onResume={session.resume}
                   onStop={() => void session.stop()}
                   onSavePartial={() => void session.savePartial()}
-                  onReset={session.reset}
+                  onReset={() => {
+                    session.reset();
+                    onDiscard?.();
+                  }}
                 />
               </div>
 
