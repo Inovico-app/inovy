@@ -20,7 +20,9 @@
     "optimize-qdrant": "npx tsx --env-file=.env.local src/scripts/optimize-qdrant-collections.ts",
     "auth:generate": "pnpx @better-auth/cli generate && pnpm tsx scripts/add-role-types.ts",
     "auth:add-role-types": "pnpm tsx scripts/add-role-types.ts",
-    "email": "email dev --dir src/emails --port 3001"
+    "email": "email dev --dir src/emails --port 3001",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.37",
@@ -60,6 +62,7 @@
     "drizzle-orm": "^0.44.5",
     "embla-carousel-react": "^8.6.0",
     "googleapis": "^171.4.0",
+    "idb": "^8.0.3",
     "ioredis": "^5.10.0",
     "lucide-react": "^0.544.0",
     "mammoth": "^1.12.0",
@@ -112,6 +115,7 @@
     "@types/react": "~19.2.7",
     "@types/react-dom": "^19.2.3",
     "@types/ws": "^8.18.1",
+    "@vitest/coverage-v8": "^4.1.0",
     "babel-plugin-react-compiler": "^1.0.0",
     "drizzle-kit": "^0.31.9",
     "drizzle-seed": "^0.3.1",
@@ -119,6 +123,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "fake-indexeddb": "^6.2.5",
     "globals": "^16.4.0",
     "pino": "^9.6.0",
     "pino-pretty": "^13.0.0",
@@ -126,6 +131,7 @@
     "tailwindcss": "^4.2.1",
     "tsx": "^4.20.6",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.57.0"
+    "typescript-eslint": "^8.57.0",
+    "vitest": "^4.1.0"
   }
 }
