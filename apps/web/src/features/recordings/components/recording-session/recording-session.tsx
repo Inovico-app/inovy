@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useNavigationGuard } from "@/hooks/use-navigation-guard";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
@@ -59,11 +60,6 @@ export function RecordingSession({
 
     return () => clearTimeout(timer);
   }, [autoStart, session.start]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // When autoStart was used (even if already fired), hide the idle start button
-  // so the user never sees the double-mic screen. After error→reset, onDiscard
-  // unmounts this component entirely, so this flag doesn't cause issues.
-  const hideIdleStartButton = autoStart;
 
   // Navigate on completion
   useEffect(() => {
@@ -116,6 +112,42 @@ export function RecordingSession({
     config.liveTranscriptionEnabled &&
     (isActiveRecording || session.transcription.segments.length > 0);
 
+  // --- Loading: show only a spinner until the FSM reaches recording/paused/error ---
+  if (session.status === "idle" || session.status === "initializing") {
+    return (
+      <>
+        <div className="flex flex-col items-center justify-center gap-3 min-h-[calc(100vh-12rem)]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Voorbereiden...</p>
+        </div>
+
+        {/* Navigation guard + consent still active */}
+        <AlertDialog open={navigationGuard.showDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Opname actief</AlertDialogTitle>
+              <AlertDialogDescription>
+                Er is een opname bezig. Als u deze pagina verlaat, gaat de
+                huidige opname verloren. Weet u zeker dat u wilt doorgaan?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={navigationGuard.cancelNavigation}>
+                Blijven
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={navigationGuard.confirmNavigation}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Pagina verlaten
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
+    );
+  }
+
   return (
     <>
       <div
@@ -155,9 +187,7 @@ export function RecordingSession({
                       : "Directe audio-opname vanuit uw browser"}
                   </p>
                 </div>
-                {session.status !== "idle" && (
-                  <RecordingStatusBadge status={session.status} />
-                )}
+                <RecordingStatusBadge status={session.status} />
               </div>
 
               {/* Error display */}
@@ -175,7 +205,7 @@ export function RecordingSession({
                   status={session.status}
                   duration={session.duration}
                   errorIsRecoverable={session.error?.recoverable ?? false}
-                  autoStarting={hideIdleStartButton}
+                  autoStarting={false}
                   onStart={session.start}
                   onPause={session.pause}
                   onResume={session.resume}
