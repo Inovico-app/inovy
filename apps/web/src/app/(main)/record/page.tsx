@@ -3,7 +3,6 @@ import { ProtectedPage } from "@/components/protected-page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const metadata: Metadata = { title: "Record" };
-import { RecordPageClient } from "@/features/recordings/components/record-page-client";
 import { RecordPage as NewRecordPage } from "@/features/recordings/components/record-page";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import type { ProjectWithCreatorDto } from "@/server/dto/project.dto";
@@ -11,9 +10,6 @@ import { ProjectService } from "@/server/services/project.service";
 import { InfoIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-
-const USE_NEW_RECORDING_UI =
-  process.env.NEXT_PUBLIC_NEW_RECORDING_UI === "true";
 
 interface RecordPageContentProps {
   searchParamsPromise: Promise<{ projectId?: string }>;
@@ -102,19 +98,10 @@ async function RecordPageContent({
     );
   }
 
-  if (USE_NEW_RECORDING_UI) {
-    return (
-      <NewRecordPage
-        projects={projects}
-        organizationId={organization.id}
-        projectIdFromParams={projectIdFromParams}
-      />
-    );
-  }
-
   return (
-    <RecordPageClient
+    <NewRecordPage
       projects={projects}
+      organizationId={organization.id}
       projectIdFromParams={projectIdFromParams}
     />
   );
