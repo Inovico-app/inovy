@@ -109,7 +109,9 @@ describe("ChunkPersistenceServiceImpl", () => {
       expect(orphaned[0]!.sessionId).toBe(SESSION_ID);
     });
 
-    it("returns PersistenceError when SAS token request fails", async () => {
+    it("succeeds even when SAS token fails (deferred to background)", async () => {
+      // SAS token is now requested in the background — initialize() succeeds
+      // after IndexedDB. SAS failure surfaces on flush/finalize.
       const failConfig = createConfig({
         requestSasToken: vi.fn().mockRejectedValue(new Error("Network error")),
       });
@@ -117,10 +119,8 @@ describe("ChunkPersistenceServiceImpl", () => {
 
       const result = await failService.initialize(SESSION_ID, createMetadata());
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error.code).toBe("SAS_TOKEN_ERROR");
-      }
+      expect(result.isOk()).toBe(true);
+      expect(failConfig.requestSasToken).toHaveBeenCalledOnce();
     });
   });
 

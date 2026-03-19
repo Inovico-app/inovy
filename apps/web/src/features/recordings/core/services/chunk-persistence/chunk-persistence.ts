@@ -49,6 +49,7 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
   private blockCounter = 0;
   private committedBlockIds: string[] = [];
   private flushPromise: Promise<void> = Promise.resolve();
+  private sasTokenPromise: Promise<void> = Promise.resolve();
 
   private manifest: ChunkManifest = {
     sessionId: "",
@@ -71,6 +72,10 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
     sessionId: string,
     metadata: SessionMetadata,
   ): ResultAsync<void, PersistenceError> {
+    // Phase 1: Create IndexedDB session (fast — milliseconds).
+    // Phase 2: Request SAS token (slow — network call). Runs in the background
+    // so recording can start immediately. The token is only needed when flushing
+    // chunks to Azure, which doesn't happen until FLUSH_THRESHOLD chunks accumulate.
     return ResultAsync.fromPromise(
       this.store.createSession(sessionId, metadata),
       (error) =>
@@ -81,32 +86,31 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
             cause: error,
           },
         ),
-    ).andThen(() =>
-      ResultAsync.fromPromise(this.config.requestSasToken(), (error) =>
-        createPersistenceError(
-          "SAS_TOKEN_ERROR",
-          "Failed to request SAS token",
-          {
-            cause: error,
-          },
-        ),
-      ).map((sasResult) => {
-        this.sessionId = sessionId;
-        this.metadata = metadata;
-        this.blobUrl = sasResult.blobUrl;
-        this.pathname = sasResult.pathname;
-        this.uploader.initialize(sasResult.uploadUrl);
+    ).map(() => {
+      this.sessionId = sessionId;
+      this.metadata = metadata;
+      this.manifest = {
+        sessionId,
+        totalChunks: 0,
+        uploadedChunks: 0,
+        pendingChunks: 0,
+        totalBytes: 0,
+        startedAt: metadata.startedAt,
+      };
 
-        this.manifest = {
-          sessionId,
-          totalChunks: 0,
-          uploadedChunks: 0,
-          pendingChunks: 0,
-          totalBytes: 0,
-          startedAt: metadata.startedAt,
-        };
-      }),
-    );
+      // Request SAS token in the background — don't block recording start
+      this.sasTokenPromise = this.config
+        .requestSasToken()
+        .then((sasResult) => {
+          this.blobUrl = sasResult.blobUrl;
+          this.pathname = sasResult.pathname;
+          this.uploader.initialize(sasResult.uploadUrl);
+        })
+        .catch((error) => {
+          console.error("[ChunkPersistence] SAS token request failed:", error);
+          // Token will be retried on first flush or finalize
+        });
+    });
   }
 
   persistChunk(chunk: AudioChunk): ResultAsync<void, PersistenceError> {
@@ -169,12 +173,12 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
 
     const sessionId = this.sessionId;
     const metadata = this.metadata;
-    const blobUrl = this.blobUrl!;
-    const pathname = this.pathname!;
 
-    // Wait for any in-flight flushes, then flush remaining buffer
+    // Wait for SAS token, then any in-flight flushes, then flush remaining buffer
     return ResultAsync.fromPromise(
-      this.flushPromise.then(() => this.flushBuffer()),
+      this.sasTokenPromise
+        .then(() => this.flushPromise)
+        .then(() => this.flushBuffer()),
       (error) =>
         createPersistenceError(
           "BLOCK_UPLOAD_FAILED",
@@ -209,11 +213,11 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
         ),
       )
       .andThen(() =>
-        // Notify server
+        // Notify server (blobUrl/pathname are set after SAS token resolves)
         ResultAsync.fromPromise(
           this.config.onUploadComplete({
-            blobUrl,
-            pathname,
+            blobUrl: this.blobUrl ?? "",
+            pathname: this.pathname ?? "",
             fileSize: this.manifest.totalBytes,
             metadata,
           }),
@@ -242,7 +246,7 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
 
         const finalized: FinalizedRecording = {
           recordingId: uploadResult.recordingId,
-          fileUrl: blobUrl,
+          fileUrl: this.blobUrl ?? "",
           fileSize: this.manifest.totalBytes,
           duration: actualDuration ?? wallClockDuration,
           chunkCount: this.manifest.totalChunks,
@@ -325,6 +329,9 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
     if (this.buffer.length === 0 || !this.sessionId) {
       return;
     }
+
+    // Wait for SAS token if it hasn't resolved yet
+    await this.sasTokenPromise;
 
     const chunksToFlush = [...this.buffer];
     this.buffer = [];
