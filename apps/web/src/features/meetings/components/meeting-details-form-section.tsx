@@ -247,22 +247,24 @@ export function MeetingDetailsFormSection({
           />
         </div>
 
-        <div className="space-y-2">
-          <Label>Meeting URL</Label>
-          <a
-            href={
-              meeting.meetingUrl.startsWith("http")
-                ? meeting.meetingUrl
-                : `https://${meeting.meetingUrl}`
-            }
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 text-sm text-primary hover:underline"
-          >
-            {meeting.meetingUrl}
-            <ExternalLinkIcon className="h-3.5 w-3.5" />
-          </a>
-        </div>
+        {meeting.meetingUrl && (
+          <div className="space-y-2">
+            <Label>Meeting URL</Label>
+            <a
+              href={
+                meeting.meetingUrl.startsWith("http")
+                  ? meeting.meetingUrl
+                  : `https://${meeting.meetingUrl}`
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-primary hover:underline"
+            >
+              {meeting.meetingUrl}
+              <ExternalLinkIcon className="h-3.5 w-3.5" />
+            </a>
+          </div>
+        )}
 
         <Button type="submit" disabled={isUpdating}>
           {isUpdating ? (
