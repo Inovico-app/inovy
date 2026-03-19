@@ -29,7 +29,7 @@ function signPayload(payload: string): string {
 
 export const requestUploadSasAction = authorizedActionClient
   .metadata({
-    permissions: { recordings: ["create"] },
+    permissions: { recording: ["create"] },
     name: "request-upload-sas",
   })
   .schema(requestUploadSasSchema)
