@@ -195,7 +195,12 @@ export function RecordPage({
                   className="w-[200px] sm:w-[240px]"
                   aria-label="Selecteer een project voor deze opname"
                 >
-                  <SelectValue placeholder="Selecteer een project" />
+                  <SelectValue placeholder="Selecteer een project">
+                    {(value: string | null) => {
+                      const project = projects.find((p) => p.id === value);
+                      return project?.name ?? "Selecteer een project";
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {projects.map((project) => (
