@@ -23,6 +23,7 @@ import {
 import { RecordingStatusBadge } from "@/features/recordings/components/shared/recording-status-badge";
 import { AudioSourceIndicator } from "./audio-source-indicator";
 import { ChunkUploadStatus } from "./chunk-upload-status";
+import { MobileRecordingBar } from "./mobile-recording-bar";
 import { RecordingControls } from "./recording-controls";
 import { RecoveryDialog } from "./recovery-dialog";
 import { TranscriptionPanel } from "./transcription-panel";
@@ -156,8 +157,84 @@ export function RecordingSession({
 
   return (
     <>
+      {/* ============================================================
+          MOBILE LAYOUT: Full-screen transcription + sticky bottom bar
+          ============================================================ */}
       <div
-        className={showTranscription ? "flex flex-col xl:flex-row gap-6" : ""}
+        className="md:hidden flex flex-col"
+        style={{ height: "calc(100dvh - 8rem)" }}
+      >
+        {/* Mobile header — compact */}
+        <div className="flex items-center justify-between px-1 py-2 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <h2 className="text-base font-semibold tracking-tight truncate">
+              Live Opname
+            </h2>
+          </div>
+          <RecordingStatusBadge status={session.status} />
+        </div>
+
+        {/* Error display */}
+        {session.error && session.error.severity === "fatal" && (
+          <div className="mx-1 mb-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 shrink-0">
+            <p className="text-sm text-destructive font-medium">
+              {session.error.message}
+            </p>
+          </div>
+        )}
+
+        {/* Main content area — transcription or recording-only view */}
+        <div className="flex-1 min-h-0 pb-16">
+          {showTranscription ? (
+            <TranscriptionPanel
+              transcription={session.transcription}
+              variant="mobile"
+            />
+          ) : (
+            /* No transcription — show centered controls */
+            <div className="flex flex-col items-center justify-center h-full gap-6">
+              <RecordingControls
+                status={session.status}
+                duration={session.duration}
+                errorIsRecoverable={session.error?.recoverable ?? false}
+                autoStarting={false}
+                onStart={session.start}
+                onPause={session.pause}
+                onResume={session.resume}
+                onStop={() => void session.stop()}
+                onSavePartial={() => void session.savePartial()}
+                onReset={() => {
+                  session.reset();
+                  onDiscard?.();
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Sticky bottom bar — Google Meet style */}
+        <MobileRecordingBar
+          status={session.status}
+          duration={session.duration}
+          audioSource={config.audioSource}
+          chunkManifest={session.chunkManifest}
+          errorIsRecoverable={session.error?.recoverable ?? false}
+          onPause={session.pause}
+          onResume={session.resume}
+          onStop={() => void session.stop()}
+          onSavePartial={() => void session.savePartial()}
+          onReset={() => {
+            session.reset();
+            onDiscard?.();
+          }}
+        />
+      </div>
+
+      {/* ============================================================
+          DESKTOP LAYOUT: Side-by-side recording panel + transcription
+          ============================================================ */}
+      <div
+        className={`hidden md:flex ${showTranscription ? "flex-col xl:flex-row gap-6" : ""}`}
       >
         {/* Main recording panel */}
         <div
