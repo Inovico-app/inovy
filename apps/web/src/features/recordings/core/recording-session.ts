@@ -164,49 +164,50 @@ export class RecordingSession {
       "[RecordingSession] start: persistence ready, transitioning to recording...",
     );
 
+    // Connect live transcription (if enabled). Awaited so the WebSocket is
+    // established before audio starts flowing — prevents the race condition
+    // where Deepgram closes an idle connection.
+    if (this.config.liveTranscriptionEnabled && this.deps.liveTranscription) {
+      console.log("[RecordingSession] start: connecting to Deepgram...");
+      const transcriptionResult = await this.deps.liveTranscription.connect({
+        model: "nova-3",
+        language: this.config.language,
+        enableDiarization: true,
+        interimResults: true,
+      });
+
+      if (transcriptionResult.isErr()) {
+        // Non-fatal: add warning, continue without transcription
+        console.warn(
+          "[RecordingSession] start: Deepgram connect failed",
+          transcriptionResult.error,
+        );
+        this.addWarning(transcriptionResult.error);
+      } else {
+        console.log("[RecordingSession] start: Deepgram connected");
+        this.setupTranscriptionListeners();
+        this.setState({
+          transcription: {
+            ...this.state.transcription,
+            status: this.deps.liveTranscription!.getStatus(),
+          },
+        });
+      }
+    }
+
     // Set up chunk routing and error handling BEFORE starting capture
     this.setupChunkRouting();
     this.setupAudioCaptureErrorHandling();
 
-    // Start audio capture immediately — don't wait for Deepgram
+    // Start audio capture
     this.deps.audioCapture.start(CHUNK_TIMESLICE_MS);
     this.startDurationTimer();
 
     // TODO: Acquire WakeLock (navigator.wakeLock not available in Node tests)
 
-    // Transition to recording NOW — user can start talking immediately
+    // Transition to recording
     this.transition("recording");
     console.log("[RecordingSession] start: now RECORDING");
-
-    // Connect live transcription in the BACKGROUND (non-blocking).
-    // Transcription is a UX preview, not critical. If it fails, recording
-    // continues unaffected — chunks are still persisted.
-    if (this.config.liveTranscriptionEnabled && this.deps.liveTranscription) {
-      this.setupTranscriptionListeners();
-
-      this.deps.liveTranscription
-        .connect({
-          model: "nova-3",
-          language: this.config.language,
-          enableDiarization: true,
-          interimResults: true,
-        })
-        .match(
-          () => {
-            // Seed transcription status after successful connect
-            this.setState({
-              transcription: {
-                ...this.state.transcription,
-                status: this.deps.liveTranscription!.getStatus(),
-              },
-            });
-          },
-          (error) => {
-            // Non-fatal: add warning, recording continues
-            this.addWarning(error);
-          },
-        );
-    }
   }
 
   pause(): void {
