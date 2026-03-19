@@ -1,5 +1,16 @@
 "use client";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useNavigationGuard } from "@/hooks/use-navigation-guard";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
@@ -75,6 +86,22 @@ export function RecordingSession({
       toast.warning(session.error.message);
     }
   }, [session.error]);
+
+  // Navigation guard — prevent accidental loss of recording
+  const isRecordingActive =
+    session.status === "recording" ||
+    session.status === "paused" ||
+    session.status === "initializing" ||
+    session.status === "stopping" ||
+    session.status === "finalizing";
+
+  const navigationGuard = useNavigationGuard({
+    enabled: isRecordingActive,
+    onConfirmNavigation: () => {
+      // Stop and destroy the session when user confirms leaving
+      session.reset();
+    },
+  });
 
   const isActiveRecording =
     session.status === "recording" || session.status === "paused";
@@ -186,6 +213,30 @@ export function RecordingSession({
         onRecover={() => void session.recoverOrphanedSession()}
         onDiscard={() => void session.discardOrphanedSession()}
       />
+
+      {/* Navigation guard dialog */}
+      <AlertDialog open={navigationGuard.showDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Opname actief</AlertDialogTitle>
+            <AlertDialogDescription>
+              Er is een opname bezig. Als u deze pagina verlaat, gaat de huidige
+              opname verloren. Weet u zeker dat u wilt doorgaan?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={navigationGuard.cancelNavigation}>
+              Blijven
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={navigationGuard.confirmNavigation}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Pagina verlaten
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
