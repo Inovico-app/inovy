@@ -172,7 +172,7 @@ export function useRecordingSession(
     if (!finalized) return null;
 
     return {
-      recordingId: "",
+      recordingId: finalized.recordingId,
       fileUrl: finalized.fileUrl,
       duration: finalized.duration,
     };

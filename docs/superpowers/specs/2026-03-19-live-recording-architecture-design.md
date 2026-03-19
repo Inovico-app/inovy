@@ -49,7 +49,7 @@ interface Disposable {
 
 ## Architecture Overview
 
-```
+```text
                     ┌─────────────────┐
                     │   Components    │
                     │   (React UI)    │
@@ -87,7 +87,7 @@ The FSM is a plain TypeScript class with zero React dependencies. Services are i
 
 ### States
 
-```
+```text
 idle
   → initializing    (user clicks "Start")
 initializing
@@ -354,7 +354,7 @@ Azure Blob Storage supports **Block Blob** uploads: upload individual blocks (no
 
 The existing codebase uses SAS tokens for direct client-to-Azure uploads (`AzureStorageProvider.generateClientUploadToken()`). We extend this pattern with the Block Blob API.
 
-```
+```text
 Recording starts:
   → Client requests a SAS token from server (write permissions, 30-min TTL)
   → SAS URL targets the final blob path (e.g., recordings/{orgId}/{sessionId}.webm)
@@ -404,7 +404,7 @@ This reuses the existing upload completion flow at `/api/recordings/upload` — 
 
 ### Crash Recovery
 
-```
+```text
 Page mount
   → hasOrphanedSession()?
     → YES: Check age
@@ -481,7 +481,7 @@ interface TranscriptSegment {
 
 ### Connection Lifecycle
 
-```
+```text
 disconnected → connecting → connected → disconnected
                     ↓              ↓
                reconnecting ← (close/error)
@@ -523,7 +523,7 @@ Send `keepAlive()` every 8 seconds while recording is paused. Prevents Deepgram'
 
 ### Chunk Forwarding (orchestrated by FSM)
 
-```
+```text
 AudioChunk arrives
   → ChunkPersistenceService.persistChunk(chunk)     // always
   → LiveTranscriptionService.sendChunk(chunk)        // only if connected
@@ -616,7 +616,7 @@ function useRecordingSession(config) {
 
 ### Component Architecture
 
-```
+```text
 app/(main)/record/page.tsx              ← Server Component (fetches projects)
   └── RecordPage                        ← Client Component (project selector, config)
         └── RecordingSession            ← Client Component (the recording UI)
@@ -668,7 +668,7 @@ Synchronous checks, no side effects, no device access. Used by `RecordPage` to s
 
 ### Directory Layout
 
-```
+```text
 src/features/recordings/
 ├── core/                              ← Plain TypeScript, zero React
 │   ├── recording-session.ts

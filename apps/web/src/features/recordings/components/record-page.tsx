@@ -72,9 +72,21 @@ export function RecordPage({
 }: RecordPageProps) {
   const capabilities = useAudioCapabilities();
 
+  const hasProjects = projects.length > 0 || !!projectIdFromParams;
+
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     projectIdFromParams ?? projects[0]?.id ?? "",
   );
+
+  if (!hasProjects) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-16">
+        <p className="text-muted-foreground">
+          Maak eerst een project aan om een opname te starten.
+        </p>
+      </div>
+    );
+  }
   const [audioSource, setAudioSource] = useState<AudioSource>("microphone");
   const [liveTranscriptionEnabled, setLiveTranscriptionEnabled] =
     useState(true);

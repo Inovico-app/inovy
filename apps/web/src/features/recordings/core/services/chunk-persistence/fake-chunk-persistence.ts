@@ -35,6 +35,7 @@ export class FakeChunkPersistenceService implements ChunkPersistenceService {
   persistChunkError: PersistenceError | null = null;
   orphanedSession: RecoveredSession | null = null;
   finalizedRecording: FinalizedRecording = {
+    recordingId: "fake-recording-id",
     fileUrl: "https://example.com/recording.webm",
     fileSize: 1024,
     duration: 60,

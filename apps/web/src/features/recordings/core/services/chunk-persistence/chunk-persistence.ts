@@ -225,7 +225,7 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
             ),
         ),
       )
-      .andThen(() =>
+      .andThen((uploadResult) =>
         // Clean up IndexedDB
         ResultAsync.fromPromise(
           this.store.finalizeSession(sessionId),
@@ -235,12 +235,13 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
               "Failed to clean up IndexedDB after finalization",
               { cause: error },
             ),
-        ),
+        ).map(() => uploadResult),
       )
-      .map(() => {
+      .map((uploadResult) => {
         const wallClockDuration = (Date.now() - this.manifest.startedAt) / 1000;
 
         const finalized: FinalizedRecording = {
+          recordingId: uploadResult.recordingId,
           fileUrl: blobUrl,
           fileSize: this.manifest.totalBytes,
           duration: actualDuration ?? wallClockDuration,

@@ -61,6 +61,7 @@ export interface ChunkManifest {
 }
 
 export interface FinalizedRecording {
+  recordingId: string;
   fileUrl: string;
   fileSize: number;
   duration: number; // seconds

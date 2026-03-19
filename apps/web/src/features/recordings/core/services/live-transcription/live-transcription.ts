@@ -317,8 +317,17 @@ export class LiveTranscriptionServiceImpl implements LiveTranscriptionService {
         }
 
         await this.connectAsync(config);
+
+        // Re-check after async connect — disconnect() may have been called while connecting
+        if (this.explicitDisconnect) {
+          this.connection?.requestClose();
+          this.connection = null;
+          this.setStatus("disconnected");
+        }
       } catch {
-        this.attemptReconnect(attempt + 1);
+        if (!this.explicitDisconnect) {
+          this.attemptReconnect(attempt + 1);
+        }
       }
     }, delay);
   }
