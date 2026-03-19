@@ -214,7 +214,7 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
         ),
       )
       .andThen(() => {
-        // Compute duration before notifying server
+        // Compute duration once before notifying server — reuse across the finalize flow
         const wallClockDuration = (Date.now() - this.manifest.startedAt) / 1000;
         const computedDuration = actualDuration ?? wallClockDuration;
 
@@ -233,9 +233,9 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
               "Failed to notify server of upload completion",
               { cause: error },
             ),
-        );
+        ).map((uploadResult) => ({ uploadResult, computedDuration }));
       })
-      .andThen((uploadResult) =>
+      .andThen(({ uploadResult, computedDuration }) =>
         // Clean up IndexedDB
         ResultAsync.fromPromise(
           this.store.finalizeSession(sessionId),
@@ -245,16 +245,14 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
               "Failed to clean up IndexedDB after finalization",
               { cause: error },
             ),
-        ).map(() => uploadResult),
+        ).map(() => ({ uploadResult, computedDuration })),
       )
-      .map((uploadResult) => {
-        const wallClockDuration = (Date.now() - this.manifest.startedAt) / 1000;
-
+      .map(({ uploadResult, computedDuration }) => {
         const finalized: FinalizedRecording = {
           recordingId: uploadResult.recordingId,
           fileUrl: this.blobUrl ?? "",
           fileSize: this.manifest.totalBytes,
-          duration: actualDuration ?? wallClockDuration,
+          duration: computedDuration,
           chunkCount: this.manifest.totalChunks,
         };
 

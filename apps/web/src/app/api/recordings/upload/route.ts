@@ -543,7 +543,9 @@ async function handleAzureUpload(request: NextRequest) {
 
     // Accept client-reported duration (seconds) for live recordings
     const clientDuration =
-      typeof body.duration === "number" && body.duration > 0
+      typeof body.duration === "number" &&
+      Number.isFinite(body.duration) &&
+      body.duration >= 0
         ? Math.round(body.duration)
         : null;
 
