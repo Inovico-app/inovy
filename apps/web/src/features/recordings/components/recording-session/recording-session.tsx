@@ -26,18 +26,26 @@ export function RecordingSession({
 }: RecordingSessionProps) {
   const router = useRouter();
   const session = useRecordingSession(config);
-  const autoStartedRef = useRef(false);
-
   // Track which warnings we've already shown
   const shownWarningsRef = useRef(new Set<string>());
 
-  // Auto-start recording on mount if requested
+  // Auto-start recording on mount if requested.
+  // The FSM's start() internally guards against invalid transitions,
+  // so calling it when not idle is a no-op.
   useEffect(() => {
-    if (autoStart && session.status === "idle" && !autoStartedRef.current) {
-      autoStartedRef.current = true;
-      void session.start();
-    }
-  }, [autoStart, session.status, session.start]);
+    if (!autoStart) return;
+
+    // Small delay to ensure the hook's session-creation effect has run
+    // and sessionRef.current is set (effects run in declaration order,
+    // but we add a safety margin for React Strict Mode double-mount).
+    const timer = setTimeout(() => {
+      session.start().catch((err) => {
+        console.error("[RecordingSession] Auto-start failed:", err);
+      });
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [autoStart, session.start]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Navigate on completion
   useEffect(() => {
