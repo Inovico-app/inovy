@@ -31,7 +31,7 @@ export interface LiveTranscriptionDeps {
 // Constants
 // ---------------------------------------------------------------------------
 
-const CONNECTION_TIMEOUT_MS = 10_000;
+const CONNECTION_TIMEOUT_MS = 5_000;
 const KEEP_ALIVE_INTERVAL_MS = 8_000;
 const TOKEN_TTL_MS = 600_000; // Deepgram tokens last ~600s
 const TOKEN_REFRESH_BUFFER_MS = 60_000;
