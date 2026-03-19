@@ -40,15 +40,14 @@ export function RecordingSession({
   // Track which warnings we've already shown
   const shownWarningsRef = useRef(new Set<string>());
 
-  // Auto-start recording on mount if requested.
-  // The FSM's start() internally guards against invalid transitions,
-  // so calling it when not idle is a no-op.
+  // Auto-start recording on mount — fires ONCE only.
+  // The ref prevents re-triggering when the session resets to idle after
+  // an error (user presses "Verwijderen" → reset → idle → should NOT auto-start again).
+  const autoStartFired = useRef(false);
   useEffect(() => {
-    if (!autoStart) return;
+    if (!autoStart || autoStartFired.current) return;
+    autoStartFired.current = true;
 
-    // Small delay to ensure the hook's session-creation effect has run
-    // and sessionRef.current is set (effects run in declaration order,
-    // but we add a safety margin for React Strict Mode double-mount).
     const timer = setTimeout(() => {
       session.start().catch((err) => {
         console.error("[RecordingSession] Auto-start failed:", err);
@@ -57,6 +56,10 @@ export function RecordingSession({
 
     return () => clearTimeout(timer);
   }, [autoStart, session.start]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Show spinner only during the initial auto-start window (before FSM transitions)
+  const showAutoStartSpinner =
+    autoStart && session.status === "idle" && !autoStartFired.current;
 
   // Navigate on completion
   useEffect(() => {
@@ -168,7 +171,7 @@ export function RecordingSession({
                   status={session.status}
                   duration={session.duration}
                   errorIsRecoverable={session.error?.recoverable ?? false}
-                  autoStarting={autoStart && session.status === "idle"}
+                  autoStarting={showAutoStartSpinner}
                   onStart={session.start}
                   onPause={session.pause}
                   onResume={session.resume}
