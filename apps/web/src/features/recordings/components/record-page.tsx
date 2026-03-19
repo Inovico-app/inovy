@@ -199,17 +199,12 @@ export function RecordPage({
                 </SelectTrigger>
                 <SelectContent>
                   {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      <div className="flex flex-col items-start gap-0.5">
-                        <span className="font-medium leading-tight">
-                          {project.name}
-                        </span>
-                        {project.description && (
-                          <span className="text-muted-foreground text-xs leading-tight">
-                            {project.description}
-                          </span>
-                        )}
-                      </div>
+                    <SelectItem
+                      key={project.id}
+                      value={project.id}
+                      label={project.name}
+                    >
+                      {project.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -224,10 +219,12 @@ export function RecordPage({
               className="inline-flex items-center justify-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
             >
               <Settings2 className="w-4 h-4" />
-              Instellingen
+              <span className="hidden sm:inline">Instellingen</span>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Audiobron</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-72 p-2">
+              <DropdownMenuLabel className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+                Audiobron
+              </DropdownMenuLabel>
               <DropdownMenuRadioGroup
                 value={audioSource}
                 onValueChange={(value) => setAudioSource(value as AudioSource)}
@@ -235,24 +232,46 @@ export function RecordPage({
                 {availableSources.map((opt) => {
                   const Icon = opt.icon;
                   return (
-                    <DropdownMenuRadioItem key={opt.value} value={opt.value}>
-                      <Icon className="w-4 h-4 mr-1.5" />
-                      <span>{opt.label}</span>
-                      <span className="ml-auto text-xs text-muted-foreground">
-                        {opt.description}
-                      </span>
+                    <DropdownMenuRadioItem
+                      key={opt.value}
+                      value={opt.value}
+                      className="flex items-start gap-2.5 rounded-md px-2 py-2"
+                    >
+                      <div className="mt-0.5 shrink-0 rounded-md bg-muted p-1.5">
+                        <Icon className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="text-sm font-medium leading-tight">
+                          {opt.label}
+                        </span>
+                        <span className="text-[11px] leading-tight text-muted-foreground">
+                          {opt.description}
+                        </span>
+                      </div>
                     </DropdownMenuRadioItem>
                   );
                 })}
               </DropdownMenuRadioGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Transcriptie</DropdownMenuLabel>
+              <DropdownMenuSeparator className="my-2" />
+              <DropdownMenuLabel className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+                Transcriptie
+              </DropdownMenuLabel>
               <DropdownMenuCheckboxItem
                 checked={liveTranscriptionEnabled}
                 onCheckedChange={setLiveTranscriptionEnabled}
+                className="flex items-start gap-2.5 rounded-md px-2 py-2"
               >
-                <Sparkles className="w-4 h-4 mr-1.5" />
-                Live transcriptie
+                <div className="mt-0.5 shrink-0 rounded-md bg-muted p-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-sm font-medium leading-tight">
+                    Live transcriptie
+                  </span>
+                  <span className="text-[11px] leading-tight text-muted-foreground">
+                    Real-time spraak naar tekst
+                  </span>
+                </div>
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
