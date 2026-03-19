@@ -133,6 +133,7 @@ export function RecordingSession({
                   status={session.status}
                   duration={session.duration}
                   errorIsRecoverable={session.error?.recoverable ?? false}
+                  autoStarting={autoStart && session.status === "idle"}
                   onStart={session.start}
                   onPause={session.pause}
                   onResume={session.resume}

@@ -18,6 +18,7 @@ interface RecordingControlsProps {
   status: RecordingStatus;
   duration: number;
   errorIsRecoverable?: boolean;
+  autoStarting?: boolean;
   onStart: () => void;
   onPause: () => void;
   onResume: () => void;
@@ -30,6 +31,7 @@ export function RecordingControls({
   status,
   duration,
   errorIsRecoverable = false,
+  autoStarting = false,
   onStart,
   onPause,
   onResume,
@@ -37,6 +39,18 @@ export function RecordingControls({
   onSavePartial,
   onReset,
 }: RecordingControlsProps) {
+  // --- Idle + autoStarting: show initializing spinner (autoStart hasn't fired yet) ---
+  if (status === "idle" && autoStarting) {
+    return (
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex items-center gap-2.5 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm font-medium">Voorbereiden...</span>
+        </div>
+      </div>
+    );
+  }
+
   // --- Idle: show start button ---
   if (status === "idle") {
     return (
