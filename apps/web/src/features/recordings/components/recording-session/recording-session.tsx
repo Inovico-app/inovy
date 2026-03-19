@@ -44,22 +44,28 @@ export function RecordingSession({
   // Track which warnings we've already shown
   const shownWarningsRef = useRef(new Set<string>());
 
-  // Auto-start recording on mount — fires ONCE only.
-  // The ref prevents re-triggering when the session resets to idle after
-  // an error (user presses "Verwijderen" → reset → idle → should NOT auto-start again).
+  // Auto-start recording on mount — fires once per mount cycle.
+  // We track whether THIS effect invocation successfully started, so the
+  // cleanup can mark the ref as "not yet started" for Strict Mode remounts.
   const autoStartFired = useRef(false);
   useEffect(() => {
-    if (!autoStart || autoStartFired.current) return;
-    autoStartFired.current = true;
+    if (!autoStart) return;
 
-    const timer = setTimeout(() => {
+    // Reset on each effect run (handles Strict Mode: unmount resets, remount retries)
+    autoStartFired.current = false;
+
+    // Use microtask to ensure the hook's session-creation effect has set sessionRef
+    const id = requestAnimationFrame(() => {
+      if (autoStartFired.current) return; // guard against double-fire
+      autoStartFired.current = true;
       session.start().catch((err) => {
         console.error("[RecordingSession] Auto-start failed:", err);
       });
-    }, 0);
+    });
 
-    return () => clearTimeout(timer);
-  }, [autoStart, session.start]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
 
   // Navigate on completion
   useEffect(() => {
