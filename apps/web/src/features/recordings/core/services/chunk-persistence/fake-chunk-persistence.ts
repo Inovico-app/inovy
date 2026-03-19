@@ -48,15 +48,22 @@ export class FakeChunkPersistenceService implements ChunkPersistenceService {
     if (this.shouldFailInitialize && this.initializeError) {
       return errAsync(this.initializeError);
     }
+    // Reset state on re-initialize
+    this.chunks = [];
     this.manifest = {
-      ...this.manifest,
       sessionId,
+      totalChunks: 0,
+      uploadedChunks: 0,
+      pendingChunks: 0,
+      totalBytes: 0,
       startedAt: Date.now(),
     };
     return okAsync(undefined);
   }
 
-  finalize(): ResultAsync<FinalizedRecording, PersistenceError> {
+  finalize(
+    _actualDuration?: number,
+  ): ResultAsync<FinalizedRecording, PersistenceError> {
     if (this.shouldFailFinalize && this.finalizeError) {
       return errAsync(this.finalizeError);
     }

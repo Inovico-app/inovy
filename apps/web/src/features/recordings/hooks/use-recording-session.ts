@@ -53,6 +53,7 @@ export interface UseRecordingSessionReturn {
 export interface UseRecordingSessionConfig {
   projectId: string;
   organizationId: string;
+  userId: string;
   audioSource: AudioSource;
   language: string;
   liveTranscriptionEnabled: boolean;
@@ -106,6 +107,7 @@ export function useRecordingSession(
     const sessionConfig: CreateRecordingSessionConfig = {
       projectId: config.projectId,
       organizationId: config.organizationId,
+      userId: config.userId,
       audioSource: config.audioSource,
       language: config.language,
       liveTranscriptionEnabled: config.liveTranscriptionEnabled,

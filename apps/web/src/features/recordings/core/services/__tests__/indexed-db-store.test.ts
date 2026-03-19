@@ -72,7 +72,7 @@ describe("IndexedDBChunkStore", () => {
     expect(orphaned).toHaveLength(0);
   });
 
-  it("discards orphaned sessions older than TTL", async () => {
+  it("excludes expired sessions from getOrphanedSessions", async () => {
     const oldMetadata = {
       ...testMetadata,
       startedAt: Date.now() - 8 * 24 * 60 * 60 * 1000,
@@ -82,5 +82,19 @@ describe("IndexedDBChunkStore", () => {
 
     const orphaned = await store.getOrphanedSessions(7 * 24 * 60 * 60 * 1000);
     expect(orphaned).toHaveLength(0);
+  });
+
+  it("cleanupExpiredSessions removes expired sessions", async () => {
+    const oldMetadata = {
+      ...testMetadata,
+      startedAt: Date.now() - 8 * 24 * 60 * 60 * 1000,
+    };
+    await store.createSession("old-session", oldMetadata);
+    await store.putChunk("old-session", makeChunk(0));
+
+    await store.cleanupExpiredSessions(7 * 24 * 60 * 60 * 1000);
+
+    const chunks = await store.getChunks("old-session");
+    expect(chunks).toHaveLength(0);
   });
 });

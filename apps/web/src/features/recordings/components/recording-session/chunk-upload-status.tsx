@@ -27,7 +27,7 @@ export function ChunkUploadStatus({
       <span className="font-mono tabular-nums">
         {manifest.uploadedChunks} / {manifest.totalChunks}
       </span>
-      <span>chunks</span>
+      <span>fragmenten</span>
     </div>
   );
 }

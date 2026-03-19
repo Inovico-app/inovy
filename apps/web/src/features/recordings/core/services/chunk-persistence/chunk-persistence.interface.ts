@@ -14,7 +14,9 @@ export interface ChunkPersistenceService {
     sessionId: string,
     metadata: SessionMetadata,
   ): ResultAsync<void, PersistenceError>;
-  finalize(): ResultAsync<FinalizedRecording, PersistenceError>;
+  finalize(
+    actualDuration?: number,
+  ): ResultAsync<FinalizedRecording, PersistenceError>;
   abort(): ResultAsync<void, PersistenceError>;
   persistChunk(chunk: AudioChunk): ResultAsync<void, PersistenceError>;
 

@@ -165,9 +165,8 @@ export class IndexedDBChunkStore {
         continue;
       }
 
-      // Auto-discard sessions older than TTL
+      // Skip sessions older than TTL (caller should use cleanupExpiredSessions)
       if (session.metadata.startedAt < cutoff) {
-        await this.finalizeSession(session.sessionId);
         continue;
       }
 
@@ -178,6 +177,25 @@ export class IndexedDBChunkStore {
     }
 
     return orphaned;
+  }
+
+  async cleanupExpiredSessions(
+    maxAgeTtlMs: number = DEFAULT_ORPHAN_TTL_MS,
+  ): Promise<void> {
+    const db = await this.getDB();
+    const allSessions = await db.getAll("sessions");
+    const now = Date.now();
+    const cutoff = now - maxAgeTtlMs;
+
+    for (const session of allSessions) {
+      if (session.status !== "active") {
+        continue;
+      }
+
+      if (session.metadata.startedAt < cutoff) {
+        await this.finalizeSession(session.sessionId);
+      }
+    }
   }
 
   async finalizeSession(sessionId: string): Promise<void> {

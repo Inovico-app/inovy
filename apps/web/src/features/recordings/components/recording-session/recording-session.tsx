@@ -35,9 +35,10 @@ export function RecordingSession({ config }: RecordingSessionProps) {
     router.refresh();
   }, [session.status, config.projectId, router]);
 
-  // Show error toast
+  // Show error toast (skip warnings — they are handled by the warnings useEffect)
   useEffect(() => {
     if (!session.error) return;
+    if (session.error.severity === "warning") return;
     toast.error(session.error.message);
   }, [session.error]);
 

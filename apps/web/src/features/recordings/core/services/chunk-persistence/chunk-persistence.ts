@@ -153,7 +153,9 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
     });
   }
 
-  finalize(): ResultAsync<FinalizedRecording, PersistenceError> {
+  finalize(
+    actualDuration?: number,
+  ): ResultAsync<FinalizedRecording, PersistenceError> {
     if (!this.sessionId || !this.metadata) {
       return ResultAsync.fromPromise(
         Promise.reject(new Error("Service not initialized")),
@@ -236,10 +238,12 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
         ),
       )
       .map(() => {
+        const wallClockDuration = (Date.now() - this.manifest.startedAt) / 1000;
+
         const finalized: FinalizedRecording = {
           fileUrl: blobUrl,
           fileSize: this.manifest.totalBytes,
-          duration: (Date.now() - this.manifest.startedAt) / 1000,
+          duration: actualDuration ?? wallClockDuration,
           chunkCount: this.manifest.totalChunks,
         };
 
@@ -271,6 +275,8 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
   }
 
   async hasOrphanedSession(): Promise<boolean> {
+    // Clean up expired sessions before checking for orphans
+    await this.store.cleanupExpiredSessions();
     const orphaned = await this.store.getOrphanedSessions();
     return orphaned.length > 0;
   }
@@ -322,10 +328,10 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
     const chunksToFlush = [...this.buffer];
     this.buffer = [];
 
-    // Concatenate all chunk data into a single Blob
+    // Concatenate all chunk data into a single Blob, deriving MIME type from the first chunk
     const concatenated = new Blob(
       chunksToFlush.map((c) => c.data),
-      { type: "audio/webm" },
+      { type: chunksToFlush[0]?.data.type || "audio/webm" },
     );
 
     // Generate sequential block ID
@@ -361,7 +367,7 @@ export class ChunkPersistenceServiceImpl implements ChunkPersistenceService {
     // Upload any remaining pending chunks that weren't part of the buffer flush
     const concatenated = new Blob(
       pending.map((c) => c.data),
-      { type: "audio/webm" },
+      { type: pending[0]?.data.type || "audio/webm" },
     );
 
     this.blockCounter++;

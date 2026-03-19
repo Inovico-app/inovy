@@ -31,6 +31,7 @@ import { requestUploadSasAction } from "../actions/request-upload-sas";
 export interface CreateRecordingSessionConfig {
   projectId: string;
   organizationId: string;
+  userId: string;
   audioSource: AudioSource;
   language: string;
   liveTranscriptionEnabled: boolean;
@@ -61,13 +62,16 @@ function createAudioCaptureService(
 export function createRecordingSession(
   config: CreateRecordingSessionConfig,
 ): RecordingSession {
-  const { organizationId } = config;
+  const { organizationId, userId } = config;
 
   // 1. Pick AudioCaptureService based on config.audioSource
   const audioCapture = createAudioCaptureService(config.audioSource);
 
   // 2. Create ChunkPersistenceServiceImpl with server action callbacks
   const store = new IndexedDBChunkStore();
+
+  // Track the SAS token response for use in onUploadComplete
+  let sasTokenSignature = "";
 
   const chunkPersistence = new ChunkPersistenceServiceImpl(store, {
     requestSasToken: async () => {
@@ -79,6 +83,9 @@ export function createRecordingSession(
       if (!result?.data?.data) {
         throw new Error("Failed to request SAS token");
       }
+
+      // Store the token signature for use in onUploadComplete
+      sasTokenSignature = result.data.data.tokenSignature;
 
       return {
         uploadUrl: result.data.data.uploadUrl,
@@ -102,21 +109,24 @@ export function createRecordingSession(
             fileSize: params.fileSize,
             fileMimeType: "audio/webm",
             recordingMode: "live" as const,
-            userId: "",
+            userId,
             organizationId,
             consentGiven: params.metadata.consent.consentGiven,
             consentGivenAt: params.metadata.consent.consentGivenAt,
           }),
-          tokenSignature: "",
+          tokenSignature: sasTokenSignature,
         }),
       });
 
+      const data = (await response.json()) as {
+        error?: string;
+        recordingId?: string;
+      };
+
       if (!response.ok) {
-        const error = (await response.json()) as { error?: string };
-        throw new Error(error.error ?? "Failed to process upload completion");
+        throw new Error(data.error ?? "Failed to process upload completion");
       }
 
-      const data = (await response.json()) as { recordingId?: string };
       return { recordingId: data.recordingId ?? "" };
     },
   });

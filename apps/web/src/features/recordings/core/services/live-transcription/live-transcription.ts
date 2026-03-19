@@ -147,6 +147,9 @@ export class LiveTranscriptionServiceImpl implements LiveTranscriptionService {
 
     // 2. Create client & live connection
     const client = createClient(token);
+    // When sending container formats (WebM/Opus, MP4/AAC) from MediaRecorder,
+    // Deepgram auto-detects encoding from the container. Only specify encoding
+    // and sample_rate when sending raw PCM data.
     const deepgramOptions = {
       model: config.model,
       language: config.language,
@@ -155,8 +158,6 @@ export class LiveTranscriptionServiceImpl implements LiveTranscriptionService {
       interim_results: config.interimResults,
       utterance_end_ms: 1000,
       vad_events: true,
-      encoding: "linear16" as const,
-      sample_rate: 48000,
     };
 
     const conn = client.listen.live(deepgramOptions);
@@ -224,6 +225,7 @@ export class LiveTranscriptionServiceImpl implements LiveTranscriptionService {
 
       timeoutId = setTimeout(() => {
         settle();
+        conn.requestClose();
         this.connection = null;
         this.setStatus("disconnected");
         reject(

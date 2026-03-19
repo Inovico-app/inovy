@@ -18,7 +18,7 @@ This design replaces the entire recording stack with a clean, testable, state-ma
 - **Live transcription is UX-only** — batch transcription post-recording is the source of truth
 - **Progressive chunk upload** — stream chunks to storage during recording
 - **WebM format** — no client-side MP3 conversion; Deepgram accepts WebM natively
-- **Azure Blob Storage** — all file uploads go to Azure Blob (not Azure Blob). Uses SAS tokens for direct client-to-Azure uploads. Supports Block Blob API for chunked uploads.
+- **Azure Blob Storage** — all file uploads go to Azure Blob Storage. Uses SAS tokens for direct client-to-Azure uploads. Supports Block Blob API for chunked uploads.
 - **Vercel serverless limits** — 4.5-6MB body, 60-300s timeout; server-side assembly of large files is not feasible
 
 ---

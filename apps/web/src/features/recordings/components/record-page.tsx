@@ -30,6 +30,7 @@ import { useCallback, useMemo, useState } from "react";
 interface RecordPageProps {
   projects: ProjectWithCreatorDto[];
   organizationId: string;
+  userId: string;
   projectIdFromParams?: string;
 }
 
@@ -66,6 +67,7 @@ const AUDIO_SOURCE_OPTIONS: Array<{
 export function RecordPage({
   projects,
   organizationId,
+  userId,
   projectIdFromParams,
 }: RecordPageProps) {
   const capabilities = useAudioCapabilities();
@@ -118,6 +120,7 @@ export function RecordPage({
     () => ({
       projectId: effectiveProjectId,
       organizationId,
+      userId,
       audioSource,
       language: "nl",
       liveTranscriptionEnabled,
@@ -129,6 +132,7 @@ export function RecordPage({
     [
       effectiveProjectId,
       organizationId,
+      userId,
       audioSource,
       liveTranscriptionEnabled,
       consentGiven,

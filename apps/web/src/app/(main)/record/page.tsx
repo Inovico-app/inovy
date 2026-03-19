@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Suspense } from "react";
+import { InfoIcon } from "lucide-react";
+
 import { ProtectedPage } from "@/components/protected-page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-export const metadata: Metadata = { title: "Record" };
 import { RecordPage as NewRecordPage } from "@/features/recordings/components/record-page";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import type { ProjectWithCreatorDto } from "@/server/dto/project.dto";
 import { ProjectService } from "@/server/services/project.service";
-import { InfoIcon } from "lucide-react";
-import Link from "next/link";
-import { Suspense } from "react";
+
+export const metadata: Metadata = { title: "Record" };
 
 interface RecordPageContentProps {
   searchParamsPromise: Promise<{ projectId?: string }>;
@@ -102,6 +103,7 @@ async function RecordPageContent({
     <NewRecordPage
       projects={projects}
       organizationId={organization.id}
+      userId={user.id}
       projectIdFromParams={projectIdFromParams}
     />
   );

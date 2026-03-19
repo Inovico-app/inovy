@@ -150,6 +150,15 @@ export class RecordingSession {
         this.addWarning(transcriptionResult.error);
       } else {
         this.setupTranscriptionListeners();
+
+        // Seed transcription status — the "connected" event fires before
+        // setupTranscriptionListeners subscribes, so we sync manually.
+        this.setState({
+          transcription: {
+            ...this.state.transcription,
+            status: this.deps.liveTranscription!.getStatus(),
+          },
+        });
       }
     }
 
@@ -216,8 +225,10 @@ export class RecordingSession {
     // Transition to finalizing
     this.transition("finalizing");
 
-    // Finalize persistence
-    const finalizeResult = await this.deps.chunkPersistence.finalize();
+    // Finalize persistence — pass actual recording duration (excludes paused time)
+    const finalizeResult = await this.deps.chunkPersistence.finalize(
+      this.state.duration,
+    );
 
     if (finalizeResult.isErr()) {
       this.transitionToError(finalizeResult.error);
@@ -290,7 +301,9 @@ export class RecordingSession {
 
     if (!this.transition("finalizing")) return null;
 
-    const finalizeResult = await this.deps.chunkPersistence.finalize();
+    const finalizeResult = await this.deps.chunkPersistence.finalize(
+      this.state.duration,
+    );
 
     if (finalizeResult.isErr()) {
       this.transitionToError(finalizeResult.error);
@@ -311,6 +324,9 @@ export class RecordingSession {
       );
       return;
     }
+
+    // Abort persistence to clean up orphaned IndexedDB/Azure state
+    this.deps.chunkPersistence.abort();
 
     this.transition("idle");
 
@@ -366,6 +382,8 @@ export class RecordingSession {
       if (this.deps.liveTranscription) {
         this.deps.liveTranscription.disconnect();
       }
+      // Abort persistence to clean up orphaned IndexedDB/Azure state
+      this.deps.chunkPersistence.abort();
       this.cleanupSubscriptions();
     } else {
       // Recoverable: stop capture and transcription but keep persistence alive
