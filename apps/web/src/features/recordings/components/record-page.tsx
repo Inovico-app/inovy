@@ -1,7 +1,16 @@
 "use client";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -10,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import type { AudioSource } from "@/features/recordings/core/recording-session.types";
 import { useAudioCapabilities } from "@/features/recordings/hooks/use-audio-capabilities";
 import type { UseRecordingSessionConfig } from "@/features/recordings/hooks/use-recording-session";
@@ -23,6 +31,7 @@ import {
   Mic,
   Monitor,
   Combine,
+  Settings2,
   Sparkles,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
@@ -165,8 +174,8 @@ export function RecordPage({
           </p>
         </div>
 
-        {/* Project selector + settings */}
-        <div className="flex items-center gap-3 shrink-0 flex-wrap">
+        {/* Project selector + settings dropdown */}
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
           {showProjectSelector && (
             <div className="flex items-center gap-2">
               <Label
@@ -207,114 +216,60 @@ export function RecordPage({
               </Select>
             </div>
           )}
+
+          {/* Settings dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              disabled={consentGiven}
+              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+            >
+              <Settings2 className="w-4 h-4" />
+              Instellingen
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Audiobron</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={audioSource}
+                onValueChange={(value) => setAudioSource(value as AudioSource)}
+              >
+                {availableSources.map((opt) => {
+                  const Icon = opt.icon;
+                  return (
+                    <DropdownMenuRadioItem key={opt.value} value={opt.value}>
+                      <Icon className="w-4 h-4 mr-1.5" />
+                      <span>{opt.label}</span>
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {opt.description}
+                      </span>
+                    </DropdownMenuRadioItem>
+                  );
+                })}
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Transcriptie</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                checked={liveTranscriptionEnabled}
+                onCheckedChange={setLiveTranscriptionEnabled}
+              >
+                <Sparkles className="w-4 h-4 mr-1.5" />
+                Live transcriptie
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* Pre-recording settings (visible before consent) */}
+      {/* Start button (visible before consent) */}
       {!consentGiven && effectiveProjectId && (
-        <div className="rounded-2xl border bg-gradient-to-br from-card via-card to-card/50 shadow-md p-6 space-y-5">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight mb-1">
-              Opname-instellingen
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Configureer de instellingen voordat u de opname start
-            </p>
-          </div>
-
-          {/* Audio source selector */}
-          <fieldset className="space-y-3">
-            <legend className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Audiobron
-            </legend>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {availableSources.map((opt) => {
-                const Icon = opt.icon;
-                const isSelected = audioSource === opt.value;
-
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setAudioSource(opt.value)}
-                    className={`relative flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-all duration-200 ${
-                      isSelected
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-border hover:border-primary/30 hover:bg-muted/30"
-                    }`}
-                    aria-pressed={isSelected}
-                  >
-                    <div
-                      className={`mt-0.5 rounded-lg p-2 ${
-                        isSelected
-                          ? "bg-primary/10 text-primary"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium block">
-                        {opt.label}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {opt.description}
-                      </span>
-                    </div>
-                    {isSelected && (
-                      <span className="absolute top-2 right-2 size-2 rounded-full bg-primary" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-
-          {/* Live transcription toggle */}
-          <div className="space-y-2">
-            <Label
-              htmlFor="transcription-toggle-new"
-              className="flex flex-col gap-2 rounded-xl border p-4 bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors focus-within:ring-2 focus-within:ring-ring"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" aria-hidden="true" />
-                    Live transcriptie
-                  </span>
-                  <Badge
-                    variant={liveTranscriptionEnabled ? "default" : "outline"}
-                    className="text-xs shrink-0"
-                    aria-hidden="true"
-                  >
-                    {liveTranscriptionEnabled ? "Aan" : "Uit"}
-                  </Badge>
-                </div>
-                <Switch
-                  id="transcription-toggle-new"
-                  checked={liveTranscriptionEnabled}
-                  onCheckedChange={setLiveTranscriptionEnabled}
-                  aria-label={`Live transcriptie is ${liveTranscriptionEnabled ? "ingeschakeld" : "uitgeschakeld"}`}
-                  className="shrink-0"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Spraak wordt in real-time omgezet naar tekst tijdens de opname
-              </p>
-            </Label>
-          </div>
-
-          {/* Start / consent button */}
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={handleRequestConsent}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary/35 hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <Mic className="w-4 h-4" />
-              Doorgaan naar opname
-            </button>
-          </div>
+        <div>
+          <button
+            type="button"
+            onClick={handleRequestConsent}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary/35 hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Mic className="w-4 h-4" />
+            Opname starten
+          </button>
         </div>
       )}
 
