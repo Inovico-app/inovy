@@ -10,12 +10,14 @@ export interface CreateProjectDto {
   description?: string;
   organizationId: string; // Better Auth organization ID
   createdById: string; // Better Auth user ID
+  teamId?: string | null;
 }
 
 export interface UpdateProjectDto {
   name?: string;
   description?: string;
   status?: string;
+  teamId?: string | null;
 }
 
 export interface ProjectDto {
@@ -24,6 +26,7 @@ export interface ProjectDto {
   description: string | null;
   status: string;
   organizationId: string; // Kinde organization code
+  teamId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -82,4 +85,3 @@ export function isUpdateProjectDto(data: unknown): data is UpdateProjectDto {
     (record.status === undefined || typeof record.status === "string")
   );
 }
-

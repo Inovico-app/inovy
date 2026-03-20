@@ -7,6 +7,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import { teams } from "./auth";
 import { projects } from "./projects";
 
 export const meetingStatusEnum = [
@@ -31,6 +32,9 @@ export const meetings = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     organizationId: text("organization_id").notNull(),
     projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "set null",
+    }),
+    teamId: text("team_id").references(() => teams.id, {
       onDelete: "set null",
     }),
     createdById: text("created_by_id").notNull(),
@@ -67,17 +71,21 @@ export const meetings = pgTable(
   (table) => ({
     orgIdx: index("meetings_organization_id_idx").on(table.organizationId),
     calendarEventIdx: index("meetings_calendar_event_id_idx").on(
-      table.calendarEventId
+      table.calendarEventId,
     ),
     statusIdx: index("meetings_status_idx").on(
       table.organizationId,
-      table.status
+      table.status,
     ),
     scheduledIdx: index("meetings_scheduled_start_idx").on(
       table.organizationId,
-      table.scheduledStartAt
+      table.scheduledStartAt,
     ),
-  })
+    orgTeamIdx: index("meetings_organization_team_idx").on(
+      table.organizationId,
+      table.teamId,
+    ),
+  }),
 );
 
 export type Meeting = typeof meetings.$inferSelect;

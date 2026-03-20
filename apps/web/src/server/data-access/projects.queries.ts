@@ -31,6 +31,7 @@ export class ProjectQueries {
           description: data.description || null,
           status: "active",
           organizationId: data.organizationId,
+          teamId: data.teamId ?? null,
           createdById: data.createdById,
         })
         .returning();
@@ -41,6 +42,7 @@ export class ProjectQueries {
         description: project.description,
         status: project.status,
         organizationId: project.organizationId,
+        teamId: project.teamId ?? null,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
       };
@@ -53,7 +55,7 @@ export class ProjectQueries {
    */
   static async findByIdWithCreator(
     projectId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ProjectWithCreatorDto | null> {
     const result = await db
       .select({
@@ -62,6 +64,7 @@ export class ProjectQueries {
         description: projects.description,
         status: projects.status,
         organizationId: projects.organizationId,
+        teamId: projects.teamId,
         createdById: projects.createdById,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
@@ -74,8 +77,8 @@ export class ProjectQueries {
       .where(
         and(
           eq(projects.id, projectId),
-          eq(projects.organizationId, organizationId)
-        )
+          eq(projects.organizationId, organizationId),
+        ),
       )
       .limit(1);
 
@@ -88,6 +91,7 @@ export class ProjectQueries {
       description: project.description,
       status: project.status,
       organizationId: project.organizationId,
+      teamId: project.teamId ?? null,
       createdById: project.createdById,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
@@ -102,7 +106,7 @@ export class ProjectQueries {
    * Used for resolving organization context when only project ID is known
    */
   static async getOrganizationIdByProjectId(
-    projectId: string
+    projectId: string,
   ): Promise<string | null> {
     const result = await db
       .select({ organizationId: projects.organizationId })
@@ -118,7 +122,7 @@ export class ProjectQueries {
    */
   static async findById(
     projectId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ProjectDto | null> {
     const result = await db
       .select({
@@ -127,6 +131,7 @@ export class ProjectQueries {
         description: projects.description,
         status: projects.status,
         organizationId: projects.organizationId,
+        teamId: projects.teamId,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
       })
@@ -134,14 +139,14 @@ export class ProjectQueries {
       .where(
         and(
           eq(projects.id, projectId),
-          eq(projects.organizationId, organizationId)
-        )
+          eq(projects.organizationId, organizationId),
+        ),
       )
       .limit(1);
 
     if (result.length === 0) return null;
 
-    return result[0];
+    return { ...result[0], teamId: result[0].teamId ?? null };
   }
 
   /**
@@ -155,6 +160,7 @@ export class ProjectQueries {
         description: projects.description,
         status: projects.status,
         organizationId: projects.organizationId,
+        teamId: projects.teamId,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
       })
@@ -164,7 +170,7 @@ export class ProjectQueries {
 
     if (result.length === 0) return null;
 
-    return result[0];
+    return { ...result[0], teamId: result[0].teamId ?? null };
   }
 
   /**
@@ -172,7 +178,7 @@ export class ProjectQueries {
    * Used for bot session project assignment
    */
   static async findFirstActiveByOrganization(
-    organizationId: string
+    organizationId: string,
   ): Promise<ProjectDto | null> {
     const result = await db
       .select({
@@ -181,6 +187,7 @@ export class ProjectQueries {
         description: projects.description,
         status: projects.status,
         organizationId: projects.organizationId,
+        teamId: projects.teamId,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
       })
@@ -188,12 +195,13 @@ export class ProjectQueries {
       .where(
         and(
           eq(projects.organizationId, organizationId),
-          eq(projects.status, "active")
-        )
+          eq(projects.status, "active"),
+        ),
       )
       .limit(1);
 
-    return result[0] ?? null;
+    const row = result[0];
+    return row ? { ...row, teamId: row.teamId ?? null } : null;
   }
 
   /**
@@ -219,6 +227,7 @@ export class ProjectQueries {
         description: projects.description,
         status: projects.status,
         organizationId: projects.organizationId,
+        teamId: projects.teamId,
         createdById: projects.createdById,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
@@ -236,6 +245,7 @@ export class ProjectQueries {
       description: project.description,
       status: project.status,
       organizationId: project.organizationId,
+      teamId: project.teamId ?? null,
       createdById: project.createdById,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
@@ -250,7 +260,7 @@ export class ProjectQueries {
    */
   static async countByOrganization(
     organizationId: string,
-    status?: AllowedStatus
+    status?: AllowedStatus,
   ): Promise<number> {
     const whereConditions = [eq(projects.organizationId, organizationId)];
 
@@ -272,7 +282,7 @@ export class ProjectQueries {
   static async update(
     projectId: string,
     organizationId: string,
-    data: { name?: string; description?: string | null }
+    data: { name?: string; description?: string | null },
   ): Promise<ProjectDto | null> {
     return await db.transaction(async (tx) => {
       const [project] = await tx
@@ -284,8 +294,8 @@ export class ProjectQueries {
         .where(
           and(
             eq(projects.id, projectId),
-            eq(projects.organizationId, organizationId)
-          )
+            eq(projects.organizationId, organizationId),
+          ),
         )
         .returning();
 
@@ -297,6 +307,7 @@ export class ProjectQueries {
         description: project.description,
         status: project.status,
         organizationId: project.organizationId,
+        teamId: project.teamId ?? null,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
       };
@@ -308,7 +319,7 @@ export class ProjectQueries {
    */
   static async softDelete(
     projectId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<boolean> {
     return await db.transaction(async (tx) => {
       const result = await tx
@@ -320,8 +331,8 @@ export class ProjectQueries {
         .where(
           and(
             eq(projects.id, projectId),
-            eq(projects.organizationId, organizationId)
-          )
+            eq(projects.organizationId, organizationId),
+          ),
         )
         .returning();
 
@@ -334,7 +345,7 @@ export class ProjectQueries {
    */
   static async unarchive(
     projectId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<boolean> {
     return await db.transaction(async (tx) => {
       const result = await tx
@@ -346,8 +357,8 @@ export class ProjectQueries {
         .where(
           and(
             eq(projects.id, projectId),
-            eq(projects.organizationId, organizationId)
-          )
+            eq(projects.organizationId, organizationId),
+          ),
         )
         .returning();
 
@@ -379,6 +390,7 @@ export class ProjectQueries {
         description: projects.description,
         status: projects.status,
         organizationId: projects.organizationId,
+        teamId: projects.teamId,
         createdById: projects.createdById,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
@@ -405,6 +417,7 @@ export class ProjectQueries {
       description: project.description,
       status: project.status,
       organizationId: project.organizationId,
+      teamId: project.teamId ?? null,
       createdById: project.createdById,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
@@ -420,7 +433,7 @@ export class ProjectQueries {
    */
   static async getProjectStatistics(
     projectId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<{ recordingCount: number } | null> {
     const result = await db
       .select({
@@ -431,8 +444,8 @@ export class ProjectQueries {
       .where(
         and(
           eq(projects.id, projectId),
-          eq(projects.organizationId, organizationId)
-        )
+          eq(projects.organizationId, organizationId),
+        ),
       )
       .groupBy(projects.id)
       .limit(1);
@@ -448,7 +461,7 @@ export class ProjectQueries {
    */
   static async hardDelete(
     projectId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<boolean> {
     return await db.transaction(async (tx) => {
       const result = await tx
@@ -456,12 +469,11 @@ export class ProjectQueries {
         .where(
           and(
             eq(projects.id, projectId),
-            eq(projects.organizationId, organizationId)
-          )
+            eq(projects.organizationId, organizationId),
+          ),
         );
 
       return result.rowCount !== null && result.rowCount > 0;
     });
   }
 }
-

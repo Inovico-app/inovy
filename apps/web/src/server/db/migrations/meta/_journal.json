@@ -421,6 +421,13 @@
       "when": 1774001450577,
       "tag": "0065_add_bot_series_subscriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1774012550550,
+      "tag": "0066_add_team_id_to_projects_meetings",
+      "breakpoints": true
     }
   ]
 }
