@@ -42,7 +42,9 @@ export interface ActionContext {
   logger: typeof logger;
   session?: SessionWithRoles;
   user?: BetterAuthUser;
-  organizationId?: string; // Organization ID from Better Auth
+  organizationId?: string;
+  activeTeamId?: string | null;
+  userTeamIds?: string[];
 }
 
 /**
@@ -138,8 +140,8 @@ async function authenticationMiddleware({
     throw createErrorForNextSafeAction(
       ActionErrors.unauthenticated(
         "User is not authenticated",
-        "auth-middleware"
-      )
+        "auth-middleware",
+      ),
     );
   }
 
@@ -153,8 +155,8 @@ async function authenticationMiddleware({
     throw createErrorForNextSafeAction(
       ActionErrors.unauthenticated(
         "User not found in session",
-        "auth-middleware"
-      )
+        "auth-middleware",
+      ),
     );
   }
 
@@ -169,8 +171,8 @@ async function authenticationMiddleware({
     throw createErrorForNextSafeAction(
       ActionErrors.notFound(
         "Organization not found in session",
-        "auth-middleware"
-      )
+        "auth-middleware",
+      ),
     );
   }
 
@@ -195,7 +197,7 @@ async function authenticationMiddleware({
           organizationId: organization.id,
           permissions,
         },
-        "auth-middleware"
+        "auth-middleware",
       );
       throw createErrorForNextSafeAction(actionError);
     }
@@ -206,7 +208,9 @@ async function authenticationMiddleware({
       ...ctx,
       session,
       user,
-      organizationId: organization?.id, // Make organization ID available to all actions (may be undefined)
+      organizationId: organization?.id,
+      activeTeamId: session.value.activeTeamId,
+      userTeamIds: session.value.userTeamIds,
     },
   });
 }
@@ -215,7 +219,7 @@ async function authenticationMiddleware({
  * Convert ActionError to Error for next-safe-action compatibility
  */
 export function createErrorForNextSafeAction(
-  actionError: ActionError
+  actionError: ActionError,
 ): Error & { actionError: ActionError } {
   const error = new Error(actionError.message) as Error & {
     actionError: ActionError;
@@ -264,7 +268,7 @@ function handleActionError(error: unknown): string {
  */
 export async function safeAsync<T>(
   operation: () => Promise<T>,
-  context?: string
+  context?: string,
 ): Promise<ActionResult<T>> {
   try {
     const result = await operation();
@@ -273,7 +277,7 @@ export async function safeAsync<T>(
     const actionError = ActionErrors.internal(
       error instanceof Error ? error.message : "Unknown error",
       error,
-      context
+      context,
     );
     return err(actionError);
   }
@@ -284,7 +288,7 @@ export async function safeAsync<T>(
  */
 export function safeSync<T>(
   operation: () => T,
-  context?: string
+  context?: string,
 ): ActionResult<T> {
   try {
     const result = operation();
@@ -293,7 +297,7 @@ export function safeSync<T>(
     const actionError = ActionErrors.internal(
       error instanceof Error ? error.message : "Unknown error",
       error,
-      context
+      context,
     );
     return err(actionError);
   }
@@ -304,7 +308,7 @@ export function safeSync<T>(
  */
 export function chainResults<T, U>(
   result: ActionResult<T>,
-  fn: (value: T) => ActionResult<U>
+  fn: (value: T) => ActionResult<U>,
 ): ActionResult<U> {
   return result.andThen(fn);
 }
@@ -314,7 +318,7 @@ export function chainResults<T, U>(
  */
 export function mapResult<T, U>(
   result: ActionResult<T>,
-  fn: (value: T) => U
+  fn: (value: T) => U,
 ): ActionResult<U> {
   return result.map(fn);
 }
@@ -337,7 +341,7 @@ export function combineResults<T extends readonly unknown[]>(
         return r.value;
       }
       throw new Error("Unexpected error state");
-    }) as unknown as T
+    }) as unknown as T,
   );
 }
 
@@ -347,7 +351,7 @@ export function combineResults<T extends readonly unknown[]>(
 export function validateInput<T>(
   schema: z.ZodSchema<T>,
   input: unknown,
-  _context?: string
+  _context?: string,
 ): ActionResult<T> {
   const result = schema.safeParse(input);
 
@@ -357,7 +361,7 @@ export function validateInput<T>(
       ActionErrors.validation(firstError.message, {
         field: firstError.path.join("."),
         input,
-      })
+      }),
     );
   }
 
@@ -373,4 +377,3 @@ export function resultToActionResponse<T>(result: ActionResult<T>): T {
   }
   return result.value;
 }
-
