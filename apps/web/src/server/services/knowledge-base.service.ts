@@ -8,6 +8,7 @@ import { err, ok } from "neverthrow";
 import { KnowledgeBaseDocumentsQueries } from "../data-access/knowledge-base-documents.queries";
 import { KnowledgeBaseEntriesQueries } from "../data-access/knowledge-base-entries.queries";
 import { ProjectQueries } from "../data-access/projects.queries";
+import { TeamQueries, UserTeamQueries } from "../data-access/teams.queries";
 import type { KnowledgeBaseScope } from "../db/schema/knowledge-base-entries";
 import type {
   CreateKnowledgeDocumentDto,
@@ -28,7 +29,7 @@ export class KnowledgeBaseService {
    */
   static async getApplicableKnowledge(
     projectId: string | null,
-    organizationId: string | null
+    organizationId: string | null,
   ): Promise<ActionResult<KnowledgeEntryDto[]>> {
     try {
       if (!projectId || !organizationId) {
@@ -41,8 +42,8 @@ export class KnowledgeBaseService {
         return err(
           ActionErrors.unauthenticated(
             "Authentication required",
-            "KnowledgeBaseService.getApplicableKnowledge"
-          )
+            "KnowledgeBaseService.getApplicableKnowledge",
+          ),
         );
       }
 
@@ -52,8 +53,8 @@ export class KnowledgeBaseService {
           ActionErrors.forbidden(
             "User does not belong to an organization",
             undefined,
-            "KnowledgeBaseService.getApplicableKnowledge"
-          )
+            "KnowledgeBaseService.getApplicableKnowledge",
+          ),
         );
       }
 
@@ -62,8 +63,8 @@ export class KnowledgeBaseService {
         return err(
           ActionErrors.notFound(
             "Project",
-            "KnowledgeBaseService.getApplicableKnowledge"
-          )
+            "KnowledgeBaseService.getApplicableKnowledge",
+          ),
         );
       }
 
@@ -73,19 +74,19 @@ export class KnowledgeBaseService {
         return err(
           ActionErrors.notFound(
             "Project",
-            "KnowledgeBaseService.getApplicableKnowledge"
-          )
+            "KnowledgeBaseService.getApplicableKnowledge",
+          ),
         );
       }
 
       const entries = await KnowledgeBaseEntriesQueries.getHierarchicalEntries(
         projectId,
-        organizationId
+        organizationId,
       );
 
       // Remove priority field for return type
       const result: KnowledgeEntryDto[] = entries.map(
-        ({ priority: _priority, ...entry }) => entry
+        ({ priority: _priority, ...entry }) => entry,
       );
 
       return ok(result);
@@ -93,14 +94,14 @@ export class KnowledgeBaseService {
       logger.error(
         "Failed to get applicable knowledge",
         { projectId, organizationId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to get applicable knowledge",
           error as Error,
-          "KnowledgeBaseService.getApplicableKnowledge"
-        )
+          "KnowledgeBaseService.getApplicableKnowledge",
+        ),
       );
     }
   }
@@ -111,7 +112,7 @@ export class KnowledgeBaseService {
   static async getEntriesByScope(
     scope: KnowledgeBaseScope,
     scopeId: string | null,
-    options?: { includeInactive?: boolean; allowUnauthenticated?: boolean }
+    options?: { includeInactive?: boolean; allowUnauthenticated?: boolean },
   ): Promise<ActionResult<KnowledgeEntryDto[]>> {
     try {
       // Validate scope-specific permissions
@@ -125,8 +126,8 @@ export class KnowledgeBaseService {
         return err(
           ActionErrors.unauthenticated(
             "Authentication required",
-            "KnowledgeBaseService.getEntriesByScope"
-          )
+            "KnowledgeBaseService.getEntriesByScope",
+          ),
         );
       }
 
@@ -136,7 +137,7 @@ export class KnowledgeBaseService {
         scope,
         scopeId,
         authResult.value.user.id,
-        "read"
+        "read",
       );
       if (permissionResult.isErr()) {
         return err(permissionResult.error);
@@ -145,7 +146,7 @@ export class KnowledgeBaseService {
       const entries = await KnowledgeBaseEntriesQueries.getEntriesByScope(
         scope,
         scopeId,
-        options
+        options,
       );
 
       return ok(entries);
@@ -153,14 +154,14 @@ export class KnowledgeBaseService {
       logger.error(
         "Failed to get entries by scope",
         { scope, scopeId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to get entries by scope",
           error as Error,
-          "KnowledgeBaseService.getEntriesByScope"
-        )
+          "KnowledgeBaseService.getEntriesByScope",
+        ),
       );
     }
   }
@@ -171,15 +172,15 @@ export class KnowledgeBaseService {
   static async searchKnowledge(
     scope: KnowledgeBaseScope,
     scopeId: string | null,
-    searchTerm: string
+    searchTerm: string,
   ): Promise<ActionResult<KnowledgeEntryDto[]>> {
     try {
       if (!searchTerm || searchTerm.trim().length === 0) {
         return err(
           ActionErrors.badRequest(
             "Search term is required",
-            "KnowledgeBaseService.searchKnowledge"
-          )
+            "KnowledgeBaseService.searchKnowledge",
+          ),
         );
       }
 
@@ -189,8 +190,8 @@ export class KnowledgeBaseService {
         return err(
           ActionErrors.unauthenticated(
             "Authentication required",
-            "KnowledgeBaseService.searchKnowledge"
-          )
+            "KnowledgeBaseService.searchKnowledge",
+          ),
         );
       }
 
@@ -198,7 +199,7 @@ export class KnowledgeBaseService {
         scope,
         scopeId,
         authResult.value.user.id,
-        "read"
+        "read",
       );
       if (permissionResult.isErr()) {
         return err(permissionResult.error);
@@ -207,7 +208,7 @@ export class KnowledgeBaseService {
       const entries = await KnowledgeBaseEntriesQueries.searchEntries(
         scope,
         scopeId,
-        searchTerm.trim()
+        searchTerm.trim(),
       );
 
       return ok(entries);
@@ -215,14 +216,14 @@ export class KnowledgeBaseService {
       logger.error(
         "Failed to search knowledge",
         { scope, scopeId, searchTerm },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to search knowledge",
           error as Error,
-          "KnowledgeBaseService.searchKnowledge"
-        )
+          "KnowledgeBaseService.searchKnowledge",
+        ),
       );
     }
   }
@@ -239,7 +240,7 @@ export class KnowledgeBaseService {
       context?: string | null;
       examples?: string[] | null;
     },
-    userId: string
+    userId: string,
   ): Promise<ActionResult<KnowledgeEntryDto>> {
     try {
       // Validate scope-specific permissions
@@ -247,7 +248,7 @@ export class KnowledgeBaseService {
         scope,
         scopeId,
         userId,
-        "write"
+        "write",
       );
       if (permissionResult.isErr()) {
         return err(
@@ -258,8 +259,8 @@ export class KnowledgeBaseService {
               scopeId,
               userId,
             },
-            "KnowledgeBaseService.createEntry"
-          )
+            "KnowledgeBaseService.createEntry",
+          ),
         );
       }
 
@@ -269,14 +270,14 @@ export class KnowledgeBaseService {
           includeInactive: true,
         });
       const duplicate = existingEntries.find(
-        (e) => e.term.toLowerCase() === entryData.term.toLowerCase()
+        (e) => e.term.toLowerCase() === entryData.term.toLowerCase(),
       );
       if (duplicate) {
         return err(
           ActionErrors.conflict(
             `Term "${entryData.term}" already exists in this scope`,
-            "KnowledgeBaseService.createEntry"
-          )
+            "KnowledgeBaseService.createEntry",
+          ),
         );
       }
 
@@ -305,14 +306,14 @@ export class KnowledgeBaseService {
       logger.error(
         "Failed to create knowledge base entry",
         { scope, scopeId, entryData },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to create knowledge base entry",
           error as Error,
-          "KnowledgeBaseService.createEntry"
-        )
+          "KnowledgeBaseService.createEntry",
+        ),
       );
     }
   }
@@ -323,7 +324,7 @@ export class KnowledgeBaseService {
   static async updateEntry(
     id: string,
     data: UpdateKnowledgeEntryDto,
-    userId: string
+    userId: string,
   ): Promise<ActionResult<KnowledgeEntryDto>> {
     try {
       // Get existing entry to check permissions
@@ -332,8 +333,8 @@ export class KnowledgeBaseService {
         return err(
           ActionErrors.notFound(
             "Knowledge base entry",
-            "KnowledgeBaseService.updateEntry"
-          )
+            "KnowledgeBaseService.updateEntry",
+          ),
         );
       }
 
@@ -342,7 +343,7 @@ export class KnowledgeBaseService {
         existing.scope,
         existing.scopeId,
         userId,
-        "write"
+        "write",
       );
       if (permissionResult.isErr()) {
         return err(
@@ -352,8 +353,8 @@ export class KnowledgeBaseService {
               scope: existing.scope,
               scopeId: existing.scopeId,
               userId,
-            }
-          )
+            },
+          ),
         );
       }
 
@@ -363,20 +364,20 @@ export class KnowledgeBaseService {
           await KnowledgeBaseEntriesQueries.getEntriesByScope(
             existing.scope,
             existing.scopeId,
-            { includeInactive: true }
+            { includeInactive: true },
           );
         const duplicate = existingEntries.find(
           (e) =>
             (e.id !== id &&
               e.term.toLowerCase() === data?.term?.toLowerCase()) ??
-            ""
+            "",
         );
         if (duplicate) {
           return err(
             ActionErrors.conflict(
               `Term "${data.term}" already exists in this scope`,
-              "KnowledgeBaseService.updateEntry"
-            )
+              "KnowledgeBaseService.updateEntry",
+            ),
           );
         }
       }
@@ -392,8 +393,8 @@ export class KnowledgeBaseService {
         return err(
           ActionErrors.notFound(
             "Knowledge base entry",
-            "KnowledgeBaseService.updateEntry"
-          )
+            "KnowledgeBaseService.updateEntry",
+          ),
         );
       }
 
@@ -409,14 +410,14 @@ export class KnowledgeBaseService {
       logger.error(
         "Failed to update knowledge base entry",
         { id },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to update knowledge base entry",
           error as Error,
-          "KnowledgeBaseService.updateEntry"
-        )
+          "KnowledgeBaseService.updateEntry",
+        ),
       );
     }
   }
@@ -426,7 +427,7 @@ export class KnowledgeBaseService {
    */
   static async deleteEntry(
     id: string,
-    userId: string
+    userId: string,
   ): Promise<ActionResult<void>> {
     try {
       // Get existing entry to check permissions
@@ -435,8 +436,8 @@ export class KnowledgeBaseService {
         return err(
           ActionErrors.notFound(
             "Knowledge base entry",
-            "KnowledgeBaseService.deleteEntry"
-          )
+            "KnowledgeBaseService.deleteEntry",
+          ),
         );
       }
 
@@ -445,7 +446,7 @@ export class KnowledgeBaseService {
         existing.scope,
         existing.scopeId,
         userId,
-        "write"
+        "write",
       );
       if (permissionResult.isErr()) {
         return permissionResult;
@@ -456,8 +457,8 @@ export class KnowledgeBaseService {
         return err(
           ActionErrors.notFound(
             "Knowledge base entry",
-            "KnowledgeBaseService.deleteEntry"
-          )
+            "KnowledgeBaseService.deleteEntry",
+          ),
         );
       }
 
@@ -473,14 +474,14 @@ export class KnowledgeBaseService {
       logger.error(
         "Failed to delete knowledge base entry",
         { id },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to delete knowledge base entry",
           error as Error,
-          "KnowledgeBaseService.deleteEntry"
-        )
+          "KnowledgeBaseService.deleteEntry",
+        ),
       );
     }
   }
@@ -491,7 +492,7 @@ export class KnowledgeBaseService {
   static async promoteEntry(
     entryId: string,
     toScope: KnowledgeBaseScope,
-    userId: string
+    userId: string,
   ): Promise<ActionResult<KnowledgeEntryDto>> {
     try {
       // Get existing entry
@@ -500,8 +501,8 @@ export class KnowledgeBaseService {
         return err(
           ActionErrors.notFound(
             "Knowledge base entry",
-            "KnowledgeBaseService.promoteEntry"
-          )
+            "KnowledgeBaseService.promoteEntry",
+          ),
         );
       }
 
@@ -510,7 +511,7 @@ export class KnowledgeBaseService {
         existing.scope,
         existing.scopeId,
         userId,
-        "read"
+        "read",
       );
       if (sourcePermissionResult.isErr()) {
         return err(sourcePermissionResult.error);
@@ -519,15 +520,16 @@ export class KnowledgeBaseService {
       // Validate promotion is to a higher scope
       const scopeOrder: Record<KnowledgeBaseScope, number> = {
         project: 1,
-        organization: 2,
-        global: 3,
+        team: 2,
+        organization: 3,
+        global: 4,
       };
       if (scopeOrder[toScope] <= scopeOrder[existing.scope]) {
         return err(
           ActionErrors.badRequest(
             `Cannot promote entry from ${existing.scope} to ${toScope}. Promotion must be to a higher scope.`,
-            "KnowledgeBaseService.promoteEntry"
-          )
+            "KnowledgeBaseService.promoteEntry",
+          ),
         );
       }
 
@@ -543,8 +545,8 @@ export class KnowledgeBaseService {
         return err(
           ActionErrors.badRequest(
             "Project promotion requires explicit projectId",
-            "KnowledgeBaseService.promoteEntry"
-          )
+            "KnowledgeBaseService.promoteEntry",
+          ),
         );
       }
 
@@ -552,7 +554,7 @@ export class KnowledgeBaseService {
         toScope,
         targetScopeId,
         userId,
-        "write"
+        "write",
       );
       if (permissionResult.isErr()) {
         return err(
@@ -562,8 +564,8 @@ export class KnowledgeBaseService {
               scope: toScope,
               scopeId: targetScopeId,
               userId,
-            }
-          )
+            },
+          ),
         );
       }
 
@@ -572,17 +574,17 @@ export class KnowledgeBaseService {
         await KnowledgeBaseEntriesQueries.getEntriesByScope(
           toScope,
           targetScopeId,
-          { includeInactive: true }
+          { includeInactive: true },
         );
       const duplicate = existingInTarget.find(
-        (e) => e.term.toLowerCase() === existing.term.toLowerCase()
+        (e) => e.term.toLowerCase() === existing.term.toLowerCase(),
       );
       if (duplicate) {
         return err(
           ActionErrors.conflict(
             `Term "${existing.term}" already exists in ${toScope} scope`,
-            "KnowledgeBaseService.promoteEntry"
-          )
+            "KnowledgeBaseService.promoteEntry",
+          ),
         );
       }
 
@@ -611,14 +613,14 @@ export class KnowledgeBaseService {
       logger.error(
         "Failed to promote knowledge base entry",
         { entryId, toScope },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to promote knowledge base entry",
           error as Error,
-          "KnowledgeBaseService.promoteEntry"
-        )
+          "KnowledgeBaseService.promoteEntry",
+        ),
       );
     }
   }
@@ -629,20 +631,20 @@ export class KnowledgeBaseService {
    */
   static async buildKnowledgeContext(
     projectId: string | null,
-    organizationId: string | null
+    organizationId: string | null,
   ): Promise<ActionResult<string>> {
     try {
       const knowledgeResult = await this.getApplicableKnowledge(
         projectId,
-        organizationId
+        organizationId,
       );
       if (knowledgeResult.isErr()) {
         return err(
           ActionErrors.internal(
             "Failed to get applicable knowledge",
             knowledgeResult.error,
-            "KnowledgeBaseService.buildKnowledgeContext"
-          )
+            "KnowledgeBaseService.buildKnowledgeContext",
+          ),
         );
       }
 
@@ -670,14 +672,14 @@ export class KnowledgeBaseService {
       logger.error(
         "Failed to build knowledge context",
         { projectId, organizationId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to build knowledge context",
           error as Error,
-          "KnowledgeBaseService.buildKnowledgeContext"
-        )
+          "KnowledgeBaseService.buildKnowledgeContext",
+        ),
       );
     }
   }
@@ -688,7 +690,7 @@ export class KnowledgeBaseService {
   static async getDocumentsByScope(
     scope: KnowledgeBaseScope,
     scopeId: string | null,
-    options?: { allowUnauthenticated?: boolean }
+    options?: { allowUnauthenticated?: boolean },
   ): Promise<ActionResult<KnowledgeDocumentDto[]>> {
     try {
       // Validate scope-specific permissions
@@ -702,8 +704,8 @@ export class KnowledgeBaseService {
         return err(
           ActionErrors.unauthenticated(
             "Authentication required",
-            "KnowledgeBaseService.getDocumentsByScope"
-          )
+            "KnowledgeBaseService.getDocumentsByScope",
+          ),
         );
       }
 
@@ -713,7 +715,7 @@ export class KnowledgeBaseService {
         scope,
         scopeId,
         authResult.value.user.id,
-        "read"
+        "read",
       );
       if (permissionResult.isErr()) {
         return err(permissionResult.error);
@@ -721,7 +723,7 @@ export class KnowledgeBaseService {
 
       const documents = await KnowledgeBaseDocumentsQueries.getDocumentsByScope(
         scope,
-        scopeId
+        scopeId,
       );
 
       return ok(documents);
@@ -729,14 +731,14 @@ export class KnowledgeBaseService {
       logger.error(
         "Failed to get documents by scope",
         { scope, scopeId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to get documents by scope",
           error as Error,
-          "KnowledgeBaseService.getDocumentsByScope"
-        )
+          "KnowledgeBaseService.getDocumentsByScope",
+        ),
       );
     }
   }
@@ -755,7 +757,7 @@ export class KnowledgeBaseService {
       fileSize: number;
       fileType: string;
     },
-    userId: string
+    userId: string,
   ): Promise<ActionResult<KnowledgeDocumentDto>> {
     try {
       // Validate scope-specific permissions
@@ -763,7 +765,7 @@ export class KnowledgeBaseService {
         scope,
         scopeId,
         userId,
-        "write"
+        "write",
       );
       if (permissionResult.isErr()) {
         return err(
@@ -773,8 +775,8 @@ export class KnowledgeBaseService {
               scope,
               scopeId,
               userId,
-            }
-          )
+            },
+          ),
         );
       }
 
@@ -806,14 +808,14 @@ export class KnowledgeBaseService {
       logger.error(
         "Failed to create knowledge base document",
         { scope, scopeId, documentData },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to create knowledge base document",
           error as Error,
-          "KnowledgeBaseService.createDocument"
-        )
+          "KnowledgeBaseService.createDocument",
+        ),
       );
     }
   }
@@ -823,7 +825,7 @@ export class KnowledgeBaseService {
    */
   static async deleteDocument(
     id: string,
-    userId: string
+    userId: string,
   ): Promise<ActionResult<void>> {
     try {
       // Get existing document to check permissions
@@ -832,8 +834,8 @@ export class KnowledgeBaseService {
         return err(
           ActionErrors.notFound(
             "Knowledge base document",
-            "KnowledgeBaseService.deleteDocument"
-          )
+            "KnowledgeBaseService.deleteDocument",
+          ),
         );
       }
 
@@ -842,7 +844,7 @@ export class KnowledgeBaseService {
         existing.scope,
         existing.scopeId,
         userId,
-        "write"
+        "write",
       );
       if (permissionResult.isErr()) {
         return permissionResult;
@@ -853,8 +855,8 @@ export class KnowledgeBaseService {
         return err(
           ActionErrors.notFound(
             "Knowledge base document",
-            "KnowledgeBaseService.deleteDocument"
-          )
+            "KnowledgeBaseService.deleteDocument",
+          ),
         );
       }
 
@@ -870,14 +872,14 @@ export class KnowledgeBaseService {
       logger.error(
         "Failed to delete knowledge base document",
         { id },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to delete knowledge base document",
           error as Error,
-          "KnowledgeBaseService.deleteDocument"
-        )
+          "KnowledgeBaseService.deleteDocument",
+        ),
       );
     }
   }
@@ -892,7 +894,7 @@ export class KnowledgeBaseService {
     scope: KnowledgeBaseScope,
     scopeId: string | null,
     userId: string,
-    operation: "read" | "write"
+    operation: "read" | "write",
   ): Promise<ActionResult<void>> {
     try {
       const authResult = await getBetterAuthSession();
@@ -900,8 +902,8 @@ export class KnowledgeBaseService {
         return err(
           ActionErrors.unauthenticated(
             "Authentication required",
-            "KnowledgeBaseService.validateScopePermissions"
-          )
+            "KnowledgeBaseService.validateScopePermissions",
+          ),
         );
       }
 
@@ -913,22 +915,22 @@ export class KnowledgeBaseService {
           return err(
             ActionErrors.badRequest(
               "Project scope requires scopeId",
-              "KnowledgeBaseService.validateScopePermissions"
-            )
+              "KnowledgeBaseService.validateScopePermissions",
+            ),
           );
         }
 
         // Verify project exists and belongs to user's organization
         const project = await ProjectQueries.findById(
           scopeId,
-          authResult.value.organization?.id ?? ""
+          authResult.value.organization?.id ?? "",
         );
         if (!project) {
           return err(
             ActionErrors.notFound(
               "Project",
-              "KnowledgeBaseService.validateScopePermissions"
-            )
+              "KnowledgeBaseService.validateScopePermissions",
+            ),
           );
         }
 
@@ -938,14 +940,59 @@ export class KnowledgeBaseService {
           // Project members can write - this is validated by project access check above
           // Additional permission checks would go here if needed
         }
+      } else if (scope === "team") {
+        // Team scope: Check team exists and user is a member
+        if (!scopeId) {
+          return err(
+            ActionErrors.badRequest(
+              "Team scope requires scopeId",
+              "KnowledgeBaseService.validateScopePermissions",
+            ),
+          );
+        }
+
+        // Verify team exists
+        const team = await TeamQueries.selectTeamById(
+          scopeId,
+          authResult.value.organization?.id ?? "",
+        );
+        if (!team) {
+          return err(
+            ActionErrors.notFound(
+              "Team",
+              "KnowledgeBaseService.validateScopePermissions",
+            ),
+          );
+        }
+
+        // For write operations, check user is a team member
+        if (operation === "write") {
+          const userTeam = await UserTeamQueries.selectUserTeam(
+            userId,
+            scopeId,
+          );
+          if (!userTeam) {
+            return err(
+              ActionErrors.forbidden(
+                "You are not a member of this team",
+                {
+                  scope,
+                  scopeId,
+                  userId,
+                },
+                "KnowledgeBaseService.validateScopePermissions",
+              ),
+            );
+          }
+        }
       } else if (scope === "organization") {
         // Organization scope: Requires admin or manager role for write
         if (!scopeId) {
           return err(
             ActionErrors.badRequest(
               "Organization scope requires scopeId",
-              "KnowledgeBaseService.validateScopePermissions"
-            )
+              "KnowledgeBaseService.validateScopePermissions",
+            ),
           );
         }
 
@@ -959,15 +1006,15 @@ export class KnowledgeBaseService {
                 scopeId,
                 userId,
               },
-              "KnowledgeBaseService.validateScopePermissions"
-            )
+              "KnowledgeBaseService.validateScopePermissions",
+            ),
           );
         }
 
         // For write operations, check permissions using type-safe helper
         if (operation === "write") {
           const hasPermission = await checkPermission(
-            Permissions.orgInstruction.write
+            Permissions.orgInstruction.write,
           );
 
           if (!hasPermission) {
@@ -979,8 +1026,8 @@ export class KnowledgeBaseService {
                   scopeId,
                   userId,
                 },
-                "KnowledgeBaseService.validateScopePermissions"
-              )
+                "KnowledgeBaseService.validateScopePermissions",
+              ),
             );
           }
         }
@@ -990,8 +1037,8 @@ export class KnowledgeBaseService {
           return err(
             ActionErrors.badRequest(
               "Global scope must have null scopeId",
-              "KnowledgeBaseService.validateScopePermissions"
-            )
+              "KnowledgeBaseService.validateScopePermissions",
+            ),
           );
         }
 
@@ -1008,8 +1055,8 @@ export class KnowledgeBaseService {
                   scopeId,
                   userId,
                 },
-                "KnowledgeBaseService.validateScopePermissions"
-              )
+                "KnowledgeBaseService.validateScopePermissions",
+              ),
             );
           }
         }
@@ -1020,16 +1067,15 @@ export class KnowledgeBaseService {
       logger.error(
         "Failed to validate scope permissions",
         { scope, scopeId, userId, operation },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to validate scope permissions",
           error as Error,
-          "KnowledgeBaseService.validateScopePermissions"
-        )
+          "KnowledgeBaseService.validateScopePermissions",
+        ),
       );
     }
   }
 }
-

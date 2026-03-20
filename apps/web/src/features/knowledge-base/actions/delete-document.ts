@@ -26,7 +26,7 @@ export const deleteKnowledgeDocumentAction = authorizedActionClient
     if (!user) {
       throw ActionErrors.unauthenticated(
         "User not found",
-        "delete-knowledge-document"
+        "delete-knowledge-document",
       );
     }
 
@@ -48,8 +48,10 @@ export const deleteKnowledgeDocumentAction = authorizedActionClient
       if (document.scope === "project" && document.scopeId && organizationId) {
         CacheInvalidation.invalidateKnowledgeHierarchy(
           document.scopeId,
-          organizationId
+          organizationId,
         );
+      } else if (document.scope === "team" && document.scopeId) {
+        CacheInvalidation.invalidateKnowledgeHierarchy(null, document.scopeId);
       } else if (document.scope === "organization" && document.scopeId) {
         CacheInvalidation.invalidateKnowledgeHierarchy(null, document.scopeId);
       } else if (document.scope === "global") {
@@ -61,10 +63,11 @@ export const deleteKnowledgeDocumentAction = authorizedActionClient
     // Revalidate relevant pages
     if (document?.scope === "project" && document.scopeId) {
       revalidatePath(`/projects/${document.scopeId}/settings`);
+    } else if (document?.scope === "team" && document.scopeId) {
+      revalidatePath(`/teams/${document.scopeId}/settings`);
     } else if (document?.scope === "organization") {
       revalidatePath(`/settings/organization`);
     }
 
     return resultToActionResponse(result);
   });
-

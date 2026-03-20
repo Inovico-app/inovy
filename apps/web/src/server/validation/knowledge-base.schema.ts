@@ -12,6 +12,7 @@ export const knowledgeBaseScopeSchema = z.enum([
   "project",
   "organization",
   "global",
+  "team",
 ]);
 
 /**
@@ -47,7 +48,11 @@ export const createKnowledgeEntrySchema = z
           path: ["scopeId"],
         });
       }
-    } else if (data.scope === "project" || data.scope === "organization") {
+    } else if (
+      data.scope === "project" ||
+      data.scope === "organization" ||
+      data.scope === "team"
+    ) {
       if (!data.scopeId || data.scopeId.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -136,7 +141,11 @@ export const uploadKnowledgeDocumentSchema = z
           path: ["scopeId"],
         });
       }
-    } else if (data.scope === "project" || data.scope === "organization") {
+    } else if (
+      data.scope === "project" ||
+      data.scope === "organization" ||
+      data.scope === "team"
+    ) {
       if (!data.scopeId || data.scopeId.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -171,7 +180,7 @@ export const uploadKnowledgeDocumentsBatchSchema = z
             .max(1000, "Description must be less than 1000 characters")
             .nullable()
             .optional(),
-        })
+        }),
       )
       .min(1, "At least one file is required")
       .max(20, "Maximum 20 files allowed per batch"),
@@ -190,7 +199,11 @@ export const uploadKnowledgeDocumentsBatchSchema = z
           path: ["scopeId"],
         });
       }
-    } else if (data.scope === "project" || data.scope === "organization") {
+    } else if (
+      data.scope === "project" ||
+      data.scope === "organization" ||
+      data.scope === "team"
+    ) {
       if (!data.scopeId || data.scopeId.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -227,7 +240,11 @@ export const searchKnowledgeSchema = z
           path: ["scopeId"],
         });
       }
-    } else if (data.scope === "project" || data.scope === "organization") {
+    } else if (
+      data.scope === "project" ||
+      data.scope === "organization" ||
+      data.scope === "team"
+    ) {
       if (!data.scopeId || data.scopeId.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -275,4 +292,3 @@ export const deleteKnowledgeDocumentSchema = z.object({
 export type DeleteKnowledgeDocumentInput = z.infer<
   typeof deleteKnowledgeDocumentSchema
 >;
-

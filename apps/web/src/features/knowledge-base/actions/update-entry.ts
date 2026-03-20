@@ -32,7 +32,7 @@ export const updateKnowledgeEntryAction = authorizedActionClient
     if (!user) {
       throw ActionErrors.unauthenticated(
         "User not found",
-        "update-knowledge-entry"
+        "update-knowledge-entry",
       );
     }
 
@@ -40,7 +40,7 @@ export const updateKnowledgeEntryAction = authorizedActionClient
     const result = await KnowledgeBaseService.updateEntry(
       id,
       updateData,
-      user.id
+      user.id,
     );
 
     if (result.isErr()) {
@@ -54,8 +54,10 @@ export const updateKnowledgeEntryAction = authorizedActionClient
     if (entry.scope === "project" && entry.scopeId && organizationId) {
       CacheInvalidation.invalidateKnowledgeHierarchy(
         entry.scopeId,
-        organizationId
+        organizationId,
       );
+    } else if (entry.scope === "team" && entry.scopeId) {
+      CacheInvalidation.invalidateKnowledgeHierarchy(null, entry.scopeId);
     } else if (entry.scope === "organization" && entry.scopeId) {
       CacheInvalidation.invalidateKnowledgeHierarchy(null, entry.scopeId);
     } else if (entry.scope === "global") {
@@ -65,10 +67,11 @@ export const updateKnowledgeEntryAction = authorizedActionClient
     // Revalidate relevant pages
     if (entry.scope === "project" && entry.scopeId) {
       revalidatePath(`/projects/${entry.scopeId}/settings`);
+    } else if (entry.scope === "team" && entry.scopeId) {
+      revalidatePath(`/teams/${entry.scopeId}/settings`);
     } else if (entry.scope === "organization" && organizationId) {
       revalidatePath(`/settings/organization`);
     }
 
     return resultToActionResponse(result);
   });
-

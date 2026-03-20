@@ -116,7 +116,7 @@ export const CacheTags = {
 
   // Knowledge Base tags
   knowledgeEntries: (
-    scope: "project" | "org" | "global",
+    scope: "project" | "org" | "global" | "team",
     scopeId?: string,
   ): string => {
     if (scope === "global") {
@@ -127,12 +127,16 @@ export const CacheTags = {
         `scopeId is required for ${scope} scope in knowledgeEntries`,
       );
     }
-    return scope === "org"
-      ? `knowledge-entries:org:${scopeId}`
-      : `knowledge-entries:project:${scopeId}`;
+    if (scope === "org") {
+      return `knowledge-entries:org:${scopeId}`;
+    }
+    if (scope === "team") {
+      return `knowledge-entries:team:${scopeId}`;
+    }
+    return `knowledge-entries:project:${scopeId}`;
   },
   knowledgeDocuments: (
-    scope: "project" | "org" | "global",
+    scope: "project" | "org" | "global" | "team",
     scopeId?: string,
   ): string => {
     if (scope === "global") {
@@ -143,9 +147,13 @@ export const CacheTags = {
         `scopeId is required for ${scope} scope in knowledgeDocuments`,
       );
     }
-    return scope === "org"
-      ? `knowledge-documents:org:${scopeId}`
-      : `knowledge-documents:project:${scopeId}`;
+    if (scope === "org") {
+      return `knowledge-documents:org:${scopeId}`;
+    }
+    if (scope === "team") {
+      return `knowledge-documents:team:${scopeId}`;
+    }
+    return `knowledge-documents:project:${scopeId}`;
   },
   knowledgeHierarchy: (projectId?: string, orgId?: string) =>
     projectId && orgId
@@ -444,7 +452,7 @@ export const CacheInvalidation = {
    * For non-global scopes, scopeId is required and must be a non-null string
    */
   invalidateKnowledge(
-    scope: "project" | "organization" | "global",
+    scope: "project" | "organization" | "global" | "team",
     scopeId?: string | null,
   ): void {
     // Early return for global scope - no scopeId needed
@@ -469,6 +477,11 @@ export const CacheInvalidation = {
       tags.push(
         CacheTags.knowledgeEntries("org", scopeId),
         CacheTags.knowledgeDocuments("org", scopeId),
+      );
+    } else if (scope === "team") {
+      tags.push(
+        CacheTags.knowledgeEntries("team", scopeId),
+        CacheTags.knowledgeDocuments("team", scopeId),
       );
     } else {
       // scope === "project"

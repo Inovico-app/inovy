@@ -17,6 +17,7 @@ export const knowledgeBaseScopeEnum = [
   "project",
   "organization",
   "global",
+  "team",
 ] as const;
 export type KnowledgeBaseScope = (typeof knowledgeBaseScopeEnum)[number];
 
@@ -41,14 +42,13 @@ export const knowledgeBaseEntries = pgTable(
   },
   (table) => ({
     scopeScopeIdTermIdx: index(
-      "knowledge_base_entries_scope_scope_id_term_idx"
+      "knowledge_base_entries_scope_scope_id_term_idx",
     ).on(table.scope, table.scopeId, table.term),
     scopeScopeIdIsActiveIdx: index(
-      "knowledge_base_entries_scope_scope_id_is_active_idx"
+      "knowledge_base_entries_scope_scope_id_is_active_idx",
     ).on(table.scope, table.scopeId, table.isActive),
-  })
+  }),
 );
 
 export type KnowledgeBaseEntry = typeof knowledgeBaseEntries.$inferSelect;
 export type NewKnowledgeBaseEntry = typeof knowledgeBaseEntries.$inferInsert;
-

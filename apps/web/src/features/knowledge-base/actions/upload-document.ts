@@ -34,7 +34,7 @@ export const uploadKnowledgeDocumentAction = authorizedActionClient
     if (!user) {
       throw ActionErrors.unauthenticated(
         "User not found",
-        "upload-knowledge-document"
+        "upload-knowledge-document",
       );
     }
 
@@ -44,7 +44,7 @@ export const uploadKnowledgeDocumentAction = authorizedActionClient
       scope,
       scopeId,
       { title, description },
-      user.id
+      user.id,
     );
 
     if (result.isErr()) {
@@ -55,6 +55,8 @@ export const uploadKnowledgeDocumentAction = authorizedActionClient
     CacheInvalidation.invalidateKnowledge(scope, scopeId);
     if (scope === "project" && scopeId && organizationId) {
       CacheInvalidation.invalidateKnowledgeHierarchy(scopeId, organizationId);
+    } else if (scope === "team" && scopeId) {
+      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
     } else if (scope === "organization" && scopeId) {
       CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
     } else if (scope === "global") {
@@ -64,6 +66,8 @@ export const uploadKnowledgeDocumentAction = authorizedActionClient
     // Revalidate relevant pages
     if (scope === "project" && scopeId) {
       revalidatePath(`/projects/${scopeId}/settings`);
+    } else if (scope === "team" && scopeId) {
+      revalidatePath(`/teams/${scopeId}/settings`);
     } else if (scope === "organization" && organizationId) {
       revalidatePath(`/settings/organization`);
     }
@@ -92,11 +96,12 @@ const uploadDocumentsBatchInputSchema = z
             .max(1000, "Description must be less than 1000 characters")
             .nullable()
             .optional(),
-        })
+        }),
       )
       .min(1, "At least one file is required")
       .max(20, "Maximum 20 files allowed per batch"),
-    sharedDescription: uploadKnowledgeDocumentsBatchSchema.shape.sharedDescription,
+    sharedDescription:
+      uploadKnowledgeDocumentsBatchSchema.shape.sharedDescription,
   })
   .superRefine((data, ctx) => {
     // Validate scope rules
@@ -108,7 +113,11 @@ const uploadDocumentsBatchInputSchema = z
           path: ["scopeId"],
         });
       }
-    } else if (data.scope === "project" || data.scope === "organization") {
+    } else if (
+      data.scope === "project" ||
+      data.scope === "organization" ||
+      data.scope === "team"
+    ) {
       if (!data.scopeId || data.scopeId.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -141,7 +150,7 @@ export const uploadKnowledgeDocumentsBatchAction = authorizedActionClient
     if (!user) {
       throw ActionErrors.unauthenticated(
         "User not found",
-        "upload-knowledge-documents-batch"
+        "upload-knowledge-documents-batch",
       );
     }
 
@@ -149,7 +158,7 @@ export const uploadKnowledgeDocumentsBatchAction = authorizedActionClient
     if (fileArray.length !== metadataArray.length) {
       throw ActionErrors.badRequest(
         "Files array length must match metadata array length",
-        "upload-knowledge-documents-batch"
+        "upload-knowledge-documents-batch",
       );
     }
 
@@ -162,13 +171,12 @@ export const uploadKnowledgeDocumentsBatchAction = authorizedActionClient
     }));
 
     // Upload documents batch
-    const result =
-      await DocumentProcessingService.uploadDocumentsBatch(
-        filesWithMetadata,
-        scope,
-        scopeId,
-        user.id
-      );
+    const result = await DocumentProcessingService.uploadDocumentsBatch(
+      filesWithMetadata,
+      scope,
+      scopeId,
+      user.id,
+    );
 
     if (result.isErr()) {
       throw result.error;
@@ -178,6 +186,8 @@ export const uploadKnowledgeDocumentsBatchAction = authorizedActionClient
     CacheInvalidation.invalidateKnowledge(scope, scopeId);
     if (scope === "project" && scopeId && organizationId) {
       CacheInvalidation.invalidateKnowledgeHierarchy(scopeId, organizationId);
+    } else if (scope === "team" && scopeId) {
+      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
     } else if (scope === "organization" && scopeId) {
       CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
     } else if (scope === "global") {
@@ -187,10 +197,11 @@ export const uploadKnowledgeDocumentsBatchAction = authorizedActionClient
     // Revalidate relevant pages
     if (scope === "project" && scopeId) {
       revalidatePath(`/projects/${scopeId}/settings`);
+    } else if (scope === "team" && scopeId) {
+      revalidatePath(`/teams/${scopeId}/settings`);
     } else if (scope === "organization" && organizationId) {
       revalidatePath(`/settings/organization`);
     }
 
     return resultToActionResponse(result);
   });
-
