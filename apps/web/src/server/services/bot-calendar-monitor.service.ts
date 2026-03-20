@@ -16,7 +16,6 @@ import {
 } from "./calendar/calendar-provider-factory";
 import type { CalendarEvent } from "./calendar/types";
 import { MeetingService } from "./meeting.service";
-import { NotificationService } from "./notification.service";
 
 /**
  * A calendar event enriched with its extracted meeting URL and originating provider.
@@ -120,7 +119,6 @@ export class BotCalendarMonitorService {
     userId: string;
     organizationId: string;
     calendarIds?: string[] | null;
-    requirePerMeetingConsent: boolean;
     botDisplayName: string;
     botJoinMessage: string | null;
   }): Promise<ActionResult<{ sessionsCreated: number }>> {
@@ -236,10 +234,6 @@ export class BotCalendarMonitorService {
             continue;
           }
 
-          // Determine bot status based on consent settings
-          const botStatus: "scheduled" | "pending_consent" =
-            settings.requirePerMeetingConsent ? "pending_consent" : "scheduled";
-
           // Calculate join time: 15 seconds before meeting start for precision
           if (!event.start) {
             logger.warn("Skipping meeting without start time", {
@@ -290,7 +284,7 @@ export class BotCalendarMonitorService {
             meetingUrl,
             meetingTitle: event.title,
             calendarEventId: event.id,
-            botStatus: botStatus,
+            botStatus: "scheduled",
             meetingParticipants:
               event.attendees?.map((a) => a.email).filter(Boolean) ?? undefined,
           });
@@ -329,39 +323,6 @@ export class BotCalendarMonitorService {
             );
           }
 
-          // Create notification if consent is required
-          if (botStatus === "pending_consent") {
-            const notificationResult =
-              await NotificationService.createNotification({
-                recordingId: null, // No recording yet
-                projectId: project.id,
-                userId: settings.userId,
-                organizationId: settings.organizationId,
-                type: "bot_consent_request",
-                title: "Bot consent required",
-                message: `Bot wants to join "${event.title || "meeting"}"`,
-                metadata: {
-                  sessionId: session.id,
-                  meetingTitle: event.title,
-                  meetingTime: event.start
-                    ? new Date(event.start).toISOString()
-                    : undefined,
-                  meetingUrl,
-                },
-              });
-
-            if (notificationResult.isErr()) {
-              logger.error("Failed to create bot consent notification", {
-                component: "BotCalendarMonitorService.processUserCalendar",
-                userId: settings.userId,
-                sessionId: session.id,
-                projectId: project.id,
-                error: notificationResult.error.message,
-              });
-              // Continue - notification failure should not block session creation
-            }
-          }
-
           sessionsCreated++;
 
           logger.info("Created bot session for calendar event", {
@@ -369,7 +330,7 @@ export class BotCalendarMonitorService {
             userId: settings.userId,
             calendarEventId: event.id,
             botId: providerId,
-            botStatus,
+            botStatus: "scheduled",
             projectId: project.id,
             provider,
           });

@@ -6,7 +6,7 @@ import type { NotificationType } from "@/server/db/schema/notifications";
 
 export interface Notification {
   id: string;
-  recordingId: string | null; // Nullable for bot_consent_request notifications
+  recordingId: string | null;
   projectId: string;
   userId: string;
   organizationId: string;
@@ -31,4 +31,3 @@ export interface NotificationListResponse {
   unreadCount: number;
   total: number;
 }
-

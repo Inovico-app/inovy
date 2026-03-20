@@ -29,7 +29,6 @@ const STATUS_OPTIONS: Array<{
   { value: "all", label: "All Meetings" },
   { value: "with_bot", label: "With Bot" },
   { value: "without_bot", label: "Without Bot" },
-  { value: "pending_consent", label: "Pending Consent" },
   { value: "active", label: "Active" },
   { value: "failed", label: "Failed" },
 ];

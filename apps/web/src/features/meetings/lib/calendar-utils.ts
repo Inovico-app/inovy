@@ -204,13 +204,12 @@ export function formatAttendeesCount(meeting: CalendarEvent): string {
 export type MeetingBotStatus = BotStatus | "no_bot";
 
 /**
- * Filter options for meetings (story-aligned: All, With Bot, Without Bot, Pending Consent, Active, Failed)
+ * Filter options for meetings (All, With Bot, Without Bot, Active, Failed)
  */
 export type MeetingBotStatusFilter =
   | "all"
   | "with_bot"
   | "without_bot"
-  | "pending_consent"
   | "active"
   | "failed";
 
@@ -233,7 +232,6 @@ const VALID_BOT_STATUS_FILTERS: MeetingBotStatusFilter[] = [
   "all",
   "with_bot",
   "without_bot",
-  "pending_consent",
   "active",
   "failed",
 ];
@@ -292,8 +290,6 @@ function meetingMatchesFilter(
       return WITH_BOT_STATUSES.includes(status);
     case "without_bot":
       return status === "no_bot";
-    case "pending_consent":
-      return status === "pending_consent";
     case "active":
       return status === "active";
     case "failed":

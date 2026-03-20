@@ -12,7 +12,7 @@ import { cancelBotSessionSchema } from "@/server/validation/bot/cancel-bot-sessi
 
 /**
  * Server action to cancel a bot session
- * Can cancel sessions in scheduled, joining, or pending_consent status
+ * Can cancel sessions in scheduled or joining status
  */
 export const cancelBotSession = authorizedActionClient
   .metadata({ permissions: policyToPermissions("recordings:delete") })
@@ -29,7 +29,7 @@ export const cancelBotSession = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "cancel-bot-session"
+        "cancel-bot-session",
       );
     }
 
@@ -42,13 +42,13 @@ export const cancelBotSession = authorizedActionClient
     // Find session and verify ownership and status
     const session = await BotSessionsQueries.findById(
       sessionId,
-      organizationId
+      organizationId,
     );
 
     if (!session) {
       throw ActionErrors.notFound(
         "Bot session not found",
-        "cancel-bot-session"
+        "cancel-bot-session",
       );
     }
 
@@ -56,7 +56,7 @@ export const cancelBotSession = authorizedActionClient
       throw ActionErrors.forbidden(
         "You can only cancel your own bot sessions",
         undefined,
-        "cancel-bot-session"
+        "cancel-bot-session",
       );
     }
 
@@ -64,13 +64,12 @@ export const cancelBotSession = authorizedActionClient
     const cancellableStatuses: Array<typeof session.botStatus> = [
       "scheduled",
       "joining",
-      "pending_consent",
     ];
 
     if (!cancellableStatuses.includes(session.botStatus)) {
       throw ActionErrors.badRequest(
         `Session cannot be canceled. Current status: ${session.botStatus}`,
-        "cancel-bot-session"
+        "cancel-bot-session",
       );
     }
 
@@ -109,14 +108,14 @@ export const cancelBotSession = authorizedActionClient
       {
         botStatus: "failed",
         error: "Bot session canceled by user",
-      }
+      },
     );
 
     if (!updatedSession) {
       throw ActionErrors.internal(
         "Failed to update bot session",
         undefined,
-        "cancel-bot-session"
+        "cancel-bot-session",
       );
     }
 
@@ -168,4 +167,3 @@ export const cancelBotSession = authorizedActionClient
 
     return { success: true, session: updatedSession };
   });
-

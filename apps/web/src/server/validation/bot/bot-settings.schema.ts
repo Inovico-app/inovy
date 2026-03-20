@@ -7,8 +7,6 @@ import { z } from "zod";
 
 export const botSettingsSchema = z.object({
   botEnabled: z.boolean().default(false),
-  autoJoinEnabled: z.boolean().default(false),
-  requirePerMeetingConsent: z.boolean().default(true),
   botDisplayName: z
     .string()
     .min(1, "Bot display name is required")
@@ -29,4 +27,3 @@ export const botSettingsSchema = z.object({
 });
 
 export type BotSettingsInput = z.infer<typeof botSettingsSchema>;
-

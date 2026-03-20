@@ -13,7 +13,6 @@ import { removeBotFromMeetingSchema } from "@/server/validation/meetings/remove-
 const STATUSES_REQUIRING_TERMINATION = [
   "scheduled",
   "joining",
-  "pending_consent",
   "active",
   "leaving",
 ] as const;
@@ -41,7 +40,7 @@ export const removeBotFromMeeting = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "remove-bot-from-meeting"
+        "remove-bot-from-meeting",
       );
     }
 
@@ -59,14 +58,14 @@ export const removeBotFromMeeting = authorizedActionClient
     } else {
       session = await BotSessionsQueries.findByCalendarEventId(
         calendarEventId!,
-        organizationId
+        organizationId,
       );
     }
 
     if (!session) {
       throw ActionErrors.notFound(
         "Bot session not found",
-        "remove-bot-from-meeting"
+        "remove-bot-from-meeting",
       );
     }
 
@@ -74,19 +73,19 @@ export const removeBotFromMeeting = authorizedActionClient
       throw ActionErrors.forbidden(
         "You can only remove your own bot sessions",
         undefined,
-        "remove-bot-from-meeting"
+        "remove-bot-from-meeting",
       );
     }
 
     // Terminate bot session via provider if in a status that requires it
     const needsTermination = STATUSES_REQUIRING_TERMINATION.includes(
-      session.botStatus as (typeof STATUSES_REQUIRING_TERMINATION)[number]
+      session.botStatus as (typeof STATUSES_REQUIRING_TERMINATION)[number],
     );
 
     if (needsTermination && session.recallBotId) {
       const provider = BotProviderFactory.getDefault();
       const terminateResult = await provider.terminateSession(
-        session.recallBotId
+        session.recallBotId,
       );
 
       if (terminateResult.isErr()) {
@@ -115,14 +114,14 @@ export const removeBotFromMeeting = authorizedActionClient
       {
         botStatus: "failed",
         error: "Bot session removed by user",
-      }
+      },
     );
 
     if (!updatedSession) {
       throw ActionErrors.internal(
         "Failed to update bot session",
         undefined,
-        "remove-bot-from-meeting"
+        "remove-bot-from-meeting",
       );
     }
 

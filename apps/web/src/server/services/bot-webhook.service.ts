@@ -49,14 +49,14 @@ const TERMINAL_BOT_STATUSES = new Set<BotStatus>([
 function toStringRecord(meta: unknown): Record<string, string> | undefined {
   if (!meta || typeof meta !== "object") return undefined;
   const entries = Object.entries(meta as Record<string, unknown>).filter(
-    (v): v is [string, string] => typeof v[1] === "string"
+    (v): v is [string, string] => typeof v[1] === "string",
   );
   if (entries.length === 0) return undefined;
   return Object.fromEntries(entries) as Record<string, string>;
 }
 
 function getMetadata(
-  payload: RecallWebhookEvent
+  payload: RecallWebhookEvent,
 ): Record<string, string> | undefined {
   if ("data" in payload) {
     const botMeta = toStringRecord(payload.data?.bot?.metadata);
@@ -65,7 +65,7 @@ function getMetadata(
     const data = payload.data as Record<string, unknown>;
     if (data.recording && typeof data.recording === "object") {
       const recMeta = toStringRecord(
-        (data.recording as { metadata?: unknown }).metadata
+        (data.recording as { metadata?: unknown }).metadata,
       );
       if (recMeta) return recMeta;
     }
@@ -105,7 +105,7 @@ interface ResolvedMetadata {
 async function resolveWebhookMetadata(
   event: RecallWebhookEvent,
   botId: string,
-  component: string
+  component: string,
 ): Promise<ResolvedMetadata | null> {
   const metadata = getMetadata(event);
   let projectId = metadata?.projectId;
@@ -119,7 +119,7 @@ async function resolveWebhookMetadata(
         component,
         botId,
         metadata,
-      }
+      },
     );
     const fallbackSession =
       await BotSessionsQueries.findByRecallBotIdOnly(botId);
@@ -163,14 +163,14 @@ export class BotWebhookService {
    * Process bot status change event (Svix or legacy format)
    */
   static async processStatusChange(
-    event: SvixBotStatusEvent | BotStatusChangeEvent
+    event: SvixBotStatusEvent | BotStatusChangeEvent,
   ): Promise<ActionResult<void>> {
     try {
       const botId = getBotId(event);
       const resolved = await resolveWebhookMetadata(
         event,
         botId,
-        "BotWebhookService.processStatusChange"
+        "BotWebhookService.processStatusChange",
       );
 
       if (!resolved) {
@@ -181,7 +181,7 @@ export class BotWebhookService {
 
       const existingSession = await BotSessionsQueries.findByRecallBotId(
         botId,
-        organizationId
+        organizationId,
       );
 
       if (!existingSession) {
@@ -231,20 +231,10 @@ export class BotWebhookService {
           : `Bot failed: ${eventType}`;
       }
 
-      if (internalStatus === "pending_consent") {
-        const subCode =
-          "data" in event && event.data?.data?.sub_code
-            ? String(event.data.data.sub_code)
-            : "";
-        if (subCode) {
-          updates.error = `Recording permission denied (sub_code: ${subCode})`;
-        }
-      }
-
       const session = await BotSessionsQueries.updateByRecallBotId(
         botId,
         organizationId,
-        updates
+        updates,
       );
 
       if (!session) {
@@ -271,32 +261,28 @@ export class BotWebhookService {
             existingSession.meetingId,
             organizationId,
             "in_progress",
-            { actualStartAt: new Date() }
+            { actualStartAt: new Date() },
           );
 
           // Send agenda & pre-meeting notes as a chat briefing message
-          this.sendBriefingMessage(
-            botId,
-            existingSession.meetingId
-          ).catch((briefingError) => {
-            logger.error("Failed to send briefing message", {
-              component: "BotWebhookService.processStatusChange",
-              botId,
-              meetingId: existingSession.meetingId,
-              error: serializeError(briefingError),
-            });
-          });
+          this.sendBriefingMessage(botId, existingSession.meetingId).catch(
+            (briefingError) => {
+              logger.error("Failed to send briefing message", {
+                component: "BotWebhookService.processStatusChange",
+                botId,
+                meetingId: existingSession.meetingId,
+                error: serializeError(briefingError),
+              });
+            },
+          );
         }
 
-        if (
-          internalStatus === "completed" ||
-          internalStatus === "leaving"
-        ) {
+        if (internalStatus === "completed" || internalStatus === "leaving") {
           await MeetingService.updateStatus(
             existingSession.meetingId,
             organizationId,
             "completed",
-            { actualEndAt: new Date() }
+            { actualEndAt: new Date() },
           );
         }
       }
@@ -312,8 +298,8 @@ export class BotWebhookService {
         ActionErrors.internal(
           "Failed to process status change",
           error as Error,
-          "BotWebhookService.processStatusChange"
-        )
+          "BotWebhookService.processStatusChange",
+        ),
       );
     }
   }
@@ -323,7 +309,7 @@ export class BotWebhookService {
    * Checks if the message matches a kick command and removes the bot from the call.
    */
   static async processChatMessage(
-    event: ParticipantEventChatMessage
+    event: ParticipantEventChatMessage,
   ): Promise<ActionResult<void>> {
     try {
       const chatData = event.data.data;
@@ -357,14 +343,14 @@ export class BotWebhookService {
           {
             component: "BotWebhookService.processChatMessage",
             botId,
-          }
+          },
         );
         return ok(undefined);
       }
 
       const session = await BotSessionsQueries.findByRecallBotId(
         botId,
-        organizationId
+        organizationId,
       );
 
       if (!session) {
@@ -396,7 +382,7 @@ export class BotWebhookService {
             botId,
             sessionId: session.id,
             error: leaveResult.error,
-          }
+          },
         );
       }
 
@@ -422,7 +408,7 @@ export class BotWebhookService {
               action: "kicked",
               command: text,
             },
-          }
+          },
         );
 
         if (notificationResult.isErr()) {
@@ -463,8 +449,8 @@ export class BotWebhookService {
         ActionErrors.internal(
           "Failed to process chat message",
           error as Error,
-          "BotWebhookService.processChatMessage"
-        )
+          "BotWebhookService.processChatMessage",
+        ),
       );
     }
   }
@@ -473,14 +459,14 @@ export class BotWebhookService {
    * Process recording.done (Svix format) - no URL in payload, fetch via API
    */
   static async processRecordingDone(
-    event: SvixRecordingEvent
+    event: SvixRecordingEvent,
   ): Promise<ActionResult<void>> {
     try {
       const { recording, bot } = event.data;
       const resolved = await resolveWebhookMetadata(
         event,
         bot.id,
-        "BotWebhookService.processRecordingDone"
+        "BotWebhookService.processRecordingDone",
       );
 
       if (!resolved) return ok(undefined);
@@ -489,7 +475,7 @@ export class BotWebhookService {
 
       const session = await BotSessionsQueries.findByRecallBotId(
         bot.id,
-        organizationId
+        organizationId,
       );
 
       if (!session) {
@@ -504,7 +490,7 @@ export class BotWebhookService {
       const existingRecording =
         await RecordingsQueries.selectRecordingByExternalId(
           recording.id,
-          organizationId
+          organizationId,
         );
 
       if (existingRecording) {
@@ -517,12 +503,12 @@ export class BotWebhookService {
           bot.id,
           organizationId,
           existingRecording.id,
-          "done"
+          "done",
         );
         if (updatedSession) {
           await this.triggerAiWorkflow(
             existingRecording.id,
-            "BotWebhookService.processRecordingDone"
+            "BotWebhookService.processRecordingDone",
           );
         }
         return ok(undefined);
@@ -530,7 +516,7 @@ export class BotWebhookService {
 
       const urlResult = await RecallApiService.getRecordingDownloadUrl(
         bot.id,
-        recording.id
+        recording.id,
       );
 
       if (urlResult.isErr()) {
@@ -561,8 +547,8 @@ export class BotWebhookService {
           ActionErrors.internal(
             "Encryption configuration error",
             undefined,
-            "BotWebhookService.processRecordingDone"
-          )
+            "BotWebhookService.processRecordingDone",
+          ),
         );
       }
 
@@ -581,8 +567,8 @@ export class BotWebhookService {
             ActionErrors.internal(
               "Failed to encrypt recording",
               encryptError as Error,
-              "BotWebhookService.processRecordingDone"
-            )
+              "BotWebhookService.processRecordingDone",
+            ),
           );
         }
       }
@@ -614,7 +600,7 @@ export class BotWebhookService {
           encryptionMetadata,
           meetingId: session.meetingId ?? null,
         },
-        true
+        true,
       );
 
       if (createResult.isErr()) {
@@ -627,19 +613,19 @@ export class BotWebhookService {
         bot.id,
         organizationId,
         finalRecordingId,
-        "done"
+        "done",
       );
 
       await this.triggerAiWorkflow(
         finalRecordingId,
-        "BotWebhookService.processRecordingDone"
+        "BotWebhookService.processRecordingDone",
       );
 
       // Trigger post-meeting actions if linked to a meeting
       if (session.meetingId) {
         PostActionExecutorService.executePostActions(
           session.meetingId,
-          organizationId
+          organizationId,
         ).catch((postActionError) => {
           logger.error(
             "Failed to trigger post-actions",
@@ -647,7 +633,7 @@ export class BotWebhookService {
               component: "BotWebhookService.processRecordingDone",
               meetingId: session.meetingId,
             },
-            postActionError as Error
+            postActionError as Error,
           );
         });
       }
@@ -670,8 +656,8 @@ export class BotWebhookService {
         ActionErrors.internal(
           "Failed to process recording",
           error as Error,
-          "BotWebhookService.processRecordingDone"
-        )
+          "BotWebhookService.processRecordingDone",
+        ),
       );
     }
   }
@@ -680,7 +666,7 @@ export class BotWebhookService {
    * Process recording.failed - update bot session with failure
    */
   static async processRecordingFailed(
-    event: SvixRecordingEvent
+    event: SvixRecordingEvent,
   ): Promise<ActionResult<void>> {
     try {
       const { bot, data } = event.data;
@@ -720,8 +706,8 @@ export class BotWebhookService {
         ActionErrors.internal(
           "Failed to process recording failure",
           error as Error,
-          "BotWebhookService.processRecordingFailed"
-        )
+          "BotWebhookService.processRecordingFailed",
+        ),
       );
     }
   }
@@ -730,7 +716,7 @@ export class BotWebhookService {
    * Process recording.deleted - soft-delete or cleanup
    */
   static async processRecordingDeleted(
-    event: SvixRecordingEvent
+    event: SvixRecordingEvent,
   ): Promise<ActionResult<void>> {
     try {
       const { bot, recording } = event.data;
@@ -748,7 +734,7 @@ export class BotWebhookService {
       const existingRecording =
         await RecordingsQueries.selectRecordingByExternalId(
           recording.id,
-          organizationId
+          organizationId,
         );
 
       if (existingRecording) {
@@ -770,15 +756,15 @@ export class BotWebhookService {
         ActionErrors.internal(
           "Failed to process recording deleted",
           error as Error,
-          "BotWebhookService.processRecordingDeleted"
-        )
+          "BotWebhookService.processRecordingDeleted",
+        ),
       );
     }
   }
 
   private static async sendBriefingMessage(
     botId: string,
-    meetingId: string
+    meetingId: string,
   ): Promise<void> {
     const [agendaItems, preMeetingNote] = await Promise.all([
       MeetingAgendaItemsQueries.findByMeetingId(meetingId),
@@ -825,7 +811,7 @@ export class BotWebhookService {
 
   private static async triggerAiWorkflow(
     recordingId: string,
-    component: string
+    component: string,
   ): Promise<void> {
     try {
       const workflowRun = await start(convertRecordingIntoAiInsights, [
@@ -850,7 +836,7 @@ export class BotWebhookService {
   }
 
   private static async downloadRecording(
-    url: string
+    url: string,
   ): Promise<ActionResult<{ fileBuffer: Buffer; mimeType: string }>> {
     try {
       const response = await fetch(url, {
@@ -861,8 +847,8 @@ export class BotWebhookService {
           ActionErrors.internal(
             `Failed to download recording: ${response.statusText}`,
             undefined,
-            "BotWebhookService.downloadRecording"
-          )
+            "BotWebhookService.downloadRecording",
+          ),
         );
       }
       const arrayBuffer = await response.arrayBuffer();
@@ -874,8 +860,8 @@ export class BotWebhookService {
         ActionErrors.internal(
           "Failed to download recording file",
           error as Error,
-          "BotWebhookService.downloadRecording"
-        )
+          "BotWebhookService.downloadRecording",
+        ),
       );
     }
   }
@@ -892,4 +878,3 @@ export class BotWebhookService {
     return mimeToExt[mimeType] || "mp4";
   }
 }
-

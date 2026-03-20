@@ -20,7 +20,6 @@ const addBotToMeetingSchema = z.object({
   calendarEventId: z.string().min(1, "Calendar event ID is required"),
   meetingUrl: z.string().min(1, "Meeting URL is required"),
   meetingTitle: z.string().optional(),
-  consentGiven: z.boolean().optional().default(false),
   projectId: z.string().uuid("Invalid project ID").optional(),
 });
 
@@ -45,13 +44,8 @@ export const addBotToMeeting = authorizedActionClient
       throw ActionErrors.forbidden("Organization context required");
     }
 
-    const {
-      calendarEventId,
-      meetingUrl,
-      meetingTitle,
-      consentGiven,
-      projectId,
-    } = parsedInput;
+    const { calendarEventId, meetingUrl, meetingTitle, projectId } =
+      parsedInput;
 
     // Validate meeting has a supported meeting URL (Google Meet or Microsoft Teams)
     if (!meetingUrl?.trim() || !isValidMeetingUrl(meetingUrl)) {
@@ -108,7 +102,7 @@ export const addBotToMeeting = authorizedActionClient
       }
     }
 
-    // Get bot settings for consent check
+    // Get bot settings for display name and configuration
     const settingsResult = await getCachedBotSettings(user.id, organizationId);
 
     if (settingsResult.isErr()) {
@@ -124,22 +118,8 @@ export const addBotToMeeting = authorizedActionClient
       );
     }
 
-    const {
-      requirePerMeetingConsent,
-      botDisplayName,
-      botJoinMessage,
-      inactivityTimeoutMinutes,
-    } = settingsResult.value;
-
-    // If consent required and not given, return consentRequired for client to show dialog
-    if (requirePerMeetingConsent && !consentGiven) {
-      return {
-        success: false,
-        consentRequired: true,
-      } as const;
-    }
-
-    // User has given consent (either via dialog or requirePerMeetingConsent is false)
+    const { botDisplayName, botJoinMessage, inactivityTimeoutMinutes } =
+      settingsResult.value;
 
     // Create bot session via provider
     const provider = BotProviderFactory.getDefault();
