@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -42,28 +42,25 @@ export function AddBotProjectDialog({
   defaultProjectId,
   isLoadingProjects,
 }: AddBotProjectDialogProps) {
-  const projectItems = useMemo(
-    () => Object.fromEntries(projects.map((p) => [p.id, p.name])),
-    [projects],
-  );
-
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     defaultProjectId ?? "",
   );
   const prevOpenRef = useRef(open);
   const prevDefaultProjectIdRef = useRef(defaultProjectId);
 
-  // Reset selected project when dialog opens or defaultProjectId changes (during render)
-  if (
-    (open && !prevOpenRef.current && defaultProjectId) ||
-    (open &&
-      defaultProjectId &&
-      defaultProjectId !== prevDefaultProjectIdRef.current)
-  ) {
-    setSelectedProjectId(defaultProjectId);
-  }
-  prevOpenRef.current = open;
-  prevDefaultProjectIdRef.current = defaultProjectId;
+  // Reset selected project when dialog opens or defaultProjectId changes
+  useEffect(() => {
+    if (
+      (open && !prevOpenRef.current && defaultProjectId) ||
+      (open &&
+        defaultProjectId &&
+        defaultProjectId !== prevDefaultProjectIdRef.current)
+    ) {
+      setSelectedProjectId(defaultProjectId);
+    }
+    prevOpenRef.current = open;
+    prevDefaultProjectIdRef.current = defaultProjectId;
+  }, [open, defaultProjectId]);
 
   const handleAccept = () => {
     if (!selectedProjectId) {
@@ -91,7 +88,6 @@ export function AddBotProjectDialog({
               value={selectedProjectId}
               onValueChange={(value) => setSelectedProjectId(value ?? "")}
               disabled={isLoadingProjects || projects.length === 0}
-              items={projectItems}
             >
               <SelectTrigger id="project-select">
                 <SelectValue placeholder="Select a project" />

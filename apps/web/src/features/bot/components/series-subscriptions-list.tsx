@@ -14,6 +14,7 @@ import { useAction } from "next-safe-action/hooks";
 import { unsubscribeFromSeriesAction } from "../actions/unsubscribe-from-series";
 import { toast } from "sonner";
 import { CalendarDays, Loader2, RefreshCw, Repeat2 } from "lucide-react";
+import { useState } from "react";
 
 const PROVIDER_LABELS: Record<string, string> = {
   google: "Google Calendar",
@@ -26,21 +27,21 @@ const PROVIDER_LABELS: Record<string, string> = {
  */
 export function SeriesSubscriptionsList() {
   const { subscriptions, isLoading, refetch } = useSeriesSubscriptions();
+  const [unsubscribingId, setUnsubscribingId] = useState<string | null>(null);
 
-  const { execute: unsubscribe, isExecuting: isUnsubscribing } = useAction(
-    unsubscribeFromSeriesAction,
-    {
-      onSuccess: ({ data }) => {
-        toast.success(
-          `Unsubscribed. ${data?.cancelledSessions ?? 0} pending sessions cancelled.`,
-        );
-        refetch();
-      },
-      onError: ({ error }) => {
-        toast.error(error.serverError || "Failed to unsubscribe from series");
-      },
+  const { execute: unsubscribe } = useAction(unsubscribeFromSeriesAction, {
+    onSuccess: ({ data }) => {
+      setUnsubscribingId(null);
+      toast.success(
+        `Unsubscribed. ${data?.cancelledSessions ?? 0} pending sessions cancelled.`,
+      );
+      refetch();
     },
-  );
+    onError: ({ error }) => {
+      setUnsubscribingId(null);
+      toast.error(error.serverError || "Failed to unsubscribe from series");
+    },
+  });
 
   return (
     <Card>
@@ -107,14 +108,15 @@ export function SeriesSubscriptionsList() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    unsubscribe({ subscriptionId: subscription.id })
-                  }
-                  disabled={isUnsubscribing}
+                  onClick={() => {
+                    setUnsubscribingId(subscription.id);
+                    unsubscribe({ subscriptionId: subscription.id });
+                  }}
+                  disabled={unsubscribingId === subscription.id}
                   aria-label={`Unsubscribe from ${subscription.seriesTitle ?? "this series"}`}
                   className="shrink-0"
                 >
-                  {isUnsubscribing ? (
+                  {unsubscribingId === subscription.id ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
                     "Unsubscribe"

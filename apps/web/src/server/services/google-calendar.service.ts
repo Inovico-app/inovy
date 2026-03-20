@@ -84,7 +84,7 @@ export interface CalendarEvent {
    * 3. location field (common in external calendar apps)
    * 4. description field (fallback for manually entered URLs)
    */
-  meetingUrl: string;
+  meetingUrl: string | null;
   attendees?: Array<{ email: string; responseStatus: string }>;
   organizer?: { email: string };
   /**
@@ -1170,7 +1170,7 @@ export class GoogleCalendarService {
             title: event.summary || "Untitled Event",
             start: startDate,
             end: endDate,
-            meetingUrl: meetingUrl || "",
+            meetingUrl: meetingUrl ?? null,
             attendees: event.attendees?.map((a) => ({
               email: a.email || "",
               responseStatus: a.responseStatus || "needsAction",

@@ -464,8 +464,9 @@ export class MicrosoftCalendarProvider implements CalendarProvider {
         return err(result.error);
       }
 
+      const resolvedCalendarId = options.calendarId || "primary";
       const events: CalendarEvent[] = result.value.value.map((graphEvent) =>
-        mapGraphEventToCalendarEvent(graphEvent, options.calendarId),
+        mapGraphEventToCalendarEvent(graphEvent, resolvedCalendarId),
       );
 
       return ok(events);

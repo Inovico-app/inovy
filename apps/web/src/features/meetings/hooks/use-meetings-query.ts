@@ -15,7 +15,7 @@ interface UseMeetingsQueryOptions {
 
 export interface MeetingsQueryResult {
   events: CalendarEvent[];
-  calendarProvider: ProviderType;
+  calendarProvider: ProviderType | null;
 }
 
 /**
@@ -34,7 +34,7 @@ async function fetchMeetingsForRange(
   }
 
   if (!result?.data) {
-    return { events: [], calendarProvider: "google" };
+    return { events: [], calendarProvider: null };
   }
 
   return result.data;

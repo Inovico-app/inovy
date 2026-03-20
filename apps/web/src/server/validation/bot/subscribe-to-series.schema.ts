@@ -1,4 +1,3 @@
-// src/server/validation/bot/subscribe-to-series.schema.ts
 import { z } from "zod";
 
 export const subscribeToSeriesSchema = z.object({

@@ -111,18 +111,32 @@ export class BotSeriesSubscriptionsQueries {
 
   static async update(
     id: string,
-    updates: Partial<Omit<BotSeriesSubscription, "id" | "createdAt">>,
+    organizationId: string,
+    updates: Partial<
+      Omit<
+        BotSeriesSubscription,
+        "id" | "createdAt" | "userId" | "organizationId"
+      >
+    >,
   ): Promise<BotSeriesSubscription | null> {
     const [updated] = await db
       .update(botSeriesSubscriptions)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(botSeriesSubscriptions.id, id))
+      .where(
+        and(
+          eq(botSeriesSubscriptions.id, id),
+          eq(botSeriesSubscriptions.organizationId, organizationId),
+        ),
+      )
       .returning();
 
     return updated ?? null;
   }
 
-  static async deactivate(id: string): Promise<BotSeriesSubscription | null> {
-    return this.update(id, { active: false });
+  static async deactivate(
+    id: string,
+    organizationId: string,
+  ): Promise<BotSeriesSubscription | null> {
+    return this.update(id, organizationId, { active: false });
   }
 }

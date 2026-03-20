@@ -74,13 +74,21 @@ export const subscribeToSeriesAction = authorizedActionClient
       organizationId,
     );
 
+    if (!botSettingsRecord || !botSettingsRecord.botEnabled) {
+      throw new Error("Bot must be enabled to subscribe to series");
+    }
+
     // Create or reactivate subscription
     let subscription;
     if (existing && !existing.active) {
-      subscription = await BotSeriesSubscriptionsQueries.update(existing.id, {
-        active: true,
-        seriesTitle: event.title,
-      });
+      subscription = await BotSeriesSubscriptionsQueries.update(
+        existing.id,
+        organizationId,
+        {
+          active: true,
+          seriesTitle: event.title,
+        },
+      );
     } else {
       subscription = await BotSeriesSubscriptionsQueries.insert({
         userId,
@@ -107,15 +115,32 @@ export const subscribeToSeriesAction = authorizedActionClient
       {
         ...subscription,
         botDisplayName:
-          botSettingsRecord?.botDisplayName ?? "Inovy Recording Bot",
-        botJoinMessage: botSettingsRecord?.botJoinMessage ?? null,
+          botSettingsRecord.botDisplayName ?? "Inovy Recording Bot",
+        botJoinMessage: botSettingsRecord.botJoinMessage ?? null,
       },
       { timeMin: now, timeMax: thirtyDaysFromNow },
     );
 
-    const sessionsCreated = backfillResult.isOk()
-      ? backfillResult.value.sessionsCreated
-      : 0;
+    if (backfillResult.isErr()) {
+      // Rollback: undo the subscription change
+      if (existing && !existing.active) {
+        // Was a reactivation — set back to inactive
+        await BotSeriesSubscriptionsQueries.update(
+          subscription.id,
+          organizationId,
+          { active: false },
+        );
+      } else {
+        // Was a new insert — deactivate it
+        await BotSeriesSubscriptionsQueries.deactivate(
+          subscription.id,
+          organizationId,
+        );
+      }
+      throw new Error(backfillResult.error.message);
+    }
+
+    const sessionsCreated = backfillResult.value.sessionsCreated;
 
     return {
       subscription,

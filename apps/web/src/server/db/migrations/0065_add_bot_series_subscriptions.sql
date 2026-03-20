@@ -18,6 +18,6 @@ CREATE INDEX "bot_series_sub_org_series_idx" ON "bot_series_subscriptions" USING
 ALTER TABLE "bot_sessions" ADD CONSTRAINT "bot_sessions_subscription_id_bot_series_subscriptions_id_fk" FOREIGN KEY ("subscription_id") REFERENCES "public"."bot_series_subscriptions"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "bot_sessions_subscription_id_idx" ON "bot_sessions" USING btree ("subscription_id");--> statement-breakpoint
 UPDATE "bot_sessions" SET "bot_status" = 'failed' WHERE "bot_status" = 'pending_consent';--> statement-breakpoint
-UPDATE "notifications" SET "type" = 'info' WHERE "type" = 'bot_consent_request';--> statement-breakpoint
+UPDATE "notifications" SET "type" = 'bot_session_update' WHERE "type" = 'bot_consent_request';--> statement-breakpoint
 ALTER TABLE "bot_settings" DROP COLUMN "auto_join_enabled";--> statement-breakpoint
 ALTER TABLE "bot_settings" DROP COLUMN "require_per_meeting_consent";

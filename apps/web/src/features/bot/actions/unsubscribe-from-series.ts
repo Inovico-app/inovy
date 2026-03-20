@@ -25,8 +25,10 @@ export const unsubscribeFromSeriesAction = authorizedActionClient
     }
 
     // Deactivate subscription
-    const subscription =
-      await BotSeriesSubscriptionsQueries.deactivate(subscriptionId);
+    const subscription = await BotSeriesSubscriptionsQueries.deactivate(
+      subscriptionId,
+      organizationId,
+    );
     if (!subscription) {
       throw new Error("Subscription not found");
     }
@@ -40,6 +42,7 @@ export const unsubscribeFromSeriesAction = authorizedActionClient
 
     const botProvider = BotProviderFactory.getDefault();
     let cancelledCount = 0;
+    const failedTerminations: string[] = [];
 
     for (const session of pendingSessions) {
       try {
@@ -55,13 +58,13 @@ export const unsubscribeFromSeriesAction = authorizedActionClient
           sessionId: session.id,
           error: serializeError(error),
         });
-        // Still mark as failed locally
-        await BotSessionsQueries.update(session.id, organizationId, {
-          botStatus: "failed",
-          error: "Subscription cancelled (provider termination failed)",
-        });
+        // Leave session status unchanged — don't mark as failed on termination errors
+        failedTerminations.push(session.id);
       }
     }
 
-    return { cancelledSessions: cancelledCount };
+    return {
+      cancelledSessions: cancelledCount,
+      failedTerminations: failedTerminations.length,
+    };
   });

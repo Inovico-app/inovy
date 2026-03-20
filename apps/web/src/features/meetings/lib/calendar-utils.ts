@@ -33,7 +33,7 @@ export interface CalendarDay {
 
 export interface MeetingWithSession extends CalendarEvent {
   botSession?: BotSession;
-  calendarProvider?: ProviderType;
+  calendarProvider?: ProviderType | null;
 }
 
 /**
@@ -118,7 +118,7 @@ export function groupMeetingsByDate(
 export function matchMeetingsWithSessions(
   meetings: CalendarEvent[],
   sessions: Map<string, BotSession>,
-  calendarProvider?: ProviderType,
+  calendarProvider?: ProviderType | null,
 ): MeetingWithSession[] {
   return meetings.map((meeting) => {
     const session = sessions.get(meeting.id);

@@ -84,9 +84,11 @@ export class BotBackfillService {
         firstInstance?.title &&
         firstInstance.title !== subscription.seriesTitle
       ) {
-        await BotSeriesSubscriptionsQueries.update(subscription.id, {
-          seriesTitle: firstInstance.title,
-        });
+        await BotSeriesSubscriptionsQueries.update(
+          subscription.id,
+          subscription.organizationId,
+          { seriesTitle: firstInstance.title },
+        );
       }
 
       // Batch dedup by calendarEventId
@@ -96,7 +98,7 @@ export class BotBackfillService {
         subscription.organizationId,
       );
 
-      // Dedup by meetingUrl
+      // Dedup by meetingUrl (cross-series check — within a series, calendarEventId dedup is sufficient)
       const instanceUrls = instances
         .map((i) => {
           const url = meetingLinkProvider.extractMeetingUrl(i);
@@ -161,22 +163,40 @@ export class BotBackfillService {
 
           const { providerId } = sessionResult.value;
 
-          // Persist bot session
-          const session = await BotSessionsQueries.insert({
-            projectId: project.id,
-            organizationId: subscription.organizationId,
-            userId: subscription.userId,
-            recallBotId: providerId,
-            recallStatus: sessionResult.value.status,
-            meetingUrl,
-            meetingTitle: instance.title,
-            calendarEventId: instance.id,
-            botStatus: "scheduled",
-            subscriptionId: subscription.id,
-            meetingParticipants:
-              instance.attendees?.map((a) => a.email).filter(Boolean) ??
-              undefined,
-          });
+          // Persist bot session — if insert fails, terminate the remote session to clean up
+          let session;
+          try {
+            session = await BotSessionsQueries.insert({
+              projectId: project.id,
+              organizationId: subscription.organizationId,
+              userId: subscription.userId,
+              recallBotId: providerId,
+              recallStatus: sessionResult.value.status,
+              meetingUrl,
+              meetingTitle: instance.title,
+              calendarEventId: instance.id,
+              botStatus: "scheduled",
+              subscriptionId: subscription.id,
+              meetingParticipants:
+                instance.attendees?.map((a) => a.email).filter(Boolean) ??
+                undefined,
+            });
+          } catch (insertError) {
+            // Compensating action: terminate the remote session since we failed to persist it
+            try {
+              await botProvider.terminateSession(providerId);
+            } catch (terminateError) {
+              logger.error(
+                "Failed to terminate remote session after insert failure",
+                {
+                  component: "BotBackfillService",
+                  providerId,
+                  error: serializeError(terminateError),
+                },
+              );
+            }
+            throw insertError;
+          }
 
           // Create meeting record
           const meetingResult =
@@ -213,8 +233,9 @@ export class BotBackfillService {
           }
 
           result.sessionsCreated++;
-          // Mark URL as used for subsequent dedup within this batch
-          existingUrls.add(meetingUrl);
+          // Within a single series, calendarEventId dedup is sufficient.
+          // URL dedup only prevents cross-series collisions, so we do not
+          // add to existingUrls here.
 
           logger.info("Created bot session for series instance", {
             component: "BotBackfillService",
