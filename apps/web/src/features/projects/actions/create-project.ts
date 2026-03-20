@@ -42,7 +42,8 @@ export const createProjectAction = authorizedActionClient
       );
     }
 
-    const teamId = explicitTeamId ?? activeTeamId ?? null;
+    const teamId =
+      explicitTeamId !== undefined ? explicitTeamId : (activeTeamId ?? null);
 
     if (
       teamId &&

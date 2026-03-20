@@ -54,7 +54,8 @@ export const addBotToMeeting = authorizedActionClient
       teamId: explicitTeamId,
     } = parsedInput;
 
-    const teamId = explicitTeamId ?? activeTeamId ?? null;
+    const teamId =
+      explicitTeamId !== undefined ? explicitTeamId : (activeTeamId ?? null);
 
     if (
       teamId &&
