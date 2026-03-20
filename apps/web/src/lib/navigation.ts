@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Settings,
   ShieldAlert,
+  Users,
 } from "lucide-react";
 
 export interface NavLink {
@@ -26,6 +27,7 @@ export const navLinks: NavLink[] = [
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
   { to: "/meetings", label: "Meetings", icon: Calendar },
   { to: "/bot/sessions", label: "Bot Sessions", icon: Bot },
+  { to: "/teams", label: "Teams", icon: Users },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
