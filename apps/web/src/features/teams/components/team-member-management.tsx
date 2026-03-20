@@ -54,18 +54,20 @@ export async function TeamMemberManagement({
     );
   }
 
-  // Fetch team members
-  const membersResult = await TeamService.getTeamMembers(teamId);
+  // Fetch team members with user details (name, email, image)
+  const membersResult = await TeamService.getTeamMembersWithUserDetails(teamId);
   const teamMembers = membersResult.isOk() ? membersResult.value : [];
 
   // Fetch all organization members to show available users
   const orgMembersResult = await OrganizationService.getOrganizationMembers(
-    organization.id
+    organization.id,
   );
   const allMembers = orgMembersResult.isOk() ? orgMembersResult.value : [];
 
   // Get team member IDs for filtering
-  const teamMemberIds = new Set(teamMembers.map((m: { userId: string }) => m.userId));
+  const teamMemberIds = new Set(
+    teamMembers.map((m: { userId: string }) => m.userId),
+  );
 
   return (
     <div className="space-y-6">
@@ -99,7 +101,7 @@ export async function TeamMemberManagement({
             teamId={teamId}
             teamMembers={teamMembers}
             availableMembers={allMembers.filter(
-              (m) => !teamMemberIds.has(m.id)
+              (m) => !teamMemberIds.has(m.id),
             )}
           />
         </CardContent>
@@ -107,4 +109,3 @@ export async function TeamMemberManagement({
     </div>
   );
 }
-

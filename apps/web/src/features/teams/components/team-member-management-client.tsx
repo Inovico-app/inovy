@@ -41,6 +41,9 @@ interface TeamMember {
   id: string;
   userId: string;
   teamId: string;
+  userName: string | null;
+  userEmail: string | null;
+  userImage: string | null;
   createdAt: Date | null;
 }
 
@@ -78,8 +81,11 @@ export function TeamMemberManagementClient({
     if (!searchQuery.trim()) return teamMembers;
 
     const query = searchQuery.toLowerCase();
-    return teamMembers.filter((member) =>
-      member.userId.toLowerCase().includes(query),
+    return teamMembers.filter(
+      (member) =>
+        member.userName?.toLowerCase().includes(query) ||
+        member.userEmail?.toLowerCase().includes(query) ||
+        member.userId.toLowerCase().includes(query),
     );
   }, [teamMembers, searchQuery]);
 
@@ -283,44 +289,62 @@ export function TeamMemberManagementClient({
               : "No members in this team yet."}
           </p>
         ) : (
-          filteredMembers.map((member) => (
-            <div
-              key={member.id}
-              className="flex items-center justify-between py-3 px-4 border rounded-lg hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-sm font-medium">
-                    {member.userId.substring(0, 2).toUpperCase()}
-                  </span>
-                </div>
-                <div>
-                  <div className="font-medium">
-                    User {member.userId.substring(0, 8)}...
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Joined{" "}
-                    {new Date(
-                      member.createdAt ?? new Date(),
-                    ).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  setShowRemoveDialog({
-                    userId: member.userId,
-                    userName: `User ${member.userId.substring(0, 8)}`,
-                  })
-                }
-                disabled={isSubmitting}
+          filteredMembers.map((member) => {
+            const displayName =
+              member.userName || member.userEmail || "Unknown User";
+            const initials = member.userName
+              ? member.userName
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2)
+              : member.userEmail
+                ? member.userEmail.substring(0, 2).toUpperCase()
+                : "??";
+
+            return (
+              <div
+                key={member.id}
+                className="flex items-center justify-between py-3 px-4 border rounded-lg hover:bg-muted/50 transition-colors"
               >
-                <TrashIcon className="h-4 w-4 text-red-600" />
-              </Button>
-            </div>
-          ))
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-medium">{initials}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{displayName}</div>
+                    {member.userEmail && member.userName && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        {member.userEmail}
+                      </div>
+                    )}
+                    <div className="text-xs text-muted-foreground">
+                      Joined{" "}
+                      {new Date(
+                        member.createdAt ?? new Date(),
+                      ).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                  onClick={() =>
+                    setShowRemoveDialog({
+                      userId: member.userId,
+                      userName: displayName,
+                    })
+                  }
+                  disabled={isSubmitting}
+                  aria-label={`Remove ${displayName}`}
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </Button>
+              </div>
+            );
+          })
         )}
       </div>
 
