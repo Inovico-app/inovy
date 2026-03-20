@@ -10,6 +10,7 @@ import {
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
+import { ProjectQueries } from "@/server/data-access/projects.queries";
 import { ProjectTemplateQueries } from "@/server/data-access/project-templates.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { TasksQueries } from "@/server/data-access/tasks.queries";
@@ -804,6 +805,10 @@ export class RAGService {
 
       const chunks = this.chunkText(textToIndex, 500);
 
+      // Look up project teamId for payload
+      const project = await ProjectQueries.findById(projectId, organizationId);
+      const teamId = project?.teamId ? [project.teamId] : undefined;
+
       // Prepare documents for Qdrant batch indexing
       const documents = chunks.map((chunk, index) => ({
         content: chunk,
@@ -812,6 +817,7 @@ export class RAGService {
           documentId: recordingId,
           contentId: recordingId,
           projectId,
+          teamId,
           filename: recording.title,
           recordingTitle: recording.title,
           recordingDate: recording.recordingDate.toISOString(),
@@ -882,6 +888,10 @@ export class RAGService {
       const recording =
         await RecordingsQueries.selectRecordingById(recordingId);
 
+      // Look up project teamId for payload
+      const project = await ProjectQueries.findById(projectId, organizationId);
+      const teamId = project?.teamId ? [project.teamId] : undefined;
+
       // Index to Qdrant
       const indexResult = await this.addDocument(
         summaryText,
@@ -890,6 +900,7 @@ export class RAGService {
           documentId: summary.id,
           contentId: summary.id,
           projectId,
+          teamId,
           filename: recording?.title,
           recordingTitle: recording?.title,
           recordingDate: recording?.recordingDate?.toISOString(),
@@ -940,6 +951,10 @@ export class RAGService {
       const recording =
         await RecordingsQueries.selectRecordingById(recordingId);
 
+      // Look up project teamId for payload
+      const project = await ProjectQueries.findById(projectId, organizationId);
+      const teamId = project?.teamId ? [project.teamId] : undefined;
+
       // Prepare documents for Qdrant batch indexing
       const documents = tasks.map((task) => ({
         content: `Task: ${task.title}\nDescription: ${
@@ -950,6 +965,7 @@ export class RAGService {
           documentId: task.id,
           contentId: task.id,
           projectId,
+          teamId,
           title: task.title,
           priority: task.priority,
           status: task.status,
@@ -1076,6 +1092,10 @@ export class RAGService {
       // Chunk the template instructions
       const chunks = this.chunkText(template.instructions, 500);
 
+      // Look up project teamId for payload
+      const project = await ProjectQueries.findById(projectId, organizationId);
+      const teamId = project?.teamId ? [project.teamId] : undefined;
+
       // Prepare documents for Qdrant batch indexing
       const documents = chunks.map((chunk, index) => ({
         content: chunk,
@@ -1084,6 +1104,7 @@ export class RAGService {
           documentId: template.id,
           contentId: template.id,
           projectId,
+          teamId,
           filename: "Project Template",
           title: "Project Template",
           chunkIndex: index,
