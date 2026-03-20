@@ -167,6 +167,20 @@ async function fetchAndBuildSession(
       }
     }
 
+    // If user's active team is no longer in their memberships, reset to "All"
+    if (activeTeamId && !userTeamIds.includes(activeTeamId)) {
+      activeTeamId = null;
+      // Update the session record to clear activeTeamId
+      try {
+        await db
+          .update(sessionsTable)
+          .set({ activeTeamId: null })
+          .where(eq(sessionsTable.id, session.session.id));
+      } catch {
+        // Non-critical — the null activeTeamId in the response is sufficient
+      }
+    }
+
     const activeOrganization = resolveActiveOrganization(
       organizations,
       activeMember,
