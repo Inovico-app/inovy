@@ -161,7 +161,7 @@ export function MeetingDetailsModal({
       setLastUsedProjectId(defaultProjectId);
       addBot({
         calendarEventId: meeting.id,
-        meetingUrl: meeting.meetingUrl,
+        meetingUrl: meeting.meetingUrl ?? "",
         meetingTitle: meeting.title,
         projectId: defaultProjectId,
       });
@@ -176,7 +176,7 @@ export function MeetingDetailsModal({
     setLastUsedProjectId(projectId);
     addBot({
       calendarEventId: meeting.id,
-      meetingUrl: meeting.meetingUrl,
+      meetingUrl: meeting.meetingUrl ?? "",
       meetingTitle: meeting.title,
       projectId,
     });

@@ -1,5 +1,6 @@
 import type { BotSession, BotStatus } from "@/server/db/schema/bot-sessions";
-import type { CalendarEvent } from "@/server/services/google-calendar.service";
+import type { CalendarEvent } from "@/server/services/calendar/types";
+import type { ProviderType } from "@/server/services/calendar/calendar-provider-factory";
 import {
   addDays,
   addMonths,
@@ -32,6 +33,7 @@ export interface CalendarDay {
 
 export interface MeetingWithSession extends CalendarEvent {
   botSession?: BotSession;
+  calendarProvider?: ProviderType;
 }
 
 /**
@@ -116,12 +118,14 @@ export function groupMeetingsByDate(
 export function matchMeetingsWithSessions(
   meetings: CalendarEvent[],
   sessions: Map<string, BotSession>,
+  calendarProvider?: ProviderType,
 ): MeetingWithSession[] {
   return meetings.map((meeting) => {
     const session = sessions.get(meeting.id);
     return {
       ...meeting,
       botSession: session,
+      calendarProvider,
     };
   });
 }

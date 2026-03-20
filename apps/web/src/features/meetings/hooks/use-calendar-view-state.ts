@@ -163,11 +163,15 @@ export function useCalendarViewState({
   }, [effectiveView, currentDate]);
 
   // Fetch meetings (enabled for all views)
-  const { data: meetings = [], isLoading: isLoadingMeetings } =
-    useMeetingsQuery({
+  const { data: meetingsData, isLoading: isLoadingMeetings } = useMeetingsQuery(
+    {
       month: fetchMonth,
       enabled: true,
-    });
+    },
+  );
+
+  const meetings = meetingsData?.events ?? [];
+  const calendarProvider = meetingsData?.calendarProvider;
 
   // Filter meetings to visible range
   const visibleRange = useMemo(
@@ -198,8 +202,13 @@ export function useCalendarViewState({
   }, [botSessionsData]);
 
   const meetingsWithSessions = useMemo(
-    () => matchMeetingsWithSessions(meetingsForVisibleRange, botSessions),
-    [meetingsForVisibleRange, botSessions],
+    () =>
+      matchMeetingsWithSessions(
+        meetingsForVisibleRange,
+        botSessions,
+        calendarProvider,
+      ),
+    [meetingsForVisibleRange, botSessions, calendarProvider],
   );
 
   // Filter by bot status

@@ -52,7 +52,7 @@ export function AddBotButton({
       setLastUsedProjectId(defaultProjectId);
       execute({
         calendarEventId: meeting.id,
-        meetingUrl: meeting.meetingUrl,
+        meetingUrl: meeting.meetingUrl ?? "",
         meetingTitle: meeting.title,
         projectId: defaultProjectId,
       });
@@ -68,7 +68,7 @@ export function AddBotButton({
     setLastUsedProjectId(projectId);
     execute({
       calendarEventId: pendingMeeting.id,
-      meetingUrl: pendingMeeting.meetingUrl,
+      meetingUrl: pendingMeeting.meetingUrl ?? "",
       meetingTitle: pendingMeeting.title,
       projectId,
     });

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/tooltip";
 import { BotSessionStatusTrigger } from "@/features/bot/components/bot-session-status-trigger";
 import { AddBotButton } from "@/features/meetings/components/add-bot-button";
+import { SeriesSubscriptionToggle } from "@/features/meetings/components/series-subscription-toggle";
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
 import {
   formatAttendeesCount,
@@ -17,6 +18,7 @@ import {
   formatTimeRange,
   getMeetingBotStatus,
 } from "@/features/meetings/lib/calendar-utils";
+import type { BotSeriesSubscription } from "@/server/db/schema/bot-series-subscriptions";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import {
@@ -30,11 +32,15 @@ import Link from "next/link";
 interface MeetingsListItemProps {
   meeting: MeetingWithSession;
   onMeetingClick?: (meeting: MeetingWithSession) => void;
+  subscriptions?: BotSeriesSubscription[];
+  onSubscriptionChange?: () => void;
 }
 
 export function MeetingsListItem({
   meeting,
   onMeetingClick,
+  subscriptions,
+  onSubscriptionChange,
 }: MeetingsListItemProps) {
   const botStatus = getMeetingBotStatus(meeting, meeting.botSession);
   const isPast = meeting.end < new Date();
@@ -149,6 +155,19 @@ export function MeetingsListItem({
                 )}
               </>
             )}
+            {/* Series subscription toggle — only for recurring meetings */}
+            {meeting.recurringSeriesId &&
+              meeting.calendarProvider &&
+              subscriptions !== undefined && (
+                <SeriesSubscriptionToggle
+                  calendarEventId={meeting.id}
+                  calendarId={meeting.calendarId}
+                  calendarProvider={meeting.calendarProvider}
+                  recurringSeriesId={meeting.recurringSeriesId}
+                  subscriptions={subscriptions}
+                  onSubscriptionChange={onSubscriptionChange}
+                />
+              )}
           </div>
         </div>
       </CardContent>
