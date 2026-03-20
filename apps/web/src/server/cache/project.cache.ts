@@ -37,7 +37,11 @@ export async function getCachedUserProjects(
   teamContext?: TeamContextOptions,
 ) {
   "use cache";
-  cacheTag(CacheTags.projectsByOrg(orgCode));
+  const teamCacheKey = teamContext?.activeTeamId ?? "all";
+  cacheTag(
+    CacheTags.projectsByOrg(orgCode),
+    `projects-team-${orgCode}-${teamCacheKey}`,
+  );
 
   const projects = await ProjectQueries.findByOrganizationWithCreator(
     {

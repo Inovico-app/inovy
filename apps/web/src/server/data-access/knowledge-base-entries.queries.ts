@@ -225,39 +225,46 @@ export class KnowledgeBaseEntriesQueries {
     organizationId: string | null,
     teamId?: string | null,
   ): Promise<HierarchicalKnowledgeEntryDto[]> {
-    if (!projectId || !organizationId) {
-      // If no project/org, return empty array
+    if (!organizationId) {
+      // If no org, return empty array
       return [];
     }
 
-    // Fetch entries from all scopes with priority
+    // Fetch entries from all applicable scopes with priority
     // Priority 1 = team, 2 = project, 3 = organization, 4 = global
-    const queries = [
-      // Priority 2: Project entries
-      this.getEntriesByScope("project", projectId),
-      // Priority 3: Organization entries
-      this.getEntriesByScope("organization", organizationId),
-      // Priority 4: Global entries
-      this.getEntriesByScope("global", null),
-    ];
+    const hasTeam = teamId != null && teamId.trim().length > 0;
+    const hasProject = projectId != null;
 
-    // Add team query if teamId is provided
-    const hasTeam = teamId && teamId.trim().length > 0;
+    const queries: Promise<KnowledgeEntryDto[]>[] = [];
+
+    // Priority 3: Organization entries (always included when org is known)
+    queries.push(this.getEntriesByScope("organization", organizationId));
+    // Priority 4: Global entries (always included)
+    queries.push(this.getEntriesByScope("global", null));
+
+    const [orgEntries, globalEntries] = await Promise.all(queries);
+
+    // Priority 1: Team entries (fetched separately when teamId is present)
     let teamEntries: KnowledgeEntryDto[] = [];
     if (hasTeam) {
-      teamEntries = await this.getEntriesByScope("team", teamId);
+      teamEntries = await this.getEntriesByScope("team", teamId!);
     }
 
-    const [projectEntries, orgEntries, globalEntries] =
-      await Promise.all(queries);
+    // Priority 2: Project entries (fetched separately when projectId is present)
+    let projectEntries: KnowledgeEntryDto[] = [];
+    if (hasProject) {
+      projectEntries = await this.getEntriesByScope("project", projectId!);
+    }
 
     // Combine all entries with priority
     const allEntries: Array<HierarchicalKnowledgeEntryDto> = [];
     if (hasTeam) {
       allEntries.push(...teamEntries.map((e) => ({ ...e, priority: 1 })));
     }
+    if (hasProject) {
+      allEntries.push(...projectEntries.map((e) => ({ ...e, priority: 2 })));
+    }
     allEntries.push(
-      ...projectEntries.map((e) => ({ ...e, priority: 2 })),
       ...orgEntries.map((e) => ({ ...e, priority: 3 })),
       ...globalEntries.map((e) => ({ ...e, priority: 4 })),
     );

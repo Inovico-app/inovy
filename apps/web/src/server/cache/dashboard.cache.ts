@@ -28,10 +28,12 @@ export async function getCachedDashboardOverview(
   teamContext?: DashboardTeamContext,
 ) {
   "use cache";
+  const teamCacheKey = teamContext?.activeTeamId ?? "all";
   cacheTag(
     CacheTags.dashboardStats(organizationId),
     CacheTags.recentProjects(organizationId),
     CacheTags.recentRecordings(organizationId),
+    `dashboard-team-${organizationId}-${teamCacheKey}`,
   );
 
   const result = await DashboardService.getDashboardOverview(

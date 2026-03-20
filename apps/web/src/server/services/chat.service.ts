@@ -334,6 +334,7 @@ export class ChatService {
           await KnowledgeBaseService.buildKnowledgeContext(
             projectId,
             project.organizationId,
+            null,
           );
         if (knowledgeResult.isOk()) {
           knowledgeContext = knowledgeResult.value;
@@ -551,6 +552,7 @@ export class ChatService {
           await KnowledgeBaseService.buildKnowledgeContext(
             projectId,
             project.organizationId,
+            teamOptions?.teamId ?? null,
           );
         if (knowledgeResult.isOk()) {
           knowledgeContext = knowledgeResult.value;
@@ -895,6 +897,7 @@ export class ChatService {
       const knowledgeResult = await KnowledgeBaseService.buildKnowledgeContext(
         null, // No project ID for org-level
         organizationId,
+        teamOptions?.teamId ?? null,
       );
       const knowledgeContext = knowledgeResult.isOk()
         ? knowledgeResult.value

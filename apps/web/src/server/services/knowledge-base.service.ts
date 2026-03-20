@@ -33,7 +33,7 @@ export class KnowledgeBaseService {
     teamId?: string | null,
   ): Promise<ActionResult<KnowledgeEntryDto[]>> {
     try {
-      if (!projectId || !organizationId) {
+      if (!organizationId) {
         return ok([]);
       }
 
@@ -69,15 +69,17 @@ export class KnowledgeBaseService {
         );
       }
 
-      // Verify project exists and belongs to user's organization
-      const project = await ProjectQueries.findById(projectId, userOrgId);
-      if (!project) {
-        return err(
-          ActionErrors.notFound(
-            "Project",
-            "KnowledgeBaseService.getApplicableKnowledge",
-          ),
-        );
+      // Verify project exists and belongs to user's organization (only when projectId is provided)
+      if (projectId) {
+        const project = await ProjectQueries.findById(projectId, userOrgId);
+        if (!project) {
+          return err(
+            ActionErrors.notFound(
+              "Project",
+              "KnowledgeBaseService.getApplicableKnowledge",
+            ),
+          );
+        }
       }
 
       // If teamId is provided, verify team exists and user is a member
