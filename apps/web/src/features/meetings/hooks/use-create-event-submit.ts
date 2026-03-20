@@ -20,6 +20,7 @@ export interface CreateEventInput {
   recurrence?: string[];
   userTimezone: string;
   provider?: "google" | "microsoft";
+  teamId?: string | null;
 }
 
 interface UseCreateEventSubmitProps {
@@ -60,6 +61,7 @@ export function useCreateEventSubmit({
           recurrence: rruleArray,
           userTimezone,
           provider,
+          teamId: data.teamId ?? null,
         });
         return;
       }
@@ -91,6 +93,7 @@ export function useCreateEventSubmit({
         recurrence: rruleArray,
         userTimezone,
         provider,
+        teamId: data.teamId ?? null,
       });
     },
     [createEvent, buildRecurrenceRules, provider],

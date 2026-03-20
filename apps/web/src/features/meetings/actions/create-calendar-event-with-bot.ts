@@ -31,6 +31,7 @@ const createCalendarEventWithBotSchema = z.object({
   provider: z
     .enum(["google", "microsoft"] satisfies [ProviderType, ...ProviderType[]])
     .optional(),
+  teamId: z.string().nullable().optional(),
 });
 
 /**
@@ -41,7 +42,7 @@ export const createCalendarEventWithBot = authorizedActionClient
   .metadata({ permissions: policyToPermissions("recordings:create") })
   .schema(createCalendarEventWithBotSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { organizationId, user } = ctx;
+    const { organizationId, user, activeTeamId } = ctx;
 
     if (!organizationId) {
       throw ActionErrors.forbidden("Organization context required");
@@ -80,7 +81,10 @@ export const createCalendarEventWithBot = authorizedActionClient
       endDate,
       recurrence,
       userTimezone,
+      teamId: explicitTeamId,
     } = parsedInput;
+
+    const teamId = explicitTeamId ?? activeTeamId ?? null;
 
     logger.info("Creating calendar event with bot", {
       userId: user.id,

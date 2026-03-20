@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { TeamPicker } from "@/features/teams/components/team-picker";
 import { Loader2Icon } from "lucide-react";
 import { useMemo } from "react";
 import { useCreateEventForm } from "../hooks/use-create-event-form";
@@ -57,6 +58,9 @@ export function CreateEventDialog({
     isLoadingProviders,
     selectedProvider,
     setSelectedProvider,
+    teams,
+    activeTeamId,
+    isLoadingTeams,
   } = useCreateEventForm({ open, onOpenChange });
 
   const isBusy = isCreating || isNavigating;
@@ -291,6 +295,15 @@ export function CreateEventDialog({
               Add notetaker to this meeting
             </Label>
           </div>
+
+          {!isLoadingTeams && teams.length > 0 && (
+            <TeamPicker
+              teams={teams}
+              value={watch("teamId") ?? null}
+              onChange={(id) => setValue("teamId", id)}
+              activeTeamId={activeTeamId}
+            />
+          )}
 
           <DialogFooter>
             <Button

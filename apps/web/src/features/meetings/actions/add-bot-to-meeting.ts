@@ -21,6 +21,7 @@ const addBotToMeetingSchema = z.object({
   meetingUrl: z.string().min(1, "Meeting URL is required"),
   meetingTitle: z.string().optional(),
   projectId: z.string().uuid("Invalid project ID").optional(),
+  teamId: z.string().nullable().optional(),
 });
 
 /**
@@ -34,7 +35,7 @@ export const addBotToMeeting = authorizedActionClient
   })
   .schema(addBotToMeetingSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { user, organizationId } = ctx;
+    const { user, organizationId, activeTeamId } = ctx;
 
     if (!user) {
       throw ActionErrors.unauthenticated("User context required");
@@ -44,8 +45,15 @@ export const addBotToMeeting = authorizedActionClient
       throw ActionErrors.forbidden("Organization context required");
     }
 
-    const { calendarEventId, meetingUrl, meetingTitle, projectId } =
-      parsedInput;
+    const {
+      calendarEventId,
+      meetingUrl,
+      meetingTitle,
+      projectId,
+      teamId: explicitTeamId,
+    } = parsedInput;
+
+    const teamId = explicitTeamId ?? activeTeamId ?? null;
 
     // Validate meeting has a supported meeting URL (Google Meet or Microsoft Teams)
     if (!meetingUrl?.trim() || !isValidMeetingUrl(meetingUrl)) {
@@ -196,6 +204,7 @@ export const addBotToMeeting = authorizedActionClient
       {
         organizationId,
         projectId: project.id,
+        teamId,
         createdById: user.id,
         calendarEventId,
         title: meetingTitle || "Untitled Meeting",

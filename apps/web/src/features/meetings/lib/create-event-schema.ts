@@ -13,6 +13,7 @@ export const createEventFormSchema = z
     addBot: z.boolean(),
     attendeeUserIds: z.array(z.string()),
     attendeeEmails: z.array(z.string().email()),
+    teamId: z.string().nullable().optional(),
   })
   .refine(
     (data) => {
@@ -24,7 +25,7 @@ export const createEventFormSchema = z
     {
       message: "Start and end times are required when not all day",
       path: ["startTime"],
-    }
+    },
   )
   .refine(
     (data) => {
@@ -50,7 +51,7 @@ export const createEventFormSchema = z
     {
       message: "End date/time must be after start date/time",
       path: ["endDate"],
-    }
+    },
   );
 
 export type CreateEventFormData = z.infer<typeof createEventFormSchema>;
