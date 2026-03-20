@@ -18,6 +18,7 @@ interface EditProjectModalProps {
   initialData: {
     name: string;
     description: string | null;
+    teamId?: string | null;
   };
   variant?: "default" | "outline" | "ghost";
   open?: boolean;
@@ -65,7 +66,8 @@ export function EditProjectModal({
         <DialogHeader>
           <DialogTitle>Edit Project</DialogTitle>
           <DialogDescription>
-            Update your project information. Changes will be reflected immediately.
+            Update your project information. Changes will be reflected
+            immediately.
           </DialogDescription>
         </DialogHeader>
         <EditProjectForm

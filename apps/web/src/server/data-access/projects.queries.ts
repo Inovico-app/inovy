@@ -320,7 +320,11 @@ export class ProjectQueries {
   static async update(
     projectId: string,
     organizationId: string,
-    data: { name?: string; description?: string | null },
+    data: {
+      name?: string;
+      description?: string | null;
+      teamId?: string | null;
+    },
   ): Promise<ProjectDto | null> {
     return await db.transaction(async (tx) => {
       const [project] = await tx

@@ -356,6 +356,7 @@ export class ProjectService {
       const project = await ProjectQueries.update(projectId, orgCode, {
         name: input.name,
         description: input.description,
+        ...(input.teamId !== undefined ? { teamId: input.teamId } : {}),
       });
       if (!project) {
         return err(

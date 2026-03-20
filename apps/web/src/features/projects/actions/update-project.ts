@@ -20,22 +20,22 @@ export const updateProjectAction = authorizedActionClient
   })
   .inputSchema(updateProjectSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { projectId, name, description } = parsedInput;
+    const { projectId, name, description, teamId } = parsedInput;
     const { organizationId } = ctx;
 
     if (!organizationId) {
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "update-project"
+        "update-project",
       );
     }
 
     // Update project
     const result = await ProjectService.updateProject(
       projectId,
-      { name, description },
-      organizationId
+      { name, description, teamId },
+      organizationId,
     );
 
     if (result.isErr()) {
@@ -53,7 +53,7 @@ export const updateProjectAction = authorizedActionClient
       action: "update",
       metadata: {
         projectName: project.name,
-        updatedFields: { name, description },
+        updatedFields: { name, description, teamId },
       },
     });
 
@@ -67,11 +67,10 @@ export const updateProjectAction = authorizedActionClient
       action: "update",
       metadata: {
         projectName: project.name,
-        updatedFields: { name, description },
+        updatedFields: { name, description, teamId },
       },
     });
 
     // Convert Result to action response (throws if error)
     return resultToActionResponse(result);
   });
-
