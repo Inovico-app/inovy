@@ -31,7 +31,7 @@ export function useMeetingStatusCounts({
         counts.without_bot++;
       } else if (status === "active") {
         counts.active++;
-      } else if (status === "failed") {
+      } else if (status === "failed" || status === "removed") {
         counts.failed++;
       }
     }

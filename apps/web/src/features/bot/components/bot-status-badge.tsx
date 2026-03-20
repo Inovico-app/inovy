@@ -7,6 +7,7 @@ import {
   LoaderIcon,
   LogOutIcon,
   MinusIcon,
+  XCircleIcon,
 } from "lucide-react";
 import { Badge } from "../../../components/ui/badge";
 import {
@@ -65,6 +66,13 @@ const STATUS_CONFIG = {
     icon: <AlertCircleIcon className="h-3 w-3" />,
     className: undefined,
     tooltip: "Notetaker failed to join the meeting",
+  },
+  removed: {
+    label: "Removed",
+    variant: "outline" as const,
+    icon: <XCircleIcon className="h-3 w-3" />,
+    className: GRAY_NEUTRAL_STATUS_CLASS,
+    tooltip: "Notetaker was removed from this meeting",
   },
   no_bot: {
     label: "No Notetaker",

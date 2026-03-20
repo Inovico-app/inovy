@@ -128,7 +128,9 @@ export function MeetingsListItem({
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >
-            {botStatus === "no_bot" ? (
+            {botStatus === "no_bot" ||
+            ((botStatus === "removed" || botStatus === "failed") &&
+              isUpcoming) ? (
               isUpcoming ? (
                 <AddBotButton meeting={meeting} variant="button" />
               ) : (

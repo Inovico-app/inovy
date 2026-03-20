@@ -18,7 +18,7 @@ const ACTIVE_STATUSES: BotStatus[] = [
 
 function getStatusFilter(tab: string): BotStatus | BotStatus[] {
   if (tab === "completed") return "completed";
-  if (tab === "failed") return "failed";
+  if (tab === "failed") return ["failed", "removed"];
   return ACTIVE_STATUSES;
 }
 

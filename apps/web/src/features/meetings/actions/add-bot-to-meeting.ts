@@ -55,13 +55,19 @@ export const addBotToMeeting = authorizedActionClient
       );
     }
 
-    // Check if bot session already exists
+    // Check if bot session already exists — allow re-adding after terminal statuses
     const existingSession = await BotSessionsQueries.findByCalendarEventId(
       calendarEventId,
       organizationId,
     );
 
-    if (existingSession) {
+    const TERMINAL_STATUSES = ["failed", "completed", "removed"] as const;
+    if (
+      existingSession &&
+      !TERMINAL_STATUSES.includes(
+        existingSession.botStatus as (typeof TERMINAL_STATUSES)[number],
+      )
+    ) {
       throw ActionErrors.conflict(
         "Bot is already added to this meeting",
         "add-bot-to-meeting",
