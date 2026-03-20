@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { isOrganizationAdmin } from "@/lib/rbac/rbac";
+
 import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
 import { TeamManagementClient } from "./team-management-client";
 
@@ -28,11 +28,13 @@ export async function TeamManagement() {
   }
 
   const {
-    user,
+    member,
     organization: { id: organizationId },
   } = authResult.value;
 
-  const canEdit = user ? isOrganizationAdmin(user) : false;
+  const canEdit = member
+    ? ["owner", "admin", "superadmin"].includes(member.role)
+    : false;
   const teams = await getCachedTeamsWithMemberCounts(organizationId);
 
   return (
@@ -53,4 +55,3 @@ export async function TeamManagement() {
     </Card>
   );
 }
-
