@@ -143,6 +143,8 @@ export class RAGService {
           filters,
           organizationId,
           projectId,
+          teamId,
+          userTeamIds,
         );
 
         if (vectorResult.isErr()) {
@@ -199,6 +201,8 @@ export class RAGService {
     filters: Record<string, unknown>,
     organizationId?: string,
     projectId?: string,
+    teamId?: string | null,
+    userTeamIds?: string[],
   ): Promise<ActionResult<SearchResult[]>> {
     try {
       const filter = this.buildFilter(
@@ -206,6 +210,8 @@ export class RAGService {
         organizationId,
         projectId,
         filters,
+        teamId,
+        userTeamIds,
       );
 
       const searchResult = await this.qdrantService.search(embedding, {
@@ -455,6 +461,8 @@ export class RAGService {
     organizationId: string | undefined,
     projectId: string | undefined,
     additionalFilters: Record<string, unknown>,
+    teamId?: string | null,
+    userTeamIds?: string[],
   ): QdrantFilter {
     const must: Array<{
       key: string;
@@ -514,7 +522,25 @@ export class RAGService {
       }
     });
 
-    return must.length > 0 ? { must } : {};
+    // Build should array for team-scoped filtering
+    // Documents with no teamId are accessible to all; documents with a teamId
+    // are only accessible to members of that team.
+    const should: Array<
+      { key: string; match?: MatchCondition } | { is_empty: { key: string } }
+    > = [];
+
+    if (teamId) {
+      should.push({ key: "teamId", match: { value: teamId } });
+      should.push({ is_empty: { key: "teamId" } });
+    } else if (userTeamIds && userTeamIds.length > 0) {
+      should.push({ key: "teamId", match: { any: userTeamIds } });
+      should.push({ is_empty: { key: "teamId" } });
+    }
+
+    const filter: QdrantFilter = {};
+    if (must.length > 0) filter.must = must;
+    if (should.length > 0) filter.should = should;
+    return filter;
   }
 
   /**

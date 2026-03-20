@@ -491,6 +491,7 @@ export class ChatService {
     projectId: string,
     organizationId: string,
     userRole: string = "user",
+    teamOptions?: { teamId?: string | null; userTeamIds?: string[] },
   ) {
     try {
       logger.info("Streaming chat response", { conversationId, projectId });
@@ -625,6 +626,8 @@ export class ChatService {
         chatContext: "project",
         userRole,
         conversationId,
+        teamId: teamOptions?.teamId,
+        userTeamIds: teamOptions?.userTeamIds,
       };
 
       // Validate conversation context bounds before streaming
@@ -823,6 +826,7 @@ export class ChatService {
     userMessage: string,
     organizationId: string,
     userRole: string,
+    teamOptions?: { teamId?: string | null; userTeamIds?: string[] },
   ) {
     try {
       logger.info("Streaming organization chat response", {
@@ -944,6 +948,8 @@ export class ChatService {
         chatContext: "organization",
         userRole,
         conversationId,
+        teamId: teamOptions?.teamId,
+        userTeamIds: teamOptions?.userTeamIds,
       };
 
       // Validate conversation context bounds before streaming

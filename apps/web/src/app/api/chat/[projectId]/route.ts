@@ -19,7 +19,7 @@ const chatRequestSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   try {
     const { projectId } = await params;
@@ -34,7 +34,8 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { user, organization, member } = authResult.value;
+    const { user, organization, member, activeTeamId, userTeamIds } =
+      authResult.value;
 
     if (!member?.role) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -50,13 +51,13 @@ export async function POST(
           error: "Agent is temporarily unavailable",
           code: "AGENT_KILLED",
         },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
     // Check if agent is enabled for this organization
     const agentStatusResult = await AgentConfigService.isAgentEnabled(
-      organization.id
+      organization.id,
     );
 
     if (agentStatusResult.isErr() || !agentStatusResult.value) {
@@ -65,7 +66,7 @@ export async function POST(
           error: "Agent is disabled for this organization",
           code: "AGENT_DISABLED",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -81,7 +82,7 @@ export async function POST(
 
     // Check per-organization daily token budget
     const budgetResult = await AgentTokenBudgetService.getRemainingBudget(
-      organization.id
+      organization.id,
     );
 
     if (!budgetResult.allowed) {
@@ -92,7 +93,7 @@ export async function POST(
           limit: budgetResult.limit,
           remaining: budgetResult.remaining,
         },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
@@ -108,7 +109,7 @@ export async function POST(
       assertOrganizationAccess(
         project.organizationId,
         organization.id,
-        "api/chat/[projectId]"
+        "api/chat/[projectId]",
       );
     } catch (error) {
       // Return 404 to prevent information leakage
@@ -122,7 +123,7 @@ export async function POST(
     if (!validationResult.success) {
       return NextResponse.json(
         { error: "Invalid request", details: validationResult.error },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -135,7 +136,7 @@ export async function POST(
       const conversationResult = await ChatService.createConversation(
         projectId,
         user.id,
-        organization.id
+        organization.id,
       );
 
       if (conversationResult.isErr()) {
@@ -144,7 +145,7 @@ export async function POST(
         });
         return NextResponse.json(
           { error: "Failed to create conversation" },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -157,7 +158,8 @@ export async function POST(
       message,
       projectId,
       organization.id,
-      userRole
+      userRole,
+      { teamId: activeTeamId, userTeamIds },
     );
 
     if (streamResult.isErr()) {
@@ -188,7 +190,7 @@ export async function POST(
       logger.error("Failed to stream response", { error: err });
       return NextResponse.json(
         { error: "Failed to generate response" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -202,7 +204,7 @@ export async function POST(
     headers.set("X-RateLimit-Remaining", rateLimitResult.remaining.toString());
     headers.set(
       "X-RateLimit-Reset",
-      new Date(rateLimitResult.resetAt).toISOString()
+      new Date(rateLimitResult.resetAt).toISOString(),
     );
 
     return new Response(response.body, {
@@ -214,7 +216,7 @@ export async function POST(
     logger.error("Error in chat API", { error });
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -222,7 +224,7 @@ export async function POST(
 // GET endpoint to retrieve conversation history
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   try {
     const { projectId } = await params;
@@ -251,7 +253,7 @@ export async function GET(
       assertOrganizationAccess(
         project.organizationId,
         organization.id,
-        "api/chat/[projectId]"
+        "api/chat/[projectId]",
       );
     } catch (error) {
       // Return 404 to prevent information leakage
@@ -265,7 +267,7 @@ export async function GET(
     if (!conversationId) {
       return NextResponse.json(
         { error: "conversationId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -279,7 +281,7 @@ export async function GET(
       });
       return NextResponse.json(
         { error: "Failed to get conversation history" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -288,8 +290,7 @@ export async function GET(
     logger.error("Error getting conversation history", { error });
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

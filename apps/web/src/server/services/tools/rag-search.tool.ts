@@ -50,6 +50,15 @@ export const ragSearchInputSchema = z.object({
     .optional()
     .describe("Organization ID for filtering results"),
   projectId: z.string().uuid().optional().describe("Project ID for filtering"),
+  teamId: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("Active team ID for team-scoped filtering"),
+  userTeamIds: z
+    .array(z.string())
+    .optional()
+    .describe("All team IDs the user belongs to for access control"),
   filters: z
     .record(z.string(), z.unknown())
     .optional()
@@ -108,7 +117,7 @@ export class RAGSearchTool {
    * @returns Formatted search results for LLM consumption
    */
   async execute(
-    input: RAGSearchInput
+    input: RAGSearchInput,
   ): Promise<ActionResult<RAGSearchResponse>> {
     try {
       logger.info("RAG search tool execution started", {
@@ -134,8 +143,8 @@ export class RAGSearchTool {
             `Invalid search parameters: ${errors
               .map((e: { message: string }) => e.message)
               .join(", ")}`,
-            "RAGSearchTool.execute"
-          )
+            "RAGSearchTool.execute",
+          ),
         );
       }
 
@@ -146,8 +155,8 @@ export class RAGSearchTool {
         return err(
           ActionErrors.badRequest(
             "Either userId or organizationId is required for search",
-            "RAGSearchTool.execute"
-          )
+            "RAGSearchTool.execute",
+          ),
         );
       }
 
@@ -162,7 +171,9 @@ export class RAGSearchTool {
           filters: validatedInput.filters ?? {},
           organizationId: validatedInput.organizationId,
           projectId: validatedInput.projectId,
-        }
+          teamId: validatedInput.teamId,
+          userTeamIds: validatedInput.userTeamIds,
+        },
       );
 
       if (searchResult.isErr()) {
@@ -178,13 +189,13 @@ export class RAGSearchTool {
       // Limit results by token count (default: 4000 tokens)
       const limitedResults = SearchResultFormatter.limitResultsByTokens(
         results,
-        4000
+        4000,
       );
 
       // Format results for LLM consumption
       const formattedResults = this.formatResultsForLLM(
         limitedResults,
-        validatedInput.query
+        validatedInput.query,
       );
 
       const response: RAGSearchResponse = {
@@ -217,8 +228,8 @@ export class RAGSearchTool {
         ActionErrors.internal(
           "An unexpected error occurred during search",
           error as Error,
-          "RAGSearchTool.execute"
-        )
+          "RAGSearchTool.execute",
+        ),
       );
     }
   }
@@ -234,7 +245,7 @@ export class RAGSearchTool {
    */
   private formatResultsForLLM(
     results: SearchResult[],
-    query?: string
+    query?: string,
   ): FormattedSearchResult[] {
     return results.map((result) => {
       // Determine the best score to use (reranked if available, otherwise similarity)
@@ -246,7 +257,7 @@ export class RAGSearchTool {
       const { text: formattedContent } =
         SearchResultFormatter.truncateIntelligently(
           result.contentText,
-          maxContentChars
+          maxContentChars,
         );
 
       // Optionally highlight query terms
@@ -356,4 +367,3 @@ export class RAGSearchTool {
     };
   }
 }
-
