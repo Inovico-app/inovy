@@ -275,10 +275,41 @@ export const auth = betterAuth({
       },
       teams: {
         enabled: true,
-        maximumTeams: 10, // Optional: limit teams per organization
-        allowRemovingAllTeams: false, // Optional: prevent removing the last team
+        maximumTeams: 10,
+        allowRemovingAllTeams: false,
       },
       organizationHooks: {
+        /**
+         * After creating a team, auto-add the creator as the first member.
+         * This ensures the creator can use Better Auth's team APIs (which require membership).
+         */
+        afterCreateTeam: async ({ team, user }) => {
+          if (user) {
+            try {
+              // Direct DB insert since we're inside a hook (no request context for Better Auth API)
+              const { nanoid } = await import("nanoid");
+              const { db: database } = await import("@/server/db");
+              const { teamMembers: teamMembersTable } =
+                await import("@/server/db/schema/auth");
+              await database.insert(teamMembersTable).values({
+                id: nanoid(),
+                teamId: team.id,
+                userId: user.id,
+                createdAt: new Date(),
+              });
+              logger.debug("Auto-added team creator as member", {
+                teamId: team.id,
+                userId: user.id,
+              });
+            } catch (error) {
+              logger.error("Failed to auto-add team creator as member", {
+                teamId: team.id,
+                userId: user?.id,
+                error,
+              });
+            }
+          }
+        },
         /**
          * Before creating an invitation
          * Customize invitation expiration (default: 7 days)

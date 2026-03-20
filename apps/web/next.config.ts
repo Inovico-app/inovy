@@ -7,6 +7,18 @@ import type { NextConfig } from "next";
 const isDockerBuild = process.env.DOCKER_BUILD === "true";
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.blob.core.windows.net",
+      },
+    ],
+  },
   ...(isDockerBuild && {
     output: "standalone",
     outputFileTracingRoot: path.join(__dirname, "../../"),
