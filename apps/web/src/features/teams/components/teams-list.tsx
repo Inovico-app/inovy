@@ -21,8 +21,8 @@ export async function TeamsList() {
     );
   }
 
-  const { user, organization, userTeamIds } = authResult.value;
-  const isAdmin = isOrganizationAdmin(user);
+  const { user, member, organization, userTeamIds } = authResult.value;
+  const isAdmin = isOrganizationAdmin(user, member);
 
   const teamsResult = await TeamService.getTeamsByOrganization(organization.id);
   const allTeams = teamsResult.isOk() ? teamsResult.value : [];

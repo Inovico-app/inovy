@@ -43,7 +43,7 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
     );
   }
 
-  const { user, organization } = authResult.value;
+  const { user, member, organization } = authResult.value;
 
   // user is guaranteed to be non-null after authentication check
   if (!user) {
@@ -71,8 +71,8 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
   }
 
   // Check permissions
-  const isAdmin = isOrganizationAdmin(user);
-  const isLead = await isTeamManager(user, teamId);
+  const isAdmin = isOrganizationAdmin(user, member);
+  const isLead = await isTeamManager(user, teamId, member);
   const canManage = isAdmin || isLead;
 
   // Fetch team members with user details

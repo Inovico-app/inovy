@@ -40,7 +40,7 @@ export interface SessionWithRoles {
  */
 export function verifyOrganizationAccess(
   userOrgId: string | null | undefined,
-  requestedOrgId: string | null | undefined
+  requestedOrgId: string | null | undefined,
 ): boolean {
   if (!userOrgId || !requestedOrgId) {
     return false;
@@ -78,11 +78,19 @@ export function isAdmin(user: BetterAuthUser) {
 }
 
 /**
- * Check if a user is an organization admin
- * Alias for isAdmin for better semantic clarity
+ * Check if a user is an organization admin.
+ * Checks both user.role (users table) and member.role (members table).
+ * The member role is the org-level role from Better Auth and is the
+ * authoritative source — user.role defaults to "user" for most users.
  */
-export function isOrganizationAdmin(user: BetterAuthUser) {
-  return isAdmin(user) || isOwner(user) || isSuperAdmin(user);
+export function isOrganizationAdmin(
+  user: BetterAuthUser,
+  member?: BetterAuthMember | null,
+): boolean {
+  const adminRoles = ["admin", "owner", "superadmin"];
+  if (adminRoles.includes(user.role)) return true;
+  if (member && adminRoles.includes(member.role)) return true;
+  return false;
 }
 
 /**
@@ -91,15 +99,16 @@ export function isOrganizationAdmin(user: BetterAuthUser) {
  */
 export async function isTeamManager(
   user: BetterAuthUser,
-  teamId: string
+  teamId: string,
+  member?: BetterAuthMember | null,
 ): Promise<boolean> {
   // Organization admins and owners can manage all teams
-  if (isOrganizationAdmin(user)) {
+  if (isOrganizationAdmin(user, member)) {
     return true;
   }
 
-  // Check if user has manager role
-  if (user.role === "manager") {
+  // Check if user has manager role (from either user or member)
+  if (user.role === "manager" || member?.role === "manager") {
     return true;
   }
 
@@ -118,10 +127,11 @@ export async function isTeamManager(
  */
 export async function canAccessTeam(
   user: BetterAuthUser,
-  teamId: string
+  teamId: string,
+  member?: BetterAuthMember | null,
 ): Promise<boolean> {
   // Organization admins can access all teams
-  if (isOrganizationAdmin(user)) {
+  if (isOrganizationAdmin(user, member)) {
     return true;
   }
 
@@ -159,8 +169,7 @@ export function canAccessOrganizationChat(user: BetterAuthUser): boolean {
  */
 export async function isProjectManager(
   user: BetterAuthUser,
-  _projectId: string
+  _projectId: string,
 ): Promise<boolean> {
   return isOrganizationAdmin(user) || user.role === "manager";
 }
-

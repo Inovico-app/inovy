@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamDashboard } from "@/features/teams/components/team-dashboard";
 
-export async function generateMetadata({ params }: TeamPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: TeamPageProps): Promise<Metadata> {
   const { teamId } = await params;
   return { title: `Team ${teamId}` };
 }
@@ -33,7 +35,7 @@ async function TeamDashboardContainer({
     redirect("/");
   }
 
-  const { user } = authResult.value;
+  const { user, member } = authResult.value;
 
   // user is guaranteed to be non-null after authentication check
   if (!user) {
@@ -41,7 +43,7 @@ async function TeamDashboardContainer({
   }
 
   // Check if user can access this team
-  const hasAccess = await canAccessTeam(user, teamId);
+  const hasAccess = await canAccessTeam(user, teamId, member);
   if (!hasAccess) {
     redirect("/");
   }
@@ -67,4 +69,3 @@ export default async function TeamPage({ params }: TeamPageProps) {
     </Suspense>
   );
 }
-

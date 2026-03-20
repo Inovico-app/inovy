@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamMemberManagement } from "@/features/teams/components/team-member-management";
 
-export async function generateMetadata({ params }: TeamMembersPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: TeamMembersPageProps): Promise<Metadata> {
   const { teamId } = await params;
   return { title: `Team Members ${teamId}` };
 }
@@ -37,7 +39,7 @@ async function TeamMembersContainer({
     redirect("/");
   }
 
-  const { user } = authResult.value;
+  const { user, member } = authResult.value;
 
   // user is guaranteed to be non-null after authentication check
   if (!user) {
@@ -45,14 +47,14 @@ async function TeamMembersContainer({
   }
 
   // Check if user can access this team
-  const hasAccess = await canAccessTeam(user, teamId);
+  const hasAccess = await canAccessTeam(user, teamId, member);
   if (!hasAccess) {
     redirect("/");
   }
 
   // Check permissions
-  const isAdmin = isOrganizationAdmin(user);
-  const isLead = await isTeamManager(user, teamId);
+  const isAdmin = isOrganizationAdmin(user, member);
+  const isLead = await isTeamManager(user, teamId, member);
   const canManage = isAdmin || isLead;
 
   if (!canManage) {
@@ -79,4 +81,3 @@ export default async function TeamMembersPage({
     </Suspense>
   );
 }
-

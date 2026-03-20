@@ -31,7 +31,7 @@ async function TeamSettingsContainer({
     redirect("/");
   }
 
-  const { user } = authResult.value;
+  const { user, member } = authResult.value;
 
   // user is guaranteed to be non-null after authentication check
   if (!user) {
@@ -39,14 +39,14 @@ async function TeamSettingsContainer({
   }
 
   // Check if user can access this team
-  const hasAccess = await canAccessTeam(user, teamId);
+  const hasAccess = await canAccessTeam(user, teamId, member);
   if (!hasAccess) {
     redirect("/");
   }
 
   // Check permissions
-  const isAdmin = isOrganizationAdmin(user);
-  const isLead = await isTeamManager(user, teamId);
+  const isAdmin = isOrganizationAdmin(user, member);
+  const isLead = await isTeamManager(user, teamId, member);
   const canManage = isAdmin || isLead;
 
   if (!canManage) {
@@ -65,4 +65,3 @@ export default async function TeamSettingsPage({
     </Suspense>
   );
 }
-
