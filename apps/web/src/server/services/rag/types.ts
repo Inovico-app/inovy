@@ -38,6 +38,13 @@ export interface QdrantFilter {
     key: string;
     match?: MatchCondition;
   }>;
+  should?: Array<
+    { key: string; match?: MatchCondition } | { is_empty: { key: string } }
+  >;
+  must_not?: Array<{
+    key: string;
+    match?: MatchCondition;
+  }>;
 }
 
 export interface QdrantSearchOptions {
@@ -151,6 +158,8 @@ export interface RAGSearchOptions {
   scoreThreshold?: number;
   organizationId?: string;
   projectId?: string;
+  teamId?: string | null;
+  userTeamIds?: string[];
 }
 
 // Hybrid Search Types
@@ -164,6 +173,8 @@ export interface HybridSearchOptions {
   scoreThreshold?: number;
   filters?: Record<string, unknown>;
   collectionName?: string;
+  teamId?: string | null;
+  userTeamIds?: string[];
 }
 
 export interface RankedResult {
@@ -182,4 +193,3 @@ export interface VectorSearchResult {
   hadError: boolean;
   error?: string;
 }
-
