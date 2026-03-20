@@ -11,7 +11,6 @@ import type { BotSession } from "@/server/db/schema/bot-sessions";
 import { queryKeys } from "@/lib/query-keys";
 
 interface UseAddBotToMeetingOptions {
-  onConsentRequired?: () => void;
   onSuccess?: () => void;
 }
 
@@ -19,7 +18,6 @@ export interface AddBotToMeetingInput {
   calendarEventId: string;
   meetingUrl: string;
   meetingTitle?: string;
-  consentGiven?: boolean;
   projectId?: string;
 }
 
@@ -41,6 +39,7 @@ function createOptimisticSession(calendarEventId: string): BotSession {
     retryCount: 0,
     meetingParticipants: null,
     meetingId: null,
+    subscriptionId: null,
     recordingId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -77,11 +76,6 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
         Record<string, BotSession>
       >({ queryKey: queryKeys.botSessions.all });
 
-      // Skip optimistic update when consent may be required (avoids flicker on consent dialog)
-      if (input.consentGiven !== true) {
-        return { previousData, calendarEventId: input.calendarEventId };
-      }
-
       const optimisticSession = createOptimisticSession(input.calendarEventId);
 
       queryClient.setQueriesData<Record<string, BotSession>>(
@@ -106,17 +100,7 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
         });
       }
     },
-    onSuccess: (data, _input, context) => {
-      if ("consentRequired" in data && data.consentRequired) {
-        options?.onConsentRequired?.();
-        if (context?.previousData) {
-          context.previousData.forEach(([queryKey, previousQueryData]) => {
-            queryClient.setQueryData(queryKey as QueryKey, previousQueryData);
-          });
-        }
-        return;
-      }
-
+    onSuccess: (data) => {
       if ("success" in data && data.success && data.sessionId) {
         toast.success("Notetaker added to meeting", {
           description: "The notetaker will join when the meeting starts.",

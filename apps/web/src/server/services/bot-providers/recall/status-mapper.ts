@@ -16,8 +16,7 @@ export function mapRecallStatusToBotStatus(recallStatus: string): BotStatus {
     rejected: "failed",
     error: "failed",
     scheduled: "scheduled",
-    pending: "pending_consent",
-    pending_consent: "pending_consent",
+    pending: "scheduled",
   };
 
   return statusMap[normalized] ?? "failed";
@@ -33,7 +32,7 @@ export function mapRecallEventToBotStatus(eventType: string): BotStatus {
     "bot.in_waiting_room": "joining",
     "bot.in_call_not_recording": "active",
     "bot.recording_permission_allowed": "active",
-    "bot.recording_permission_denied": "pending_consent",
+    "bot.recording_permission_denied": "failed",
     "bot.in_call_recording": "active",
     "bot.call_ended": "leaving",
     "bot.done": "completed",
@@ -46,4 +45,3 @@ export function mapRecallEventToBotStatus(eventType: string): BotStatus {
 
   return eventMap[eventType] ?? "failed";
 }
-

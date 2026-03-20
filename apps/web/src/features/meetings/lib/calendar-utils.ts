@@ -1,5 +1,6 @@
 import type { BotSession, BotStatus } from "@/server/db/schema/bot-sessions";
-import type { CalendarEvent } from "@/server/services/google-calendar.service";
+import type { CalendarEvent } from "@/server/services/calendar/types";
+import type { ProviderType } from "@/server/services/calendar/calendar-provider-factory";
 import {
   addDays,
   addMonths,
@@ -32,6 +33,7 @@ export interface CalendarDay {
 
 export interface MeetingWithSession extends CalendarEvent {
   botSession?: BotSession;
+  calendarProvider?: ProviderType | null;
 }
 
 /**
@@ -116,12 +118,14 @@ export function groupMeetingsByDate(
 export function matchMeetingsWithSessions(
   meetings: CalendarEvent[],
   sessions: Map<string, BotSession>,
+  calendarProvider?: ProviderType | null,
 ): MeetingWithSession[] {
   return meetings.map((meeting) => {
     const session = sessions.get(meeting.id);
     return {
       ...meeting,
       botSession: session,
+      calendarProvider,
     };
   });
 }
@@ -204,13 +208,12 @@ export function formatAttendeesCount(meeting: CalendarEvent): string {
 export type MeetingBotStatus = BotStatus | "no_bot";
 
 /**
- * Filter options for meetings (story-aligned: All, With Bot, Without Bot, Pending Consent, Active, Failed)
+ * Filter options for meetings (All, With Bot, Without Bot, Active, Failed)
  */
 export type MeetingBotStatusFilter =
   | "all"
   | "with_bot"
   | "without_bot"
-  | "pending_consent"
   | "active"
   | "failed";
 
@@ -233,7 +236,6 @@ const VALID_BOT_STATUS_FILTERS: MeetingBotStatusFilter[] = [
   "all",
   "with_bot",
   "without_bot",
-  "pending_consent",
   "active",
   "failed",
 ];
@@ -292,8 +294,6 @@ function meetingMatchesFilter(
       return WITH_BOT_STATUSES.includes(status);
     case "without_bot":
       return status === "no_bot";
-    case "pending_consent":
-      return status === "pending_consent";
     case "active":
       return status === "active";
     case "failed":

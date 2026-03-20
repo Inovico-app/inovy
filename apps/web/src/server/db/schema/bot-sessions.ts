@@ -6,6 +6,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import { botSeriesSubscriptions } from "./bot-series-subscriptions";
 import { meetings } from "./meetings";
 import { projects } from "./projects";
 import { recordings } from "./recordings";
@@ -17,7 +18,6 @@ export const botStatusEnum = [
   "leaving",
   "completed",
   "failed",
-  "pending_consent",
 ] as const;
 
 export type BotStatus = (typeof botStatusEnum)[number];
@@ -53,6 +53,10 @@ export const botSessions = pgTable(
     meetingId: uuid("meeting_id").references(() => meetings.id, {
       onDelete: "set null",
     }),
+    subscriptionId: uuid("subscription_id").references(
+      () => botSeriesSubscriptions.id,
+      { onDelete: "set null" },
+    ),
     meetingParticipants: text("meeting_participants").array(), // Array of participant emails/names
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -78,6 +82,9 @@ export const botSessions = pgTable(
       table.organizationId,
     ),
     meetingIdIdx: index("bot_sessions_meeting_id_idx").on(table.meetingId),
+    subscriptionIdIdx: index("bot_sessions_subscription_id_idx").on(
+      table.subscriptionId,
+    ),
     meetingUrlOrgIdx: index("bot_sessions_meeting_url_org_idx").on(
       table.meetingUrl,
       table.organizationId,

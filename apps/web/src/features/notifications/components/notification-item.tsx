@@ -1,9 +1,5 @@
 "use client";
 
-import { BotConsentNotification } from "@/features/bot/components/bot-consent-notification";
-import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
-import { nl } from "date-fns/locale";
 import { useMarkReadMutation } from "../hooks/use-mark-read-mutation";
 import type { Notification } from "../types";
 import { RegularNotificationItem } from "./regular-notification-item";
@@ -36,29 +32,6 @@ export function NotificationItem({
     });
   };
 
-  // Handle bot consent notifications specially
-  if (notification.type === "bot_consent_request") {
-    const timeAgo = formatDistanceToNow(new Date(notification.createdAt), {
-      addSuffix: true,
-      locale: nl,
-    });
-
-    return (
-      <div
-        className={cn(
-          "block p-3 hover:bg-muted/50 transition-colors",
-          !notification.isRead && "bg-blue-50 dark:bg-blue-950/20"
-        )}
-      >
-        <BotConsentNotification
-          notification={notification}
-          onActionComplete={onRead}
-        />
-        <p className="text-xs text-muted-foreground mt-2">{timeAgo}</p>
-      </div>
-    );
-  }
-
   // Handle regular notifications
   const handleLinkClick = () => {
     if (!notification.isRead) {
@@ -81,4 +54,3 @@ export function NotificationItem({
     />
   );
 }
-

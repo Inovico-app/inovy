@@ -13,7 +13,7 @@ import { Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 import { isValidMeetingUrl } from "@/lib/meeting-url";
 import { useAddBotToMeeting } from "../hooks/use-add-bot-to-meeting";
-import { AddBotConsentDialog } from "./add-bot-consent-dialog";
+import { AddBotProjectDialog } from "./add-bot-project-dialog";
 
 interface AddBotButtonProps {
   meeting: MeetingWithSession;
@@ -43,21 +43,16 @@ export function AddBotButton({
   } = useUserProjects();
 
   const { execute, isExecuting } = useAddBotToMeeting({
-    onConsentRequired: () => {
-      setPendingMeeting(meeting);
-      setIsConsentDialogOpen(true);
-    },
     onSuccess,
   });
 
   const handleAddBot = () => {
     // One-click: skip dialog when there's only one project
-    // Omit consentGiven so the server-side requirePerMeetingConsent check applies
     if (hasOnlyOneProject && defaultProjectId) {
       setLastUsedProjectId(defaultProjectId);
       execute({
         calendarEventId: meeting.id,
-        meetingUrl: meeting.meetingUrl,
+        meetingUrl: meeting.meetingUrl ?? "",
         meetingTitle: meeting.title,
         projectId: defaultProjectId,
       });
@@ -67,15 +62,14 @@ export function AddBotButton({
     setPendingMeeting(meeting);
   };
 
-  const handleConsentAccept = (projectId: string) => {
+  const handleProjectSelected = (projectId: string) => {
     if (!pendingMeeting) return;
 
     setLastUsedProjectId(projectId);
     execute({
       calendarEventId: pendingMeeting.id,
-      meetingUrl: pendingMeeting.meetingUrl,
+      meetingUrl: pendingMeeting.meetingUrl ?? "",
       meetingTitle: pendingMeeting.title,
-      consentGiven: true,
       projectId,
     });
     setPendingMeeting(null);
@@ -89,14 +83,14 @@ export function AddBotButton({
     return null;
   }
 
-  const consentDialog = (
-    <AddBotConsentDialog
+  const projectDialog = (
+    <AddBotProjectDialog
       open={isConsentDialogOpen}
       onOpenChange={(open) => {
         setIsConsentDialogOpen(open);
         if (!open) setPendingMeeting(null);
       }}
-      onAccept={handleConsentAccept}
+      onAccept={handleProjectSelected}
       meetingTitle={pendingMeeting?.title ?? meeting.title}
       projects={projects}
       defaultProjectId={defaultProjectId}
@@ -107,7 +101,7 @@ export function AddBotButton({
   if (variant === "icon") {
     return (
       <TooltipProvider>
-        {consentDialog}
+        {projectDialog}
         <Tooltip>
           <TooltipTrigger
             render={
@@ -138,7 +132,7 @@ export function AddBotButton({
 
   return (
     <>
-      {consentDialog}
+      {projectDialog}
       <Button
         variant="outline"
         size="sm"

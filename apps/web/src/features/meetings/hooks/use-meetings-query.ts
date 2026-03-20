@@ -3,7 +3,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { getMeetings } from "../actions/get-meetings";
-import type { CalendarEvent } from "@/server/services/google-calendar.service";
+import type { CalendarEvent } from "@/server/services/calendar/types";
+import type { ProviderType } from "@/server/services/calendar/calendar-provider-factory";
 import { getPaddedMonthRange } from "../lib/calendar-utils";
 import { startOfMonth, addMonths } from "date-fns";
 
@@ -12,12 +13,20 @@ interface UseMeetingsQueryOptions {
   enabled?: boolean;
 }
 
+export interface MeetingsQueryResult {
+  events: CalendarEvent[];
+  calendarProvider: ProviderType | null;
+}
+
 /**
  * React Query hook for fetching calendar meetings with automatic prefetching
  * Prefetches adjacent months in the background for instant month switching
  */
 // Shared helper for fetching meetings
-async function fetchMeetingsForRange(timeMin: Date, timeMax: Date): Promise<CalendarEvent[]> {
+async function fetchMeetingsForRange(
+  timeMin: Date,
+  timeMax: Date,
+): Promise<MeetingsQueryResult> {
   const result = await getMeetings({ timeMin, timeMax });
 
   if (result?.serverError) {
@@ -25,17 +34,20 @@ async function fetchMeetingsForRange(timeMin: Date, timeMax: Date): Promise<Cale
   }
 
   if (!result?.data) {
-    return [];
+    return { events: [], calendarProvider: null };
   }
 
-  return result.data as CalendarEvent[];
+  return result.data;
 }
 
-export function useMeetingsQuery({ month, enabled = true }: UseMeetingsQueryOptions) {
+export function useMeetingsQuery({
+  month,
+  enabled = true,
+}: UseMeetingsQueryOptions) {
   const queryClient = useQueryClient();
   const monthStart = startOfMonth(month);
   const { start, end } = getPaddedMonthRange(monthStart, 2);
-  
+
   // Use stable primitive for month key
   const monthKey = monthStart.getTime();
 
@@ -56,10 +68,11 @@ export function useMeetingsQuery({ month, enabled = true }: UseMeetingsQueryOpti
     const nextMonth = addMonths(monthStart, 1);
     const nextMonthRange = getPaddedMonthRange(nextMonth, 2);
     const nextMonthKey = startOfMonth(nextMonth).getTime();
-    
+
     queryClient.prefetchQuery({
       queryKey: ["meetings", nextMonthKey],
-      queryFn: () => fetchMeetingsForRange(nextMonthRange.start, nextMonthRange.end),
+      queryFn: () =>
+        fetchMeetingsForRange(nextMonthRange.start, nextMonthRange.end),
       staleTime: 5 * 60 * 1000,
     });
 
@@ -67,10 +80,11 @@ export function useMeetingsQuery({ month, enabled = true }: UseMeetingsQueryOpti
     const prevMonth = addMonths(monthStart, -1);
     const prevMonthRange = getPaddedMonthRange(prevMonth, 2);
     const prevMonthKey = startOfMonth(prevMonth).getTime();
-    
+
     queryClient.prefetchQuery({
       queryKey: ["meetings", prevMonthKey],
-      queryFn: () => fetchMeetingsForRange(prevMonthRange.start, prevMonthRange.end),
+      queryFn: () =>
+        fetchMeetingsForRange(prevMonthRange.start, prevMonthRange.end),
       staleTime: 5 * 60 * 1000,
     });
   }, [query.isSuccess, monthKey, queryClient, enabled, monthStart]);

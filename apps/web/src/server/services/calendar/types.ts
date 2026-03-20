@@ -14,6 +14,13 @@ export interface CalendarEvent {
   organizer?: { email: string };
   isOrganizer?: boolean;
   calendarId: string;
+  recurringSeriesId?: string; // Google: recurringEventId, Microsoft: seriesMasterId
+}
+
+export interface GetSeriesInstancesOptions {
+  timeMin: Date;
+  timeMax: Date;
+  calendarId: string;
 }
 
 /**

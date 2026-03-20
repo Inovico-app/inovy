@@ -1,5 +1,5 @@
 import type { NotificationType } from "@/server/db/schema/notifications";
-import { Bot, CheckCircle2, FileText, ListChecks, XCircle } from "lucide-react";
+import { CheckCircle2, FileText, ListChecks, XCircle } from "lucide-react";
 
 interface NotificationIconProps {
   type: NotificationType;
@@ -23,10 +23,7 @@ export function NotificationIcon({ type, className }: NotificationIconProps) {
       return <ListChecks className={className || "h-5 w-5 text-purple-600"} />;
     case "tasks_failed":
       return <XCircle className={className || "h-5 w-5 text-red-600"} />;
-    case "bot_consent_request":
-      return <Bot className={className || "h-5 w-5 text-blue-600"} />;
     default:
       return <FileText className={className || "h-5 w-5 text-gray-600"} />;
   }
 }
-

@@ -66,14 +66,6 @@ const STATUS_CONFIG = {
     className: undefined,
     tooltip: "Notetaker failed to join the meeting",
   },
-  pending_consent: {
-    label: "Waiting for Approval",
-    variant: "outline" as const,
-    icon: <AlertCircleIcon className="h-3 w-3" />,
-    className:
-      "text-amber-700 border-amber-500/30 dark:text-amber-400 bg-amber-500/10",
-    tooltip: "Waiting for host approval to join",
-  },
   no_bot: {
     label: "No Notetaker",
     variant: "outline" as const,

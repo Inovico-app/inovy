@@ -18,9 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { updateBotSettings } from "../actions/update-bot-settings";
 import { botSettingsSchema } from "@/server/validation/bot/bot-settings.schema";
@@ -51,8 +49,6 @@ export function BotConfigurationForm({
     resolver: standardSchemaResolver(botSettingsSchema),
     defaultValues: {
       botEnabled: settings.botEnabled ?? false,
-      autoJoinEnabled: settings.autoJoinEnabled ?? false,
-      requirePerMeetingConsent: settings.requirePerMeetingConsent ?? true,
       botDisplayName: settings.botDisplayName ?? "Inovy Recording Bot",
       botJoinMessage: settings.botJoinMessage ?? null,
       calendarIds: settings.calendarIds ?? null,
@@ -64,8 +60,6 @@ export function BotConfigurationForm({
   useEffect(() => {
     form.reset({
       botEnabled: settings.botEnabled ?? false,
-      autoJoinEnabled: settings.autoJoinEnabled ?? false,
-      requirePerMeetingConsent: settings.requirePerMeetingConsent ?? true,
       botDisplayName: settings.botDisplayName ?? "Inovy Recording Bot",
       botJoinMessage: settings.botJoinMessage ?? null,
       calendarIds: settings.calendarIds ?? null,
@@ -104,55 +98,6 @@ export function BotConfigurationForm({
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Auto-join Meetings */}
-            <FormField
-              control={form.control}
-              name="autoJoinEnabled"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">
-                      Auto-join Meetings
-                    </FormLabel>
-                    <FormDescription>
-                      Automatically join meetings without manual approval
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {/* Per-meeting Consent */}
-            <FormField
-              control={form.control}
-              name="requirePerMeetingConsent"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">
-                      Per-meeting Consent
-                    </FormLabel>
-                    <FormDescription>
-                      Require approval for each meeting before the notetaker
-                      joins
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
             {/* Inactivity Timeout */}
             <FormField
               control={form.control}

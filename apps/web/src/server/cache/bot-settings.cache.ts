@@ -17,7 +17,7 @@ import { cacheTag } from "next/cache";
  */
 async function getCachedBotSettingsInternal(
   userId: string,
-  organizationId: string
+  organizationId: string,
 ): Promise<BotSettings | null> {
   "use cache";
   cacheTag(CacheTags.botSettings(userId, organizationId));
@@ -29,7 +29,7 @@ async function getCachedBotSettingsInternal(
 
   const result = await fromPromise(
     BotSettingsQueries.findByUserId(userId, organizationId),
-    (error) => error as Error
+    (error) => error as Error,
   );
 
   // Unwrap Result for Next.js cache serialization
@@ -43,7 +43,7 @@ async function getCachedBotSettingsInternal(
  */
 export async function getCachedBotSettings(
   userId: string,
-  organizationId: string
+  organizationId: string,
 ): Promise<Result<BotSettings, Error>> {
   // Get cached settings (already unwrapped from Result)
   let settings = await getCachedBotSettingsInternal(userId, organizationId);
@@ -60,14 +60,12 @@ export async function getCachedBotSettings(
         userId,
         organizationId,
         botEnabled: false,
-        autoJoinEnabled: false,
-        requirePerMeetingConsent: true,
         botDisplayName: "Inovy Recording Bot",
         botJoinMessage: null,
         calendarIds: null,
         inactivityTimeoutMinutes: 60,
       }),
-      (error) => error as Error
+      (error) => error as Error,
     );
 
     if (upsertResult.isErr()) {
@@ -88,4 +86,3 @@ export async function getCachedBotSettings(
 
   return ok(settings);
 }
-

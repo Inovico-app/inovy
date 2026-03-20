@@ -93,5 +93,8 @@ export const getMeetings = authorizedActionClient
       );
     }
 
-    return result.value;
+    return {
+      events: result.value,
+      calendarProvider: providerResult.value.providerType,
+    };
   });

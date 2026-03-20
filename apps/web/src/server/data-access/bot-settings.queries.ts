@@ -16,7 +16,7 @@ export class BotSettingsQueries {
    */
   static async findByUserId(
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<BotSettings | null> {
     const result = await db
       .select()
@@ -24,8 +24,8 @@ export class BotSettingsQueries {
       .where(
         and(
           eq(botSettings.userId, userId),
-          eq(botSettings.organizationId, organizationId)
-        )
+          eq(botSettings.organizationId, organizationId),
+        ),
       )
       .limit(1);
 
@@ -61,8 +61,8 @@ export class BotSettingsQueries {
         .where(
           and(
             eq(botSettings.userId, settings.userId),
-            eq(botSettings.organizationId, settings.organizationId)
-          )
+            eq(botSettings.organizationId, settings.organizationId),
+          ),
         )
         .limit(1);
 
@@ -72,8 +72,6 @@ export class BotSettingsQueries {
           .update(botSettings)
           .set({
             botEnabled: settings.botEnabled,
-            autoJoinEnabled: settings.autoJoinEnabled,
-            requirePerMeetingConsent: settings.requirePerMeetingConsent,
             botDisplayName: settings.botDisplayName,
             botJoinMessage: settings.botJoinMessage,
             calendarIds: settings.calendarIds,
@@ -83,8 +81,8 @@ export class BotSettingsQueries {
           .where(
             and(
               eq(botSettings.userId, settings.userId),
-              eq(botSettings.organizationId, settings.organizationId)
-            )
+              eq(botSettings.organizationId, settings.organizationId),
+            ),
           )
           .returning();
 
@@ -109,7 +107,7 @@ export class BotSettingsQueries {
     organizationId: string,
     updates: Partial<
       Omit<BotSettings, "id" | "userId" | "organizationId" | "createdAt">
-    >
+    >,
   ): Promise<BotSettings | null> {
     const [settings] = await db
       .update(botSettings)
@@ -120,8 +118,8 @@ export class BotSettingsQueries {
       .where(
         and(
           eq(botSettings.userId, userId),
-          eq(botSettings.organizationId, organizationId)
-        )
+          eq(botSettings.organizationId, organizationId),
+        ),
       )
       .returning();
 
@@ -133,19 +131,18 @@ export class BotSettingsQueries {
    */
   static async delete(
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<boolean> {
     const result = await db
       .delete(botSettings)
       .where(
         and(
           eq(botSettings.userId, userId),
-          eq(botSettings.organizationId, organizationId)
-        )
+          eq(botSettings.organizationId, organizationId),
+        ),
       )
       .returning();
 
     return result.length > 0;
   }
 }
-

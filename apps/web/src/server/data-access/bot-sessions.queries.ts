@@ -216,6 +216,30 @@ export class BotSessionsQueries {
   }
 
   /**
+   * Find bot sessions by subscription ID
+   * Used for cancelling all pending sessions when unsubscribing from a series
+   */
+  static async findBySubscriptionId(
+    subscriptionId: string,
+    organizationId: string,
+    status?: BotStatus,
+  ): Promise<BotSession[]> {
+    const conditions = [
+      eq(botSessions.subscriptionId, subscriptionId),
+      eq(botSessions.organizationId, organizationId),
+    ];
+
+    if (status) {
+      conditions.push(eq(botSessions.botStatus, status));
+    }
+
+    return db
+      .select()
+      .from(botSessions)
+      .where(and(...conditions));
+  }
+
+  /**
    * Find bot session by calendar event ID
    * Used for deduplication in calendar monitoring
    */
@@ -704,6 +728,7 @@ export class BotSessionsQueries {
         error: botSessions.error,
         retryCount: botSessions.retryCount,
         meetingId: botSessions.meetingId,
+        subscriptionId: botSessions.subscriptionId,
         meetingParticipants: botSessions.meetingParticipants,
         createdAt: botSessions.createdAt,
         updatedAt: botSessions.updatedAt,
@@ -748,6 +773,7 @@ export class BotSessionsQueries {
       error: row.error,
       retryCount: row.retryCount,
       meetingId: row.meetingId ?? null,
+      subscriptionId: row.subscriptionId,
       meetingParticipants: row.meetingParticipants,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,

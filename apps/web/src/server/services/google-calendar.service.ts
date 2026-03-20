@@ -84,7 +84,7 @@ export interface CalendarEvent {
    * 3. location field (common in external calendar apps)
    * 4. description field (fallback for manually entered URLs)
    */
-  meetingUrl: string;
+  meetingUrl: string | null;
   attendees?: Array<{ email: string; responseStatus: string }>;
   organizer?: { email: string };
   /**
@@ -92,6 +92,7 @@ export interface CalendarEvent {
    */
   isOrganizer?: boolean;
   calendarId: string;
+  recurringEventId?: string;
 }
 
 /**
@@ -1045,6 +1046,7 @@ export class GoogleCalendarService {
                   : undefined,
                 isOrganizer,
                 calendarId,
+                recurringEventId: event.recurringEventId ?? undefined,
               });
             }
           } while (pageToken);
@@ -1080,6 +1082,127 @@ export class GoogleCalendarService {
           "Failed to get upcoming meetings",
           error as Error,
           "GoogleCalendarService.getUpcomingMeetings",
+        ),
+      );
+    }
+  }
+
+  /**
+   * Get all instances of a recurring event series within a time range.
+   * Uses the Google Calendar API events.instances() endpoint.
+   * @param userId - User ID
+   * @param seriesId - The recurring event series master ID
+   * @param options - Time range and calendar ID
+   * @returns Result containing list of calendar event instances
+   */
+  static async getSeriesInstances(
+    userId: string,
+    seriesId: string,
+    options: {
+      timeMin: Date;
+      timeMax: Date;
+      calendarId: string;
+    },
+  ): Promise<ActionResult<CalendarEvent[]>> {
+    try {
+      const tokenResult = await GoogleOAuthService.getValidAccessToken(userId);
+
+      if (tokenResult.isErr()) {
+        return err(
+          ActionErrors.internal(
+            "Failed to get valid access token",
+            tokenResult.error,
+            "GoogleCalendarService.getSeriesInstances",
+          ),
+        );
+      }
+
+      const oauth2Client = createGoogleOAuthClient();
+      oauth2Client.setCredentials({
+        access_token: tokenResult.value,
+      });
+
+      const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+
+      const instances: CalendarEvent[] = [];
+      let pageToken: string | undefined;
+
+      do {
+        const response = await calendar.events.instances({
+          calendarId: options.calendarId,
+          eventId: seriesId,
+          timeMin: options.timeMin.toISOString(),
+          timeMax: options.timeMax.toISOString(),
+          maxResults: 250,
+          pageToken,
+        });
+
+        pageToken = response.data.nextPageToken ?? undefined;
+
+        if (!response.data.items) {
+          continue;
+        }
+
+        for (const event of response.data.items) {
+          if (!event.id) {
+            continue;
+          }
+
+          const meetingUrl = extractMeetingUrl(event);
+
+          const startDate = event.start?.dateTime
+            ? new Date(event.start.dateTime)
+            : event.start?.date
+              ? new Date(event.start.date)
+              : null;
+          const endDate = event.end?.dateTime
+            ? new Date(event.end.dateTime)
+            : event.end?.date
+              ? new Date(event.end.date)
+              : null;
+
+          if (!startDate || !endDate) {
+            continue;
+          }
+
+          instances.push({
+            id: event.id,
+            title: event.summary || "Untitled Event",
+            start: startDate,
+            end: endDate,
+            meetingUrl: meetingUrl ?? null,
+            attendees: event.attendees?.map((a) => ({
+              email: a.email || "",
+              responseStatus: a.responseStatus || "needsAction",
+            })),
+            organizer: event.organizer
+              ? { email: event.organizer.email || "" }
+              : undefined,
+            isOrganizer: event.organizer?.self ?? undefined,
+            calendarId: options.calendarId,
+            recurringEventId: seriesId,
+          });
+        }
+      } while (pageToken);
+
+      logger.info("Fetched series instances from Google Calendar", {
+        userId,
+        seriesId,
+        count: instances.length,
+      });
+
+      return ok(instances);
+    } catch (error) {
+      logger.error(
+        "Failed to get series instances from Google Calendar",
+        { userId, seriesId },
+        error as Error,
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to get series instances",
+          error as Error,
+          "GoogleCalendarService.getSeriesInstances",
         ),
       );
     }

@@ -56,8 +56,6 @@ export function EnableBotToggle({ settings, onUpdate }: EnableBotToggleProps) {
   const updateSettings = (enabled: boolean) => {
     updateBotSettings({
       botEnabled: enabled,
-      autoJoinEnabled: enabled ? settings.autoJoinEnabled : false,
-      requirePerMeetingConsent: settings.requirePerMeetingConsent,
       botDisplayName: settings.botDisplayName,
       botJoinMessage: settings.botJoinMessage,
       calendarIds: settings.calendarIds,

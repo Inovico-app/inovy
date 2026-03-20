@@ -22,7 +22,7 @@ import { useUpdateBotSessionProject } from "../hooks/use-update-bot-session-proj
 import { useUpdateMeetingDetails } from "../hooks/use-update-meeting-details";
 import { useNavigateToMeeting } from "../hooks/use-navigate-to-meeting";
 import type { MeetingWithSession } from "../lib/calendar-utils";
-import { AddBotConsentDialog } from "./add-bot-consent-dialog";
+import { AddBotProjectDialog } from "./add-bot-project-dialog";
 import { AddBotSection } from "./add-bot-section";
 import { BotDetailsSection } from "./bot-details-section";
 import {
@@ -74,7 +74,6 @@ export function MeetingDetailsModal({
       },
     });
   const { execute: addBot, isExecuting: isAddingBot } = useAddBotToMeeting({
-    onConsentRequired: () => setIsConsentDialogOpen(true),
     onSuccess: () => {
       onOpenChange(false);
       onSuccess?.();
@@ -162,7 +161,7 @@ export function MeetingDetailsModal({
       setLastUsedProjectId(defaultProjectId);
       addBot({
         calendarEventId: meeting.id,
-        meetingUrl: meeting.meetingUrl,
+        meetingUrl: meeting.meetingUrl ?? "",
         meetingTitle: meeting.title,
         projectId: defaultProjectId,
       });
@@ -172,14 +171,13 @@ export function MeetingDetailsModal({
     setIsConsentDialogOpen(true);
   };
 
-  const handleConsentAccept = (projectId: string) => {
+  const handleProjectSelected = (projectId: string) => {
     if (!meeting) return;
     setLastUsedProjectId(projectId);
     addBot({
       calendarEventId: meeting.id,
-      meetingUrl: meeting.meetingUrl,
+      meetingUrl: meeting.meetingUrl ?? "",
       meetingTitle: meeting.title,
-      consentGiven: true,
       projectId,
     });
     setIsConsentDialogOpen(false);
@@ -224,12 +222,12 @@ export function MeetingDetailsModal({
         meetingTitle={meeting.title}
         isRemoving={isRemovingBot}
       />
-      <AddBotConsentDialog
+      <AddBotProjectDialog
         open={isConsentDialogOpen}
         onOpenChange={(open) => {
           setIsConsentDialogOpen(open);
         }}
-        onAccept={handleConsentAccept}
+        onAccept={handleProjectSelected}
         meetingTitle={meeting.title}
         projects={projects}
         defaultProjectId={defaultProjectId}

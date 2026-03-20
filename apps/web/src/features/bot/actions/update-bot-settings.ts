@@ -25,7 +25,7 @@ export const updateBotSettings = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "update-bot-settings"
+        "update-bot-settings",
       );
     }
 
@@ -41,8 +41,6 @@ export const updateBotSettings = authorizedActionClient
         userId: user.id,
         organizationId,
         botEnabled: parsedInput.botEnabled,
-        autoJoinEnabled: parsedInput.autoJoinEnabled,
-        requirePerMeetingConsent: parsedInput.requirePerMeetingConsent,
         botDisplayName: parsedInput.botDisplayName,
         botJoinMessage: parsedInput.botJoinMessage ?? null,
         calendarIds: parsedInput.calendarIds ?? null,
@@ -57,7 +55,7 @@ export const updateBotSettings = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to save bot settings",
         undefined,
-        "update-bot-settings"
+        "update-bot-settings",
       );
     }
 
@@ -72,4 +70,3 @@ export const updateBotSettings = authorizedActionClient
 
     return settings;
   });
-

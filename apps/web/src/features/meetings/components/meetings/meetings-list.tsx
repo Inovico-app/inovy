@@ -1,5 +1,6 @@
 "use client";
 
+import { useSeriesSubscriptions } from "@/features/bot/hooks/use-series-subscriptions";
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
 import { MeetingsEmpty } from "./meetings-empty";
 import { MeetingsListItem } from "./meetings-list-item";
@@ -28,6 +29,8 @@ export function MeetingsList({
   onClearFilters,
   onMeetingClick,
 }: MeetingsListProps) {
+  const { subscriptions, refetch: refetchSubscriptions } =
+    useSeriesSubscriptions();
   const hasAnyMeetings = allMeetingsCount > 0;
   const hasFilteredMeetings = total > 0;
 
@@ -45,6 +48,8 @@ export function MeetingsList({
                 key={meeting.id}
                 meeting={meeting}
                 onMeetingClick={onMeetingClick}
+                subscriptions={subscriptions}
+                onSubscriptionChange={refetchSubscriptions}
               />
             ))}
           </div>
@@ -62,4 +67,3 @@ export function MeetingsList({
     </div>
   );
 }
-

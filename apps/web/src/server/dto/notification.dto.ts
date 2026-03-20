@@ -6,7 +6,7 @@ import type { NotificationType } from "../db/schema/notifications";
  */
 export interface NotificationDto {
   id: string;
-  recordingId: string | null; // Nullable for bot_consent_request notifications
+  recordingId: string | null;
   projectId: string;
   userId: string;
   organizationId: string;
@@ -39,4 +39,3 @@ export interface NotificationFiltersDto {
   limit?: number;
   offset?: number;
 }
-

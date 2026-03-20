@@ -58,7 +58,7 @@ export function BotSessionCard({
       onError: ({ error }) => {
         toast.error(error.serverError || "Failed to cancel bot session");
       },
-    }
+    },
   );
 
   const { execute: executeRetry, isExecuting: isRetrying } = useAction(
@@ -74,13 +74,11 @@ export function BotSessionCard({
       onError: ({ error }) => {
         toast.error(error.serverError || "Failed to retry bot session");
       },
-    }
+    },
   );
 
   const canCancel =
-    session.botStatus === "scheduled" ||
-    session.botStatus === "joining" ||
-    session.botStatus === "pending_consent";
+    session.botStatus === "scheduled" || session.botStatus === "joining";
   const canRetry = session.botStatus === "failed" && session.retryCount < 3;
   const hasRecording = session.recordingId !== null;
 
@@ -135,7 +133,15 @@ export function BotSessionCard({
               onOpenChange={setShowDetailsModal}
             />
             <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="flex-shrink-0" />}>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="flex-shrink-0"
+                  />
+                }
+              >
                 <MoreVerticalIcon className="h-4 w-4" />
                 <span className="sr-only">More actions</span>
               </DropdownMenuTrigger>
@@ -146,7 +152,11 @@ export function BotSessionCard({
                 </DropdownMenuItem>
                 {hasRecording && (
                   <DropdownMenuItem
-                    render={<Link href={`/projects/${session.projectId}/recordings/${session.recordingId}`} />}
+                    render={
+                      <Link
+                        href={`/projects/${session.projectId}/recordings/${session.recordingId}`}
+                      />
+                    }
                   >
                     View Recording
                   </DropdownMenuItem>
@@ -226,4 +236,3 @@ export function BotSessionCard({
     </Card>
   );
 }
-

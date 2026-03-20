@@ -14,7 +14,6 @@ const ACTIVE_STATUSES: BotStatus[] = [
   "joining",
   "active",
   "leaving",
-  "pending_consent",
 ];
 
 function getStatusFilter(tab: string): BotStatus | BotStatus[] {
@@ -136,4 +135,3 @@ export default function BotSessionsPage({
     </Suspense>
   );
 }
-
