@@ -27,21 +27,23 @@ Replace the global `autoJoinEnabled` toggle and `requirePerMeetingConsent` flow 
 
 ### 1.1 New table: `bot_series_subscriptions`
 
-| Column              | Type                                     | Notes                                                  |
-| ------------------- | ---------------------------------------- | ------------------------------------------------------ |
-| `id`                | uuid PK                                  | Default random                                         |
-| `userId`            | text, not null                           | Better Auth user ID                                    |
-| `organizationId`    | text, not null                           | Tenant isolation                                       |
-| `recurringSeriesId` | text, not null                           | Google `recurringEventId` / Microsoft `seriesMasterId` |
-| `calendarProvider`  | text ("google" \| "microsoft"), not null | Source calendar provider                               |
-| `calendarId`        | text, not null                           | Which calendar the series lives on                     |
-| `seriesTitle`       | text                                     | Denormalized for display                               |
-| `meetingUrl`        | text                                     | Denormalized meeting URL                               |
-| `active`            | boolean, default true                    | Soft toggle for pause/resume                           |
-| `createdAt`         | timestamp with tz                        |                                                        |
-| `updatedAt`         | timestamp with tz                        |                                                        |
+| Column              | Type                                     | Notes                                                          |
+| ------------------- | ---------------------------------------- | -------------------------------------------------------------- |
+| `id`                | uuid PK                                  | Default random                                                 |
+| `userId`            | text, not null                           | Better Auth user ID                                            |
+| `organizationId`    | text, not null                           | Tenant isolation                                               |
+| `recurringSeriesId` | text, not null                           | Google `recurringEventId` / Microsoft `seriesMasterId`         |
+| `calendarProvider`  | text ("google" \| "microsoft"), not null | Source calendar provider                                       |
+| `calendarId`        | text, not null                           | Which calendar the series lives on                             |
+| `seriesTitle`       | text                                     | Denormalized for display; refreshed by daily backfill          |
+| `active`            | boolean, default true                    | Soft toggle for pause/resume; pausing cancels pending sessions |
+| `createdAt`         | timestamp with tz                        |                                                                |
+| `updatedAt`         | timestamp with tz                        |                                                                |
 
-**Unique constraint:** `(userId, organizationId, recurringSeriesId, calendarProvider)`
+**Unique constraint:** `(userId, organizationId, recurringSeriesId)`
+
+Note: `calendarProvider` is excluded from the unique constraint because `recurringSeriesId` values are already provider-specific (Google's format differs from Microsoft's), so collisions across providers are impossible.
+
 **Indexes:**
 
 - `(userId, organizationId, active)` — calendar monitor lookups
@@ -57,6 +59,8 @@ Replace the global `autoJoinEnabled` toggle and `requirePerMeetingConsent` flow 
 **`bot_sessions` table:**
 
 - Remove `"pending_consent"` from `botStatusEnum` → becomes `["scheduled", "joining", "active", "leaving", "completed", "failed"]`
+- Add `subscriptionId` column (uuid, nullable, FK to `bot_series_subscriptions.id`, `onDelete: "set null"`) — tracks whether a session was created via a series subscription. Enables efficient cleanup on unsubscribe.
+- Note: `botStatusEnum` is a TypeScript-level `const` array used in a Drizzle `text()` column with enum validation, not a PostgreSQL `CREATE TYPE` enum. The migration only needs to update existing data rows, not alter a PG enum.
 
 ### 1.3 Type additions
 
@@ -71,8 +75,12 @@ recurringSeriesId?: string; // Google: recurringEventId, Microsoft: seriesMaster
 Single migration file that:
 
 1. Creates `bot_series_subscriptions` table with constraints and indexes
-2. Updates any existing `bot_sessions` rows with `bot_status = 'pending_consent'` to `'failed'`
-3. Drops `auto_join_enabled` and `require_per_meeting_consent` columns from `bot_settings`
+2. Adds `subscription_id` column to `bot_sessions` (nullable FK)
+3. Updates any existing `bot_sessions` rows with `bot_status = 'pending_consent'` to `'failed'`
+4. Updates any existing `notifications` rows with `type = 'bot_consent_request'` to `type = 'info'` (preserves historical data)
+5. Drops `auto_join_enabled` and `require_per_meeting_consent` columns from `bot_settings`
+
+Note: The `bot_consent_request` value is kept in the `notificationTypeEnum` TypeScript array for backward compatibility with existing DB rows, but no new notifications of this type will be created. It can be removed in a future cleanup migration once old notification rows are purged by data retention.
 
 ---
 
@@ -85,12 +93,14 @@ Add `recurringSeriesId?: string` field.
 ### 2.2 Google Calendar Provider
 
 - Map `recurringEventId` from `calendar_v3.Schema$Event` to `CalendarEvent.recurringSeriesId` in both `mapGoogleEventToCalendarEvent()` and `mapRawEventToCalendarEvent()`
-- Add `getSeriesInstances()` method using Google's `events.instances(eventId, { timeMin, timeMax })` API
+- Add `getSeriesInstances()` method using Google's `events.instances(recurringEventId, { timeMin, timeMax })` API. Note: this API requires the **series master ID** (the `recurringEventId`), not an individual instance ID.
 
 ### 2.3 Microsoft Calendar Provider
 
-- Map `seriesMasterId` from Microsoft Graph event to `CalendarEvent.recurringSeriesId`
-- Add `getSeriesInstances()` method using Microsoft's `/events/{id}/instances?startDateTime=...&endDateTime=...` API
+- Add `seriesMasterId` to the `GraphEvent` interface (currently missing)
+- Update `$select` query parameters in `getUpcomingMeetings()` and `getEvent()` to include `seriesMasterId` in the field list
+- Map `seriesMasterId` to `CalendarEvent.recurringSeriesId`
+- Add `getSeriesInstances()` method using Microsoft's `/me/calendars/{calendarId}/events/{seriesMasterId}/instances?startDateTime=...&endDateTime=...` API (for default calendar, use `/me/events/{id}/instances`)
 
 ### 2.4 CalendarProvider interface
 
@@ -122,8 +132,10 @@ Used by the subscribe action (immediate backfill) and the daily backfill cron.
 1. Fetch all active subscriptions from `bot_series_subscriptions` where the user also has `botEnabled: true` (master kill switch preserved)
 2. Group subscriptions by `(userId, organizationId)`
 3. For each user's subscriptions, check if any instance of each subscribed series starts in the 10-20 min window
-4. Create bot sessions only for matching instances, always as `"scheduled"`
+4. Create bot sessions only for matching instances, always as `"scheduled"`, with `subscriptionId` set
 5. Deduplication unchanged — by `calendarEventId` and `meetingUrl`
+
+Note: The `calendarIds` filter from `bot_settings` is no longer used. Series subscriptions are explicit — each subscription already specifies its `calendarId`. The `calendarIds` column on `bot_settings` becomes unused and can be removed in a future cleanup.
 
 ### 3.3 `processUserCalendar()` signature change
 
@@ -172,6 +184,10 @@ private static async processUserCalendar(
 - **Backfill cron** (daily): handles the 30-day horizon in bulk
 - If backfill fails, the monitor still catches meetings as they approach — no gaps
 
+### 4.4 Rate limiting
+
+Process subscriptions sequentially per user with a small delay between calendar API calls to avoid hitting Google/Microsoft rate limits. If a user has many subscriptions, the backfill for that user may take longer but won't fail due to throttling.
+
 ---
 
 ## 5. Server Actions
@@ -191,9 +207,9 @@ private static async processUserCalendar(
 
 - Input: `{ subscriptionId }` or `{ recurringSeriesId, calendarProvider }`
 - Sets `active: false` on the subscription
-- Finds all bot sessions for the series with status `"scheduled"`
+- Finds all bot sessions with `subscriptionId` matching and status `"scheduled"`
 - Cancels them via `botProvider.terminateSession()` for any with a Recall bot
-- Updates their status to `"failed"` or deletes them
+- Updates their status to `"failed"`
 
 ### 5.2 Removed actions
 
@@ -249,7 +265,8 @@ In the bot settings page, add a section listing all active series subscriptions:
 - **`use-meeting-status-counts.ts`** — remove `pending_consent` counter
 - **`add-bot-button.tsx`** — remove consent-related logic
 - **`calendar-utils.ts`** — remove `pending_consent` from status types
-- **`notification-icon.tsx` / `notification-item.tsx`** — remove `bot_consent_request` handling
+- **`notification-icon.tsx`** — remove `bot_consent_request` case
+- **`notification-item.tsx`** — remove `bot_consent_request` handling
 
 ### 6.4 New hooks
 
@@ -270,6 +287,13 @@ In the bot settings page, add a section listing all active series subscriptions:
 - `src/features/bot/actions/approve-bot-join.ts`
 - `src/features/bot/actions/deny-bot-join.ts`
 - `src/features/bot/hooks/use-bot-consent-notification.ts`
+- `src/server/validation/bot/approve-bot-join.schema.ts`
+- `src/server/validation/bot/deny-bot-join.schema.ts`
+- `src/features/bot/components/bot-consent-notification.tsx`
+- `src/features/bot/components/bot-consent-notification-actions.tsx`
+- `src/features/bot/components/bot-consent-notification-content.tsx`
+- `src/features/bot/lib/bot-notification-metadata.ts`
+- `src/features/meetings/components/add-bot-consent-dialog.tsx`
 
 ### 7.2 Files to modify
 
@@ -280,11 +304,18 @@ In the bot settings page, add a section listing all active series subscriptions:
 - **`bot-settings.cache.ts`** — remove defaults for removed fields
 - **`bot-calendar-monitor.service.ts`** — rewrite per Section 3
 - **`bot-webhook.service.ts`** — remove `pending_consent` handling
-- **`status-mapper.ts`** — remove `pending_consent` mappings
-- **`add-bot-to-meeting.ts`** — remove consent flow
+- **`status-mapper.ts`** — remove `pending_consent` mappings; remap Recall.ai `"pending"` status to `"scheduled"` and `"bot.recording_permission_denied"` event to `"failed"`
+- **`features/meetings/actions/add-bot-to-meeting.ts`** — remove consent flow
 - **`cancel-bot-session.ts`** — remove `pending_consent` from cancellable statuses
 - **`remove-bot-from-meeting.ts`** — remove `pending_consent` from cancellable statuses
 - **`bot/sessions/page.tsx`** — remove `"pending_consent"` filter
+- **`notifications.ts`** (schema) — keep `"bot_consent_request"` in enum for backward compat, but stop creating new ones
+- **`notification.dto.ts`** — remove `bot_consent_request` comment/reference
+- **`notifications/types.ts`** — remove `bot_consent_request` reference
+- **`notification-item.tsx`** — remove `BotConsentNotification` import and rendering
+- **`use-add-bot-to-meeting.ts`** — remove `consentGiven` from interface and `onConsentRequired` callback
+- **`meeting-details-modal.tsx`** — remove `AddBotConsentDialog` import and usage
+- **`notification-icon.tsx`** — remove `bot_consent_request` case
 
 ---
 
