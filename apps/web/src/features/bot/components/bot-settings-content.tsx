@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { BotConfigurationForm } from "./bot-configuration-form";
 import { EnableBotToggle } from "./enable-bot-toggle";
+import { SeriesSubscriptionsList } from "./series-subscriptions-list";
 
 interface BotSettingsContentProps {
   initialSettings: BotSettings;
@@ -28,9 +29,12 @@ export function BotSettingsContent({
     <div className="space-y-6">
       <EnableBotToggle settings={initialSettings} onUpdate={loadSettings} />
       {initialSettings.botEnabled && (
-        <BotConfigurationForm settings={initialSettings} onUpdate={loadSettings} />
+        <BotConfigurationForm
+          settings={initialSettings}
+          onUpdate={loadSettings}
+        />
       )}
+      <SeriesSubscriptionsList />
     </div>
   );
 }
-
