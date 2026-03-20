@@ -63,7 +63,7 @@ export function BotSessionDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {hasSession ? (
@@ -103,36 +103,42 @@ export function BotSessionDetailsModal({
             <div>
               <h3 className="font-semibold mb-3">Basic Information</h3>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Meeting URL:</span>
+                <div className="flex justify-between gap-4 min-w-0">
+                  <span className="text-muted-foreground shrink-0">
+                    Meeting URL:
+                  </span>
                   <a
                     href={session.meetingUrl ?? undefined}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:underline"
+                    className="text-primary hover:underline truncate"
                   >
                     {session.meetingUrl}
                   </a>
                 </div>
                 {session.calendarEventId && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
+                  <div className="flex justify-between gap-4 min-w-0">
+                    <span className="text-muted-foreground shrink-0">
                       Calendar Event ID:
                     </span>
-                    <span className="font-mono text-xs">
+                    <span className="font-mono text-xs truncate">
                       {session.calendarEventId}
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Recall Bot ID:</span>
-                  <span className="font-mono text-xs">
+                <div className="flex justify-between gap-4 min-w-0">
+                  <span className="text-muted-foreground shrink-0">
+                    Recall Bot ID:
+                  </span>
+                  <span className="font-mono text-xs truncate">
                     {session.recallBotId}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Recall Status:</span>
-                  <span>{session.recallStatus}</span>
+                <div className="flex justify-between gap-4 min-w-0">
+                  <span className="text-muted-foreground shrink-0">
+                    Recall Status:
+                  </span>
+                  <span className="truncate">{session.recallStatus}</span>
                 </div>
               </div>
             </div>
