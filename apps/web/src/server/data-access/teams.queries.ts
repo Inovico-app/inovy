@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import type { TeamInput, TeamMember } from "better-auth/plugins";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import { headers } from "next/headers";
 import { db } from "../db";
 import { teams, teamMembers } from "../db/schema/auth";
@@ -250,7 +251,7 @@ export class UserTeamQueries {
   }
 
   /**
-   * Add a user to a team using Better Auth API
+   * Add a user to a team via direct DB insert
    */
   static async insertUserTeam(
     data: {
@@ -258,49 +259,39 @@ export class UserTeamQueries {
       teamId: string;
       role?: "member" | "lead" | "admin";
     },
-    requestHeaders?: Headers,
+    _requestHeaders?: Headers,
   ): Promise<TeamMember> {
-    const headersList = requestHeaders ?? (await headers());
+    const id = nanoid();
+    const now = new Date();
 
-    await auth.api.addTeamMember({
-      headers: headersList,
-      body: {
-        userId: data.userId,
-        teamId: data.teamId,
-      },
+    await db.insert(teamMembers).values({
+      id,
+      teamId: data.teamId,
+      userId: data.userId,
+      createdAt: now,
     });
 
-    // Fetch the created team member
-    const teamMembers = await auth.api.listTeamMembers({
-      headers: headersList,
-      query: { teamId: data.teamId },
-    });
-
-    const member = teamMembers.find((m) => m.userId === data.userId);
-    if (!member) {
-      throw new Error("Failed to create team member");
-    }
-
-    return member;
+    return {
+      id,
+      teamId: data.teamId,
+      userId: data.userId,
+      createdAt: now,
+    };
   }
 
   /**
-   * Remove a user from a team using Better Auth API
+   * Remove a user from a team via direct DB delete
    */
   static async deleteUserTeam(
     userId: string,
     teamId: string,
-    requestHeaders?: Headers,
+    _requestHeaders?: Headers,
   ): Promise<void> {
-    const headersList = requestHeaders ?? (await headers());
-
-    await auth.api.removeTeamMember({
-      headers: headersList,
-      body: {
-        userId,
-        teamId,
-      },
-    });
+    await db
+      .delete(teamMembers)
+      .where(
+        and(eq(teamMembers.userId, userId), eq(teamMembers.teamId, teamId)),
+      );
   }
 
   /**
