@@ -32,6 +32,7 @@ import {
 import { RemoveBotConfirmDialog } from "./remove-bot-confirm-dialog";
 
 const EDITABLE_BOT_STATUSES = ["scheduled", "failed"] as const;
+const TERMINAL_BOT_STATUSES = ["failed", "removed"] as const;
 
 interface MeetingDetailsModalProps {
   meeting: MeetingWithSession | null;
@@ -291,29 +292,41 @@ export function MeetingDetailsModal({
               isUpdating={isUpdating}
             />
 
-            {/* Section 2: Bot Details (if bot exists) */}
-            {botSession && (
-              <>
-                <Separator />
-                <BotDetailsSection
-                  botSession={botSession}
-                  canEditBot={!!canEditBot}
-                  botMeetingUrl={botMeetingUrl}
-                  onBotMeetingUrlChange={setBotMeetingUrl}
-                  onBotMeetingUrlSubmit={handleBotMeetingUrlSubmit}
-                  isUpdatingUrl={isUpdatingUrl}
-                  projects={projects}
-                  isLoadingProjects={isLoadingProjects}
-                  onProjectChange={handleProjectChange}
-                  isUpdatingProject={isUpdatingProject}
-                  onRemoveBot={handleRemoveBot}
-                  isRemovingBot={isRemovingBot}
-                />
-              </>
-            )}
+            {/* Section 2: Bot Details (if bot exists and is not in a terminal state for upcoming meetings) */}
+            {botSession &&
+              !(
+                isUpcoming &&
+                TERMINAL_BOT_STATUSES.includes(
+                  botSession.botStatus as (typeof TERMINAL_BOT_STATUSES)[number],
+                )
+              ) && (
+                <>
+                  <Separator />
+                  <BotDetailsSection
+                    botSession={botSession}
+                    canEditBot={!!canEditBot}
+                    botMeetingUrl={botMeetingUrl}
+                    onBotMeetingUrlChange={setBotMeetingUrl}
+                    onBotMeetingUrlSubmit={handleBotMeetingUrlSubmit}
+                    isUpdatingUrl={isUpdatingUrl}
+                    projects={projects}
+                    isLoadingProjects={isLoadingProjects}
+                    onProjectChange={handleProjectChange}
+                    isUpdatingProject={isUpdatingProject}
+                    onRemoveBot={handleRemoveBot}
+                    isRemovingBot={isRemovingBot}
+                  />
+                </>
+              )}
 
-            {/* Section 3: Add Bot (if no bot) */}
-            {!botSession && isUpcoming && hasMeetingUrl && (
+            {/* Section 3: Add Bot (if no bot, or bot was removed/failed on upcoming meeting) */}
+            {((!botSession && isUpcoming && hasMeetingUrl) ||
+              (botSession &&
+                isUpcoming &&
+                hasMeetingUrl &&
+                TERMINAL_BOT_STATUSES.includes(
+                  botSession.botStatus as (typeof TERMINAL_BOT_STATUSES)[number],
+                ))) && (
               <>
                 <Separator />
                 <AddBotSection
