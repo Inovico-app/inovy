@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
-interface AddBotConsentDialogProps {
+interface AddBotProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAccept: (projectId: string) => void;
@@ -30,10 +30,10 @@ interface AddBotConsentDialogProps {
 }
 
 /**
- * Consent dialog for adding a bot to a single meeting
- * Includes project selection for organizing the recording
+ * Project selection dialog for adding a bot to a meeting
+ * Allows users to select which project the recording will be saved to
  */
-export function AddBotConsentDialog({
+export function AddBotProjectDialog({
   open,
   onOpenChange,
   onAccept,
@@ -41,7 +41,7 @@ export function AddBotConsentDialog({
   projects,
   defaultProjectId,
   isLoadingProjects,
-}: AddBotConsentDialogProps) {
+}: AddBotProjectDialogProps) {
   const projectItems = useMemo(
     () => Object.fromEntries(projects.map((p) => [p.id, p.name])),
     [projects],
@@ -109,23 +109,6 @@ export function AddBotConsentDialog({
                 No active projects found. Please create a project first.
               </p>
             )}
-          </div>
-
-          <div className="space-y-2">
-            <h4 className="font-medium text-sm">The notetaker will:</h4>
-            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
-              <li>Join your meeting when it starts</li>
-              <li>Record the meeting audio and video</li>
-              <li>Generate transcripts, summaries, and action items</li>
-            </ul>
-          </div>
-          <div className="rounded-lg bg-muted p-4 space-y-2">
-            <p className="text-sm font-medium">Recording consent</p>
-            <p className="text-sm text-muted-foreground">
-              By adding the notetaker, you consent to recording this meeting.
-              Recordings will be processed using AI to generate transcripts,
-              summaries, and action items.
-            </p>
           </div>
         </div>
         <DialogFooter>
