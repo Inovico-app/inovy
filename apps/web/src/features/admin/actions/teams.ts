@@ -33,7 +33,7 @@ export const createTeam = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "createTeam"
+        "createTeam",
       );
     }
 
@@ -59,7 +59,7 @@ export const updateTeam = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("teams:update"),
   })
-  .inputSchema(updateTeamSchema.extend({ id: z.string().uuid() }))
+  .inputSchema(updateTeamSchema.extend({ id: z.string().min(1) }))
   .action(async ({ parsedInput, ctx }) => {
     const { id, name, description, departmentId } = parsedInput;
     const { organizationId } = ctx;
@@ -68,7 +68,7 @@ export const updateTeam = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "updateTeam"
+        "updateTeam",
       );
     }
 
@@ -102,7 +102,7 @@ export const deleteTeam = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("teams:delete"),
   })
-  .inputSchema(z.object({ id: z.string().uuid() }))
+  .inputSchema(z.object({ id: z.string().min(1) }))
   .action(async ({ parsedInput, ctx }) => {
     const { id } = parsedInput;
     const { organizationId } = ctx;
@@ -111,7 +111,7 @@ export const deleteTeam = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "deleteTeam"
+        "deleteTeam",
       );
     }
 
@@ -141,7 +141,7 @@ export const assignUserToTeam = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "assignUserToTeam"
+        "assignUserToTeam",
       );
     }
 
@@ -166,8 +166,8 @@ export const removeUserFromTeam = authorizedActionClient
   .inputSchema(
     z.object({
       userId: z.string().min(1),
-      teamId: z.string().uuid(),
-    })
+      teamId: z.string().min(1),
+    }),
   )
   .action(async ({ parsedInput, ctx }) => {
     const { userId, teamId } = parsedInput;
@@ -177,7 +177,7 @@ export const removeUserFromTeam = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "removeUserFromTeam"
+        "removeUserFromTeam",
       );
     }
 
@@ -208,7 +208,7 @@ export const updateUserTeamRole = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "updateUserTeamRole"
+        "updateUserTeamRole",
       );
     }
 
@@ -222,4 +222,3 @@ export const updateUserTeamRole = authorizedActionClient
 
     return resultToActionResponse(result);
   });
-

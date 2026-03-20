@@ -22,13 +22,13 @@ export const updateTeamSchema = z.object({
 
 export const assignUserToTeamSchema = z.object({
   userId: z.string().min(1, "User ID is required"),
-  teamId: z.string().uuid("Team ID must be a valid UUID"),
+  teamId: z.string().min(1, "Team ID is required"),
   role: z.enum(["member", "lead", "admin"]).default("member"),
 });
 
 export const updateUserTeamRoleSchema = z.object({
   userId: z.string().min(1, "User ID is required"),
-  teamId: z.string().uuid("Team ID must be a valid UUID"),
+  teamId: z.string().min(1, "Team ID is required"),
   role: z.enum(["member", "lead", "admin"]),
 });
 
@@ -36,4 +36,3 @@ export type CreateTeamInput = z.infer<typeof createTeamSchema>;
 export type UpdateTeamInput = z.infer<typeof updateTeamSchema>;
 export type AssignUserToTeamInput = z.infer<typeof assignUserToTeamSchema>;
 export type UpdateUserTeamRoleInput = z.infer<typeof updateUserTeamRoleSchema>;
-
