@@ -20,6 +20,7 @@ import type {
   ProjectWithRecordingCountDto,
 } from "../dto/project.dto";
 import type { CreateProjectInput } from "../validation/projects/create-project";
+import { QdrantClientService } from "./rag/qdrant.service";
 
 /**
  * Business logic layer for Project operations
@@ -307,7 +308,7 @@ export class ProjectService {
    */
   static async updateProject(
     projectId: string,
-    input: { name?: string; description?: string },
+    input: { name?: string; description?: string; teamId?: string | null },
     orgCode: string,
   ): Promise<ActionResult<ProjectDto>> {
     if (input.name) {
@@ -332,6 +333,26 @@ export class ProjectService {
         );
       }
       CacheInvalidation.invalidateProjectCache(orgCode);
+
+      if (input.teamId !== undefined) {
+        const qdrant = QdrantClientService.getInstance();
+        const newTeamPayload = input.teamId
+          ? { teamId: [input.teamId] }
+          : { teamId: [] };
+
+        await qdrant
+          .setPayload(newTeamPayload, {
+            must: [{ key: "projectId", match: { value: projectId } }],
+          })
+          .catch((error) => {
+            logger.error("Failed to update Qdrant teamId for project", {
+              projectId,
+              teamId: input.teamId,
+              error,
+            });
+          });
+      }
+
       return ok(project);
     } catch (error) {
       logger.error(
