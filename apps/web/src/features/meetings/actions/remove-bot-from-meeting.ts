@@ -107,12 +107,12 @@ export const removeBotFromMeeting = authorizedActionClient
       });
     }
 
-    // Update session status to failed
+    // Update session status to removed
     const updatedSession = await BotSessionsQueries.update(
       session.id,
       organizationId,
       {
-        botStatus: "failed",
+        botStatus: "removed",
         error: "Bot session removed by user",
       },
     );
