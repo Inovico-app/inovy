@@ -21,7 +21,7 @@ export class KnowledgeBaseEntriesQueries {
    * Create a new knowledge base entry
    */
   static async createEntry(
-    data: CreateKnowledgeEntryDto
+    data: CreateKnowledgeEntryDto,
   ): Promise<KnowledgeEntryDto> {
     const [entry] = await db
       .insert(knowledgeBaseEntries)
@@ -56,7 +56,7 @@ export class KnowledgeBaseEntriesQueries {
    */
   static async updateEntry(
     id: string,
-    data: UpdateKnowledgeEntryDto
+    data: UpdateKnowledgeEntryDto,
   ): Promise<KnowledgeEntryDto | null> {
     const [entry] = await db
       .update(knowledgeBaseEntries)
@@ -136,7 +136,7 @@ export class KnowledgeBaseEntriesQueries {
     scopeId: string | null,
     options?: {
       includeInactive?: boolean;
-    }
+    },
   ): Promise<KnowledgeEntryDto[]> {
     const conditions = [eq(knowledgeBaseEntries.scope, scope)];
 
@@ -177,14 +177,14 @@ export class KnowledgeBaseEntriesQueries {
   static async searchEntries(
     scope: KnowledgeBaseScope,
     scopeId: string | null,
-    searchTerm: string
+    searchTerm: string,
   ): Promise<KnowledgeEntryDto[]> {
     const conditions = [
       eq(knowledgeBaseEntries.scope, scope),
       eq(knowledgeBaseEntries.isActive, true),
       or(
         ilike(knowledgeBaseEntries.term, `%${searchTerm}%`),
-        ilike(knowledgeBaseEntries.definition, `%${searchTerm}%`)
+        ilike(knowledgeBaseEntries.definition, `%${searchTerm}%`),
       ),
     ];
 
@@ -216,36 +216,51 @@ export class KnowledgeBaseEntriesQueries {
   }
 
   /**
-   * Get hierarchical entries (project → organization → global)
+   * Get hierarchical entries (team → project → organization → global)
    * Returns entries with priority ordering, deduplicated by term
-   * Project entries (priority 1) override organization (priority 2), which override global (priority 3)
+   * Team entries (priority 1) override project (priority 2), which override organization (priority 3), which override global (priority 4)
    */
   static async getHierarchicalEntries(
     projectId: string | null,
-    organizationId: string | null
+    organizationId: string | null,
+    teamId?: string | null,
   ): Promise<HierarchicalKnowledgeEntryDto[]> {
     if (!projectId || !organizationId) {
       // If no project/org, return empty array
       return [];
     }
 
-    // Fetch entries from all three scopes with priority
-    // Priority 1 = project, 2 = organization, 3 = global
-    const [projectEntries, orgEntries, globalEntries] = await Promise.all([
-      // Priority 1: Project entries
+    // Fetch entries from all scopes with priority
+    // Priority 1 = team, 2 = project, 3 = organization, 4 = global
+    const queries = [
+      // Priority 2: Project entries
       this.getEntriesByScope("project", projectId),
-      // Priority 2: Organization entries
+      // Priority 3: Organization entries
       this.getEntriesByScope("organization", organizationId),
-      // Priority 3: Global entries
+      // Priority 4: Global entries
       this.getEntriesByScope("global", null),
-    ]);
+    ];
+
+    // Add team query if teamId is provided
+    const hasTeam = teamId && teamId.trim().length > 0;
+    let teamEntries: KnowledgeEntryDto[] = [];
+    if (hasTeam) {
+      teamEntries = await this.getEntriesByScope("team", teamId);
+    }
+
+    const [projectEntries, orgEntries, globalEntries] =
+      await Promise.all(queries);
 
     // Combine all entries with priority
-    const allEntries: Array<HierarchicalKnowledgeEntryDto> = [
-      ...projectEntries.map((e) => ({ ...e, priority: 1 })),
-      ...orgEntries.map((e) => ({ ...e, priority: 2 })),
-      ...globalEntries.map((e) => ({ ...e, priority: 3 })),
-    ];
+    const allEntries: Array<HierarchicalKnowledgeEntryDto> = [];
+    if (hasTeam) {
+      allEntries.push(...teamEntries.map((e) => ({ ...e, priority: 1 })));
+    }
+    allEntries.push(
+      ...projectEntries.map((e) => ({ ...e, priority: 2 })),
+      ...orgEntries.map((e) => ({ ...e, priority: 3 })),
+      ...globalEntries.map((e) => ({ ...e, priority: 4 })),
+    );
 
     // Deduplicate by term, keeping highest priority (lowest number)
     const termMap = new Map<string, HierarchicalKnowledgeEntryDto>();
@@ -258,8 +273,7 @@ export class KnowledgeBaseEntriesQueries {
 
     // Return deduplicated entries sorted by term
     return Array.from(termMap.values()).sort((a, b) =>
-      a.term.localeCompare(b.term)
+      a.term.localeCompare(b.term),
     );
   }
 }
-

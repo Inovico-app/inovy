@@ -12,9 +12,11 @@ import {
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { isOrganizationAdmin, isTeamManager } from "@/lib/rbac/rbac";
 import { getCachedTeamById } from "@/server/cache/team.cache";
+import { ProjectQueries } from "@/server/data-access/projects.queries";
+import type { ProjectWithRecordingCountDto } from "@/server/dto/project.dto";
 import type { TeamMemberWithUserDto } from "@/server/dto/team.dto";
 import { TeamService } from "@/server/services/team.service";
-import { SettingsIcon, UsersIcon } from "lucide-react";
+import { FolderIcon, SettingsIcon, UsersIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -41,7 +43,7 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
     );
   }
 
-  const { user } = authResult.value;
+  const { user, organization } = authResult.value;
 
   // user is guaranteed to be non-null after authentication check
   if (!user) {
@@ -76,6 +78,21 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
   // Fetch team members with user details
   const membersResult = await TeamService.getTeamMembersWithUserDetails(teamId);
   const members = membersResult.isOk() ? membersResult.value : [];
+
+  // Fetch team's projects with recording counts (capped at 10 for the dashboard)
+  const teamProjects =
+    await ProjectQueries.findByOrganizationWithRecordingCount(
+      {
+        organizationId: organization.id,
+        status: "active",
+        limit: 10,
+      },
+      {
+        activeTeamId: teamId,
+        userTeamIds: [teamId],
+        user,
+      },
+    );
 
   return (
     <div className="space-y-6">
@@ -230,7 +247,7 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
                         <div className="text-xs text-muted-foreground">
                           Joined{" "}
                           {new Date(
-                            member.createdAt ?? new Date()
+                            member.createdAt ?? new Date(),
                           ).toLocaleDateString()}
                         </div>
                       </div>
@@ -254,4 +271,3 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
     </div>
   );
 }
-

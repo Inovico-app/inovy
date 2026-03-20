@@ -24,12 +24,13 @@ import type {
  */
 export class KnowledgeBaseService {
   /**
-   * Get applicable knowledge for a project (hierarchical: project → organization → global)
+   * Get applicable knowledge for a project (hierarchical: team → project → organization → global)
    * Returns entries with priority ordering, deduplicated by term
    */
   static async getApplicableKnowledge(
     projectId: string | null,
     organizationId: string | null,
+    teamId?: string | null,
   ): Promise<ActionResult<KnowledgeEntryDto[]>> {
     try {
       if (!projectId || !organizationId) {
@@ -79,9 +80,37 @@ export class KnowledgeBaseService {
         );
       }
 
+      // If teamId is provided, verify team exists and user is a member
+      if (teamId && teamId.trim().length > 0) {
+        const team = await TeamQueries.selectTeamById(teamId, userOrgId);
+        if (!team) {
+          return err(
+            ActionErrors.notFound(
+              "Team",
+              "KnowledgeBaseService.getApplicableKnowledge",
+            ),
+          );
+        }
+
+        const userTeam = await UserTeamQueries.selectUserTeam(
+          authResult.value.user.id,
+          teamId,
+        );
+        if (!userTeam) {
+          return err(
+            ActionErrors.forbidden(
+              "You are not a member of this team",
+              undefined,
+              "KnowledgeBaseService.getApplicableKnowledge",
+            ),
+          );
+        }
+      }
+
       const entries = await KnowledgeBaseEntriesQueries.getHierarchicalEntries(
         projectId,
         organizationId,
+        teamId,
       );
 
       // Remove priority field for return type
@@ -93,7 +122,7 @@ export class KnowledgeBaseService {
     } catch (error) {
       logger.error(
         "Failed to get applicable knowledge",
-        { projectId, organizationId },
+        { projectId, organizationId, teamId },
         error as Error,
       );
       return err(
@@ -632,11 +661,13 @@ export class KnowledgeBaseService {
   static async buildKnowledgeContext(
     projectId: string | null,
     organizationId: string | null,
+    teamId?: string | null,
   ): Promise<ActionResult<string>> {
     try {
       const knowledgeResult = await this.getApplicableKnowledge(
         projectId,
         organizationId,
+        teamId,
       );
       if (knowledgeResult.isErr()) {
         return err(
@@ -671,7 +702,7 @@ export class KnowledgeBaseService {
     } catch (error) {
       logger.error(
         "Failed to build knowledge context",
-        { projectId, organizationId },
+        { projectId, organizationId, teamId },
         error as Error,
       );
       return err(
