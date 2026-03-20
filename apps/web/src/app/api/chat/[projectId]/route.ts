@@ -2,6 +2,7 @@ import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import { GuardrailError } from "@/server/ai/middleware";
 import { AgentConfigService } from "@/server/services/agent-config.service";
 import { AgentKillSwitchService } from "@/server/services/agent-kill-switch.service";
@@ -109,6 +110,12 @@ export async function POST(
       assertOrganizationAccess(
         project.organizationId,
         organization.id,
+        "api/chat/[projectId]",
+      );
+      assertTeamAccess(
+        project.teamId,
+        userTeamIds,
+        user,
         "api/chat/[projectId]",
       );
     } catch (error) {
@@ -239,7 +246,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { user, organization } = authResult.value;
+    const { user, organization, userTeamIds } = authResult.value;
 
     // Verify user has access to the project
     const projectResult = await ProjectService.getProjectById(projectId);
@@ -253,6 +260,12 @@ export async function GET(
       assertOrganizationAccess(
         project.organizationId,
         organization.id,
+        "api/chat/[projectId]",
+      );
+      assertTeamAccess(
+        project.teamId,
+        userTeamIds,
+        user,
         "api/chat/[projectId]",
       );
     } catch (error) {

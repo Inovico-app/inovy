@@ -12,6 +12,7 @@ import { db } from "@/server/db";
 import { sessions } from "@/server/db/schema/auth";
 import { ok, err } from "neverthrow";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 
 export interface UserTeam {
   id: string;
@@ -70,12 +71,10 @@ export const listUserTeamsAction = authorizedActionClient
       }
 
       // Validate that the active team is in the user's team list
-      if (
-        activeTeamId &&
-        !userTeams.some((t) => t.id === activeTeamId) &&
-        !ctx.user?.role
-      ) {
-        activeTeamId = null;
+      if (activeTeamId && !userTeams.some((t) => t.id === activeTeamId)) {
+        if (!ctx.user || !isOrganizationAdmin(ctx.user)) {
+          activeTeamId = null;
+        }
       }
 
       return resultToActionResponse(

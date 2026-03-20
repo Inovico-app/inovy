@@ -1,6 +1,9 @@
 import type { BetterAuthUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/server-action-client/action-client";
-import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import {
+  ActionErrors,
+  isActionError,
+} from "@/lib/server-action-client/action-errors";
 import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import { getStorageProvider } from "./storage";
 import { err, ok } from "neverthrow";
@@ -97,6 +100,10 @@ export class ProjectService {
 
       return ok(projectWithDetails);
     } catch (error) {
+      // Preserve ActionErrors (e.g., from assertTeamAccess)
+      if (isActionError(error)) {
+        throw error;
+      }
       logger.error("Failed to get project", { projectId }, error as Error);
       return err(
         ActionErrors.internal(
