@@ -21,10 +21,6 @@ export const botSettings = pgTable(
     userId: text("user_id").notNull(), // Better Auth user ID
     organizationId: text("organization_id").notNull(), // Better Auth organization ID
     botEnabled: boolean("bot_enabled").notNull().default(false), // Master toggle
-    autoJoinEnabled: boolean("auto_join_enabled").notNull().default(false), // Auto-join meetings
-    requirePerMeetingConsent: boolean("require_per_meeting_consent")
-      .notNull()
-      .default(true), // Require consent per meeting
     botDisplayName: text("bot_display_name")
       .notNull()
       .default("Inovy Recording Bot"), // Bot name in meetings

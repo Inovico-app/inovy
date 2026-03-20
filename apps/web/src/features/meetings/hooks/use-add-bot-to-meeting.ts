@@ -41,6 +41,7 @@ function createOptimisticSession(calendarEventId: string): BotSession {
     retryCount: 0,
     meetingParticipants: null,
     meetingId: null,
+    subscriptionId: null,
     recordingId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
