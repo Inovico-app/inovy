@@ -160,6 +160,8 @@ export interface RAGSearchOptions {
   projectId?: string;
   teamId?: string | null;
   userTeamIds?: string[];
+  /** When true, skip the fail-closed zero-team filter so admins see all content. */
+  isOrgAdmin?: boolean;
 }
 
 // Hybrid Search Types
@@ -175,6 +177,8 @@ export interface HybridSearchOptions {
   collectionName?: string;
   teamId?: string | null;
   userTeamIds?: string[];
+  /** When true, skip the fail-closed zero-team filter so admins see all content. */
+  isOrgAdmin?: boolean;
 }
 
 export interface RankedResult {

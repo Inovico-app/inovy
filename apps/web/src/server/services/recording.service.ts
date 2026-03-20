@@ -144,24 +144,40 @@ export class RecordingService {
         return ok(null);
       }
 
-      // Enforce team-level access isolation via the recording's project
-      const sessionResult = await getBetterAuthSession();
-      if (sessionResult.isOk() && sessionResult.value.user) {
-        const { user: sessionUser, userTeamIds } = sessionResult.value;
-        if (recording.projectId) {
-          const project = await ProjectQueries.findById(
-            recording.projectId,
-            recording.organizationId,
-          );
-          if (project) {
-            assertTeamAccess(
-              project.teamId,
-              userTeamIds,
-              sessionUser,
+      // Enforce team-level access isolation via the recording's project.
+      // Fail-closed: if the recording belongs to a project and we cannot verify
+      // team access (session failure or project not found), deny access rather
+      // than silently returning the recording.
+      if (recording.projectId) {
+        const sessionResult = await getBetterAuthSession();
+        if (sessionResult.isErr() || !sessionResult.value.user) {
+          return err(
+            ActionErrors.forbidden(
+              "Unable to verify access",
+              undefined,
               "RecordingService.getRecordingById",
-            );
-          }
+            ),
+          );
         }
+        const { user: sessionUser, userTeamIds } = sessionResult.value;
+        const project = await ProjectQueries.findById(
+          recording.projectId,
+          recording.organizationId,
+        );
+        if (!project) {
+          return err(
+            ActionErrors.notFound(
+              "Recording",
+              "RecordingService.getRecordingById",
+            ),
+          );
+        }
+        assertTeamAccess(
+          project.teamId,
+          userTeamIds,
+          sessionUser,
+          "RecordingService.getRecordingById",
+        );
       }
 
       return ok(this.toDto(recording));

@@ -72,17 +72,23 @@ export function createSearchKnowledgeTool(ctx: ToolContext) {
           filters.documentId = recordingId;
         }
 
-        const result = await ragSearchTool.execute({
-          query,
-          limit,
-          useHybrid,
-          useReranking,
-          organizationId: ctx.organizationId,
-          projectId: ctx.projectId,
-          teamId: ctx.teamId,
-          userTeamIds: ctx.userTeamIds,
-          filters,
-        });
+        const result = await ragSearchTool.execute(
+          {
+            query,
+            limit,
+            useHybrid,
+            useReranking,
+            organizationId: ctx.organizationId,
+            projectId: ctx.projectId,
+            filters,
+          },
+          // Server-side context: team scoping values are injected here,
+          // never exposed to or controlled by the LLM.
+          {
+            teamId: ctx.teamId,
+            userTeamIds: ctx.userTeamIds,
+          },
+        );
 
         if (result.isErr()) {
           logger.error("Knowledge base search failed", {

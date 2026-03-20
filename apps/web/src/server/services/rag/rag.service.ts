@@ -78,6 +78,7 @@ export class RAGService {
         projectId,
         teamId,
         userTeamIds,
+        isOrgAdmin,
       } = options;
 
       logger.debug("Performing RAG search", {
@@ -115,6 +116,7 @@ export class RAGService {
           projectId,
           teamId,
           userTeamIds,
+          isOrgAdmin,
           limit: limit * 2, // Fetch more for re-ranking
           vectorWeight,
           keywordWeight,
@@ -145,6 +147,7 @@ export class RAGService {
           projectId,
           teamId,
           userTeamIds,
+          isOrgAdmin,
         );
 
         if (vectorResult.isErr()) {
@@ -203,6 +206,7 @@ export class RAGService {
     projectId?: string,
     teamId?: string | null,
     userTeamIds?: string[],
+    isOrgAdmin?: boolean,
   ): Promise<ActionResult<SearchResult[]>> {
     try {
       const filter = this.buildFilter(
@@ -212,6 +216,7 @@ export class RAGService {
         filters,
         teamId,
         userTeamIds,
+        isOrgAdmin,
       );
 
       const searchResult = await this.qdrantService.search(embedding, {
@@ -463,6 +468,7 @@ export class RAGService {
     additionalFilters: Record<string, unknown>,
     teamId?: string | null,
     userTeamIds?: string[],
+    isOrgAdmin?: boolean,
   ): QdrantFilter {
     const must: Array<{
       key: string;
@@ -534,6 +540,11 @@ export class RAGService {
       should.push({ is_empty: { key: "teamId" } });
     } else if (userTeamIds && userTeamIds.length > 0) {
       should.push({ key: "teamId", match: { any: userTeamIds } });
+      should.push({ is_empty: { key: "teamId" } });
+    } else if (!isOrgAdmin) {
+      // Fail-closed: a non-admin user with no team memberships may only see
+      // org-wide content (documents with no teamId). Without this guard, the
+      // absence of a should clause would return ALL content regardless of team.
       should.push({ is_empty: { key: "teamId" } });
     }
 

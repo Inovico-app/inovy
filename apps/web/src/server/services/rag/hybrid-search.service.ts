@@ -55,6 +55,7 @@ export class HybridSearchEngine {
         collectionName,
         teamId,
         userTeamIds,
+        isOrgAdmin,
       } = options;
 
       const targetCollection = collectionName ?? this.defaultCollectionName;
@@ -91,6 +92,7 @@ export class HybridSearchEngine {
         filters ?? {},
         teamId,
         userTeamIds,
+        isOrgAdmin,
       );
 
       // 1. Vector search
@@ -349,6 +351,7 @@ export class HybridSearchEngine {
     additionalFilters: Record<string, unknown>,
     teamId?: string | null,
     userTeamIds?: string[],
+    isOrgAdmin?: boolean,
   ): QdrantFilter {
     const must: Array<{ key: string; match?: MatchCondition }> = [];
     const should: Array<
@@ -385,6 +388,11 @@ export class HybridSearchEngine {
       should.push({ is_empty: { key: "teamId" } });
     } else if (userTeamIds && userTeamIds.length > 0) {
       should.push({ key: "teamId", match: { any: userTeamIds } });
+      should.push({ is_empty: { key: "teamId" } });
+    } else if (!isOrgAdmin) {
+      // Fail-closed: a non-admin user with no team memberships may only see
+      // org-wide content (documents with no teamId). Without this guard, the
+      // absence of a should clause would return ALL content regardless of team.
       should.push({ is_empty: { key: "teamId" } });
     }
 

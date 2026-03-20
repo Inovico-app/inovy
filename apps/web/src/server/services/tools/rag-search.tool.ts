@@ -25,6 +25,8 @@ import { SearchResultFormatter } from "../search-result-formatter.service";
 
 /**
  * Input schema for RAG search tool
+ * NOTE: teamId and userTeamIds are intentionally excluded — they are injected
+ * server-side from the authenticated tool context and must never be LLM-controlled.
  */
 export const ragSearchInputSchema = z.object({
   query: z.string().min(1, "Query is required").describe("Search query text"),
@@ -50,15 +52,6 @@ export const ragSearchInputSchema = z.object({
     .optional()
     .describe("Organization ID for filtering results"),
   projectId: z.string().uuid().optional().describe("Project ID for filtering"),
-  teamId: z
-    .string()
-    .nullable()
-    .optional()
-    .describe("Active team ID for team-scoped filtering"),
-  userTeamIds: z
-    .array(z.string())
-    .optional()
-    .describe("All team IDs the user belongs to for access control"),
   filters: z
     .record(z.string(), z.unknown())
     .optional()
@@ -66,6 +59,14 @@ export const ragSearchInputSchema = z.object({
 });
 
 export type RAGSearchInput = z.infer<typeof ragSearchInputSchema>;
+
+/**
+ * Server-side context injected by the tool executor — never provided by the LLM.
+ */
+export interface RAGSearchContext {
+  teamId?: string | null;
+  userTeamIds?: string[];
+}
 
 /**
  * Formatted search result for LLM consumption
@@ -113,11 +114,13 @@ export class RAGSearchTool {
   /**
    * Execute RAG search
    *
-   * @param input - Search parameters
+   * @param input - Search parameters (LLM-controlled fields only)
+   * @param ctx - Server-side context providing team access info — never LLM-controlled
    * @returns Formatted search results for LLM consumption
    */
   async execute(
     input: RAGSearchInput,
+    ctx?: RAGSearchContext,
   ): Promise<ActionResult<RAGSearchResponse>> {
     try {
       logger.info("RAG search tool execution started", {
@@ -161,6 +164,8 @@ export class RAGSearchTool {
       }
 
       // Execute search via RAGService
+      // teamId and userTeamIds are injected from server-side context (ctx),
+      // never from the LLM-controlled input, to prevent scope manipulation.
       const searchResult = await this.ragService.search(
         validatedInput.query,
         validatedInput.userId ?? "",
@@ -171,8 +176,8 @@ export class RAGSearchTool {
           filters: validatedInput.filters ?? {},
           organizationId: validatedInput.organizationId,
           projectId: validatedInput.projectId,
-          teamId: validatedInput.teamId,
-          userTeamIds: validatedInput.userTeamIds,
+          teamId: ctx?.teamId,
+          userTeamIds: ctx?.userTeamIds,
         },
       );
 
