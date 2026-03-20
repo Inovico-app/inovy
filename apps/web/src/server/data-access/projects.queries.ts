@@ -9,6 +9,8 @@ import type {
   ProjectWithCreatorDto,
   ProjectWithRecordingCountDto,
 } from "../dto/project.dto";
+import { buildTeamFilter } from "@/lib/rbac/team-isolation";
+import type { BetterAuthUser } from "@/lib/auth";
 
 const allowedStatus = ["active", "archived", "completed"] as const;
 export type AllowedStatus = (typeof allowedStatus)[number];
@@ -208,16 +210,35 @@ export class ProjectQueries {
    * Find projects by organization with creator information
    * Fetches creator details using a JOIN with the user table
    */
-  static async findByOrganizationWithCreator(filters: {
-    organizationId: string;
-    status?: AllowedStatus;
-  }): Promise<ProjectWithCreatorDto[]> {
+  static async findByOrganizationWithCreator(
+    filters: {
+      organizationId: string;
+      status?: AllowedStatus;
+    },
+    options?: {
+      activeTeamId?: string | null;
+      userTeamIds?: string[];
+      user?: BetterAuthUser;
+    },
+  ): Promise<ProjectWithCreatorDto[]> {
     const whereConditions = [
       eq(projects.organizationId, filters.organizationId),
     ];
 
     if (filters.status) {
       whereConditions.push(eq(projects.status, filters.status));
+    }
+
+    if (options?.user && options?.userTeamIds) {
+      const teamFilter = buildTeamFilter(
+        projects.teamId,
+        options.activeTeamId,
+        options.userTeamIds,
+        options.user,
+      );
+      if (teamFilter) {
+        whereConditions.push(teamFilter);
+      }
     }
 
     const result = await db
@@ -261,11 +282,28 @@ export class ProjectQueries {
   static async countByOrganization(
     organizationId: string,
     status?: AllowedStatus,
+    options?: {
+      activeTeamId?: string | null;
+      userTeamIds?: string[];
+      user?: BetterAuthUser;
+    },
   ): Promise<number> {
     const whereConditions = [eq(projects.organizationId, organizationId)];
 
     if (status) {
       whereConditions.push(eq(projects.status, status));
+    }
+
+    if (options?.user && options?.userTeamIds) {
+      const teamFilter = buildTeamFilter(
+        projects.teamId,
+        options.activeTeamId,
+        options.userTeamIds,
+        options.user,
+      );
+      if (teamFilter) {
+        whereConditions.push(teamFilter);
+      }
     }
 
     const result = await db
@@ -370,17 +408,36 @@ export class ProjectQueries {
    * Find projects by organization with recording counts
    * Fetches creator details using a JOIN with the user table
    */
-  static async findByOrganizationWithRecordingCount(filters: {
-    organizationId: string;
-    status?: AllowedStatus;
-    limit?: number;
-  }): Promise<ProjectWithRecordingCountDto[]> {
+  static async findByOrganizationWithRecordingCount(
+    filters: {
+      organizationId: string;
+      status?: AllowedStatus;
+      limit?: number;
+    },
+    options?: {
+      activeTeamId?: string | null;
+      userTeamIds?: string[];
+      user?: BetterAuthUser;
+    },
+  ): Promise<ProjectWithRecordingCountDto[]> {
     const whereConditions = [
       eq(projects.organizationId, filters.organizationId),
     ];
 
     if (filters.status) {
       whereConditions.push(eq(projects.status, filters.status));
+    }
+
+    if (options?.user && options?.userTeamIds) {
+      const teamFilter = buildTeamFilter(
+        projects.teamId,
+        options.activeTeamId,
+        options.userTeamIds,
+        options.user,
+      );
+      if (teamFilter) {
+        whereConditions.push(teamFilter);
+      }
     }
 
     let query = db
