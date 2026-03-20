@@ -17,7 +17,7 @@ export const queryKeys = {
       [...queryKeys.recordings.all, "status", recordingId] as const,
     byOrganization: (
       organizationId: string,
-      filters?: Record<string, unknown>
+      filters?: Record<string, unknown>,
     ) =>
       [
         ...queryKeys.recordings.all,
@@ -65,6 +65,7 @@ export const queryKeys = {
       [...queryKeys.auth.all, "activeMemberRole"] as const,
     userOrganizations: () =>
       [...queryKeys.auth.all, "userOrganizations"] as const,
+    userTeams: () => [...queryKeys.auth.all, "userTeams"] as const,
   },
   organization: {
     all: ["organization"] as const,
@@ -93,4 +94,3 @@ export const queryKeys = {
       [...queryKeys.agentKnowledgeBase.all, "document", documentId] as const,
   },
 } as const;
-
