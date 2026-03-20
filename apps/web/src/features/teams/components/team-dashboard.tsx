@@ -268,6 +268,52 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Team Projects */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Team Projects</CardTitle>
+              <CardDescription>
+                {teamProjects.length} active project
+                {teamProjects.length !== 1 ? "s" : ""} in this team
+              </CardDescription>
+            </div>
+            <Link href={`/projects?teamId=${teamId}`}>
+              <Button variant="outline" size="sm">
+                View all
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {teamProjects.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              No active projects in this team yet.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {teamProjects.map((project: ProjectWithRecordingCountDto) => (
+                <Link
+                  key={project.id}
+                  href={`/projects/${project.id}`}
+                  className="flex items-center justify-between py-2 border-b last:border-0 hover:bg-muted/50 rounded px-2 -mx-2 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <FolderIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="font-medium text-sm">{project.name}</span>
+                  </div>
+                  <Badge variant="secondary" className="text-xs shrink-0">
+                    {project.recordingCount}{" "}
+                    {project.recordingCount === 1 ? "recording" : "recordings"}
+                  </Badge>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
