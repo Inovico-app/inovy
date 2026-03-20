@@ -18,6 +18,7 @@ export const botStatusEnum = [
   "leaving",
   "completed",
   "failed",
+  "removed",
 ] as const;
 
 export type BotStatus = (typeof botStatusEnum)[number];

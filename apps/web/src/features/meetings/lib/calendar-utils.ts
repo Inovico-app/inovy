@@ -297,7 +297,7 @@ function meetingMatchesFilter(
     case "active":
       return status === "active";
     case "failed":
-      return status === "failed";
+      return status === "failed" || status === "removed";
     default:
       return assertUnreachable(filter);
   }
