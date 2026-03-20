@@ -11,6 +11,7 @@ import type {
   Calendar,
   CalendarEvent,
   CreateEventInput,
+  GetSeriesInstancesOptions,
   GetUpcomingMeetingsOptions,
   UpdateEventInput,
 } from "./types";
@@ -33,6 +34,7 @@ function mapGoogleEventToCalendarEvent(
     organizer: event.organizer,
     isOrganizer: event.isOrganizer,
     calendarId: event.calendarId,
+    recurringSeriesId: event.recurringEventId ?? undefined,
   };
 }
 
@@ -104,6 +106,7 @@ function mapRawEventToCalendarEvent(
       : undefined,
     isOrganizer: event.organizer?.self ?? undefined,
     calendarId,
+    recurringSeriesId: event.recurringEventId ?? undefined,
   };
 }
 
@@ -212,5 +215,27 @@ export class GoogleCalendarProvider implements CalendarProvider {
     }
 
     return ok(mapRawEventToCalendarEvent(rawEvent, calendarId));
+  }
+
+  async getSeriesInstances(
+    userId: string,
+    seriesId: string,
+    options: GetSeriesInstancesOptions,
+  ): Promise<ActionResult<CalendarEvent[]>> {
+    const result = await GoogleCalendarService.getSeriesInstances(
+      userId,
+      seriesId,
+      {
+        timeMin: options.timeMin,
+        timeMax: options.timeMax,
+        calendarId: options.calendarId,
+      },
+    );
+
+    if (result.isErr()) {
+      return err(result.error);
+    }
+
+    return ok(result.value.map(mapGoogleEventToCalendarEvent));
   }
 }

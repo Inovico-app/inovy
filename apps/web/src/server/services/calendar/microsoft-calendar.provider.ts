@@ -9,6 +9,7 @@ import type {
   Calendar,
   CalendarEvent,
   CreateEventInput,
+  GetSeriesInstancesOptions,
   GetUpcomingMeetingsOptions,
   UpdateEventInput,
 } from "./types";
@@ -50,6 +51,7 @@ interface GraphEvent {
   organizer?: { emailAddress: GraphEmailAddress };
   isOrganizer?: boolean;
   webLink?: string;
+  seriesMasterId?: string;
 }
 
 /**
@@ -74,6 +76,7 @@ function mapGraphEventToCalendarEvent(
       : undefined,
     isOrganizer: event.isOrganizer,
     calendarId,
+    recurringSeriesId: event.seriesMasterId ?? undefined,
   };
 }
 
@@ -137,7 +140,7 @@ export class MicrosoftCalendarProvider implements CalendarProvider {
       const startDateTime = options.timeMin.toISOString();
       const endDateTime = options.timeMax.toISOString();
       const selectFields =
-        "id,subject,start,end,onlineMeeting,location,bodyPreview,attendees,organizer,isOrganizer";
+        "id,subject,start,end,onlineMeeting,location,bodyPreview,attendees,organizer,isOrganizer,seriesMasterId";
       const queryParams = `startDateTime=${startDateTime}&endDateTime=${endDateTime}&$select=${selectFields}&$orderby=start/dateTime`;
 
       const calendarIds = options.calendarIds;
@@ -402,7 +405,7 @@ export class MicrosoftCalendarProvider implements CalendarProvider {
       }
 
       const selectFields =
-        "id,subject,start,end,onlineMeeting,location,bodyPreview,attendees,organizer,isOrganizer";
+        "id,subject,start,end,onlineMeeting,location,bodyPreview,attendees,organizer,isOrganizer,seriesMasterId";
 
       const result = await graphRequest<GraphEvent>(
         tokenResult.value,
@@ -426,6 +429,58 @@ export class MicrosoftCalendarProvider implements CalendarProvider {
           "Failed to get Microsoft calendar event",
           error as Error,
           "MicrosoftCalendarProvider.getEvent",
+        ),
+      );
+    }
+  }
+
+  async getSeriesInstances(
+    userId: string,
+    seriesId: string,
+    options: GetSeriesInstancesOptions,
+  ): Promise<ActionResult<CalendarEvent[]>> {
+    try {
+      const tokenResult =
+        await MicrosoftOAuthService.getValidAccessToken(userId);
+      if (tokenResult.isErr()) {
+        return err(tokenResult.error);
+      }
+
+      const startDateTime = options.timeMin.toISOString();
+      const endDateTime = options.timeMax.toISOString();
+      const selectFields =
+        "id,subject,start,end,onlineMeeting,location,bodyPreview,attendees,organizer,isOrganizer,seriesMasterId";
+      const calendarPath = options.calendarId
+        ? `/me/calendars/${options.calendarId}/events/${seriesId}/instances`
+        : `/me/events/${seriesId}/instances`;
+
+      const result = await graphRequest<{ value: GraphEvent[] }>(
+        tokenResult.value,
+        "GET",
+        `${calendarPath}?startDateTime=${startDateTime}&endDateTime=${endDateTime}&$select=${selectFields}`,
+      );
+
+      if (result.isErr()) {
+        return err(result.error);
+      }
+
+      const events: CalendarEvent[] = result.value.value.map((graphEvent) =>
+        mapGraphEventToCalendarEvent(graphEvent, options.calendarId),
+      );
+
+      return ok(events);
+    } catch (error) {
+      logger.error("Failed to get series instances from Microsoft", {
+        component: "MicrosoftCalendarProvider.getSeriesInstances",
+        userId,
+        seriesId,
+        error,
+      });
+      return err(
+        ActionErrors.internal(
+          "Failed to get series instances",
+          error as Error,
+          "MicrosoftCalendarProvider.getSeriesInstances",
         ),
       );
     }

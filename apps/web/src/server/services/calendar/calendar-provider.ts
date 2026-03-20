@@ -3,6 +3,7 @@ import type {
   Calendar,
   CalendarEvent,
   CreateEventInput,
+  GetSeriesInstancesOptions,
   GetUpcomingMeetingsOptions,
   UpdateEventInput,
 } from "./types";
@@ -33,4 +34,9 @@ export interface CalendarProvider {
     calendarId: string,
     eventId: string,
   ): Promise<ActionResult<CalendarEvent>>;
+  getSeriesInstances(
+    userId: string,
+    seriesId: string,
+    options: GetSeriesInstancesOptions,
+  ): Promise<ActionResult<CalendarEvent[]>>;
 }
