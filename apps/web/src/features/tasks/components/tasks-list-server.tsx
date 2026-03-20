@@ -18,7 +18,7 @@ export async function TasksListServer() {
     );
   }
 
-  const { user, organization } = authResult.value;
+  const { user, organization, activeTeamId, userTeamIds } = authResult.value;
 
   if (!user || !organization) {
     return (
@@ -31,11 +31,14 @@ export async function TasksListServer() {
   // Fetch tasks and projects in parallel (both cached)
   const [tasks, projects] = await Promise.all([
     getCachedTasksWithContext(user.id, organization.id),
-    getCachedUserProjects(organization.id),
+    getCachedUserProjects(organization.id, {
+      activeTeamId,
+      userTeamIds,
+      user,
+    }),
   ]);
 
   return (
     <GlobalTaskListClient initialTasks={tasks} initialProjects={projects} />
   );
 }
-

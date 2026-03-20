@@ -118,7 +118,12 @@ export class ProjectService {
         );
       }
 
-      const { user: authUser, organization } = authResult.value;
+      const {
+        user: authUser,
+        organization,
+        activeTeamId,
+        userTeamIds,
+      } = authResult.value;
 
       if (!authUser || !organization) {
         return err(
@@ -136,8 +141,14 @@ export class ProjectService {
         status: "active",
       };
 
-      const projects =
-        await ProjectQueries.findByOrganizationWithCreator(projectFilters);
+      const projects = await ProjectQueries.findByOrganizationWithCreator(
+        projectFilters,
+        {
+          activeTeamId,
+          userTeamIds,
+          user: authUser,
+        },
+      );
 
       return ok(projects);
     } catch (error) {
@@ -172,7 +183,12 @@ export class ProjectService {
         );
       }
 
-      const { user: authUser, organization } = authResult.value;
+      const {
+        user: authUser,
+        organization,
+        activeTeamId,
+        userTeamIds,
+      } = authResult.value;
 
       if (!authUser || !organization) {
         return err(
@@ -191,7 +207,11 @@ export class ProjectService {
       };
 
       const projects =
-        await ProjectQueries.findByOrganizationWithRecordingCount(filters);
+        await ProjectQueries.findByOrganizationWithRecordingCount(filters, {
+          activeTeamId,
+          userTeamIds,
+          user: authUser,
+        });
 
       return ok(projects);
     } catch (error) {
@@ -226,7 +246,12 @@ export class ProjectService {
         );
       }
 
-      const { user: authUser, organization } = authResult.value;
+      const {
+        user: authUser,
+        organization,
+        activeTeamId,
+        userTeamIds,
+      } = authResult.value;
 
       if (!authUser || !organization) {
         return err(
@@ -242,6 +267,11 @@ export class ProjectService {
       const count = await ProjectQueries.countByOrganization(
         organization.id,
         status,
+        {
+          activeTeamId,
+          userTeamIds,
+          user: authUser,
+        },
       );
 
       return ok(count);
