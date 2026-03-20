@@ -70,14 +70,20 @@ export default async function TeamMembersPage({
   return (
     <Suspense
       fallback={
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={`skeleton-${i}`} className="h-20" />
-          ))}
+        <div className="container mx-auto py-8 px-4">
+          <div className="max-w-6xl mx-auto space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={`skeleton-${i}`} className="h-20" />
+            ))}
+          </div>
         </div>
       }
     >
-      <TeamMembersContainer params={params} />
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-6xl mx-auto">
+          <TeamMembersContainer params={params} />
+        </div>
+      </div>
     </Suspense>
   );
 }

@@ -55,17 +55,23 @@ export default async function TeamPage({ params }: TeamPageProps) {
   return (
     <Suspense
       fallback={
-        <div className="space-y-6">
-          <Skeleton className="h-32" />
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(3)].map((_, i: number) => (
-              <Skeleton key={`skeleton-${i}`} className="h-32" />
-            ))}
+        <div className="container mx-auto py-8 px-4">
+          <div className="max-w-6xl mx-auto space-y-6">
+            <Skeleton className="h-32" />
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(3)].map((_, i: number) => (
+                <Skeleton key={`skeleton-${i}`} className="h-32" />
+              ))}
+            </div>
           </div>
         </div>
       }
     >
-      <TeamDashboardContainer params={params} />
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-6xl mx-auto">
+          <TeamDashboardContainer params={params} />
+        </div>
+      </div>
     </Suspense>
   );
 }

@@ -60,8 +60,20 @@ export default async function TeamSettingsPage({
   params,
 }: TeamSettingsPageProps) {
   return (
-    <Suspense fallback={<Skeleton className="h-96" />}>
-      <TeamSettingsContainer params={params} />
+    <Suspense
+      fallback={
+        <div className="container mx-auto py-8 px-4">
+          <div className="max-w-6xl mx-auto">
+            <Skeleton className="h-96" />
+          </div>
+        </div>
+      }
+    >
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-6xl mx-auto">
+          <TeamSettingsContainer params={params} />
+        </div>
+      </div>
     </Suspense>
   );
 }
