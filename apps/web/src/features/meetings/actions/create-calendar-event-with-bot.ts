@@ -1,6 +1,7 @@
 "use server";
 
 import { logger } from "@/lib/logger";
+import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
@@ -85,6 +86,18 @@ export const createCalendarEventWithBot = authorizedActionClient
     } = parsedInput;
 
     const teamId = explicitTeamId ?? activeTeamId ?? null;
+
+    if (
+      teamId &&
+      !ctx.userTeamIds?.includes(teamId) &&
+      !isOrganizationAdmin(user)
+    ) {
+      throw ActionErrors.forbidden(
+        "Not a member of this team",
+        undefined,
+        "create-calendar-event-with-bot",
+      );
+    }
 
     logger.info("Creating calendar event with bot", {
       userId: user.id,

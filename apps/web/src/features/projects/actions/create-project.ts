@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { logger } from "@/lib/logger";
+import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -42,6 +43,18 @@ export const createProjectAction = authorizedActionClient
     }
 
     const teamId = explicitTeamId ?? activeTeamId ?? null;
+
+    if (
+      teamId &&
+      !ctx.userTeamIds?.includes(teamId) &&
+      !isOrganizationAdmin(user)
+    ) {
+      throw ActionErrors.forbidden(
+        "Not a member of this team",
+        undefined,
+        "create-project",
+      );
+    }
 
     // All operations return Results - no exceptions thrown
     const result = await ProjectService.createProject(
