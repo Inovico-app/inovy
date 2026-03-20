@@ -1,23 +1,23 @@
 import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
 import { MeetingDetailContent } from "@/features/meetings/components/meeting-detail-content";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { assertTeamAccess } from "@/lib/rbac/team-isolation";
+import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
+import { MeetingNotesQueries } from "@/server/data-access/meeting-notes.queries";
+import { MeetingPostActionsQueries } from "@/server/data-access/meeting-post-actions.queries";
+import { MeetingsQueries } from "@/server/data-access/meetings.queries";
+
+interface PageProps {
+  params: Promise<{ meetingId: string }>;
+}
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { meetingId } = await params;
   return { title: `Meeting ${meetingId}` };
-}
-import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
-import { MeetingNotesQueries } from "@/server/data-access/meeting-notes.queries";
-import { MeetingPostActionsQueries } from "@/server/data-access/meeting-post-actions.queries";
-import { MeetingsQueries } from "@/server/data-access/meetings.queries";
-import { notFound, redirect } from "next/navigation";
-import { Suspense } from "react";
-
-interface PageProps {
-  params: Promise<{ meetingId: string }>;
 }
 
 async function MeetingDetailLoader({ meetingId }: { meetingId: string }) {

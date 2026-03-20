@@ -115,11 +115,22 @@ export const addBotToMeeting = authorizedActionClient
           "add-bot-to-meeting",
         );
       }
+      // Verify project belongs to the same team
+      if (teamId && projectById.teamId && projectById.teamId !== teamId) {
+        throw ActionErrors.badRequest(
+          "Selected project does not belong to the specified team",
+          "add-bot-to-meeting",
+        );
+      }
       project = projectById;
     } else {
-      // Fallback to first active project
-      project =
-        await ProjectQueries.findFirstActiveByOrganization(organizationId);
+      // Fallback to first active project in the team (or org-wide)
+      project = await ProjectQueries.findFirstActiveByOrganization(
+        organizationId,
+        {
+          teamId,
+        },
+      );
 
       if (!project) {
         throw ActionErrors.badRequest(

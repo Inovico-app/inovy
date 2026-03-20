@@ -36,7 +36,7 @@ export const getOrCreateMeeting = authorizedActionClient
   })
   .schema(getOrCreateMeetingSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { user, organizationId } = ctx;
+    const { user, organizationId, activeTeamId } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
 
     const { MeetingService } =
@@ -47,6 +47,7 @@ export const getOrCreateMeeting = authorizedActionClient
       organizationId,
       {
         organizationId,
+        teamId: activeTeamId ?? null,
         createdById: user.id,
         calendarEventId: parsedInput.calendarEventId,
         title: parsedInput.title,
@@ -78,10 +79,17 @@ export const updateMeeting = authorizedActionClient
   })
   .schema(updateMeetingSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { user, organizationId } = ctx;
+    const { user, organizationId, userTeamIds } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
 
     const { meetingId, ...data } = parsedInput;
+
+    // Fetch existing meeting and enforce team access before update
+    const existing = await MeetingsQueries.findById(meetingId, organizationId);
+    if (!existing) throw ActionErrors.notFound("Meeting not found");
+
+    assertTeamAccess(existing.teamId, userTeamIds ?? [], user, "updateMeeting");
+
     const meeting = await MeetingsQueries.update(
       meetingId,
       organizationId,

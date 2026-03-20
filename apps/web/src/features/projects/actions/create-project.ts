@@ -46,7 +46,7 @@ export const createProjectAction = authorizedActionClient
 
     if (
       teamId &&
-      !ctx.userTeamIds?.includes(teamId) &&
+      !(ctx.userTeamIds ?? []).includes(teamId) &&
       !isOrganizationAdmin(user)
     ) {
       throw ActionErrors.forbidden(

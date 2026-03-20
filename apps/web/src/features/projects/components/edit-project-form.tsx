@@ -147,7 +147,13 @@ export function EditProjectForm({
                 <TeamPicker
                   teams={teams}
                   value={teamIdValue}
-                  onChange={(id) => form.setValue("teamId", id)}
+                  onChange={(id) =>
+                    form.setValue("teamId", id, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                      shouldTouch: true,
+                    })
+                  }
                   activeTeamId={activeTeamId}
                 />
                 <FormMessage />

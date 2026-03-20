@@ -181,7 +181,20 @@ export class ProjectQueries {
    */
   static async findFirstActiveByOrganization(
     organizationId: string,
+    options?: { teamId?: string | null },
   ): Promise<ProjectDto | null> {
+    const whereConditions = [
+      eq(projects.organizationId, organizationId),
+      eq(projects.status, "active"),
+    ];
+
+    // If a teamId is specified, filter to that team's projects or org-wide projects
+    if (options?.teamId) {
+      whereConditions.push(
+        sql`(${projects.teamId} = ${options.teamId} OR ${projects.teamId} IS NULL)`,
+      );
+    }
+
     const result = await db
       .select({
         id: projects.id,
@@ -194,12 +207,7 @@ export class ProjectQueries {
         updatedAt: projects.updatedAt,
       })
       .from(projects)
-      .where(
-        and(
-          eq(projects.organizationId, organizationId),
-          eq(projects.status, "active"),
-        ),
-      )
+      .where(and(...whereConditions))
       .limit(1);
 
     const row = result[0];

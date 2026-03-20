@@ -304,14 +304,17 @@ export class TaskService {
           task.projectId,
           organization.id,
         );
-        if (project) {
-          assertTeamAccess(
-            project.teamId,
-            authResult.value.userTeamIds,
-            authUser,
-            "TaskService.updateTaskStatus",
+        if (!project) {
+          return err(
+            ActionErrors.notFound("Task", "TaskService.updateTaskStatus"),
           );
         }
+        assertTeamAccess(
+          project.teamId,
+          authResult.value.userTeamIds,
+          authUser,
+          "TaskService.updateTaskStatus",
+        );
       }
 
       const updated = await TasksQueries.updateTaskStatus(taskId, status);
@@ -400,14 +403,17 @@ export class TaskService {
           task.projectId,
           organization.id,
         );
-        if (project) {
-          assertTeamAccess(
-            project.teamId,
-            authResult.value.userTeamIds,
-            authUser,
-            "TaskService.updateTaskMetadata",
+        if (!project) {
+          return err(
+            ActionErrors.notFound("Task", "TaskService.updateTaskMetadata"),
           );
         }
+        assertTeamAccess(
+          project.teamId,
+          authResult.value.userTeamIds,
+          authUser,
+          "TaskService.updateTaskMetadata",
+        );
       }
 
       if (task.assigneeId !== authUser.id) {
@@ -519,14 +525,17 @@ export class TaskService {
           task.projectId,
           organization.id,
         );
-        if (project) {
-          assertTeamAccess(
-            project.teamId,
-            authResult.value.userTeamIds,
-            authUser,
-            "TaskService.getTaskHistory",
+        if (!project) {
+          return err(
+            ActionErrors.notFound("Task", "TaskService.getTaskHistory"),
           );
         }
+        assertTeamAccess(
+          project.teamId,
+          authResult.value.userTeamIds,
+          authUser,
+          "TaskService.getTaskHistory",
+        );
       }
 
       const history = await TasksQueries.getTaskHistory(taskId);

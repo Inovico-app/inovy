@@ -526,6 +526,18 @@ export class ProjectService {
           ActionErrors.notFound("Project", "ProjectService.deleteProject"),
         );
       }
+
+      // Enforce team-level access isolation before ownership check
+      const authResult = await getBetterAuthSession();
+      if (authResult.isOk() && authResult.value.user) {
+        assertTeamAccess(
+          project.teamId,
+          authResult.value.userTeamIds,
+          authResult.value.user,
+          "ProjectService.deleteProject",
+        );
+      }
+
       // Verify ownership - only creator can delete
       if (project.createdById !== userId) {
         return err(

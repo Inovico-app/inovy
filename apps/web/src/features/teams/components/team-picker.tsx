@@ -29,8 +29,8 @@ export function TeamPicker({
   activeTeamId,
 }: TeamPickerProps) {
   if (activeTeamId) {
-    const teamName = teams.find((t) => t.id === activeTeamId)?.name;
-    return <VisibilityWarning teamName={teamName} />;
+    const team = teams.find((t) => t.id === activeTeamId);
+    return <VisibilityWarning teamName={team?.name ?? "Unknown team"} />;
   }
 
   const selectedTeam = value ? teams.find((t) => t.id === value) : null;

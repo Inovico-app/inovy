@@ -745,19 +745,52 @@ export class RecordingService {
         );
       }
 
-      // Update embeddings project in Qdrant
+      // Update embeddings in Qdrant for all content types (transcription, summary, task)
+      // Also update teamId to match the target project's team
       const ragService = new RAGService();
-      const updateResult = await ragService.updateProjectId(
-        recordingId,
-        "transcription", // Update transcription embeddings
-        targetProjectId,
+      const contentTypes = ["transcription", "summary", "task"] as const;
+      const qdrantUpdateResults = await Promise.allSettled(
+        contentTypes.map((contentType) =>
+          ragService.updateProjectId(recordingId, contentType, targetProjectId),
+        ),
       );
-      if (updateResult.isErr()) {
-        logger.warn("Failed to update embeddings project", {
-          recordingId,
-          error: updateResult.error,
-        });
-        // Continue even if update fails - non-critical
+
+      for (let i = 0; i < qdrantUpdateResults.length; i++) {
+        const result = qdrantUpdateResults[i];
+        if (result.status === "rejected") {
+          logger.warn("Failed to update embeddings project for content type", {
+            recordingId,
+            contentType: contentTypes[i],
+            error: result.reason,
+          });
+        } else if (result.value.isErr()) {
+          logger.warn("Failed to update embeddings project for content type", {
+            recordingId,
+            contentType: contentTypes[i],
+            error: result.value.error,
+          });
+        }
+      }
+
+      // Update teamId in Qdrant to match the target project's team
+      if (targetProject.teamId !== undefined) {
+        const { QdrantClientService } = await import("./rag/qdrant.service");
+        const qdrant = QdrantClientService.getInstance();
+        const newTeamPayload = targetProject.teamId
+          ? { teamId: [targetProject.teamId] }
+          : { teamId: [] };
+
+        await qdrant
+          .setPayload(newTeamPayload, {
+            must: [{ key: "contentId", match: { value: recordingId } }],
+          })
+          .catch((error) => {
+            logger.warn("Failed to update Qdrant teamId for moved recording", {
+              recordingId,
+              teamId: targetProject.teamId,
+              error,
+            });
+          });
       }
 
       // Invalidate cache for both source and target projects

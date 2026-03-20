@@ -28,7 +28,11 @@ export async function RecordingsOverview() {
 
   // Fetch recordings and projects in parallel (both cached)
   const [recordings, projects] = await Promise.all([
-    getCachedRecordingsByOrganization(organizationId),
+    getCachedRecordingsByOrganization(organizationId, {
+      user,
+      activeTeamId,
+      userTeamIds,
+    }),
     getCachedUserProjects(organizationId, {
       activeTeamId,
       userTeamIds,

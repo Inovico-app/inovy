@@ -1,6 +1,6 @@
-import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
+import type { BetterAuthUser } from "@/lib/auth";
 import type { RecordingDto } from "../dto/recording.dto";
 import { RecordingService } from "../services/recording.service";
 
@@ -49,10 +49,15 @@ export async function getCachedRecordingsByProjectId(
 
 /**
  * Get recordings by organization (cached)
- * Calls RecordingService which includes business logic and auth checks
+ * Team context must be passed as parameters so the cache is keyed per user/team.
  */
 export async function getCachedRecordingsByOrganization(
   organizationId: string,
+  teamContext?: {
+    user?: BetterAuthUser;
+    activeTeamId?: string | null;
+    userTeamIds?: string[];
+  },
   options?: {
     statusFilter?: "active" | "archived";
     search?: string;
@@ -60,18 +65,15 @@ export async function getCachedRecordingsByOrganization(
   },
 ) {
   "use cache";
-  cacheTag(CacheTags.recordingsByOrg(organizationId));
 
-  // Resolve team context from session so the query filters by the user's active team
-  const authResult = await getBetterAuthSession();
-  const teamContext =
-    authResult.isOk() && authResult.value.isAuthenticated
-      ? {
-          user: authResult.value.user ?? undefined,
-          activeTeamId: authResult.value.activeTeamId,
-          userTeamIds: authResult.value.userTeamIds,
-        }
-      : {};
+  // Include activeTeamId in the cache tag so results are cached per team scope
+  const teamSuffix = teamContext?.activeTeamId
+    ? `:team:${teamContext.activeTeamId}`
+    : ":all-teams";
+  cacheTag(
+    CacheTags.recordingsByOrg(organizationId),
+    `recordings:org:${organizationId}${teamSuffix}`,
+  );
 
   const recordings = await RecordingService.getRecordingsByOrganization(
     organizationId,

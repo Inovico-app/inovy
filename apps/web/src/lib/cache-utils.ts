@@ -155,9 +155,9 @@ export const CacheTags = {
     }
     return `knowledge-documents:project:${scopeId}`;
   },
-  knowledgeHierarchy: (projectId?: string, orgId?: string) =>
+  knowledgeHierarchy: (projectId?: string, orgId?: string, teamId?: string) =>
     projectId && orgId
-      ? `knowledge-hierarchy:project:${projectId}:org:${orgId}`
+      ? `knowledge-hierarchy:project:${projectId}:org:${orgId}${teamId ? `:team:${teamId}` : ""}`
       : undefined,
 
   // Team tags
