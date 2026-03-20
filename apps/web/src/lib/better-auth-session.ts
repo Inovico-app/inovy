@@ -1,6 +1,12 @@
 import { err, ok, type Result } from "neverthrow";
 import { headers } from "next/headers";
 import { cache } from "react";
+import { eq } from "drizzle-orm";
+import { db } from "@/server/db";
+import {
+  teamMembers,
+  sessions as sessionsTable,
+} from "@/server/db/schema/auth";
 import { auth, type BetterAuthUser } from "./auth";
 import { logger } from "./logger";
 
@@ -22,6 +28,8 @@ export interface BetterAuthSessionData {
   user: BetterAuthUser | null;
   organization: BetterAuthOrganization | null;
   member: BetterAuthMember | null;
+  activeTeamId: string | null;
+  userTeamIds: string[];
 }
 
 /**
@@ -34,7 +42,7 @@ function resolveActiveOrganization(
     organizationId: string;
     role: string;
     userId: string;
-  } | null
+  } | null,
 ): BetterAuthOrganization | null {
   if (activeMember) {
     const org = organizations.find((o) => o.id === activeMember.organizationId);
@@ -64,7 +72,7 @@ function resolveActiveOrganization(
  * Shared logic for both cached and uncached versions
  */
 async function fetchAndBuildSession(
-  actionContext: string
+  actionContext: string,
 ): Promise<Result<BetterAuthSessionData, string>> {
   try {
     let requestHeaders: Headers;
@@ -82,7 +90,7 @@ async function fetchAndBuildSession(
           {
             action: actionContext,
           },
-          error as Error
+          error as Error,
         );
         return err("Cannot access headers during prerendering");
       }
@@ -100,6 +108,8 @@ async function fetchAndBuildSession(
         user: null,
         organization: null,
         member: null,
+        activeTeamId: null,
+        userTeamIds: [],
       });
     }
 
@@ -120,9 +130,46 @@ async function fetchAndBuildSession(
     const organizations = organizationsResult ?? [];
     const activeMember = activeMemberResult ?? null;
 
+    // Resolve active team and user's team memberships
+    let activeTeamId: string | null = null;
+    let userTeamIds: string[] = [];
+
+    if (session.user) {
+      // Get activeTeamId from session - try raw session data first
+      const rawSession = session.session as
+        | { activeTeamId?: string | null }
+        | undefined;
+      activeTeamId = rawSession?.activeTeamId ?? null;
+
+      // If not available from session object, query directly
+      if (activeTeamId === undefined || activeTeamId === null) {
+        try {
+          const sessionRecord = await db
+            .select({ activeTeamId: sessionsTable.activeTeamId })
+            .from(sessionsTable)
+            .where(eq(sessionsTable.id, session.session.id))
+            .limit(1);
+          activeTeamId = sessionRecord[0]?.activeTeamId ?? null;
+        } catch {
+          activeTeamId = null;
+        }
+      }
+
+      // Get user's team memberships
+      try {
+        const memberships = await db
+          .select({ teamId: teamMembers.teamId })
+          .from(teamMembers)
+          .where(eq(teamMembers.userId, session.user.id));
+        userTeamIds = memberships.map((m) => m.teamId);
+      } catch {
+        userTeamIds = [];
+      }
+    }
+
     const activeOrganization = resolveActiveOrganization(
       organizations,
-      activeMember
+      activeMember,
     );
 
     logger.auth.sessionCheck(true, {
@@ -151,6 +198,8 @@ async function fetchAndBuildSession(
             role: activeMember.role,
           }
         : null,
+      activeTeamId,
+      userTeamIds,
     });
   } catch (error) {
     const errorMessage = `Critical error in ${actionContext}`;
@@ -169,7 +218,7 @@ async function fetchAndBuildSession(
 export const getBetterAuthSession = cache(
   async (): Promise<Result<BetterAuthSessionData, string>> => {
     return fetchAndBuildSession("getBetterAuthSession");
-  }
+  },
 );
 
 /**
@@ -181,4 +230,3 @@ export async function getBetterAuthSessionUncached(): Promise<
 > {
   return fetchAndBuildSession("getBetterAuthSessionUncached");
 }
-
