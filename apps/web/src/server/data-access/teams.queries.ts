@@ -3,7 +3,7 @@ import type { TeamInput, TeamMember } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "../db";
-import { teams } from "../db/schema/auth";
+import { teams, teamMembers } from "../db/schema/auth";
 
 // Infer Better Auth types
 type BetterAuthTeam = typeof auth.$Infer.Team;
@@ -19,7 +19,7 @@ export class TeamQueries {
    */
   static async insertTeam(
     data: TeamInput,
-    requestHeaders?: Headers
+    requestHeaders?: Headers,
   ): Promise<BetterAuthTeam> {
     const headersList = requestHeaders ?? (await headers());
 
@@ -39,7 +39,7 @@ export class TeamQueries {
    */
   static async selectTeamsByOrganization(
     organizationId: string,
-    requestHeaders?: Headers
+    requestHeaders?: Headers,
   ): Promise<BetterAuthTeam[]> {
     const headersList = requestHeaders ?? (await headers());
 
@@ -56,13 +56,21 @@ export class TeamQueries {
 
   static async selectTeamMembers(
     teamId: string,
-    requestHeaders?: Headers
+    _requestHeaders?: Headers,
   ): Promise<TeamMember[]> {
-    const headersList = requestHeaders ?? (await headers());
-    return await auth.api.listTeamMembers({
-      headers: headersList,
-      query: { teamId },
-    });
+    // Use direct DB query instead of Better Auth API to avoid
+    // "User is not a member of the team" error for org admins
+    const rows = await db
+      .select()
+      .from(teamMembers)
+      .where(eq(teamMembers.teamId, teamId));
+
+    return rows.map((row) => ({
+      id: row.id,
+      teamId: row.teamId,
+      userId: row.userId,
+      createdAt: row.createdAt ?? new Date(),
+    }));
   }
 
   /**
@@ -73,7 +81,7 @@ export class TeamQueries {
    */
   static async selectStandaloneTeams(
     organizationId: string,
-    requestHeaders?: Headers
+    requestHeaders?: Headers,
   ): Promise<BetterAuthTeam[]> {
     // Better Auth teams don't support departmentId filtering
     // Return all teams for the organization as a fallback
@@ -88,7 +96,7 @@ export class TeamQueries {
   static async selectTeamById(
     id: string,
     organizationId: string,
-    requestHeaders?: Headers
+    requestHeaders?: Headers,
   ): Promise<BetterAuthTeam | null> {
     const headersList = requestHeaders ?? (await headers());
 
@@ -132,7 +140,7 @@ export class TeamQueries {
   static async updateTeam(
     id: string,
     data: Partial<Omit<TeamInput, "id" | "organizationId" | "createdAt">>,
-    requestHeaders?: Headers
+    requestHeaders?: Headers,
   ): Promise<BetterAuthTeam | null> {
     const headersList = requestHeaders ?? (await headers());
 
@@ -159,7 +167,7 @@ export class TeamQueries {
   static async deleteTeam(
     id: string,
     organizationId?: string,
-    requestHeaders?: Headers
+    requestHeaders?: Headers,
   ): Promise<void> {
     const headersList = requestHeaders ?? (await headers());
 
@@ -178,7 +186,7 @@ export class TeamQueries {
    */
   static async selectUserTeams(
     userId: string,
-    requestHeaders?: Headers
+    requestHeaders?: Headers,
   ): Promise<BetterAuthTeam[]> {
     const headersList = requestHeaders ?? (await headers());
     return await auth.api.listUserTeams({
@@ -200,26 +208,20 @@ export class UserTeamQueries {
    */
   static async selectTeamMembers(
     userId: string,
-    requestHeaders?: Headers
+    _requestHeaders?: Headers,
   ): Promise<TeamMember[]> {
-    const headersList = requestHeaders ?? (await headers());
-    // Get all teams the user is part of
-    const userTeams = await auth.api.listUserTeams({
-      headers: headersList,
-    });
+    // Direct DB query to get all team memberships for a user
+    const rows = await db
+      .select()
+      .from(teamMembers)
+      .where(eq(teamMembers.userId, userId));
 
-    // Get team members for each team and filter by userId
-    const allMembers = await Promise.all(
-      userTeams.map((team) =>
-        auth.api.listTeamMembers({
-          headers: headersList,
-          query: { teamId: team.id },
-        })
-      )
-    );
-
-    // Flatten and filter by userId
-    return allMembers.flat().filter((member) => member.userId === userId);
+    return rows.map((row) => ({
+      id: row.id,
+      teamId: row.teamId,
+      userId: row.userId,
+      createdAt: row.createdAt ?? new Date(),
+    }));
   }
 
   /**
@@ -228,14 +230,23 @@ export class UserTeamQueries {
   static async selectUserTeam(
     userId: string,
     teamId: string,
-    requestHeaders?: Headers
+    _requestHeaders?: Headers,
   ): Promise<TeamMember | null> {
-    const headersList = requestHeaders ?? (await headers());
-    const teamMembers = await auth.api.listTeamMembers({
-      headers: headersList,
-      query: { teamId },
-    });
-    return teamMembers.find((m) => m.userId === userId) ?? null;
+    // Direct DB query to avoid Better Auth API team membership requirement
+    const rows = await db
+      .select()
+      .from(teamMembers)
+      .where(eq(teamMembers.teamId, teamId));
+
+    const member = rows.find((m) => m.userId === userId);
+    if (!member) return null;
+
+    return {
+      id: member.id,
+      teamId: member.teamId,
+      userId: member.userId,
+      createdAt: member.createdAt ?? new Date(),
+    };
   }
 
   /**
@@ -247,7 +258,7 @@ export class UserTeamQueries {
       teamId: string;
       role?: "member" | "lead" | "admin";
     },
-    requestHeaders?: Headers
+    requestHeaders?: Headers,
   ): Promise<TeamMember> {
     const headersList = requestHeaders ?? (await headers());
 
@@ -279,7 +290,7 @@ export class UserTeamQueries {
   static async deleteUserTeam(
     userId: string,
     teamId: string,
-    requestHeaders?: Headers
+    requestHeaders?: Headers,
   ): Promise<void> {
     const headersList = requestHeaders ?? (await headers());
 
@@ -297,28 +308,10 @@ export class UserTeamQueries {
    */
   static async deleteAllTeamMembers(
     teamId: string,
-    requestHeaders?: Headers
+    _requestHeaders?: Headers,
   ): Promise<void> {
-    const headersList = requestHeaders ?? (await headers());
-
-    // Get all team members
-    const members = await auth.api.listTeamMembers({
-      headers: headersList,
-      query: { teamId },
-    });
-
-    // Remove each member
-    await Promise.all(
-      members.map((member) =>
-        auth.api.removeTeamMember({
-          headers: headersList,
-          body: {
-            userId: member.userId,
-            teamId,
-          },
-        })
-      )
-    );
+    // Direct DB delete to avoid Better Auth API team membership requirement
+    await db.delete(teamMembers).where(eq(teamMembers.teamId, teamId));
   }
 
   /**
@@ -331,7 +324,7 @@ export class UserTeamQueries {
     userId: string,
     teamId: string,
     role: "member" | "lead" | "admin",
-    requestHeaders?: Headers
+    requestHeaders?: Headers,
   ): Promise<TeamMember | null> {
     // Better Auth doesn't support role updates for team members
     // Return the existing member - role management would need custom implementation
@@ -339,4 +332,3 @@ export class UserTeamQueries {
     return member;
   }
 }
-
