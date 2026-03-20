@@ -27,7 +27,7 @@ teamId: text("team_id").references(() => teams.id, { onDelete: "set null" });
 ```
 
 - `onDelete: "set null"` — if a team is deleted, resources become org-wide rather than lost
-- Index on `teamId` for query performance
+- Composite index on `(organizationId, teamId)` for the common query pattern `WHERE organizationId = ? AND teamId = ?`
 
 ### Meetings table
 
@@ -37,7 +37,16 @@ Add nullable `teamId` foreign key:
 teamId: text("team_id").references(() => teams.id, { onDelete: "set null" });
 ```
 
-- Same `onDelete: "set null"` behavior and indexing as projects
+- Same `onDelete: "set null"` behavior as projects
+- Composite index on `(organizationId, teamId)`
+
+### Meeting/project team consistency
+
+Meetings have an independent `teamId` from their project. To prevent inconsistency with child resources:
+
+- Meetings without a `projectId` can have any `teamId` (or null) independently
+- Meetings with a `projectId` inherit team visibility from the project — the meeting's own `teamId` determines who can see the meeting itself, but recordings created from the meeting inherit from the project (since recordings belong to projects)
+- When linking a meeting to a project, the UI warns if the meeting's team differs from the project's team: "This meeting belongs to [Team A] but the project belongs to [Team B]. Recordings will be visible to [Team B] members."
 
 ### Knowledge base
 
@@ -53,6 +62,8 @@ export const knowledgeBaseScopeEnum = [
 ```
 
 When `scope = "team"`, `scopeId` contains the team ID. Applies to both `knowledgeBaseEntries` and `knowledgeBaseDocuments`.
+
+Note: This is a TypeScript const array used in `text("scope", { enum: ... })`, not a Postgres enum. This is a code-only change — no database migration needed for the enum itself.
 
 ### Chat embeddings
 
@@ -74,9 +85,10 @@ No change needed — it's a content-hash deduplication cache with no scoping.
 
 One migration file adding:
 
-- `teamId` column to `projects` table with FK and index
-- `teamId` column to `meetings` table with FK and index
-- `"team"` value to knowledge base scope enum
+- `teamId` column to `projects` table with FK and composite index `(organizationId, teamId)`
+- `teamId` column to `meetings` table with FK and composite index `(organizationId, teamId)`
+
+No migration needed for knowledge base scope enum (TypeScript const array, not a Postgres enum).
 
 ## Section 2: Team Isolation Query Layer
 
@@ -99,6 +111,14 @@ If active team is "All" (null):
 
 **`assertTeamAccess(resourceTeamId, userTeamIds, isOrgAdmin)`** — verifies user can access a specific resource's team. Returns 404 for non-members (not 403), consistent with existing org isolation pattern.
 
+### User team IDs retrieval
+
+The `buildTeamFilter` helper requires `userTeamIds`. These are resolved as follows:
+
+- The `authorizedActionClient` middleware (and `getBetterAuthSession`) query the `team_members` table directly via Drizzle (`SELECT team_id FROM team_members WHERE user_id = ?`) to get the user's team IDs
+- These are cached in the middleware context alongside `activeTeamId` so data-access layers don't need request headers
+- For server components, `getBetterAuthSession()` returns `userTeamIds` as part of `BetterAuthSessionData`
+
 ### Applied at these layers
 
 | Layer               | How                                                      |
@@ -109,12 +129,34 @@ If active team is "All" (null):
 | `TasksQueries`      | JOIN through project to check team access                |
 | `AI Insights`       | Inherit via recording → project chain                    |
 | `ChatConversations` | Project-scoped conversations filtered via project's team |
-| `Qdrant searches`   | Add `teamId` must-match filter to all RAG queries        |
+| `Qdrant searches`   | Add `teamId` filter to all RAG queries (see Section 5)   |
 | `Knowledge base`    | Filter by scope="team" + scopeId=teamId                  |
 
-### Session extension
+### Session and middleware changes
 
-Use Better Auth's existing `activeTeamId` on the session to track the user's selected team context. The team switcher calls `setActiveTeam` to update it.
+**`BetterAuthSessionData` interface** — extend to include:
+
+```typescript
+interface BetterAuthSessionData {
+  isAuthenticated: boolean;
+  user: BetterAuthUser | null;
+  organization: BetterAuthOrganization | null;
+  member: BetterAuthMember | null;
+  activeTeamId: string | null; // NEW
+  userTeamIds: string[]; // NEW
+}
+```
+
+**`fetchAndBuildSession()`** in `better-auth-session.ts` — read `activeTeamId` from the raw session data returned by `auth.api.getSession()`, and query `team_members` table for the user's team IDs. If `auth.api.getSession()` does not include `activeTeamId` in its response, fall back to a direct Drizzle query on the `sessions` table: `SELECT active_team_id FROM sessions WHERE id = ?` (same fallback pattern as `setActiveTeam`).
+
+**`authorizedActionClient` middleware** in `action-client.ts` — extend the context object passed to actions:
+
+```typescript
+// Current ctx: { session, user, organizationId }
+// New ctx:     { session, user, organizationId, activeTeamId, userTeamIds }
+```
+
+This makes `activeTeamId` and `userTeamIds` available to all authorized server actions without additional queries.
 
 ## Section 3: UI — Team Switcher & Navigation
 
@@ -123,10 +165,10 @@ Use Better Auth's existing `activeTeamId` on the session to track the user's sel
 Placed below the existing org switcher. Shows:
 
 - "All Teams" option at the top (sets `activeTeamId = null`)
-- User's teams (fetched from `TeamService.getUserTeams()`)
+- User's teams (fetched from user's team memberships)
 - Active team highlighted with a checkmark
 
-Selecting a team calls Better Auth's `setActiveTeam` API, which updates `activeTeamId` on the session.
+Selecting a team calls Better Auth's `setActiveTeam` API endpoint (provided by the organization plugin when `teams.enabled = true`), which updates `activeTeamId` on the session. If `setActiveTeam` is not available in the Better Auth API surface, implement a custom server action that updates `activeTeamId` directly on the session record via Drizzle.
 
 ### Team hub pages
 
@@ -138,7 +180,14 @@ Enhance existing `/teams/[teamId]` pages:
 
 ### New: `/teams` index page
 
-Lists all teams the user belongs to as a card grid. Org admins see all teams. Each card shows name, description, member count and links to the team hub.
+Route: `app/(main)/teams/page.tsx`
+
+Server component that:
+
+1. Calls `getBetterAuthSession()` for auth context
+2. Fetches teams via `TeamService.getUserTeams()` (regular users) or `TeamService.getTeamsByOrganization()` (org admins)
+3. Renders a card grid with team name, description, member count
+4. Each card links to `/teams/[teamId]`
 
 ### Sidebar navigation
 
@@ -190,25 +239,67 @@ When embeddings are created/updated, populate `teamId` in payload:
 
 ### Qdrant search filtering
 
-- **Active team set**: add `teamId` must-match filter + include points without `teamId` (org-wide)
-- **"All Teams"**: add `teamId` any-match filter with user's team IDs + include points without `teamId`
+Team filtering in Qdrant requires OR conditions (e.g., "teamId matches OR teamId is absent"). The current `QdrantFilter` type only supports `must` (AND). The following changes are needed:
+
+**Extend `QdrantFilter` type** in `rag/types.ts`:
+
+```typescript
+export interface QdrantFilter {
+  must?: Array<{ key: string; match?: MatchCondition }>;
+  should?: Array<
+    { key: string; match?: MatchCondition } | { is_empty: { key: string } }
+  >;
+  must_not?: Array<{ key: string; match?: MatchCondition }>;
+}
+```
+
+**Filter construction by context:**
+
+- **Active team set**: `should` clause with two conditions: `teamId` matches active team, OR `teamId` field is empty (org-wide)
+- **"All Teams"**: `should` clause with: `teamId` any-match with user's team IDs, OR `teamId` field is empty
 - **Org admins**: no team filter (only org filter, as today)
+
+**Extend search option types** — add `teamId` to `RAGSearchOptions` and `HybridSearchOptions`:
+
+```typescript
+interface RAGSearchOptions {
+  // ... existing fields
+  teamId?: string | null; // Active team ID, null for "All"
+  userTeamIds?: string[]; // User's team memberships
+}
+
+interface HybridSearchOptions {
+  // ... existing fields
+  teamId?: string | null;
+  userTeamIds?: string[];
+}
+```
+
+The `buildFilter` method in `hybrid-search.service.ts` incorporates these into the Qdrant filter. Important: `buildFilter` must return filters with both `must` and `should` clauses, and all downstream consumers (including `keywordSearch` in `hybrid-search.service.ts`, which currently only spreads `baseFilter.must`) must preserve the `should` clause when constructing their filter objects. Without this, keyword search will silently drop team filtering.
 
 ### Affected services
 
-| Service                      | Change                                                         |
-| ---------------------------- | -------------------------------------------------------------- |
-| `rag.service.ts`             | Add team filter to search options                              |
-| `hybrid-search.service.ts`   | Pass `teamId` filter through to Qdrant                         |
-| `embedding.service.ts`       | Include `teamId` in payload during upsert                      |
-| `knowledge-base.service.ts`  | Support `scope="team"` in document indexing                    |
-| `chat.service.ts`            | Filter RAG context by team when in project-scoped chat         |
-| `summary.service.ts`         | No change — operates on single recording, inherits via project |
-| `task-extraction.service.ts` | No change — same reasoning                                     |
+| Service                      | Change                                                           |
+| ---------------------------- | ---------------------------------------------------------------- |
+| `rag/types.ts`               | Extend `QdrantFilter`, `RAGSearchOptions`, `HybridSearchOptions` |
+| `rag.service.ts`             | Add team filter to search options                                |
+| `hybrid-search.service.ts`   | Pass `teamId` filter through to Qdrant, update `buildFilter`     |
+| `embedding.service.ts`       | Include `teamId` in payload during upsert                        |
+| `knowledge-base.service.ts`  | Support `scope="team"` in document indexing                      |
+| `chat.service.ts`            | Filter RAG context by team when in project-scoped chat           |
+| `summary.service.ts`         | No change — operates on single recording, inherits via project   |
+| `task-extraction.service.ts` | No change — same reasoning                                       |
 
 ### Backfill
 
-Existing Qdrant points don't have `teamId`. Since all existing resources are org-wide (`teamId = null`), this is consistent. When a project is later assigned to a team, a background job updates Qdrant payload for all related points using `setPayload()`.
+Existing Qdrant points don't have `teamId`. Since all existing resources are org-wide (`teamId = null`), this is consistent — they have no `teamId` field, which matches the "is_empty" filter for org-wide content.
+
+When a project is assigned to a team, update Qdrant payloads for all related points:
+
+1. Filter Qdrant by `projectId` to find all related points
+2. Use `setPayload()` to add `teamId` to matching points
+3. This runs synchronously in the `updateProject` server action (point count per project is bounded and small enough for synchronous execution)
+4. If the Qdrant update fails, log the error but don't roll back the DB change — a background retry can reconcile
 
 ## Section 6: Authorization & Edge Cases
 
@@ -224,7 +315,7 @@ Existing Qdrant points don't have `teamId`. Since all existing resources are org
 
 ### Server action middleware
 
-Extend `authorizedActionClient` middleware to extract `activeTeamId` from session and pass through `ctx`. Actions that create/query team-scoped resources use this.
+Extend `authorizedActionClient` middleware to extract `activeTeamId` and `userTeamIds` from session context and pass through `ctx`. See Section 2 for the specific interface changes.
 
 ### Edge cases
 
@@ -232,10 +323,12 @@ Extend `authorizedActionClient` middleware to extract `activeTeamId` from sessio
 
 2. **Team deleted** — `onDelete: "set null"` makes all resources org-wide. Users see them under "All Teams".
 
-3. **Project moved between teams** — all child recordings, tasks, AI insights, and embeddings inherit the new team scope. Qdrant payloads updated via `setPayload()`. Chat conversations scoped to that project also move.
+3. **Project moved between teams** — all child recordings, tasks, AI insights, and embeddings inherit the new team scope. Qdrant payloads updated via `setPayload()` (see Section 5 backfill). Chat conversations scoped to that project also move.
 
 4. **Invitation with team assignment** — already supported via `pendingTeamAssignments` table. When accepted, user is added to assigned teams and can immediately see team resources.
 
-5. **Bot sessions / recordings from bots** — bots record into a project. The recording inherits the project's `teamId`. No special handling needed.
+5. **Bot sessions / recordings from bots** — bots record into a project. The recording inherits the project's `teamId`. No special handling needed. Bot series subscriptions that create new bot sessions for a project will automatically inherit the project's team scope for any recordings produced.
 
 6. **Org admin switches to a specific team** — sees only that team's resources (same as regular member). On "All Teams", sees everything.
+
+7. **Meeting share tokens** — shared meeting links (via `meeting_share_tokens`) bypass team isolation by design. A share token is an explicit grant of access, similar to a "share link" in Google Docs. The token holder can access the shared content regardless of team membership.
