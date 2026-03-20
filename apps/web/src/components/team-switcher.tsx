@@ -19,30 +19,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  listUserTeamsAction,
-  type UserTeam,
-} from "@/features/teams/actions/list-user-teams";
+import { type UserTeam } from "@/features/teams/actions/list-user-teams";
+import { fetchUserTeams } from "@/hooks/use-team-picker";
 import { useTeamSwitcher } from "@/hooks/use-team-switcher";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown, Loader2, Users } from "lucide-react";
 import { useCallback, useState } from "react";
-
-interface UserTeamsData {
-  teams: UserTeam[];
-  activeTeamId: string | null;
-}
-
-async function fetchUserTeams(): Promise<UserTeamsData> {
-  const result = await listUserTeamsAction({});
-  const data = result?.data;
-  if (data && "teams" in data && "activeTeamId" in data) {
-    return data as UserTeamsData;
-  }
-  return { teams: [], activeTeamId: null };
-}
 
 const ALL_TEAMS_ID = null;
 
