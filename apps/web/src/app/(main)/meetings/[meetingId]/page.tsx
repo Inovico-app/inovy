@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { MeetingDetailContent } from "@/features/meetings/components/meeting-detail-content";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { meetingId } = await params;
   return { title: `Meeting ${meetingId}` };
 }
@@ -24,7 +27,7 @@ async function MeetingDetailLoader({ meetingId }: { meetingId: string }) {
     redirect("/sign-in");
   }
 
-  const { user, organization } = authResult.value;
+  const { user, organization, userTeamIds } = authResult.value;
 
   if (!user || !organization) {
     redirect("/sign-in");
@@ -32,6 +35,13 @@ async function MeetingDetailLoader({ meetingId }: { meetingId: string }) {
 
   const meeting = await MeetingsQueries.findById(meetingId, organization.id);
   if (!meeting) return notFound();
+
+  // Enforce team-level access isolation
+  try {
+    assertTeamAccess(meeting.teamId, userTeamIds, user, "MeetingDetailPage");
+  } catch {
+    return notFound();
+  }
 
   const [agendaItems, notes, postActions] = await Promise.all([
     MeetingAgendaItemsQueries.findByMeetingId(meetingId),
@@ -74,4 +84,3 @@ export default async function MeetingDetailPage(props: PageProps) {
     </div>
   );
 }
-

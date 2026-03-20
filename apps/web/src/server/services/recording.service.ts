@@ -2,11 +2,13 @@ import { err, ok } from "neverthrow";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger, serializeError } from "../../lib/logger";
 import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
+import { assertTeamAccess } from "../../lib/rbac/team-isolation";
 import {
   ActionErrors,
   type ActionResult,
 } from "../../lib/server-action-client/action-errors";
 import type { BetterAuthUser } from "../../lib/auth";
+import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { ProjectQueries } from "../data-access/projects.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { type NewRecording, type Recording } from "../db/schema/recordings";
@@ -140,6 +142,26 @@ export class RecordingService {
           recordingId: id,
         });
         return ok(null);
+      }
+
+      // Enforce team-level access isolation via the recording's project
+      const sessionResult = await getBetterAuthSession();
+      if (sessionResult.isOk() && sessionResult.value.user) {
+        const { user: sessionUser, userTeamIds } = sessionResult.value;
+        if (recording.projectId) {
+          const project = await ProjectQueries.findById(
+            recording.projectId,
+            recording.organizationId,
+          );
+          if (project) {
+            assertTeamAccess(
+              project.teamId,
+              userTeamIds,
+              sessionUser,
+              "RecordingService.getRecordingById",
+            );
+          }
+        }
       }
 
       return ok(this.toDto(recording));

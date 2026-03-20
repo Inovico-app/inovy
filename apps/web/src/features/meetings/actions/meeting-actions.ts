@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { MeetingPostActionsQueries } from "@/server/data-access/meeting-post-actions.queries";
@@ -23,7 +24,7 @@ const getOrCreateMeetingSchema = z.object({
         email: z.string(),
         name: z.string().nullable(),
         role: z.string().nullable(),
-      })
+      }),
     )
     .optional(),
 });
@@ -38,9 +39,8 @@ export const getOrCreateMeeting = authorizedActionClient
     const { user, organizationId } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
 
-    const { MeetingService } = await import(
-      "@/server/services/meeting.service"
-    );
+    const { MeetingService } =
+      await import("@/server/services/meeting.service");
 
     const result = await MeetingService.findOrCreateForCalendarEvent(
       parsedInput.calendarEventId,
@@ -56,7 +56,7 @@ export const getOrCreateMeeting = authorizedActionClient
           : undefined,
         meetingUrl: parsedInput.meetingUrl,
         participants: parsedInput.participants ?? [],
-      }
+      },
     );
 
     if (result.isErr()) throw ActionErrors.internal(result.error.message);
@@ -82,7 +82,11 @@ export const updateMeeting = authorizedActionClient
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
 
     const { meetingId, ...data } = parsedInput;
-    const meeting = await MeetingsQueries.update(meetingId, organizationId, data);
+    const meeting = await MeetingsQueries.update(
+      meetingId,
+      organizationId,
+      data,
+    );
     if (!meeting) throw ActionErrors.notFound("Meeting not found");
 
     CacheInvalidation.invalidateMeeting(meetingId);
@@ -103,11 +107,21 @@ export const saveMeetingNotes = authorizedActionClient
   })
   .schema(saveNotesSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { user, organizationId } = ctx;
+    const { user, organizationId, userTeamIds } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
 
-    const meeting = await MeetingsQueries.findById(parsedInput.meetingId, organizationId);
+    const meeting = await MeetingsQueries.findById(
+      parsedInput.meetingId,
+      organizationId,
+    );
     if (!meeting) throw ActionErrors.notFound("Meeting not found");
+
+    assertTeamAccess(
+      meeting.teamId,
+      userTeamIds ?? [],
+      user,
+      "saveMeetingNotes",
+    );
 
     const note = await MeetingNotesQueries.upsert({
       ...parsedInput,
@@ -125,7 +139,7 @@ const configurePostActionsSchema = z.object({
       type: z.enum(postActionTypeEnum),
       enabled: z.boolean(),
       config: z.record(z.string(), z.unknown()).optional(),
-    })
+    }),
   ),
 });
 
@@ -136,21 +150,31 @@ export const configurePostActions = authorizedActionClient
   })
   .schema(configurePostActionsSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { user, organizationId } = ctx;
+    const { user, organizationId, userTeamIds } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
 
-    const meeting = await MeetingsQueries.findById(parsedInput.meetingId, organizationId);
+    const meeting = await MeetingsQueries.findById(
+      parsedInput.meetingId,
+      organizationId,
+    );
     if (!meeting) throw ActionErrors.notFound("Meeting not found");
+
+    assertTeamAccess(
+      meeting.teamId,
+      userTeamIds ?? [],
+      user,
+      "configurePostActions",
+    );
 
     // Skip pending ones (don't touch completed/running)
     const existing = await MeetingPostActionsQueries.findByMeetingId(
-      parsedInput.meetingId
+      parsedInput.meetingId,
     );
     const pendingActions = existing.filter((a) => a.status === "pending");
     await Promise.all(
       pendingActions.map((action) =>
-        MeetingPostActionsQueries.update(action.id, { status: "skipped" })
-      )
+        MeetingPostActionsQueries.update(action.id, { status: "skipped" }),
+      ),
     );
 
     const enabledActions = parsedInput.actions.filter((a) => a.enabled);
@@ -159,7 +183,7 @@ export const configurePostActions = authorizedActionClient
         meetingId: parsedInput.meetingId,
         type: a.type,
         config: a.config || {},
-      }))
+      })),
     );
 
     return { success: true, actions: created };

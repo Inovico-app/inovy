@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
 import { MeetingAgendaTemplatesQueries } from "@/server/data-access/meeting-agenda-templates.queries";
@@ -24,11 +25,16 @@ export const addAgendaItem = authorizedActionClient
   })
   .schema(addAgendaItemSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { user, organizationId } = ctx;
+    const { user, organizationId, userTeamIds } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
 
-    const meeting = await MeetingsQueries.findById(parsedInput.meetingId, organizationId);
+    const meeting = await MeetingsQueries.findById(
+      parsedInput.meetingId,
+      organizationId,
+    );
     if (!meeting) throw ActionErrors.notFound("Meeting not found");
+
+    assertTeamAccess(meeting.teamId, userTeamIds ?? [], user, "addAgendaItem");
 
     const item = await MeetingAgendaItemsQueries.insert(parsedInput);
     CacheInvalidation.invalidateMeetingAgendaItems(parsedInput.meetingId);
@@ -51,11 +57,21 @@ export const updateAgendaItem = authorizedActionClient
   })
   .schema(updateAgendaItemSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { user, organizationId } = ctx;
+    const { user, organizationId, userTeamIds } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
 
-    const meeting = await MeetingsQueries.findById(parsedInput.meetingId, organizationId);
+    const meeting = await MeetingsQueries.findById(
+      parsedInput.meetingId,
+      organizationId,
+    );
     if (!meeting) throw ActionErrors.notFound("Meeting not found");
+
+    assertTeamAccess(
+      meeting.teamId,
+      userTeamIds ?? [],
+      user,
+      "updateAgendaItem",
+    );
 
     const { id, meetingId, ...data } = parsedInput;
     const item = await MeetingAgendaItemsQueries.update(id, meetingId, data);
@@ -76,15 +92,25 @@ export const deleteAgendaItem = authorizedActionClient
   })
   .schema(deleteAgendaItemSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { user, organizationId } = ctx;
+    const { user, organizationId, userTeamIds } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
 
-    const meeting = await MeetingsQueries.findById(parsedInput.meetingId, organizationId);
+    const meeting = await MeetingsQueries.findById(
+      parsedInput.meetingId,
+      organizationId,
+    );
     if (!meeting) throw ActionErrors.notFound("Meeting not found");
+
+    assertTeamAccess(
+      meeting.teamId,
+      userTeamIds ?? [],
+      user,
+      "deleteAgendaItem",
+    );
 
     const deleted = await MeetingAgendaItemsQueries.delete(
       parsedInput.id,
-      parsedInput.meetingId
+      parsedInput.meetingId,
     );
     if (!deleted) throw ActionErrors.notFound("Agenda item not found");
     CacheInvalidation.invalidateMeetingAgendaItems(parsedInput.meetingId);
@@ -104,15 +130,25 @@ export const applyAgendaTemplate = authorizedActionClient
   })
   .schema(applyTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { user, organizationId } = ctx;
+    const { user, organizationId, userTeamIds } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
 
-    const meeting = await MeetingsQueries.findById(parsedInput.meetingId, organizationId);
+    const meeting = await MeetingsQueries.findById(
+      parsedInput.meetingId,
+      organizationId,
+    );
     if (!meeting) throw ActionErrors.notFound("Meeting not found");
+
+    assertTeamAccess(
+      meeting.teamId,
+      userTeamIds ?? [],
+      user,
+      "applyAgendaTemplate",
+    );
 
     const template = await MeetingAgendaTemplatesQueries.findById(
       parsedInput.templateId,
-      organizationId
+      organizationId,
     );
     if (!template) throw ActionErrors.notFound("Template not found");
 
@@ -126,7 +162,7 @@ export const applyAgendaTemplate = authorizedActionClient
         title: item.title,
         description: item.description,
         sortOrder: item.sortOrder,
-      }))
+      })),
     );
 
     CacheInvalidation.invalidateMeetingAgendaItems(parsedInput.meetingId);

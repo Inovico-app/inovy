@@ -9,6 +9,7 @@ export async function generateMetadata({
   return { title: `Meeting Prep ${meetingId}` };
 }
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
 import { MeetingNotesQueries } from "@/server/data-access/meeting-notes.queries";
@@ -26,7 +27,7 @@ async function MeetingPrepLoader({ meetingId }: { meetingId: string }) {
     redirect("/sign-in");
   }
 
-  const { user, organization } = authResult.value;
+  const { user, organization, userTeamIds } = authResult.value;
 
   if (!user || !organization) {
     redirect("/sign-in");
@@ -34,6 +35,13 @@ async function MeetingPrepLoader({ meetingId }: { meetingId: string }) {
 
   const meeting = await MeetingsQueries.findById(meetingId, organization.id);
   if (!meeting) return notFound();
+
+  // Enforce team-level access isolation
+  try {
+    assertTeamAccess(meeting.teamId, userTeamIds, user, "MeetingPrepPage");
+  } catch {
+    return notFound();
+  }
 
   const [agendaItems, notes, templates] = await Promise.all([
     MeetingAgendaItemsQueries.findByMeetingId(meetingId),

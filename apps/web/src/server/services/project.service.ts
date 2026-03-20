@@ -1,6 +1,7 @@
 import type { BetterAuthUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import { getStorageProvider } from "./storage";
 import { err, ok } from "neverthrow";
 import { getBetterAuthSession } from "../../lib/better-auth-session";
@@ -70,6 +71,14 @@ export class ProjectService {
           ActionErrors.notFound("Project", "ProjectService.getProjectById"),
         );
       }
+
+      // Enforce team-level access isolation
+      assertTeamAccess(
+        project.teamId,
+        authResult.value.userTeamIds,
+        authUser,
+        "ProjectService.getProjectById",
+      );
 
       // Split creator name into givenName and familyName (matching UserService logic)
       const nameParts = project.creatorName?.split(" ") ?? [];

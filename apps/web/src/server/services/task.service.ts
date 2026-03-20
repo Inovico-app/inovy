@@ -1,4 +1,5 @@
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import type { ActionResult } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
@@ -6,6 +7,7 @@ import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { getCachedTaskStats } from "../cache/task.cache";
+import { ProjectQueries } from "../data-access/projects.queries";
 import { TaskTagsQueries } from "../data-access/task-tags.queries";
 import {
   TasksQueries,
@@ -296,6 +298,22 @@ export class TaskService {
         );
       }
 
+      // Enforce team-level access isolation via the task's project
+      if (task.projectId) {
+        const project = await ProjectQueries.findById(
+          task.projectId,
+          organization.id,
+        );
+        if (project) {
+          assertTeamAccess(
+            project.teamId,
+            authResult.value.userTeamIds,
+            authUser,
+            "TaskService.updateTaskStatus",
+          );
+        }
+      }
+
       const updated = await TasksQueries.updateTaskStatus(taskId, status);
       if (!updated) {
         return err(
@@ -374,6 +392,22 @@ export class TaskService {
             "TaskService.updateTaskMetadata",
           ),
         );
+      }
+
+      // Enforce team-level access isolation via the task's project
+      if (task.projectId) {
+        const project = await ProjectQueries.findById(
+          task.projectId,
+          organization.id,
+        );
+        if (project) {
+          assertTeamAccess(
+            project.teamId,
+            authResult.value.userTeamIds,
+            authUser,
+            "TaskService.updateTaskMetadata",
+          );
+        }
       }
 
       if (task.assigneeId !== authUser.id) {
@@ -477,6 +511,22 @@ export class TaskService {
         return err(
           ActionErrors.notFound("Task not found", "TaskService.getTaskHistory"),
         );
+      }
+
+      // Enforce team-level access isolation via the task's project
+      if (task.projectId) {
+        const project = await ProjectQueries.findById(
+          task.projectId,
+          organization.id,
+        );
+        if (project) {
+          assertTeamAccess(
+            project.teamId,
+            authResult.value.userTeamIds,
+            authUser,
+            "TaskService.getTaskHistory",
+          );
+        }
       }
 
       const history = await TasksQueries.getTaskHistory(taskId);
