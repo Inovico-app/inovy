@@ -16,7 +16,11 @@ const getGoogleIntegrationStatusSchema = z.object({
  * Get recent Google integration actions
  */
 export const getGoogleIntegrationStatus = authorizedActionClient
-  .metadata({ permissions: Permissions.integration.manage })
+  .metadata({
+    name: "get-google-integration-status",
+    permissions: Permissions.integration.manage,
+    audit: { resourceType: "integration", action: "get", category: "read" },
+  })
   .schema(getGoogleIntegrationStatusSchema.optional())
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;
@@ -34,7 +38,7 @@ export const getGoogleIntegrationStatus = authorizedActionClient
         user.id,
         organizationId,
         "google",
-        parsedInput
+        parsedInput,
       ),
       AutoActionsService.getAutoActionStats(user.id, organizationId, "google"),
     ]);
@@ -76,7 +80,15 @@ const retryFailedActionSchema = z.object({
  * Retry a failed action
  */
 export const retryFailedAction = authorizedActionClient
-  .metadata({ permissions: Permissions.integration.manage })
+  .metadata({
+    name: "retry-failed-action",
+    permissions: Permissions.integration.manage,
+    audit: {
+      resourceType: "integration",
+      action: "retry",
+      category: "mutation",
+    },
+  })
   .schema(retryFailedActionSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;
@@ -92,7 +104,7 @@ export const retryFailedAction = authorizedActionClient
     const action = await AutoActionsService.retryAutoAction(
       parsedInput.actionId,
       user.id,
-      organizationId
+      organizationId,
     );
 
     if (!action) {
@@ -106,4 +118,3 @@ export const retryFailedAction = authorizedActionClient
 
     return { success: true };
   });
-

@@ -18,7 +18,11 @@ const getMicrosoftSettingsSchema = z.object({
  * Get Microsoft integration settings
  */
 export const getMicrosoftSettings = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:read") })
+  .metadata({
+    name: "get-microsoft-settings",
+    permissions: policyToPermissions("settings:read"),
+    audit: { resourceType: "integration", action: "get", category: "read" },
+  })
   .schema(getMicrosoftSettingsSchema.optional())
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -64,7 +68,15 @@ export const getMicrosoftSettings = authorizedActionClient
  * Update Microsoft integration settings
  */
 export const updateMicrosoftSettings = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:update") })
+  .metadata({
+    name: "update-microsoft-settings",
+    permissions: policyToPermissions("settings:update"),
+    audit: {
+      resourceType: "integration",
+      action: "update",
+      category: "mutation",
+    },
+  })
   .schema(updateMicrosoftSettingsSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -119,7 +131,15 @@ const resetMicrosoftSettingsSchema = z.object({
  * Reset Microsoft integration settings to defaults
  */
 export const resetMicrosoftSettings = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:update") })
+  .metadata({
+    name: "reset-microsoft-settings",
+    permissions: policyToPermissions("settings:update"),
+    audit: {
+      resourceType: "integration",
+      action: "reset",
+      category: "mutation",
+    },
+  })
   .schema(resetMicrosoftSettingsSchema.optional())
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;

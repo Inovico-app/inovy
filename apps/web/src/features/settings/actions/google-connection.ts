@@ -13,7 +13,11 @@ import { z } from "zod";
  * Get Google connection status for current user
  */
 export const getGoogleConnectionStatus = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:read") })
+  .metadata({
+    name: "get-google-connection-status",
+    permissions: policyToPermissions("settings:read"),
+    audit: { resourceType: "integration", action: "get", category: "read" },
+  })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { user } = ctx;
@@ -33,7 +37,7 @@ export const getGoogleConnectionStatus = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to get connection status",
         statusResult.error,
-        "get-google-connection-status"
+        "get-google-connection-status",
       );
     }
 
@@ -44,7 +48,15 @@ export const getGoogleConnectionStatus = authorizedActionClient
  * Disconnect Google account
  */
 export const disconnectGoogleAccount = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:update") })
+  .metadata({
+    name: "disconnect-google-account",
+    permissions: policyToPermissions("settings:update"),
+    audit: {
+      resourceType: "integration",
+      action: "disconnect",
+      category: "mutation",
+    },
+  })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { user } = ctx;
@@ -67,7 +79,7 @@ export const disconnectGoogleAccount = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to disconnect account. Please try again.",
         disconnectResult.error,
-        "disconnect-google-account"
+        "disconnect-google-account",
       );
     }
 
@@ -81,4 +93,3 @@ export const disconnectGoogleAccount = authorizedActionClient
 
     return { success: true };
   });
-

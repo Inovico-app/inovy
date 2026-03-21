@@ -15,7 +15,11 @@ import { z } from "zod";
  * Get email templates
  */
 export const getEmailTemplates = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:read") })
+  .metadata({
+    name: "get-email-templates",
+    permissions: policyToPermissions("settings:read"),
+    audit: { resourceType: "integration", action: "get", category: "read" },
+  })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { user } = ctx;
@@ -27,14 +31,14 @@ export const getEmailTemplates = authorizedActionClient
     const result = await TemplateService.getTemplates(
       user.id,
       "google",
-      "email"
+      "email",
     );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "get-email-templates"
+        "get-email-templates",
       );
     }
 
@@ -45,7 +49,11 @@ export const getEmailTemplates = authorizedActionClient
  * Get calendar templates
  */
 export const getCalendarTemplates = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:read") })
+  .metadata({
+    name: "get-calendar-templates",
+    permissions: policyToPermissions("settings:read"),
+    audit: { resourceType: "integration", action: "get", category: "read" },
+  })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { user } = ctx;
@@ -57,14 +65,14 @@ export const getCalendarTemplates = authorizedActionClient
     const result = await TemplateService.getTemplates(
       user.id,
       "google",
-      "calendar"
+      "calendar",
     );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "get-calendar-templates"
+        "get-calendar-templates",
       );
     }
 
@@ -82,7 +90,15 @@ const saveEmailTemplateSchema = z.object({
  * Save email template
  */
 export const saveEmailTemplate = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:update") })
+  .metadata({
+    name: "save-email-template",
+    permissions: policyToPermissions("settings:update"),
+    audit: {
+      resourceType: "integration",
+      action: "update",
+      category: "mutation",
+    },
+  })
   .schema(saveEmailTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -95,14 +111,14 @@ export const saveEmailTemplate = authorizedActionClient
       user.id,
       "google",
       "email",
-      parsedInput
+      parsedInput,
     );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "save-email-template"
+        "save-email-template",
       );
     }
 
@@ -122,7 +138,15 @@ const saveCalendarTemplateSchema = z.object({
  * Save calendar template
  */
 export const saveCalendarTemplate = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:update") })
+  .metadata({
+    name: "save-calendar-template",
+    permissions: policyToPermissions("settings:update"),
+    audit: {
+      resourceType: "integration",
+      action: "update",
+      category: "mutation",
+    },
+  })
   .schema(saveCalendarTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -135,14 +159,14 @@ export const saveCalendarTemplate = authorizedActionClient
       user.id,
       "google",
       "calendar",
-      parsedInput
+      parsedInput,
     );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "save-calendar-template"
+        "save-calendar-template",
       );
     }
 
@@ -159,7 +183,15 @@ const deleteTemplateSchema = z.object({
  * Delete template
  */
 export const deleteTemplate = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:update") })
+  .metadata({
+    name: "delete-template",
+    permissions: policyToPermissions("settings:update"),
+    audit: {
+      resourceType: "integration",
+      action: "delete",
+      category: "mutation",
+    },
+  })
   .schema(deleteTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -170,14 +202,14 @@ export const deleteTemplate = authorizedActionClient
 
     const result = await TemplateService.deleteTemplate(
       parsedInput.templateId,
-      user.id
+      user.id,
     );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "delete-template"
+        "delete-template",
       );
     }
 
@@ -185,4 +217,3 @@ export const deleteTemplate = authorizedActionClient
 
     return { success: true };
   });
-

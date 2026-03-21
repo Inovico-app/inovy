@@ -18,7 +18,13 @@ import {
  */
 export const createOrganizationInstructionsAction = authorizedActionClient
   .metadata({
+    name: "create-organization-instructions",
     permissions: policyToPermissions("org:instructions:write"),
+    audit: {
+      resourceType: "organization",
+      action: "create",
+      category: "mutation",
+    },
   })
   .inputSchema(createOrganizationInstructionsSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -28,14 +34,14 @@ export const createOrganizationInstructionsAction = authorizedActionClient
     if (!user || !organizationId) {
       throw ActionErrors.unauthenticated(
         "User or organization not found in context",
-        "create-organization-instructions"
+        "create-organization-instructions",
       );
     }
     // Create instructions
     const result = await OrganizationSettingsService.createInstructions(
       instructions,
       organizationId,
-      user
+      user,
     );
 
     // Convert Result to action response (throws if error)
@@ -48,7 +54,13 @@ export const createOrganizationInstructionsAction = authorizedActionClient
  */
 export const updateOrganizationInstructionsAction = authorizedActionClient
   .metadata({
+    name: "update-organization-instructions",
     permissions: policyToPermissions("org:instructions:write"),
+    audit: {
+      resourceType: "organization",
+      action: "update",
+      category: "mutation",
+    },
   })
   .inputSchema(updateOrganizationInstructionsSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -58,17 +70,16 @@ export const updateOrganizationInstructionsAction = authorizedActionClient
     if (!user || !organizationId) {
       throw ActionErrors.unauthenticated(
         "User or organization not found in context",
-        "update-organization-instructions"
+        "update-organization-instructions",
       );
     }
 
     // Update instructions
     const result = await OrganizationSettingsService.updateInstructions(
       instructions,
-      organizationId
+      organizationId,
     );
 
     // Convert Result to action response (throws if error)
     return resultToActionResponse(result);
   });
-

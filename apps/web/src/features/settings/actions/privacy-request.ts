@@ -20,6 +20,11 @@ export const submitPrivacyRequestAction = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("settings:update"),
     name: "submit-privacy-request",
+    audit: {
+      resourceType: "privacy_request",
+      action: "create",
+      category: "mutation",
+    },
   })
   .inputSchema(submitPrivacyRequestSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -82,6 +87,11 @@ export const withdrawPrivacyRequestAction = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("settings:update"),
     name: "withdraw-privacy-request",
+    audit: {
+      resourceType: "privacy_request",
+      action: "delete",
+      category: "mutation",
+    },
   })
   .inputSchema(withdrawPrivacyRequestSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -125,6 +135,11 @@ export const getPrivacyRequestsAction = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("settings:read"),
     name: "get-privacy-requests",
+    audit: {
+      resourceType: "privacy_request",
+      action: "list",
+      category: "read",
+    },
   })
   .action(async ({ ctx }) => {
     const { user } = ctx;

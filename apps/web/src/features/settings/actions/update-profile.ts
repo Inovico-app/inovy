@@ -11,7 +11,15 @@ import { updateProfileSchema } from "@/server/validation/settings/update-profile
  * Server action to update user profile information
  */
 export const updateProfile = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:update") })
+  .metadata({
+    name: "update-profile",
+    permissions: policyToPermissions("settings:update"),
+    audit: {
+      resourceType: "user",
+      action: "update",
+      category: "mutation",
+    },
+  })
   .schema(updateProfileSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -40,7 +48,7 @@ export const updateProfile = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to update profile. Please try again.",
         result.error,
-        "update-profile"
+        "update-profile",
       );
     }
 
@@ -50,4 +58,3 @@ export const updateProfile = authorizedActionClient
 
     return { success: true };
   });
-

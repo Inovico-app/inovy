@@ -17,7 +17,9 @@ import { revalidatePath } from "next/cache";
  */
 export const requestDeletionAction = authorizedActionClient
   .metadata({
+    name: "request-deletion",
     permissions: policyToPermissions("settings:update"), // User can manage their own settings
+    audit: { resourceType: "user", action: "delete", category: "mutation" },
   })
   .inputSchema(requestDeletionSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -32,7 +34,7 @@ export const requestDeletionAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "request-deletion"
+        "request-deletion",
       );
     }
 
@@ -40,21 +42,21 @@ export const requestDeletionAction = authorizedActionClient
     if (confirmationText !== "DELETE MY DATA") {
       throw ActionErrors.validation(
         "Confirmation text must be exactly 'DELETE MY DATA'",
-        { confirmationText }
+        { confirmationText },
       );
     }
 
     if (!confirmCheckbox) {
       throw ActionErrors.validation(
         "You must confirm that you understand the consequences",
-        { confirmCheckbox }
+        { confirmCheckbox },
       );
     }
 
     // Create deletion request
     const result = await GdprDeletionService.createDeletionRequest(
       user.id,
-      organizationId
+      organizationId,
     );
 
     if (result.isErr()) {
@@ -69,7 +71,7 @@ export const requestDeletionAction = authorizedActionClient
       user.id,
       organizationId,
       user.email ?? null,
-      displayName
+      displayName,
     );
 
     if (processResult.isErr()) {
@@ -92,7 +94,9 @@ export const requestDeletionAction = authorizedActionClient
  */
 export const cancelDeletionAction = authorizedActionClient
   .metadata({
+    name: "cancel-deletion",
     permissions: policyToPermissions("settings:update"),
+    audit: { resourceType: "user", action: "update", category: "mutation" },
   })
   .inputSchema(cancelDeletionSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -107,14 +111,14 @@ export const cancelDeletionAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "cancel-deletion"
+        "cancel-deletion",
       );
     }
 
     const result = await GdprDeletionService.cancelDeletionRequest(
       requestId,
       user.id,
-      user.id
+      user.id,
     );
 
     if (result.isErr()) {
@@ -132,7 +136,9 @@ export const cancelDeletionAction = authorizedActionClient
  */
 export const getDeletionStatusAction = authorizedActionClient
   .metadata({
+    name: "get-deletion-status",
     permissions: policyToPermissions("settings:read"),
+    audit: { resourceType: "user", action: "get", category: "read" },
   })
   .action(async () => {
     const result = await GdprDeletionService.getDeletionRequestStatus();
@@ -143,4 +149,3 @@ export const getDeletionStatusAction = authorizedActionClient
 
     return { data: result.value };
   });
-
