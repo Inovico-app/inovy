@@ -20,7 +20,15 @@ const reprocessRecordingSchema = z.object({
  * Reprocess AI insights for a recording
  */
 export const reprocessRecordingAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:update") })
+  .metadata({
+    name: "reprocess-recording",
+    permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "recording",
+      action: "reprocess",
+      category: "mutation",
+    },
+  })
   .schema(reprocessRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
@@ -48,7 +56,7 @@ export const reprocessRecordingAction = authorizedActionClient
       assertOrganizationAccess(
         recording.organizationId,
         organizationId,
-        "reprocessRecordingAction"
+        "reprocessRecordingAction",
       );
     } catch (error) {
       throw ActionErrors.notFound("Recording");
@@ -58,14 +66,14 @@ export const reprocessRecordingAction = authorizedActionClient
     const reprocessResult = await ReprocessingService.triggerReprocessing(
       recordingId,
       user.id,
-      organizationId
+      organizationId,
     );
 
     const reprocessData = resultToActionResponse(reprocessResult);
 
     // Revalidate the recording detail page
     revalidatePath(
-      `/projects/${recording.projectId}/recordings/${recordingId}`
+      `/projects/${recording.projectId}/recordings/${recordingId}`,
     );
     revalidatePath(`/projects/${recording.projectId}`);
 
@@ -84,7 +92,15 @@ const getReprocessingStatusSchema = z.object({
  * Get reprocessing status for a recording
  */
 export const getReprocessingStatusAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:read") })
+  .metadata({
+    name: "get-reprocessing-status",
+    permissions: policyToPermissions("recordings:read"),
+    audit: {
+      resourceType: "recording",
+      action: "get",
+      category: "read",
+    },
+  })
   .schema(getReprocessingStatusSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
@@ -108,7 +124,7 @@ export const getReprocessingStatusAction = authorizedActionClient
       assertOrganizationAccess(
         recording.organizationId,
         organizationId,
-        "getReprocessingStatusAction"
+        "getReprocessingStatusAction",
       );
     } catch (error) {
       throw ActionErrors.notFound("Recording");
@@ -117,7 +133,7 @@ export const getReprocessingStatusAction = authorizedActionClient
     // Get reprocessing status
     const statusResult = await ReprocessingService.getReprocessingStatus(
       recordingId,
-      organizationId
+      organizationId,
     );
 
     const status = resultToActionResponse(statusResult);
@@ -130,4 +146,3 @@ export const getReprocessingStatusAction = authorizedActionClient
       ...status,
     };
   });
-

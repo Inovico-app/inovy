@@ -15,7 +15,15 @@ const updateUtteranceSpeakerSchema = z.object({
 });
 
 export const updateUtteranceSpeaker = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:update") })
+  .metadata({
+    name: "update-utterance-speaker",
+    permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "recording",
+      action: "update",
+      category: "mutation",
+    },
+  })
   .inputSchema(updateUtteranceSpeakerSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId, utteranceIndex, newSpeaker } = parsedInput;
@@ -41,7 +49,7 @@ export const updateUtteranceSpeaker = authorizedActionClient
         utteranceIndex,
         newSpeaker,
         user.id,
-        organizationId
+        organizationId,
       );
 
       if (updateResult.isErr()) {
@@ -58,7 +66,7 @@ export const updateUtteranceSpeaker = authorizedActionClient
 
       if (recording) {
         revalidatePath(
-          `/projects/${recording.projectId}/recordings/${recordingId}`
+          `/projects/${recording.projectId}/recordings/${recordingId}`,
         );
       }
 
@@ -73,7 +81,7 @@ export const updateUtteranceSpeaker = authorizedActionClient
       logger.error(
         "Error updating utterance speaker",
         { recordingId, utteranceIndex, newSpeaker },
-        error as Error
+        error as Error,
       );
       return {
         success: false,

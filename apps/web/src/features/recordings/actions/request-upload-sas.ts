@@ -31,6 +31,11 @@ export const requestUploadSasAction = authorizedActionClient
   .metadata({
     permissions: { recording: ["create"] },
     name: "request-upload-sas",
+    audit: {
+      resourceType: "recording",
+      action: "get",
+      category: "read",
+    },
   })
   .schema(requestUploadSasSchema)
   .action(async ({ ctx, parsedInput }) => {

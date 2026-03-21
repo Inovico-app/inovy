@@ -19,7 +19,15 @@ export type UpdateSummaryInput = z.infer<typeof updateSummarySchema>;
  * Server action to update summary content
  */
 export const updateSummary = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:update") })
+  .metadata({
+    name: "update-summary",
+    permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "recording",
+      action: "update",
+      category: "mutation",
+    },
+  })
   .schema(updateSummarySchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;
@@ -35,14 +43,14 @@ export const updateSummary = authorizedActionClient
     const result = await SummaryEditService.updateSummary(
       parsedInput,
       user.id,
-      organizationId
+      organizationId,
     );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "update-summary"
+        "update-summary",
       );
     }
 
@@ -51,4 +59,3 @@ export const updateSummary = authorizedActionClient
 
     return result.value;
   });
-

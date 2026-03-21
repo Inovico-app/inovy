@@ -15,7 +15,13 @@ import { updateRecordingSchema } from "../../../server/validation/recordings/upd
  */
 export const updateRecordingAction = authorizedActionClient
   .metadata({
+    name: "edit-recording",
     permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "recording",
+      action: "update",
+      category: "mutation",
+    },
   })
   .inputSchema(updateRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -26,7 +32,7 @@ export const updateRecordingAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "update-recording"
+        "update-recording",
       );
     }
 
@@ -38,7 +44,7 @@ export const updateRecordingAction = authorizedActionClient
         title,
         description: description ?? null,
         recordingDate,
-      }
+      },
     );
 
     if (result.isErr()) {
@@ -48,11 +54,10 @@ export const updateRecordingAction = authorizedActionClient
     // Get the recording to revalidate the correct path
     const recording = result.value;
     revalidatePath(
-      `/projects/${recording.projectId}/recordings/${recordingId}`
+      `/projects/${recording.projectId}/recordings/${recordingId}`,
     );
     revalidatePath(`/projects/${recording.projectId}`);
 
     // Convert Result to action response
     return resultToActionResponse(result);
   });
-

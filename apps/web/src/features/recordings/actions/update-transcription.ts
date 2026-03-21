@@ -10,7 +10,15 @@ import { updateTranscriptionSchema } from "@/server/validation/recordings/update
  * Creates a new version in history and marks as manually edited
  */
 export const updateTranscription = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:update") })
+  .metadata({
+    name: "update-transcription",
+    permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "recording",
+      action: "update",
+      category: "mutation",
+    },
+  })
   .schema(updateTranscriptionSchema)
   .action(async ({ parsedInput, ctx }) => {
     if (!ctx.user || !ctx.organizationId) {
@@ -20,7 +28,7 @@ export const updateTranscription = authorizedActionClient
     const result = await TranscriptionEditService.updateTranscription(
       parsedInput,
       ctx.user.id,
-      ctx.organizationId
+      ctx.organizationId,
     );
 
     if (result.isErr()) {
@@ -29,4 +37,3 @@ export const updateTranscription = authorizedActionClient
 
     return result.value;
   });
-

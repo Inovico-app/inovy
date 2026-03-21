@@ -14,7 +14,15 @@ const restoreTranscriptionVersionSchema = z.object({
  * Server action to restore a previous transcription version
  */
 export const restoreTranscriptionVersion = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:update") })
+  .metadata({
+    name: "restore-transcription-version",
+    permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "recording",
+      action: "restore",
+      category: "mutation",
+    },
+  })
   .schema(restoreTranscriptionVersionSchema)
   .action(async ({ parsedInput, ctx }) => {
     if (!ctx.user || !ctx.organizationId) {
@@ -25,7 +33,7 @@ export const restoreTranscriptionVersion = authorizedActionClient
       parsedInput.recordingId,
       parsedInput.versionNumber,
       ctx.user.id,
-      ctx.organizationId
+      ctx.organizationId,
     );
 
     if (result.isErr()) {
@@ -34,4 +42,3 @@ export const restoreTranscriptionVersion = authorizedActionClient
 
     return result.value;
   });
-

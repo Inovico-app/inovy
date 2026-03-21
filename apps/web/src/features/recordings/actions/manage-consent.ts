@@ -26,7 +26,13 @@ import {
  */
 export const grantConsentAction = authorizedActionClient
   .metadata({
+    name: "grant-consent",
     permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "consent",
+      action: "grant",
+      category: "mutation",
+    },
   })
   .inputSchema(grantConsentSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -38,7 +44,7 @@ export const grantConsentAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Authentication required",
         undefined,
-        "grant-consent"
+        "grant-consent",
       );
     }
 
@@ -58,7 +64,7 @@ export const grantConsentAction = authorizedActionClient
       user.id,
       organizationId,
       ipAddress,
-      userAgent
+      userAgent,
     );
 
     if (result.isErr()) {
@@ -76,7 +82,13 @@ export const grantConsentAction = authorizedActionClient
  */
 export const revokeConsentAction = authorizedActionClient
   .metadata({
+    name: "revoke-consent",
     permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "consent",
+      action: "revoke",
+      category: "mutation",
+    },
   })
   .inputSchema(revokeConsentSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -87,7 +99,7 @@ export const revokeConsentAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Authentication required",
         undefined,
-        "revoke-consent"
+        "revoke-consent",
       );
     }
 
@@ -95,7 +107,7 @@ export const revokeConsentAction = authorizedActionClient
       recordingId,
       participantEmail,
       user.id,
-      organizationId
+      organizationId,
     );
 
     if (result.isErr()) {
@@ -113,7 +125,13 @@ export const revokeConsentAction = authorizedActionClient
  */
 export const bulkGrantConsentAction = authorizedActionClient
   .metadata({
+    name: "bulk-grant-consent",
     permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "consent",
+      action: "grant",
+      category: "mutation",
+    },
   })
   .inputSchema(bulkGrantConsentSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -124,7 +142,7 @@ export const bulkGrantConsentAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Authentication required",
         undefined,
-        "bulk-grant-consent"
+        "bulk-grant-consent",
       );
     }
 
@@ -147,9 +165,9 @@ export const bulkGrantConsentAction = authorizedActionClient
           user.id,
           organizationId,
           ipAddress,
-          userAgent
-        )
-      )
+          userAgent,
+        ),
+      ),
     );
 
     // Separate successes and failures
@@ -169,8 +187,8 @@ export const bulkGrantConsentAction = authorizedActionClient
           ActionErrors.internal(
             "Unexpected error during bulk consent grant",
             result.reason as Error,
-            "bulkGrantConsentAction"
-          )
+            "bulkGrantConsentAction",
+          ),
         );
       }
     }
@@ -195,4 +213,3 @@ export const bulkGrantConsentAction = authorizedActionClient
 
     return resultToActionResponse(ok(successfulResults));
   });
-

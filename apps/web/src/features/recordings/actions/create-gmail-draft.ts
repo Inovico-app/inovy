@@ -23,7 +23,15 @@ const createGmailDraftSchema = z.object({
  * Server action to create a Gmail draft from a recording summary
  */
 export const createGmailDraft = authorizedActionClient
-  .metadata({ permissions: Permissions.recording.read })
+  .metadata({
+    name: "create-gmail-draft",
+    permissions: Permissions.recording.read,
+    audit: {
+      resourceType: "export",
+      action: "create",
+      category: "mutation",
+    },
+  })
   .schema(createGmailDraftSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId, user } = ctx;
@@ -41,7 +49,7 @@ export const createGmailDraft = authorizedActionClient
 
     if (hasConnection.isErr() || !hasConnection.value) {
       throw ActionErrors.badRequest(
-        "Google account not connected. Please connect in settings first."
+        "Google account not connected. Please connect in settings first.",
       );
     }
 
@@ -51,13 +59,13 @@ export const createGmailDraft = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to verify Gmail scopes",
         hasScopeResult.error,
-        "createGmailDraft"
+        "createGmailDraft",
       );
     }
 
     if (!hasScopeResult.value) {
       throw ActionErrors.badRequest(
-        "Missing permission: Gmail (create drafts). Please grant this permission in Settings > Integrations."
+        "Missing permission: Gmail (create drafts). Please grant this permission in Settings > Integrations.",
       );
     }
 
@@ -77,7 +85,7 @@ export const createGmailDraft = authorizedActionClient
       assertOrganizationAccess(
         recording.organizationId,
         organizationId,
-        "createGmailDraft"
+        "createGmailDraft",
       );
     } catch (error) {
       throw ActionErrors.notFound("Recording", "create-gmail-draft");
@@ -90,8 +98,8 @@ export const createGmailDraft = authorizedActionClient
       .where(
         and(
           eq(aiInsights.recordingId, recording.id),
-          eq(aiInsights.insightType, "summary")
-        )
+          eq(aiInsights.insightType, "summary"),
+        ),
       )
       .limit(1);
 
@@ -118,7 +126,7 @@ export const createGmailDraft = authorizedActionClient
       {
         subject: parsedInput.subject,
         additionalContent: parsedInput.additionalContent,
-      }
+      },
     );
 
     if (result.isErr()) {
@@ -131,7 +139,7 @@ export const createGmailDraft = authorizedActionClient
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "create-gmail-draft"
+        "create-gmail-draft",
       );
     }
 
@@ -143,4 +151,3 @@ export const createGmailDraft = authorizedActionClient
 
     return result.value;
   });
-

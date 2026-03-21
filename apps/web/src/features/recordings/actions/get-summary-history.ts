@@ -9,7 +9,15 @@ import { z } from "zod";
  * Server action to get summary version history
  */
 export const getSummaryHistory = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:read") })
+  .metadata({
+    name: "get-summary-history",
+    permissions: policyToPermissions("recordings:read"),
+    audit: {
+      resourceType: "recording",
+      action: "read",
+      category: "read",
+    },
+  })
   .schema(z.object({ recordingId: z.string().uuid() }))
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId } = ctx;
@@ -20,7 +28,7 @@ export const getSummaryHistory = authorizedActionClient
 
     const result = await SummaryEditService.getSummaryHistory(
       parsedInput.recordingId,
-      organizationId
+      organizationId,
     );
 
     if (result.isErr()) {
@@ -29,4 +37,3 @@ export const getSummaryHistory = authorizedActionClient
 
     return result.value;
   });
-

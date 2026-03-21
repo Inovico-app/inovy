@@ -12,7 +12,13 @@ import { archiveRecordingSchema } from "../../../server/validation/recordings/ar
  */
 export const unarchiveRecordingAction = authorizedActionClient
   .metadata({
+    name: "unarchive-recording",
     permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "recording",
+      action: "restore",
+      category: "mutation",
+    },
   })
   .inputSchema(archiveRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -23,7 +29,7 @@ export const unarchiveRecordingAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "unarchive-recording"
+        "unarchive-recording",
       );
     }
 
@@ -39,23 +45,22 @@ export const unarchiveRecordingAction = authorizedActionClient
     // Unarchive recording
     const result = await RecordingService.unarchiveRecording(
       recordingId,
-      organizationId
+      organizationId,
     );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
         result.error.message,
         undefined,
-        "unarchive-recording"
+        "unarchive-recording",
       );
     }
 
     // Revalidate paths
     revalidatePath(`/projects/${recording.projectId}`);
     revalidatePath(
-      `/projects/${recording.projectId}/recordings/${recordingId}`
+      `/projects/${recording.projectId}/recordings/${recordingId}`,
     );
 
     return { data: { success: result.value } };
   });
-
