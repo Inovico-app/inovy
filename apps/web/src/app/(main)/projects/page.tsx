@@ -108,10 +108,6 @@ async function ProjectsList({
                           : "recordings"}
                       </div>
                       <div className="flex items-center text-xs text-muted-foreground">
-                        <CalendarIcon className="h-3 w-3 mr-1" />
-                        Created {formatDateShort(project.createdAt)}
-                      </div>
-                      <div className="flex items-center text-xs text-muted-foreground">
                         <FileTextIcon className="h-3 w-3 mr-1" />
                         By {project.createdBy}
                       </div>
