@@ -1,12 +1,12 @@
 # Comprehensive Audit Logging
 
 **Date:** 2026-03-21
-**Status:** Draft
+**Status:** Draft (rev 2 — post spec review)
 **Author:** Claude + Nigel
 
 ## Problem
 
-Out of ~113 server actions, only ~9 create audit log entries. The existing audit log infrastructure (schema, service, hash chain, admin UI) is solid, but coverage is sparse. Government clients require full audit trails for every action — both mutations and reads — across all entities.
+Out of ~168 server action functions, only ~9 create audit log entries. The existing audit log infrastructure (schema, service, hash chain, admin UI) is solid, but coverage is sparse. Government clients require full audit trails for every action — both mutations and reads — across all entities.
 
 ## Goals
 
@@ -16,12 +16,14 @@ Out of ~113 server actions, only ~9 create audit log entries. The existing audit
 4. Expand resource type and action enums to cover all entities
 5. Remove existing manual audit log calls; replace with middleware-driven logging + opt-in enrichment
 6. Wire Better Auth hooks for auth lifecycle events (login, logout, sign-up, etc.)
+7. Migrate ~13 plain async function server actions to use action clients, or add explicit audit calls
 
 ## Non-Goals
 
 - Auditing raw API route hits (only server actions and auth events)
 - Real-time audit log streaming or alerting
 - Changes to consent audit log or chat audit log tables (they remain separate)
+- Data retention/archival policy (deferred to future spec)
 
 ## Design
 
@@ -41,7 +43,7 @@ Existing rows receive `"mutation"` as default (all current logs are mutations).
 
 #### 1.2 Replace `eventType` Enum with Text
 
-The current `auditEventTypeEnum` has 36 values, many unused. Replace with a `text` column using the convention `{resourceType}_{action}` (e.g., `meeting_created`, `recording_read`, `task_updated`).
+The current `auditEventTypeEnum` has 36 values, many unused. Replace with a `text` column using the convention `{resourceType}_{action}` (e.g., `meeting_create`, `recording_read`, `task_update`).
 
 This eliminates the need for a DB migration every time a new entity or action is added.
 
@@ -53,9 +55,21 @@ eventType: auditEventTypeEnum("event_type").notNull(),
 eventType: text("event_type").notNull(),
 ```
 
-Existing rows keep their current values (e.g., `"project_created"`) — they already follow the convention.
+**Historical data note:** Existing rows have values like `project_created` (past tense) while the new convention uses `project_create` (present tense, matching the action enum). This inconsistency is acceptable — both are queryable text. A one-time data migration to normalize historical values is optional and can be done later if needed.
 
-#### 1.3 Expand `resourceType` Enum
+#### 1.3 Change `resourceId` from UUID to Text
+
+The current schema uses `uuid("resource_id")`, but many resource IDs in the codebase are nanoid strings (Better Auth user IDs, organization IDs, team IDs, member IDs). This would cause type errors when logging auth-related resources.
+
+```typescript
+// Before
+resourceId: uuid("resource_id"),
+
+// After
+resourceId: text("resource_id"),
+```
+
+#### 1.4 Expand `resourceType` Enum
 
 Add missing resource types to cover all entities:
 
@@ -96,10 +110,11 @@ export const auditResourceTypeEnum = pgEnum("audit_resource_type", [
   "invitation",
   "calendar",
   "audit_log",
+  "blob",
 ]);
 ```
 
-#### 1.4 Expand `action` Enum
+#### 1.5 Expand `action` Enum
 
 Add missing action types:
 
@@ -145,6 +160,10 @@ export const auditActionEnum = pgEnum("audit_action", [
   "reset",
   "list",
   "get",
+  "search",
+  "detect",
+  "apply",
+  "check",
 ]);
 ```
 
@@ -169,7 +188,7 @@ const schemaMetadata = z.object({
 });
 ```
 
-Every action annotates itself:
+Every `authorizedActionClient` action annotates itself:
 
 ```typescript
 export const createProjectAction = authorizedActionClient
@@ -222,7 +241,7 @@ class AuditContextImpl implements AuditContext {
 }
 ```
 
-#### 2.3 Audit Logging Middleware
+#### 2.3 Audit Logging Middleware (authorizedActionClient)
 
 A new middleware added to the `authorizedActionClient` chain, positioned after authentication so it has access to `ctx.user` and `ctx.organizationId`:
 
@@ -240,11 +259,15 @@ async function auditLoggingMiddleware({ next, ctx, metadata }) {
   const auditCtx = new AuditContextImpl();
   const auditMeta = metadata.audit;
 
-  let result;
+  // Extract request info early (before action runs)
+  const headersList = await headers();
+  const { ipAddress, userAgent } =
+    AuditLogService.extractRequestInfo(headersList);
+
   let actionSucceeded = true;
 
   try {
-    result = await next({
+    const result = await next({
       ctx: { ...ctx, audit: auditCtx },
     });
     return result;
@@ -265,8 +288,8 @@ async function auditLoggingMiddleware({ next, ctx, metadata }) {
         organizationId: ctx.organizationId,
         action: auditMeta.action,
         category: auditMeta.category,
-        ipAddress: null, // extracted from headers if available
-        userAgent: null,
+        ipAddress,
+        userAgent,
         metadata: {
           ...auditCtx.metadata,
           actionName: metadata.name,
@@ -285,8 +308,8 @@ async function auditLoggingMiddleware({ next, ctx, metadata }) {
           organizationId: ctx.organizationId,
           action: "read", // conservative fallback
           category: "read",
-          ipAddress: null,
-          userAgent: null,
+          ipAddress,
+          userAgent,
           metadata: {
             actionName: metadata.name,
             success: actionSucceeded,
@@ -305,92 +328,171 @@ Key design decisions:
 - **Always logs**: Both success and failure cases are captured. The `success` field in metadata distinguishes them.
 - **Fallback for unannotated actions**: Actions without `audit` metadata still get logged with a fallback, ensuring zero coverage gaps. The `fallback: true` metadata flag makes these easy to identify and fix.
 
-#### 2.4 Request Info Extraction
+#### 2.4 Public Action Client Audit Middleware
 
-To capture IP address and user agent, the middleware needs access to request headers. Since `next-safe-action` middleware doesn't receive the request object directly, we use Next.js's `headers()` API:
+Auth actions (sign-in, sign-up, magic-link, etc.) use `publicActionClient`, which has no authentication middleware and therefore no `ctx.user` or `ctx.organizationId`. These actions are **not** covered by the `authorizedActionClient` audit middleware.
 
-```typescript
-import { headers } from "next/headers";
+**Strategy:** Auth actions are covered exclusively by Better Auth hooks (Section 3), not by middleware. The `publicActionClient` does NOT get an audit middleware — auth events are inherently handled at the Better Auth level where session context is available.
 
-// Inside auditLoggingMiddleware
-const headersList = await headers();
-const { ipAddress, userAgent } =
-  AuditLogService.extractRequestInfo(headersList);
+The `publicActionClient` chain remains unchanged:
+
 ```
+publicActionClient middleware chain:
+  1. publicActionLoggerMiddleware (existing — execution logging only)
+```
+
+#### 2.5 Plain Async Function Actions
+
+~13 server actions are plain `async function` exports with `"use server"` that bypass both action clients entirely:
+
+| Function                         | File                                    | Current Client         |
+| -------------------------------- | --------------------------------------- | ---------------------- |
+| `getNotifications()`             | notifications/get-notifications.ts      | plain async            |
+| `getUnreadCount()`               | notifications/get-unread-count.ts       | plain async            |
+| `markNotificationRead()`         | notifications/mark-notification-read.ts | plain async            |
+| `markAllNotificationsRead()`     | notifications/mark-all-read.ts          | plain async            |
+| `getUserTasks()`                 | tasks/get-user-tasks.ts                 | plain async            |
+| `updateTaskStatus()`             | tasks/update-task-status.ts             | plain async            |
+| `getUserProjects()`              | projects/get-user-projects.ts           | plain async            |
+| `createProjectFormAction()`      | projects/create-project.ts              | plain async            |
+| `ensureUserOrganization()`       | auth/ensure-organization.ts             | plain async            |
+| `uploadFileToVercelBlobAction()` | actions/vercel-blob.ts                  | plain async            |
+| `uploadRecordingFormAction()`    | recordings/upload-recording.ts          | plain async (FormData) |
+
+**Out of scope:** Cookie-based preference helpers (`getAutoProcessPreference`, `setAutoProcessPreference` in `recordings/lib/recording-preferences-server.ts`) and the deletion status lib function (`getDeletionStatus` in `settings/lib/get-deletion-status.ts`) are server-side utilities that don't represent user-initiated actions and are excluded from audit scope.
+
+**Strategy:** Migrate these to `authorizedActionClient` with proper metadata. This is the clean approach — it gives them audit logging, RBAC enforcement, and consistent error handling. The migration is straightforward since they all internally fetch the session already.
+
+Exceptions:
+
+- `ensureUserOrganization()` is called during auth flow before a full session exists. Keep it as a plain function and add an explicit `AuditLogService.createAuditLog()` call inside it.
+- `uploadRecordingFormAction()` uses FormData which doesn't work with the action client schema validation. Keep as a plain function and add an explicit `AuditLogService.createAuditLog()` call inside it.
 
 ### 3. Auth Event Hooks
 
-Better Auth supports lifecycle hooks. Wire these to create audit log entries for auth events that bypass the server action middleware:
+Auth events bypass the server action middleware entirely. We use Better Auth's existing hook patterns to create audit log entries.
+
+The codebase already uses `databaseHooks` (for `session.create.before` and `user.create.after`) and `organizationHooks` within the `organization()` plugin. We extend these with audit logging:
 
 ```typescript
-// In Better Auth configuration
-export const auth = betterAuth({
-  // ... existing config ...
-  hooks: {
-    after: [
-      {
-        matcher: (context) => context.path.startsWith("/api/auth"),
-        handler: async (context) => {
-          const pathToAuditEvent: Record<
-            string,
-            { action: string; eventType: string }
-          > = {
-            "/api/auth/sign-in/email": {
-              action: "login",
-              eventType: "user_login",
-            },
-            "/api/auth/sign-in/social": {
-              action: "login",
-              eventType: "user_login",
-            },
-            "/api/auth/sign-up/email": {
-              action: "create",
-              eventType: "user_created",
-            },
-            "/api/auth/sign-out": {
-              action: "logout",
-              eventType: "user_logout",
-            },
-            "/api/auth/forget-password": {
-              action: "reset",
-              eventType: "user_password_reset",
-            },
-            "/api/auth/verify-email": {
-              action: "verify",
-              eventType: "user_email_verified",
-            },
-          };
+// In src/lib/auth.ts — extend existing databaseHooks
+databaseHooks: {
+  // ... existing hooks (session.create.before, user.create.after) ...
 
-          const event = pathToAuditEvent[context.path];
-          if (!event || !context.session?.userId) return;
-
-          void AuditLogService.createAuditLog({
-            eventType: event.eventType,
-            resourceType: "user",
-            resourceId: context.session.userId,
-            userId: context.session.userId,
-            organizationId: context.session.activeOrganizationId ?? "system",
-            action: event.action,
-            category: "mutation",
-            ipAddress:
-              context.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-              null,
-            userAgent: context.headers?.get("user-agent") ?? null,
-            metadata: {
-              path: context.path,
-              method: context.method,
-            },
-          });
-        },
+  // NEW: Audit logging for auth events
+  session: {
+    create: {
+      before: async (session) => {
+        // ... existing session logic ...
       },
-    ],
+      after: async (session) => {
+        // Log successful login
+        void AuditLogService.createAuditLog({
+          eventType: "user_login",
+          resourceType: "user",
+          resourceId: session.userId,
+          userId: session.userId,
+          organizationId: session.activeOrganizationId ?? "system",
+          action: "login",
+          category: "mutation",
+          ipAddress: session.ipAddress ?? null,
+          userAgent: session.userAgent ?? null,
+          metadata: { trigger: "session_create" },
+        });
+      },
+    },
   },
-});
+  user: {
+    create: {
+      after: async (user) => {
+        // ... existing ensureUserHasOrganization logic ...
+
+        // NEW: Log user creation
+        void AuditLogService.createAuditLog({
+          eventType: "user_create",
+          resourceType: "user",
+          resourceId: user.id,
+          userId: user.id,
+          organizationId: "system",
+          action: "create",
+          category: "mutation",
+          metadata: { email: user.email },
+        });
+      },
+    },
+  },
+},
 ```
+
+For organization-level events, extend the existing `organizationHooks`:
+
+```typescript
+// In the organization() plugin config — extend existing hooks
+organizationHooks: {
+  // ... existing hooks (afterCreateTeam, beforeCreateInvitation, etc.) ...
+
+  // Add audit logging inside existing after* hooks:
+  afterCreateTeam: async (data) => {
+    // ... existing auto-add creator as member logic ...
+    void AuditLogService.createAuditLog({
+      eventType: "team_create",
+      resourceType: "team",
+      resourceId: data.team.id,
+      userId: data.user.id,
+      organizationId: data.team.organizationId,
+      action: "create",
+      category: "mutation",
+      metadata: { teamName: data.team.name },
+    });
+  },
+
+  afterAcceptInvitation: async (data) => {
+    // ... existing pending team assignment logic ...
+    void AuditLogService.createAuditLog({
+      eventType: "invitation_accept",
+      resourceType: "invitation",
+      resourceId: data.invitation.id,
+      userId: data.user.id,
+      organizationId: data.invitation.organizationId,
+      action: "accept",
+      category: "mutation",
+      metadata: { invitedEmail: data.invitation.email },
+    });
+  },
+
+  afterRejectInvitation: async (data) => {
+    // ... existing rejection logic ...
+    void AuditLogService.createAuditLog({
+      eventType: "invitation_reject",
+      resourceType: "invitation",
+      resourceId: data.invitation.id,
+      userId: data.user.id,
+      organizationId: data.invitation.organizationId,
+      action: "reject",
+      category: "mutation",
+    });
+  },
+
+  afterCancelInvitation: async (data) => {
+    // ... existing cancellation logic ...
+    void AuditLogService.createAuditLog({
+      eventType: "invitation_cancel",
+      resourceType: "invitation",
+      resourceId: data.invitation.id,
+      userId: data.user.id,
+      organizationId: data.invitation.organizationId,
+      action: "cancel",
+      category: "mutation",
+    });
+  },
+},
+```
+
+For sign-out events, add a route-level handler in the auth API route or use Better Auth's `onSessionEnd` if available. If no hook exists for sign-out, accept this gap and document it — sign-out is the least security-critical auth event.
 
 ### 4. Migrate Existing Manual Calls
 
-Remove `AuditLogService.createAuditLog()` from these 9 files and replace with `ctx.audit` enrichment:
+Remove `AuditLogService.createAuditLog()` from these files and replace with `ctx.audit` enrichment:
 
 | File                                               | Current Manual Call  | Migration                                                    |
 | -------------------------------------------------- | -------------------- | ------------------------------------------------------------ |
@@ -408,192 +510,247 @@ The privacy-request service call stays because it's triggered from a service, no
 
 ### 5. Action Annotation Catalog
 
-Every server action gets an `audit` metadata annotation. Below is the complete mapping organized by feature:
+Every server action gets an `audit` metadata annotation. Below is the **complete** mapping of all ~168 exported action functions, organized by feature.
 
-#### Admin (12 actions)
+**Note:** Auth actions using `publicActionClient` are NOT in this catalog — they are covered by Better Auth hooks (Section 3). Plain async functions marked with `*` must be migrated to `authorizedActionClient` first (Section 2.5).
 
-| Action                        | resourceType | action | category |
-| ----------------------------- | ------------ | ------ | -------- |
-| create-organization           | organization | create | mutation |
-| delete-organization           | organization | delete | mutation |
-| update-organization           | organization | update | mutation |
-| update-agent-config           | settings     | update | mutation |
-| update-agent-settings         | settings     | update | mutation |
-| get-agent-metrics             | settings     | read   | read     |
-| export-agent-metrics          | export       | export | mutation |
-| export-agent-analytics        | export       | export | mutation |
-| export-audit-logs             | audit_log    | export | mutation |
-| get-admin-users               | user         | list   | read     |
-| invalidate-embedding-cache    | settings     | update | mutation |
-| invite-member-to-organization | invitation   | invite | mutation |
-| member-management             | team         | update | mutation |
-| teams                         | team         | read   | read     |
+#### Admin (25 actions)
 
-#### Auth (6 actions)
-
-| Action              | resourceType | action | category |
-| ------------------- | ------------ | ------ | -------- |
-| sign-up             | user         | create | mutation |
-| sign-in             | user         | login  | mutation |
-| password-reset      | user         | reset  | mutation |
-| magic-link          | user         | login  | mutation |
-| accept-invitation   | invitation   | accept | mutation |
-| ensure-organization | organization | create | mutation |
+| Export Name                       | File                             | resourceType | action   | category |
+| --------------------------------- | -------------------------------- | ------------ | -------- | -------- |
+| `createOrganization`              | create-organization.ts           | organization | create   | mutation |
+| `checkOrganizationSlug`           | create-organization.ts           | organization | check    | read     |
+| `deleteOrganization`              | delete-organization.ts           | organization | delete   | mutation |
+| `updateOrganization`              | update-organization.ts           | organization | update   | mutation |
+| `updateAgentConfig`               | update-agent-config.ts           | settings     | update   | mutation |
+| `updateAgentSettings`             | update-agent-settings.ts         | settings     | update   | mutation |
+| `getAgentMetrics`                 | get-agent-metrics.ts             | settings     | get      | read     |
+| `exportAgentMetrics`              | export-agent-metrics.ts          | export       | export   | mutation |
+| `exportAgentAnalytics`            | export-agent-analytics.ts        | export       | export   | mutation |
+| `exportAuditLogs`                 | export-audit-logs.ts             | audit_log    | export   | mutation |
+| `getAdminUsers`                   | get-admin-users.ts               | user         | list     | read     |
+| `invalidateEmbeddingCache`        | invalidate-embedding-cache.ts    | settings     | update   | mutation |
+| `invalidateEmbeddingCacheByModel` | invalidate-embedding-cache.ts    | settings     | update   | mutation |
+| `getEmbeddingCacheStats`          | invalidate-embedding-cache.ts    | settings     | get      | read     |
+| `inviteMemberToOrganization`      | invite-member-to-organization.ts | invitation   | invite   | mutation |
+| `assignMemberToTeams`             | invite-member-to-organization.ts | team         | assign   | mutation |
+| `inviteMember`                    | member-management.ts             | invitation   | invite   | mutation |
+| `removeMember`                    | member-management.ts             | organization | delete   | mutation |
+| `updateMemberRole`                | member-management.ts             | role         | update   | mutation |
+| `createTeam`                      | teams.ts                         | team         | create   | mutation |
+| `updateTeam`                      | teams.ts                         | team         | update   | mutation |
+| `deleteTeam`                      | teams.ts                         | team         | delete   | mutation |
+| `assignUserToTeam`                | teams.ts                         | team         | assign   | mutation |
+| `removeUserFromTeam`              | teams.ts                         | team         | unassign | mutation |
+| `updateUserTeamRole`              | teams.ts                         | role         | update   | mutation |
 
 #### Bot (8 actions)
 
-| Action                   | resourceType     | action      | category |
-| ------------------------ | ---------------- | ----------- | -------- |
-| start-bot-session        | bot_session      | start       | mutation |
-| cancel-bot-session       | bot_session      | cancel      | mutation |
-| retry-bot-session        | bot_session      | retry       | mutation |
-| get-bot-session-details  | bot_session      | get         | read     |
-| get-series-subscriptions | bot_subscription | list        | read     |
-| subscribe-to-series      | bot_subscription | subscribe   | mutation |
-| unsubscribe-from-series  | bot_subscription | unsubscribe | mutation |
-| update-bot-settings      | bot_settings     | update      | mutation |
+| Export Name                    | File                        | resourceType     | action      | category |
+| ------------------------------ | --------------------------- | ---------------- | ----------- | -------- |
+| `startBotSessionAction`        | start-bot-session.ts        | bot_session      | start       | mutation |
+| `cancelBotSession`             | cancel-bot-session.ts       | bot_session      | cancel      | mutation |
+| `retryBotSession`              | retry-bot-session.ts        | bot_session      | retry       | mutation |
+| `getBotSessionDetails`         | get-bot-session-details.ts  | bot_session      | get         | read     |
+| `getSeriesSubscriptionsAction` | get-series-subscriptions.ts | bot_subscription | list        | read     |
+| `subscribeToSeriesAction`      | subscribe-to-series.ts      | bot_subscription | subscribe   | mutation |
+| `unsubscribeFromSeriesAction`  | unsubscribe-from-series.ts  | bot_subscription | unsubscribe | mutation |
+| `updateBotSettings`            | update-bot-settings.ts      | bot_settings     | update      | mutation |
 
-#### Chat (1 action)
+#### Chat (8 actions)
 
-| Action               | resourceType | action | category |
-| -------------------- | ------------ | ------ | -------- |
-| conversation-history | chat         | read   | read     |
+| Export Name                     | File                    | resourceType | action  | category |
+| ------------------------------- | ----------------------- | ------------ | ------- | -------- |
+| `listConversationsAction`       | conversation-history.ts | chat         | list    | read     |
+| `searchConversationsAction`     | conversation-history.ts | chat         | search  | read     |
+| `softDeleteConversationAction`  | conversation-history.ts | chat         | delete  | mutation |
+| `restoreConversationAction`     | conversation-history.ts | chat         | restore | mutation |
+| `archiveConversationAction`     | conversation-history.ts | chat         | archive | mutation |
+| `unarchiveConversationAction`   | conversation-history.ts | chat         | restore | mutation |
+| `getConversationStatsAction`    | conversation-history.ts | chat         | get     | read     |
+| `getConversationMessagesAction` | conversation-history.ts | chat         | read    | read     |
 
-#### Integrations (4 actions)
+#### Integrations (8 actions)
 
-| Action                      | resourceType | action     | category |
-| --------------------------- | ------------ | ---------- | -------- |
-| drive-watch                 | drive_watch  | create     | mutation |
-| microsoft/connect           | integration  | connect    | mutation |
-| microsoft/connection-status | integration  | get        | read     |
-| microsoft/disconnect        | integration  | disconnect | mutation |
+| Export Name                    | File                           | resourceType | action     | category |
+| ------------------------------ | ------------------------------ | ------------ | ---------- | -------- |
+| `startDriveWatchAction`        | google/drive-watch.ts          | drive_watch  | create     | mutation |
+| `stopDriveWatchAction`         | google/drive-watch.ts          | drive_watch  | cancel     | mutation |
+| `listDriveWatchesAction`       | google/drive-watch.ts          | drive_watch  | list       | read     |
+| `updateDriveWatchAction`       | google/drive-watch.ts          | drive_watch  | update     | mutation |
+| `deleteDriveWatchAction`       | google/drive-watch.ts          | drive_watch  | delete     | mutation |
+| `getMicrosoftAuthUrl`          | microsoft/connect.ts           | integration  | connect    | mutation |
+| `getMicrosoftConnectionStatus` | microsoft/connection-status.ts | integration  | get        | read     |
+| `disconnectMicrosoftAccount`   | microsoft/disconnect.ts        | integration  | disconnect | mutation |
 
-#### Knowledge Base (6 actions)
+#### Knowledge Base (7 actions)
 
-| Action             | resourceType            | action | category |
-| ------------------ | ----------------------- | ------ | -------- |
-| create-entry       | knowledge_base          | create | mutation |
-| update-entry       | knowledge_base          | update | mutation |
-| delete-entry       | knowledge_base          | delete | mutation |
-| delete-document    | knowledge_base_document | delete | mutation |
-| get-entries-by-ids | knowledge_base          | read   | read     |
-| upload-document    | knowledge_base_document | upload | mutation |
+| Export Name                           | File                  | resourceType            | action | category |
+| ------------------------------------- | --------------------- | ----------------------- | ------ | -------- |
+| `createKnowledgeEntryAction`          | create-entry.ts       | knowledge_base          | create | mutation |
+| `updateKnowledgeEntryAction`          | update-entry.ts       | knowledge_base          | update | mutation |
+| `deleteKnowledgeEntryAction`          | delete-entry.ts       | knowledge_base          | delete | mutation |
+| `deleteKnowledgeDocumentAction`       | delete-document.ts    | knowledge_base_document | delete | mutation |
+| `getKnowledgeEntriesByIdsAction`      | get-entries-by-ids.ts | knowledge_base          | read   | read     |
+| `uploadKnowledgeDocumentAction`       | upload-document.ts    | knowledge_base_document | upload | mutation |
+| `uploadKnowledgeDocumentsBatchAction` | upload-document.ts    | knowledge_base_document | upload | mutation |
 
-#### Meetings (13 actions)
+#### Meetings (20 actions)
 
-| Action                          | resourceType | action   | category |
-| ------------------------------- | ------------ | -------- | -------- |
-| get-meetings                    | meeting      | list     | read     |
-| get-bot-sessions                | bot_session  | list     | read     |
-| add-bot-to-meeting              | bot_session  | create   | mutation |
-| remove-bot-from-meeting         | bot_session  | delete   | mutation |
-| add-notetaker-by-url            | bot_session  | create   | mutation |
-| update-bot-session-meeting-url  | bot_session  | update   | mutation |
-| update-bot-session-project      | bot_session  | update   | mutation |
-| update-meeting-details          | meeting      | update   | mutation |
-| create-calendar-event-with-bot  | meeting      | create   | mutation |
-| get-calendars                   | calendar     | list     | read     |
-| get-connected-providers         | integration  | list     | read     |
-| generate-agenda                 | agenda       | generate | mutation |
-| meeting-actions (get-or-create) | meeting      | create   | mutation |
-| meeting-actions (update)        | meeting      | update   | mutation |
-| meeting-actions (save-notes)    | meeting      | update   | mutation |
-| agenda-actions                  | agenda       | update   | mutation |
+| Export Name                     | File                              | resourceType    | action   | category |
+| ------------------------------- | --------------------------------- | --------------- | -------- | -------- |
+| `getMeetings`                   | get-meetings.ts                   | meeting         | list     | read     |
+| `getBotSessions`                | get-bot-sessions.ts               | bot_session     | list     | read     |
+| `addBotToMeeting`               | add-bot-to-meeting.ts             | bot_session     | create   | mutation |
+| `removeBotFromMeeting`          | remove-bot-from-meeting.ts        | bot_session     | delete   | mutation |
+| `addNotetakerByUrl`             | add-notetaker-by-url.ts           | bot_session     | create   | mutation |
+| `updateBotSessionMeetingUrl`    | update-bot-session-meeting-url.ts | bot_session     | update   | mutation |
+| `updateBotSessionProject`       | update-bot-session-project.ts     | bot_session     | update   | mutation |
+| `updateMeetingDetails`          | update-meeting-details.ts         | meeting         | update   | mutation |
+| `createCalendarEventWithBot`    | create-calendar-event-with-bot.ts | meeting         | create   | mutation |
+| `getCalendars`                  | get-calendars.ts                  | calendar        | list     | read     |
+| `getConnectedCalendarProviders` | get-connected-providers.ts        | integration     | list     | read     |
+| `generateAgendaFromAI`          | generate-agenda.ts                | agenda          | generate | mutation |
+| `getOrCreateMeeting`            | meeting-actions.ts                | meeting         | create   | mutation |
+| `updateMeeting`                 | meeting-actions.ts                | meeting         | update   | mutation |
+| `saveMeetingNotes`              | meeting-actions.ts                | meeting         | update   | mutation |
+| `configurePostActions`          | meeting-actions.ts                | meeting         | update   | mutation |
+| `addAgendaItem`                 | agenda-actions.ts                 | agenda          | create   | mutation |
+| `updateAgendaItem`              | agenda-actions.ts                 | agenda          | update   | mutation |
+| `deleteAgendaItem`              | agenda-actions.ts                 | agenda          | delete   | mutation |
+| `applyAgendaTemplate`           | agenda-actions.ts                 | agenda_template | apply    | mutation |
 
-#### Notifications (4 actions)
+#### Notifications (4 actions — all plain async, must migrate\*)
 
-| Action                 | resourceType | action    | category |
-| ---------------------- | ------------ | --------- | -------- |
-| get-notifications      | notification | list      | read     |
-| get-unread-count       | notification | read      | read     |
-| mark-notification-read | notification | mark_read | mutation |
-| mark-all-read          | notification | mark_read | mutation |
+| Export Name                  | File                      | resourceType | action    | category |
+| ---------------------------- | ------------------------- | ------------ | --------- | -------- |
+| `getNotifications`\*         | get-notifications.ts      | notification | list      | read     |
+| `getUnreadCount`\*           | get-unread-count.ts       | notification | get       | read     |
+| `markNotificationRead`\*     | mark-notification-read.ts | notification | mark_read | mutation |
+| `markAllNotificationsRead`\* | mark-all-read.ts          | notification | mark_read | mutation |
 
-#### Onboarding (2 actions)
+#### Onboarding (4 actions)
 
-| Action            | resourceType | action | category |
-| ----------------- | ------------ | ------ | -------- |
-| onboarding        | onboarding   | update | mutation |
-| invite-colleagues | invitation   | invite | mutation |
+| Export Name                    | File                 | resourceType | action   | category |
+| ------------------------------ | -------------------- | ------------ | -------- | -------- |
+| `completeOnboardingAction`     | onboarding.ts        | onboarding   | complete | mutation |
+| `createOnboardingRecordAction` | onboarding.ts        | onboarding   | create   | mutation |
+| `updateOnboardingDataAction`   | onboarding.ts        | onboarding   | update   | mutation |
+| `inviteColleaguesAction`       | invite-colleagues.ts | invitation   | invite   | mutation |
 
-#### Projects (8 actions)
+#### Projects (10 actions)
 
-| Action                  | resourceType     | action  | category |
-| ----------------------- | ---------------- | ------- | -------- |
-| create-project          | project          | create  | mutation |
-| update-project          | project          | update  | mutation |
-| delete-project          | project          | delete  | mutation |
-| archive-project         | project          | archive | mutation |
-| unarchive-project       | project          | restore | mutation |
-| get-user-projects       | project          | list    | read     |
-| create-project-template | project_template | create  | mutation |
-| update-project-template | project_template | update  | mutation |
-| delete-project-template | project_template | delete  | mutation |
+| Export Name                   | File                       | resourceType     | action  | category |
+| ----------------------------- | -------------------------- | ---------------- | ------- | -------- |
+| `createProjectAction`         | create-project.ts          | project          | create  | mutation |
+| `createProjectFormAction`\*   | create-project.ts          | project          | create  | mutation |
+| `updateProjectAction`         | update-project.ts          | project          | update  | mutation |
+| `deleteProjectAction`         | delete-project.ts          | project          | delete  | mutation |
+| `archiveProjectAction`        | archive-project.ts         | project          | archive | mutation |
+| `unarchiveProjectAction`      | unarchive-project.ts       | project          | restore | mutation |
+| `getUserProjects`\*           | get-user-projects.ts       | project          | list    | read     |
+| `createProjectTemplateAction` | create-project-template.ts | project_template | create  | mutation |
+| `updateProjectTemplateAction` | update-project-template.ts | project_template | update  | mutation |
+| `deleteProjectTemplateAction` | delete-project-template.ts | project_template | delete  | mutation |
 
-#### Recordings (25 actions)
+#### Recordings (31 actions)
 
-| Action                        | resourceType | action    | category |
-| ----------------------------- | ------------ | --------- | -------- |
-| get-recording-status          | recording    | get       | read     |
-| upload-recording              | recording    | upload    | mutation |
-| edit-recording                | recording    | update    | mutation |
-| delete-recording              | recording    | delete    | mutation |
-| archive-recording             | recording    | archive   | mutation |
-| unarchive-recording           | recording    | restore   | mutation |
-| update-recording-metadata     | recording    | update    | mutation |
-| update-transcription          | recording    | update    | mutation |
-| restore-transcription-version | recording    | restore   | mutation |
-| get-transcription-history     | recording    | read      | read     |
-| update-summary                | recording    | update    | mutation |
-| get-summary-history           | recording    | read      | read     |
-| update-user-notes             | recording    | update    | mutation |
-| redact-pii                    | redaction    | redact    | mutation |
-| reprocess-recording           | recording    | reprocess | mutation |
-| manage-consent                | consent      | update    | mutation |
-| move-recording                | recording    | move      | mutation |
-| update-speaker-names          | recording    | update    | mutation |
-| update-utterance-speaker      | recording    | update    | mutation |
-| deepgram-token                | recording    | get       | read     |
-| create-gmail-draft            | export       | create    | mutation |
-| request-upload-sas            | recording    | get       | read     |
+| Export Name                      | File                             | resourceType | action    | category |
+| -------------------------------- | -------------------------------- | ------------ | --------- | -------- |
+| `uploadRecordingFormAction`\*    | upload-recording.ts              | recording    | upload    | mutation |
+| `getRecordingStatusAction`       | get-recording-status.ts          | recording    | get       | read     |
+| `updateRecordingAction`          | edit-recording.ts                | recording    | update    | mutation |
+| `deleteRecordingAction`          | delete-recording.ts              | recording    | delete    | mutation |
+| `archiveRecordingAction`         | archive-recording.ts             | recording    | archive   | mutation |
+| `unarchiveRecordingAction`       | unarchive-recording.ts           | recording    | restore   | mutation |
+| `updateRecordingMetadataAction`  | update-recording-metadata.ts     | recording    | update    | mutation |
+| `updateTranscription`            | update-transcription.ts          | recording    | update    | mutation |
+| `restoreTranscriptionVersion`    | restore-transcription-version.ts | recording    | restore   | mutation |
+| `getTranscriptionHistory`        | get-transcription-history.ts     | recording    | read      | read     |
+| `updateSummary`                  | update-summary.ts                | recording    | update    | mutation |
+| `getSummaryHistory`              | get-summary-history.ts           | recording    | read      | read     |
+| `updateUserNotes`                | update-user-notes.ts             | recording    | update    | mutation |
+| `detectPIIAction`                | redact-pii.ts                    | redaction    | detect    | read     |
+| `createRedactionAction`          | redact-pii.ts                    | redaction    | create    | mutation |
+| `createBulkRedactionsAction`     | redact-pii.ts                    | redaction    | create    | mutation |
+| `getRedactionsAction`            | redact-pii.ts                    | redaction    | list      | read     |
+| `deleteRedactionAction`          | redact-pii.ts                    | redaction    | delete    | mutation |
+| `applyAutomaticRedactionsAction` | redact-pii.ts                    | redaction    | apply     | mutation |
+| `reprocessRecordingAction`       | reprocess-recording.ts           | recording    | reprocess | mutation |
+| `getReprocessingStatusAction`    | reprocess-recording.ts           | recording    | get       | read     |
+| `grantConsentAction`             | manage-consent.ts                | consent      | grant     | mutation |
+| `revokeConsentAction`            | manage-consent.ts                | consent      | revoke    | mutation |
+| `bulkGrantConsentAction`         | manage-consent.ts                | consent      | grant     | mutation |
+| `moveRecordingAction`            | move-recording.ts                | recording    | move      | mutation |
+| `updateSpeakerNames`             | update-speaker-names.ts          | recording    | update    | mutation |
+| `updateUtteranceSpeaker`         | update-utterance-speaker.ts      | recording    | update    | mutation |
+| `getDeepgramTokenAction`         | deepgram-token.ts                | recording    | get       | read     |
+| `createGmailDraft`               | create-gmail-draft.ts            | export       | create    | mutation |
+| `requestUploadSasAction`         | request-upload-sas.ts            | recording    | get       | read     |
 
-#### Settings (15 actions)
+#### Settings (30 actions)
 
-| Action                    | resourceType    | action  | category |
-| ------------------------- | --------------- | ------- | -------- |
-| update-profile            | user            | update  | mutation |
-| google-connection         | integration     | connect | mutation |
-| google-status             | integration     | get     | read     |
-| google-settings           | integration     | update  | mutation |
-| google-templates          | integration     | update  | mutation |
-| microsoft-status          | integration     | get     | read     |
-| microsoft-settings        | integration     | update  | mutation |
-| organization-instructions | organization    | update  | mutation |
-| organization-settings     | organization    | update  | mutation |
-| privacy-request           | privacy_request | create  | mutation |
-| export-user-data          | data_export     | export  | mutation |
-| delete-user-data          | user            | delete  | mutation |
+| Export Name                            | File                         | resourceType    | action     | category |
+| -------------------------------------- | ---------------------------- | --------------- | ---------- | -------- |
+| `updateProfile`                        | update-profile.ts            | user            | update     | mutation |
+| `getGoogleConnectionStatus`            | google-connection.ts         | integration     | get        | read     |
+| `disconnectGoogleAccount`              | google-connection.ts         | integration     | disconnect | mutation |
+| `getGoogleIntegrationStatus`           | google-status.ts             | integration     | get        | read     |
+| `retryFailedAction`                    | google-status.ts             | integration     | retry      | mutation |
+| `getGoogleSettings`                    | google-settings.ts           | integration     | get        | read     |
+| `updateGoogleSettings`                 | google-settings.ts           | integration     | update     | mutation |
+| `resetGoogleSettings`                  | google-settings.ts           | integration     | reset      | mutation |
+| `getEmailTemplates`                    | google-templates.ts          | integration     | get        | read     |
+| `getCalendarTemplates`                 | google-templates.ts          | integration     | get        | read     |
+| `saveEmailTemplate`                    | google-templates.ts          | integration     | update     | mutation |
+| `saveCalendarTemplate`                 | google-templates.ts          | integration     | update     | mutation |
+| `deleteTemplate`                       | google-templates.ts          | integration     | delete     | mutation |
+| `getMicrosoftIntegrationStatus`        | microsoft-status.ts          | integration     | get        | read     |
+| `retryMicrosoftFailedAction`           | microsoft-status.ts          | integration     | retry      | mutation |
+| `getMicrosoftSettings`                 | microsoft-settings.ts        | integration     | get        | read     |
+| `updateMicrosoftSettings`              | microsoft-settings.ts        | integration     | update     | mutation |
+| `resetMicrosoftSettings`               | microsoft-settings.ts        | integration     | reset      | mutation |
+| `createOrganizationInstructionsAction` | organization-instructions.ts | organization    | create     | mutation |
+| `updateOrganizationInstructionsAction` | organization-instructions.ts | organization    | update     | mutation |
+| `getOrganizationSettings`              | organization-settings.ts     | organization    | get        | read     |
+| `updateOrganizationSettings`           | organization-settings.ts     | organization    | update     | mutation |
+| `submitPrivacyRequestAction`           | privacy-request.ts           | privacy_request | create     | mutation |
+| `withdrawPrivacyRequestAction`         | privacy-request.ts           | privacy_request | delete     | mutation |
+| `getPrivacyRequestsAction`             | privacy-request.ts           | privacy_request | list       | read     |
+| `requestDataExport`                    | export-user-data.ts          | data_export     | export     | mutation |
+| `getExportHistory`                     | export-user-data.ts          | data_export     | list       | read     |
+| `requestDeletionAction`                | delete-user-data.ts          | user            | delete     | mutation |
+| `cancelDeletionAction`                 | delete-user-data.ts          | user            | update     | mutation |
+| `getDeletionStatusAction`              | delete-user-data.ts          | user            | get        | read     |
 
-#### Tasks (9 actions)
+#### Tasks (11 actions)
 
-| Action                   | resourceType | action | category |
-| ------------------------ | ------------ | ------ | -------- |
-| get-user-tasks           | task         | list   | read     |
-| update-task-status       | task         | update | mutation |
-| update-task-metadata     | task         | update | mutation |
-| get-task-history         | task         | read   | read     |
-| get-organization-tags    | task         | list   | read     |
-| get-task-tags            | task         | list   | read     |
-| create-tag               | task         | create | mutation |
-| get-organization-users   | user         | list   | read     |
-| get-organization-members | user         | list   | read     |
-| create-calendar-event    | auto_action  | create | mutation |
+| Export Name                    | File                        | resourceType | action | category |
+| ------------------------------ | --------------------------- | ------------ | ------ | -------- |
+| `getUserTasks`\*               | get-user-tasks.ts           | task         | list   | read     |
+| `updateTaskStatus`\*           | update-task-status.ts       | task         | update | mutation |
+| `updateTaskMetadata`           | update-task-metadata.ts     | task         | update | mutation |
+| `getTaskHistory`               | get-task-history.ts         | task         | read   | read     |
+| `getOrganizationTags`          | get-organization-tags.ts    | task         | list   | read     |
+| `getTaskTags`                  | get-task-tags.ts            | task         | list   | read     |
+| `createTag`                    | create-tag.ts               | task         | create | mutation |
+| `getOrganizationUsers`         | get-organization-users.ts   | user         | list   | read     |
+| `getOrgMembers`                | get-organization-members.ts | user         | list   | read     |
+| `createCalendarEvent`          | create-calendar-event.ts    | auto_action  | create | mutation |
+| `createCalendarEventsForTasks` | create-calendar-event.ts    | auto_action  | create | mutation |
 
 #### Teams (1 action)
 
-| Action          | resourceType | action | category |
-| --------------- | ------------ | ------ | -------- |
-| list-user-teams | team         | list   | read     |
+| Export Name           | File               | resourceType | action | category |
+| --------------------- | ------------------ | ------------ | ------ | -------- |
+| `listUserTeamsAction` | list-user-teams.ts | team         | list   | read     |
+
+#### Root Actions (2 actions)
+
+| Export Name                      | File                   | resourceType | action | category |
+| -------------------------------- | ---------------------- | ------------ | ------ | -------- |
+| `getDeepgramClientTokenAction`   | actions/deepgram.ts    | recording    | get    | read     |
+| `uploadFileToVercelBlobAction`\* | actions/vercel-blob.ts | blob         | upload | mutation |
 
 ### 6. Audit Log Page UI Changes
 
@@ -631,20 +788,63 @@ export interface AuditLogFilters {
 
 Update `findByFilters` and `countByFilters` to filter on the new column.
 
-### 7. Migration Strategy
+### 7. Service Layer Changes
 
-One DB migration covering all schema changes:
+#### 7.1 Update `CreateAuditLogParams`
+
+Add `category` field to the service interface:
+
+```typescript
+export interface CreateAuditLogParams {
+  eventType: string;
+  resourceType: string;
+  resourceId?: string | null;
+  userId: string;
+  organizationId: string;
+  action: string;
+  category: "mutation" | "read"; // NEW
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+```
+
+#### 7.2 Update Hash Computation
+
+Add `category` to the `computeHash` function input to prevent category tampering:
+
+```typescript
+const hashInput = JSON.stringify({
+  previousHash: log.previousHash ?? "",
+  eventType: log.eventType,
+  resourceType: log.resourceType,
+  resourceId: log.resourceId ?? "",
+  userId: log.userId,
+  organizationId: log.organizationId,
+  action: log.action,
+  category: log.category, // NEW
+  createdAt: log.createdAt.toISOString(),
+  metadata: log.metadata ?? {},
+});
+```
+
+### 8. Migration Strategy
+
+**Important:** The enum-to-text conversion for `eventType` and the uuid-to-text conversion for `resourceId` require manual SQL. Drizzle ORM's auto-generation may not handle these cleanly. This migration should be written as a custom SQL migration file, not auto-generated.
 
 ```sql
 -- 1. Add category enum and column
 CREATE TYPE "audit_category" AS ENUM ('mutation', 'read');
 ALTER TABLE "audit_logs" ADD COLUMN "category" "audit_category" NOT NULL DEFAULT 'mutation';
 
--- 2. Convert eventType from enum to text
+-- 2. Convert eventType from enum to text (requires manual SQL — not auto-generated by Drizzle)
 ALTER TABLE "audit_logs" ALTER COLUMN "event_type" TYPE text;
 DROP TYPE IF EXISTS "audit_event_type";
 
--- 3. Add new values to resource type enum
+-- 3. Convert resourceId from uuid to text
+ALTER TABLE "audit_logs" ALTER COLUMN "resource_id" TYPE text;
+
+-- 4. Add new values to resource type enum
 ALTER TYPE "audit_resource_type" ADD VALUE IF NOT EXISTS 'meeting';
 ALTER TYPE "audit_resource_type" ADD VALUE IF NOT EXISTS 'bot_session';
 ALTER TYPE "audit_resource_type" ADD VALUE IF NOT EXISTS 'bot_settings';
@@ -665,8 +865,9 @@ ALTER TYPE "audit_resource_type" ADD VALUE IF NOT EXISTS 'data_export';
 ALTER TYPE "audit_resource_type" ADD VALUE IF NOT EXISTS 'invitation';
 ALTER TYPE "audit_resource_type" ADD VALUE IF NOT EXISTS 'calendar';
 ALTER TYPE "audit_resource_type" ADD VALUE IF NOT EXISTS 'audit_log';
+ALTER TYPE "audit_resource_type" ADD VALUE IF NOT EXISTS 'blob';
 
--- 4. Add new values to action enum
+-- 5. Add new values to action enum
 ALTER TYPE "audit_action" ADD VALUE IF NOT EXISTS 'start';
 ALTER TYPE "audit_action" ADD VALUE IF NOT EXISTS 'cancel';
 ALTER TYPE "audit_action" ADD VALUE IF NOT EXISTS 'retry';
@@ -690,15 +891,19 @@ ALTER TYPE "audit_action" ADD VALUE IF NOT EXISTS 'verify';
 ALTER TYPE "audit_action" ADD VALUE IF NOT EXISTS 'reset';
 ALTER TYPE "audit_action" ADD VALUE IF NOT EXISTS 'list';
 ALTER TYPE "audit_action" ADD VALUE IF NOT EXISTS 'get';
+ALTER TYPE "audit_action" ADD VALUE IF NOT EXISTS 'search';
+ALTER TYPE "audit_action" ADD VALUE IF NOT EXISTS 'detect';
+ALTER TYPE "audit_action" ADD VALUE IF NOT EXISTS 'apply';
+ALTER TYPE "audit_action" ADD VALUE IF NOT EXISTS 'check';
 
--- 5. Add index for category filtering
+-- 6. Add indexes for category filtering
 CREATE INDEX IF NOT EXISTS "audit_logs_category_idx" ON "audit_logs" ("category");
 CREATE INDEX IF NOT EXISTS "audit_logs_org_category_idx" ON "audit_logs" ("organization_id", "category");
 ```
 
-**Data migration**: None required. Existing rows default to `category = 'mutation'`, which is correct since all current logs are mutations. Existing `event_type` text values already follow the `{resource}_{action}` convention.
+**Data migration**: None required. Existing rows default to `category = 'mutation'`, which is correct since all current logs are mutations. Existing `event_type` text values remain valid. Existing `resource_id` UUID values remain valid as text.
 
-### 8. ActionContext Type Update
+### 9. ActionContext Type Update
 
 Extend the existing `ActionContext` interface:
 
@@ -713,21 +918,30 @@ export interface ActionContext {
 }
 ```
 
-### 9. Hash Chain Considerations
+### 10. Hash Chain Considerations
 
-The existing hash chain mechanism continues to work. The `computeHash` function already hashes `eventType`, `resourceType`, `action`, and `metadata` — all of which are present in the new system. The `category` field should be added to the hash computation to prevent tampering with the category classification.
+The fire-and-forget pattern creates a concurrency issue: multiple simultaneous actions from the same org will race to fetch the same "latest hash," creating parallel chain forks. With the dramatically increased write volume (every action, including reads), this becomes a real problem.
 
-### 10. Performance Considerations
+**Mitigation options (choose during implementation):**
+
+1. **Accept eventual consistency**: The hash chain already has gaps in practice (concurrent requests). Document this as a known limitation and rely on the `createdAt` ordering + hash presence as the integrity signal, not strict chain linearity.
+2. **Per-org write queue**: Use a database advisory lock per org to serialize audit writes. Adds ~5ms latency per write but guarantees chain integrity.
+3. **Switch to individual record hashing**: Hash each record independently (without `previousHash`), and verify integrity by checking that no record's hash has been tampered with. Loses chain ordering guarantee but eliminates the concurrency issue entirely.
+
+**Recommendation:** Option 3 (individual record hashing) is the most pragmatic. Chain integrity was aspirational but impractical under concurrent writes. Individual record hashing still detects tampering of any single record.
+
+### 11. Performance Considerations
 
 - **Fire-and-forget**: Audit logging is non-blocking (`void` promise). Action responses are never delayed by audit writes.
-- **Read volume**: Full read logging increases write volume significantly. The `category` index and org-scoped queries ensure read performance stays acceptable.
-- **Hash chain bottleneck**: The hash chain requires fetching the latest log per org before each insert. At high volume, consider batching or relaxing to per-session chains. For now, the existing approach is sufficient given the action-level (not request-level) granularity.
+- **Read volume estimate**: With 1000 active users, ~50 reads/session, 3 sessions/day = ~150,000 read audit writes/day. With mutation-only default, most users never see these. Storage grows by ~50MB/day at this scale — acceptable for a compliance-focused product.
+- **Index strategy**: The composite `(organization_id, category)` index ensures filtered queries remain fast even at scale.
 
-### 11. Testing Strategy
+### 12. Testing Strategy
 
 - **Unit tests**: Test `AuditContextImpl` enrichment, middleware audit metadata extraction, and `eventType` generation
 - **Integration tests**: Verify audit log creation for representative actions (one mutation, one read, one with enrichment, one fallback)
-- **Migration test**: Verify existing data survives migration with correct `category` default
+- **Migration test**: Verify existing data survives migration with correct `category` default and `resourceId` type change
+- **Plain function migration tests**: Verify migrated plain async functions still work correctly after conversion to `authorizedActionClient`
 
 ## Files Changed
 
@@ -735,18 +949,19 @@ The existing hash chain mechanism continues to work. The `computeHash` function 
 
 - `src/lib/server-action-client/audit-context.ts` — `AuditContext` interface and `AuditContextImpl` class
 - `src/lib/server-action-client/audit-middleware.ts` — The audit logging middleware function
-- `src/server/db/migrations/XXXX_comprehensive_audit_logging.sql` — DB migration
+- `src/server/db/migrations/XXXX_comprehensive_audit_logging.sql` — DB migration (manual SQL, not auto-generated)
 
 ### Modified Files
 
-- `src/server/db/schema/audit-logs.ts` — Add `category` column, expand enums, convert `eventType` to text
+- `src/server/db/schema/audit-logs.ts` — Add `category` column, expand enums, convert `eventType` to text, convert `resourceId` to text
 - `src/lib/server-action-client/action-client.ts` — Add audit middleware to chain, extend metadata schema and `ActionContext`
-- `src/server/services/audit-log.service.ts` — Accept `category` param in `createAuditLog`
+- `src/server/services/audit-log.service.ts` — Add `category` param to `CreateAuditLogParams`, update `computeHash`
 - `src/server/data-access/audit-logs.queries.ts` — Add `category` to filters and queries
 - `src/features/admin/components/audit/audit-log-filters.tsx` — Add category filter toggle
 - `src/features/admin/components/audit/audit-log-viewer.tsx` — Display category column
 - `src/features/admin/hooks/use-audit-log-filters.ts` — Add category to filter state
 - `src/app/(main)/admin/audit-logs/page.tsx` — Pass category filter to service
-- All ~113 server action files — Add `audit` metadata to `.metadata()` call
-- 8 server action files — Remove manual `AuditLogService.createAuditLog()` calls, add `ctx.audit` enrichment
-- Better Auth configuration file — Add auth lifecycle hooks
+- `src/lib/auth.ts` — Add audit logging to existing `databaseHooks` and `organizationHooks`
+- ~102 action files containing ~148 `authorizedActionClient` exports — Add `audit` metadata to `.metadata()` call
+- ~9 plain async function action files — Migrate to `authorizedActionClient` (except `uploadRecordingFormAction` and `ensureUserOrganization` which get explicit audit calls)
+- 7 action files — Remove manual `AuditLogService.createAuditLog()` calls, add `ctx.audit` enrichment
