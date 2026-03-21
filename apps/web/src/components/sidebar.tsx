@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useActiveMemberRole } from "@/hooks/use-active-member-role";
 import { OrganizationSwitcher } from "@/components/organization-switcher";
-import { TeamSwitcher } from "@/components/team-switcher";
+
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, FileText, Plus, Scale } from "lucide-react";
 import { adminLinks, isNavActive, navLinks } from "@/lib/navigation";
@@ -94,9 +94,6 @@ export function Sidebar() {
 
       {/* Organization Switcher */}
       <OrganizationSwitcher collapsed={collapsed} />
-
-      {/* Team Switcher */}
-      <TeamSwitcher collapsed={collapsed} />
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-2">
