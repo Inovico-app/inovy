@@ -19,7 +19,7 @@ jobs:
     if: github.event.pull_request.merged == true # Ensure the PR was merged
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4

@@ -47,7 +47,7 @@ jobs:
     steps:
       - name: Checkout repository
         if: ${{ inputs.build_image }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Azure Login
         if: ${{ inputs.build_image }}
