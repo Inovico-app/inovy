@@ -18,6 +18,7 @@ import {
   CalendarIcon,
   FileTextIcon,
   FolderIcon,
+  GlobeIcon,
   PlusIcon,
   UsersIcon,
 } from "lucide-react";
@@ -85,10 +86,15 @@ async function ProjectsList({
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between gap-2">
                       <span className="truncate">{project.name}</span>
-                      {project.teamName && (
+                      {project.teamName ? (
                         <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-primary/10 text-primary shrink-0">
                           <UsersIcon className="h-3 w-3" />
                           {project.teamName}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground shrink-0">
+                          <GlobeIcon className="h-3 w-3" />
+                          Everyone
                         </span>
                       )}
                     </CardTitle>
