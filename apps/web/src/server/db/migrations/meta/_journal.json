@@ -435,6 +435,13 @@
       "when": 1774101290150,
       "tag": "0067_comprehensive_audit_logging",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1774103355154,
+      "tag": "0068_update_audit_category",
+      "breakpoints": true
     }
   ]
 }

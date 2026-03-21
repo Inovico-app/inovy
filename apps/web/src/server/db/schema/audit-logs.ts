@@ -110,7 +110,7 @@ export const auditLogs = pgTable("audit_logs", {
   userId: text("user_id").notNull(), // Better Auth user ID
   organizationId: text("organization_id").notNull(),
   action: auditActionEnum("action").notNull(),
-  category: auditCategoryEnum("category").notNull(),
+  category: auditCategoryEnum("category").notNull().default("mutation"),
   ipAddress: text("ip_address"), // IP address for audit trail
   userAgent: text("user_agent"), // User agent for audit trail
   metadata: jsonb("metadata").$type<Record<string, unknown> | null>(), // Additional context
