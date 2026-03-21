@@ -17,7 +17,13 @@ import { revalidatePath } from "next/cache";
  */
 export const deleteKnowledgeEntryAction = authorizedActionClient
   .metadata({
+    name: "delete-knowledge-entry",
     permissions: Permissions.orgInstruction.write,
+    audit: {
+      resourceType: "knowledge_base",
+      action: "delete",
+      category: "mutation",
+    },
   })
   .inputSchema(deleteKnowledgeEntrySchema)
   .action(async ({ parsedInput, ctx }) => {

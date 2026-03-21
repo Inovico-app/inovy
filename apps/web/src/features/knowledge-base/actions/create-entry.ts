@@ -17,7 +17,13 @@ import { revalidatePath } from "next/cache";
  */
 export const createKnowledgeEntryAction = authorizedActionClient
   .metadata({
+    name: "create-knowledge-entry",
     permissions: Permissions.orgInstruction.write,
+    audit: {
+      resourceType: "knowledge_base",
+      action: "create",
+      category: "mutation",
+    },
   })
   .inputSchema(createKnowledgeEntrySchema)
   .action(async ({ parsedInput, ctx }) => {
