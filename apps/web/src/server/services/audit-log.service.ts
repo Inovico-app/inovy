@@ -85,7 +85,7 @@ export class AuditLogService {
         userId: params.userId,
         organizationId: params.organizationId,
         action: params.action as NewAuditLog["action"],
-        category: params.category,
+        category: params.category ?? "mutation",
         ipAddress: params.ipAddress ?? null,
         userAgent: params.userAgent ?? null,
         metadata: params.metadata ?? null,
@@ -100,7 +100,7 @@ export class AuditLogService {
         userId: logEntry.userId,
         organizationId: logEntry.organizationId,
         action: logEntry.action,
-        category: logEntry.category,
+        category: logEntry.category ?? "mutation",
         createdAt: new Date(), // Use current timestamp for hash computation
         metadata: logEntry.metadata ?? null,
       });
