@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label";
 import { VisibilityWarning } from "./visibility-warning";
 import { useMemo } from "react";
 
+const NO_TEAM_VALUE = "__no-team__";
+const NO_TEAM_LABEL = "No team (visible to everyone)";
+
 interface TeamOption {
   id: string;
   name: string;
@@ -25,13 +28,12 @@ interface TeamPickerProps {
 export function TeamPicker({ teams, value, onChange }: TeamPickerProps) {
   const selectedTeam = value ? teams.find((t) => t.id === value) : null;
 
-  // Build items map for Select.Root so SelectValue shows labels, not raw IDs
   const items = useMemo(() => {
     const map: Array<{ value: string; label: string }> = teams.map((t) => ({
       value: t.id,
       label: t.name,
     }));
-    map.push({ value: "org-wide", label: "Org-wide" });
+    map.push({ value: NO_TEAM_VALUE, label: NO_TEAM_LABEL });
     return map;
   }, [teams]);
 
@@ -39,8 +41,8 @@ export function TeamPicker({ teams, value, onChange }: TeamPickerProps) {
     <div className="space-y-2">
       <Label htmlFor="team-select">Team</Label>
       <Select
-        value={value ?? "org-wide"}
-        onValueChange={(v) => onChange(v === "org-wide" ? null : v)}
+        value={value ?? NO_TEAM_VALUE}
+        onValueChange={(v) => onChange(v === NO_TEAM_VALUE ? null : v)}
         items={items}
       >
         <SelectTrigger id="team-select">
@@ -52,7 +54,7 @@ export function TeamPicker({ teams, value, onChange }: TeamPickerProps) {
               {team.name}
             </SelectItem>
           ))}
-          <SelectItem value="org-wide">Org-wide</SelectItem>
+          <SelectItem value={NO_TEAM_VALUE}>{NO_TEAM_LABEL}</SelectItem>
         </SelectContent>
       </Select>
       <VisibilityWarning teamName={selectedTeam?.name} />
