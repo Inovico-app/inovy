@@ -434,7 +434,8 @@
           "type": "audit_category",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "'mutation'"
         },
         "ip_address": {
           "name": "ip_address",
