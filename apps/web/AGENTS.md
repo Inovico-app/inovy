@@ -42,4 +42,3 @@ Direct usage from `apps/web`: `pnpm lint`, `pnpm run typecheck`, `pnpm run build
 - **Database**: Uses Neon serverless PostgreSQL. Migrations are in `apps/web/src/server/db/migrations/`. Run `pnpm db:migrate` to apply. Do NOT run `pnpm db:push` in production per the workspace rules.
 - **Qdrant**: Can be run locally via `docker compose up -d qdrant` (optional). Production uses cloud-hosted Qdrant configured via `QDRANT_URL` and `QDRANT_API_KEY` env vars.
 - **Workflow plugin**: `next.config.ts` wraps config with `withWorkflow()` from the `workflow` package, which adds startup time (~3s) for discovering workflow directives.
-
