@@ -9,7 +9,11 @@ import { z } from "zod";
  * Server action to get tags assigned to a specific task
  */
 export const getTaskTags = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("tasks:read") })
+  .metadata({
+    name: "get-task-tags",
+    permissions: policyToPermissions("tasks:read"),
+    audit: { resourceType: "task", action: "list", category: "read" },
+  })
   .schema(z.object({ taskId: z.string().uuid() }))
   .action(async ({ parsedInput }) => {
     const result = await TaskService.getTaskTags(parsedInput.taskId);
@@ -20,4 +24,3 @@ export const getTaskTags = authorizedActionClient
 
     return result.value;
   });
-

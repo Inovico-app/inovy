@@ -13,7 +13,11 @@ import {
  * Allows editing task fields with full history tracking
  */
 export const updateTaskMetadata = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("tasks:update") })
+  .metadata({
+    name: "update-task-metadata",
+    permissions: policyToPermissions("tasks:update"),
+    audit: { resourceType: "task", action: "update", category: "mutation" },
+  })
   .schema(updateTaskMetadataSchema)
   .action(async ({ parsedInput }: { parsedInput: UpdateTaskMetadataInput }) => {
     const result = await TaskService.updateTaskMetadata(parsedInput);
@@ -24,4 +28,3 @@ export const updateTaskMetadata = authorizedActionClient
 
     return result.value;
   });
-

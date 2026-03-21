@@ -14,7 +14,11 @@ import { z } from "zod";
  * Uses Better Auth organization member queries
  */
 export const getOrganizationUsers = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("users:read") })
+  .metadata({
+    name: "get-organization-users",
+    permissions: policyToPermissions("users:read"),
+    audit: { resourceType: "user", action: "list", category: "read" },
+  })
   .schema(z.object({})) // No input needed
   .action(async ({ ctx }): Promise<AuthOrganizationUserDto[]> => {
     const { organizationId } = ctx;
@@ -37,9 +41,8 @@ export const getOrganizationUsers = authorizedActionClient
       logger.error(
         "Failed to get organization users",
         { organizationId },
-        error as Error
+        error as Error,
       );
       throw new Error("Failed to fetch organization users");
     }
   });
-
