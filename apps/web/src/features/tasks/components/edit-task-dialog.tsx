@@ -71,6 +71,10 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const assigneeName = assigneeId
+      ? (members.find((m) => m.id === assigneeId)?.displayName ?? null)
+      : null;
+
     mutation.mutate({
       taskId: task.id,
       title,
@@ -78,6 +82,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
       priority,
       status,
       assigneeId: assigneeId ?? undefined,
+      assigneeName,
       dueDate: dueDate
         ? (new Date(dueDate) as unknown as Date | null)
         : undefined,

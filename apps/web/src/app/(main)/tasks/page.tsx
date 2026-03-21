@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { TasksListServer } from "@/features/tasks/components/tasks-list-server";
 import { Suspense } from "react";
 
-export const metadata: Metadata = { title: "Tasks" };
+export const metadata: Metadata = { title: "Team Tasks" };
 
 export default async function TasksPage() {
   // CACHE COMPONENTS: Wrap dynamic content in Suspense to enable static shell generation
@@ -22,9 +22,9 @@ export default async function TasksPage() {
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">My Tasks</h1>
+            <h1 className="text-3xl font-bold text-foreground">Tasks</h1>
             <p className="text-muted-foreground mt-2">
-              View and manage all your assigned tasks across all projects
+              View and manage tasks across all your projects
             </p>
           </div>
 
@@ -35,4 +35,3 @@ export default async function TasksPage() {
     </Suspense>
   );
 }
-

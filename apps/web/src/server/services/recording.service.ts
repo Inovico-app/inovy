@@ -820,7 +820,7 @@ export class RecordingService {
   /**
    * Convert database recording to DTO
    */
-  private static toDto(recording: Recording): RecordingDto {
+  static toDto(recording: Recording): RecordingDto {
     return {
       id: recording.id,
       projectId: recording.projectId,

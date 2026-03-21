@@ -2,8 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import type { TaskPriority, TaskStatus } from "@/server/db/schema/tasks";
-import { X } from "lucide-react";
+import { User, X } from "lucide-react";
 import { useArrayToggle } from "../../../hooks/use-array-toggle";
 import { FilterCheckboxGroup } from "./filter-checkbox-group";
 import { ProjectFilterDropdown } from "./project-filter-dropdown";
@@ -15,6 +17,8 @@ interface TaskFiltersProps {
   onStatusesChange: (statuses: TaskStatus[]) => void;
   selectedProjectIds: string[];
   onProjectIdsChange: (projectIds: string[]) => void;
+  assignedToMe: boolean;
+  onAssignedToMeChange: (value: boolean) => void;
   taskCounts?: {
     low: number;
     medium: number;
@@ -68,6 +72,8 @@ export function TaskFilters({
   onStatusesChange,
   selectedProjectIds,
   onProjectIdsChange,
+  assignedToMe,
+  onAssignedToMeChange,
   taskCounts,
   statusCounts,
   projects,
@@ -80,7 +86,8 @@ export function TaskFilters({
   const hasActiveFilters =
     selectedPriorities.length > 0 ||
     selectedStatuses.length > 0 ||
-    selectedProjectIds.length > 0;
+    selectedProjectIds.length > 0 ||
+    assignedToMe;
 
   return (
     <Card>
@@ -101,6 +108,27 @@ export function TaskFilters({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Assignee Filter */}
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium text-muted-foreground">
+            Assignee
+          </h4>
+          <Label
+            htmlFor="assigned-to-me"
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <Checkbox
+              id="assigned-to-me"
+              checked={assignedToMe}
+              onCheckedChange={(checked) =>
+                onAssignedToMeChange(checked === true)
+              }
+            />
+            <User className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-sm">Assigned to me</span>
+          </Label>
+        </div>
+
         <FilterCheckboxGroup
           title="Priority"
           options={PRIORITY_OPTIONS}
@@ -128,4 +156,3 @@ export function TaskFilters({
     </Card>
   );
 }
-

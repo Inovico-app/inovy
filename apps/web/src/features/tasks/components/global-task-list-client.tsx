@@ -12,13 +12,14 @@ import { TaskListEmpty } from "./task-list-empty";
 interface GlobalTaskListClientProps {
   initialTasks: TaskWithContextDto[];
   initialProjects: Array<{ id: string; name: string }>;
+  currentUserId: string;
 }
 
 export function GlobalTaskListClient({
   initialTasks,
   initialProjects,
+  currentUserId,
 }: GlobalTaskListClientProps) {
-  // Use initial data (no loading state needed since data is pre-fetched)
   const allTasks = initialTasks;
   const projects = initialProjects;
 
@@ -27,12 +28,14 @@ export function GlobalTaskListClient({
     selectedPriorities,
     selectedStatuses,
     selectedProjectIds,
+    assignedToMe,
     sortBy,
     sortOrder,
     searchQuery,
     handlePrioritiesChange,
     handleStatusesChange,
     handleProjectIdsChange,
+    handleAssignedToMeChange,
     handleSortChange,
     handleSearchChange,
     handleClearFilters,
@@ -44,6 +47,8 @@ export function GlobalTaskListClient({
     selectedPriorities,
     selectedStatuses,
     selectedProjectIds,
+    assignedToMe,
+    currentUserId,
     searchQuery,
     sortBy,
     sortOrder,
@@ -72,6 +77,8 @@ export function GlobalTaskListClient({
           onStatusesChange={handleStatusesChange}
           selectedProjectIds={selectedProjectIds}
           onProjectIdsChange={handleProjectIdsChange}
+          assignedToMe={assignedToMe}
+          onAssignedToMeChange={handleAssignedToMeChange}
           taskCounts={taskCounts}
           statusCounts={statusCounts}
           projects={projectsWithCounts}
@@ -91,9 +98,9 @@ export function GlobalTaskListClient({
           onSearchChange={handleSearchChange}
           onClearFilters={handleClearFilters}
           onStatusChange={handleStatusChange}
+          title={assignedToMe ? "My Tasks" : "All Tasks"}
         />
       </div>
     </div>
   );
 }
-
