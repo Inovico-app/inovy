@@ -44,7 +44,7 @@ export class GdprDeletionService {
     text: string | null,
     userEmail: string | null,
     userName: string | null,
-    anonymizedId: string
+    anonymizedId: string,
   ): string | null {
     if (!text) return null;
 
@@ -54,11 +54,11 @@ export class GdprDeletionService {
     if (userEmail) {
       const emailRegex = new RegExp(
         userEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-        "gi"
+        "gi",
       );
       anonymized = anonymized.replace(
         emailRegex,
-        `${anonymizedId}@anonymized.local`
+        `${anonymizedId}@anonymized.local`,
       );
     }
 
@@ -69,7 +69,7 @@ export class GdprDeletionService {
         if (part.length > 2) {
           const nameRegex = new RegExp(
             `\\b${part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
-            "gi"
+            "gi",
           );
           anonymized = anonymized.replace(nameRegex, anonymizedId);
         }
@@ -84,7 +84,7 @@ export class GdprDeletionService {
    */
   static async createDeletionRequest(
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<string>> {
     try {
       // Check if there's already an active deletion request
@@ -93,8 +93,8 @@ export class GdprDeletionService {
         return err(
           ActionErrors.validation(
             "A deletion request already exists for this user",
-            { requestId: existing.id }
-          )
+            { requestId: existing.id },
+          ),
         );
       }
 
@@ -117,6 +117,7 @@ export class GdprDeletionService {
         userId,
         organizationId,
         action: "create",
+        category: "mutation",
         metadata: {
           deletionRequestId: request.id,
           scheduledDeletionAt: scheduledDeletionAt.toISOString(),
@@ -140,8 +141,8 @@ export class GdprDeletionService {
         ActionErrors.internal(
           "Failed to create deletion request",
           error as Error,
-          "GdprDeletionService.createDeletionRequest"
-        )
+          "GdprDeletionService.createDeletionRequest",
+        ),
       );
     }
   }
@@ -154,7 +155,7 @@ export class GdprDeletionService {
     userId: string,
     organizationId: string,
     userEmail: string | null,
-    userName: string | null
+    userName: string | null,
   ): Promise<ActionResult<void>> {
     try {
       const request = await UserDeletionRequestsQueries.findById(requestId);
@@ -162,8 +163,8 @@ export class GdprDeletionService {
         return err(
           ActionErrors.notFound(
             "Deletion request not found",
-            "GdprDeletionService.processDeletionRequest"
-          )
+            "GdprDeletionService.processDeletionRequest",
+          ),
         );
       }
 
@@ -187,7 +188,7 @@ export class GdprDeletionService {
         organizationId,
         userEmail,
         userName,
-        anonymizedId
+        anonymizedId,
       );
 
       // 3. Delete tasks created by user
@@ -218,6 +219,7 @@ export class GdprDeletionService {
         userId: anonymizedId, // Use anonymized ID
         organizationId,
         action: "update",
+        category: "mutation",
         metadata: {
           deletionRequestId: requestId,
           status: "completed",
@@ -242,8 +244,8 @@ export class GdprDeletionService {
         ActionErrors.internal(
           "Failed to process deletion request",
           error as Error,
-          "GdprDeletionService.processDeletionRequest"
-        )
+          "GdprDeletionService.processDeletionRequest",
+        ),
       );
     }
   }
@@ -253,17 +255,17 @@ export class GdprDeletionService {
    */
   private static async deleteUserOwnedRecordings(
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<void> {
     // Get all recordings (both active and archived) owned by user
     const allRecordings =
       await RecordingsQueries.selectRecordingsByOrganization(
         organizationId,
-        {}
+        {},
       );
 
     const ownedRecordings = allRecordings.filter(
-      (r) => r.createdById === userId
+      (r) => r.createdById === userId,
     );
 
     const storage = await getStorageProvider();
@@ -299,13 +301,13 @@ export class GdprDeletionService {
     organizationId: string,
     userEmail: string | null,
     userName: string | null,
-    anonymizedId: string
+    anonymizedId: string,
   ): Promise<void> {
     // Find recordings where user is a participant
     const participantRecords = await ConsentQueries.findByUserId(userId);
 
     const recordingIds = participantRecords.map(
-      (p: { recordingId: string }) => p.recordingId
+      (p: { recordingId: string }) => p.recordingId,
     );
 
     if (recordingIds.length === 0) return;
@@ -315,7 +317,7 @@ export class GdprDeletionService {
     await ConsentQueries.anonymizeByRecordingIds(
       recordingIds,
       anonymizedEmail,
-      anonymizedId
+      anonymizedId,
     );
 
     // Anonymize transcription text
@@ -327,11 +329,11 @@ export class GdprDeletionService {
           recording.transcriptionText,
           userEmail,
           userName,
-          anonymizedId
+          anonymizedId,
         );
         await RecordingsQueries.anonymizeTranscriptionText(
           recordingId,
-          anonymizedText
+          anonymizedText,
         );
       }
 
@@ -352,7 +354,7 @@ export class GdprDeletionService {
           }
           await AIInsightsQueries.anonymizeSpeakerNames(
             insight.id,
-            anonymizedSpeakerNames
+            anonymizedSpeakerNames,
           );
         }
       }
@@ -370,11 +372,11 @@ export class GdprDeletionService {
    */
   private static async deleteUserTasks(
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<void> {
     const userTasks = await TasksQueries.getTasksByOrganization(
       organizationId,
-      {}
+      {},
     );
 
     const createdTasks = userTasks.filter((t) => t.createdById === userId);
@@ -384,7 +386,7 @@ export class GdprDeletionService {
     // Delete tasks created by user
     await TasksQueries.deleteByIds(
       createdTasks.map((t) => t.id),
-      organizationId
+      organizationId,
     );
 
     // Also anonymize tasks where user is assignee
@@ -402,13 +404,13 @@ export class GdprDeletionService {
    */
   private static async deleteUserSummaries(
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<void> {
     // Get all recordings owned by user to find their summaries
     const allRecordings =
       await RecordingsQueries.selectRecordingsByOrganization(
         organizationId,
-        {}
+        {},
       );
 
     const ownedRecordingIds = allRecordings
@@ -420,7 +422,7 @@ export class GdprDeletionService {
     // Delete summary history for user's recordings
     await SummaryHistoryQueries.deleteByRecordingIdsAndUserId(
       ownedRecordingIds,
-      userId
+      userId,
     );
 
     logger.info("Deleted user summaries", {
@@ -435,11 +437,11 @@ export class GdprDeletionService {
    */
   private static async deleteUserChatConversations(
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<void> {
     const conversations = await ChatQueries.getConversationsByOrganizationId(
       organizationId,
-      userId
+      userId,
     );
 
     const conversationIds = conversations.map((c) => c.id);
@@ -462,12 +464,12 @@ export class GdprDeletionService {
   private static async anonymizeAuditLogs(
     userId: string,
     organizationId: string,
-    anonymizedId: string
+    anonymizedId: string,
   ): Promise<void> {
     await AuditLogsQueries.anonymizeByUserId(
       userId,
       organizationId,
-      anonymizedId
+      anonymizedId,
     );
 
     logger.info("Anonymized audit logs", {
@@ -494,7 +496,7 @@ export class GdprDeletionService {
   static async cancelDeletionRequest(
     requestId: string,
     userId: string,
-    cancelledBy: string
+    cancelledBy: string,
   ): Promise<ActionResult<void>> {
     try {
       const request = await UserDeletionRequestsQueries.findById(requestId);
@@ -502,8 +504,8 @@ export class GdprDeletionService {
         return err(
           ActionErrors.notFound(
             "Deletion request not found",
-            "GdprDeletionService.cancelDeletionRequest"
-          )
+            "GdprDeletionService.cancelDeletionRequest",
+          ),
         );
       }
 
@@ -511,8 +513,8 @@ export class GdprDeletionService {
         return err(
           ActionErrors.validation(
             "Cannot cancel a completed deletion request",
-            {}
-          )
+            {},
+          ),
         );
       }
 
@@ -526,6 +528,7 @@ export class GdprDeletionService {
         userId: cancelledBy,
         organizationId: request.organizationId,
         action: "update",
+        category: "mutation",
         metadata: {
           deletionRequestId: requestId,
           status: "cancelled",
@@ -550,8 +553,8 @@ export class GdprDeletionService {
         ActionErrors.internal(
           "Failed to cancel deletion request",
           error as Error,
-          "GdprDeletionService.cancelDeletionRequest"
-        )
+          "GdprDeletionService.cancelDeletionRequest",
+        ),
       );
     }
   }
@@ -571,8 +574,8 @@ export class GdprDeletionService {
           ActionErrors.internal(
             "Failed to get authentication session",
             undefined,
-            "GdprDeletionService.getDeletionRequestStatus"
-          )
+            "GdprDeletionService.getDeletionRequestStatus",
+          ),
         );
       }
 
@@ -581,13 +584,13 @@ export class GdprDeletionService {
         return err(
           ActionErrors.unauthenticated(
             "Authentication required",
-            "GdprDeletionService.getDeletionRequestStatus"
-          )
+            "GdprDeletionService.getDeletionRequestStatus",
+          ),
         );
       }
 
       const request = await UserDeletionRequestsQueries.findByUserId(
-        authUser.id
+        authUser.id,
       );
       return ok(request);
     } catch (error) {
@@ -599,10 +602,9 @@ export class GdprDeletionService {
         ActionErrors.internal(
           "Failed to get deletion request status",
           error as Error,
-          "GdprDeletionService.getDeletionRequestStatus"
-        )
+          "GdprDeletionService.getDeletionRequestStatus",
+        ),
       );
     }
   }
 }
-

@@ -3,7 +3,6 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-import { logger } from "@/lib/logger";
 import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
@@ -11,7 +10,6 @@ import {
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { AuditLogService } from "@/server/services/audit-log.service";
 import { ProjectService } from "@/server/services/project.service";
 import { createProjectSchema } from "@/server/validation/projects/create-project";
 
@@ -21,6 +19,11 @@ import { createProjectSchema } from "@/server/validation/projects/create-project
 export const createProjectAction = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("projects:create"),
+    audit: {
+      resourceType: "project",
+      action: "create",
+      category: "mutation",
+    },
   })
   .inputSchema(createProjectSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -67,30 +70,9 @@ export const createProjectAction = authorizedActionClient
 
     const project = result.value;
 
-    // Log audit event
-    logger.audit.event("project_created", {
-      resourceType: "project",
-      resourceId: project.id,
-      userId: user.id,
-      organizationId,
-      action: "create",
-      metadata: {
-        projectName: name,
-      },
-    });
-
-    // Create audit log entry
-    await AuditLogService.createAuditLog({
-      eventType: "project_created",
-      resourceType: "project",
-      resourceId: project.id,
-      userId: user.id,
-      organizationId,
-      action: "create",
-      metadata: {
-        projectName: name,
-      },
-    });
+    // Enrich audit log via middleware
+    ctx.audit?.setResourceId(project.id);
+    ctx.audit?.setMetadata({ projectName: name });
 
     // Revalidate dashboard page to refresh stats
     revalidatePath("/");
