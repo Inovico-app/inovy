@@ -5,6 +5,7 @@ import { CreateProjectModal } from "@/features/projects/components/create-projec
 
 export const metadata: Metadata = { title: "Projects" };
 import { ProjectSearch } from "@/features/projects/components/project-search";
+import { ProjectTeamFilter } from "@/features/projects/components/project-team-filter";
 import { ProjectTabs } from "@/features/projects/components/project-tabs";
 import { formatDateShort } from "@/lib/formatters/date-formatters";
 import { getCreatorDisplayName } from "@/lib/formatters/display-formatters";
@@ -28,11 +29,13 @@ import { Suspense } from "react";
 interface ProjectsListProps {
   searchQuery?: string;
   status?: AllowedStatus;
+  teamFilter?: string;
 }
 
 async function ProjectsList({
   searchQuery,
   status = "active",
+  teamFilter,
 }: ProjectsListProps) {
   const projectsResult =
     await ProjectService.getProjectsByOrganizationWithRecordingCount(status);
@@ -51,7 +54,14 @@ async function ProjectsList({
   }
 
   // Filter projects by search query
-  const projects = filterProjectsBySearch(projectsResult.value, searchQuery);
+  let projects = filterProjectsBySearch(projectsResult.value, searchQuery);
+
+  // Filter by team
+  if (teamFilter === "__everyone__") {
+    projects = projects.filter((p) => !p.teamId);
+  } else if (teamFilter) {
+    projects = projects.filter((p) => p.teamId === teamFilter);
+  }
 
   // Resolve team names
   const authResult = await getBetterAuthSession();
@@ -161,12 +171,22 @@ async function ProjectsList({
 async function ProjectsPageContent({
   searchParamsPromise,
 }: {
-  searchParamsPromise: Promise<{ search?: string; status?: string }>;
+  searchParamsPromise: Promise<{
+    search?: string;
+    status?: string;
+    team?: string;
+  }>;
 }) {
-  const { search, status } = await searchParamsPromise;
+  const { search, status, team } = await searchParamsPromise;
   const projectStatus = (
     status === "archived" ? "archived" : "active"
   ) as AllowedStatus;
+
+  // Fetch teams for the filter dropdown
+  const authResult = await getBetterAuthSession();
+  const orgId = authResult.isOk() ? authResult.value.organization?.id : null;
+  const teamsData = orgId ? await getCachedTeamsWithMemberCounts(orgId) : [];
+  const filterTeams = teamsData.map((t) => ({ id: t.id, name: t.name }));
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -187,20 +207,25 @@ async function ProjectsPageContent({
           <ProjectTabs />
         </div>
 
-        {/* Search */}
-        <div className="mb-6">
+        {/* Search + Team Filter */}
+        <div className="flex items-center gap-4 mb-6 flex-wrap">
           <ProjectSearch />
+          <ProjectTeamFilter teams={filterTeams} />
         </div>
 
         {/* Projects List */}
-        <ProjectsList searchQuery={search} status={projectStatus} />
+        <ProjectsList
+          searchQuery={search}
+          status={projectStatus}
+          teamFilter={team}
+        />
       </div>
     </div>
   );
 }
 
 interface ProjectsPageProps {
-  searchParams: Promise<{ search?: string; status?: string }>;
+  searchParams: Promise<{ search?: string; status?: string; team?: string }>;
 }
 
 export default function ProjectsPage({ searchParams }: ProjectsPageProps) {
