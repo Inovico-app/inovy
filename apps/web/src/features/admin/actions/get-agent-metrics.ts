@@ -25,7 +25,15 @@ const getMetricsSchema = z.object({
  * Only accessible to admins
  */
 export const getAgentMetrics = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("admin:all") })
+  .metadata({
+    name: "get-agent-metrics",
+    permissions: policyToPermissions("admin:all"),
+    audit: {
+      resourceType: "settings",
+      action: "get",
+      category: "read",
+    },
+  })
   .schema(getMetricsSchema)
   .action(async ({ ctx, parsedInput }) => {
     try {
@@ -40,7 +48,7 @@ export const getAgentMetrics = authorizedActionClient
           userId,
         },
         limit,
-        offset
+        offset,
       );
 
       if (result.isErr()) {
@@ -52,9 +60,9 @@ export const getAgentMetrics = authorizedActionClient
             ActionErrors.internal(
               "Failed to get metrics",
               result.error,
-              "getAgentMetrics"
-            )
-          )
+              "getAgentMetrics",
+            ),
+          ),
         );
       }
 
@@ -66,10 +74,9 @@ export const getAgentMetrics = authorizedActionClient
           ActionErrors.internal(
             "Failed to get metrics",
             error as Error,
-            "getAgentMetrics"
-          )
-        )
+            "getAgentMetrics",
+          ),
+        ),
       );
     }
   });
-

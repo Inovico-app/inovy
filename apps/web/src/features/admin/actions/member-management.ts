@@ -20,7 +20,13 @@ import { z } from "zod";
  */
 export const inviteMember = authorizedActionClient
   .metadata({
+    name: "invite-member",
     permissions: policyToPermissions("users:update"),
+    audit: {
+      resourceType: "invitation",
+      action: "invite",
+      category: "mutation",
+    },
   })
   .inputSchema(
     z.object({
@@ -28,7 +34,7 @@ export const inviteMember = authorizedActionClient
       role: z
         .enum(["owner", "admin", "user", "viewer", "manager"])
         .default("user"),
-    })
+    }),
   )
   .action(async ({ parsedInput, ctx }) => {
     const { email, role } = parsedInput;
@@ -38,7 +44,7 @@ export const inviteMember = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "inviteMember"
+        "inviteMember",
       );
     }
 
@@ -58,9 +64,9 @@ export const inviteMember = authorizedActionClient
             ActionErrors.internal(
               "Failed to invite member",
               undefined,
-              "inviteMember"
-            )
-          )
+              "inviteMember",
+            ),
+          ),
         );
       }
 
@@ -82,9 +88,9 @@ export const inviteMember = authorizedActionClient
           err(
             ActionErrors.validation(
               "This user is already a member of the organization",
-              { context: "inviteMember" }
-            )
-          )
+              { context: "inviteMember" },
+            ),
+          ),
         );
       }
 
@@ -93,9 +99,9 @@ export const inviteMember = authorizedActionClient
           ActionErrors.internal(
             "Failed to invite member",
             error as Error,
-            "inviteMember"
-          )
-        )
+            "inviteMember",
+          ),
+        ),
       );
     }
   });
@@ -106,12 +112,18 @@ export const inviteMember = authorizedActionClient
  */
 export const removeMember = authorizedActionClient
   .metadata({
+    name: "remove-member",
     permissions: policyToPermissions("users:delete"),
+    audit: {
+      resourceType: "organization",
+      action: "delete",
+      category: "mutation",
+    },
   })
   .inputSchema(
     z.object({
       memberIdOrEmail: z.string().min(1, "Member ID or email is required"),
-    })
+    }),
   )
   .action(async ({ parsedInput, ctx }) => {
     const { memberIdOrEmail } = parsedInput;
@@ -121,7 +133,7 @@ export const removeMember = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "removeMember"
+        "removeMember",
       );
     }
 
@@ -140,9 +152,9 @@ export const removeMember = authorizedActionClient
             ActionErrors.internal(
               "Failed to remove member",
               undefined,
-              "removeMember"
-            )
-          )
+              "removeMember",
+            ),
+          ),
         );
       }
 
@@ -160,9 +172,9 @@ export const removeMember = authorizedActionClient
           ActionErrors.internal(
             "Failed to remove member",
             error as Error,
-            "removeMember"
-          )
-        )
+            "removeMember",
+          ),
+        ),
       );
     }
   });
@@ -173,13 +185,19 @@ export const removeMember = authorizedActionClient
  */
 export const updateMemberRole = authorizedActionClient
   .metadata({
+    name: "update-member-role",
     permissions: policyToPermissions("users:update"),
+    audit: {
+      resourceType: "role",
+      action: "update",
+      category: "mutation",
+    },
   })
   .inputSchema(
     z.object({
       memberId: z.string().min(1, "Member ID is required"),
       role: z.enum(["owner", "admin", "member"]),
-    })
+    }),
   )
   .action(async ({ parsedInput, ctx }) => {
     const { memberId, role } = parsedInput;
@@ -189,7 +207,7 @@ export const updateMemberRole = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "updateMemberRole"
+        "updateMemberRole",
       );
     }
 
@@ -209,9 +227,9 @@ export const updateMemberRole = authorizedActionClient
             ActionErrors.internal(
               "Failed to update member role",
               undefined,
-              "updateMemberRole"
-            )
-          )
+              "updateMemberRole",
+            ),
+          ),
         );
       }
 
@@ -229,10 +247,9 @@ export const updateMemberRole = authorizedActionClient
           ActionErrors.internal(
             "Failed to update member role",
             error as Error,
-            "updateMemberRole"
-          )
-        )
+            "updateMemberRole",
+          ),
+        ),
       );
     }
   });
-

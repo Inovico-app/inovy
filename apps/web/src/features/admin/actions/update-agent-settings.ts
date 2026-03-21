@@ -24,7 +24,13 @@ const updateAgentSettingsSchema = z.object({
 
 export const updateAgentSettings = authorizedActionClient
   .metadata({
+    name: "update-agent-settings",
     permissions: policyToPermissions("organizations:update"),
+    audit: {
+      resourceType: "settings",
+      action: "update",
+      category: "mutation",
+    },
   })
   .inputSchema(updateAgentSettingsSchema)
   .action(async ({ parsedInput }) => {
@@ -42,10 +48,9 @@ export const updateAgentSettings = authorizedActionClient
           ActionErrors.internal(
             error instanceof Error ? error.message : "Unknown error occurred",
             error,
-            "updateAgentSettings"
-          )
-        )
+            "updateAgentSettings",
+          ),
+        ),
       );
     }
   });
-

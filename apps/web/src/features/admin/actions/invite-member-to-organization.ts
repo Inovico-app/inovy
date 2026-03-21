@@ -29,7 +29,13 @@ import { z } from "zod";
  */
 export const inviteMemberToOrganization = authorizedActionClient
   .metadata({
+    name: "invite-member-to-organization",
     permissions: policyToPermissions("users:create"),
+    audit: {
+      resourceType: "invitation",
+      action: "invite",
+      category: "mutation",
+    },
   })
   .inputSchema(
     z.object({
@@ -39,7 +45,7 @@ export const inviteMemberToOrganization = authorizedActionClient
         .enum(["owner", "admin", "user", "viewer", "manager"])
         .default("user"),
       teamIds: z.array(z.string()).optional(),
-    })
+    }),
   )
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId, email, role, teamIds } = parsedInput;
@@ -51,7 +57,7 @@ export const inviteMemberToOrganization = authorizedActionClient
       const existingMembers =
         await OrganizationQueries.getMembersDirect(organizationId);
       const isAlreadyMember = existingMembers.some(
-        (m) => m.email.toLowerCase() === email.toLowerCase()
+        (m) => m.email.toLowerCase() === email.toLowerCase(),
       );
 
       if (isAlreadyMember) {
@@ -59,9 +65,9 @@ export const inviteMemberToOrganization = authorizedActionClient
           err(
             ActionErrors.validation(
               "This user is already a member of the organization",
-              { context: "inviteMemberToOrganization" }
-            )
-          )
+              { context: "inviteMemberToOrganization" },
+            ),
+          ),
         );
       }
 
@@ -81,7 +87,7 @@ export const inviteMemberToOrganization = authorizedActionClient
           if (teamIds && teamIds.length > 0) {
             await PendingTeamAssignmentsQueries.createPendingAssignments(
               result.id,
-              teamIds
+              teamIds,
             );
           }
 
@@ -104,7 +110,7 @@ export const inviteMemberToOrganization = authorizedActionClient
               success: true,
               data: result,
               pendingTeamAssignments: teamIds ?? [],
-            })
+            }),
           );
         }
       } catch (error) {
@@ -122,7 +128,7 @@ export const inviteMemberToOrganization = authorizedActionClient
             {
               organizationId,
               adminId: user.id,
-            }
+            },
           );
 
           const org = await OrganizationQueries.findByIdDirect(organizationId);
@@ -131,9 +137,9 @@ export const inviteMemberToOrganization = authorizedActionClient
               err(
                 ActionErrors.notFound(
                   "Organization",
-                  "inviteMemberToOrganization"
-                )
-              )
+                  "inviteMemberToOrganization",
+                ),
+              ),
             );
           }
 
@@ -157,7 +163,7 @@ export const inviteMemberToOrganization = authorizedActionClient
           if (teamIds && teamIds.length > 0) {
             await PendingTeamAssignmentsQueries.createPendingAssignments(
               invitationId,
-              teamIds
+              teamIds,
             );
           }
 
@@ -170,7 +176,7 @@ export const inviteMemberToOrganization = authorizedActionClient
           const teamNames =
             teamIds && teamIds.length > 0
               ? await PendingTeamAssignmentsQueries.getTeamNamesByInvitationId(
-                  invitationId
+                  invitationId,
                 )
               : [];
 
@@ -207,7 +213,7 @@ export const inviteMemberToOrganization = authorizedActionClient
                 expiresAt,
               },
               pendingTeamAssignments: teamIds ?? [],
-            })
+            }),
           );
         }
 
@@ -220,9 +226,9 @@ export const inviteMemberToOrganization = authorizedActionClient
           ActionErrors.internal(
             "Failed to invite member",
             undefined,
-            "inviteMemberToOrganization"
-          )
-        )
+            "inviteMemberToOrganization",
+          ),
+        ),
       );
     } catch (error) {
       // Check for specific Better Auth APIError codes
@@ -234,9 +240,9 @@ export const inviteMemberToOrganization = authorizedActionClient
           err(
             ActionErrors.validation(
               "This user is already a member of the organization",
-              { context: "inviteMemberToOrganization" }
-            )
-          )
+              { context: "inviteMemberToOrganization" },
+            ),
+          ),
         );
       }
 
@@ -245,9 +251,9 @@ export const inviteMemberToOrganization = authorizedActionClient
           ActionErrors.internal(
             "Failed to invite member",
             error as Error,
-            "inviteMemberToOrganization"
-          )
-        )
+            "inviteMemberToOrganization",
+          ),
+        ),
       );
     }
   });
@@ -258,14 +264,20 @@ export const inviteMemberToOrganization = authorizedActionClient
  */
 export const assignMemberToTeams = authorizedActionClient
   .metadata({
+    name: "assign-member-to-teams",
     permissions: policyToPermissions("teams:update"),
+    audit: {
+      resourceType: "team",
+      action: "assign",
+      category: "mutation",
+    },
   })
   .inputSchema(
     z.object({
       userId: z.string().min(1, "User ID is required"),
       teamIds: z.array(z.string()).min(1, "At least one team ID is required"),
       organizationId: z.string().min(1, "Organization ID is required"),
-    })
+    }),
   )
   .action(async ({ parsedInput }) => {
     const { userId, teamIds, organizationId } = parsedInput;
@@ -274,8 +286,8 @@ export const assignMemberToTeams = authorizedActionClient
       // Assign user to each team
       const results = await Promise.all(
         teamIds.map((teamId) =>
-          TeamService.assignUserToTeam(userId, teamId, "member")
-        )
+          TeamService.assignUserToTeam(userId, teamId, "member"),
+        ),
       );
 
       // Check if any assignments failed
@@ -286,9 +298,9 @@ export const assignMemberToTeams = authorizedActionClient
             ActionErrors.internal(
               `Failed to assign user to ${failures.length} team(s)`,
               undefined,
-              "assignMemberToTeams"
-            )
-          )
+              "assignMemberToTeams",
+            ),
+          ),
         );
       }
 
@@ -309,10 +321,9 @@ export const assignMemberToTeams = authorizedActionClient
           ActionErrors.internal(
             "Failed to assign member to teams",
             error as Error,
-            "assignMemberToTeams"
-          )
-        )
+            "assignMemberToTeams",
+          ),
+        ),
       );
     }
   });
-

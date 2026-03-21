@@ -19,7 +19,13 @@ import { z } from "zod";
  */
 export const deleteOrganization = authorizedActionClient
   .metadata({
+    name: "delete-organization",
     permissions: policyToPermissions("organizations:delete"),
+    audit: {
+      resourceType: "organization",
+      action: "delete",
+      category: "mutation",
+    },
   })
   .inputSchema(z.object({ id: z.string().uuid() }))
   .action(async ({ parsedInput }) => {
@@ -40,9 +46,9 @@ export const deleteOrganization = authorizedActionClient
             ActionErrors.internal(
               "Failed to delete organization",
               undefined,
-              "deleteOrganization"
-            )
-          )
+              "deleteOrganization",
+            ),
+          ),
         );
       }
 
@@ -60,10 +66,9 @@ export const deleteOrganization = authorizedActionClient
           ActionErrors.internal(
             "Failed to delete organization",
             error as Error,
-            "deleteOrganization"
-          )
-        )
+            "deleteOrganization",
+          ),
+        ),
       );
     }
   });
-

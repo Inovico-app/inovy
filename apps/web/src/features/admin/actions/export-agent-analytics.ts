@@ -23,7 +23,15 @@ const exportAnalyticsSchema = z.object({
  * Only accessible to admins
  */
 export const exportAgentAnalytics = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("admin:all") })
+  .metadata({
+    name: "export-agent-analytics",
+    permissions: policyToPermissions("admin:all"),
+    audit: {
+      resourceType: "export",
+      action: "export",
+      category: "mutation",
+    },
+  })
   .schema(exportAnalyticsSchema)
   .action(async ({ ctx, parsedInput }) => {
     try {
@@ -45,9 +53,9 @@ export const exportAgentAnalytics = authorizedActionClient
             ActionErrors.internal(
               "Failed to export analytics",
               result.error,
-              "exportAgentAnalytics"
-            )
-          )
+              "exportAgentAnalytics",
+            ),
+          ),
         );
       }
 
@@ -55,7 +63,7 @@ export const exportAgentAnalytics = authorizedActionClient
         ok({
           csv: result.value,
           filename: `agent-analytics-${startDate.toISOString().split("T")[0]}-${endDate.toISOString().split("T")[0]}.csv`,
-        })
+        }),
       );
     } catch (error) {
       logger.error("Error exporting agent analytics", {}, error as Error);
@@ -64,10 +72,9 @@ export const exportAgentAnalytics = authorizedActionClient
           ActionErrors.internal(
             "Failed to export analytics",
             error as Error,
-            "exportAgentAnalytics"
-          )
-        )
+            "exportAgentAnalytics",
+          ),
+        ),
       );
     }
   });
-

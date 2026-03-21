@@ -30,7 +30,13 @@ const updateAgentConfigSchema = z.object({
  */
 export const updateAgentConfig = authorizedActionClient
   .metadata({
+    name: "update-agent-config",
     permissions: policyToPermissions("organizations:update"),
+    audit: {
+      resourceType: "settings",
+      action: "update",
+      category: "mutation",
+    },
   })
   .inputSchema(updateAgentConfigSchema)
   .action(async ({ parsedInput }) => {
@@ -39,7 +45,7 @@ export const updateAgentConfig = authorizedActionClient
     // Update agent configuration
     const updateResult = await AgentConfigService.updateAgentConfig(
       organizationId,
-      enabled
+      enabled,
     );
 
     if (updateResult.isErr()) {
@@ -53,16 +59,15 @@ export const updateAgentConfig = authorizedActionClient
         const org = await OrganizationQueries.findByIdDirect(organizationId);
         if (!org) {
           return resultToActionResponse(
-            err(ActionErrors.notFound("Organization", "updateAgentConfig"))
+            err(ActionErrors.notFound("Organization", "updateAgentConfig")),
           );
         }
 
         // Get organization members with admin/owner roles
-        const members = await OrganizationQueries.getMembersDirect(
-          organizationId
-        );
+        const members =
+          await OrganizationQueries.getMembersDirect(organizationId);
         const adminMembers = members.filter(
-          (member) => member.role === "admin" || member.role === "owner"
+          (member) => member.role === "admin" || member.role === "owner",
         );
 
         // Send email to each admin/owner
@@ -99,4 +104,3 @@ export const updateAgentConfig = authorizedActionClient
 
     return resultToActionResponse(ok({ success: true }));
   });
-
