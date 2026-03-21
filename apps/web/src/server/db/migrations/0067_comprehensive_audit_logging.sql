@@ -49,5 +49,5 @@ ALTER TYPE "public"."audit_resource_type" ADD VALUE 'audit_log';--> statement-br
 ALTER TYPE "public"."audit_resource_type" ADD VALUE 'blob';--> statement-breakpoint
 ALTER TABLE "audit_logs" ALTER COLUMN "event_type" SET DATA TYPE text;--> statement-breakpoint
 ALTER TABLE "audit_logs" ALTER COLUMN "resource_id" SET DATA TYPE text;--> statement-breakpoint
-ALTER TABLE "audit_logs" ADD COLUMN "category" "audit_category" NOT NULL;--> statement-breakpoint
+ALTER TABLE "audit_logs" ADD COLUMN "category" "audit_category" NOT NULL DEFAULT 'mutation';--> statement-breakpoint
 DROP TYPE "public"."audit_event_type";
