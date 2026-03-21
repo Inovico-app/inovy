@@ -14,7 +14,7 @@ export const updateProjectSchema = z.object({
       `Description must be less than ${PROJECT_DESCRIPTION_MAX_LENGTH} characters`,
     )
     .optional(),
-  teamId: z.string().uuid().nullable().optional(),
+  teamId: z.string().nullable().optional(),
 });
 
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
