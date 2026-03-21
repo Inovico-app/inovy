@@ -15,7 +15,15 @@ import { cancelBotSessionSchema } from "@/server/validation/bot/cancel-bot-sessi
  * Can cancel sessions in scheduled or joining status
  */
 export const cancelBotSession = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:delete") })
+  .metadata({
+    name: "cancel-bot-session",
+    permissions: policyToPermissions("recordings:delete"),
+    audit: {
+      resourceType: "bot_session",
+      action: "cancel",
+      category: "mutation",
+    },
+  })
   .schema(cancelBotSessionSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { sessionId } = parsedInput;

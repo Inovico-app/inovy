@@ -16,7 +16,11 @@ const getMicrosoftIntegrationStatusSchema = z.object({
  * Get recent Microsoft integration actions
  */
 export const getMicrosoftIntegrationStatus = authorizedActionClient
-  .metadata({ permissions: Permissions.integration.manage })
+  .metadata({
+    name: "get-microsoft-integration-status",
+    permissions: Permissions.integration.manage,
+    audit: { resourceType: "integration", action: "get", category: "read" },
+  })
   .schema(getMicrosoftIntegrationStatusSchema.optional())
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;
@@ -83,7 +87,15 @@ const retryMicrosoftFailedActionSchema = z.object({
  * Retry a failed Microsoft integration action
  */
 export const retryMicrosoftFailedAction = authorizedActionClient
-  .metadata({ permissions: Permissions.integration.manage })
+  .metadata({
+    name: "retry-microsoft-failed-action",
+    permissions: Permissions.integration.manage,
+    audit: {
+      resourceType: "integration",
+      action: "retry",
+      category: "mutation",
+    },
+  })
   .schema(retryMicrosoftFailedActionSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;

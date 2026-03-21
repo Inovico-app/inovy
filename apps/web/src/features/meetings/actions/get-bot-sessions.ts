@@ -15,7 +15,15 @@ const getBotSessionsSchema = z.object({
  * Get bot sessions for calendar event IDs
  */
 export const getBotSessions = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:read") })
+  .metadata({
+    name: "get-bot-sessions",
+    permissions: policyToPermissions("recordings:read"),
+    audit: {
+      resourceType: "bot_session",
+      action: "list",
+      category: "read",
+    },
+  })
   .schema(getBotSessionsSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId } = ctx;
@@ -37,7 +45,7 @@ export const getBotSessions = authorizedActionClient
 
     const sessionsMap = await BotSessionsQueries.findByCalendarEventIds(
       calendarEventIds,
-      organizationId
+      organizationId,
     );
 
     // Convert Map to plain object for serialization

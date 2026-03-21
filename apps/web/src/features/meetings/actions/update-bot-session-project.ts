@@ -19,6 +19,11 @@ export const updateBotSessionProject = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:create"),
     name: "update-bot-session-project",
+    audit: {
+      resourceType: "bot_session",
+      action: "update",
+      category: "mutation",
+    },
   })
   .schema(updateBotSessionProjectSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -34,12 +39,15 @@ export const updateBotSessionProject = authorizedActionClient
 
     const { sessionId, projectId } = parsedInput;
 
-    const session = await BotSessionsQueries.findById(sessionId, organizationId);
+    const session = await BotSessionsQueries.findById(
+      sessionId,
+      organizationId,
+    );
 
     if (!session) {
       throw ActionErrors.notFound(
         "Bot session not found",
-        "update-bot-session-project"
+        "update-bot-session-project",
       );
     }
 
@@ -47,14 +55,18 @@ export const updateBotSessionProject = authorizedActionClient
       throw ActionErrors.forbidden(
         "You can only update your own bot sessions",
         undefined,
-        "update-bot-session-project"
+        "update-bot-session-project",
       );
     }
 
-    if (!EDITABLE_BOT_STATUSES.includes(session.botStatus as (typeof EDITABLE_BOT_STATUSES)[number])) {
+    if (
+      !EDITABLE_BOT_STATUSES.includes(
+        session.botStatus as (typeof EDITABLE_BOT_STATUSES)[number],
+      )
+    ) {
       throw ActionErrors.badRequest(
         `Cannot update project when bot status is ${session.botStatus}. Only scheduled or failed sessions can be updated.`,
-        "update-bot-session-project"
+        "update-bot-session-project",
       );
     }
 
@@ -63,14 +75,14 @@ export const updateBotSessionProject = authorizedActionClient
     if (!project) {
       throw ActionErrors.notFound(
         "Project not found",
-        "update-bot-session-project"
+        "update-bot-session-project",
       );
     }
 
     if (project.status !== "active") {
       throw ActionErrors.badRequest(
         "Can only assign bot sessions to active projects",
-        "update-bot-session-project"
+        "update-bot-session-project",
       );
     }
 
@@ -81,17 +93,15 @@ export const updateBotSessionProject = authorizedActionClient
       projectId,
     });
 
-    const updated = await BotSessionsQueries.update(
-      sessionId,
-      organizationId,
-      { projectId }
-    );
+    const updated = await BotSessionsQueries.update(sessionId, organizationId, {
+      projectId,
+    });
 
     if (!updated) {
       throw ActionErrors.internal(
         "Failed to update bot session",
         undefined,
-        "update-bot-session-project"
+        "update-bot-session-project",
       );
     }
 

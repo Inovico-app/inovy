@@ -11,7 +11,15 @@ import { z } from "zod";
  * Get Microsoft connection status for current user
  */
 export const getMicrosoftConnectionStatus = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:read") })
+  .metadata({
+    name: "get-microsoft-connection-status",
+    permissions: policyToPermissions("settings:read"),
+    audit: {
+      resourceType: "integration",
+      action: "get",
+      category: "read",
+    },
+  })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { user } = ctx;

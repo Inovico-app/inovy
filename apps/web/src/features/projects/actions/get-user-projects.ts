@@ -1,6 +1,8 @@
 "use server";
 
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
+import { AuditLogService } from "@/server/services/audit-log.service";
 import { ProjectService } from "@/server/services/project.service";
 
 /**
@@ -33,6 +35,23 @@ export async function getUserProjects(): Promise<{
       name: project.name,
     }));
 
+    const authResult = await getBetterAuthSession();
+    if (authResult.isOk()) {
+      const { user, organization } = authResult.value;
+      if (user?.id && organization?.id) {
+        void AuditLogService.createAuditLog({
+          eventType: "project_list",
+          resourceType: "project",
+          resourceId: null,
+          userId: user.id,
+          organizationId: organization.id,
+          action: "list",
+          category: "read",
+          metadata: { actionName: "getUserProjects" },
+        });
+      }
+    }
+
     return {
       success: true,
       data: projects,
@@ -49,4 +68,3 @@ export async function getUserProjects(): Promise<{
     };
   }
 }
-

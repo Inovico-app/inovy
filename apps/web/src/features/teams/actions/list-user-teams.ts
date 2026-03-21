@@ -25,7 +25,11 @@ export interface UserTeamsData {
 const listUserTeamsSchema = z.object({});
 
 export const listUserTeamsAction = authorizedActionClient
-  .metadata({ permissions: {} })
+  .metadata({
+    name: "list-user-teams",
+    permissions: {},
+    audit: { resourceType: "team", action: "list", category: "read" },
+  })
   .inputSchema(listUserTeamsSchema)
   .action(async ({ ctx }) => {
     try {

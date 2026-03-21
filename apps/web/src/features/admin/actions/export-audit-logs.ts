@@ -25,9 +25,16 @@ const exportAuditLogsSchema = z.object({
  * Returns audit logs in CSV or JSON format
  */
 export const exportAuditLogs = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("admin:all") })
+  .metadata({
+    permissions: policyToPermissions("admin:all"),
+    audit: {
+      resourceType: "audit_log",
+      action: "export",
+      category: "mutation",
+    },
+  })
   .inputSchema(exportAuditLogsSchema)
-  .action(async ({ parsedInput }) => {
+  .action(async ({ parsedInput, ctx }) => {
     try {
       const authResult = await getBetterAuthSession();
 
@@ -59,7 +66,7 @@ export const exportAuditLogs = authorizedActionClient
 
       const result = await AuditLogService.getAuditLogs(
         organization.id,
-        filters
+        filters,
       );
 
       if (result.isErr()) {
@@ -68,21 +75,12 @@ export const exportAuditLogs = authorizedActionClient
 
       const { logs } = result.value;
 
-      // Log the export event
-      if (authResult.value.user) {
-        await AuditLogService.createAuditLog({
-          eventType: "audit_log_exported",
-          resourceType: "export",
-          userId: authResult.value.user.id,
-          organizationId: organization.id,
-          action: "export",
-          metadata: {
-            format: parsedInput.format,
-            count: logs.length,
-            filters: parsedInput,
-          },
-        });
-      }
+      // Enrich audit log via middleware
+      ctx.audit?.setMetadata({
+        format: parsedInput.format,
+        count: logs.length,
+        filters: parsedInput,
+      });
 
       if (parsedInput.format === "csv") {
         // Convert to CSV
@@ -115,7 +113,9 @@ export const exportAuditLogs = authorizedActionClient
         const csvContent = [
           headers.join(","),
           ...rows.map((row) =>
-            row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+            row
+              .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+              .join(","),
           ),
         ].join("\n");
 
@@ -137,4 +137,3 @@ export const exportAuditLogs = authorizedActionClient
       throw new Error("Failed to export audit logs");
     }
   });
-

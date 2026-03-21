@@ -25,7 +25,7 @@ const updateOrganizationSchema = z.object({
     .max(50)
     .regex(
       /^[a-z0-9-]+$/,
-      "Slug must contain only lowercase letters, numbers, and hyphens"
+      "Slug must contain only lowercase letters, numbers, and hyphens",
     )
     .optional(),
   logo: z.string().url().optional().or(z.literal("")),
@@ -37,7 +37,13 @@ const updateOrganizationSchema = z.object({
  */
 export const updateOrganization = authorizedActionClient
   .metadata({
+    name: "update-organization",
     permissions: policyToPermissions("organizations:update"),
+    audit: {
+      resourceType: "organization",
+      action: "update",
+      category: "mutation",
+    },
   })
   .inputSchema(updateOrganizationSchema)
   .action(async ({ parsedInput }) => {
@@ -63,9 +69,9 @@ export const updateOrganization = authorizedActionClient
             ActionErrors.internal(
               "Failed to update organization",
               undefined,
-              "updateOrganization"
-            )
-          )
+              "updateOrganization",
+            ),
+          ),
         );
       }
 
@@ -83,7 +89,7 @@ export const updateOrganization = authorizedActionClient
           name: result.name,
           slug: result.slug,
           logo: result.logo,
-        })
+        }),
       );
     } catch (error) {
       // Check if it's a slug uniqueness error
@@ -98,9 +104,9 @@ export const updateOrganization = authorizedActionClient
           err(
             ActionErrors.validation(
               "This slug is already taken. Please choose a different one.",
-              { context: "updateOrganization" }
-            )
-          )
+              { context: "updateOrganization" },
+            ),
+          ),
         );
       }
 
@@ -109,10 +115,9 @@ export const updateOrganization = authorizedActionClient
           ActionErrors.internal(
             "Failed to update organization",
             error as Error,
-            "updateOrganization"
-          )
-        )
+            "updateOrganization",
+          ),
+        ),
       );
     }
   });
-

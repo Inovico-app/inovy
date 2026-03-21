@@ -1,13 +1,11 @@
 "use server";
 
-import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { AuditLogService } from "@/server/services/audit-log.service";
 import { ProjectService } from "@/server/services/project.service";
 import { updateProjectSchema } from "@/server/validation/projects/update-project";
 
@@ -17,6 +15,11 @@ import { updateProjectSchema } from "@/server/validation/projects/update-project
 export const updateProjectAction = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("projects:update"),
+    audit: {
+      resourceType: "project",
+      action: "update",
+      category: "mutation",
+    },
   })
   .inputSchema(updateProjectSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -44,31 +47,11 @@ export const updateProjectAction = authorizedActionClient
 
     const project = result.value;
 
-    // Log audit event
-    logger.audit.event("project_updated", {
-      resourceType: "project",
-      resourceId: projectId,
-      userId: ctx.user?.id ?? "unknown",
-      organizationId,
-      action: "update",
-      metadata: {
-        projectName: project.name,
-        updatedFields: { name, description, teamId },
-      },
-    });
-
-    // Create audit log entry
-    await AuditLogService.createAuditLog({
-      eventType: "project_updated",
-      resourceType: "project",
-      resourceId: projectId,
-      userId: ctx.user?.id ?? "unknown",
-      organizationId,
-      action: "update",
-      metadata: {
-        projectName: project.name,
-        updatedFields: { name, description, teamId },
-      },
+    // Enrich audit log via middleware
+    ctx.audit?.setResourceId(projectId);
+    ctx.audit?.setMetadata({
+      projectName: project.name,
+      updatedFields: { name, description, teamId },
     });
 
     // Convert Result to action response (throws if error)

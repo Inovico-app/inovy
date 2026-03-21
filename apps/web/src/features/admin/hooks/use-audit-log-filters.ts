@@ -8,6 +8,7 @@ interface AuditLogFiltersState {
   resourceId: string | undefined;
   startDate: string | undefined;
   endDate: string | undefined;
+  category: string;
 }
 
 type AuditLogFiltersAction =
@@ -18,6 +19,7 @@ type AuditLogFiltersAction =
   | { type: "SET_RESOURCE_ID"; payload: string | undefined }
   | { type: "SET_START_DATE"; payload: string | undefined }
   | { type: "SET_END_DATE"; payload: string | undefined }
+  | { type: "SET_CATEGORY"; payload: string }
   | { type: "CLEAR_FILTERS" };
 
 const initialState: AuditLogFiltersState = {
@@ -28,11 +30,12 @@ const initialState: AuditLogFiltersState = {
   resourceId: undefined,
   startDate: undefined,
   endDate: undefined,
+  category: "mutation",
 };
 
 function auditLogFiltersReducer(
   state: AuditLogFiltersState,
-  action: AuditLogFiltersAction
+  action: AuditLogFiltersAction,
 ): AuditLogFiltersState {
   switch (action.type) {
     case "SET_EVENT_TYPES":
@@ -49,6 +52,8 @@ function auditLogFiltersReducer(
       return { ...state, startDate: action.payload };
     case "SET_END_DATE":
       return { ...state, endDate: action.payload };
+    case "SET_CATEGORY":
+      return { ...state, category: action.payload };
     case "CLEAR_FILTERS":
       return initialState;
     default:
@@ -65,10 +70,13 @@ interface UseAuditLogFiltersOptions {
     resourceId?: string;
     startDate?: string;
     endDate?: string;
+    category?: string;
   };
 }
 
-export function useAuditLogFilters({ initialFilters }: UseAuditLogFiltersOptions = {}) {
+export function useAuditLogFilters({
+  initialFilters,
+}: UseAuditLogFiltersOptions = {}) {
   const [filters, dispatch] = useReducer(auditLogFiltersReducer, {
     eventTypes: initialFilters?.eventType
       ? initialFilters.eventType.split(",").filter(Boolean)
@@ -83,44 +91,57 @@ export function useAuditLogFilters({ initialFilters }: UseAuditLogFiltersOptions
     resourceId: initialFilters?.resourceId,
     startDate: initialFilters?.startDate,
     endDate: initialFilters?.endDate,
+    category: initialFilters?.category ?? "mutation",
   });
 
   const setEventTypes = useCallback(
     (types: string[]) => dispatch({ type: "SET_EVENT_TYPES", payload: types }),
-    []
+    [],
   );
 
   const setResourceTypes = useCallback(
-    (types: string[]) => dispatch({ type: "SET_RESOURCE_TYPES", payload: types }),
-    []
+    (types: string[]) =>
+      dispatch({ type: "SET_RESOURCE_TYPES", payload: types }),
+    [],
   );
 
   const setActions = useCallback(
     (acts: string[]) => dispatch({ type: "SET_ACTIONS", payload: acts }),
-    []
+    [],
   );
 
   const setUserId = useCallback(
     (id: string | undefined) => dispatch({ type: "SET_USER_ID", payload: id }),
-    []
+    [],
   );
 
   const setResourceId = useCallback(
-    (id: string | undefined) => dispatch({ type: "SET_RESOURCE_ID", payload: id }),
-    []
+    (id: string | undefined) =>
+      dispatch({ type: "SET_RESOURCE_ID", payload: id }),
+    [],
   );
 
   const setStartDate = useCallback(
-    (date: string | undefined) => dispatch({ type: "SET_START_DATE", payload: date }),
-    []
+    (date: string | undefined) =>
+      dispatch({ type: "SET_START_DATE", payload: date }),
+    [],
   );
 
   const setEndDate = useCallback(
-    (date: string | undefined) => dispatch({ type: "SET_END_DATE", payload: date }),
-    []
+    (date: string | undefined) =>
+      dispatch({ type: "SET_END_DATE", payload: date }),
+    [],
   );
 
-  const clearFilters = useCallback(() => dispatch({ type: "CLEAR_FILTERS" }), []);
+  const setCategory = useCallback(
+    (cat: string) => dispatch({ type: "SET_CATEGORY", payload: cat }),
+    [],
+  );
+
+  const clearFilters = useCallback(
+    () => dispatch({ type: "CLEAR_FILTERS" }),
+    [],
+  );
 
   return {
     filters,
@@ -133,5 +154,6 @@ export function useAuditLogFilters({ initialFilters }: UseAuditLogFiltersOptions
     setResourceId,
     setStartDate,
     setEndDate,
+    setCategory,
   };
 }

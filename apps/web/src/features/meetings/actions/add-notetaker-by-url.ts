@@ -28,6 +28,11 @@ export const addNotetakerByUrl = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:create"),
     name: "add-notetaker-by-url",
+    audit: {
+      resourceType: "bot_session",
+      action: "create",
+      category: "mutation",
+    },
   })
   .schema(addNotetakerByUrlSchema)
   .action(async ({ parsedInput, ctx }) => {

@@ -30,7 +30,15 @@ const updateOnboardingSchema = z.object({
  */
 export const completeOnboardingAction = authorizedActionClient
   .inputSchema(updateOnboardingSchema)
-  .metadata({ permissions: { onboarding: ["complete"] }, name: "complete-onboarding" })
+  .metadata({
+    permissions: { onboarding: ["complete"] },
+    name: "complete-onboarding",
+    audit: {
+      resourceType: "onboarding",
+      action: "complete",
+      category: "mutation",
+    },
+  })
   .action(async ({ parsedInput, ctx }) => {
     const {
       onboardingId,
@@ -46,7 +54,7 @@ export const completeOnboardingAction = authorizedActionClient
 
     if (!userId) {
       throw createErrorForNextSafeAction(
-        ActionErrors.unauthenticated("User not found")
+        ActionErrors.unauthenticated("User not found"),
       );
     }
 
@@ -61,7 +69,7 @@ export const completeOnboardingAction = authorizedActionClient
     const onboarding = onboardingResult.value;
     if (!onboarding || onboarding.id !== onboardingId) {
       throw createErrorForNextSafeAction(
-        ActionErrors.forbidden("Onboarding record not found or access denied")
+        ActionErrors.forbidden("Onboarding record not found or access denied"),
       );
     }
 
@@ -75,17 +83,17 @@ export const completeOnboardingAction = authorizedActionClient
             name: name.trim(),
             onboardingCompleted: true,
           },
-          requestHeaders
+          requestHeaders,
         );
 
         if (!updatedUser) {
           throw createErrorForNextSafeAction(
-            ActionErrors.internal("Failed to update user name")
+            ActionErrors.internal("Failed to update user name"),
           );
         }
       } catch (error) {
         throw createErrorForNextSafeAction(
-          ActionErrors.internal("Failed to update user name", error as Error)
+          ActionErrors.internal("Failed to update user name", error as Error),
         );
       }
     }
@@ -99,8 +107,8 @@ export const completeOnboardingAction = authorizedActionClient
         ActionErrors.internal(
           "User organization not found. Please contact support.",
           undefined,
-          "completeOnboardingAction"
-        )
+          "completeOnboardingAction",
+        ),
       );
     }
 
@@ -118,7 +126,7 @@ export const completeOnboardingAction = authorizedActionClient
     // Mark onboarding as completed (also updates user's onboardingCompleted status)
     const updateResult = await OnboardingService.updateOnboardingCompleted(
       onboardingId,
-      true
+      true,
     );
 
     if (updateResult.isErr()) {
@@ -141,11 +149,16 @@ export const createOnboardingRecordAction = authorizedActionClient
         "magic_link",
         "passkey",
       ]),
-    })
+    }),
   )
   .metadata({
     permissions: { onboarding: ["create"] },
     name: "create-onboarding-record",
+    audit: {
+      resourceType: "onboarding",
+      action: "create",
+      category: "mutation",
+    },
   })
   .action(async ({ parsedInput, ctx }) => {
     const { signupMethod } = parsedInput;
@@ -153,7 +166,7 @@ export const createOnboardingRecordAction = authorizedActionClient
 
     if (!userId) {
       throw createErrorForNextSafeAction(
-        ActionErrors.unauthenticated("User not found")
+        ActionErrors.unauthenticated("User not found"),
       );
     }
 
@@ -190,7 +203,15 @@ export const createOnboardingRecordAction = authorizedActionClient
  */
 export const updateOnboardingDataAction = authorizedActionClient
   .inputSchema(updateOnboardingSchema)
-  .metadata({ permissions: { onboarding: ["update"] }, name: "update-onboarding-data" })
+  .metadata({
+    permissions: { onboarding: ["update"] },
+    name: "update-onboarding-data",
+    audit: {
+      resourceType: "onboarding",
+      action: "update",
+      category: "mutation",
+    },
+  })
   .action(async ({ parsedInput, ctx }) => {
     const {
       onboardingId,
@@ -207,7 +228,7 @@ export const updateOnboardingDataAction = authorizedActionClient
 
     if (!userId) {
       throw createErrorForNextSafeAction(
-        ActionErrors.unauthenticated("User not found")
+        ActionErrors.unauthenticated("User not found"),
       );
     }
 
@@ -217,14 +238,14 @@ export const updateOnboardingDataAction = authorizedActionClient
 
     if (onboardingResult.isErr()) {
       throw createErrorForNextSafeAction(
-        ActionErrors.notFound("Onboarding", "updateOnboardingDataAction")
+        ActionErrors.notFound("Onboarding", "updateOnboardingDataAction"),
       );
     }
 
     const onboarding = onboardingResult.value;
     if (!onboarding || onboarding.id !== onboardingId) {
       throw createErrorForNextSafeAction(
-        ActionErrors.forbidden("Onboarding record not found or access denied")
+        ActionErrors.forbidden("Onboarding record not found or access denied"),
       );
     }
 
@@ -237,17 +258,17 @@ export const updateOnboardingDataAction = authorizedActionClient
           {
             name: name.trim(),
           },
-          requestHeaders
+          requestHeaders,
         );
 
         if (!updatedUser) {
           throw createErrorForNextSafeAction(
-            ActionErrors.internal("Failed to update user name")
+            ActionErrors.internal("Failed to update user name"),
           );
         }
       } catch (error) {
         throw createErrorForNextSafeAction(
-          ActionErrors.internal("Failed to update user name", error as Error)
+          ActionErrors.internal("Failed to update user name", error as Error),
         );
       }
     }
@@ -264,15 +285,15 @@ export const updateOnboardingDataAction = authorizedActionClient
             ActionErrors.internal(
               "User organization not found. Please contact support.",
               undefined,
-              "updateOnboardingDataAction"
-            )
+              "updateOnboardingDataAction",
+            ),
           );
         }
 
         // Get current organization to preserve slug
         const currentOrg = await OrganizationQueries.findById(
           organizationId,
-          requestHeaders
+          requestHeaders,
         );
 
         if (!currentOrg) {
@@ -280,8 +301,8 @@ export const updateOnboardingDataAction = authorizedActionClient
             ActionErrors.internal(
               "Organization not found",
               undefined,
-              "updateOnboardingDataAction"
-            )
+              "updateOnboardingDataAction",
+            ),
           );
         }
 
@@ -301,8 +322,8 @@ export const updateOnboardingDataAction = authorizedActionClient
           ActionErrors.internal(
             "Failed to update organization name",
             error as Error,
-            "updateOnboardingDataAction"
-          )
+            "updateOnboardingDataAction",
+          ),
         );
       }
     }
@@ -319,4 +340,3 @@ export const updateOnboardingDataAction = authorizedActionClient
 
     return { success: true };
   });
-

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-import { logger } from "@/lib/logger";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
@@ -21,6 +21,11 @@ import { createProjectSchema } from "@/server/validation/projects/create-project
 export const createProjectAction = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("projects:create"),
+    audit: {
+      resourceType: "project",
+      action: "create",
+      category: "mutation",
+    },
   })
   .inputSchema(createProjectSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -67,30 +72,9 @@ export const createProjectAction = authorizedActionClient
 
     const project = result.value;
 
-    // Log audit event
-    logger.audit.event("project_created", {
-      resourceType: "project",
-      resourceId: project.id,
-      userId: user.id,
-      organizationId,
-      action: "create",
-      metadata: {
-        projectName: name,
-      },
-    });
-
-    // Create audit log entry
-    await AuditLogService.createAuditLog({
-      eventType: "project_created",
-      resourceType: "project",
-      resourceId: project.id,
-      userId: user.id,
-      organizationId,
-      action: "create",
-      metadata: {
-        projectName: name,
-      },
-    });
+    // Enrich audit log via middleware
+    ctx.audit?.setResourceId(project.id);
+    ctx.audit?.setMetadata({ projectName: name });
 
     // Revalidate dashboard page to refresh stats
     revalidatePath("/");
@@ -128,6 +112,23 @@ export async function createProjectFormAction(
   }
 
   if (result?.data?.id) {
+    const authResult = await getBetterAuthSession();
+    if (authResult.isOk()) {
+      const { user, organization } = authResult.value;
+      if (user?.id && organization?.id) {
+        void AuditLogService.createAuditLog({
+          eventType: "project_create",
+          resourceType: "project",
+          resourceId: result.data.id,
+          userId: user.id,
+          organizationId: organization.id,
+          action: "create",
+          category: "mutation",
+          metadata: { actionName: "createProjectFormAction" },
+        });
+      }
+    }
+
     redirect(`/projects/${result.data.id}`);
   } else {
     throw new Error("Failed to create project");

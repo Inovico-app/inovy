@@ -11,7 +11,15 @@ import { z } from "zod";
  * Get user's calendars from the connected calendar provider (Google or Microsoft).
  */
 export const getCalendars = authorizedActionClient
-  .metadata({ permissions: Permissions.integration.manage })
+  .metadata({
+    name: "get-calendars",
+    permissions: Permissions.integration.manage,
+    audit: {
+      resourceType: "calendar",
+      action: "list",
+      category: "read",
+    },
+  })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { user } = ctx;

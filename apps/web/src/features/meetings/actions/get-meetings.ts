@@ -18,7 +18,15 @@ const getMeetingsSchema = z.object({
  * Uses the factory to resolve the connected calendar provider (Google or Microsoft).
  */
 export const getMeetings = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:read") })
+  .metadata({
+    name: "get-meetings",
+    permissions: policyToPermissions("recordings:read"),
+    audit: {
+      resourceType: "meeting",
+      action: "list",
+      category: "read",
+    },
+  })
   .schema(getMeetingsSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;

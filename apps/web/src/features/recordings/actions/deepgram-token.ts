@@ -9,6 +9,11 @@ export const getDeepgramTokenAction = authorizedActionClient
   .metadata({
     permissions: { deepgram: ["token"] },
     name: "get-deepgram-token",
+    audit: {
+      resourceType: "recording",
+      action: "get",
+      category: "read",
+    },
   })
   .action(async ({ ctx }) => {
     const { user, organizationId } = ctx;

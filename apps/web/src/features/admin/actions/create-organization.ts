@@ -24,7 +24,7 @@ const createOrganizationSchema = z.object({
     .max(50)
     .regex(
       /^[a-z0-9-]+$/,
-      "Slug must contain only lowercase letters, numbers, and hyphens"
+      "Slug must contain only lowercase letters, numbers, and hyphens",
     ),
   logo: z.url().optional(),
 });
@@ -37,6 +37,11 @@ export const createOrganization = authorizedActionClient
   .metadata({
     name: "create-organization",
     permissions: policyToPermissions("organizations:create"),
+    audit: {
+      resourceType: "organization",
+      action: "create",
+      category: "mutation",
+    },
   })
   .inputSchema(createOrganizationSchema)
   .action(async ({ parsedInput }) => {
@@ -59,9 +64,9 @@ export const createOrganization = authorizedActionClient
             ActionErrors.internal(
               "Failed to create organization",
               undefined,
-              "createOrganization"
-            )
-          )
+              "createOrganization",
+            ),
+          ),
         );
       }
 
@@ -77,7 +82,7 @@ export const createOrganization = authorizedActionClient
           name: result.name,
           slug: result.slug,
           logo: result.logo,
-        })
+        }),
       );
     } catch (error) {
       // Check if it's a slug uniqueness error
@@ -92,9 +97,9 @@ export const createOrganization = authorizedActionClient
           err(
             ActionErrors.validation(
               "This slug is already taken. Please choose a different one.",
-              { context: "createOrganization" }
-            )
-          )
+              { context: "createOrganization" },
+            ),
+          ),
         );
       }
 
@@ -103,9 +108,9 @@ export const createOrganization = authorizedActionClient
           ActionErrors.internal(
             "Failed to create organization",
             error as Error,
-            "createOrganization"
-          )
-        )
+            "createOrganization",
+          ),
+        ),
       );
     }
   });
@@ -115,7 +120,13 @@ export const createOrganization = authorizedActionClient
  */
 export const checkOrganizationSlug = authorizedActionClient
   .metadata({
+    name: "check-organization-slug",
     permissions: policyToPermissions("organizations:create"),
+    audit: {
+      resourceType: "organization",
+      action: "check",
+      category: "read",
+    },
   })
   .inputSchema(z.object({ slug: z.string().min(1) }))
   .action(async ({ parsedInput }) => {
@@ -131,7 +142,7 @@ export const checkOrganizationSlug = authorizedActionClient
       return resultToActionResponse(
         ok({
           available: !result?.status,
-        })
+        }),
       );
     } catch (error) {
       return resultToActionResponse(
@@ -139,10 +150,9 @@ export const checkOrganizationSlug = authorizedActionClient
           ActionErrors.internal(
             "Failed to check slug availability",
             error as Error,
-            "checkOrganizationSlug"
-          )
-        )
+            "checkOrganizationSlug",
+          ),
+        ),
       );
     }
   });
-

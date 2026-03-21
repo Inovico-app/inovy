@@ -18,14 +18,22 @@ export type UpdateUserNotesInput = z.infer<typeof updateUserNotesSchema>;
  * Server action to update user notes for a recording summary
  */
 export const updateUserNotes = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:update") })
+  .metadata({
+    name: "update-user-notes",
+    permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "recording",
+      action: "update",
+      category: "mutation",
+    },
+  })
   .schema(updateUserNotesSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;
 
     if (!user || !organizationId) {
       throw ActionErrors.unauthenticated(
-        "User and organization context required"
+        "User and organization context required",
       );
     }
 
@@ -33,14 +41,14 @@ export const updateUserNotes = authorizedActionClient
       parsedInput.recordingId,
       parsedInput.userNotes,
       user.id,
-      organizationId
+      organizationId,
     );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "update-user-notes"
+        "update-user-notes",
       );
     }
 
@@ -49,4 +57,3 @@ export const updateUserNotes = authorizedActionClient
 
     return { success: true };
   });
-

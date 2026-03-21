@@ -9,6 +9,7 @@ export const getDeepgramClientTokenAction = authorizedActionClient
   .metadata({
     permissions: { deepgram: ["token"] },
     name: "get-deepgram-client-token",
+    audit: { resourceType: "recording", action: "get", category: "read" },
   })
   .action(async ({ ctx }) => {
     const { user, organizationId } = ctx;
@@ -16,7 +17,7 @@ export const getDeepgramClientTokenAction = authorizedActionClient
     if (!user || !organizationId) {
       throw ActionErrors.unauthenticated(
         "User or organization not found",
-        "getDeepgramClientTokenAction"
+        "getDeepgramClientTokenAction",
       );
     }
 
@@ -39,7 +40,7 @@ export const getDeepgramClientTokenAction = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to generate temporary Deepgram token",
         tokenError,
-        "getDeepgramClientTokenAction"
+        "getDeepgramClientTokenAction",
       );
     }
 
@@ -47,7 +48,7 @@ export const getDeepgramClientTokenAction = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to generate temporary token. Make sure the API key is of scope Member or higher.",
         undefined,
-        "getDeepgramClientTokenAction"
+        "getDeepgramClientTokenAction",
       );
     }
 

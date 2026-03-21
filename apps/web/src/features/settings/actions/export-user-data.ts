@@ -13,7 +13,15 @@ import { z } from "zod";
  * Server action to request a GDPR data export
  */
 export const requestDataExport = authorizedActionClient
-  .metadata({ permissions: Permissions.setting.read })
+  .metadata({
+    name: "request-data-export",
+    permissions: Permissions.setting.read,
+    audit: {
+      resourceType: "data_export",
+      action: "export",
+      category: "mutation",
+    },
+  })
   .schema(exportUserDataSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;
@@ -26,7 +34,7 @@ export const requestDataExport = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         { userId: user.id },
-        "requestDataExport"
+        "requestDataExport",
       );
     }
 
@@ -52,14 +60,14 @@ export const requestDataExport = authorizedActionClient
       const result = await GdprExportService.createExportRequest(
         user.id,
         organizationId,
-        filters
+        filters,
       );
 
       if (result.isErr()) {
         throw ActionErrors.internal(
           result.error.message,
           result.error.cause as Error,
-          "requestDataExport"
+          "requestDataExport",
         );
       }
 
@@ -79,7 +87,7 @@ export const requestDataExport = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to request data export. Please try again.",
         error as Error,
-        "requestDataExport"
+        "requestDataExport",
       );
     }
   });
@@ -88,7 +96,11 @@ export const requestDataExport = authorizedActionClient
  * Server action to get user's export history
  */
 export const getExportHistory = authorizedActionClient
-  .metadata({ permissions: Permissions.setting.read })
+  .metadata({
+    name: "get-export-history",
+    permissions: Permissions.setting.read,
+    audit: { resourceType: "data_export", action: "list", category: "read" },
+  })
   .inputSchema(z.object({}))
   .action(async ({ ctx }) => {
     const { user, organizationId } = ctx;
@@ -101,21 +113,21 @@ export const getExportHistory = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         { userId: user.id },
-        "getExportHistory"
+        "getExportHistory",
       );
     }
 
     try {
       const result = await GdprExportService.getExportsByUserId(
         user.id,
-        organizationId
+        organizationId,
       );
 
       if (result.isErr()) {
         throw ActionErrors.internal(
           result.error.message,
           result.error.cause as Error,
-          "getExportHistory"
+          "getExportHistory",
         );
       }
 
@@ -132,8 +144,7 @@ export const getExportHistory = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to get export history",
         error as Error,
-        "getExportHistory"
+        "getExportHistory",
       );
     }
   });
-

@@ -19,7 +19,13 @@ const getEntriesByIdsInputSchema = z.object({
  */
 export const getKnowledgeEntriesByIdsAction = authorizedActionClient
   .metadata({
+    name: "get-knowledge-entries-by-ids",
     permissions: policyToPermissions("projects:read"), // Read access required
+    audit: {
+      resourceType: "knowledge_base",
+      action: "read",
+      category: "read",
+    },
   })
   .inputSchema(getEntriesByIdsInputSchema)
   .action(async ({ parsedInput }) => {
@@ -27,11 +33,11 @@ export const getKnowledgeEntriesByIdsAction = authorizedActionClient
 
     try {
       const entries = await Promise.all(
-        ids.map((id) => KnowledgeBaseEntriesQueries.getEntryById(id))
+        ids.map((id) => KnowledgeBaseEntriesQueries.getEntryById(id)),
       );
 
       const validEntries = entries.filter(
-        (entry): entry is NonNullable<typeof entry> => entry !== null
+        (entry): entry is NonNullable<typeof entry> => entry !== null,
       );
 
       return resultToActionResponse(ok(validEntries));
@@ -39,8 +45,7 @@ export const getKnowledgeEntriesByIdsAction = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to fetch knowledge entries",
         error as Error,
-        "get-knowledge-entries-by-ids"
+        "get-knowledge-entries-by-ids",
       );
     }
   });
-

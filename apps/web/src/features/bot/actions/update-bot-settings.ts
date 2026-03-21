@@ -12,7 +12,15 @@ import { botSettingsSchema } from "@/server/validation/bot/bot-settings.schema";
  * Server action to update bot settings
  */
 export const updateBotSettings = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:update") })
+  .metadata({
+    name: "update-bot-settings",
+    permissions: policyToPermissions("settings:update"),
+    audit: {
+      resourceType: "bot_settings",
+      action: "update",
+      category: "mutation",
+    },
+  })
   .schema(botSettingsSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;

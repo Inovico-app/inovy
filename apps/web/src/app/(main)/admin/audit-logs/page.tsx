@@ -25,6 +25,7 @@ interface AuditLogsPageProps {
     endDate?: string;
     limit?: string;
     offset?: string;
+    category?: string;
   }>;
 }
 
@@ -52,6 +53,14 @@ async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
 
   const params = await searchParams;
 
+  const categoryParam = params.category ?? "mutation";
+  const categoryFilter: AuditLogFilters["category"] =
+    categoryParam === "all" || categoryParam === undefined
+      ? undefined
+      : categoryParam === "mutation" || categoryParam === "read"
+        ? [categoryParam]
+        : undefined;
+
   const filters: AuditLogFilters = {
     userId: params.userId ?? undefined,
     eventType: params.eventType
@@ -63,6 +72,7 @@ async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
     action: params.action
       ? (params.action.split(",") as AuditLogFilters["action"])
       : undefined,
+    category: categoryFilter,
     resourceId: params.resourceId ?? undefined,
     startDate: params.startDate ? new Date(params.startDate) : undefined,
     endDate: params.endDate ? new Date(params.endDate) : undefined,
@@ -93,7 +103,10 @@ async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <AuditLogViewer initialData={auditLogs} initialFilters={params} />
+          <AuditLogViewer
+            initialData={auditLogs}
+            initialFilters={{ ...params, category: categoryParam }}
+          />
         </CardContent>
       </Card>
     </div>
@@ -128,4 +141,3 @@ export default function AuditLogsPage(props: AuditLogsPageProps) {
     </Suspense>
   );
 }
-

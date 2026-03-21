@@ -10,7 +10,15 @@ import { z } from "zod";
  * Return which calendar providers (google / microsoft) the current user has connected.
  */
 export const getConnectedCalendarProviders = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:read") })
+  .metadata({
+    name: "get-connected-calendar-providers",
+    permissions: policyToPermissions("settings:read"),
+    audit: {
+      resourceType: "integration",
+      action: "list",
+      category: "read",
+    },
+  })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { user } = ctx;

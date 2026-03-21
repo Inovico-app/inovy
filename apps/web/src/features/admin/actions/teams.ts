@@ -22,7 +22,13 @@ import {
  */
 export const createTeam = authorizedActionClient
   .metadata({
+    name: "create-team",
     permissions: policyToPermissions("teams:create"),
+    audit: {
+      resourceType: "team",
+      action: "create",
+      category: "mutation",
+    },
   })
   .inputSchema(createTeamSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -57,7 +63,13 @@ export const createTeam = authorizedActionClient
  */
 export const updateTeam = authorizedActionClient
   .metadata({
+    name: "update-team",
     permissions: policyToPermissions("teams:update"),
+    audit: {
+      resourceType: "team",
+      action: "update",
+      category: "mutation",
+    },
   })
   .inputSchema(updateTeamSchema.extend({ id: z.string().min(1) }))
   .action(async ({ parsedInput, ctx }) => {
@@ -100,7 +112,13 @@ export const updateTeam = authorizedActionClient
  */
 export const deleteTeam = authorizedActionClient
   .metadata({
+    name: "delete-team",
     permissions: policyToPermissions("teams:delete"),
+    audit: {
+      resourceType: "team",
+      action: "delete",
+      category: "mutation",
+    },
   })
   .inputSchema(z.object({ id: z.string().min(1) }))
   .action(async ({ parsedInput, ctx }) => {
@@ -130,7 +148,13 @@ export const deleteTeam = authorizedActionClient
  */
 export const assignUserToTeam = authorizedActionClient
   .metadata({
+    name: "assign-user-to-team",
     permissions: policyToPermissions("teams:update"),
+    audit: {
+      resourceType: "team",
+      action: "assign",
+      category: "mutation",
+    },
   })
   .inputSchema(assignUserToTeamSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -161,7 +185,13 @@ export const assignUserToTeam = authorizedActionClient
  */
 export const removeUserFromTeam = authorizedActionClient
   .metadata({
+    name: "remove-user-from-team",
     permissions: policyToPermissions("teams:update"),
+    audit: {
+      resourceType: "team",
+      action: "unassign",
+      category: "mutation",
+    },
   })
   .inputSchema(
     z.object({
@@ -197,7 +227,13 @@ export const removeUserFromTeam = authorizedActionClient
  */
 export const updateUserTeamRole = authorizedActionClient
   .metadata({
+    name: "update-user-team-role",
     permissions: policyToPermissions("teams:update"),
+    audit: {
+      resourceType: "role",
+      action: "update",
+      category: "mutation",
+    },
   })
   .inputSchema(updateUserTeamRoleSchema)
   .action(async ({ parsedInput, ctx }) => {

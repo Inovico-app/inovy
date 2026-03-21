@@ -18,7 +18,11 @@ const createTagSchema = z.object({
  * Server action to create a new tag
  */
 export const createTag = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("tasks:create") })
+  .metadata({
+    name: "create-tag",
+    permissions: policyToPermissions("tasks:create"),
+    audit: { resourceType: "task", action: "create", category: "mutation" },
+  })
   .schema(createTagSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId } = ctx;
@@ -37,10 +41,9 @@ export const createTag = authorizedActionClient
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "create-tag"
+        "create-tag",
       );
     }
 
     return result.value;
   });
-

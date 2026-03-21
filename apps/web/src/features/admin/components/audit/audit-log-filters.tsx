@@ -15,6 +15,8 @@ import { useArrayToggle } from "@/hooks/use-array-toggle";
 import { X } from "lucide-react";
 
 interface AuditLogFiltersProps {
+  category: string;
+  onCategoryChange: (category: string) => void;
   eventTypes: string[];
   onEventTypesChange: (eventTypes: string[]) => void;
   resourceTypes: string[];
@@ -31,6 +33,12 @@ interface AuditLogFiltersProps {
   onEndDateChange: (endDate: string) => void;
   onClearFilters: () => void;
 }
+
+const CATEGORY_OPTIONS = [
+  { value: "mutation", label: "Mutations" },
+  { value: "read", label: "Reads" },
+  { value: "all", label: "All" },
+] as const;
 
 const EVENT_TYPE_OPTIONS = [
   { value: "recording_viewed", label: "Recording Viewed" },
@@ -55,16 +63,30 @@ const EVENT_TYPE_OPTIONS = [
 ];
 
 const RESOURCE_TYPE_OPTIONS = [
-  { value: "recording", label: "Recording" },
-  { value: "task", label: "Task" },
-  { value: "user", label: "User" },
-  { value: "project", label: "Project" },
-  { value: "organization", label: "Organization" },
-  { value: "permission", label: "Permission" },
-  { value: "role", label: "Role" },
-  { value: "export", label: "Export" },
-  { value: "integration", label: "Integration" },
-  { value: "settings", label: "Settings" },
+  { value: "meeting", label: "Meeting" },
+  { value: "bot_session", label: "Bot Session" },
+  { value: "bot_settings", label: "Bot Settings" },
+  { value: "bot_subscription", label: "Bot Subscription" },
+  { value: "notification", label: "Notification" },
+  { value: "team", label: "Team" },
+  { value: "onboarding", label: "Onboarding" },
+  { value: "auto_action", label: "Auto Action" },
+  { value: "agenda", label: "Agenda" },
+  { value: "agenda_template", label: "Agenda Template" },
+  { value: "share_token", label: "Share Token" },
+  { value: "drive_watch", label: "Drive Watch" },
+  { value: "knowledge_base_document", label: "Knowledge Base Document" },
+  { value: "project_template", label: "Project Template" },
+  { value: "redaction", label: "Redaction" },
+  { value: "privacy_request", label: "Privacy Request" },
+  { value: "data_export", label: "Data Export" },
+  { value: "invitation", label: "Invitation" },
+  { value: "calendar", label: "Calendar" },
+  { value: "audit_log", label: "Audit Log" },
+  { value: "blob", label: "Blob" },
+  { value: "consent", label: "Consent" },
+  { value: "knowledge_base", label: "Knowledge Base" },
+  { value: "chat", label: "Chat" },
 ];
 
 const ACTION_OPTIONS = [
@@ -75,6 +97,41 @@ const ACTION_OPTIONS = [
   { value: "export", label: "Export" },
   { value: "grant", label: "Grant" },
   { value: "revoke", label: "Revoke" },
+  { value: "start", label: "Start" },
+  { value: "cancel", label: "Cancel" },
+  { value: "retry", label: "Retry" },
+  { value: "subscribe", label: "Subscribe" },
+  { value: "unsubscribe", label: "Unsubscribe" },
+  { value: "complete", label: "Complete" },
+  { value: "uncomplete", label: "Uncomplete" },
+  { value: "move", label: "Move" },
+  { value: "reprocess", label: "Reprocess" },
+  { value: "upload", label: "Upload" },
+  { value: "download", label: "Download" },
+  { value: "redact", label: "Redact" },
+  { value: "invite", label: "Invite" },
+  { value: "accept", label: "Accept" },
+  { value: "reject", label: "Reject" },
+  { value: "mark_read", label: "Mark Read" },
+  { value: "generate", label: "Generate" },
+  { value: "login", label: "Login" },
+  { value: "logout", label: "Logout" },
+  { value: "verify", label: "Verify" },
+  { value: "reset", label: "Reset" },
+  { value: "list", label: "List" },
+  { value: "get", label: "Get" },
+  { value: "search", label: "Search" },
+  { value: "detect", label: "Detect" },
+  { value: "apply", label: "Apply" },
+  { value: "check", label: "Check" },
+  { value: "import", label: "Import" },
+  { value: "archive", label: "Archive" },
+  { value: "restore", label: "Restore" },
+  { value: "assign", label: "Assign" },
+  { value: "unassign", label: "Unassign" },
+  { value: "connect", label: "Connect" },
+  { value: "disconnect", label: "Disconnect" },
+  { value: "sync", label: "Sync" },
 ];
 
 const EVENT_TYPE_ITEMS = Object.fromEntries(
@@ -90,6 +147,8 @@ const ACTION_ITEMS = Object.fromEntries(
 );
 
 export function AuditLogFilters({
+  category,
+  onCategoryChange,
   eventTypes,
   onEventTypesChange,
   resourceTypes,
@@ -141,6 +200,26 @@ export function AuditLogFilters({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label>Category</Label>
+          <div className="flex rounded-md border border-input overflow-hidden">
+            {CATEGORY_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onCategoryChange(option.value)}
+                className={`flex-1 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+                  category === option.value
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-foreground hover:bg-muted"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="event-type">Event Type</Label>
           <Select

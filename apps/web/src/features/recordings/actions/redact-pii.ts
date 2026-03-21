@@ -22,7 +22,13 @@ import { z } from "zod";
  */
 export const detectPIIAction = authorizedActionClient
   .metadata({
+    name: "detect-pii",
     permissions: policyToPermissions("recordings:read"),
+    audit: {
+      resourceType: "redaction",
+      action: "detect",
+      category: "read",
+    },
   })
   .inputSchema(detectPIISchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -37,14 +43,14 @@ export const detectPIIAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "detect-pii"
+        "detect-pii",
       );
     }
 
     const result = await RedactionService.detectPII(
       recordingId,
       organizationId,
-      minConfidence
+      minConfidence,
     );
 
     if (result.isErr()) {
@@ -59,7 +65,13 @@ export const detectPIIAction = authorizedActionClient
  */
 export const createRedactionAction = authorizedActionClient
   .metadata({
+    name: "create-redaction",
     permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "redaction",
+      action: "create",
+      category: "mutation",
+    },
   })
   .inputSchema(createRedactionSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -74,7 +86,7 @@ export const createRedactionAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "create-redaction"
+        "create-redaction",
       );
     }
 
@@ -84,7 +96,7 @@ export const createRedactionAction = authorizedActionClient
         ...redactionData,
       },
       user.id,
-      organizationId
+      organizationId,
     );
 
     if (result.isErr()) {
@@ -102,7 +114,13 @@ export const createRedactionAction = authorizedActionClient
  */
 export const createBulkRedactionsAction = authorizedActionClient
   .metadata({
+    name: "create-bulk-redactions",
     permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "redaction",
+      action: "create",
+      category: "mutation",
+    },
   })
   .inputSchema(bulkRedactionSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -112,7 +130,7 @@ export const createBulkRedactionsAction = authorizedActionClient
     if (!user) {
       throw ActionErrors.unauthenticated(
         "User not found",
-        "create-bulk-redactions"
+        "create-bulk-redactions",
       );
     }
 
@@ -120,7 +138,7 @@ export const createBulkRedactionsAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "create-bulk-redactions"
+        "create-bulk-redactions",
       );
     }
 
@@ -130,7 +148,7 @@ export const createBulkRedactionsAction = authorizedActionClient
         redactions,
       },
       user.id,
-      organizationId
+      organizationId,
     );
 
     if (result.isErr()) {
@@ -148,7 +166,13 @@ export const createBulkRedactionsAction = authorizedActionClient
  */
 export const getRedactionsAction = authorizedActionClient
   .metadata({
+    name: "get-redactions",
     permissions: policyToPermissions("recordings:read"),
+    audit: {
+      resourceType: "redaction",
+      action: "list",
+      category: "read",
+    },
   })
   .inputSchema(z.object({ recordingId: z.string().uuid() }))
   .action(async ({ parsedInput, ctx }) => {
@@ -159,13 +183,13 @@ export const getRedactionsAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "get-redactions"
+        "get-redactions",
       );
     }
 
     const result = await RedactionService.getRedactions(
       recordingId,
-      organizationId
+      organizationId,
     );
 
     if (result.isErr()) {
@@ -180,7 +204,13 @@ export const getRedactionsAction = authorizedActionClient
  */
 export const deleteRedactionAction = authorizedActionClient
   .metadata({
+    name: "delete-redaction",
     permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "redaction",
+      action: "delete",
+      category: "mutation",
+    },
   })
   .inputSchema(z.object({ redactionId: z.string().uuid() }))
   .action(async ({ parsedInput, ctx }) => {
@@ -191,13 +221,13 @@ export const deleteRedactionAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "delete-redaction"
+        "delete-redaction",
       );
     }
 
     const result = await RedactionService.deleteRedaction(
       redactionId,
-      organizationId
+      organizationId,
     );
 
     if (result.isErr()) {
@@ -215,7 +245,13 @@ export const deleteRedactionAction = authorizedActionClient
  */
 export const applyAutomaticRedactionsAction = authorizedActionClient
   .metadata({
+    name: "apply-automatic-redactions",
     permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "redaction",
+      action: "apply",
+      category: "mutation",
+    },
   })
   .inputSchema(applyAutomaticRedactionsSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -225,7 +261,7 @@ export const applyAutomaticRedactionsAction = authorizedActionClient
     if (!user) {
       throw ActionErrors.unauthenticated(
         "User not found",
-        "apply-automatic-redactions"
+        "apply-automatic-redactions",
       );
     }
 
@@ -233,7 +269,7 @@ export const applyAutomaticRedactionsAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "apply-automatic-redactions"
+        "apply-automatic-redactions",
       );
     }
 
@@ -241,7 +277,7 @@ export const applyAutomaticRedactionsAction = authorizedActionClient
       recordingId,
       user.id,
       organizationId,
-      minConfidence
+      minConfidence,
     );
 
     if (result.isErr()) {
@@ -253,4 +289,3 @@ export const applyAutomaticRedactionsAction = authorizedActionClient
 
     return resultToActionResponse(result);
   });
-

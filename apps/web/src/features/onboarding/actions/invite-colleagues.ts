@@ -22,7 +22,15 @@ const inviteColleaguesSchema = z.object({
  */
 export const inviteColleaguesAction = authorizedActionClient
   .inputSchema(inviteColleaguesSchema)
-  .metadata({ permissions: { invitation: ["create"] }, name: "invite-colleagues" })
+  .metadata({
+    permissions: { invitation: ["create"] },
+    name: "invite-colleagues",
+    audit: {
+      resourceType: "invitation",
+      action: "invite",
+      category: "mutation",
+    },
+  })
   .action(async ({ parsedInput, ctx }) => {
     const { emails } = parsedInput;
     const userId = ctx.user?.id;
@@ -33,7 +41,7 @@ export const inviteColleaguesAction = authorizedActionClient
         action: "inviteColleaguesAction",
       });
       throw createErrorForNextSafeAction(
-        ActionErrors.unauthenticated("User not found")
+        ActionErrors.unauthenticated("User not found"),
       );
     }
 
@@ -55,14 +63,14 @@ export const inviteColleaguesAction = authorizedActionClient
           action: "inviteColleaguesAction",
           requestId,
           userIdHash: anonymizeUserId(userId),
-        }
+        },
       );
       throw createErrorForNextSafeAction(
         ActionErrors.internal(
           "User organization not found. Please contact support.",
           undefined,
-          "inviteColleaguesAction"
-        )
+          "inviteColleaguesAction",
+        ),
       );
     }
 
@@ -83,7 +91,7 @@ export const inviteColleaguesAction = authorizedActionClient
       throw createErrorForNextSafeAction(
         ActionErrors.validation("No valid email addresses found", {
           context: "inviteColleaguesAction",
-        })
+        }),
       );
     }
 
@@ -104,8 +112,8 @@ export const inviteColleaguesAction = authorizedActionClient
       throw createErrorForNextSafeAction(
         ActionErrors.validation(
           `Invalid email addresses: ${invalidEmails.join(", ")}`,
-          { context: "inviteColleaguesAction" }
-        )
+          { context: "inviteColleaguesAction" },
+        ),
       );
     }
 
@@ -148,7 +156,7 @@ export const inviteColleaguesAction = authorizedActionClient
             "Onboarding invite colleagues: invitation creation returned empty result",
             {
               emailHash,
-            }
+            },
           );
           results.push({
             email,
@@ -180,7 +188,7 @@ export const inviteColleaguesAction = authorizedActionClient
               errorCode,
               errorDetails: serializeError(error),
             },
-            error instanceof Error ? error : undefined
+            error instanceof Error ? error : undefined,
           );
           results.push({
             email,
@@ -207,4 +215,3 @@ export const inviteColleaguesAction = authorizedActionClient
       failureCount,
     };
   });
-

@@ -16,7 +16,13 @@ import { revalidatePath } from "next/cache";
  */
 export const deleteKnowledgeDocumentAction = authorizedActionClient
   .metadata({
+    name: "delete-knowledge-document",
     permissions: policyToPermissions("projects:update"), // Project knowledge requires project access
+    audit: {
+      resourceType: "knowledge_base_document",
+      action: "delete",
+      category: "mutation",
+    },
   })
   .inputSchema(deleteKnowledgeDocumentSchema)
   .action(async ({ parsedInput, ctx }) => {

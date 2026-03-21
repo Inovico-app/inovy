@@ -15,7 +15,11 @@ import { z } from "zod";
  * Get organization settings - accessible to all organization members
  */
 export const getOrganizationSettings = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:read") })
+  .metadata({
+    name: "get-organization-settings",
+    permissions: policyToPermissions("settings:read"),
+    audit: { resourceType: "organization", action: "get", category: "read" },
+  })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { organizationId } = ctx;
@@ -31,7 +35,7 @@ export const getOrganizationSettings = authorizedActionClient
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "get-organization-settings"
+        "get-organization-settings",
       );
     }
 
@@ -42,7 +46,15 @@ export const getOrganizationSettings = authorizedActionClient
  * Update organization settings - admin only
  */
 export const updateOrganizationSettings = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:update") })
+  .metadata({
+    name: "update-organization-settings",
+    permissions: policyToPermissions("settings:update"),
+    audit: {
+      resourceType: "organization",
+      action: "update",
+      category: "mutation",
+    },
+  })
   .schema(updateOrganizationSettingsSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId, user } = ctx;
@@ -58,7 +70,7 @@ export const updateOrganizationSettings = authorizedActionClient
     // Check if user is admin
     if (!isOrganizationAdmin(user)) {
       throw ActionErrors.forbidden(
-        "You must be an administrator to update organization settings"
+        "You must be an administrator to update organization settings",
       );
     }
 
@@ -67,7 +79,7 @@ export const updateOrganizationSettings = authorizedActionClient
       assertOrganizationAccess(
         parsedInput.organizationId,
         organizationId,
-        "updateOrganizationSettings"
+        "updateOrganizationSettings",
       );
     } catch (error) {
       throw ActionErrors.forbidden("Organization ID mismatch");
@@ -76,14 +88,14 @@ export const updateOrganizationSettings = authorizedActionClient
     const result = await OrganizationSettingsService.updateOrganizationSettings(
       organizationId,
       parsedInput.instructions,
-      user.id
+      user.id,
     );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "update-organization-settings"
+        "update-organization-settings",
       );
     }
 
@@ -94,14 +106,14 @@ export const updateOrganizationSettings = authorizedActionClient
       .reindexOrganizationInstructions(
         organizationId,
         parsedInput.instructions,
-        result.value.id
+        result.value.id,
       )
       .then((indexResult) => {
         if (indexResult.isErr()) {
           logger.error(
             "Failed to reindex organization instructions after update",
             { orgCode: organizationId },
-            indexResult.error as unknown as Error
+            indexResult.error as unknown as Error,
           );
         } else {
           logger.info("Successfully reindexed organization instructions", {
@@ -112,4 +124,3 @@ export const updateOrganizationSettings = authorizedActionClient
 
     return result.value;
   });
-

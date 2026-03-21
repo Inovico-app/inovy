@@ -23,7 +23,15 @@ const exportMetricsSchema = z.object({
  * Only accessible to admins
  */
 export const exportAgentMetrics = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("admin:all") })
+  .metadata({
+    name: "export-agent-metrics",
+    permissions: policyToPermissions("admin:all"),
+    audit: {
+      resourceType: "export",
+      action: "export",
+      category: "mutation",
+    },
+  })
   .schema(exportMetricsSchema)
   .action(async ({ ctx, parsedInput }) => {
     try {
@@ -45,9 +53,9 @@ export const exportAgentMetrics = authorizedActionClient
             ActionErrors.internal(
               "Failed to export metrics",
               result.error,
-              "exportAgentMetrics"
-            )
-          )
+              "exportAgentMetrics",
+            ),
+          ),
         );
       }
 
@@ -55,7 +63,7 @@ export const exportAgentMetrics = authorizedActionClient
         ok({
           csv: result.value,
           filename: `agent-metrics-${startDate.toISOString().split("T")[0]}-${endDate.toISOString().split("T")[0]}.csv`,
-        })
+        }),
       );
     } catch (error) {
       logger.error("Error exporting agent metrics", {}, error as Error);
@@ -64,10 +72,9 @@ export const exportAgentMetrics = authorizedActionClient
           ActionErrors.internal(
             "Failed to export metrics",
             error as Error,
-            "exportAgentMetrics"
-          )
-        )
+            "exportAgentMetrics",
+          ),
+        ),
       );
     }
   });
-

@@ -24,7 +24,13 @@ const uploadDocumentInputSchema = uploadKnowledgeDocumentSchema.safeExtend({
 
 export const uploadKnowledgeDocumentAction = authorizedActionClient
   .metadata({
+    name: "upload-knowledge-document",
     permissions: policyToPermissions("projects:update"), // Project knowledge requires project access
+    audit: {
+      resourceType: "knowledge_base_document",
+      action: "upload",
+      category: "mutation",
+    },
   })
   .inputSchema(uploadDocumentInputSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -139,7 +145,13 @@ const uploadDocumentsBatchInputSchema = z
 
 export const uploadKnowledgeDocumentsBatchAction = authorizedActionClient
   .metadata({
+    name: "upload-knowledge-documents-batch",
     permissions: policyToPermissions("projects:update"), // Project knowledge requires project access
+    audit: {
+      resourceType: "knowledge_base_document",
+      action: "upload",
+      category: "mutation",
+    },
   })
   .inputSchema(uploadDocumentsBatchInputSchema)
   .action(async ({ parsedInput, ctx }) => {

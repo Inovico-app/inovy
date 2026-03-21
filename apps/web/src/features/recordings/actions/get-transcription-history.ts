@@ -13,7 +13,15 @@ const getTranscriptionHistorySchema = z.object({
  * Server action to get transcription version history
  */
 export const getTranscriptionHistory = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:read") })
+  .metadata({
+    name: "get-transcription-history",
+    permissions: policyToPermissions("recordings:read"),
+    audit: {
+      resourceType: "recording",
+      action: "read",
+      category: "read",
+    },
+  })
   .schema(getTranscriptionHistorySchema)
   .action(async ({ parsedInput, ctx }) => {
     if (!ctx.organizationId) {
@@ -22,7 +30,7 @@ export const getTranscriptionHistory = authorizedActionClient
 
     const result = await TranscriptionEditService.getTranscriptionHistory(
       parsedInput.recordingId,
-      ctx.organizationId
+      ctx.organizationId,
     );
 
     if (result.isErr()) {
@@ -31,4 +39,3 @@ export const getTranscriptionHistory = authorizedActionClient
 
     return result.value;
   });
-

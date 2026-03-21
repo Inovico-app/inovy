@@ -19,6 +19,11 @@ export const updateMeetingDetails = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:create"),
     name: "update-meeting-details",
+    audit: {
+      resourceType: "meeting",
+      action: "update",
+      category: "mutation",
+    },
   })
   .schema(updateMeetingDetailsSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -36,16 +41,23 @@ export const updateMeetingDetails = authorizedActionClient
 
     if (hasConnection.isErr() || !hasConnection.value) {
       throw ActionErrors.badRequest(
-        "Google account not connected. Please connect in settings first."
+        "Google account not connected. Please connect in settings first.",
       );
     }
 
     const { calendarEventId, title, start, end, addMeetLinkIfMissing } =
       parsedInput;
 
-    if (start !== undefined && end !== undefined && end.getTime() <= start.getTime()) {
+    if (
+      start !== undefined &&
+      end !== undefined &&
+      end.getTime() <= start.getTime()
+    ) {
       throw createErrorForNextSafeAction(
-        ActionErrors.badRequest("End must be after start", "update-meeting-details")
+        ActionErrors.badRequest(
+          "End must be after start",
+          "update-meeting-details",
+        ),
       );
     }
 
@@ -63,7 +75,7 @@ export const updateMeetingDetails = authorizedActionClient
         start,
         end,
         addMeetLinkIfMissing,
-      }
+      },
     );
 
     if (result.isErr()) {

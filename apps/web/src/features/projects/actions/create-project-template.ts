@@ -17,7 +17,13 @@ import { createProjectTemplateSchema } from "../../../server/validation/project-
  */
 export const createProjectTemplateAction = authorizedActionClient
   .metadata({
+    name: "create-project-template",
     permissions: policyToPermissions("projects:update"),
+    audit: {
+      resourceType: "project_template",
+      action: "create",
+      category: "mutation",
+    },
   })
   .inputSchema(createProjectTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -27,7 +33,7 @@ export const createProjectTemplateAction = authorizedActionClient
     if (!user) {
       throw ActionErrors.unauthenticated(
         "User not found in context",
-        "create-project-template"
+        "create-project-template",
       );
     }
 
@@ -38,7 +44,7 @@ export const createProjectTemplateAction = authorizedActionClient
     const result = await ProjectTemplateService.createProjectTemplate(
       { projectId, instructions },
       user,
-      orgCode
+      orgCode,
     );
 
     // Revalidate project page
@@ -49,4 +55,3 @@ export const createProjectTemplateAction = authorizedActionClient
 
     return resultToActionResponse(result);
   });
-

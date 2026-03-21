@@ -20,7 +20,13 @@ const invalidateCacheByModelSchema = z.object({
  */
 export const invalidateEmbeddingCache = authorizedActionClient
   .metadata({
+    name: "invalidate-embedding-cache",
     permissions: policyToPermissions("admin:all"),
+    audit: {
+      resourceType: "settings",
+      action: "update",
+      category: "mutation",
+    },
   })
   .action(async () => {
     try {
@@ -31,13 +37,13 @@ export const invalidateEmbeddingCache = authorizedActionClient
           success: true,
           deletedCount,
           message: `Successfully invalidated ${deletedCount} cache entries`,
-        })
+        }),
       );
     } catch (error) {
       throw ActionErrors.internal(
         "Failed to invalidate embedding cache",
         error as Error,
-        "invalidateEmbeddingCache"
+        "invalidateEmbeddingCache",
       );
     }
   });
@@ -48,7 +54,13 @@ export const invalidateEmbeddingCache = authorizedActionClient
  */
 export const invalidateEmbeddingCacheByModel = authorizedActionClient
   .metadata({
+    name: "invalidate-embedding-cache-by-model",
     permissions: policyToPermissions("admin:all"),
+    audit: {
+      resourceType: "settings",
+      action: "update",
+      category: "mutation",
+    },
   })
   .inputSchema(invalidateCacheByModelSchema)
   .action(async ({ parsedInput }) => {
@@ -64,13 +76,13 @@ export const invalidateEmbeddingCacheByModel = authorizedActionClient
           deletedCount,
           model,
           message: `Successfully invalidated ${deletedCount} cache entries for model ${model}`,
-        })
+        }),
       );
     } catch (error) {
       throw ActionErrors.internal(
         `Failed to invalidate embedding cache for model ${model}`,
         error as Error,
-        "invalidateEmbeddingCacheByModel"
+        "invalidateEmbeddingCacheByModel",
       );
     }
   });
@@ -81,7 +93,13 @@ export const invalidateEmbeddingCacheByModel = authorizedActionClient
  */
 export const getEmbeddingCacheStats = authorizedActionClient
   .metadata({
+    name: "get-embedding-cache-stats",
     permissions: policyToPermissions("admin:all"),
+    audit: {
+      resourceType: "settings",
+      action: "get",
+      category: "read",
+    },
   })
   .action(async () => {
     try {
@@ -92,8 +110,7 @@ export const getEmbeddingCacheStats = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to get embedding cache statistics",
         error as Error,
-        "getEmbeddingCacheStats"
+        "getEmbeddingCacheStats",
       );
     }
   });
-

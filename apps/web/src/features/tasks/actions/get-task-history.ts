@@ -10,7 +10,11 @@ import { z } from "zod";
  * Returns audit trail of all changes made to a task
  */
 export const getTaskHistory = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("tasks:read") })
+  .metadata({
+    name: "get-task-history",
+    permissions: policyToPermissions("tasks:read"),
+    audit: { resourceType: "task", action: "read", category: "read" },
+  })
   .schema(z.object({ taskId: z.string().uuid() }))
   .action(async ({ parsedInput }) => {
     const result = await TaskService.getTaskHistory(parsedInput.taskId);
@@ -21,4 +25,3 @@ export const getTaskHistory = authorizedActionClient
 
     return result.value;
   });
-

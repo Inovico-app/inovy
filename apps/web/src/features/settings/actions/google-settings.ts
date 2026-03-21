@@ -18,7 +18,11 @@ const getGoogleSettingsSchema = z.object({
  * Get Google integration settings
  */
 export const getGoogleSettings = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:read") })
+  .metadata({
+    name: "get-google-settings",
+    permissions: policyToPermissions("settings:read"),
+    audit: { resourceType: "integration", action: "get", category: "read" },
+  })
   .schema(getGoogleSettingsSchema.optional())
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -30,14 +34,14 @@ export const getGoogleSettings = authorizedActionClient
     const result = await IntegrationSettingsService.getSettings(
       user.id,
       "google",
-      parsedInput?.projectId
+      parsedInput?.projectId,
     );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "get-google-settings"
+        "get-google-settings",
       );
     }
 
@@ -64,7 +68,15 @@ export const getGoogleSettings = authorizedActionClient
  * Update Google integration settings
  */
 export const updateGoogleSettings = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:update") })
+  .metadata({
+    name: "update-google-settings",
+    permissions: policyToPermissions("settings:update"),
+    audit: {
+      resourceType: "integration",
+      action: "update",
+      category: "mutation",
+    },
+  })
   .schema(updateGoogleSettingsSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -87,14 +99,14 @@ export const updateGoogleSettings = authorizedActionClient
         autoEmailEnabled: parsedInput.autoEmailEnabled,
         defaultEventDuration: parsedInput.defaultEventDuration,
         taskPriorityFilter: parsedInput.taskPriorityFilter,
-      }
+      },
     );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "update-google-settings"
+        "update-google-settings",
       );
     }
 
@@ -119,7 +131,15 @@ const resetGoogleSettingsSchema = z.object({
  * Reset Google integration settings to defaults
  */
 export const resetGoogleSettings = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:update") })
+  .metadata({
+    name: "reset-google-settings",
+    permissions: policyToPermissions("settings:update"),
+    audit: {
+      resourceType: "integration",
+      action: "reset",
+      category: "mutation",
+    },
+  })
   .schema(resetGoogleSettingsSchema.optional())
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
@@ -131,14 +151,14 @@ export const resetGoogleSettings = authorizedActionClient
     const result = await IntegrationSettingsService.deleteSettings(
       user.id,
       "google",
-      parsedInput?.projectId
+      parsedInput?.projectId,
     );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
         result.error.message,
         result.error,
-        "reset-google-settings"
+        "reset-google-settings",
       );
     }
 
@@ -149,4 +169,3 @@ export const resetGoogleSettings = authorizedActionClient
 
     return { success: true };
   });
-

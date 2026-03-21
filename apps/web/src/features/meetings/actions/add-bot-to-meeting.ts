@@ -33,6 +33,11 @@ export const addBotToMeeting = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:create"),
     name: "add-bot-to-meeting",
+    audit: {
+      resourceType: "bot_session",
+      action: "create",
+      category: "mutation",
+    },
   })
   .schema(addBotToMeetingSchema)
   .action(async ({ parsedInput, ctx }) => {

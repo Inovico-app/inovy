@@ -74,6 +74,7 @@ export class PrivacyRequestService {
         userId,
         organizationId,
         action: "create",
+        category: "mutation",
         metadata: {
           privacyRequestType: type,
           scope,
@@ -144,6 +145,7 @@ export class PrivacyRequestService {
         userId,
         organizationId,
         action: "update",
+        category: "mutation",
         metadata: {
           privacyRequestType: request.type,
           scope: request.scope,

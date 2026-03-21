@@ -19,7 +19,11 @@ export interface OrganizationMember {
  * Server action to get organization members
  */
 export const getOrgMembers = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("tasks:read") })
+  .metadata({
+    name: "get-organization-members",
+    permissions: policyToPermissions("tasks:read"),
+    audit: { resourceType: "user", action: "list", category: "read" },
+  })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { organizationId } = ctx;
@@ -41,7 +45,7 @@ export const getOrgMembers = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to fetch organization members",
         membersResult.error,
-        "get-org-members"
+        "get-org-members",
       );
     }
 
@@ -59,4 +63,3 @@ export const getOrgMembers = authorizedActionClient
 
     return members;
   });
-

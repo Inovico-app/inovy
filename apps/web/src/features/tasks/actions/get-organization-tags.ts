@@ -10,7 +10,11 @@ import { z } from "zod";
  * Server action to get all tags for the organization
  */
 export const getOrganizationTags = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("tasks:read") })
+  .metadata({
+    name: "get-organization-tags",
+    permissions: policyToPermissions("tasks:read"),
+    audit: { resourceType: "task", action: "list", category: "read" },
+  })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { organizationId } = ctx;
@@ -25,10 +29,9 @@ export const getOrganizationTags = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to fetch tags",
         result.error,
-        "get-organization-tags"
+        "get-organization-tags",
       );
     }
 
     return result.value;
   });
-

@@ -11,6 +11,7 @@ import { PendingTeamAssignmentsQueries } from "@/server/data-access/pending-team
 import { UserQueries } from "@/server/data-access/user.queries";
 import { db } from "@/server/db";
 import * as schema from "@/server/db/schema/auth";
+import { AuditLogService } from "@/server/services/audit-log.service";
 import { passkey } from "@better-auth/passkey";
 import { twoFactor } from "better-auth/plugins/two-factor";
 import type {
@@ -206,6 +207,24 @@ export const auth = betterAuth({
 
           return { data: session };
         },
+        after: async (session) => {
+          const activeOrgId =
+            typeof session.activeOrganizationId === "string"
+              ? session.activeOrganizationId
+              : "system";
+          void AuditLogService.createAuditLog({
+            eventType: "user_login",
+            resourceType: "user",
+            resourceId: session.userId,
+            userId: session.userId,
+            organizationId: activeOrgId,
+            action: "login",
+            category: "mutation",
+            ipAddress: session.ipAddress ?? null,
+            userAgent: session.userAgent ?? null,
+            metadata: { trigger: "session_create" },
+          });
+        },
       },
     },
     user: {
@@ -230,6 +249,17 @@ export const auth = betterAuth({
             });
             return undefined;
           }
+
+          void AuditLogService.createAuditLog({
+            eventType: "user_create",
+            resourceType: "user",
+            resourceId: user.id,
+            userId: user.id,
+            organizationId: "system",
+            action: "create",
+            category: "mutation",
+            metadata: { email: user.email },
+          });
         },
       },
     },
@@ -308,6 +338,19 @@ export const auth = betterAuth({
                 error,
               });
             }
+          }
+
+          if (user) {
+            void AuditLogService.createAuditLog({
+              eventType: "team_create",
+              resourceType: "team",
+              resourceId: team.id,
+              userId: user.id,
+              organizationId: team.organizationId,
+              action: "create",
+              category: "mutation",
+              metadata: { teamName: team.name },
+            });
           }
         },
         /**
@@ -443,6 +486,17 @@ export const auth = betterAuth({
               error: error instanceof Error ? error : new Error(String(error)),
             });
           }
+
+          void AuditLogService.createAuditLog({
+            eventType: "invitation_accept",
+            resourceType: "invitation",
+            resourceId: invitation.id,
+            userId: user.id,
+            organizationId: invitation.organizationId,
+            action: "accept",
+            category: "mutation",
+            metadata: { invitedEmail: invitation.email },
+          });
         },
 
         /**
@@ -500,6 +554,16 @@ export const auth = betterAuth({
               error: error instanceof Error ? error : new Error(String(error)),
             });
           }
+
+          void AuditLogService.createAuditLog({
+            eventType: "invitation_reject",
+            resourceType: "invitation",
+            resourceId: invitation.id,
+            userId: user.id,
+            organizationId: invitation.organizationId,
+            action: "reject",
+            category: "mutation",
+          });
         },
 
         /**
@@ -542,6 +606,16 @@ export const auth = betterAuth({
           });
 
           // Additional tracking or cleanup can be added here
+
+          void AuditLogService.createAuditLog({
+            eventType: "invitation_cancel",
+            resourceType: "invitation",
+            resourceId: invitation.id,
+            userId: cancelledBy.id,
+            organizationId: invitation.organizationId,
+            action: "cancel",
+            category: "mutation",
+          });
         },
       },
       async sendInvitationEmail(data: {

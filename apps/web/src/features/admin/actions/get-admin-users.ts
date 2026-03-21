@@ -20,7 +20,15 @@ export interface AdminUser {
  * Only accessible to admins
  */
 export const getAdminUsers = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("admin:all") })
+  .metadata({
+    name: "get-admin-users",
+    permissions: policyToPermissions("admin:all"),
+    audit: {
+      resourceType: "user",
+      action: "list",
+      category: "read",
+    },
+  })
   .inputSchema(z.object({}))
   .action(async (): Promise<AdminUser[]> => {
     try {
@@ -49,4 +57,3 @@ export const getAdminUsers = authorizedActionClient
       throw new Error("Failed to fetch users");
     }
   });
-

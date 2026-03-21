@@ -22,7 +22,13 @@ const updateEntryInputSchema = updateKnowledgeEntrySchema.safeExtend({
 
 export const updateKnowledgeEntryAction = authorizedActionClient
   .metadata({
+    name: "update-knowledge-entry",
     permissions: Permissions.orgInstruction.write,
+    audit: {
+      resourceType: "knowledge_base",
+      action: "update",
+      category: "mutation",
+    },
   })
   .inputSchema(updateEntryInputSchema)
   .action(async ({ parsedInput, ctx }) => {

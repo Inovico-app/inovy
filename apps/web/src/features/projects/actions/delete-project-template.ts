@@ -17,7 +17,13 @@ import { deleteProjectTemplateSchema } from "../../../server/validation/project-
  */
 export const deleteProjectTemplateAction = authorizedActionClient
   .metadata({
+    name: "delete-project-template",
     permissions: policyToPermissions("projects:update"),
+    audit: {
+      resourceType: "project_template",
+      action: "delete",
+      category: "mutation",
+    },
   })
   .inputSchema(deleteProjectTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -27,7 +33,7 @@ export const deleteProjectTemplateAction = authorizedActionClient
     if (!user) {
       throw ActionErrors.unauthenticated(
         "User not found in context",
-        "delete-project-template"
+        "delete-project-template",
       );
     }
 
@@ -40,7 +46,7 @@ export const deleteProjectTemplateAction = authorizedActionClient
     // Delete template using service
     const result = await ProjectTemplateService.deleteProjectTemplate(
       id,
-      orgCode
+      orgCode,
     );
 
     // Revalidate project page if template existed
@@ -50,4 +56,3 @@ export const deleteProjectTemplateAction = authorizedActionClient
 
     return resultToActionResponse(result);
   });
-

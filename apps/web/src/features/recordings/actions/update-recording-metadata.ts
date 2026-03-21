@@ -15,7 +15,15 @@ import { revalidatePath } from "next/cache";
  * Update recording metadata using authorized action client
  */
 export const updateRecordingMetadataAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:update") })
+  .metadata({
+    name: "update-recording-metadata",
+    permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "recording",
+      action: "update",
+      category: "mutation",
+    },
+  })
   .schema(updateRecordingMetadataSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user, organizationId } = ctx;
@@ -44,7 +52,7 @@ export const updateRecordingMetadataAction = authorizedActionClient
         title,
         description: description ?? null,
         recordingDate,
-      }
+      },
     );
 
     const response = resultToActionResponse(result);
@@ -63,4 +71,3 @@ export const updateRecordingMetadataAction = authorizedActionClient
 
     throw new Error("Failed to update recording metadata");
   });
-

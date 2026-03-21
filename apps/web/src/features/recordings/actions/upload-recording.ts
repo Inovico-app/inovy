@@ -3,6 +3,7 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
+import { AuditLogService } from "@/server/services/audit-log.service";
 import { ProjectQueries } from "@/server/data-access/projects.queries";
 import { RecordingService } from "@/server/services/recording.service";
 import {
@@ -21,7 +22,7 @@ import { start } from "workflow/api";
  * it handles FormData which doesn't work well with the action client schema validation
  */
 export async function uploadRecordingFormAction(
-  formData: FormData
+  formData: FormData,
 ): Promise<{ success: boolean; recordingId?: string; error?: string }> {
   try {
     // Get auth session
@@ -66,7 +67,7 @@ export async function uploadRecordingFormAction(
     // Validate file type
     if (
       !ALLOWED_MIME_TYPES.includes(
-        file.type as (typeof ALLOWED_MIME_TYPES)[number]
+        file.type as (typeof ALLOWED_MIME_TYPES)[number],
       )
     ) {
       return {
@@ -151,7 +152,7 @@ export async function uploadRecordingFormAction(
       {
         access: shouldEncrypt ? "private" : "public",
         contentType: file.type,
-      }
+      },
     );
 
     logger.info("File uploaded to Blob", {
@@ -251,6 +252,17 @@ export async function uploadRecordingFormAction(
       });
     }
 
+    void AuditLogService.createAuditLog({
+      eventType: "recording_upload",
+      resourceType: "recording",
+      resourceId: recording.id,
+      userId: user.id,
+      organizationId,
+      action: "upload",
+      category: "mutation",
+      metadata: { actionName: "uploadRecordingFormAction", projectId },
+    });
+
     return { success: true, recordingId: recording.id };
   } catch (error) {
     logger.error("Error in uploadRecordingFormAction", {
@@ -264,4 +276,3 @@ export async function uploadRecordingFormAction(
     };
   }
 }
-

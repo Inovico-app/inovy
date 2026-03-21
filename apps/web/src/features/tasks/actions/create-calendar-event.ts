@@ -23,7 +23,15 @@ const createCalendarEventSchema = z.object({
  * GoogleCalendarService for the task-specific event creation logic.
  */
 export const createCalendarEvent = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("tasks:update") })
+  .metadata({
+    name: "create-calendar-event",
+    permissions: policyToPermissions("tasks:update"),
+    audit: {
+      resourceType: "auto_action",
+      action: "create",
+      category: "mutation",
+    },
+  })
   .schema(createCalendarEventSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId, user } = ctx;
@@ -117,7 +125,15 @@ const createCalendarEventsForTasksSchema = z.object({
  * GoogleCalendarService for the task-specific event creation logic.
  */
 export const createCalendarEventsForTasks = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("tasks:update") })
+  .metadata({
+    name: "create-calendar-events-for-tasks",
+    permissions: policyToPermissions("tasks:update"),
+    audit: {
+      resourceType: "auto_action",
+      action: "create",
+      category: "mutation",
+    },
+  })
   .schema(createCalendarEventsForTasksSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId, user } = ctx;

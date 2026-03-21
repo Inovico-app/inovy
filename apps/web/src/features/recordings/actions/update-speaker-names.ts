@@ -17,13 +17,21 @@ const updateSpeakerNamesSchema = z.object({
     .max(50, "Speaker name must be 50 characters or less")
     .regex(
       /^[a-zA-Z0-9\s\-.]*$/,
-      "Speaker name can only contain letters, numbers, spaces, hyphens, and periods"
+      "Speaker name can only contain letters, numbers, spaces, hyphens, and periods",
     ),
   userId: z.string().optional().nullable(),
 });
 
 export const updateSpeakerNames = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:update") })
+  .metadata({
+    name: "update-speaker-names",
+    permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "recording",
+      action: "update",
+      category: "mutation",
+    },
+  })
   .inputSchema(updateSpeakerNamesSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId, speakerNumber, speakerName, userId } = parsedInput;
@@ -40,7 +48,7 @@ export const updateSpeakerNames = authorizedActionClient
       // Get the current speaker names
       const insightResult = await AIInsightService.getInsightByTypeInternal(
         recordingId,
-        "transcription"
+        "transcription",
       );
 
       if (insightResult.isErr()) {
@@ -82,7 +90,7 @@ export const updateSpeakerNames = authorizedActionClient
         recordingId,
         currentSpeakerNames,
         organizationId,
-        currentSpeakerUserIds
+        currentSpeakerUserIds,
       );
 
       if (updateResult.isErr()) {
@@ -98,7 +106,7 @@ export const updateSpeakerNames = authorizedActionClient
 
       if (recording) {
         revalidatePath(
-          `/projects/${recording.projectId}/recordings/${recordingId}`
+          `/projects/${recording.projectId}/recordings/${recordingId}`,
         );
       }
 
@@ -113,7 +121,7 @@ export const updateSpeakerNames = authorizedActionClient
       logger.error(
         "Error updating speaker names",
         { recordingId, speakerNumber, speakerName },
-        error as Error
+        error as Error,
       );
       return {
         success: false,
@@ -121,4 +129,3 @@ export const updateSpeakerNames = authorizedActionClient
       };
     }
   });
-

@@ -4,7 +4,6 @@ import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { AuditLogService } from "@/server/services/audit-log.service";
 import { RecordingService } from "@/server/services/recording.service";
 import { deleteRecordingSchema } from "@/server/validation/recordings/delete-recording";
 import { getStorageProvider } from "@/server/services/storage";
@@ -16,6 +15,11 @@ import { revalidatePath } from "next/cache";
 export const deleteRecordingAction = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:delete"),
+    audit: {
+      resourceType: "recording",
+      action: "delete",
+      category: "mutation",
+    },
   })
   .inputSchema(deleteRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -26,7 +30,7 @@ export const deleteRecordingAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "delete-recording"
+        "delete-recording",
       );
     }
 
@@ -43,45 +47,25 @@ export const deleteRecordingAction = authorizedActionClient
     if (confirmationText !== "DELETE" && confirmationText !== recording.title) {
       throw ActionErrors.validation(
         "Confirmation text does not match. Please type DELETE or the exact recording title.",
-        { confirmationText }
+        { confirmationText },
       );
     }
 
     // Delete from database first (this will cascade to related records)
     const result = await RecordingService.deleteRecording(
       recordingId,
-      organizationId
+      organizationId,
     );
 
     if (result.isErr()) {
       throw result.error;
     }
 
-    // Log audit event
-    logger.audit.event("recording_deleted", {
-      resourceType: "recording",
-      resourceId: recordingId,
-      userId: ctx.user?.id ?? "unknown",
-      organizationId,
-      action: "delete",
-      metadata: {
-        recordingTitle: recording.title,
-        projectId: recording.projectId,
-      },
-    });
-
-    // Create audit log entry
-    await AuditLogService.createAuditLog({
-      eventType: "recording_deleted",
-      resourceType: "recording",
-      resourceId: recordingId,
-      userId: ctx.user?.id ?? "unknown",
-      organizationId,
-      action: "delete",
-      metadata: {
-        recordingTitle: recording.title,
-        projectId: recording.projectId,
-      },
+    // Enrich audit log via middleware
+    ctx.audit?.setResourceId(recordingId);
+    ctx.audit?.setMetadata({
+      recordingTitle: recording.title,
+      projectId: recording.projectId,
     });
 
     // Delete file from blob storage
@@ -109,4 +93,3 @@ export const deleteRecordingAction = authorizedActionClient
 
     return { data: { success: true, projectId: recording.projectId } };
   });
-

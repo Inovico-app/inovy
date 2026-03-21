@@ -15,7 +15,15 @@ const getRecordingStatusSchema = z.object({
 });
 
 export const getRecordingStatusAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:read") })
+  .metadata({
+    name: "get-recording-status",
+    permissions: policyToPermissions("recordings:read"),
+    audit: {
+      resourceType: "recording",
+      action: "get",
+      category: "read",
+    },
+  })
   .schema(getRecordingStatusSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
@@ -39,7 +47,7 @@ export const getRecordingStatusAction = authorizedActionClient
       assertOrganizationAccess(
         recording.organizationId,
         organizationId,
-        "getRecordingStatusAction"
+        "getRecordingStatusAction",
       );
     } catch (error) {
       throw ActionErrors.notFound("Recording");
@@ -52,4 +60,3 @@ export const getRecordingStatusAction = authorizedActionClient
       updatedAt: recording.updatedAt,
     };
   });
-

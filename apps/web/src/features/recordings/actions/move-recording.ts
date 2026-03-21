@@ -15,7 +15,15 @@ import { revalidatePath } from "next/cache";
  * Requires recordings:update permission (available to Manager role and above)
  */
 export const moveRecordingAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:update") })
+  .metadata({
+    name: "move-recording",
+    permissions: policyToPermissions("recordings:update"),
+    audit: {
+      resourceType: "recording",
+      action: "move",
+      category: "mutation",
+    },
+  })
   .schema(moveRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId, targetProjectId } = parsedInput;
@@ -24,7 +32,7 @@ export const moveRecordingAction = authorizedActionClient
     if (!user) {
       throw ActionErrors.unauthenticated(
         "User not found in context",
-        "move-recording"
+        "move-recording",
       );
     }
 
@@ -32,7 +40,7 @@ export const moveRecordingAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "move-recording"
+        "move-recording",
       );
     }
 
@@ -41,7 +49,7 @@ export const moveRecordingAction = authorizedActionClient
       recordingId,
       targetProjectId,
       organizationId,
-      user.id
+      user.id,
     );
 
     // Convert Result to action response (throws if error)
@@ -57,4 +65,3 @@ export const moveRecordingAction = authorizedActionClient
       recording: movedRecording,
     };
   });
-

@@ -6,10 +6,11 @@ import type {
   NotificationFiltersDto,
   NotificationListDto,
 } from "@/server/dto/notification.dto";
+import { AuditLogService } from "@/server/services/audit-log.service";
 import { NotificationService } from "@/server/services/notification.service";
 
 export async function getNotifications(
-  filters?: NotificationFiltersDto
+  filters?: NotificationFiltersDto,
 ): Promise<{
   success: boolean;
   data?: NotificationListDto;
@@ -36,6 +37,20 @@ export async function getNotifications(
       };
     }
 
+    const { user, organization } = authResult.value;
+    if (user?.id && organization?.id) {
+      void AuditLogService.createAuditLog({
+        eventType: "notification_list",
+        resourceType: "notification",
+        resourceId: null,
+        userId: user.id,
+        organizationId: organization.id,
+        action: "list",
+        category: "read",
+        metadata: { actionName: "getNotifications" },
+      });
+    }
+
     return {
       success: true,
       data: result.value,
@@ -52,4 +67,3 @@ export async function getNotifications(
     };
   }
 }
-
