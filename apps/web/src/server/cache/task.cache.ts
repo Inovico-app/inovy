@@ -63,7 +63,7 @@ export async function getCachedTasksWithContext(
   userId: string,
   orgCode: string,
   filters?: Omit<TaskFiltersDto, "assigneeId" | "organizationId">,
-  teamContext?: { user?: BetterAuthUser; userTeamIds?: string[] },
+  teamContext?: { user: BetterAuthUser; userTeamIds: string[] },
 ) {
   "use cache";
   cacheTag(
@@ -88,7 +88,7 @@ export async function getCachedTasksWithContext(
  */
 export async function getCachedAllTasksWithContext(
   orgCode: string,
-  teamContext?: { user?: BetterAuthUser; userTeamIds?: string[] },
+  teamContext?: { user: BetterAuthUser; userTeamIds: string[] },
 ) {
   "use cache";
   cacheTag(CacheTags.tasksByOrg(orgCode));

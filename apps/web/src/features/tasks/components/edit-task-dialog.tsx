@@ -72,7 +72,9 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
     e.preventDefault();
 
     const assigneeName = assigneeId
-      ? (members.find((m) => m.id === assigneeId)?.displayName ?? null)
+      ? (members.find((m) => m.id === assigneeId)?.displayName ??
+        task.assigneeName ??
+        undefined)
       : null;
 
     mutation.mutate({
@@ -276,7 +278,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
             </Button>
             <Button
               type="submit"
-              disabled={mutation.isPending || !title.trim()}
+              disabled={mutation.isPending || !title.trim() || membersLoading}
             >
               {mutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
