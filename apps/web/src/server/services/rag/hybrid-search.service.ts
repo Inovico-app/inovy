@@ -40,7 +40,7 @@ export class HybridSearchEngine {
   async search(
     query: string,
     queryEmbedding: number[],
-    options: HybridSearchOptions = {}
+    options: HybridSearchOptions = {},
   ): Promise<ActionResult<SearchResult[]>> {
     try {
       const {
@@ -53,6 +53,9 @@ export class HybridSearchEngine {
         scoreThreshold = 0.5,
         filters = {},
         collectionName,
+        teamId,
+        userTeamIds,
+        isOrgAdmin,
       } = options;
 
       const targetCollection = collectionName ?? this.defaultCollectionName;
@@ -61,8 +64,8 @@ export class HybridSearchEngine {
         return err(
           ActionErrors.badRequest(
             "Either userId or organizationId is required",
-            "HybridSearchEngine.search"
-          )
+            "HybridSearchEngine.search",
+          ),
         );
       }
 
@@ -86,7 +89,10 @@ export class HybridSearchEngine {
         userId,
         organizationId,
         projectId,
-        filters
+        filters ?? {},
+        teamId,
+        userTeamIds,
+        isOrgAdmin,
       );
 
       // 1. Vector search
@@ -95,7 +101,7 @@ export class HybridSearchEngine {
         baseFilter,
         Math.round(limit * 1.5), // Fetch more for fusion
         scoreThreshold,
-        targetCollection
+        targetCollection,
       );
 
       // Log vector search errors for observability, but continue with keyword results
@@ -105,7 +111,7 @@ export class HybridSearchEngine {
           {
             component: "HybridSearchEngine",
             error: vectorSearchResult.error,
-          }
+          },
         );
       }
 
@@ -116,7 +122,7 @@ export class HybridSearchEngine {
         query,
         baseFilter,
         Math.round(limit * 1.5),
-        targetCollection
+        targetCollection,
       );
 
       // 3. Merge using Reciprocal Rank Fusion
@@ -124,7 +130,7 @@ export class HybridSearchEngine {
         vectorResults,
         keywordResults,
         vectorWeight,
-        keywordWeight
+        keywordWeight,
       );
 
       // Transform to SearchResult format
@@ -137,7 +143,7 @@ export class HybridSearchEngine {
             contentText: result.contentText,
             similarity: result.similarity,
             metadata: (result.metadata as SearchResult["metadata"]) || {},
-          }) satisfies SearchResult
+          }) satisfies SearchResult,
       );
 
       logger.debug("Hybrid search completed", {
@@ -157,8 +163,8 @@ export class HybridSearchEngine {
         ActionErrors.internal(
           "Error performing hybrid search",
           error as Error,
-          "HybridSearchEngine.search"
-        )
+          "HybridSearchEngine.search",
+        ),
       );
     }
   }
@@ -172,7 +178,7 @@ export class HybridSearchEngine {
     filter: QdrantFilter,
     limit: number,
     scoreThreshold: number,
-    collectionName: string
+    collectionName: string,
   ): Promise<VectorSearchResult> {
     try {
       const searchResult = await this.qdrantService.search(embedding, {
@@ -242,7 +248,7 @@ export class HybridSearchEngine {
     query: string,
     baseFilter: QdrantFilter,
     limit: number,
-    collectionName: string
+    collectionName: string,
   ): Promise<RankedResult[]> {
     try {
       // Validate query has searchable terms
@@ -258,7 +264,7 @@ export class HybridSearchEngine {
 
       // Qdrant supports full-text search via text match on indexed text fields
       // The "content" field is indexed as "text" in Qdrant, so we can use match with text
-      const filter = {
+      const filter: QdrantFilter = {
         must: [
           ...(baseFilter.must ?? []),
           {
@@ -268,6 +274,7 @@ export class HybridSearchEngine {
             },
           },
         ],
+        ...(baseFilter.should ? { should: baseFilter.should } : {}),
       };
 
       // Use Qdrant's scroll API to search by payload filter
@@ -341,32 +348,26 @@ export class HybridSearchEngine {
     userId: string | undefined,
     organizationId: string | undefined,
     projectId: string | undefined,
-    additionalFilters: Record<string, unknown>
+    additionalFilters: Record<string, unknown>,
+    teamId?: string | null,
+    userTeamIds?: string[],
+    isOrgAdmin?: boolean,
   ): QdrantFilter {
-    const must: Array<{
-      key: string;
-      match?: MatchCondition;
-    }> = [];
+    const must: Array<{ key: string; match?: MatchCondition }> = [];
+    const should: Array<
+      { key: string; match?: MatchCondition } | { is_empty: { key: string } }
+    > = [];
 
     if (userId) {
-      must.push({
-        key: "userId",
-        match: { value: userId },
-      });
+      must.push({ key: "userId", match: { value: userId } });
     }
 
     if (organizationId) {
-      must.push({
-        key: "organizationId",
-        match: { value: organizationId },
-      });
+      must.push({ key: "organizationId", match: { value: organizationId } });
     }
 
     if (projectId) {
-      must.push({
-        key: "projectId",
-        match: { value: projectId },
-      });
+      must.push({ key: "projectId", match: { value: projectId } });
     }
 
     // Add additional filters
@@ -374,20 +375,31 @@ export class HybridSearchEngine {
       if (value !== undefined && value !== null) {
         if (Array.isArray(value)) {
           // For arrays, match any value in the array
-          must.push({
-            key,
-            match: { value: value.map((v) => String(v)) },
-          });
+          must.push({ key, match: { value: value.map((v) => String(v)) } });
         } else {
-          must.push({
-            key,
-            match: { value: String(value) },
-          });
+          must.push({ key, match: { value: String(value) } });
         }
       }
     });
 
-    return must.length > 0 ? { must } : {};
+    // Team filtering — uses should (OR) to allow both team-scoped and org-wide resources
+    if (teamId) {
+      should.push({ key: "teamId", match: { value: teamId } });
+      should.push({ is_empty: { key: "teamId" } });
+    } else if (userTeamIds && userTeamIds.length > 0) {
+      should.push({ key: "teamId", match: { any: userTeamIds } });
+      should.push({ is_empty: { key: "teamId" } });
+    } else if (!isOrgAdmin) {
+      // Fail-closed: a non-admin user with no team memberships may only see
+      // org-wide content (documents with no teamId). Without this guard, the
+      // absence of a should clause would return ALL content regardless of team.
+      should.push({ is_empty: { key: "teamId" } });
+    }
+
+    const filter: QdrantFilter = {};
+    if (must.length > 0) filter.must = must;
+    if (should.length > 0) filter.should = should;
+    return filter;
   }
 
   /**
@@ -401,7 +413,7 @@ export class HybridSearchEngine {
     keywordResults: RankedResult[],
     vectorWeight: number,
     keywordWeight: number,
-    k: number = 60
+    k: number = 60,
   ): RankedResult[] {
     const scoreMap = new Map<
       string,
@@ -450,4 +462,3 @@ export class HybridSearchEngine {
     return fusedResults;
   }
 }
-

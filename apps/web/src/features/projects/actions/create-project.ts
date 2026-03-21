@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { logger } from "@/lib/logger";
+import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -23,13 +24,13 @@ export const createProjectAction = authorizedActionClient
   })
   .inputSchema(createProjectSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { name, description } = parsedInput;
+    const { name, description, teamId } = parsedInput;
     const { user, organizationId } = ctx;
 
     if (!user) {
       throw ActionErrors.unauthenticated(
         "User not found",
-        "create-project-smart"
+        "create-project-smart",
       );
     }
 
@@ -37,15 +38,27 @@ export const createProjectAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "create-project"
+        "create-project",
+      );
+    }
+
+    if (
+      teamId &&
+      !ctx.userTeamIds?.includes(teamId) &&
+      !isOrganizationAdmin(user)
+    ) {
+      throw ActionErrors.forbidden(
+        "Not a member of this team",
+        undefined,
+        "create-project",
       );
     }
 
     // All operations return Results - no exceptions thrown
     const result = await ProjectService.createProject(
-      { name, description },
+      { name, description, teamId },
       user,
-      organizationId
+      organizationId,
     );
 
     if (result.isErr()) {
@@ -90,7 +103,7 @@ export const createProjectAction = authorizedActionClient
  * Form action demonstrating error handling with Results
  */
 export async function createProjectFormAction(
-  formData: FormData
+  formData: FormData,
 ): Promise<void> {
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
@@ -120,4 +133,3 @@ export async function createProjectFormAction(
     throw new Error("Failed to create project");
   }
 }
-

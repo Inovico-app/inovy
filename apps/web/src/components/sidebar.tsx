@@ -9,14 +9,9 @@ import {
 } from "@/components/ui/tooltip";
 import { useActiveMemberRole } from "@/hooks/use-active-member-role";
 import { OrganizationSwitcher } from "@/components/organization-switcher";
+
 import { cn } from "@/lib/utils";
-import {
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  Plus,
-  Scale,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Plus, Scale } from "lucide-react";
 import { adminLinks, isNavActive, navLinks } from "@/lib/navigation";
 import type { Route } from "next";
 import Link from "next/link";
@@ -50,7 +45,7 @@ export function Sidebar() {
       <aside
         className={cn(
           "hidden md:flex flex-col border-r bg-background transition-all duration-300",
-          collapsed ? "w-16" : "w-64"
+          collapsed ? "w-16" : "w-64",
         )}
       >
         <header className="flex h-14 items-center justify-between px-4 border-b">
@@ -71,7 +66,7 @@ export function Sidebar() {
     <aside
       className={cn(
         "hidden md:flex flex-col border-r bg-background transition-all duration-300",
-        collapsed ? "w-16" : "w-64"
+        collapsed ? "w-16" : "w-64",
       )}
     >
       {/* Header */}
@@ -114,7 +109,7 @@ export function Sidebar() {
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   active
                     ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                 )}
                 aria-label={collapsed ? label : undefined}
               >
@@ -158,7 +153,7 @@ export function Sidebar() {
                       "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                       active
                         ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                     )}
                     aria-label={collapsed ? label : undefined}
                   >
@@ -210,9 +205,7 @@ export function Sidebar() {
             >
               Privacy
             </Link>
-            <span className="text-muted-foreground/60 text-xs">
-              &middot;
-            </span>
+            <span className="text-muted-foreground/60 text-xs">&middot;</span>
             <Link
               href="/terms-of-service"
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
@@ -223,13 +216,29 @@ export function Sidebar() {
         ) : (
           <div className="flex flex-col items-center gap-1">
             <Tooltip>
-              <TooltipTrigger render={<Link href="/privacy-policy" className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:text-muted-foreground" aria-label="Privacybeleid" />}>
+              <TooltipTrigger
+                render={
+                  <Link
+                    href="/privacy-policy"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+                    aria-label="Privacybeleid"
+                  />
+                }
+              >
                 <Scale className="h-3.5 w-3.5" />
               </TooltipTrigger>
               <TooltipContent side="right">Privacy</TooltipContent>
             </Tooltip>
             <Tooltip>
-              <TooltipTrigger render={<Link href="/terms-of-service" className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:text-muted-foreground" aria-label="Algemene Voorwaarden" />}>
+              <TooltipTrigger
+                render={
+                  <Link
+                    href="/terms-of-service"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+                    aria-label="Algemene Voorwaarden"
+                  />
+                }
+              >
                 <FileText className="h-3.5 w-3.5" />
               </TooltipTrigger>
               <TooltipContent side="right">Voorwaarden</TooltipContent>
@@ -240,4 +249,3 @@ export function Sidebar() {
     </aside>
   );
 }
-

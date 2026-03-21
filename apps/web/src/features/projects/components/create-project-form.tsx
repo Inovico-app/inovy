@@ -19,6 +19,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createProjectAction } from "@/features/projects/actions/create-project";
+import { useProjectTeamPicker } from "@/features/projects/hooks/use-project-team-picker";
+import { TeamPicker } from "@/features/teams/components/team-picker";
 import { PROJECT_DESCRIPTION_MAX_LENGTH } from "@/lib/constants/project-constants";
 import {
   createProjectSchema,
@@ -51,12 +53,14 @@ export function CreateProjectForm({
   showCard = true,
 }: CreateProjectFormProps = {}) {
   const router = useRouter();
+  const { teams, isLoading: isLoadingTeams } = useProjectTeamPicker();
 
   const form = useForm<CreateProjectInput>({
     resolver: standardSchemaResolver(createProjectSchema),
     defaultValues: {
       name: "",
       description: "",
+      teamId: null,
     },
     mode: "onChange",
   });
@@ -78,13 +82,14 @@ export function CreateProjectForm({
         toast.error("Failed to create project. Please try again.");
         throw new Error(JSON.stringify(error.error));
       },
-    }
+    },
   );
 
   const handleSubmit = (data: CreateProjectInput) => {
     execute({
       name: data.name.trim(),
       description: data.description?.trim() || undefined,
+      teamId: data.teamId ?? null,
     });
   };
 
@@ -94,6 +99,7 @@ export function CreateProjectForm({
   };
 
   const description = form.watch("description") ?? "";
+  const teamIdValue = form.watch("teamId") ?? null;
 
   const formContent = (
     <Form {...form}>
@@ -136,8 +142,7 @@ export function CreateProjectForm({
                 className={`text-right text-xs ${
                   description.length >= PROJECT_DESCRIPTION_MAX_LENGTH
                     ? "text-red-500"
-                    : description.length >=
-                        PROJECT_DESCRIPTION_MAX_LENGTH - 100
+                    : description.length >= PROJECT_DESCRIPTION_MAX_LENGTH - 100
                       ? "text-yellow-500"
                       : "text-muted-foreground"
                 }`}
@@ -149,6 +154,23 @@ export function CreateProjectForm({
             </FormItem>
           )}
         />
+
+        {!isLoadingTeams && teams.length > 0 && (
+          <FormField
+            control={form.control}
+            name="teamId"
+            render={() => (
+              <FormItem>
+                <TeamPicker
+                  teams={teams}
+                  value={teamIdValue}
+                  onChange={(id) => form.setValue("teamId", id)}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         {result?.serverError && (
           <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md">

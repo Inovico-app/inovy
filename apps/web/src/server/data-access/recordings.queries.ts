@@ -9,6 +9,8 @@ import {
   max,
   sql,
 } from "drizzle-orm";
+import { buildTeamFilter } from "@/lib/rbac/team-isolation";
+import type { BetterAuthUser } from "@/lib/auth";
 import { db } from "../db";
 import { projects } from "../db/schema/projects";
 import {
@@ -16,7 +18,6 @@ import {
   type NewRecording,
   type Recording,
 } from "../db/schema/recordings";
-import { TeamQueries } from "./teams.queries";
 
 export class RecordingsQueries {
   static async insertRecording(data: NewRecording): Promise<Recording> {
@@ -41,7 +42,7 @@ export class RecordingsQueries {
       includeArchived?: boolean;
       statusFilter?: "active" | "archived";
       limit?: number;
-    }
+    },
   ): Promise<Recording[]> {
     const conditions = [
       eq(recordings.projectId, projectId),
@@ -68,7 +69,7 @@ export class RecordingsQueries {
 
   static async updateRecordingMetadata(
     id: string,
-    data: { title?: string; description?: string | null; recordingDate?: Date }
+    data: { title?: string; description?: string | null; recordingDate?: Date },
   ): Promise<Recording | undefined> {
     const [recording] = await db
       .update(recordings)
@@ -80,7 +81,7 @@ export class RecordingsQueries {
 
   static async updateRecordingTranscriptionStatus(
     id: string,
-    status: "pending" | "processing" | "completed" | "failed"
+    status: "pending" | "processing" | "completed" | "failed",
   ): Promise<Recording | undefined> {
     const [recording] = await db
       .update(recordings)
@@ -93,7 +94,7 @@ export class RecordingsQueries {
   static async updateRecordingTranscription(
     id: string,
     transcriptionText: string,
-    status: "pending" | "processing" | "completed" | "failed"
+    status: "pending" | "processing" | "completed" | "failed",
   ): Promise<Recording | undefined> {
     const [recording] = await db
       .update(recordings)
@@ -110,7 +111,7 @@ export class RecordingsQueries {
   static async updateRecordingTranscriptionWithEdit(
     id: string,
     transcriptionText: string,
-    editedById: string
+    editedById: string,
   ): Promise<Recording | undefined> {
     const [recording] = await db
       .update(recordings)
@@ -131,7 +132,7 @@ export class RecordingsQueries {
    */
   static async anonymizeTranscriptionText(
     id: string,
-    transcriptionText: string | null
+    transcriptionText: string | null,
   ): Promise<Recording | undefined> {
     const [recording] = await db
       .update(recordings)
@@ -162,7 +163,7 @@ export class RecordingsQueries {
         | "transcriptionText"
         | "redactedTranscriptionText"
       >
-    >
+    >,
   ): Promise<Recording | undefined> {
     const [recording] = await db
       .update(recordings)
@@ -218,8 +219,8 @@ export class RecordingsQueries {
       .where(
         and(
           eq(recordings.projectId, projectId),
-          gte(recordings.createdAt, sevenDaysAgo)
-        )
+          gte(recordings.createdAt, sevenDaysAgo),
+        ),
       );
 
     const recentCount = recentStatsResult[0]?.recentCount ?? 0;
@@ -233,7 +234,7 @@ export class RecordingsQueries {
 
   static async archiveRecording(
     recordingId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<boolean> {
     return await db.transaction(async (tx) => {
       const result = await tx
@@ -242,8 +243,8 @@ export class RecordingsQueries {
         .where(
           and(
             eq(recordings.id, recordingId),
-            eq(recordings.organizationId, organizationId)
-          )
+            eq(recordings.organizationId, organizationId),
+          ),
         );
       return result.rowCount !== null && result.rowCount > 0;
     });
@@ -251,7 +252,7 @@ export class RecordingsQueries {
 
   static async unarchiveRecording(
     recordingId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<boolean> {
     return await db.transaction(async (tx) => {
       const result = await tx
@@ -260,8 +261,8 @@ export class RecordingsQueries {
         .where(
           and(
             eq(recordings.id, recordingId),
-            eq(recordings.organizationId, organizationId)
-          )
+            eq(recordings.organizationId, organizationId),
+          ),
         );
       return result.rowCount !== null && result.rowCount > 0;
     });
@@ -269,7 +270,7 @@ export class RecordingsQueries {
 
   static async deleteRecording(
     recordingId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<boolean> {
     return await db.transaction(async (tx) => {
       const result = await tx
@@ -277,8 +278,8 @@ export class RecordingsQueries {
         .where(
           and(
             eq(recordings.id, recordingId),
-            eq(recordings.organizationId, organizationId)
-          )
+            eq(recordings.organizationId, organizationId),
+          ),
         );
       return result.rowCount !== null && result.rowCount > 0;
     });
@@ -287,7 +288,7 @@ export class RecordingsQueries {
   static async moveRecordingToProject(
     recordingId: string,
     targetProjectId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<Recording | undefined> {
     return await db.transaction(async (tx) => {
       const [recording] = await tx
@@ -296,8 +297,8 @@ export class RecordingsQueries {
         .where(
           and(
             eq(recordings.id, recordingId),
-            eq(recordings.organizationId, organizationId)
-          )
+            eq(recordings.organizationId, organizationId),
+          ),
         )
         .returning();
       return recording;
@@ -309,7 +310,7 @@ export class RecordingsQueries {
    */
   static async selectRecordingByExternalId(
     externalRecordingId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<Recording | null> {
     const [recording] = await db
       .select()
@@ -317,8 +318,8 @@ export class RecordingsQueries {
       .where(
         and(
           eq(recordings.externalRecordingId, externalRecordingId),
-          eq(recordings.organizationId, organizationId)
-        )
+          eq(recordings.organizationId, organizationId),
+        ),
       )
       .limit(1);
     return recording ?? null;
@@ -330,7 +331,7 @@ export class RecordingsQueries {
    * it will be updated; otherwise, a new recording will be created.
    */
   static async upsertRecordingByExternalId(
-    data: NewRecording & { externalRecordingId: string }
+    data: NewRecording & { externalRecordingId: string },
   ): Promise<Recording> {
     return await db.transaction(async (tx) => {
       // Check if recording exists
@@ -340,8 +341,8 @@ export class RecordingsQueries {
         .where(
           and(
             eq(recordings.externalRecordingId, data.externalRecordingId),
-            eq(recordings.organizationId, data.organizationId)
-          )
+            eq(recordings.organizationId, data.organizationId),
+          ),
         )
         .limit(1);
 
@@ -370,10 +371,11 @@ export class RecordingsQueries {
       statusFilter?: "active" | "archived";
       search?: string;
       projectIds?: string[];
-      teamIds?: string[];
       departmentId?: string;
       limit?: number;
-    }
+      user?: BetterAuthUser;
+      userTeamIds?: string[];
+    },
   ): Promise<Array<Recording & { projectName: string }>> {
     const conditions = [eq(recordings.organizationId, organizationId)];
 
@@ -389,17 +391,14 @@ export class RecordingsQueries {
       conditions.push(inArray(recordings.projectId, options.projectIds));
     }
 
-    // Filter by team: get user IDs in the specified teams
-    if (options?.teamIds && options.teamIds.length > 0) {
-      const teamMembers = await TeamQueries.selectTeamMembers(
-        options.teamIds[0]
+    // Filter by team via project's teamId
+    if (options?.user && options?.userTeamIds) {
+      const teamFilter = buildTeamFilter(
+        projects.teamId,
+        options.userTeamIds,
+        options.user,
       );
-      if (teamMembers.length) {
-        const userIds = Array.from(new Set(teamMembers.map((u) => u.userId)));
-        if (userIds.length > 0) {
-          conditions.push(inArray(recordings.createdById, userIds));
-        }
-      }
+      if (teamFilter) conditions.push(teamFilter);
     }
 
     const query = db
@@ -447,8 +446,8 @@ export class RecordingsQueries {
         projects,
         and(
           eq(recordings.projectId, projects.id),
-          eq(projects.organizationId, organizationId)
-        )
+          eq(projects.organizationId, organizationId),
+        ),
       )
       .where(and(...conditions))
       .orderBy(desc(recordings.recordingDate));
@@ -459,4 +458,3 @@ export class RecordingsQueries {
     return await query;
   }
 }
-

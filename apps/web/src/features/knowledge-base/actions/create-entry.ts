@@ -27,7 +27,7 @@ export const createKnowledgeEntryAction = authorizedActionClient
     if (!user) {
       throw ActionErrors.unauthenticated(
         "User not found",
-        "create-knowledge-entry"
+        "create-knowledge-entry",
       );
     }
 
@@ -36,7 +36,7 @@ export const createKnowledgeEntryAction = authorizedActionClient
       scope,
       scopeId,
       { term, definition, context, examples },
-      user.id
+      user.id,
     );
 
     if (result.isErr()) {
@@ -47,6 +47,9 @@ export const createKnowledgeEntryAction = authorizedActionClient
     CacheInvalidation.invalidateKnowledge(scope, scopeId);
     if (scope === "project" && scopeId && organizationId) {
       CacheInvalidation.invalidateKnowledgeHierarchy(scopeId, organizationId);
+    } else if (scope === "team" && scopeId) {
+      // Invalidate team knowledge hierarchy
+      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
     } else if (scope === "organization" && scopeId) {
       // Invalidate all project hierarchies in this org
       CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
@@ -58,10 +61,11 @@ export const createKnowledgeEntryAction = authorizedActionClient
     // Revalidate relevant pages
     if (scope === "project" && scopeId) {
       revalidatePath(`/projects/${scopeId}/settings`);
+    } else if (scope === "team" && scopeId) {
+      revalidatePath(`/teams/${scopeId}/settings`);
     } else if (scope === "organization" && organizationId) {
       revalidatePath(`/settings/organization`);
     }
 
     return resultToActionResponse(result);
   });
-

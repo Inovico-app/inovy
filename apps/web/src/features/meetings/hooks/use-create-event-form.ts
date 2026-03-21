@@ -9,6 +9,7 @@ import {
 } from "../lib/create-event-schema";
 import { useCreateCalendarEvent } from "./use-create-calendar-event";
 import { useCreateEventSubmit } from "./use-create-event-submit";
+import { useCreateEventTeamPicker } from "./use-create-event-team-picker";
 import { useEventDateTimeDefaults } from "./use-event-datetime-defaults";
 import { useEventRecurrence } from "./use-event-recurrence";
 import { useConnectedProviders } from "./use-connected-providers";
@@ -23,6 +24,8 @@ export function useCreateEventForm({
   open,
   onOpenChange,
 }: UseCreateEventFormProps) {
+  const { teams, isLoading: isLoadingTeams } = useCreateEventTeamPicker();
+
   const form = useForm<CreateEventFormData>({
     resolver: standardSchemaResolver(createEventFormSchema),
     defaultValues: {
@@ -37,6 +40,7 @@ export function useCreateEventForm({
       addBot: true,
       attendeeUserIds: [],
       attendeeEmails: [],
+      teamId: null,
     },
   });
 
@@ -129,5 +133,8 @@ export function useCreateEventForm({
     isLoadingProviders,
     selectedProvider,
     setSelectedProvider,
+    // Team picker
+    teams,
+    isLoadingTeams,
   };
 }

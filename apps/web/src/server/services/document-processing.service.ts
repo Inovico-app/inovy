@@ -34,7 +34,7 @@ export class DocumentProcessingService {
    */
   private static async resolveOrganizationId(
     document: KnowledgeDocumentDto,
-    authResult: Awaited<ReturnType<typeof getBetterAuthSession>>
+    authResult: Awaited<ReturnType<typeof getBetterAuthSession>>,
   ): Promise<ActionResult<string>> {
     // Priority 1: Use organization from auth session if available
     if (
@@ -79,8 +79,8 @@ export class DocumentProcessingService {
       ActionErrors.internal(
         "Unable to resolve organization ID. Authentication required or document must have valid scope.",
         undefined,
-        "DocumentProcessingService.resolveOrganizationId"
-      )
+        "DocumentProcessingService.resolveOrganizationId",
+      ),
     );
   }
   /**
@@ -89,13 +89,13 @@ export class DocumentProcessingService {
    */
   private static async validateDocumentAccess(
     document: KnowledgeDocumentDto,
-    context: string
+    context: string,
   ): Promise<ActionResult<void>> {
     try {
       const authResult = await getBetterAuthSession();
       if (authResult.isErr() || !authResult.value.user) {
         return err(
-          ActionErrors.unauthenticated("Authentication required", context)
+          ActionErrors.unauthenticated("Authentication required", context),
         );
       }
 
@@ -105,8 +105,8 @@ export class DocumentProcessingService {
           ActionErrors.forbidden(
             "User does not belong to an organization",
             undefined,
-            context
-          )
+            context,
+          ),
         );
       }
 
@@ -115,13 +115,13 @@ export class DocumentProcessingService {
         // Project scope: Verify project exists and belongs to user's organization
         if (!document.scopeId) {
           return err(
-            ActionErrors.badRequest("Project scope requires scopeId", context)
+            ActionErrors.badRequest("Project scope requires scopeId", context),
           );
         }
 
         const project = await ProjectQueries.findById(
           document.scopeId,
-          userOrgId
+          userOrgId,
         );
         if (!project) {
           return err(ActionErrors.notFound("Document", context));
@@ -132,8 +132,8 @@ export class DocumentProcessingService {
           return err(
             ActionErrors.badRequest(
               "Organization scope requires scopeId",
-              context
-            )
+              context,
+            ),
           );
         }
 
@@ -155,14 +155,14 @@ export class DocumentProcessingService {
           scope: document.scope,
           scopeId: document.scopeId,
         },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to validate document access",
           error as Error,
-          context
-        )
+          context,
+        ),
       );
     }
   }
@@ -177,7 +177,7 @@ export class DocumentProcessingService {
     scope: KnowledgeBaseScope,
     scopeId: string | null,
     userId: string,
-    operation: "read" | "write"
+    operation: "read" | "write",
   ): Promise<ActionResult<void>> {
     try {
       const authResult = await getBetterAuthSession();
@@ -185,8 +185,8 @@ export class DocumentProcessingService {
         return err(
           ActionErrors.unauthenticated(
             "Authentication required",
-            "DocumentProcessingService.validateScopePermissions"
-          )
+            "DocumentProcessingService.validateScopePermissions",
+          ),
         );
       }
 
@@ -197,8 +197,8 @@ export class DocumentProcessingService {
           ActionErrors.forbidden(
             "User does not belong to an organization",
             undefined,
-            "DocumentProcessingService.validateScopePermissions"
-          )
+            "DocumentProcessingService.validateScopePermissions",
+          ),
         );
       }
 
@@ -208,8 +208,8 @@ export class DocumentProcessingService {
           return err(
             ActionErrors.badRequest(
               "Project scope requires scopeId",
-              "DocumentProcessingService.validateScopePermissions"
-            )
+              "DocumentProcessingService.validateScopePermissions",
+            ),
           );
         }
 
@@ -219,8 +219,8 @@ export class DocumentProcessingService {
           return err(
             ActionErrors.notFound(
               "Project",
-              "DocumentProcessingService.validateScopePermissions"
-            )
+              "DocumentProcessingService.validateScopePermissions",
+            ),
           );
         }
 
@@ -235,8 +235,8 @@ export class DocumentProcessingService {
           return err(
             ActionErrors.badRequest(
               "Organization scope requires scopeId",
-              "DocumentProcessingService.validateScopePermissions"
-            )
+              "DocumentProcessingService.validateScopePermissions",
+            ),
           );
         }
 
@@ -250,15 +250,15 @@ export class DocumentProcessingService {
                 scopeId,
                 userId,
               },
-              "DocumentProcessingService.validateScopePermissions"
-            )
+              "DocumentProcessingService.validateScopePermissions",
+            ),
           );
         }
 
         // For write operations, check permissions using type-safe helper
         if (operation === "write") {
           const hasPermission = await checkPermission(
-            Permissions.orgInstruction.write
+            Permissions.orgInstruction.write,
           );
 
           if (!hasPermission) {
@@ -270,8 +270,8 @@ export class DocumentProcessingService {
                   scopeId,
                   userId,
                 },
-                "DocumentProcessingService.validateScopePermissions"
-              )
+                "DocumentProcessingService.validateScopePermissions",
+              ),
             );
           }
         }
@@ -281,15 +281,15 @@ export class DocumentProcessingService {
           return err(
             ActionErrors.badRequest(
               "Global scope must have null scopeId",
-              "DocumentProcessingService.validateScopePermissions"
-            )
+              "DocumentProcessingService.validateScopePermissions",
+            ),
           );
         }
 
         // For write operations, check super admin permissions using type-safe helper
         if (operation === "write") {
           const hasPermission = await checkPermission(
-            Permissions.superadmin.all
+            Permissions.superadmin.all,
           );
 
           if (!hasPermission) {
@@ -301,8 +301,8 @@ export class DocumentProcessingService {
                   scopeId,
                   userId,
                 },
-                "DocumentProcessingService.validateScopePermissions"
-              )
+                "DocumentProcessingService.validateScopePermissions",
+              ),
             );
           }
         }
@@ -313,14 +313,14 @@ export class DocumentProcessingService {
       logger.error(
         "Failed to validate scope permissions",
         { scope, scopeId, userId, operation },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to validate scope permissions",
           error as Error,
-          "DocumentProcessingService.validateScopePermissions"
-        )
+          "DocumentProcessingService.validateScopePermissions",
+        ),
       );
     }
   }
@@ -337,7 +337,7 @@ export class DocumentProcessingService {
     }>,
     scope: KnowledgeBaseScope,
     scopeId: string | null,
-    userId: string
+    userId: string,
   ): Promise<
     ActionResult<
       Array<{
@@ -354,7 +354,7 @@ export class DocumentProcessingService {
         scope,
         scopeId,
         userId,
-        "write"
+        "write",
       );
       if (permissionResult.isErr()) {
         return err(
@@ -365,8 +365,8 @@ export class DocumentProcessingService {
               scopeId,
               userId,
             },
-            "DocumentProcessingService.uploadDocumentsBatch"
-          )
+            "DocumentProcessingService.uploadDocumentsBatch",
+          ),
         );
       }
 
@@ -458,7 +458,7 @@ export class DocumentProcessingService {
             logger.error(
               "Failed to process document",
               { documentId: document.id },
-              error
+              error,
             );
           });
 
@@ -475,7 +475,7 @@ export class DocumentProcessingService {
               scopeId,
               fileName: item.file.name,
             },
-            error as Error
+            error as Error,
           );
           return {
             success: false,
@@ -552,14 +552,14 @@ export class DocumentProcessingService {
       logger.error(
         "Failed to upload documents batch",
         { scope, scopeId, fileCount: files.length },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to upload documents batch",
           error as Error,
-          "DocumentProcessingService.uploadDocumentsBatch"
-        )
+          "DocumentProcessingService.uploadDocumentsBatch",
+        ),
       );
     }
   }
@@ -575,7 +575,7 @@ export class DocumentProcessingService {
       title: string;
       description?: string | null;
     },
-    userId: string
+    userId: string,
   ): Promise<ActionResult<KnowledgeDocumentDto>> {
     try {
       // Validate scope-specific permissions before upload
@@ -583,7 +583,7 @@ export class DocumentProcessingService {
         scope,
         scopeId,
         userId,
-        "write"
+        "write",
       );
       if (permissionResult.isErr()) {
         return err(
@@ -594,8 +594,8 @@ export class DocumentProcessingService {
               scopeId,
               userId,
             },
-            "DocumentProcessingService.uploadDocument"
-          )
+            "DocumentProcessingService.uploadDocument",
+          ),
         );
       }
 
@@ -612,8 +612,8 @@ export class DocumentProcessingService {
         return err(
           ActionErrors.badRequest(
             `File type ${file.type} is not supported. Supported types: PDF, DOCX, TXT, MD`,
-            "DocumentProcessingService.uploadDocument"
-          )
+            "DocumentProcessingService.uploadDocument",
+          ),
         );
       }
 
@@ -623,8 +623,8 @@ export class DocumentProcessingService {
         return err(
           ActionErrors.badRequest(
             `File size exceeds 50MB limit`,
-            "DocumentProcessingService.uploadDocument"
-          )
+            "DocumentProcessingService.uploadDocument",
+          ),
         );
       }
 
@@ -667,7 +667,7 @@ export class DocumentProcessingService {
         logger.error(
           "Failed to process document",
           { documentId: document.id },
-          error
+          error,
         );
       });
 
@@ -676,14 +676,14 @@ export class DocumentProcessingService {
       logger.error(
         "Failed to upload document",
         { scope, scopeId, fileName: file.name },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to upload document",
           error as Error,
-          "DocumentProcessingService.uploadDocument"
-        )
+          "DocumentProcessingService.uploadDocument",
+        ),
       );
     }
   }
@@ -693,13 +693,13 @@ export class DocumentProcessingService {
    * Updates processing status throughout the pipeline
    */
   static async processDocument(
-    documentId: string
+    documentId: string,
   ): Promise<ActionResult<void>> {
     try {
       // Update status to processing
       await KnowledgeBaseDocumentsQueries.updateProcessingStatus(
         documentId,
-        "processing"
+        "processing",
       );
 
       // Get document
@@ -709,8 +709,8 @@ export class DocumentProcessingService {
         return err(
           ActionErrors.notFound(
             "Document",
-            "DocumentProcessingService.processDocument"
-          )
+            "DocumentProcessingService.processDocument",
+          ),
         );
       }
 
@@ -718,19 +718,33 @@ export class DocumentProcessingService {
       const authResult = await getBetterAuthSession();
       const orgIdResult = await this.resolveOrganizationId(
         document,
-        authResult
+        authResult,
       );
 
       if (orgIdResult.isErr()) {
         await KnowledgeBaseDocumentsQueries.updateProcessingStatus(
           documentId,
           "failed",
-          orgIdResult.error.message
+          orgIdResult.error.message,
         );
         return err(orgIdResult.error);
       }
 
       const organizationId = orgIdResult.value;
+
+      // Resolve project teamId when the document is project-scoped
+      const projectId =
+        document.scope === "project"
+          ? (document.scopeId ?? undefined)
+          : undefined;
+      let teamId: string[] | undefined;
+      if (projectId) {
+        const project = await ProjectQueries.findById(
+          projectId,
+          organizationId,
+        );
+        teamId = project?.teamId ? [project.teamId] : undefined;
+      }
 
       // Process and index document using Qdrant pipeline
       const pipelineResult =
@@ -749,19 +763,17 @@ export class DocumentProcessingService {
             title: document.title,
             description: document.description ?? undefined,
             organizationId,
-            projectId:
-              document.scope === "project"
-                ? (document.scopeId ?? undefined)
-                : undefined,
+            projectId,
+            teamId,
             userId: document.createdById,
-          }
+          },
         );
 
       if (pipelineResult.isErr()) {
         await KnowledgeBaseDocumentsQueries.updateProcessingStatus(
           documentId,
           "failed",
-          pipelineResult.error.message
+          pipelineResult.error.message,
         );
         return err(pipelineResult.error);
       }
@@ -786,19 +798,19 @@ export class DocumentProcessingService {
       logger.error(
         "Failed to process document",
         { documentId },
-        error as Error
+        error as Error,
       );
       await KnowledgeBaseDocumentsQueries.updateProcessingStatus(
         documentId,
         "failed",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
       return err(
         ActionErrors.internal(
           "Failed to process document",
           error as Error,
-          "DocumentProcessingService.processDocument"
-        )
+          "DocumentProcessingService.processDocument",
+        ),
       );
     }
   }
@@ -808,7 +820,7 @@ export class DocumentProcessingService {
    * Supports: PDF, DOCX, TXT, MD
    */
   private static async extractTextFromDocument(
-    document: KnowledgeDocumentDto
+    document: KnowledgeDocumentDto,
   ): Promise<ActionResult<string>> {
     try {
       const fileType = document.fileType.toLowerCase();
@@ -831,29 +843,29 @@ export class DocumentProcessingService {
         return err(
           ActionErrors.internal(
             "PDF and DOCX text extraction requires additional libraries (pdf-parse, mammoth). Please implement or use a text extraction service.",
-            "DocumentProcessingService.extractTextFromDocument"
-          )
+            "DocumentProcessingService.extractTextFromDocument",
+          ),
         );
       } else {
         return err(
           ActionErrors.badRequest(
             `Unsupported file type: ${fileType}`,
-            "DocumentProcessingService.extractTextFromDocument"
-          )
+            "DocumentProcessingService.extractTextFromDocument",
+          ),
         );
       }
     } catch (error) {
       logger.error(
         "Failed to extract text from document",
         { documentId: document.id },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to extract text from document",
           error as Error,
-          "DocumentProcessingService.extractTextFromDocument"
-        )
+          "DocumentProcessingService.extractTextFromDocument",
+        ),
       );
     }
   }
@@ -862,7 +874,7 @@ export class DocumentProcessingService {
    * Extract text from URL (for TXT/MD files)
    */
   private static async extractTextFromUrl(
-    url: string
+    url: string,
   ): Promise<ActionResult<string>> {
     try {
       const fetchableUrl = await resolveFetchableUrl(url, 60);
@@ -871,8 +883,8 @@ export class DocumentProcessingService {
         return err(
           ActionErrors.internal(
             `Failed to fetch document from URL: ${response.statusText}`,
-            "DocumentProcessingService.extractTextFromUrl"
-          )
+            "DocumentProcessingService.extractTextFromUrl",
+          ),
         );
       }
 
@@ -883,8 +895,8 @@ export class DocumentProcessingService {
         ActionErrors.internal(
           "Failed to fetch document content",
           error as Error,
-          "DocumentProcessingService.extractTextFromUrl"
-        )
+          "DocumentProcessingService.extractTextFromUrl",
+        ),
       );
     }
   }
@@ -894,7 +906,7 @@ export class DocumentProcessingService {
    * Returns the document if the user has read access.
    */
   static async getDocumentForView(
-    documentId: string
+    documentId: string,
   ): Promise<ActionResult<KnowledgeDocumentDto>> {
     const document =
       await KnowledgeBaseDocumentsQueries.getDocumentById(documentId);
@@ -902,13 +914,13 @@ export class DocumentProcessingService {
       return err(
         ActionErrors.notFound(
           "Document",
-          "DocumentProcessingService.getDocumentForView"
-        )
+          "DocumentProcessingService.getDocumentForView",
+        ),
       );
     }
     const accessResult = await this.validateDocumentAccess(
       document,
-      "DocumentProcessingService.getDocumentForView"
+      "DocumentProcessingService.getDocumentForView",
     );
     if (accessResult.isErr()) {
       return err(accessResult.error);
@@ -920,7 +932,7 @@ export class DocumentProcessingService {
    * Get document content (extracted text)
    */
   static async getDocumentContent(
-    documentId: string
+    documentId: string,
   ): Promise<ActionResult<string>> {
     try {
       const document =
@@ -929,15 +941,15 @@ export class DocumentProcessingService {
         return err(
           ActionErrors.notFound(
             "Document",
-            "DocumentProcessingService.getDocumentContent"
-          )
+            "DocumentProcessingService.getDocumentContent",
+          ),
         );
       }
 
       // Validate organization access
       const accessResult = await this.validateDocumentAccess(
         document,
-        "DocumentProcessingService.getDocumentContent"
+        "DocumentProcessingService.getDocumentContent",
       );
       if (accessResult.isErr()) {
         return err(accessResult.error);
@@ -947,8 +959,8 @@ export class DocumentProcessingService {
         return err(
           ActionErrors.badRequest(
             "Document text not yet extracted",
-            "DocumentProcessingService.getDocumentContent"
-          )
+            "DocumentProcessingService.getDocumentContent",
+          ),
         );
       }
 
@@ -957,14 +969,14 @@ export class DocumentProcessingService {
       logger.error(
         "Failed to get document content",
         { documentId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to get document content",
           error as Error,
-          "DocumentProcessingService.getDocumentContent"
-        )
+          "DocumentProcessingService.getDocumentContent",
+        ),
       );
     }
   }
@@ -974,7 +986,7 @@ export class DocumentProcessingService {
    */
   static async deleteDocument(
     documentId: string,
-    userId: string
+    userId: string,
   ): Promise<ActionResult<void>> {
     try {
       // Get document to get file URL
@@ -984,15 +996,15 @@ export class DocumentProcessingService {
         return err(
           ActionErrors.notFound(
             "Document",
-            "DocumentProcessingService.deleteDocument"
-          )
+            "DocumentProcessingService.deleteDocument",
+          ),
         );
       }
 
       // Validate organization access and write permissions
       const accessResult = await this.validateDocumentAccess(
         document,
-        "DocumentProcessingService.deleteDocument"
+        "DocumentProcessingService.deleteDocument",
       );
       if (accessResult.isErr()) {
         return err(accessResult.error);
@@ -1003,7 +1015,7 @@ export class DocumentProcessingService {
         document.scope,
         document.scopeId,
         userId,
-        "write"
+        "write",
       );
       if (permissionResult.isErr()) {
         return err(
@@ -1014,8 +1026,8 @@ export class DocumentProcessingService {
               scopeId: document.scopeId,
               userId,
             },
-            "DocumentProcessingService.deleteDocument"
-          )
+            "DocumentProcessingService.deleteDocument",
+          ),
         );
       }
 
@@ -1023,7 +1035,7 @@ export class DocumentProcessingService {
       const orgAuthResult = await getBetterAuthSession();
       const orgIdResult = await this.resolveOrganizationId(
         document,
-        orgAuthResult
+        orgAuthResult,
       );
 
       if (orgIdResult.isOk()) {
@@ -1031,7 +1043,7 @@ export class DocumentProcessingService {
         const deleteChunksResult =
           await DocumentService.Processing.deleteDocumentChunks(
             documentId,
-            organizationId
+            organizationId,
           );
         if (deleteChunksResult.isErr()) {
           logger.warn("Failed to delete document chunks from Qdrant", {
@@ -1075,8 +1087,8 @@ export class DocumentProcessingService {
         return err(
           ActionErrors.notFound(
             "Document",
-            "DocumentProcessingService.deleteDocument"
-          )
+            "DocumentProcessingService.deleteDocument",
+          ),
         );
       }
 
@@ -1092,8 +1104,8 @@ export class DocumentProcessingService {
         ActionErrors.internal(
           "Failed to delete document",
           error as Error,
-          "DocumentProcessingService.deleteDocument"
-        )
+          "DocumentProcessingService.deleteDocument",
+        ),
       );
     }
   }
@@ -1103,7 +1115,7 @@ export class DocumentProcessingService {
    * Uses simple regex patterns to find potential abbreviations
    */
   static async extractTermsFromDocument(
-    documentId: string
+    documentId: string,
   ): Promise<ActionResult<string[]>> {
     try {
       const contentResult = await this.getDocumentContent(documentId);
@@ -1170,16 +1182,15 @@ export class DocumentProcessingService {
       logger.error(
         "Failed to extract terms from document",
         { documentId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to extract terms from document",
           error as Error,
-          "DocumentProcessingService.extractTermsFromDocument"
-        )
+          "DocumentProcessingService.extractTermsFromDocument",
+        ),
       );
     }
   }
 }
-

@@ -14,7 +14,7 @@ export async function RecordingsOverview() {
     );
   }
 
-  const { user, organization } = authResult.value;
+  const { user, organization, userTeamIds } = authResult.value;
 
   if (!user || !organization) {
     return (
@@ -29,14 +29,13 @@ export async function RecordingsOverview() {
   // Fetch recordings and projects in parallel (both cached)
   const [recordings, projects] = await Promise.all([
     getCachedRecordingsByOrganization(organizationId),
-    getCachedUserProjects(organizationId),
+    getCachedUserProjects(organizationId, {
+      userTeamIds,
+      user,
+    }),
   ]);
 
   return (
-    <RecordingsOverviewClient
-      recordings={recordings}
-      projects={projects}
-    />
+    <RecordingsOverviewClient recordings={recordings} projects={projects} />
   );
 }
-

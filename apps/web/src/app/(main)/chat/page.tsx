@@ -28,9 +28,12 @@ async function ChatPageContent() {
   // Check if user is admin
   const isAdmin = canAccessOrganizationChat(session.user);
 
-  // Get user's projects (cached)
+  // Get user's projects (cached), filtered by team context
   const projects = session.organization
-    ? await getCachedUserProjects(session.organization.id)
+    ? await getCachedUserProjects(session.organization.id, {
+        userTeamIds: session.userTeamIds,
+        user: session.user,
+      })
     : [];
 
   // Check if agent is enabled
@@ -81,4 +84,3 @@ export default function OrganizationChatPage() {
     </ProtectedPage>
   );
 }
-

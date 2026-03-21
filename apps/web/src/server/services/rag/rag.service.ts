@@ -10,6 +10,7 @@ import {
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
+import { ProjectQueries } from "@/server/data-access/projects.queries";
 import { ProjectTemplateQueries } from "@/server/data-access/project-templates.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { TasksQueries } from "@/server/data-access/tasks.queries";
@@ -62,7 +63,7 @@ export class RAGService {
   async search(
     query: string,
     userId: string = "",
-    options: RAGSearchOptions = {}
+    options: RAGSearchOptions = {},
   ): Promise<ActionResult<SearchResult[]>> {
     try {
       const {
@@ -75,6 +76,9 @@ export class RAGService {
         scoreThreshold = 0.5,
         organizationId,
         projectId,
+        teamId,
+        userTeamIds,
+        isOrgAdmin,
       } = options;
 
       logger.debug("Performing RAG search", {
@@ -110,6 +114,9 @@ export class RAGService {
           userId,
           organizationId,
           projectId,
+          teamId,
+          userTeamIds,
+          isOrgAdmin,
           limit: limit * 2, // Fetch more for re-ranking
           vectorWeight,
           keywordWeight,
@@ -121,7 +128,7 @@ export class RAGService {
         const hybridResult = await this.hybridSearch.search(
           query,
           queryEmbedding,
-          hybridOptions
+          hybridOptions,
         );
 
         if (hybridResult.isErr()) {
@@ -137,7 +144,10 @@ export class RAGService {
           limit * 2,
           filters,
           organizationId,
-          projectId
+          projectId,
+          teamId,
+          userTeamIds,
+          isOrgAdmin,
         );
 
         if (vectorResult.isErr()) {
@@ -178,8 +188,8 @@ export class RAGService {
         ActionErrors.internal(
           "Error performing RAG search",
           error as Error,
-          "RAGService.search"
-        )
+          "RAGService.search",
+        ),
       );
     }
   }
@@ -193,14 +203,20 @@ export class RAGService {
     limit: number,
     filters: Record<string, unknown>,
     organizationId?: string,
-    projectId?: string
+    projectId?: string,
+    teamId?: string | null,
+    userTeamIds?: string[],
+    isOrgAdmin?: boolean,
   ): Promise<ActionResult<SearchResult[]>> {
     try {
       const filter = this.buildFilter(
         userId,
         organizationId,
         projectId,
-        filters
+        filters,
+        teamId,
+        userTeamIds,
+        isOrgAdmin,
       );
 
       const searchResult = await this.qdrantService.search(embedding, {
@@ -244,8 +260,8 @@ export class RAGService {
         ActionErrors.internal(
           "Error in vector-only search",
           error as Error,
-          "RAGService.vectorOnlySearch"
-        )
+          "RAGService.vectorOnlySearch",
+        ),
       );
     }
   }
@@ -257,7 +273,7 @@ export class RAGService {
     content: string,
     metadata: Record<string, unknown>,
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<void>> {
     try {
       // Generate embedding
@@ -286,7 +302,7 @@ export class RAGService {
       // Upsert to Qdrant
       const upsertResult = await this.qdrantService.upsert(
         [point],
-        this.collectionName
+        this.collectionName,
       );
 
       if (upsertResult.isErr()) {
@@ -309,8 +325,8 @@ export class RAGService {
         ActionErrors.internal(
           "Error adding document",
           error as Error,
-          "RAGService.addDocument"
-        )
+          "RAGService.addDocument",
+        ),
       );
     }
   }
@@ -324,7 +340,7 @@ export class RAGService {
       metadata: Record<string, unknown>;
     }>,
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<void>> {
     try {
       if (documents.length === 0) {
@@ -353,8 +369,8 @@ export class RAGService {
           ActionErrors.internal(
             "Mismatch between documents and embeddings",
             undefined,
-            "RAGService.addDocumentBatch"
-          )
+            "RAGService.addDocumentBatch",
+          ),
         );
       }
 
@@ -381,7 +397,7 @@ export class RAGService {
         const batch = points.slice(i, i + batchSize);
         const upsertResult = await this.qdrantService.upsert(
           batch,
-          this.collectionName
+          this.collectionName,
         );
 
         if (upsertResult.isErr()) {
@@ -415,8 +431,8 @@ export class RAGService {
               failed: failedCount,
               error: firstErrorMessage,
             },
-            "RAGService.addDocumentBatch"
-          )
+            "RAGService.addDocumentBatch",
+          ),
         );
       }
 
@@ -436,8 +452,8 @@ export class RAGService {
         ActionErrors.internal(
           "Error batch adding documents",
           error as Error,
-          "RAGService.addDocumentBatch"
-        )
+          "RAGService.addDocumentBatch",
+        ),
       );
     }
   }
@@ -449,7 +465,10 @@ export class RAGService {
     userId: string,
     organizationId: string | undefined,
     projectId: string | undefined,
-    additionalFilters: Record<string, unknown>
+    additionalFilters: Record<string, unknown>,
+    teamId?: string | null,
+    userTeamIds?: string[],
+    isOrgAdmin?: boolean,
   ): QdrantFilter {
     const must: Array<{
       key: string;
@@ -509,7 +528,30 @@ export class RAGService {
       }
     });
 
-    return must.length > 0 ? { must } : {};
+    // Build should array for team-scoped filtering
+    // Documents with no teamId are accessible to all; documents with a teamId
+    // are only accessible to members of that team.
+    const should: Array<
+      { key: string; match?: MatchCondition } | { is_empty: { key: string } }
+    > = [];
+
+    if (teamId) {
+      should.push({ key: "teamId", match: { value: teamId } });
+      should.push({ is_empty: { key: "teamId" } });
+    } else if (userTeamIds && userTeamIds.length > 0) {
+      should.push({ key: "teamId", match: { any: userTeamIds } });
+      should.push({ is_empty: { key: "teamId" } });
+    } else if (!isOrgAdmin) {
+      // Fail-closed: a non-admin user with no team memberships may only see
+      // org-wide content (documents with no teamId). Without this guard, the
+      // absence of a should clause would return ALL content regardless of team.
+      should.push({ is_empty: { key: "teamId" } });
+    }
+
+    const filter: QdrantFilter = {};
+    if (must.length > 0) filter.must = must;
+    if (should.length > 0) filter.should = should;
+    return filter;
   }
 
   /**
@@ -526,7 +568,7 @@ export class RAGService {
             },
           ],
         },
-        this.collectionName
+        this.collectionName,
       );
 
       if (deleteResult.isErr()) {
@@ -548,8 +590,8 @@ export class RAGService {
         ActionErrors.internal(
           "Error deleting user data",
           error as Error,
-          "RAGService.deleteUserData"
-        )
+          "RAGService.deleteUserData",
+        ),
       );
     }
   }
@@ -560,7 +602,7 @@ export class RAGService {
   async updateProjectId(
     contentId: string,
     contentType: string,
-    newProjectId: string
+    newProjectId: string,
   ): Promise<ActionResult<void>> {
     try {
       const updateResult = await this.qdrantService.setPayload(
@@ -577,7 +619,7 @@ export class RAGService {
             },
           ],
         },
-        this.collectionName
+        this.collectionName,
       );
 
       if (updateResult.isErr()) {
@@ -601,8 +643,8 @@ export class RAGService {
         ActionErrors.internal(
           "Error updating projectId",
           error as Error,
-          "RAGService.updateProjectId"
-        )
+          "RAGService.updateProjectId",
+        ),
       );
     }
   }
@@ -612,7 +654,7 @@ export class RAGService {
    */
   async deleteByOrganizationAndContentType(
     organizationId: string,
-    contentType: string
+    contentType: string,
   ): Promise<ActionResult<void>> {
     try {
       const deleteResult = await this.qdrantService.deleteByFilter(
@@ -628,7 +670,7 @@ export class RAGService {
             },
           ],
         },
-        this.collectionName
+        this.collectionName,
       );
 
       if (deleteResult.isErr()) {
@@ -651,8 +693,8 @@ export class RAGService {
         ActionErrors.internal(
           "Error deleting documents",
           error as Error,
-          "RAGService.deleteByOrganizationAndContentType"
-        )
+          "RAGService.deleteByOrganizationAndContentType",
+        ),
       );
     }
   }
@@ -680,7 +722,7 @@ export class RAGService {
         {
           limit: 10000,
           collectionName: this.collectionName,
-        }
+        },
       );
 
       if (scrollResult.isErr()) {
@@ -691,7 +733,7 @@ export class RAGService {
       const uniqueDocuments = new Set(
         points
           .map((p) => p.payload?.documentId as string | undefined)
-          .filter((id): id is string => id !== undefined)
+          .filter((id): id is string => id !== undefined),
       ).size;
 
       // Approximate storage size (vector dimensions * 4 bytes per float32)
@@ -712,8 +754,8 @@ export class RAGService {
         ActionErrors.internal(
           "Error getting user stats",
           error as Error,
-          "RAGService.getUserStats"
-        )
+          "RAGService.getUserStats",
+        ),
       );
     }
   }
@@ -774,7 +816,7 @@ export class RAGService {
   async indexRecordingTranscription(
     recordingId: string,
     projectId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<void>> {
     try {
       logger.info("Indexing recording transcription", { recordingId });
@@ -789,8 +831,8 @@ export class RAGService {
         return err(
           ActionErrors.notFound(
             "Recording or transcription",
-            "RAGService.indexRecordingTranscription"
-          )
+            "RAGService.indexRecordingTranscription",
+          ),
         );
       }
 
@@ -800,6 +842,10 @@ export class RAGService {
 
       const chunks = this.chunkText(textToIndex, 500);
 
+      // Look up project teamId for payload
+      const project = await ProjectQueries.findById(projectId, organizationId);
+      const teamId = project?.teamId ? [project.teamId] : undefined;
+
       // Prepare documents for Qdrant batch indexing
       const documents = chunks.map((chunk, index) => ({
         content: chunk,
@@ -808,6 +854,7 @@ export class RAGService {
           documentId: recordingId,
           contentId: recordingId,
           projectId,
+          teamId,
           filename: recording.title,
           recordingTitle: recording.title,
           recordingDate: recording.recordingDate.toISOString(),
@@ -820,7 +867,7 @@ export class RAGService {
       const indexResult = await this.addDocumentBatch(
         documents,
         recording.createdById,
-        organizationId
+        organizationId,
       );
 
       if (indexResult.isErr()) {
@@ -842,8 +889,8 @@ export class RAGService {
         ActionErrors.internal(
           "Error indexing recording transcription",
           error as Error,
-          "RAGService.indexRecordingTranscription"
-        )
+          "RAGService.indexRecordingTranscription",
+        ),
       );
     }
   }
@@ -854,7 +901,7 @@ export class RAGService {
   async indexRecordingSummary(
     recordingId: string,
     projectId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<void>> {
     try {
       logger.info("Indexing recording summary", { recordingId });
@@ -862,12 +909,12 @@ export class RAGService {
       const summaries =
         await AIInsightsQueries.getInsightsByRecordingId(recordingId);
       const summary = summaries.find(
-        (s: { insightType: string }) => s.insightType === "summary"
+        (s: { insightType: string }) => s.insightType === "summary",
       );
 
       if (!summary || !summary.content) {
         return err(
-          ActionErrors.notFound("Summary", "RAGService.indexRecordingSummary")
+          ActionErrors.notFound("Summary", "RAGService.indexRecordingSummary"),
         );
       }
 
@@ -878,6 +925,10 @@ export class RAGService {
       const recording =
         await RecordingsQueries.selectRecordingById(recordingId);
 
+      // Look up project teamId for payload
+      const project = await ProjectQueries.findById(projectId, organizationId);
+      const teamId = project?.teamId ? [project.teamId] : undefined;
+
       // Index to Qdrant
       const indexResult = await this.addDocument(
         summaryText,
@@ -886,13 +937,14 @@ export class RAGService {
           documentId: summary.id,
           contentId: summary.id,
           projectId,
+          teamId,
           filename: recording?.title,
           recordingTitle: recording?.title,
           recordingDate: recording?.recordingDate?.toISOString(),
           recordingId,
         },
         recording?.createdById ?? "",
-        organizationId
+        organizationId,
       );
 
       if (indexResult.isErr()) {
@@ -908,8 +960,8 @@ export class RAGService {
         ActionErrors.internal(
           "Error indexing recording summary",
           error as Error,
-          "RAGService.indexRecordingSummary"
-        )
+          "RAGService.indexRecordingSummary",
+        ),
       );
     }
   }
@@ -920,7 +972,7 @@ export class RAGService {
   async indexRecordingTasks(
     recordingId: string,
     projectId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<void>> {
     try {
       logger.info("Indexing recording tasks", { recordingId });
@@ -936,6 +988,10 @@ export class RAGService {
       const recording =
         await RecordingsQueries.selectRecordingById(recordingId);
 
+      // Look up project teamId for payload
+      const project = await ProjectQueries.findById(projectId, organizationId);
+      const teamId = project?.teamId ? [project.teamId] : undefined;
+
       // Prepare documents for Qdrant batch indexing
       const documents = tasks.map((task) => ({
         content: `Task: ${task.title}\nDescription: ${
@@ -946,6 +1002,7 @@ export class RAGService {
           documentId: task.id,
           contentId: task.id,
           projectId,
+          teamId,
           title: task.title,
           priority: task.priority,
           status: task.status,
@@ -959,7 +1016,7 @@ export class RAGService {
       const indexResult = await this.addDocumentBatch(
         documents,
         recording?.createdById ?? "",
-        organizationId
+        organizationId,
       );
 
       if (indexResult.isErr()) {
@@ -978,8 +1035,8 @@ export class RAGService {
         ActionErrors.internal(
           "Error indexing recording tasks",
           error as Error,
-          "RAGService.indexRecordingTasks"
-        )
+          "RAGService.indexRecordingTasks",
+        ),
       );
     }
   }
@@ -990,7 +1047,7 @@ export class RAGService {
   async indexRecording(
     recordingId: string,
     projectId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<void>> {
     try {
       logger.info("Starting full recording indexing", { recordingId });
@@ -999,7 +1056,7 @@ export class RAGService {
       const transcriptionResult = await this.indexRecordingTranscription(
         recordingId,
         projectId,
-        organizationId
+        organizationId,
       );
       if (transcriptionResult.isErr()) {
         logger.warn("Failed to index transcription", {
@@ -1012,7 +1069,7 @@ export class RAGService {
       const summaryResult = await this.indexRecordingSummary(
         recordingId,
         projectId,
-        organizationId
+        organizationId,
       );
       if (summaryResult.isErr()) {
         logger.warn("Failed to index summary", {
@@ -1025,7 +1082,7 @@ export class RAGService {
       const tasksResult = await this.indexRecordingTasks(
         recordingId,
         projectId,
-        organizationId
+        organizationId,
       );
       if (tasksResult.isErr()) {
         logger.warn("Failed to index tasks", {
@@ -1043,8 +1100,8 @@ export class RAGService {
         ActionErrors.internal(
           "Error indexing recording",
           error as Error,
-          "RAGService.indexRecording"
-        )
+          "RAGService.indexRecording",
+        ),
       );
     }
   }
@@ -1054,14 +1111,14 @@ export class RAGService {
    */
   async indexProjectTemplate(
     projectId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<void>> {
     try {
       logger.info("Indexing project template", { projectId });
 
       const template = await ProjectTemplateQueries.findByProjectId(
         projectId,
-        organizationId
+        organizationId,
       );
 
       if (!template) {
@@ -1072,6 +1129,10 @@ export class RAGService {
       // Chunk the template instructions
       const chunks = this.chunkText(template.instructions, 500);
 
+      // Look up project teamId for payload
+      const project = await ProjectQueries.findById(projectId, organizationId);
+      const teamId = project?.teamId ? [project.teamId] : undefined;
+
       // Prepare documents for Qdrant batch indexing
       const documents = chunks.map((chunk, index) => ({
         content: chunk,
@@ -1080,6 +1141,7 @@ export class RAGService {
           documentId: template.id,
           contentId: template.id,
           projectId,
+          teamId,
           filename: "Project Template",
           title: "Project Template",
           chunkIndex: index,
@@ -1092,7 +1154,7 @@ export class RAGService {
       const indexResult = await this.addDocumentBatch(
         documents,
         "",
-        organizationId
+        organizationId,
       );
 
       if (indexResult.isErr()) {
@@ -1111,8 +1173,8 @@ export class RAGService {
         ActionErrors.internal(
           "Error indexing project template",
           error as Error,
-          "RAGService.indexProjectTemplate"
-        )
+          "RAGService.indexProjectTemplate",
+        ),
       );
     }
   }
@@ -1123,7 +1185,7 @@ export class RAGService {
   async indexOrganizationInstructions(
     organizationId: string,
     instructions: string,
-    settingsId: string
+    settingsId: string,
   ): Promise<ActionResult<void>> {
     try {
       logger.info("Indexing organization instructions", { organizationId });
@@ -1150,7 +1212,7 @@ export class RAGService {
       const indexResult = await this.addDocumentBatch(
         documents,
         "",
-        organizationId
+        organizationId,
       );
 
       if (indexResult.isErr()) {
@@ -1172,8 +1234,8 @@ export class RAGService {
         ActionErrors.internal(
           "Error indexing organization instructions",
           error as Error,
-          "RAGService.indexOrganizationInstructions"
-        )
+          "RAGService.indexOrganizationInstructions",
+        ),
       );
     }
   }
@@ -1184,7 +1246,7 @@ export class RAGService {
   async reindexOrganizationInstructions(
     organizationId: string,
     instructions: string,
-    settingsId: string
+    settingsId: string,
   ): Promise<ActionResult<void>> {
     try {
       logger.info("Reindexing organization instructions", { organizationId });
@@ -1192,7 +1254,7 @@ export class RAGService {
       // Delete existing organization instructions from Qdrant
       const deleteResult = await this.deleteByOrganizationAndContentType(
         organizationId,
-        "organization_instructions"
+        "organization_instructions",
       );
       if (deleteResult.isErr()) {
         logger.warn("Failed to delete existing organization instructions", {
@@ -1206,7 +1268,7 @@ export class RAGService {
       return await this.indexOrganizationInstructions(
         organizationId,
         instructions,
-        settingsId
+        settingsId,
       );
     } catch (error) {
       logger.error("Error reindexing organization instructions", {
@@ -1217,8 +1279,8 @@ export class RAGService {
         ActionErrors.internal(
           "Error reindexing organization instructions",
           error as Error,
-          "RAGService.reindexOrganizationInstructions"
-        )
+          "RAGService.reindexOrganizationInstructions",
+        ),
       );
     }
   }
@@ -1228,7 +1290,7 @@ export class RAGService {
    */
   async indexProject(
     projectId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<{ indexed: number; failed: number }>> {
     try {
       logger.info("Starting project indexing", { projectId });
@@ -1236,7 +1298,7 @@ export class RAGService {
       // First, index project template (if exists)
       const templateResult = await this.indexProjectTemplate(
         projectId,
-        organizationId
+        organizationId,
       );
 
       if (templateResult.isErr()) {
@@ -1249,7 +1311,7 @@ export class RAGService {
 
       const recordings = await RecordingsQueries.selectRecordingsByProjectId(
         projectId,
-        organizationId
+        organizationId,
       );
 
       let indexed = 0;
@@ -1259,7 +1321,7 @@ export class RAGService {
         const result = await this.indexRecording(
           recording.id,
           projectId,
-          organizationId
+          organizationId,
         );
 
         if (result.isOk()) {
@@ -1278,10 +1340,9 @@ export class RAGService {
         ActionErrors.internal(
           "Error indexing project",
           error as Error,
-          "RAGService.indexProject"
-        )
+          "RAGService.indexProject",
+        ),
       );
     }
   }
 }
-

@@ -1,4 +1,3 @@
-import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { err, ok } from "neverthrow";
 import { logger } from "../../lib/logger";
 import {
@@ -11,6 +10,7 @@ import {
   getRecentRecordingsForDashboard,
 } from "../data-access/dashboard.queries";
 import type { RecordingStatus } from "../db/schema/recordings";
+import type { BetterAuthUser } from "@/lib/auth";
 
 interface DashboardOverview {
   stats: {
@@ -35,6 +35,11 @@ interface DashboardOverview {
   }>;
 }
 
+interface DashboardTeamContext {
+  userTeamIds?: string[];
+  user?: BetterAuthUser;
+}
+
 /**
  * Dashboard Service
  * Aggregates dashboard data for user overview
@@ -43,9 +48,11 @@ export class DashboardService {
   /**
    * Get complete dashboard overview for a user's organization
    * @param organizationId - The organization ID (must be fetched outside cache scope)
+   * @param teamContext - Optional team context for filtering by team visibility
    */
   static async getDashboardOverview(
-    organizationId: string
+    organizationId: string,
+    teamContext?: DashboardTeamContext,
   ): Promise<ActionResult<DashboardOverview>> {
     try {
       logger.debug("Fetching dashboard overview", {
@@ -54,9 +61,9 @@ export class DashboardService {
 
       // Fetch all data in parallel using DAL
       const [stats, recentProjects, recentRecordings] = await Promise.all([
-        getDashboardStats(organizationId),
-        getRecentProjectsForDashboard(organizationId, 5),
-        getRecentRecordingsForDashboard(organizationId, 5),
+        getDashboardStats(organizationId, teamContext),
+        getRecentProjectsForDashboard(organizationId, 5, teamContext),
+        getRecentRecordingsForDashboard(organizationId, 5, teamContext),
       ]);
 
       const overview: DashboardOverview = {
@@ -82,10 +89,9 @@ export class DashboardService {
         ActionErrors.internal(
           "Failed to load dashboard data",
           error as Error,
-          "DashboardService.getDashboardOverview"
-        )
+          "DashboardService.getDashboardOverview",
+        ),
       );
     }
   }
 }
-

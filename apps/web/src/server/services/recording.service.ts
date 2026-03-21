@@ -2,10 +2,13 @@ import { err, ok } from "neverthrow";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger, serializeError } from "../../lib/logger";
 import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
+import { assertTeamAccess } from "../../lib/rbac/team-isolation";
 import {
   ActionErrors,
   type ActionResult,
 } from "../../lib/server-action-client/action-errors";
+import type { BetterAuthUser } from "../../lib/auth";
+import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { ProjectQueries } from "../data-access/projects.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { type NewRecording, type Recording } from "../db/schema/recordings";
@@ -24,7 +27,7 @@ export class RecordingService {
    */
   static async createRecording(
     data: NewRecording,
-    invalidateCache: boolean = true
+    invalidateCache: boolean = true,
   ): Promise<ActionResult<RecordingDto>> {
     logger.info("Creating new recording", {
       component: "RecordingService.createRecording",
@@ -38,15 +41,15 @@ export class RecordingService {
         return err(
           ActionErrors.badRequest(
             "Missing organizationId",
-            "RecordingService.createRecording"
-          )
+            "RecordingService.createRecording",
+          ),
         );
       }
 
       // Prevent adding recordings to archived projects
       const project = await ProjectQueries.findById(
         data.projectId,
-        data.organizationId
+        data.organizationId,
       );
       if (project?.status === "archived") {
         logger.warn("Attempted to add recording to archived project", {
@@ -57,8 +60,8 @@ export class RecordingService {
           ActionErrors.forbidden(
             "Cannot add recordings to an archived project",
             undefined,
-            "RecordingService.createRecording"
-          )
+            "RecordingService.createRecording",
+          ),
         );
       }
 
@@ -68,7 +71,7 @@ export class RecordingService {
       if (data.externalRecordingId && data.organizationId) {
         const existing = await RecordingsQueries.selectRecordingByExternalId(
           data.externalRecordingId,
-          data.organizationId
+          data.organizationId,
         );
 
         if (existing) {
@@ -91,7 +94,7 @@ export class RecordingService {
       if (invalidateCache) {
         CacheInvalidation.invalidateProjectRecordings(
           recording.projectId,
-          recording.organizationId
+          recording.organizationId,
         );
       }
 
@@ -113,8 +116,8 @@ export class RecordingService {
         ActionErrors.internal(
           "Failed to create recording",
           error as Error,
-          "RecordingService.createRecording"
-        )
+          "RecordingService.createRecording",
+        ),
       );
     }
   }
@@ -123,7 +126,7 @@ export class RecordingService {
    * Get a recording by ID
    */
   static async getRecordingById(
-    id: string
+    id: string,
   ): Promise<ActionResult<RecordingDto | null>> {
     logger.info("Fetching recording by ID", {
       component: "RecordingService.getRecordingById",
@@ -141,6 +144,42 @@ export class RecordingService {
         return ok(null);
       }
 
+      // Enforce team-level access isolation via the recording's project.
+      // Fail-closed: if the recording belongs to a project and we cannot verify
+      // team access (session failure or project not found), deny access rather
+      // than silently returning the recording.
+      if (recording.projectId) {
+        const sessionResult = await getBetterAuthSession();
+        if (sessionResult.isErr() || !sessionResult.value.user) {
+          return err(
+            ActionErrors.forbidden(
+              "Unable to verify access",
+              undefined,
+              "RecordingService.getRecordingById",
+            ),
+          );
+        }
+        const { user: sessionUser, userTeamIds } = sessionResult.value;
+        const project = await ProjectQueries.findById(
+          recording.projectId,
+          recording.organizationId,
+        );
+        if (!project) {
+          return err(
+            ActionErrors.notFound(
+              "Recording",
+              "RecordingService.getRecordingById",
+            ),
+          );
+        }
+        assertTeamAccess(
+          project.teamId,
+          userTeamIds,
+          sessionUser,
+          "RecordingService.getRecordingById",
+        );
+      }
+
       return ok(this.toDto(recording));
     } catch (error) {
       logger.error("Failed to fetch recording from database", {
@@ -153,8 +192,8 @@ export class RecordingService {
         ActionErrors.internal(
           "Failed to fetch recording",
           error as Error,
-          "RecordingService.getRecordingById"
-        )
+          "RecordingService.getRecordingById",
+        ),
       );
     }
   }
@@ -167,7 +206,7 @@ export class RecordingService {
     organizationId: string,
     options?: {
       search?: string;
-    }
+    },
   ): Promise<ActionResult<RecordingDto[]>> {
     logger.info("Fetching recordings for project", {
       component: "RecordingService.getRecordingsByProjectId",
@@ -182,15 +221,15 @@ export class RecordingService {
         return err(
           ActionErrors.notFound(
             "Project",
-            "RecordingService.getRecordingsByProjectId"
-          )
+            "RecordingService.getRecordingsByProjectId",
+          ),
         );
       }
 
       const recordings = await RecordingsQueries.selectRecordingsByProjectId(
         projectId,
         organizationId,
-        options
+        options,
       );
 
       logger.info("Successfully fetched recordings", {
@@ -211,8 +250,8 @@ export class RecordingService {
         ActionErrors.internal(
           "Failed to fetch recordings",
           error as Error,
-          "RecordingService.getRecordingsByProjectId"
-        )
+          "RecordingService.getRecordingsByProjectId",
+        ),
       );
     }
   }
@@ -226,7 +265,9 @@ export class RecordingService {
       statusFilter?: "active" | "archived";
       search?: string;
       projectIds?: string[];
-    }
+      user?: BetterAuthUser;
+      userTeamIds?: string[];
+    },
   ): Promise<ActionResult<Array<RecordingDto & { projectName: string }>>> {
     logger.info("Fetching recordings for organization", {
       component: "RecordingService.getRecordingsByOrganization",
@@ -239,7 +280,7 @@ export class RecordingService {
     try {
       const recordings = await RecordingsQueries.selectRecordingsByOrganization(
         organizationId,
-        options
+        options,
       );
 
       logger.info("Successfully fetched recordings", {
@@ -256,7 +297,7 @@ export class RecordingService {
             ...this.toDto(recordingWithoutProjectName as Recording),
             projectName,
           };
-        })
+        }),
       );
     } catch (error) {
       logger.error("Failed to fetch recordings from database", {
@@ -269,8 +310,8 @@ export class RecordingService {
         ActionErrors.internal(
           "Failed to fetch recordings",
           error as Error,
-          "RecordingService.getRecordingsByOrganization"
-        )
+          "RecordingService.getRecordingsByOrganization",
+        ),
       );
     }
   }
@@ -285,7 +326,7 @@ export class RecordingService {
       title: string;
       description?: string | null;
       recordingDate: Date;
-    }
+    },
   ): Promise<ActionResult<RecordingDto>> {
     logger.info("Updating recording metadata", {
       component: "RecordingService.updateRecordingMetadata",
@@ -304,8 +345,8 @@ export class RecordingService {
         return err(
           ActionErrors.notFound(
             "Recording",
-            "RecordingService.updateRecordingMetadata"
-          )
+            "RecordingService.updateRecordingMetadata",
+          ),
         );
       }
 
@@ -314,20 +355,20 @@ export class RecordingService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "RecordingService.updateRecordingMetadata"
+          "RecordingService.updateRecordingMetadata",
         );
       } catch (error) {
         return err(
           ActionErrors.notFound(
             "Recording not found",
-            "RecordingService.updateRecordingMetadata"
-          )
+            "RecordingService.updateRecordingMetadata",
+          ),
         );
       }
 
       const updatedRecording = await RecordingsQueries.updateRecordingMetadata(
         id,
-        data
+        data,
       );
 
       if (!updatedRecording) {
@@ -335,8 +376,8 @@ export class RecordingService {
           ActionErrors.internal(
             "Failed to update recording",
             undefined,
-            "RecordingService.updateRecordingMetadata"
-          )
+            "RecordingService.updateRecordingMetadata",
+          ),
         );
       }
 
@@ -344,7 +385,7 @@ export class RecordingService {
       CacheInvalidation.invalidateRecording(
         id,
         updatedRecording.projectId,
-        organizationId
+        organizationId,
       );
 
       logger.info("Successfully updated recording metadata", {
@@ -364,8 +405,8 @@ export class RecordingService {
         ActionErrors.internal(
           "Failed to update recording",
           error as Error,
-          "RecordingService.updateRecordingMetadata"
-        )
+          "RecordingService.updateRecordingMetadata",
+        ),
       );
     }
   }
@@ -399,8 +440,8 @@ export class RecordingService {
         ActionErrors.internal(
           "Failed to get recording statistics",
           error as Error,
-          "RecordingService.getProjectRecordingStatistics"
-        )
+          "RecordingService.getProjectRecordingStatistics",
+        ),
       );
     }
   }
@@ -410,7 +451,7 @@ export class RecordingService {
    */
   static async archiveRecording(
     recordingId: string,
-    orgCode: string
+    orgCode: string,
   ): Promise<ActionResult<boolean>> {
     logger.info("Archiving recording", {
       component: "RecordingService.archiveRecording",
@@ -425,14 +466,14 @@ export class RecordingService {
         return err(
           ActionErrors.notFound(
             "Recording",
-            "RecordingService.archiveRecording"
-          )
+            "RecordingService.archiveRecording",
+          ),
         );
       }
 
       const result = await RecordingsQueries.archiveRecording(
         recordingId,
-        orgCode
+        orgCode,
       );
 
       if (result) {
@@ -440,7 +481,7 @@ export class RecordingService {
         CacheInvalidation.invalidateRecording(
           recordingId,
           recording.projectId,
-          orgCode
+          orgCode,
         );
 
         logger.info("Successfully archived recording", {
@@ -460,8 +501,8 @@ export class RecordingService {
         ActionErrors.internal(
           "Failed to archive recording",
           error as Error,
-          "RecordingService.archiveRecording"
-        )
+          "RecordingService.archiveRecording",
+        ),
       );
     }
   }
@@ -471,7 +512,7 @@ export class RecordingService {
    */
   static async unarchiveRecording(
     recordingId: string,
-    orgCode: string
+    orgCode: string,
   ): Promise<ActionResult<boolean>> {
     logger.info("Unarchiving recording", {
       component: "RecordingService.unarchiveRecording",
@@ -486,14 +527,14 @@ export class RecordingService {
         return err(
           ActionErrors.notFound(
             "Recording",
-            "RecordingService.unarchiveRecording"
-          )
+            "RecordingService.unarchiveRecording",
+          ),
         );
       }
 
       const result = await RecordingsQueries.unarchiveRecording(
         recordingId,
-        orgCode
+        orgCode,
       );
 
       if (result) {
@@ -501,7 +542,7 @@ export class RecordingService {
         CacheInvalidation.invalidateRecording(
           recordingId,
           recording.projectId,
-          orgCode
+          orgCode,
         );
 
         logger.info("Successfully unarchived recording", {
@@ -521,8 +562,8 @@ export class RecordingService {
         ActionErrors.internal(
           "Failed to unarchive recording",
           error as Error,
-          "RecordingService.unarchiveRecording"
-        )
+          "RecordingService.unarchiveRecording",
+        ),
       );
     }
   }
@@ -532,7 +573,7 @@ export class RecordingService {
    */
   static async deleteRecording(
     recordingId: string,
-    orgCode: string
+    orgCode: string,
   ): Promise<ActionResult<boolean>> {
     logger.info("Deleting recording", {
       component: "RecordingService.deleteRecording",
@@ -545,7 +586,10 @@ export class RecordingService {
 
       if (!recording) {
         return err(
-          ActionErrors.notFound("Recording", "RecordingService.deleteRecording")
+          ActionErrors.notFound(
+            "Recording",
+            "RecordingService.deleteRecording",
+          ),
         );
       }
 
@@ -554,20 +598,20 @@ export class RecordingService {
         assertOrganizationAccess(
           recording.organizationId,
           orgCode,
-          "RecordingService.deleteRecording"
+          "RecordingService.deleteRecording",
         );
       } catch (error) {
         return err(
           ActionErrors.notFound(
             "Recording not found",
-            "RecordingService.deleteRecording"
-          )
+            "RecordingService.deleteRecording",
+          ),
         );
       }
 
       const deleteResult = await RecordingsQueries.deleteRecording(
         recordingId,
-        orgCode
+        orgCode,
       );
 
       if (!deleteResult) {
@@ -575,8 +619,8 @@ export class RecordingService {
           ActionErrors.internal(
             "Failed to delete recording from database",
             undefined,
-            "RecordingService.deleteRecording"
-          )
+            "RecordingService.deleteRecording",
+          ),
         );
       }
 
@@ -584,7 +628,7 @@ export class RecordingService {
       CacheInvalidation.invalidateRecording(
         recordingId,
         recording.projectId,
-        orgCode
+        orgCode,
       );
 
       logger.info("Successfully deleted recording", {
@@ -603,8 +647,8 @@ export class RecordingService {
         ActionErrors.internal(
           "Failed to delete recording",
           error as Error,
-          "RecordingService.deleteRecording"
-        )
+          "RecordingService.deleteRecording",
+        ),
       );
     }
   }
@@ -616,7 +660,7 @@ export class RecordingService {
     recordingId: string,
     targetProjectId: string,
     organizationId: string,
-    userId: string
+    userId: string,
   ): Promise<ActionResult<RecordingDto>> {
     logger.info("Moving recording to another project", {
       component: "RecordingService.moveRecording",
@@ -637,7 +681,7 @@ export class RecordingService {
         });
 
         return err(
-          ActionErrors.notFound("Recording", "RecordingService.moveRecording")
+          ActionErrors.notFound("Recording", "RecordingService.moveRecording"),
         );
       }
 
@@ -646,21 +690,21 @@ export class RecordingService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "RecordingService.moveRecording"
+          "RecordingService.moveRecording",
         );
       } catch (error) {
         return err(
           ActionErrors.notFound(
             "Recording not found",
-            "RecordingService.moveRecording"
-          )
+            "RecordingService.moveRecording",
+          ),
         );
       }
 
       // Verify target project belongs to same organization
       const targetProject = await ProjectQueries.findById(
         targetProjectId,
-        organizationId
+        organizationId,
       );
 
       if (!targetProject) {
@@ -670,14 +714,14 @@ export class RecordingService {
             component: "RecordingService.moveRecording",
             targetProjectId,
             organizationId,
-          }
+          },
         );
 
         return err(
           ActionErrors.notFound(
             "Target project",
-            "RecordingService.moveRecording"
-          )
+            "RecordingService.moveRecording",
+          ),
         );
       }
 
@@ -691,8 +735,8 @@ export class RecordingService {
           ActionErrors.forbidden(
             "Target project is archived",
             undefined,
-            "RecordingService.moveRecording"
-          )
+            "RecordingService.moveRecording",
+          ),
         );
       }
 
@@ -703,7 +747,7 @@ export class RecordingService {
       const movedRecording = await RecordingsQueries.moveRecordingToProject(
         recordingId,
         targetProjectId,
-        organizationId
+        organizationId,
       );
 
       if (!movedRecording) {
@@ -711,8 +755,8 @@ export class RecordingService {
           ActionErrors.internal(
             "Failed to move recording",
             undefined,
-            "RecordingService.moveRecording"
-          )
+            "RecordingService.moveRecording",
+          ),
         );
       }
 
@@ -721,7 +765,7 @@ export class RecordingService {
       const updateResult = await ragService.updateProjectId(
         recordingId,
         "transcription", // Update transcription embeddings
-        targetProjectId
+        targetProjectId,
       );
       if (updateResult.isErr()) {
         logger.warn("Failed to update embeddings project", {
@@ -734,16 +778,16 @@ export class RecordingService {
       // Invalidate cache for both source and target projects
       CacheInvalidation.invalidateProjectRecordings(
         sourceProjectId,
-        organizationId
+        organizationId,
       );
       CacheInvalidation.invalidateProjectRecordings(
         targetProjectId,
-        organizationId
+        organizationId,
       );
       CacheInvalidation.invalidateRecording(
         recordingId,
         targetProjectId,
-        organizationId
+        organizationId,
       );
 
       logger.info("Successfully moved recording", {
@@ -767,8 +811,8 @@ export class RecordingService {
         ActionErrors.internal(
           "Failed to move recording",
           error as Error,
-          "RecordingService.moveRecording"
-        )
+          "RecordingService.moveRecording",
+        ),
       );
     }
   }
@@ -815,4 +859,3 @@ export class RecordingService {
     };
   }
 }
-

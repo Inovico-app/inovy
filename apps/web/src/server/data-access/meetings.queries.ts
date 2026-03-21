@@ -1,10 +1,8 @@
 import { and, desc, eq, gte, inArray } from "drizzle-orm";
+import type { BetterAuthUser } from "@/lib/auth";
+import { buildTeamFilter } from "@/lib/rbac/team-isolation";
 import { db } from "../db";
-import {
-  meetings,
-  type Meeting,
-  type NewMeeting,
-} from "../db/schema/meetings";
+import { meetings, type Meeting, type NewMeeting } from "../db/schema/meetings";
 
 export class MeetingsQueries {
   static async insert(data: NewMeeting): Promise<Meeting> {
@@ -14,13 +12,13 @@ export class MeetingsQueries {
 
   static async findById(
     id: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<Meeting | null> {
     const result = await db
       .select()
       .from(meetings)
       .where(
-        and(eq(meetings.id, id), eq(meetings.organizationId, organizationId))
+        and(eq(meetings.id, id), eq(meetings.organizationId, organizationId)),
       )
       .limit(1);
     return result[0] ?? null;
@@ -28,7 +26,7 @@ export class MeetingsQueries {
 
   static async findByCalendarEventId(
     calendarEventId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<Meeting | null> {
     const result = await db
       .select()
@@ -36,8 +34,8 @@ export class MeetingsQueries {
       .where(
         and(
           eq(meetings.calendarEventId, calendarEventId),
-          eq(meetings.organizationId, organizationId)
-        )
+          eq(meetings.organizationId, organizationId),
+        ),
       )
       .limit(1);
     return result[0] ?? null;
@@ -45,7 +43,12 @@ export class MeetingsQueries {
 
   static async findUpcoming(
     organizationId: string,
-    options?: { limit?: number; userId?: string }
+    options?: {
+      limit?: number;
+      userId?: string;
+      userTeamIds?: string[];
+      user?: BetterAuthUser;
+    },
   ): Promise<Meeting[]> {
     const now = new Date();
     const conditions = [
@@ -56,6 +59,17 @@ export class MeetingsQueries {
     if (options?.userId) {
       conditions.push(eq(meetings.createdById, options.userId));
     }
+
+    // Team filtering
+    if (options?.user && options?.userTeamIds) {
+      const teamFilter = buildTeamFilter(
+        meetings.teamId,
+        options.userTeamIds,
+        options.user,
+      );
+      if (teamFilter) conditions.push(teamFilter);
+    }
+
     return db
       .select()
       .from(meetings)
@@ -65,22 +79,19 @@ export class MeetingsQueries {
   }
 
   static async findActiveMeetingsWithAgenda(): Promise<Meeting[]> {
-    return db
-      .select()
-      .from(meetings)
-      .where(eq(meetings.status, "in_progress"));
+    return db.select().from(meetings).where(eq(meetings.status, "in_progress"));
   }
 
   static async update(
     id: string,
     organizationId: string,
-    data: Partial<Omit<Meeting, "id" | "organizationId" | "createdAt">>
+    data: Partial<Omit<Meeting, "id" | "organizationId" | "createdAt">>,
   ): Promise<Meeting | null> {
     const [meeting] = await db
       .update(meetings)
       .set({ ...data, updatedAt: new Date() })
       .where(
-        and(eq(meetings.id, id), eq(meetings.organizationId, organizationId))
+        and(eq(meetings.id, id), eq(meetings.organizationId, organizationId)),
       )
       .returning();
     return meeting ?? null;

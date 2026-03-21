@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
@@ -22,7 +23,7 @@ const aiAgendaResultSchema = z.object({
     z.object({
       title: z.string(),
       description: z.string(),
-    })
+    }),
   ),
 });
 
@@ -33,11 +34,21 @@ export const generateAgendaFromAI = authorizedActionClient
   })
   .schema(generateAgendaSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { user, organizationId } = ctx;
+    const { user, organizationId, userTeamIds } = ctx;
     if (!user || !organizationId) throw ActionErrors.unauthenticated();
 
-    const meeting = await MeetingsQueries.findById(parsedInput.meetingId, organizationId);
+    const meeting = await MeetingsQueries.findById(
+      parsedInput.meetingId,
+      organizationId,
+    );
     if (!meeting) throw ActionErrors.notFound("Meeting not found");
+
+    assertTeamAccess(
+      meeting.teamId,
+      userTeamIds ?? [],
+      user,
+      "generateAgendaFromAI",
+    );
 
     const { object } = await generateObject({
       model: openai("gpt-4o-mini"),
@@ -59,7 +70,7 @@ Keep items focused and time-appropriate for a typical meeting.`,
         title: item.title,
         description: item.description,
         sortOrder: index,
-      }))
+      })),
     );
 
     CacheInvalidation.invalidateMeetingAgendaItems(parsedInput.meetingId);

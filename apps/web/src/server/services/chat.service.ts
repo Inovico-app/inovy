@@ -39,7 +39,6 @@ import { ConversationIntegrityService } from "./conversation-integrity.service";
 import { PromptIntegrityService } from "./prompt-integrity.service";
 import { SearchResultFormatter } from "./search-result-formatter.service";
 
-
 export class ChatService {
   private static ragService = new RAGService();
 
@@ -116,7 +115,7 @@ export class ChatService {
   private static formatSourceCitations(
     results: SearchResult[],
     query?: string,
-    highlightTerms: boolean = false
+    highlightTerms: boolean = false,
   ): Array<{
     contentId: string;
     contentType:
@@ -190,7 +189,7 @@ export class ChatService {
   static async createConversation(
     projectId: string,
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<{ conversationId: string }>> {
     try {
       const conversation: NewChatConversation = {
@@ -210,8 +209,8 @@ export class ChatService {
         ActionErrors.internal(
           "Failed to create conversation",
           error as Error,
-          "ChatService.createConversation"
-        )
+          "ChatService.createConversation",
+        ),
       );
     }
   }
@@ -221,7 +220,7 @@ export class ChatService {
    */
   static async createOrganizationConversation(
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<{ conversationId: string }>> {
     try {
       const conversation: NewChatConversation = {
@@ -244,8 +243,8 @@ export class ChatService {
         ActionErrors.internal(
           "Failed to create organization conversation",
           error as Error,
-          "ChatService.createOrganizationConversation"
-        )
+          "ChatService.createOrganizationConversation",
+        ),
       );
     }
   }
@@ -275,7 +274,7 @@ export class ChatService {
     conversationId: string,
     userMessage: string,
     projectId: string,
-    organizationId: string
+    organizationId: string,
   ) {
     try {
       logger.info("Generating chat response", { conversationId, projectId });
@@ -292,7 +291,7 @@ export class ChatService {
         assertOrganizationAccess(
           conversation.organizationId,
           organizationId,
-          "ChatService.generateResponse"
+          "ChatService.generateResponse",
         );
       } catch {
         throw new Error("Conversation not found");
@@ -334,7 +333,8 @@ export class ChatService {
         const knowledgeResult =
           await KnowledgeBaseService.buildKnowledgeContext(
             projectId,
-            project.organizationId
+            project.organizationId,
+            null,
           );
         if (knowledgeResult.isOk()) {
           knowledgeContext = knowledgeResult.value;
@@ -347,7 +347,7 @@ export class ChatService {
       // Validate prompt safety (check for injection attempts)
       const safetyCheck = PromptBuilder.Base.validatePromptSafety(
         userMessage,
-        projectTemplate
+        projectTemplate,
       );
       if (!safetyCheck.safe) {
         logger.warn("Potential prompt injection detected", {
@@ -413,7 +413,7 @@ export class ChatService {
               },
             });
           }),
-        "openai"
+        "openai",
       );
 
       // Collect the full response with error handling
@@ -491,7 +491,8 @@ export class ChatService {
     userMessage: string,
     projectId: string,
     organizationId: string,
-    userRole: string = "user"
+    userRole: string = "user",
+    teamOptions?: { teamId?: string | null; userTeamIds?: string[] },
   ) {
     try {
       logger.info("Streaming chat response", { conversationId, projectId });
@@ -508,7 +509,7 @@ export class ChatService {
         assertOrganizationAccess(
           conversation.organizationId,
           organizationId,
-          "ChatService.streamResponse"
+          "ChatService.streamResponse",
         );
       } catch {
         throw new Error("Conversation not found");
@@ -550,7 +551,8 @@ export class ChatService {
         const knowledgeResult =
           await KnowledgeBaseService.buildKnowledgeContext(
             projectId,
-            project.organizationId
+            project.organizationId,
+            teamOptions?.teamId ?? null,
           );
         if (knowledgeResult.isOk()) {
           knowledgeContext = knowledgeResult.value;
@@ -564,7 +566,7 @@ export class ChatService {
       let orgInstructions: string | null = null;
       if (project) {
         const orgSettings = await getCachedOrganizationSettings(
-          project.organizationId
+          project.organizationId,
         );
         orgInstructions = orgSettings?.instructions ?? null;
       }
@@ -594,7 +596,7 @@ export class ChatService {
 
       // Stamp system prompt for integrity verification
       const stampedPrompt = PromptIntegrityService.stamp(
-        promptResult.systemPrompt
+        promptResult.systemPrompt,
       );
 
       // Stream response with error handling, request tracking, and guardrails
@@ -626,14 +628,19 @@ export class ChatService {
         chatContext: "project",
         userRole,
         conversationId,
+        teamId: teamOptions?.teamId,
+        userTeamIds: teamOptions?.userTeamIds,
       };
 
       // Validate conversation context bounds before streaming
       ConversationIntegrityService.validateContextBounds(
         conversationHistory.map((m) => ({
           role: String(m.role),
-          content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-        }))
+          content:
+            typeof m.content === "string"
+              ? m.content
+              : JSON.stringify(m.content),
+        })),
       );
 
       // Viewer role gets reduced step budget
@@ -736,7 +743,7 @@ export class ChatService {
           if (usage?.totalTokens) {
             await AgentTokenBudgetService.recordUsage(
               organizationId,
-              usage.totalTokens
+              usage.totalTokens,
             );
           }
 
@@ -820,7 +827,8 @@ export class ChatService {
     conversationId: string,
     userMessage: string,
     organizationId: string,
-    userRole: string
+    userRole: string,
+    teamOptions?: { teamId?: string | null; userTeamIds?: string[] },
   ) {
     try {
       logger.info("Streaming organization chat response", {
@@ -840,7 +848,7 @@ export class ChatService {
         assertOrganizationAccess(
           conversation.organizationId,
           organizationId,
-          "ChatService.streamOrganizationResponse"
+          "ChatService.streamOrganizationResponse",
         );
       } catch {
         throw new Error("Conversation not found");
@@ -888,7 +896,8 @@ export class ChatService {
       // Fetch knowledge base context for organization (org + global)
       const knowledgeResult = await KnowledgeBaseService.buildKnowledgeContext(
         null, // No project ID for org-level
-        organizationId
+        organizationId,
+        teamOptions?.teamId ?? null,
       );
       const knowledgeContext = knowledgeResult.isOk()
         ? knowledgeResult.value
@@ -913,7 +922,7 @@ export class ChatService {
 
       // Stamp system prompt for integrity verification
       const stampedOrgPrompt = PromptIntegrityService.stamp(
-        promptResult.systemPrompt
+        promptResult.systemPrompt,
       );
 
       // Stream response with error handling, request tracking, and guardrails
@@ -942,14 +951,19 @@ export class ChatService {
         chatContext: "organization",
         userRole,
         conversationId,
+        teamId: teamOptions?.teamId,
+        userTeamIds: teamOptions?.userTeamIds,
       };
 
       // Validate conversation context bounds before streaming
       ConversationIntegrityService.validateContextBounds(
         conversationHistory.map((m) => ({
           role: String(m.role),
-          content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-        }))
+          content:
+            typeof m.content === "string"
+              ? m.content
+              : JSON.stringify(m.content),
+        })),
       );
 
       // Viewer role gets reduced step budget (org chat is admin-only, but defense in depth)
@@ -993,7 +1007,7 @@ export class ChatService {
               conversationId,
               organizationId,
               error: streamError,
-            }
+            },
           );
         },
         async onFinish({ text, usage, toolCalls, toolResults }) {
@@ -1052,7 +1066,7 @@ export class ChatService {
           if (usage?.totalTokens) {
             await AgentTokenBudgetService.recordUsage(
               organizationId,
-              usage.totalTokens
+              usage.totalTokens,
             );
           }
 
@@ -1135,7 +1149,7 @@ export class ChatService {
    * Delete conversation
    */
   static async deleteConversation(
-    conversationId: string
+    conversationId: string,
   ): Promise<ActionResult<void>> {
     try {
       await ChatQueries.deleteConversation(conversationId);
@@ -1146,8 +1160,8 @@ export class ChatService {
         ActionErrors.internal(
           "Failed to delete conversation",
           error as Error,
-          "ChatService.deleteConversation"
-        )
+          "ChatService.deleteConversation",
+        ),
       );
     }
   }
@@ -1178,8 +1192,8 @@ export class ChatService {
         ActionErrors.internal(
           "Failed to list conversations",
           error as Error,
-          "ChatService.listConversations"
-        )
+          "ChatService.listConversations",
+        ),
       );
     }
   }
@@ -1206,8 +1220,8 @@ export class ChatService {
         ActionErrors.internal(
           "Failed to search conversations",
           error as Error,
-          "ChatService.searchConversations"
-        )
+          "ChatService.searchConversations",
+        ),
       );
     }
   }
@@ -1218,7 +1232,7 @@ export class ChatService {
   static async softDeleteConversation(
     conversationId: string,
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<void>> {
     try {
       const conversation =
@@ -1227,8 +1241,8 @@ export class ChatService {
         return err(
           ActionErrors.notFound(
             "Conversation",
-            "ChatService.softDeleteConversation"
-          )
+            "ChatService.softDeleteConversation",
+          ),
         );
       }
       if (conversation.userId !== userId) {
@@ -1236,8 +1250,8 @@ export class ChatService {
           ActionErrors.forbidden(
             "Unauthorized to delete this conversation",
             { conversationId },
-            "ChatService.softDeleteConversation"
-          )
+            "ChatService.softDeleteConversation",
+          ),
         );
       }
 
@@ -1246,14 +1260,14 @@ export class ChatService {
         assertOrganizationAccess(
           conversation.organizationId,
           organizationId,
-          "ChatService.softDeleteConversation"
+          "ChatService.softDeleteConversation",
         );
       } catch {
         return err(
           ActionErrors.notFound(
             "Conversation",
-            "ChatService.softDeleteConversation"
-          )
+            "ChatService.softDeleteConversation",
+          ),
         );
       }
 
@@ -1268,8 +1282,8 @@ export class ChatService {
         ActionErrors.internal(
           "Failed to soft delete conversation",
           error as Error,
-          "ChatService.softDeleteConversation"
-        )
+          "ChatService.softDeleteConversation",
+        ),
       );
     }
   }
@@ -1280,7 +1294,7 @@ export class ChatService {
   static async restoreConversation(
     conversationId: string,
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<boolean>> {
     try {
       const conversation =
@@ -1289,8 +1303,8 @@ export class ChatService {
         return err(
           ActionErrors.notFound(
             "Conversation",
-            "ChatService.restoreConversation"
-          )
+            "ChatService.restoreConversation",
+          ),
         );
       }
       if (conversation.userId !== userId) {
@@ -1298,8 +1312,8 @@ export class ChatService {
           ActionErrors.forbidden(
             "Unauthorized to restore this conversation",
             { conversationId },
-            "ChatService.restoreConversation"
-          )
+            "ChatService.restoreConversation",
+          ),
         );
       }
 
@@ -1308,14 +1322,14 @@ export class ChatService {
         assertOrganizationAccess(
           conversation.organizationId,
           organizationId,
-          "ChatService.restoreConversation"
+          "ChatService.restoreConversation",
         );
       } catch {
         return err(
           ActionErrors.notFound(
             "Conversation",
-            "ChatService.restoreConversation"
-          )
+            "ChatService.restoreConversation",
+          ),
         );
       }
 
@@ -1327,8 +1341,8 @@ export class ChatService {
         ActionErrors.internal(
           "Failed to restore conversation",
           error as Error,
-          "ChatService.restoreConversation"
-        )
+          "ChatService.restoreConversation",
+        ),
       );
     }
   }
@@ -1339,7 +1353,7 @@ export class ChatService {
   static async archiveConversation(
     conversationId: string,
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<void>> {
     try {
       const conversation =
@@ -1348,8 +1362,8 @@ export class ChatService {
         return err(
           ActionErrors.notFound(
             "Conversation",
-            "ChatService.archiveConversation"
-          )
+            "ChatService.archiveConversation",
+          ),
         );
       }
       if (conversation.userId !== userId) {
@@ -1357,8 +1371,8 @@ export class ChatService {
           ActionErrors.forbidden(
             "Unauthorized to archive this conversation",
             { conversationId },
-            "ChatService.archiveConversation"
-          )
+            "ChatService.archiveConversation",
+          ),
         );
       }
 
@@ -1367,14 +1381,14 @@ export class ChatService {
         assertOrganizationAccess(
           conversation.organizationId,
           organizationId,
-          "ChatService.archiveConversation"
+          "ChatService.archiveConversation",
         );
       } catch {
         return err(
           ActionErrors.notFound(
             "Conversation",
-            "ChatService.archiveConversation"
-          )
+            "ChatService.archiveConversation",
+          ),
         );
       }
 
@@ -1386,8 +1400,8 @@ export class ChatService {
         ActionErrors.internal(
           "Failed to archive conversation",
           error as Error,
-          "ChatService.archiveConversation"
-        )
+          "ChatService.archiveConversation",
+        ),
       );
     }
   }
@@ -1398,7 +1412,7 @@ export class ChatService {
   static async unarchiveConversation(
     conversationId: string,
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<void>> {
     try {
       const conversation =
@@ -1407,8 +1421,8 @@ export class ChatService {
         return err(
           ActionErrors.notFound(
             "Conversation",
-            "ChatService.unarchiveConversation"
-          )
+            "ChatService.unarchiveConversation",
+          ),
         );
       }
       if (conversation.userId !== userId) {
@@ -1416,8 +1430,8 @@ export class ChatService {
           ActionErrors.forbidden(
             "Unauthorized to unarchive this conversation",
             { conversationId },
-            "ChatService.unarchiveConversation"
-          )
+            "ChatService.unarchiveConversation",
+          ),
         );
       }
 
@@ -1426,14 +1440,14 @@ export class ChatService {
         assertOrganizationAccess(
           conversation.organizationId,
           organizationId,
-          "ChatService.unarchiveConversation"
+          "ChatService.unarchiveConversation",
         );
       } catch {
         return err(
           ActionErrors.notFound(
             "Conversation",
-            "ChatService.unarchiveConversation"
-          )
+            "ChatService.unarchiveConversation",
+          ),
         );
       }
 
@@ -1448,8 +1462,8 @@ export class ChatService {
         ActionErrors.internal(
           "Failed to unarchive conversation",
           error as Error,
-          "ChatService.unarchiveConversation"
-        )
+          "ChatService.unarchiveConversation",
+        ),
       );
     }
   }
@@ -1459,7 +1473,7 @@ export class ChatService {
    */
   static async getConversationStats(
     userId: string,
-    organizationId?: string
+    organizationId?: string,
   ): Promise<
     ActionResult<{
       active: number;
@@ -1471,7 +1485,7 @@ export class ChatService {
     try {
       const stats = await ChatQueries.getConversationStats(
         userId,
-        organizationId
+        organizationId,
       );
       return ok(stats);
     } catch (error) {
@@ -1480,8 +1494,8 @@ export class ChatService {
         ActionErrors.internal(
           "Failed to get conversation statistics",
           error as Error,
-          "ChatService.getConversationStats"
-        )
+          "ChatService.getConversationStats",
+        ),
       );
     }
   }
@@ -1491,7 +1505,7 @@ export class ChatService {
    */
   static async exportConversationAsText(
     conversationId: string,
-    userId: string
+    userId: string,
   ): Promise<ActionResult<string>> {
     try {
       const conversation =
@@ -1500,8 +1514,8 @@ export class ChatService {
         return err(
           ActionErrors.notFound(
             "Conversation",
-            "ChatService.exportConversationAsText"
-          )
+            "ChatService.exportConversationAsText",
+          ),
         );
       }
       if (conversation.userId !== userId) {
@@ -1509,8 +1523,8 @@ export class ChatService {
           ActionErrors.forbidden(
             "Unauthorized to export this conversation",
             { conversationId },
-            "ChatService.exportConversationAsText"
-          )
+            "ChatService.exportConversationAsText",
+          ),
         );
       }
 
@@ -1530,8 +1544,8 @@ export class ChatService {
         ActionErrors.internal(
           "Failed to export conversation as text",
           error as Error,
-          "ChatService.exportConversationAsText"
-        )
+          "ChatService.exportConversationAsText",
+        ),
       );
     }
   }
@@ -1541,7 +1555,7 @@ export class ChatService {
    */
   static async exportConversationAsPDF(
     conversationId: string,
-    userId: string
+    userId: string,
   ): Promise<ActionResult<Blob>> {
     try {
       const conversation =
@@ -1550,8 +1564,8 @@ export class ChatService {
         return err(
           ActionErrors.notFound(
             "Conversation",
-            "ChatService.exportConversationAsPDF"
-          )
+            "ChatService.exportConversationAsPDF",
+          ),
         );
       }
       if (conversation.userId !== userId) {
@@ -1559,8 +1573,8 @@ export class ChatService {
           ActionErrors.forbidden(
             "Unauthorized to export this conversation",
             { conversationId },
-            "ChatService.exportConversationAsPDF"
-          )
+            "ChatService.exportConversationAsPDF",
+          ),
         );
       }
 
@@ -1580,8 +1594,8 @@ export class ChatService {
         ActionErrors.internal(
           "Failed to export conversation as PDF",
           error as Error,
-          "ChatService.exportConversationAsPDF"
-        )
+          "ChatService.exportConversationAsPDF",
+        ),
       );
     }
   }
@@ -1591,7 +1605,8 @@ export class ChatService {
    */
   private static async getRelevantContext(
     query: string,
-    projectId: string
+    projectId: string,
+    options?: { teamId?: string | null; userTeamIds?: string[] },
   ): Promise<
     ActionResult<{
       context: string;
@@ -1624,6 +1639,8 @@ export class ChatService {
         scoreThreshold: 0.6, // Higher threshold for better relevance
         useHybrid: true,
         useReranking: true, // Enable re-ranking for LLM context
+        teamId: options?.teamId,
+        userTeamIds: options?.userTeamIds,
       });
 
       if (searchResult.isErr()) {
@@ -1633,7 +1650,7 @@ export class ChatService {
       const results = searchResult.value;
       const limitedResults = SearchResultFormatter.limitResultsByTokens(
         results,
-        4000
+        4000,
       );
       const context = this.buildContextFromResults(limitedResults);
       const sources = this.formatSourceCitations(limitedResults, query, false);
@@ -1649,8 +1666,8 @@ export class ChatService {
         ActionErrors.internal(
           "Error getting relevant context",
           error as Error,
-          "ChatService.getRelevantContext"
-        )
+          "ChatService.getRelevantContext",
+        ),
       );
     }
   }
@@ -1660,7 +1677,8 @@ export class ChatService {
    */
   private static async getRelevantContextOrganizationWide(
     query: string,
-    organizationId: string
+    organizationId: string,
+    options?: { teamId?: string | null; userTeamIds?: string[] },
   ): Promise<
     ActionResult<{
       context: string;
@@ -1693,6 +1711,8 @@ export class ChatService {
         scoreThreshold: 0.6, // Higher threshold for better relevance
         useHybrid: false,
         useReranking: true, // Enable re-ranking for LLM context
+        teamId: options?.teamId,
+        userTeamIds: options?.userTeamIds,
       });
 
       if (searchResult.isErr()) {
@@ -1702,13 +1722,13 @@ export class ChatService {
       const results = searchResult.value;
       const limitedResults = SearchResultFormatter.limitResultsByTokens(
         results,
-        4000
+        4000,
       );
       const context = this.buildContextFromResults(limitedResults);
       const sources = this.formatSourceCitations(
         limitedResults,
         query,
-        false
+        false,
       ).map((source) => ({
         ...source,
         projectId: limitedResults.find((r) => r.contentId === source.contentId)
@@ -1726,10 +1746,9 @@ export class ChatService {
         ActionErrors.internal(
           "Error getting organization-wide relevant context",
           error as Error,
-          "ChatService.getRelevantContextOrganizationWide"
-        )
+          "ChatService.getRelevantContextOrganizationWide",
+        ),
       );
     }
   }
 }
-

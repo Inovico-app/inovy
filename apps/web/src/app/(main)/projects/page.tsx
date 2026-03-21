@@ -5,6 +5,7 @@ import { CreateProjectModal } from "@/features/projects/components/create-projec
 
 export const metadata: Metadata = { title: "Projects" };
 import { ProjectSearch } from "@/features/projects/components/project-search";
+import { ProjectTeamFilter } from "@/features/projects/components/project-team-filter";
 import { ProjectTabs } from "@/features/projects/components/project-tabs";
 import { formatDateShort } from "@/lib/formatters/date-formatters";
 import { getCreatorDisplayName } from "@/lib/formatters/display-formatters";
@@ -12,18 +13,29 @@ import { filterProjectsBySearch } from "@/lib/filters/project-filters";
 import type { AllowedStatus } from "@/server/data-access/projects.queries";
 import type { ProjectWithRecordingCountDto } from "@/server/dto/project.dto";
 import { ProjectService } from "@/server/services/project.service";
-import { CalendarIcon, FileTextIcon, FolderIcon, PlusIcon } from "lucide-react";
+import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
+import {
+  CalendarIcon,
+  FileTextIcon,
+  FolderIcon,
+  GlobeIcon,
+  PlusIcon,
+  UsersIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
 interface ProjectsListProps {
   searchQuery?: string;
   status?: AllowedStatus;
+  teamFilter?: string;
 }
 
 async function ProjectsList({
   searchQuery,
   status = "active",
+  teamFilter,
 }: ProjectsListProps) {
   const projectsResult =
     await ProjectService.getProjectsByOrganizationWithRecordingCount(status);
@@ -42,15 +54,26 @@ async function ProjectsList({
   }
 
   // Filter projects by search query
-  const projects = filterProjectsBySearch(
-    projectsResult.value,
-    searchQuery
-  );
+  let projects = filterProjectsBySearch(projectsResult.value, searchQuery);
+
+  // Filter by team
+  if (teamFilter === "__everyone__") {
+    projects = projects.filter((p) => !p.teamId);
+  } else if (teamFilter) {
+    projects = projects.filter((p) => p.teamId === teamFilter);
+  }
+
+  // Resolve team names
+  const authResult = await getBetterAuthSession();
+  const orgId = authResult.isOk() ? authResult.value.organization?.id : null;
+  const teamsData = orgId ? await getCachedTeamsWithMemberCounts(orgId) : [];
+  const teamNameMap = new Map(teamsData.map((t) => [t.id, t.name]));
 
   // Creator details are already included via JOIN, no need to fetch separately
   const projectsWithCreators = projects.map((project) => ({
     ...project,
     createdBy: getCreatorDisplayName(project.creatorName, project.creatorEmail),
+    teamName: project.teamId ? (teamNameMap.get(project.teamId) ?? null) : null,
   }));
 
   return (
@@ -59,24 +82,31 @@ async function ProjectsList({
       {projectsWithCreators.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {projectsWithCreators.map(
-            (project: ProjectWithRecordingCountDto & { createdBy: string }) => (
+            (
+              project: ProjectWithRecordingCountDto & {
+                createdBy: string;
+                teamName: string | null;
+              },
+            ) => (
               <Card
                 key={project.id}
                 className="hover:shadow-lg transition-shadow cursor-pointer"
               >
                 <Link href={`/projects/${project.id}`}>
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
+                    <CardTitle className="flex items-center justify-between gap-2">
                       <span className="truncate">{project.name}</span>
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full capitalize ${
-                          project.status === "active"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                            : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
-                        }`}
-                      >
-                        {project.status}
-                      </span>
+                      {project.teamName ? (
+                        <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-primary/10 text-primary shrink-0">
+                          <UsersIcon className="h-3 w-3" />
+                          {project.teamName}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground shrink-0">
+                          <GlobeIcon className="h-3 w-3" />
+                          Everyone
+                        </span>
+                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -94,10 +124,6 @@ async function ProjectsList({
                           : "recordings"}
                       </div>
                       <div className="flex items-center text-xs text-muted-foreground">
-                        <CalendarIcon className="h-3 w-3 mr-1" />
-                        Created {formatDateShort(project.createdAt)}
-                      </div>
-                      <div className="flex items-center text-xs text-muted-foreground">
                         <FileTextIcon className="h-3 w-3 mr-1" />
                         By {project.createdBy}
                       </div>
@@ -105,7 +131,7 @@ async function ProjectsList({
                   </CardContent>
                 </Link>
               </Card>
-            )
+            ),
           )}
         </div>
       ) : (
@@ -145,12 +171,22 @@ async function ProjectsList({
 async function ProjectsPageContent({
   searchParamsPromise,
 }: {
-  searchParamsPromise: Promise<{ search?: string; status?: string }>;
+  searchParamsPromise: Promise<{
+    search?: string;
+    status?: string;
+    team?: string;
+  }>;
 }) {
-  const { search, status } = await searchParamsPromise;
+  const { search, status, team } = await searchParamsPromise;
   const projectStatus = (
     status === "archived" ? "archived" : "active"
   ) as AllowedStatus;
+
+  // Fetch teams for the filter dropdown
+  const authResult = await getBetterAuthSession();
+  const orgId = authResult.isOk() ? authResult.value.organization?.id : null;
+  const teamsData = orgId ? await getCachedTeamsWithMemberCounts(orgId) : [];
+  const filterTeams = teamsData.map((t) => ({ id: t.id, name: t.name }));
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -171,20 +207,25 @@ async function ProjectsPageContent({
           <ProjectTabs />
         </div>
 
-        {/* Search */}
-        <div className="mb-6">
+        {/* Search + Team Filter */}
+        <div className="flex items-center gap-4 mb-6 flex-wrap">
           <ProjectSearch />
+          <ProjectTeamFilter teams={filterTeams} />
         </div>
 
         {/* Projects List */}
-        <ProjectsList searchQuery={search} status={projectStatus} />
+        <ProjectsList
+          searchQuery={search}
+          status={projectStatus}
+          teamFilter={team}
+        />
       </div>
     </div>
   );
 }
 
 interface ProjectsPageProps {
-  searchParams: Promise<{ search?: string; status?: string }>;
+  searchParams: Promise<{ search?: string; status?: string; team?: string }>;
 }
 
 export default function ProjectsPage({ searchParams }: ProjectsPageProps) {
@@ -199,7 +240,10 @@ export default function ProjectsPage({ searchParams }: ProjectsPageProps) {
             <div className="h-12 bg-muted rounded animate-pulse" />
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {[...Array(3)].map((_, i) => (
-                <div key={`skeleton-${i}`} className="h-48 bg-muted rounded animate-pulse" />
+                <div
+                  key={`skeleton-${i}`}
+                  className="h-48 bg-muted rounded animate-pulse"
+                />
               ))}
             </div>
           </div>
@@ -210,4 +254,3 @@ export default function ProjectsPage({ searchParams }: ProjectsPageProps) {
     </Suspense>
   );
 }
-

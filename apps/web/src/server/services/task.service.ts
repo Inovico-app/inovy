@@ -1,4 +1,5 @@
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
+import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import type { ActionResult } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
@@ -6,6 +7,7 @@ import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { getCachedTaskStats } from "../cache/task.cache";
+import { ProjectQueries } from "../data-access/projects.queries";
 import { TaskTagsQueries } from "../data-access/task-tags.queries";
 import {
   TasksQueries,
@@ -33,7 +35,7 @@ export class TaskService {
    * Automatically filters by assigneeId to ensure users only see their tasks
    */
   static async getTasksByAssignee(
-    filters?: Omit<TaskFiltersDto, "assigneeId" | "organizationId">
+    filters?: Omit<TaskFiltersDto, "assigneeId" | "organizationId">,
   ): Promise<ActionResult<TaskDto[]>> {
     try {
       const authResult = await getBetterAuthSession();
@@ -42,8 +44,8 @@ export class TaskService {
           ActionErrors.internal(
             "Failed to get authentication session",
             undefined,
-            "TaskService.getTasksByAssignee"
-          )
+            "TaskService.getTasksByAssignee",
+          ),
         );
       }
 
@@ -54,8 +56,8 @@ export class TaskService {
           ActionErrors.forbidden(
             "Authentication required",
             undefined,
-            "TaskService.getTasksByAssignee"
-          )
+            "TaskService.getTasksByAssignee",
+          ),
         );
       }
 
@@ -65,8 +67,8 @@ export class TaskService {
           ActionErrors.internal(
             "Failed to get tasks",
             undefined,
-            "TaskService.getTasksByAssignee"
-          )
+            "TaskService.getTasksByAssignee",
+          ),
         );
       }
 
@@ -77,14 +79,14 @@ export class TaskService {
         ActionErrors.internal(
           "Failed to get tasks",
           error as Error,
-          "TaskService.getTasksByAssignee"
-        )
+          "TaskService.getTasksByAssignee",
+        ),
       );
     }
   }
 
   static async getTasksByRecordingId(
-    recordingId: string
+    recordingId: string,
   ): Promise<ActionResult<TaskDto[]>> {
     try {
       const authResult = await getBetterAuthSession();
@@ -93,8 +95,8 @@ export class TaskService {
           ActionErrors.internal(
             "Failed to get authentication session",
             undefined,
-            "TaskService.getTasksByRecordingId"
-          )
+            "TaskService.getTasksByRecordingId",
+          ),
         );
       }
 
@@ -105,8 +107,8 @@ export class TaskService {
           ActionErrors.forbidden(
             "Authentication required",
             undefined,
-            "TaskService.getTasksByRecordingId"
-          )
+            "TaskService.getTasksByRecordingId",
+          ),
         );
       }
 
@@ -114,7 +116,7 @@ export class TaskService {
 
       if (!tasks) {
         return err(
-          ActionErrors.notFound("Tasks", "TaskService.getTasksByRecordingId")
+          ActionErrors.notFound("Tasks", "TaskService.getTasksByRecordingId"),
         );
       }
 
@@ -125,8 +127,8 @@ export class TaskService {
         ActionErrors.internal(
           "Failed to get tasks by recording ID",
           error as Error,
-          "TaskService.getTasksByRecordingId"
-        )
+          "TaskService.getTasksByRecordingId",
+        ),
       );
     }
   }
@@ -136,7 +138,7 @@ export class TaskService {
    * Includes joined data for display purposes
    */
   static async getTasksWithContext(
-    filters?: Omit<TaskFiltersDto, "assigneeId" | "organizationId">
+    filters?: Omit<TaskFiltersDto, "assigneeId" | "organizationId">,
   ): Promise<ActionResult<TaskWithContextDto[]>> {
     try {
       const authResult = await getBetterAuthSession();
@@ -145,26 +147,28 @@ export class TaskService {
           ActionErrors.internal(
             "Failed to get authentication session",
             undefined,
-            "TaskService.getTasksWithContext"
-          )
+            "TaskService.getTasksWithContext",
+          ),
         );
       }
 
-      const { user: authUser, organization } = authResult.value;
+      const { user: authUser, organization, userTeamIds } = authResult.value;
 
       if (!authUser || !organization) {
         return err(
           ActionErrors.forbidden(
             "Authentication required",
             undefined,
-            "TaskService.getTasksWithContext"
-          )
+            "TaskService.getTasksWithContext",
+          ),
         );
       }
 
       const tasks = await TasksQueries.getTasksWithContext(organization.id, {
         ...filters,
         assigneeId: authUser.id,
+        user: authUser,
+        userTeamIds,
       });
 
       return ok(tasks.map((task) => this.toContextDto(task)));
@@ -174,8 +178,8 @@ export class TaskService {
         ActionErrors.internal(
           "Failed to get tasks with context",
           error as Error,
-          "TaskService.getTasksWithContext"
-        )
+          "TaskService.getTasksWithContext",
+        ),
       );
     }
   }
@@ -191,8 +195,8 @@ export class TaskService {
           ActionErrors.internal(
             "Failed to get authentication session",
             undefined,
-            "TaskService.getTaskStats"
-          )
+            "TaskService.getTaskStats",
+          ),
         );
       }
 
@@ -203,8 +207,8 @@ export class TaskService {
           ActionErrors.forbidden(
             "Authentication required",
             undefined,
-            "TaskService.getTaskStats"
-          )
+            "TaskService.getTaskStats",
+          ),
         );
       }
 
@@ -217,8 +221,8 @@ export class TaskService {
         ActionErrors.internal(
           "Failed to get task statistics",
           error as Error,
-          "TaskService.getTaskStats"
-        )
+          "TaskService.getTaskStats",
+        ),
       );
     }
   }
@@ -229,7 +233,7 @@ export class TaskService {
    */
   static async updateTaskStatus(
     taskId: string,
-    status: Task["status"]
+    status: Task["status"],
   ): Promise<ActionResult<TaskDto>> {
     try {
       const authResult = await getBetterAuthSession();
@@ -238,8 +242,8 @@ export class TaskService {
           ActionErrors.internal(
             "Failed to get authentication session",
             undefined,
-            "TaskService.updateTaskStatus"
-          )
+            "TaskService.updateTaskStatus",
+          ),
         );
       }
 
@@ -250,15 +254,15 @@ export class TaskService {
           ActionErrors.forbidden(
             "Authentication required",
             undefined,
-            "TaskService.updateTaskStatus"
-          )
+            "TaskService.updateTaskStatus",
+          ),
         );
       }
 
       const task = await TasksQueries.getTaskById(taskId);
       if (!task) {
         return err(
-          ActionErrors.notFound("Task", "TaskService.updateTaskStatus")
+          ActionErrors.notFound("Task", "TaskService.updateTaskStatus"),
         );
       }
 
@@ -267,8 +271,8 @@ export class TaskService {
           ActionErrors.forbidden(
             "You are not authorized to update this task",
             { taskId },
-            "TaskService.updateTaskStatus"
-          )
+            "TaskService.updateTaskStatus",
+          ),
         );
       }
 
@@ -277,15 +281,31 @@ export class TaskService {
         assertOrganizationAccess(
           task.organizationId,
           organization.id,
-          "TaskService.updateTaskStatus"
+          "TaskService.updateTaskStatus",
         );
       } catch (error) {
         return err(
           ActionErrors.notFound(
             "Task not found",
-            "TaskService.updateTaskStatus"
-          )
+            "TaskService.updateTaskStatus",
+          ),
         );
+      }
+
+      // Enforce team-level access isolation via the task's project
+      if (task.projectId) {
+        const project = await ProjectQueries.findById(
+          task.projectId,
+          organization.id,
+        );
+        if (project) {
+          assertTeamAccess(
+            project.teamId,
+            authResult.value.userTeamIds,
+            authUser,
+            "TaskService.updateTaskStatus",
+          );
+        }
       }
 
       const updated = await TasksQueries.updateTaskStatus(taskId, status);
@@ -294,8 +314,8 @@ export class TaskService {
           ActionErrors.internal(
             "Failed to update task status",
             undefined,
-            "TaskService.updateTaskStatus"
-          )
+            "TaskService.updateTaskStatus",
+          ),
         );
       }
 
@@ -308,8 +328,8 @@ export class TaskService {
         ActionErrors.internal(
           "Failed to update task status",
           error as Error,
-          "TaskService.updateTaskStatus"
-        )
+          "TaskService.updateTaskStatus",
+        ),
       );
     }
   }
@@ -319,7 +339,7 @@ export class TaskService {
    * Allows updating task fields like title, description, priority, status, etc.
    */
   static async updateTaskMetadata(
-    input: UpdateTaskMetadataDto
+    input: UpdateTaskMetadataDto,
   ): Promise<ActionResult<TaskDto>> {
     try {
       const authResult = await getBetterAuthSession();
@@ -328,8 +348,8 @@ export class TaskService {
           ActionErrors.internal(
             "Failed to get authentication session",
             undefined,
-            "TaskService.updateTaskMetadata"
-          )
+            "TaskService.updateTaskMetadata",
+          ),
         );
       }
 
@@ -340,15 +360,15 @@ export class TaskService {
           ActionErrors.forbidden(
             "Authentication required",
             undefined,
-            "TaskService.updateTaskMetadata"
-          )
+            "TaskService.updateTaskMetadata",
+          ),
         );
       }
 
       const task = await TasksQueries.getTaskById(input.taskId);
       if (!task) {
         return err(
-          ActionErrors.notFound("Task", "TaskService.updateTaskMetadata")
+          ActionErrors.notFound("Task", "TaskService.updateTaskMetadata"),
         );
       }
 
@@ -357,15 +377,31 @@ export class TaskService {
         assertOrganizationAccess(
           task.organizationId,
           organization.id,
-          "TaskService.updateTaskMetadata"
+          "TaskService.updateTaskMetadata",
         );
       } catch (error) {
         return err(
           ActionErrors.notFound(
             "Task not found",
-            "TaskService.updateTaskMetadata"
-          )
+            "TaskService.updateTaskMetadata",
+          ),
         );
+      }
+
+      // Enforce team-level access isolation via the task's project
+      if (task.projectId) {
+        const project = await ProjectQueries.findById(
+          task.projectId,
+          organization.id,
+        );
+        if (project) {
+          assertTeamAccess(
+            project.teamId,
+            authResult.value.userTeamIds,
+            authUser,
+            "TaskService.updateTaskMetadata",
+          );
+        }
       }
 
       if (task.assigneeId !== authUser.id) {
@@ -373,8 +409,8 @@ export class TaskService {
           ActionErrors.forbidden(
             "You are not authorized to update this task",
             { taskId: input.taskId },
-            "TaskService.updateTaskMetadata"
-          )
+            "TaskService.updateTaskMetadata",
+          ),
         );
       }
 
@@ -383,7 +419,7 @@ export class TaskService {
       const updated = await TasksQueries.updateTaskMetadata(
         taskId,
         taskUpdates,
-        authUser.id
+        authUser.id,
       );
 
       if (!updated) {
@@ -391,8 +427,8 @@ export class TaskService {
           ActionErrors.internal(
             "Failed to update task metadata",
             undefined,
-            "TaskService.updateTaskMetadata"
-          )
+            "TaskService.updateTaskMetadata",
+          ),
         );
       }
 
@@ -416,8 +452,8 @@ export class TaskService {
         ActionErrors.internal(
           "Failed to update task metadata",
           error as Error,
-          "TaskService.updateTaskMetadata"
-        )
+          "TaskService.updateTaskMetadata",
+        ),
       );
     }
   }
@@ -427,7 +463,7 @@ export class TaskService {
    * Returns all changes made to a task with authorization check
    */
   static async getTaskHistory(
-    taskId: string
+    taskId: string,
   ): Promise<ActionResult<TaskHistoryDto[]>> {
     try {
       const authResult = await getBetterAuthSession();
@@ -436,8 +472,8 @@ export class TaskService {
           ActionErrors.internal(
             "Failed to get authentication session",
             undefined,
-            "TaskService.getTaskHistory"
-          )
+            "TaskService.getTaskHistory",
+          ),
         );
       }
 
@@ -448,8 +484,8 @@ export class TaskService {
           ActionErrors.forbidden(
             "Authentication required",
             undefined,
-            "TaskService.getTaskHistory"
-          )
+            "TaskService.getTaskHistory",
+          ),
         );
       }
 
@@ -463,12 +499,28 @@ export class TaskService {
         assertOrganizationAccess(
           task.organizationId,
           organization.id,
-          "TaskService.getTaskHistory"
+          "TaskService.getTaskHistory",
         );
       } catch (error) {
         return err(
-          ActionErrors.notFound("Task not found", "TaskService.getTaskHistory")
+          ActionErrors.notFound("Task not found", "TaskService.getTaskHistory"),
         );
+      }
+
+      // Enforce team-level access isolation via the task's project
+      if (task.projectId) {
+        const project = await ProjectQueries.findById(
+          task.projectId,
+          organization.id,
+        );
+        if (project) {
+          assertTeamAccess(
+            project.teamId,
+            authResult.value.userTeamIds,
+            authUser,
+            "TaskService.getTaskHistory",
+          );
+        }
       }
 
       const history = await TasksQueries.getTaskHistory(taskId);
@@ -480,8 +532,8 @@ export class TaskService {
         ActionErrors.internal(
           "Failed to get task history",
           error as Error,
-          "TaskService.getTaskHistory"
-        )
+          "TaskService.getTaskHistory",
+        ),
       );
     }
   }
@@ -490,7 +542,7 @@ export class TaskService {
    * Get all tags for an organization
    */
   static async getTagsByOrganization(
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<TaskTag[]>> {
     logger.info("Fetching tags for organization", {
       component: "TaskService.getTagsByOrganization",
@@ -518,8 +570,8 @@ export class TaskService {
         ActionErrors.internal(
           "Failed to get tags",
           error as Error,
-          "TaskService.getTagsByOrganization"
-        )
+          "TaskService.getTagsByOrganization",
+        ),
       );
     }
   }
@@ -559,8 +611,8 @@ export class TaskService {
         ActionErrors.internal(
           "Failed to create tag",
           error as Error,
-          "TaskService.createTag"
-        )
+          "TaskService.createTag",
+        ),
       );
     }
   }
@@ -595,8 +647,8 @@ export class TaskService {
         ActionErrors.internal(
           "Failed to get task tags",
           error as Error,
-          "TaskService.getTaskTags"
-        )
+          "TaskService.getTaskTags",
+        ),
       );
     }
   }
@@ -682,4 +734,3 @@ export class TaskService {
     };
   }
 }
-

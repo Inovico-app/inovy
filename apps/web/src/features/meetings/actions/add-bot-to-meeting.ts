@@ -1,6 +1,7 @@
 "use server";
 
 import { logger } from "@/lib/logger";
+import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -21,6 +22,7 @@ const addBotToMeetingSchema = z.object({
   meetingUrl: z.string().min(1, "Meeting URL is required"),
   meetingTitle: z.string().optional(),
   projectId: z.string().uuid("Invalid project ID").optional(),
+  teamId: z.string().nullable().optional(),
 });
 
 /**
@@ -44,8 +46,20 @@ export const addBotToMeeting = authorizedActionClient
       throw ActionErrors.forbidden("Organization context required");
     }
 
-    const { calendarEventId, meetingUrl, meetingTitle, projectId } =
+    const { calendarEventId, meetingUrl, meetingTitle, projectId, teamId } =
       parsedInput;
+
+    if (
+      teamId &&
+      !ctx.userTeamIds?.includes(teamId) &&
+      !isOrganizationAdmin(user)
+    ) {
+      throw ActionErrors.forbidden(
+        "Not a member of this team",
+        undefined,
+        "add-bot-to-meeting",
+      );
+    }
 
     // Validate meeting has a supported meeting URL (Google Meet or Microsoft Teams)
     if (!meetingUrl?.trim() || !isValidMeetingUrl(meetingUrl)) {
@@ -196,6 +210,7 @@ export const addBotToMeeting = authorizedActionClient
       {
         organizationId,
         projectId: project.id,
+        teamId,
         createdById: user.id,
         calendarEventId,
         title: meetingTitle || "Untitled Meeting",

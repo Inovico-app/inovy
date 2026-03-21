@@ -1,3 +1,4 @@
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import type { RecordingDto } from "../dto/recording.dto";
@@ -13,7 +14,7 @@ import { RecordingService } from "../services/recording.service";
  * Calls RecordingService which includes business logic and auth checks
  */
 export async function getCachedRecordingById(
-  recordingId: string
+  recordingId: string,
 ): Promise<RecordingDto | null> {
   "use cache";
   cacheTag(CacheTags.recording(recordingId));
@@ -28,7 +29,7 @@ export async function getCachedRecordingById(
 export async function getCachedRecordingsByProjectId(
   projectId: string,
   organizationId: string,
-  options?: { search?: string }
+  options?: { search?: string },
 ) {
   "use cache";
   cacheTag(CacheTags.recordingsByProject(projectId));
@@ -36,7 +37,7 @@ export async function getCachedRecordingsByProjectId(
   const recordings = await RecordingService.getRecordingsByProjectId(
     projectId,
     organizationId,
-    options
+    options,
   );
 
   if (recordings.isOk()) {
@@ -56,14 +57,24 @@ export async function getCachedRecordingsByOrganization(
     statusFilter?: "active" | "archived";
     search?: string;
     projectIds?: string[];
-  }
+  },
 ) {
   "use cache";
   cacheTag(CacheTags.recordingsByOrg(organizationId));
 
+  // Resolve team context from session so the query filters by the user's teams
+  const authResult = await getBetterAuthSession();
+  const teamContext =
+    authResult.isOk() && authResult.value.isAuthenticated
+      ? {
+          user: authResult.value.user ?? undefined,
+          userTeamIds: authResult.value.userTeamIds,
+        }
+      : {};
+
   const recordings = await RecordingService.getRecordingsByOrganization(
     organizationId,
-    options
+    { ...options, ...teamContext },
   );
 
   if (recordings.isOk()) {
@@ -72,4 +83,3 @@ export async function getCachedRecordingsByOrganization(
 
   return [];
 }
-

@@ -1,5 +1,3 @@
-"use server";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,9 +10,11 @@ import {
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { isOrganizationAdmin, isTeamManager } from "@/lib/rbac/rbac";
 import { getCachedTeamById } from "@/server/cache/team.cache";
+import { ProjectQueries } from "@/server/data-access/projects.queries";
+import type { ProjectWithRecordingCountDto } from "@/server/dto/project.dto";
 import type { TeamMemberWithUserDto } from "@/server/dto/team.dto";
 import { TeamService } from "@/server/services/team.service";
-import { SettingsIcon, UsersIcon } from "lucide-react";
+import { FolderIcon, SettingsIcon, UsersIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -41,7 +41,7 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
     );
   }
 
-  const { user } = authResult.value;
+  const { user, member, organization } = authResult.value;
 
   // user is guaranteed to be non-null after authentication check
   if (!user) {
@@ -69,13 +69,27 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
   }
 
   // Check permissions
-  const isAdmin = isOrganizationAdmin(user);
-  const isLead = await isTeamManager(user, teamId);
+  const isAdmin = isOrganizationAdmin(user, member);
+  const isLead = await isTeamManager(user, teamId, member);
   const canManage = isAdmin || isLead;
 
   // Fetch team members with user details
   const membersResult = await TeamService.getTeamMembersWithUserDetails(teamId);
   const members = membersResult.isOk() ? membersResult.value : [];
+
+  // Fetch team's projects with recording counts (capped at 10 for the dashboard)
+  const teamProjects =
+    await ProjectQueries.findByOrganizationWithRecordingCount(
+      {
+        organizationId: organization.id,
+        status: "active",
+        limit: 10,
+      },
+      {
+        userTeamIds: [teamId],
+        user,
+      },
+    );
 
   return (
     <div className="space-y-6">
@@ -230,7 +244,7 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
                         <div className="text-xs text-muted-foreground">
                           Joined{" "}
                           {new Date(
-                            member.createdAt ?? new Date()
+                            member.createdAt ?? new Date(),
                           ).toLocaleDateString()}
                         </div>
                       </div>
@@ -251,7 +265,52 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Team Projects */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Team Projects</CardTitle>
+              <CardDescription>
+                {teamProjects.length} active project
+                {teamProjects.length !== 1 ? "s" : ""} in this team
+              </CardDescription>
+            </div>
+            <Link href={`/projects?teamId=${teamId}`}>
+              <Button variant="outline" size="sm">
+                View all
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {teamProjects.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              No active projects in this team yet.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {teamProjects.map((project: ProjectWithRecordingCountDto) => (
+                <Link
+                  key={project.id}
+                  href={`/projects/${project.id}`}
+                  className="flex items-center justify-between py-2 border-b last:border-0 hover:bg-muted/50 rounded px-2 -mx-2 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <FolderIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="font-medium text-sm">{project.name}</span>
+                  </div>
+                  <Badge variant="secondary" className="text-xs shrink-0">
+                    {project.recordingCount}{" "}
+                    {project.recordingCount === 1 ? "recording" : "recordings"}
+                  </Badge>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
-

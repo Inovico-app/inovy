@@ -1,3 +1,5 @@
+import { buildTeamFilter } from "@/lib/rbac/team-isolation";
+import type { BetterAuthUser } from "@/lib/auth";
 import { db } from "@/server/db";
 import { projects } from "@/server/db/schema/projects";
 import { recordings } from "@/server/db/schema/recordings";
@@ -9,7 +11,6 @@ import {
 import { tasks, type NewTask, type Task } from "@/server/db/schema/tasks";
 import { and, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import type { TaskStatsDto } from "../dto/task.dto";
-import { TeamQueries } from "./teams.queries";
 
 export interface TaskWithContext extends Task {
   project: { id: string; name: string };
@@ -58,9 +59,10 @@ export class TasksQueries {
       projectIds?: string[];
       assigneeId?: string;
       search?: string;
-      teamIds?: string[];
       departmentId?: string;
-    }
+      user?: BetterAuthUser;
+      userTeamIds?: string[];
+    },
   ): Promise<Task[]> {
     const conditions = [eq(tasks.organizationId, organizationId)];
     if (filters?.priorities?.length)
@@ -75,27 +77,46 @@ export class TasksQueries {
       conditions.push(
         or(
           ilike(tasks.title, `%${filters.search}%`),
-          ilike(tasks.description, `%${filters.search}%`)
-        )!
+          ilike(tasks.description, `%${filters.search}%`),
+        )!,
       );
     }
 
-    // Filter by team: get user IDs in the specified teams
-    if (filters?.teamIds && filters.teamIds.length > 0) {
-      const teamMembers = await TeamQueries.selectTeamMembers(
-        filters.teamIds[0]
+    // Filter by team via project's teamId
+    if (filters?.user && filters?.userTeamIds) {
+      const teamFilter = buildTeamFilter(
+        projects.teamId,
+        filters.userTeamIds,
+        filters.user,
       );
-      if (teamMembers.length) {
-        const userIds = Array.from(new Set(teamMembers.map((u) => u.userId)));
-        if (userIds.length) {
-          conditions.push(inArray(tasks.assigneeId, userIds));
-        }
-      }
+      if (teamFilter) conditions.push(teamFilter);
     }
 
     return await db
-      .select()
+      .select({
+        id: tasks.id,
+        recordingId: tasks.recordingId,
+        projectId: tasks.projectId,
+        title: tasks.title,
+        description: tasks.description,
+        priority: tasks.priority,
+        status: tasks.status,
+        assigneeId: tasks.assigneeId,
+        assigneeName: tasks.assigneeName,
+        dueDate: tasks.dueDate,
+        confidenceScore: tasks.confidenceScore,
+        meetingTimestamp: tasks.meetingTimestamp,
+        organizationId: tasks.organizationId,
+        createdById: tasks.createdById,
+        isManuallyEdited: tasks.isManuallyEdited,
+        lastEditedAt: tasks.lastEditedAt,
+        lastEditedById: tasks.lastEditedById,
+        lastEditedByName: tasks.lastEditedByName,
+        createdAt: tasks.createdAt,
+        updatedAt: tasks.updatedAt,
+      })
       .from(tasks)
+      .leftJoin(projects, eq(tasks.projectId, projects.id))
       .where(and(...conditions))
       .orderBy(desc(tasks.createdAt));
   }
@@ -108,9 +129,10 @@ export class TasksQueries {
       projectIds?: string[];
       assigneeId?: string;
       search?: string;
-      teamIds?: string[];
       departmentId?: string;
-    }
+      user?: BetterAuthUser;
+      userTeamIds?: string[];
+    },
   ): Promise<TaskWithContext[]> {
     const conditions = [eq(tasks.organizationId, organizationId)];
     if (filters?.priorities?.length)
@@ -125,22 +147,19 @@ export class TasksQueries {
       conditions.push(
         or(
           ilike(tasks.title, `%${filters.search}%`),
-          ilike(tasks.description, `%${filters.search}%`)
-        )!
+          ilike(tasks.description, `%${filters.search}%`),
+        )!,
       );
     }
 
-    // Filter by team: get user IDs in the specified teams
-    if (filters?.teamIds && filters.teamIds.length > 0) {
-      const teamMembers = await TeamQueries.selectTeamMembers(
-        filters.teamIds[0]
+    // Filter by team via project's teamId
+    if (filters?.user && filters?.userTeamIds) {
+      const teamFilter = buildTeamFilter(
+        projects.teamId,
+        filters.userTeamIds,
+        filters.user,
       );
-      if (teamMembers.length) {
-        const userIds = Array.from(new Set(teamMembers.map((u) => u.userId)));
-        if (userIds.length > 0) {
-          conditions.push(inArray(tasks.assigneeId, userIds));
-        }
-      }
+      if (teamFilter) conditions.push(teamFilter);
     }
 
     return await db
@@ -177,7 +196,7 @@ export class TasksQueries {
 
   static async updateTaskStatus(
     taskId: string,
-    status: "pending" | "in_progress" | "completed" | "cancelled"
+    status: "pending" | "in_progress" | "completed" | "cancelled",
   ): Promise<Task | undefined> {
     const [updated] = await db
       .update(tasks)
@@ -189,7 +208,7 @@ export class TasksQueries {
 
   static async updateTask(
     taskId: string,
-    data: Partial<Omit<Task, "id" | "createdAt" | "updatedAt">>
+    data: Partial<Omit<Task, "id" | "createdAt" | "updatedAt">>,
   ): Promise<Task | undefined> {
     const [updated] = await db
       .update(tasks)
@@ -206,7 +225,7 @@ export class TasksQueries {
   static async updateTaskMetadata(
     taskId: string,
     updates: Partial<Omit<Task, "id" | "createdAt" | "updatedAt">>,
-    userId: string
+    userId: string,
   ): Promise<Task | undefined> {
     // Get current task for history—service layer will now handle this
     const [updated] = await db
@@ -232,7 +251,7 @@ export class TasksQueries {
   }
 
   static async createTaskHistoryEntry(
-    data: NewTaskHistory
+    data: NewTaskHistory,
   ): Promise<TaskHistory> {
     const [entry] = await db.insert(taskHistory).values(data).returning();
     return entry;
@@ -240,7 +259,7 @@ export class TasksQueries {
 
   static async getTaskStats(
     organizationId: string,
-    userId: string
+    userId: string,
   ): Promise<TaskStatsDto> {
     const userTasks = await db
       .select()
@@ -248,8 +267,8 @@ export class TasksQueries {
       .where(
         and(
           eq(tasks.organizationId, organizationId),
-          eq(tasks.assigneeId, userId)
-        )
+          eq(tasks.assigneeId, userId),
+        ),
       );
 
     const stats: TaskStatsDto = {
@@ -289,7 +308,7 @@ export class TasksQueries {
    */
   static async deleteByIds(
     taskIds: string[],
-    organizationId: string
+    organizationId: string,
   ): Promise<void> {
     if (taskIds.length === 0) return;
 
@@ -298,8 +317,8 @@ export class TasksQueries {
       .where(
         and(
           inArray(tasks.id, taskIds),
-          eq(tasks.organizationId, organizationId)
-        )
+          eq(tasks.organizationId, organizationId),
+        ),
       );
   }
 
@@ -308,7 +327,7 @@ export class TasksQueries {
    */
   static async anonymizeAssigneeByUserId(
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<void> {
     await db
       .update(tasks)
@@ -320,9 +339,8 @@ export class TasksQueries {
       .where(
         and(
           eq(tasks.assigneeId, userId),
-          eq(tasks.organizationId, organizationId)
-        )
+          eq(tasks.organizationId, organizationId),
+        ),
       );
   }
 }
-

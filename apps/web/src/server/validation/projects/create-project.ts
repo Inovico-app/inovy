@@ -13,10 +13,10 @@ export const createProjectSchema = z.object({
     .string()
     .max(
       PROJECT_DESCRIPTION_MAX_LENGTH,
-      `Description must be less than ${PROJECT_DESCRIPTION_MAX_LENGTH} characters`
+      `Description must be less than ${PROJECT_DESCRIPTION_MAX_LENGTH} characters`,
     )
     .optional(),
+  teamId: z.string().nullable().optional(),
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
-

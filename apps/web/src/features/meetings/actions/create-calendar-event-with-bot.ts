@@ -1,9 +1,11 @@
 "use server";
 
 import { logger } from "@/lib/logger";
+import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { CacheInvalidation } from "@/lib/cache-utils";
 import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
 import { BotSessionsQueries } from "@/server/data-access/bot-sessions.queries";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
@@ -11,6 +13,7 @@ import { ProjectQueries } from "@/server/data-access/projects.queries";
 import { BotProviderFactory } from "@/server/services/bot-providers/factory";
 import { getCalendarProvider } from "@/server/services/calendar/calendar-provider-factory";
 import type { ProviderType } from "@/server/services/calendar/calendar-provider-factory";
+import { MeetingService } from "@/server/services/meeting.service";
 import { z } from "zod";
 
 const createCalendarEventWithBotSchema = z.object({
@@ -31,6 +34,7 @@ const createCalendarEventWithBotSchema = z.object({
   provider: z
     .enum(["google", "microsoft"] satisfies [ProviderType, ...ProviderType[]])
     .optional(),
+  teamId: z.string().nullable().optional(),
 });
 
 /**
@@ -80,7 +84,22 @@ export const createCalendarEventWithBot = authorizedActionClient
       endDate,
       recurrence,
       userTimezone,
+      teamId: explicitTeamId,
     } = parsedInput;
+
+    const teamId = explicitTeamId ?? null;
+
+    if (
+      teamId &&
+      !ctx.userTeamIds?.includes(teamId) &&
+      !isOrganizationAdmin(user)
+    ) {
+      throw ActionErrors.forbidden(
+        "Not a member of this team",
+        undefined,
+        "create-calendar-event-with-bot",
+      );
+    }
 
     logger.info("Creating calendar event with bot", {
       userId: user.id,
@@ -249,6 +268,32 @@ export const createCalendarEventWithBot = authorizedActionClient
                 });
 
                 sessionId = session.id;
+
+                // Create or find meeting for this calendar event, passing teamId
+                const meetingResult =
+                  await MeetingService.findOrCreateForCalendarEvent(
+                    eventId,
+                    organizationId,
+                    {
+                      organizationId,
+                      projectId: project.id,
+                      teamId,
+                      createdById: user.id,
+                      calendarEventId: eventId,
+                      title,
+                      scheduledStartAt: start,
+                      status: "scheduled",
+                      meetingUrl,
+                    },
+                  );
+
+                if (meetingResult.isOk()) {
+                  await BotSessionsQueries.update(session.id, organizationId, {
+                    meetingId: meetingResult.value.id,
+                  });
+                }
+
+                CacheInvalidation.invalidateBotSessions(organizationId);
 
                 logger.info("Successfully created bot session", {
                   userId: user.id,

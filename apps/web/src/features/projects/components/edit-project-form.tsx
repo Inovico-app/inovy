@@ -1,38 +1,37 @@
 "use client";
 
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useProjectTeamPicker } from "@/features/projects/hooks/use-project-team-picker";
+import { TeamPicker } from "@/features/teams/components/team-picker";
 import { PROJECT_DESCRIPTION_MAX_LENGTH } from "@/lib/constants/project-constants";
+import {
+  updateProjectSchema,
+  type UpdateProjectInput,
+} from "@/server/validation/projects/update-project";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
-import { Loader2Icon } from "lucide-react";
+import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { z } from "zod";
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
-import { Label } from "../../../components/ui/label";
+import { Loader2Icon } from "lucide-react";
 import { updateProjectAction } from "../actions/update-project";
-
-const formSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Project name is required")
-    .max(100, "Project name must be less than 100 characters"),
-  description: z
-    .string()
-    .max(
-      PROJECT_DESCRIPTION_MAX_LENGTH,
-      `Description must be less than ${PROJECT_DESCRIPTION_MAX_LENGTH} characters`
-    )
-    .optional(),
-});
-
-type FormData = z.infer<typeof formSchema>;
 
 interface EditProjectFormProps {
   projectId: string;
   initialData: {
     name: string;
     description: string | null;
+    teamId?: string | null;
   };
   onSuccess?: () => void;
 }
@@ -43,22 +42,42 @@ export function EditProjectForm({
   onSuccess,
 }: EditProjectFormProps) {
   const router = useRouter();
+  const { teams, isLoading: isLoadingTeams } = useProjectTeamPicker();
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<FormData>({
-    resolver: standardSchemaResolver(formSchema),
+  const form = useForm<UpdateProjectInput>({
+    resolver: standardSchemaResolver(updateProjectSchema),
     defaultValues: {
+      projectId,
       name: initialData.name,
       description: initialData.description ?? "",
+      teamId: initialData.teamId ?? null,
+    },
+    mode: "onChange",
+  });
+
+  const { execute, isExecuting } = useAction(updateProjectAction, {
+    onSuccess: () => {
+      toast.success("Project updated successfully");
+      router.refresh();
+      onSuccess?.();
+    },
+    onError: ({ error }) => {
+      toast.error(error.serverError ?? "Failed to update project");
     },
   });
 
-  const descriptionValue = watch("description") ?? "";
-  const descriptionLength = descriptionValue.length;
+  const handleSubmit = (data: UpdateProjectInput) => {
+    execute({
+      projectId,
+      name: data.name.trim(),
+      description: data.description?.trim() || undefined,
+      teamId: data.teamId ?? null,
+    });
+  };
+
+  const description = form.watch("description") ?? "";
+  const teamIdValue = form.watch("teamId") ?? null;
+  const descriptionLength = description.length;
   const descriptionCounterColor =
     descriptionLength >= PROJECT_DESCRIPTION_MAX_LENGTH
       ? "text-red-500"
@@ -66,87 +85,92 @@ export function EditProjectForm({
         ? "text-yellow-500"
         : "text-muted-foreground";
 
-  const onSubmit = async (data: FormData) => {
-    try {
-      const result = await updateProjectAction({
-        projectId,
-        name: data.name,
-        description: data.description ?? undefined,
-      });
-
-      if (result?.serverError) {
-        toast.error(result.serverError);
-        return;
-      }
-
-      if (result?.validationErrors) {
-        const firstFieldErrors = Object.values(result.validationErrors)[0];
-        const firstError = Array.isArray(firstFieldErrors)
-          ? firstFieldErrors[0]
-          : firstFieldErrors?._errors?.[0];
-        toast.error(firstError ?? "Validation failed");
-        return;
-      }
-
-      toast.success("Project updated successfully");
-      router.refresh();
-      onSuccess?.();
-    } catch (error) {
-      console.error("Error updating project:", error);
-      toast.error("Failed to update project");
-    }
-  };
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">
-          Project Name <span className="text-red-500">*</span>
-        </Label>
-        <Input
-          id="name"
-          placeholder="Enter project name"
-          {...register("name")}
-          aria-invalid={errors.name ? "true" : "false"}
-        />
-        {errors.name && (
-          <p className="text-sm text-red-500">{errors.name.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <textarea
-          id="description"
-          placeholder="Enter project description (optional)"
-          maxLength={PROJECT_DESCRIPTION_MAX_LENGTH}
-          className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          {...register("description")}
-          aria-invalid={errors.description ? "true" : "false"}
-        />
-        <p
-          className={`text-right text-xs ${descriptionCounterColor}`}
-          aria-live="polite"
-        >
-          {descriptionLength} / {PROJECT_DESCRIPTION_MAX_LENGTH}
-        </p>
-        {errors.description && (
-          <p className="text-sm text-red-500">{errors.description.message}</p>
-        )}
-      </div>
-
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onSuccess}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting && (
-            <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Project Name <span className="text-red-500">*</span>
+              </FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Enter project name"
+                  disabled={isExecuting}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
-          Save Changes
-        </Button>
-      </div>
-    </form>
+        />
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Enter project description (optional)"
+                  disabled={isExecuting}
+                  rows={3}
+                  maxLength={PROJECT_DESCRIPTION_MAX_LENGTH}
+                  {...field}
+                />
+              </FormControl>
+              <p
+                className={`text-right text-xs ${descriptionCounterColor}`}
+                aria-live="polite"
+              >
+                {descriptionLength} / {PROJECT_DESCRIPTION_MAX_LENGTH}
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {!isLoadingTeams && teams.length > 0 && (
+          <FormField
+            control={form.control}
+            name="teamId"
+            render={() => (
+              <FormItem>
+                <TeamPicker
+                  teams={teams}
+                  value={teamIdValue}
+                  onChange={(id) => form.setValue("teamId", id)}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onSuccess}
+            disabled={isExecuting}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={isExecuting || !form.formState.isValid}
+          >
+            {isExecuting && (
+              <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+            )}
+            Save Changes
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 }
-

@@ -3,6 +3,13 @@ import { db } from "../db";
 import { logger } from "../../lib/logger";
 import { projects } from "../db/schema/projects";
 import { recordings } from "../db/schema/recordings";
+import { buildTeamFilter } from "@/lib/rbac/team-isolation";
+import type { BetterAuthUser } from "@/lib/auth";
+
+interface TeamContextOptions {
+  userTeamIds?: string[];
+  user?: BetterAuthUser;
+}
 
 /**
  * Dashboard Data Access Queries
@@ -14,8 +21,22 @@ import { recordings } from "../db/schema/recordings";
  */
 export async function getRecentProjectsForDashboard(
   organizationId: string,
-  limit: number = 5
+  limit: number = 5,
+  teamContext?: TeamContextOptions,
 ) {
+  const whereConditions = [eq(projects.organizationId, organizationId)];
+
+  if (teamContext?.user && teamContext?.userTeamIds) {
+    const teamFilter = buildTeamFilter(
+      projects.teamId,
+      teamContext.userTeamIds,
+      teamContext.user,
+    );
+    if (teamFilter) {
+      whereConditions.push(teamFilter);
+    }
+  }
+
   return db
     .select({
       id: projects.id,
@@ -26,7 +47,7 @@ export async function getRecentProjectsForDashboard(
     })
     .from(projects)
     .leftJoin(recordings, eq(projects.id, recordings.projectId))
-    .where(eq(projects.organizationId, organizationId))
+    .where(and(...whereConditions))
     .groupBy(projects.id)
     .orderBy(desc(projects.createdAt))
     .limit(limit);
@@ -37,8 +58,22 @@ export async function getRecentProjectsForDashboard(
  */
 export async function getRecentRecordingsForDashboard(
   organizationId: string,
-  limit: number = 5
+  limit: number = 5,
+  teamContext?: TeamContextOptions,
 ) {
+  const whereConditions = [eq(projects.organizationId, organizationId)];
+
+  if (teamContext?.user && teamContext?.userTeamIds) {
+    const teamFilter = buildTeamFilter(
+      projects.teamId,
+      teamContext.userTeamIds,
+      teamContext.user,
+    );
+    if (teamFilter) {
+      whereConditions.push(teamFilter);
+    }
+  }
+
   return db
     .select({
       id: recordings.id,
@@ -51,7 +86,7 @@ export async function getRecentRecordingsForDashboard(
     })
     .from(recordings)
     .innerJoin(projects, eq(recordings.projectId, projects.id))
-    .where(eq(projects.organizationId, organizationId))
+    .where(and(...whereConditions))
     .orderBy(desc(recordings.createdAt))
     .limit(limit);
 }
@@ -59,29 +94,42 @@ export async function getRecentRecordingsForDashboard(
 /**
  * Get dashboard statistics (counts)
  */
-export async function getDashboardStats(organizationId: string) {
+export async function getDashboardStats(
+  organizationId: string,
+  teamContext?: TeamContextOptions,
+) {
+  const baseConditions = [
+    eq(projects.organizationId, organizationId),
+    eq(projects.status, "active"),
+  ];
+
+  if (teamContext?.user && teamContext?.userTeamIds) {
+    const teamFilter = buildTeamFilter(
+      projects.teamId,
+      teamContext.userTeamIds,
+      teamContext.user,
+    );
+    if (teamFilter) {
+      baseConditions.push(teamFilter);
+    }
+  }
+
   const totalProjects = await db
     .select({ count: count() })
     .from(projects)
-    .where(
-      and(
-        eq(projects.organizationId, organizationId),
-        eq(projects.status, "active")
-      )
-    );
+    .where(and(...baseConditions));
+
+  const recordingConditions = [
+    ...baseConditions,
+    eq(recordings.organizationId, organizationId),
+    eq(recordings.status, "active"),
+  ];
 
   const totalRecordings = await db
     .select({ count: count() })
     .from(recordings)
     .innerJoin(projects, eq(recordings.projectId, projects.id))
-    .where(
-      and(
-        eq(projects.organizationId, organizationId),
-        eq(projects.status, "active"),
-        eq(recordings.organizationId, organizationId),
-        eq(recordings.status, "active")
-      )
-    );
+    .where(and(...recordingConditions));
 
   // Convert count to number (drizzle may return string or BigInt)
   const projectCount = Number(totalProjects[0]?.count ?? 0);
@@ -115,4 +163,3 @@ export async function getDashboardStats(organizationId: string) {
     totalRecordings: recordingCount,
   };
 }
-

@@ -50,7 +50,7 @@ export const POST = withRateLimit(
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      const { user, organization, member } = session;
+      const { user, organization, member, userTeamIds } = session;
       const organizationId = organization.id;
 
       if (!member?.role) {
@@ -67,14 +67,13 @@ export const POST = withRateLimit(
             error: "Agent is temporarily unavailable",
             code: "AGENT_KILLED",
           },
-          { status: 503 }
+          { status: 503 },
         );
       }
 
       // Check per-organization daily token budget
-      const budgetResult = await AgentTokenBudgetService.getRemainingBudget(
-        organizationId
-      );
+      const budgetResult =
+        await AgentTokenBudgetService.getRemainingBudget(organizationId);
 
       if (!budgetResult.allowed) {
         return NextResponse.json(
@@ -84,7 +83,7 @@ export const POST = withRateLimit(
             limit: budgetResult.limit,
             remaining: budgetResult.remaining,
           },
-          { status: 429 }
+          { status: 429 },
         );
       }
 
@@ -119,7 +118,7 @@ export const POST = withRateLimit(
               "Organization-level chat requires administrator privileges",
             requiredRole: "admin",
           },
-          { status: 403 }
+          { status: 403 },
         );
       }
 
@@ -130,7 +129,7 @@ export const POST = withRateLimit(
       if (!validationResult.success) {
         return NextResponse.json(
           { error: "Invalid request", details: validationResult.error },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -179,7 +178,7 @@ export const POST = withRateLimit(
         const conversationResult =
           await ChatService.createOrganizationConversation(
             user.id,
-            organizationId
+            organizationId,
           );
 
         if (conversationResult.isErr()) {
@@ -188,7 +187,7 @@ export const POST = withRateLimit(
           });
           return NextResponse.json(
             { error: "Failed to create conversation" },
-            { status: 500 }
+            { status: 500 },
           );
         }
 
@@ -200,7 +199,8 @@ export const POST = withRateLimit(
         activeConversationId,
         message,
         organizationId,
-        userRole
+        userRole,
+        { userTeamIds },
       );
 
       if (streamResult.isErr()) {
@@ -229,7 +229,7 @@ export const POST = withRateLimit(
         });
         return NextResponse.json(
           { error: "Failed to generate response" },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -250,14 +250,14 @@ export const POST = withRateLimit(
       logger.error("Error in organization chat API", { error });
       return NextResponse.json(
         { error: "Internal server error" },
-        { status: 500 }
+        { status: 500 },
       );
     }
   },
   {
     maxRequests: undefined, // Use tier-based default (100 req/hour free, 1000 req/hour pro)
     windowSeconds: 3600, // 1 hour
-  }
+  },
 );
 
 // GET endpoint to retrieve conversation history
@@ -314,7 +314,7 @@ export async function GET(request: NextRequest) {
           message: "Organization-level chat requires administrator privileges",
           requiredRole: "admin",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -325,7 +325,7 @@ export async function GET(request: NextRequest) {
     if (!conversationId) {
       return NextResponse.json(
         { error: "conversationId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -339,7 +339,7 @@ export async function GET(request: NextRequest) {
       });
       return NextResponse.json(
         { error: "Failed to get conversation history" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -348,8 +348,7 @@ export async function GET(request: NextRequest) {
     logger.error("Error getting organization conversation history", { error });
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

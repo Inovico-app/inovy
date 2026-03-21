@@ -7,7 +7,6 @@ import { RAGSearchTool } from "./rag-search.tool";
 const ragSearchTool = new RAGSearchTool();
 
 export function createSearchKnowledgeTool(ctx: ToolContext) {
-
   return tool({
     description:
       "Search the knowledge base for relevant information using semantic search. " +
@@ -35,14 +34,14 @@ export function createSearchKnowledgeTool(ctx: ToolContext) {
         ])
         .optional()
         .describe(
-          "Filter results by content type. Use 'summary' to find recording summaries, 'transcription' for transcript chunks, 'task' for action items."
+          "Filter results by content type. Use 'summary' to find recording summaries, 'transcription' for transcript chunks, 'task' for action items.",
         ),
       recordingId: z
         .string()
         .uuid()
         .optional()
         .describe(
-          "Filter results to a specific recording by its ID. Combine with contentType for precise results."
+          "Filter results to a specific recording by its ID. Combine with contentType for precise results.",
         ),
       useHybrid: z
         .boolean()
@@ -55,7 +54,14 @@ export function createSearchKnowledgeTool(ctx: ToolContext) {
         .default(true)
         .describe("Use cross-encoder re-ranking for improved relevance"),
     }),
-    execute: async ({ query, limit, contentType, recordingId, useHybrid, useReranking }) => {
+    execute: async ({
+      query,
+      limit,
+      contentType,
+      recordingId,
+      useHybrid,
+      useReranking,
+    }) => {
       try {
         // Build additional filters from parameters
         const filters: Record<string, unknown> = {};
@@ -66,22 +72,32 @@ export function createSearchKnowledgeTool(ctx: ToolContext) {
           filters.documentId = recordingId;
         }
 
-        const result = await ragSearchTool.execute({
-          query,
-          limit,
-          useHybrid,
-          useReranking,
-          organizationId: ctx.organizationId,
-          projectId: ctx.projectId,
-          filters,
-        });
+        const result = await ragSearchTool.execute(
+          {
+            query,
+            limit,
+            useHybrid,
+            useReranking,
+            organizationId: ctx.organizationId,
+            projectId: ctx.projectId,
+            filters,
+          },
+          // Server-side context: team scoping values are injected here,
+          // never exposed to or controlled by the LLM.
+          {
+            teamId: ctx.teamId,
+            userTeamIds: ctx.userTeamIds,
+          },
+        );
 
         if (result.isErr()) {
           logger.error("Knowledge base search failed", {
             component: "SearchKnowledgeTool",
             error: result.error,
           });
-          return { error: "Failed to search knowledge base. Please try again." };
+          return {
+            error: "Failed to search knowledge base. Please try again.",
+          };
         }
 
         const { results, count, message } = result.value;

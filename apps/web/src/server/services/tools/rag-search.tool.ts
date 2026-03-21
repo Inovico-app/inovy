@@ -25,6 +25,8 @@ import { SearchResultFormatter } from "../search-result-formatter.service";
 
 /**
  * Input schema for RAG search tool
+ * NOTE: teamId and userTeamIds are intentionally excluded — they are injected
+ * server-side from the authenticated tool context and must never be LLM-controlled.
  */
 export const ragSearchInputSchema = z.object({
   query: z.string().min(1, "Query is required").describe("Search query text"),
@@ -57,6 +59,14 @@ export const ragSearchInputSchema = z.object({
 });
 
 export type RAGSearchInput = z.infer<typeof ragSearchInputSchema>;
+
+/**
+ * Server-side context injected by the tool executor — never provided by the LLM.
+ */
+export interface RAGSearchContext {
+  teamId?: string | null;
+  userTeamIds?: string[];
+}
 
 /**
  * Formatted search result for LLM consumption
@@ -104,11 +114,13 @@ export class RAGSearchTool {
   /**
    * Execute RAG search
    *
-   * @param input - Search parameters
+   * @param input - Search parameters (LLM-controlled fields only)
+   * @param ctx - Server-side context providing team access info — never LLM-controlled
    * @returns Formatted search results for LLM consumption
    */
   async execute(
-    input: RAGSearchInput
+    input: RAGSearchInput,
+    ctx?: RAGSearchContext,
   ): Promise<ActionResult<RAGSearchResponse>> {
     try {
       logger.info("RAG search tool execution started", {
@@ -134,8 +146,8 @@ export class RAGSearchTool {
             `Invalid search parameters: ${errors
               .map((e: { message: string }) => e.message)
               .join(", ")}`,
-            "RAGSearchTool.execute"
-          )
+            "RAGSearchTool.execute",
+          ),
         );
       }
 
@@ -146,12 +158,14 @@ export class RAGSearchTool {
         return err(
           ActionErrors.badRequest(
             "Either userId or organizationId is required for search",
-            "RAGSearchTool.execute"
-          )
+            "RAGSearchTool.execute",
+          ),
         );
       }
 
       // Execute search via RAGService
+      // teamId and userTeamIds are injected from server-side context (ctx),
+      // never from the LLM-controlled input, to prevent scope manipulation.
       const searchResult = await this.ragService.search(
         validatedInput.query,
         validatedInput.userId ?? "",
@@ -162,7 +176,9 @@ export class RAGSearchTool {
           filters: validatedInput.filters ?? {},
           organizationId: validatedInput.organizationId,
           projectId: validatedInput.projectId,
-        }
+          teamId: ctx?.teamId,
+          userTeamIds: ctx?.userTeamIds,
+        },
       );
 
       if (searchResult.isErr()) {
@@ -178,13 +194,13 @@ export class RAGSearchTool {
       // Limit results by token count (default: 4000 tokens)
       const limitedResults = SearchResultFormatter.limitResultsByTokens(
         results,
-        4000
+        4000,
       );
 
       // Format results for LLM consumption
       const formattedResults = this.formatResultsForLLM(
         limitedResults,
-        validatedInput.query
+        validatedInput.query,
       );
 
       const response: RAGSearchResponse = {
@@ -217,8 +233,8 @@ export class RAGSearchTool {
         ActionErrors.internal(
           "An unexpected error occurred during search",
           error as Error,
-          "RAGSearchTool.execute"
-        )
+          "RAGSearchTool.execute",
+        ),
       );
     }
   }
@@ -234,7 +250,7 @@ export class RAGSearchTool {
    */
   private formatResultsForLLM(
     results: SearchResult[],
-    query?: string
+    query?: string,
   ): FormattedSearchResult[] {
     return results.map((result) => {
       // Determine the best score to use (reranked if available, otherwise similarity)
@@ -246,7 +262,7 @@ export class RAGSearchTool {
       const { text: formattedContent } =
         SearchResultFormatter.truncateIntelligently(
           result.contentText,
-          maxContentChars
+          maxContentChars,
         );
 
       // Optionally highlight query terms
@@ -356,4 +372,3 @@ export class RAGSearchTool {
     };
   }
 }
-

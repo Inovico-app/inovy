@@ -1,6 +1,10 @@
 import type { BetterAuthUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/server-action-client/action-client";
-import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import {
+  ActionErrors,
+  isActionError,
+} from "@/lib/server-action-client/action-errors";
+import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import { getStorageProvider } from "./storage";
 import { err, ok } from "neverthrow";
 import { getBetterAuthSession } from "../../lib/better-auth-session";
@@ -20,6 +24,7 @@ import type {
   ProjectWithRecordingCountDto,
 } from "../dto/project.dto";
 import type { CreateProjectInput } from "../validation/projects/create-project";
+import { QdrantClientService } from "./rag/qdrant.service";
 
 /**
  * Business logic layer for Project operations
@@ -30,7 +35,7 @@ export class ProjectService {
    * Get a project by ID for the authenticated user's organization with creator details
    */
   static async getProjectById(
-    projectId: string
+    projectId: string,
   ): Promise<ActionResult<ProjectWithCreatorDetailsDto>> {
     try {
       // Check authentication and get session
@@ -41,8 +46,8 @@ export class ProjectService {
           ActionErrors.internal(
             "Failed to get authentication session",
             undefined,
-            "ProjectService.getProjectById"
-          )
+            "ProjectService.getProjectById",
+          ),
         );
       }
 
@@ -53,22 +58,30 @@ export class ProjectService {
           ActionErrors.forbidden(
             "Authentication required",
             undefined,
-            "ProjectService.getProjectById"
-          )
+            "ProjectService.getProjectById",
+          ),
         );
       }
 
       // Get project with creator details using Next.js cache (includes JOIN with user table)
       const project = await getCachedProjectByIdWithCreator(
         projectId,
-        organization.id
+        organization.id,
       );
 
       if (!project) {
         return err(
-          ActionErrors.notFound("Project", "ProjectService.getProjectById")
+          ActionErrors.notFound("Project", "ProjectService.getProjectById"),
         );
       }
+
+      // Enforce team-level access isolation
+      assertTeamAccess(
+        project.teamId,
+        authResult.value.userTeamIds,
+        authUser,
+        "ProjectService.getProjectById",
+      );
 
       // Split creator name into givenName and familyName (matching UserService logic)
       const nameParts = project.creatorName?.split(" ") ?? [];
@@ -87,13 +100,17 @@ export class ProjectService {
 
       return ok(projectWithDetails);
     } catch (error) {
+      // Preserve ActionErrors (e.g., from assertTeamAccess)
+      if (isActionError(error)) {
+        throw error;
+      }
       logger.error("Failed to get project", { projectId }, error as Error);
       return err(
         ActionErrors.internal(
           "Failed to get project",
           error as Error,
-          "ProjectService.getProjectById"
-        )
+          "ProjectService.getProjectById",
+        ),
       );
     }
   }
@@ -102,7 +119,7 @@ export class ProjectService {
    * Get all projects for the authenticated user's organization
    */
   static async getProjectsByOrganization(
-    filters?: ProjectFiltersDto
+    filters?: ProjectFiltersDto,
   ): Promise<ActionResult<ProjectWithCreatorDto[]>> {
     try {
       // Check authentication and get session
@@ -112,20 +129,20 @@ export class ProjectService {
           ActionErrors.internal(
             "Failed to get authentication session",
             undefined,
-            "ProjectService.getProjectsByOrganization"
-          )
+            "ProjectService.getProjectsByOrganization",
+          ),
         );
       }
 
-      const { user: authUser, organization } = authResult.value;
+      const { user: authUser, organization, userTeamIds } = authResult.value;
 
       if (!authUser || !organization) {
         return err(
           ActionErrors.forbidden(
             "Authentication required",
             undefined,
-            "ProjectService.getProjectsByOrganization"
-          )
+            "ProjectService.getProjectsByOrganization",
+          ),
         );
       }
 
@@ -135,8 +152,13 @@ export class ProjectService {
         status: "active",
       };
 
-      const projects =
-        await ProjectQueries.findByOrganizationWithCreator(projectFilters);
+      const projects = await ProjectQueries.findByOrganizationWithCreator(
+        projectFilters,
+        {
+          userTeamIds,
+          user: authUser,
+        },
+      );
 
       return ok(projects);
     } catch (error) {
@@ -146,8 +168,8 @@ export class ProjectService {
         ActionErrors.internal(
           "Failed to get projects",
           error as Error,
-          "ProjectService.getProjectsByOrganization"
-        )
+          "ProjectService.getProjectsByOrganization",
+        ),
       );
     }
   }
@@ -156,7 +178,7 @@ export class ProjectService {
    * Get all projects with recording counts for the authenticated user's organization
    */
   static async getProjectsByOrganizationWithRecordingCount(
-    status?: AllowedStatus
+    status?: AllowedStatus,
   ): Promise<ActionResult<ProjectWithRecordingCountDto[]>> {
     try {
       // Check authentication and get session
@@ -166,20 +188,20 @@ export class ProjectService {
           ActionErrors.internal(
             "Failed to get authentication session",
             undefined,
-            "ProjectService.getProjectsByOrganizationWithRecordingCount"
-          )
+            "ProjectService.getProjectsByOrganizationWithRecordingCount",
+          ),
         );
       }
 
-      const { user: authUser, organization } = authResult.value;
+      const { user: authUser, organization, userTeamIds } = authResult.value;
 
       if (!authUser || !organization) {
         return err(
           ActionErrors.forbidden(
             "Authentication required",
             undefined,
-            "ProjectService.getProjectsByOrganizationWithRecordingCount"
-          )
+            "ProjectService.getProjectsByOrganizationWithRecordingCount",
+          ),
         );
       }
 
@@ -190,7 +212,10 @@ export class ProjectService {
       };
 
       const projects =
-        await ProjectQueries.findByOrganizationWithRecordingCount(filters);
+        await ProjectQueries.findByOrganizationWithRecordingCount(filters, {
+          userTeamIds,
+          user: authUser,
+        });
 
       return ok(projects);
     } catch (error) {
@@ -200,8 +225,8 @@ export class ProjectService {
         ActionErrors.internal(
           "Failed to get projects with recording counts",
           error as Error,
-          "ProjectService.getProjectsByOrganizationWithRecordingCount"
-        )
+          "ProjectService.getProjectsByOrganizationWithRecordingCount",
+        ),
       );
     }
   }
@@ -210,7 +235,7 @@ export class ProjectService {
    * Get project count for the authenticated user's organization
    */
   static async getProjectCount(
-    status?: AllowedStatus
+    status?: AllowedStatus,
   ): Promise<ActionResult<number>> {
     try {
       // Check authentication and get session
@@ -220,27 +245,31 @@ export class ProjectService {
           ActionErrors.internal(
             "Failed to get authentication session",
             undefined,
-            "ProjectService.getProjectCount"
-          )
+            "ProjectService.getProjectCount",
+          ),
         );
       }
 
-      const { user: authUser, organization } = authResult.value;
+      const { user: authUser, organization, userTeamIds } = authResult.value;
 
       if (!authUser || !organization) {
         return err(
           ActionErrors.forbidden(
             "Authentication required",
             undefined,
-            "ProjectService.getProjectCount"
-          )
+            "ProjectService.getProjectCount",
+          ),
         );
       }
 
       // Get count using data access layer
       const count = await ProjectQueries.countByOrganization(
         organization.id,
-        status
+        status,
+        {
+          userTeamIds,
+          user: authUser,
+        },
       );
 
       return ok(count);
@@ -251,8 +280,8 @@ export class ProjectService {
         ActionErrors.internal(
           "Failed to get project count",
           error as Error,
-          "ProjectService.getProjectCount"
-        )
+          "ProjectService.getProjectCount",
+        ),
       );
     }
   }
@@ -263,19 +292,23 @@ export class ProjectService {
   static async createProject(
     input: CreateProjectInput,
     user: NonNullable<BetterAuthUser>,
-    orgCode: string
+    orgCode: string,
   ): Promise<ActionResult<ProjectDto>> {
     // Validate project name uniqueness
     const existing = await ProjectQueries.findByName(input.name);
     if (existing) {
       return err(
-        ActionErrors.conflict("Project name is already taken", "create-project")
+        ActionErrors.conflict(
+          "Project name is already taken",
+          "create-project",
+        ),
       );
     }
     const projectData: CreateProjectDto = {
       name: input.name,
       description: input.description,
       organizationId: orgCode,
+      teamId: input.teamId ?? null,
       createdById: user.id,
     };
     try {
@@ -286,14 +319,14 @@ export class ProjectService {
       logger.error(
         "Failed to create project",
         { input, orgCode, user },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to create project",
           error as Error,
-          "ProjectService.createProject"
-        )
+          "ProjectService.createProject",
+        ),
       );
     }
   }
@@ -303,8 +336,8 @@ export class ProjectService {
    */
   static async updateProject(
     projectId: string,
-    input: { name?: string; description?: string },
-    orgCode: string
+    input: { name?: string; description?: string; teamId?: string | null },
+    orgCode: string,
   ): Promise<ActionResult<ProjectDto>> {
     if (input.name) {
       const existing = await ProjectQueries.findByName(input.name);
@@ -312,8 +345,8 @@ export class ProjectService {
         return err(
           ActionErrors.conflict(
             "Project name is already taken",
-            "update-project"
-          )
+            "update-project",
+          ),
         );
       }
     }
@@ -321,26 +354,47 @@ export class ProjectService {
       const project = await ProjectQueries.update(projectId, orgCode, {
         name: input.name,
         description: input.description,
+        ...(input.teamId !== undefined ? { teamId: input.teamId } : {}),
       });
       if (!project) {
         return err(
-          ActionErrors.notFound("Project", "ProjectService.updateProject")
+          ActionErrors.notFound("Project", "ProjectService.updateProject"),
         );
       }
       CacheInvalidation.invalidateProjectCache(orgCode);
+
+      if (input.teamId !== undefined) {
+        const qdrant = QdrantClientService.getInstance();
+        const newTeamPayload = input.teamId
+          ? { teamId: [input.teamId] }
+          : { teamId: [] };
+
+        await qdrant
+          .setPayload(newTeamPayload, {
+            must: [{ key: "projectId", match: { value: projectId } }],
+          })
+          .catch((error) => {
+            logger.error("Failed to update Qdrant teamId for project", {
+              projectId,
+              teamId: input.teamId,
+              error,
+            });
+          });
+      }
+
       return ok(project);
     } catch (error) {
       logger.error(
         "Failed to update project",
         { projectId, input, orgCode },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to update project",
           error as Error,
-          "ProjectService.updateProject"
-        )
+          "ProjectService.updateProject",
+        ),
       );
     }
   }
@@ -350,7 +404,7 @@ export class ProjectService {
    */
   static async archiveProject(
     projectId: string,
-    orgCode: string
+    orgCode: string,
   ): Promise<ActionResult<boolean>> {
     try {
       const result = await ProjectQueries.softDelete(projectId, orgCode);
@@ -367,8 +421,8 @@ export class ProjectService {
         ActionErrors.internal(
           "Failed to archive project",
           error as Error,
-          "ProjectService.archiveProject"
-        )
+          "ProjectService.archiveProject",
+        ),
       );
     }
   }
@@ -378,7 +432,7 @@ export class ProjectService {
    */
   static async unarchiveProject(
     projectId: string,
-    orgCode: string
+    orgCode: string,
   ): Promise<ActionResult<boolean>> {
     try {
       const result = await ProjectQueries.unarchive(projectId, orgCode);
@@ -395,8 +449,8 @@ export class ProjectService {
         ActionErrors.internal(
           "Failed to unarchive project",
           error as Error,
-          "ProjectService.unarchiveProject"
-        )
+          "ProjectService.unarchiveProject",
+        ),
       );
     }
   }
@@ -406,20 +460,20 @@ export class ProjectService {
    */
   static async getProjectStatistics(
     projectId: string,
-    orgCode: string
+    orgCode: string,
   ): Promise<ActionResult<{ recordingCount: number }>> {
     try {
       const stats = await ProjectQueries.getProjectStatistics(
         projectId,
-        orgCode
+        orgCode,
       );
 
       if (!stats) {
         return err(
           ActionErrors.notFound(
             "Project",
-            "ProjectService.getProjectStatistics"
-          )
+            "ProjectService.getProjectStatistics",
+          ),
         );
       }
 
@@ -431,8 +485,8 @@ export class ProjectService {
         ActionErrors.internal(
           "Failed to get project statistics",
           error as Error,
-          "ProjectService.getProjectStatistics"
-        )
+          "ProjectService.getProjectStatistics",
+        ),
       );
     }
   }
@@ -444,7 +498,7 @@ export class ProjectService {
   static async deleteProject(
     projectId: string,
     orgCode: string,
-    userId: string
+    userId: string,
   ): Promise<ActionResult<boolean>> {
     logger.info("Deleting project", {
       component: "ProjectService.deleteProject",
@@ -454,11 +508,11 @@ export class ProjectService {
       // First, get the project to verify ownership
       const project = await ProjectQueries.findByIdWithCreator(
         projectId,
-        orgCode
+        orgCode,
       );
       if (!project) {
         return err(
-          ActionErrors.notFound("Project", "ProjectService.deleteProject")
+          ActionErrors.notFound("Project", "ProjectService.deleteProject"),
         );
       }
       // Verify ownership - only creator can delete
@@ -467,8 +521,8 @@ export class ProjectService {
           ActionErrors.forbidden(
             "Only the project creator can delete this project",
             { projectId },
-            "ProjectService.deleteProject"
-          )
+            "ProjectService.deleteProject",
+          ),
         );
       }
       // Get all recordings for this project to delete their files from blob storage
@@ -478,7 +532,7 @@ export class ProjectService {
           orgCode,
           {
             includeArchived: true,
-          }
+          },
         );
       logger.info("Deleting recordings from blob storage", {
         component: "ProjectService.deleteProject",
@@ -512,8 +566,8 @@ export class ProjectService {
           ActionErrors.internal(
             "Failed to delete project from database",
             undefined,
-            "ProjectService.deleteProject"
-          )
+            "ProjectService.deleteProject",
+          ),
         );
       }
       // Invalidate all project caches
@@ -534,10 +588,9 @@ export class ProjectService {
         ActionErrors.internal(
           "Failed to delete project",
           error as Error,
-          "ProjectService.deleteProject"
-        )
+          "ProjectService.deleteProject",
+        ),
       );
     }
   }
 }
-
