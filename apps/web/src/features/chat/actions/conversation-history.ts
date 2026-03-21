@@ -12,7 +12,15 @@ import {
 import { revalidatePath } from "next/cache";
 
 export const listConversationsAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("chat:project") })
+  .metadata({
+    name: "list-conversations",
+    permissions: policyToPermissions("chat:project"),
+    audit: {
+      resourceType: "chat",
+      action: "list",
+      category: "read",
+    },
+  })
   .schema(listConversationsSchema)
   .action(
     async ({
@@ -38,11 +46,19 @@ export const listConversationsAction = authorizedActionClient
       }
 
       return result.value;
-    }
+    },
   );
 
 export const searchConversationsAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("chat:project") })
+  .metadata({
+    name: "search-conversations",
+    permissions: policyToPermissions("chat:project"),
+    audit: {
+      resourceType: "chat",
+      action: "search",
+      category: "read",
+    },
+  })
   .schema(searchConversationsSchema)
   .action(
     async ({
@@ -67,11 +83,19 @@ export const searchConversationsAction = authorizedActionClient
       }
 
       return result.value;
-    }
+    },
   );
 
 export const softDeleteConversationAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("chat:project") })
+  .metadata({
+    name: "soft-delete-conversation",
+    permissions: policyToPermissions("chat:project"),
+    audit: {
+      resourceType: "chat",
+      action: "delete",
+      category: "mutation",
+    },
+  })
   .schema(conversationIdSchema)
   .action(
     async ({
@@ -89,7 +113,7 @@ export const softDeleteConversationAction = authorizedActionClient
       const result = await ChatService.softDeleteConversation(
         conversationId,
         user.id,
-        organizationId
+        organizationId,
       );
 
       if (result.isErr()) {
@@ -98,11 +122,19 @@ export const softDeleteConversationAction = authorizedActionClient
 
       revalidatePath("/chat");
       return { success: true };
-    }
+    },
   );
 
 export const restoreConversationAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("chat:project") })
+  .metadata({
+    name: "restore-conversation",
+    permissions: policyToPermissions("chat:project"),
+    audit: {
+      resourceType: "chat",
+      action: "restore",
+      category: "mutation",
+    },
+  })
   .schema(conversationIdSchema)
   .action(
     async ({
@@ -120,7 +152,7 @@ export const restoreConversationAction = authorizedActionClient
       const result = await ChatService.restoreConversation(
         conversationId,
         user.id,
-        organizationId
+        organizationId,
       );
 
       if (result.isErr()) {
@@ -129,17 +161,25 @@ export const restoreConversationAction = authorizedActionClient
 
       if (!result.value) {
         throw new Error(
-          "Cannot restore conversation deleted more than 30 days ago"
+          "Cannot restore conversation deleted more than 30 days ago",
         );
       }
 
       revalidatePath("/chat");
       return { success: true, restored: result.value };
-    }
+    },
   );
 
 export const archiveConversationAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("chat:project") })
+  .metadata({
+    name: "archive-conversation",
+    permissions: policyToPermissions("chat:project"),
+    audit: {
+      resourceType: "chat",
+      action: "archive",
+      category: "mutation",
+    },
+  })
   .schema(conversationIdSchema)
   .action(
     async ({
@@ -157,7 +197,7 @@ export const archiveConversationAction = authorizedActionClient
       const result = await ChatService.archiveConversation(
         conversationId,
         user.id,
-        organizationId
+        organizationId,
       );
 
       if (result.isErr()) {
@@ -166,11 +206,19 @@ export const archiveConversationAction = authorizedActionClient
 
       revalidatePath("/chat");
       return { success: true };
-    }
+    },
   );
 
 export const unarchiveConversationAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("chat:project") })
+  .metadata({
+    name: "unarchive-conversation",
+    permissions: policyToPermissions("chat:project"),
+    audit: {
+      resourceType: "chat",
+      action: "restore",
+      category: "mutation",
+    },
+  })
   .schema(conversationIdSchema)
   .action(
     async ({
@@ -188,7 +236,7 @@ export const unarchiveConversationAction = authorizedActionClient
       const result = await ChatService.unarchiveConversation(
         conversationId,
         user.id,
-        organizationId
+        organizationId,
       );
 
       if (result.isErr()) {
@@ -197,16 +245,24 @@ export const unarchiveConversationAction = authorizedActionClient
 
       revalidatePath("/chat");
       return { success: true };
-    }
+    },
   );
 
 export const getConversationStatsAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("chat:project") })
+  .metadata({
+    name: "get-conversation-stats",
+    permissions: policyToPermissions("chat:project"),
+    audit: {
+      resourceType: "chat",
+      action: "get",
+      category: "read",
+    },
+  })
   .action(async ({ ctx: { user, organizationId } }) => {
     if (!user) {
       throw ActionErrors.unauthenticated(
         "User not authenticated",
-        "getConversationStatsAction"
+        "getConversationStatsAction",
       );
     }
 
@@ -221,7 +277,7 @@ export const getConversationStatsAction = authorizedActionClient
 
     const result = await ChatService.getConversationStats(
       user.id,
-      organizationId
+      organizationId,
     );
 
     if (result.isErr()) {
@@ -232,7 +288,15 @@ export const getConversationStatsAction = authorizedActionClient
   });
 
 export const getConversationMessagesAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("chat:project") })
+  .metadata({
+    name: "get-conversation-messages",
+    permissions: policyToPermissions("chat:project"),
+    audit: {
+      resourceType: "chat",
+      action: "read",
+      category: "read",
+    },
+  })
   .schema(conversationIdSchema)
   .action(async ({ parsedInput: { conversationId }, ctx: { user } }) => {
     if (!user) {
@@ -247,4 +311,3 @@ export const getConversationMessagesAction = authorizedActionClient
 
     return result.value;
   });
-
