@@ -1,6 +1,8 @@
 "use server";
 
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
+import { AuditLogService } from "@/server/services/audit-log.service";
 import { TaskService } from "@/server/services/task.service";
 import type { TaskDto } from "@/server/dto/task.dto";
 import {
@@ -8,9 +10,7 @@ import {
   type UpdateTaskStatusInput,
 } from "@/server/validation/tasks/update-task-status";
 
-export async function updateTaskStatus(
-  input: UpdateTaskStatusInput
-): Promise<{
+export async function updateTaskStatus(input: UpdateTaskStatusInput): Promise<{
   success: boolean;
   data?: TaskDto;
   error?: string;
@@ -44,6 +44,23 @@ export async function updateTaskStatus(
       };
     }
 
+    const authResult = await getBetterAuthSession();
+    if (authResult.isOk()) {
+      const { user, organization } = authResult.value;
+      if (user?.id && organization?.id) {
+        void AuditLogService.createAuditLog({
+          eventType: "task_update",
+          resourceType: "task",
+          resourceId: taskId,
+          userId: user.id,
+          organizationId: organization.id,
+          action: "update",
+          category: "mutation",
+          metadata: { actionName: "updateTaskStatus", status },
+        });
+      }
+    }
+
     return {
       success: true,
       data: result.value,
@@ -60,4 +77,3 @@ export async function updateTaskStatus(
     };
   }
 }
-

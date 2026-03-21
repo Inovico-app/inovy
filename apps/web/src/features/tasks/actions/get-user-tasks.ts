@@ -1,6 +1,8 @@
 "use server";
 
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
+import { AuditLogService } from "@/server/services/audit-log.service";
 import type { TaskWithContextDto } from "@/server/dto/task.dto";
 import { TaskService } from "@/server/services/task.service";
 import {
@@ -44,6 +46,23 @@ export async function getUserTasks(filters?: FilterTasksInput): Promise<{
       };
     }
 
+    const authResult = await getBetterAuthSession();
+    if (authResult.isOk()) {
+      const { user, organization } = authResult.value;
+      if (user?.id && organization?.id) {
+        void AuditLogService.createAuditLog({
+          eventType: "task_list",
+          resourceType: "task",
+          resourceId: null,
+          userId: user.id,
+          organizationId: organization.id,
+          action: "list",
+          category: "read",
+          metadata: { actionName: "getUserTasks" },
+        });
+      }
+    }
+
     return {
       success: true,
       data: result.value,
@@ -60,4 +79,3 @@ export async function getUserTasks(filters?: FilterTasksInput): Promise<{
     };
   }
 }
-

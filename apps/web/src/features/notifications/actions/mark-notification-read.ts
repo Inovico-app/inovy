@@ -2,6 +2,7 @@
 
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
+import { AuditLogService } from "@/server/services/audit-log.service";
 import { NotificationService } from "@/server/services/notification.service";
 import {
   markAsReadSchema,
@@ -9,9 +10,7 @@ import {
 } from "@/server/validation/notifications/mark-as-read";
 import type { NotificationDto } from "@/server/dto/notification.dto";
 
-export async function markNotificationRead(
-  input: MarkAsReadInput
-): Promise<{
+export async function markNotificationRead(input: MarkAsReadInput): Promise<{
   success: boolean;
   data?: NotificationDto;
   error?: string;
@@ -50,6 +49,20 @@ export async function markNotificationRead(
       };
     }
 
+    const { user, organization } = authResult.value;
+    if (user?.id && organization?.id) {
+      void AuditLogService.createAuditLog({
+        eventType: "notification_mark_read",
+        resourceType: "notification",
+        resourceId: notificationId,
+        userId: user.id,
+        organizationId: organization.id,
+        action: "mark_read",
+        category: "mutation",
+        metadata: { actionName: "markNotificationRead" },
+      });
+    }
+
     return {
       success: true,
       data: result.value,
@@ -66,4 +79,3 @@ export async function markNotificationRead(
     };
   }
 }
-

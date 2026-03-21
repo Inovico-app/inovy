@@ -2,6 +2,7 @@
 
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
+import { AuditLogService } from "@/server/services/audit-log.service";
 import { OrganizationAssignmentService } from "@/server/services/organization-assignment.service";
 
 /**
@@ -79,6 +80,19 @@ export async function ensureUserOrganization(): Promise<{
       organizationId: assignedOrganization.id,
     });
 
+    if (user.id) {
+      void AuditLogService.createAuditLog({
+        eventType: "organization_create",
+        resourceType: "organization",
+        resourceId: assignedOrganization.id,
+        userId: user.id,
+        organizationId: assignedOrganization.id,
+        action: "create",
+        category: "mutation",
+        metadata: { actionName: "ensureUserOrganization" },
+      });
+    }
+
     return {
       success: true,
       organizationCode: assignedOrganization.id, // organizationCode is the Better Auth organization ID
@@ -87,7 +101,7 @@ export async function ensureUserOrganization(): Promise<{
     logger.error(
       "Unexpected error in ensureUserOrganization",
       {},
-      error as Error
+      error as Error,
     );
 
     return {
@@ -96,4 +110,3 @@ export async function ensureUserOrganization(): Promise<{
     };
   }
 }
-

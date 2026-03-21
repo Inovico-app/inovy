@@ -2,6 +2,7 @@
 
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
+import { AuditLogService } from "@/server/services/audit-log.service";
 import { NotificationService } from "@/server/services/notification.service";
 
 export async function getUnreadCount(): Promise<{
@@ -30,6 +31,20 @@ export async function getUnreadCount(): Promise<{
       };
     }
 
+    const { user, organization } = authResult.value;
+    if (user?.id && organization?.id) {
+      void AuditLogService.createAuditLog({
+        eventType: "notification_get",
+        resourceType: "notification",
+        resourceId: null,
+        userId: user.id,
+        organizationId: organization.id,
+        action: "get",
+        category: "read",
+        metadata: { actionName: "getUnreadCount" },
+      });
+    }
+
     return {
       success: true,
       data: { count: result.value },
@@ -46,4 +61,3 @@ export async function getUnreadCount(): Promise<{
     };
   }
 }
-

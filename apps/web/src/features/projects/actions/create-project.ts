@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
@@ -10,6 +11,7 @@ import {
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { AuditLogService } from "@/server/services/audit-log.service";
 import { ProjectService } from "@/server/services/project.service";
 import { createProjectSchema } from "@/server/validation/projects/create-project";
 
@@ -110,6 +112,23 @@ export async function createProjectFormAction(
   }
 
   if (result?.data?.id) {
+    const authResult = await getBetterAuthSession();
+    if (authResult.isOk()) {
+      const { user, organization } = authResult.value;
+      if (user?.id && organization?.id) {
+        void AuditLogService.createAuditLog({
+          eventType: "project_create",
+          resourceType: "project",
+          resourceId: result.data.id,
+          userId: user.id,
+          organizationId: organization.id,
+          action: "create",
+          category: "mutation",
+          metadata: { actionName: "createProjectFormAction" },
+        });
+      }
+    }
+
     redirect(`/projects/${result.data.id}`);
   } else {
     throw new Error("Failed to create project");
