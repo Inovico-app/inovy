@@ -30,6 +30,7 @@ interface AuditLogViewerProps {
     resourceId?: string;
     startDate?: string;
     endDate?: string;
+    category?: string;
   };
 }
 
@@ -50,18 +51,22 @@ export function AuditLogViewer({
     setResourceId,
     setStartDate,
     setEndDate,
+    setCategory,
   } = useAuditLogFilters({ initialFilters });
 
   const updateURL = () => {
     const params = new URLSearchParams();
-    if (filters.eventTypes.length > 0) params.set("eventType", filters.eventTypes.join(","));
+    if (filters.eventTypes.length > 0)
+      params.set("eventType", filters.eventTypes.join(","));
     if (filters.resourceTypes.length > 0)
       params.set("resourceType", filters.resourceTypes.join(","));
-    if (filters.actions.length > 0) params.set("action", filters.actions.join(","));
+    if (filters.actions.length > 0)
+      params.set("action", filters.actions.join(","));
     if (filters.userId) params.set("userId", filters.userId);
     if (filters.resourceId) params.set("resourceId", filters.resourceId);
     if (filters.startDate) params.set("startDate", filters.startDate);
     if (filters.endDate) params.set("endDate", filters.endDate);
+    if (filters.category) params.set("category", filters.category);
 
     const queryString = params.toString();
     const url = queryString
@@ -92,13 +97,19 @@ export function AuditLogViewer({
     try {
       const result = await exportAuditLogs({
         format,
-        eventType: filters.eventTypes.length > 0 ? filters.eventTypes : undefined,
-        resourceType: filters.resourceTypes.length > 0 ? filters.resourceTypes : undefined,
+        eventType:
+          filters.eventTypes.length > 0 ? filters.eventTypes : undefined,
+        resourceType:
+          filters.resourceTypes.length > 0 ? filters.resourceTypes : undefined,
         action: filters.actions.length > 0 ? filters.actions : undefined,
         userId: filters.userId,
         resourceId: filters.resourceId,
-        startDate: filters.startDate ? new Date(filters.startDate).toISOString() : undefined,
-        endDate: filters.endDate ? new Date(filters.endDate).toISOString() : undefined,
+        startDate: filters.startDate
+          ? new Date(filters.startDate).toISOString()
+          : undefined,
+        endDate: filters.endDate
+          ? new Date(filters.endDate).toISOString()
+          : undefined,
       });
 
       if (result?.serverError || !result?.data) {
@@ -187,6 +198,9 @@ export function AuditLogViewer({
                         Action
                       </th>
                       <th className="text-left py-3 px-4 font-semibold">
+                        Category
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold">
                         User ID
                       </th>
                       <th className="text-left py-3 px-4 font-semibold">
@@ -226,6 +240,17 @@ export function AuditLogViewer({
                           </span>
                         </td>
                         <td className="py-3 px-4">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                              log.category === "mutation"
+                                ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
+                                : "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400"
+                            }`}
+                          >
+                            {log.category}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
                           <code className="text-xs">
                             {log.userId.slice(0, 8)}...
                           </code>
@@ -244,6 +269,11 @@ export function AuditLogViewer({
       </div>
       <div className="lg:col-span-1">
         <AuditLogFilters
+          category={filters.category}
+          onCategoryChange={(cat) => {
+            setCategory(cat);
+            handleFilterChange();
+          }}
           eventTypes={filters.eventTypes}
           onEventTypesChange={(types) => {
             setEventTypes(types);
