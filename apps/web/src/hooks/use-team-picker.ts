@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 interface UserTeamsQueryData {
   teams: UserTeam[];
   activeTeamId: string | null;
+  isOrgAdmin: boolean;
 }
 
 export async function fetchUserTeams(): Promise<UserTeamsQueryData> {
@@ -18,7 +19,7 @@ export async function fetchUserTeams(): Promise<UserTeamsQueryData> {
   if (data && "teams" in data && "activeTeamId" in data) {
     return data as UserTeamsQueryData;
   }
-  return { teams: [], activeTeamId: null };
+  return { teams: [], activeTeamId: null, isOrgAdmin: false };
 }
 
 /**

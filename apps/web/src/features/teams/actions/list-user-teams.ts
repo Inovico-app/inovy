@@ -23,6 +23,7 @@ export interface UserTeam {
 export interface UserTeamsData {
   teams: UserTeam[];
   activeTeamId: string | null;
+  isOrgAdmin: boolean;
 }
 
 const listUserTeamsSchema = z.object({});
@@ -77,8 +78,28 @@ export const listUserTeamsAction = authorizedActionClient
         }
       }
 
+      // Get member role from the session for org-level admin check
+      const memberRole = sessionData?.session
+        ? await (async () => {
+            try {
+              const activeMember = await auth.api.getActiveMember({
+                headers: requestHeaders,
+              });
+              return activeMember ?? null;
+            } catch {
+              return null;
+            }
+          })()
+        : null;
+      const isAdmin =
+        ctx.user != null && isOrganizationAdmin(ctx.user, memberRole);
+
       return resultToActionResponse(
-        ok({ teams: userTeams, activeTeamId } satisfies UserTeamsData),
+        ok({
+          teams: userTeams,
+          activeTeamId,
+          isOrgAdmin: isAdmin,
+        } satisfies UserTeamsData),
       );
     } catch (error) {
       return resultToActionResponse(

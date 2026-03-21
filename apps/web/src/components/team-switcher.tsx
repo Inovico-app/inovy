@@ -15,11 +15,9 @@ import {
 } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { type UserTeam } from "@/features/teams/actions/list-user-teams";
+  type UserTeam,
+  type UserTeamsData,
+} from "@/features/teams/actions/list-user-teams";
 import { fetchUserTeams } from "@/hooks/use-team-picker";
 import { useTeamSwitcher } from "@/hooks/use-team-switcher";
 import { queryKeys } from "@/lib/query-keys";
@@ -27,8 +25,6 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown, Loader2, Users } from "lucide-react";
 import { useCallback, useState } from "react";
-
-const ALL_TEAMS_ID = null;
 
 interface TeamSwitcherProps {
   collapsed?: boolean;
@@ -38,7 +34,7 @@ export function TeamSwitcher({ collapsed = false }: TeamSwitcherProps) {
   const { switchTeam, isSwitching } = useTeamSwitcher();
   const [open, setOpen] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<UserTeamsData>({
     queryKey: queryKeys.auth.userTeams(),
     queryFn: fetchUserTeams,
     staleTime: 5 * 60 * 1000,
@@ -49,13 +45,14 @@ export function TeamSwitcher({ collapsed = false }: TeamSwitcherProps) {
 
   const teams = data?.teams ?? [];
   const activeTeamId = data?.activeTeamId ?? null;
+  const isOrgAdmin = data?.isOrgAdmin ?? false;
 
   const activeTeam = activeTeamId
-    ? (teams.find((t) => t.id === activeTeamId) ?? null)
+    ? (teams.find((t: UserTeam) => t.id === activeTeamId) ?? null)
     : null;
 
   const handleSelect = useCallback(
-    (teamId: string | null) => {
+    (teamId: string) => {
       if (teamId === activeTeamId) {
         setOpen(false);
         return;
@@ -80,12 +77,42 @@ export function TeamSwitcher({ collapsed = false }: TeamSwitcherProps) {
     );
   }
 
+  // Org admins see everything — no team switcher needed
+  if (isOrgAdmin) {
+    return null;
+  }
+
   // No teams — nothing to show
   if (teams.length === 0) {
     return null;
   }
 
-  const displayLabel = activeTeam ? activeTeam.name : "All Teams";
+  // Only one team — show it as a label, no dropdown needed
+  if (teams.length === 1) {
+    const team = teams[0];
+    return (
+      <div
+        className={cn(
+          "flex items-center gap-2 rounded-lg px-2 py-1.5",
+          collapsed ? "justify-center w-10" : "w-full min-w-0",
+        )}
+      >
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
+          <Users className="h-3.5 w-3.5" aria-hidden="true" />
+        </div>
+        {!collapsed && (
+          <span className="truncate text-sm font-medium">{team.name}</span>
+        )}
+      </div>
+    );
+  }
+
+  // Auto-select first team if none is active
+  if (!activeTeamId && teams.length > 0) {
+    switchTeam(teams[0].id);
+  }
+
+  const displayLabel = activeTeam?.name ?? teams[0]?.name ?? "Select team";
 
   const triggerContent = (
     <div
@@ -93,11 +120,10 @@ export function TeamSwitcher({ collapsed = false }: TeamSwitcherProps) {
         "flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-accent/50 cursor-pointer",
         collapsed ? "justify-center w-10" : "w-full min-w-0",
       )}
-      aria-label={collapsed ? `Active team: ${displayLabel}` : undefined}
     >
       <div className="relative shrink-0">
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary">
-          <Users className="h-3.5 w-3.5" />
+          <Users className="h-3.5 w-3.5" aria-hidden="true" />
         </div>
         {collapsed && isSwitching && (
           <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-background">
@@ -118,6 +144,42 @@ export function TeamSwitcher({ collapsed = false }: TeamSwitcherProps) {
     </div>
   );
 
+  const dropdownContent = (
+    <PopoverContent
+      className="min-w-56 w-[var(--radix-popover-trigger-width)] p-0"
+      align="start"
+      side="right"
+    >
+      <Command>
+        <CommandInput placeholder="Search teams..." />
+        <CommandList>
+          <CommandEmpty>No team found.</CommandEmpty>
+          <CommandGroup>
+            {teams.map((team: UserTeam) => {
+              const isActive = team.id === activeTeamId;
+              return (
+                <CommandItem
+                  key={team.id}
+                  value={team.name}
+                  onSelect={() => handleSelect(team.id)}
+                  disabled={isSwitching}
+                  aria-selected={isActive}
+                  role="option"
+                >
+                  <TeamInitialsAvatar name={team.name} />
+                  <span className="flex-1 truncate">{team.name}</span>
+                  {isActive && (
+                    <Check className="h-4 w-4 shrink-0 text-primary" />
+                  )}
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+        </CommandList>
+      </Command>
+    </PopoverContent>
+  );
+
   if (collapsed) {
     return (
       <Popover open={open} onOpenChange={setOpen}>
@@ -135,12 +197,7 @@ export function TeamSwitcher({ collapsed = false }: TeamSwitcherProps) {
         >
           {triggerContent}
         </PopoverTrigger>
-        <TeamDropdownContent
-          teams={teams}
-          activeTeamId={activeTeamId}
-          isSwitching={isSwitching}
-          onSelect={handleSelect}
-        />
+        {dropdownContent}
       </Popover>
     );
   }
@@ -160,83 +217,8 @@ export function TeamSwitcher({ collapsed = false }: TeamSwitcherProps) {
       >
         {triggerContent}
       </PopoverTrigger>
-      <TeamDropdownContent
-        teams={teams}
-        activeTeamId={activeTeamId}
-        isSwitching={isSwitching}
-        onSelect={handleSelect}
-      />
+      {dropdownContent}
     </Popover>
-  );
-}
-
-interface TeamDropdownContentProps {
-  teams: UserTeam[];
-  activeTeamId: string | null;
-  isSwitching: boolean;
-  onSelect: (teamId: string | null) => void;
-}
-
-function TeamDropdownContent({
-  teams,
-  activeTeamId,
-  isSwitching,
-  onSelect,
-}: TeamDropdownContentProps) {
-  const isAllTeamsActive = activeTeamId === ALL_TEAMS_ID;
-
-  return (
-    <PopoverContent
-      className="min-w-56 w-[var(--radix-popover-trigger-width)] p-0"
-      align="start"
-      side="right"
-    >
-      <Command>
-        <CommandInput placeholder="Search teams..." />
-        <CommandList>
-          <CommandEmpty>No team found.</CommandEmpty>
-          <CommandGroup>
-            {/* All Teams option */}
-            <CommandItem
-              value="all-teams"
-              onSelect={() => onSelect(null)}
-              disabled={isSwitching}
-              aria-selected={isAllTeamsActive}
-              role="option"
-            >
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-muted">
-                <Users className="h-3 w-3 text-muted-foreground" />
-              </div>
-              <span className="flex-1 truncate">All Teams</span>
-              {isAllTeamsActive && (
-                <Check className="h-4 w-4 shrink-0 text-primary" />
-              )}
-            </CommandItem>
-
-            {/* User's teams */}
-            {teams.map((team) => {
-              const isActive = team.id === activeTeamId;
-              return (
-                <CommandItem
-                  key={team.id}
-                  value={team.name}
-                  onSelect={() => onSelect(team.id)}
-                  disabled={isSwitching}
-                  aria-selected={isActive}
-                  role="option"
-                >
-                  <TeamInitialsAvatar name={team.name} />
-                  <span className="flex-1 truncate">{team.name}</span>
-                  {isActive && (
-                    <Check className="h-4 w-4 shrink-0 text-primary" />
-                  )}
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
-        </CommandList>
-      </Command>
-    </PopoverContent>
   );
 }
 
@@ -248,11 +230,7 @@ function getTeamInitials(name: string): string {
   return name.slice(0, 2).toUpperCase() || "??";
 }
 
-interface TeamInitialsAvatarProps {
-  name: string;
-}
-
-function TeamInitialsAvatar({ name }: TeamInitialsAvatarProps) {
+function TeamInitialsAvatar({ name }: { name: string }) {
   return (
     <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-primary/10 text-primary text-[10px] font-semibold">
       {getTeamInitials(name)}
