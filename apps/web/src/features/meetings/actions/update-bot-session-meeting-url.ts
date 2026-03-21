@@ -18,6 +18,11 @@ export const updateBotSessionMeetingUrl = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:create"),
     name: "update-bot-session-meeting-url",
+    audit: {
+      resourceType: "bot_session",
+      action: "update",
+      category: "mutation",
+    },
   })
   .schema(updateBotSessionMeetingUrlSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -33,12 +38,15 @@ export const updateBotSessionMeetingUrl = authorizedActionClient
 
     const { sessionId, meetingUrl } = parsedInput;
 
-    const session = await BotSessionsQueries.findById(sessionId, organizationId);
+    const session = await BotSessionsQueries.findById(
+      sessionId,
+      organizationId,
+    );
 
     if (!session) {
       throw ActionErrors.notFound(
         "Bot session not found",
-        "update-bot-session-meeting-url"
+        "update-bot-session-meeting-url",
       );
     }
 
@@ -46,14 +54,18 @@ export const updateBotSessionMeetingUrl = authorizedActionClient
       throw ActionErrors.forbidden(
         "You can only update your own bot sessions",
         undefined,
-        "update-bot-session-meeting-url"
+        "update-bot-session-meeting-url",
       );
     }
 
-    if (!EDITABLE_BOT_STATUSES.includes(session.botStatus as (typeof EDITABLE_BOT_STATUSES)[number])) {
+    if (
+      !EDITABLE_BOT_STATUSES.includes(
+        session.botStatus as (typeof EDITABLE_BOT_STATUSES)[number],
+      )
+    ) {
       throw ActionErrors.badRequest(
         `Cannot update meeting URL when bot status is ${session.botStatus}. Only scheduled or failed sessions can be updated.`,
-        "update-bot-session-meeting-url"
+        "update-bot-session-meeting-url",
       );
     }
 
@@ -65,17 +77,15 @@ export const updateBotSessionMeetingUrl = authorizedActionClient
       sessionId,
     });
 
-    const updated = await BotSessionsQueries.update(
-      sessionId,
-      organizationId,
-      { meetingUrl: trimmedUrl }
-    );
+    const updated = await BotSessionsQueries.update(sessionId, organizationId, {
+      meetingUrl: trimmedUrl,
+    });
 
     if (!updated) {
       throw ActionErrors.internal(
         "Failed to update bot session",
         undefined,
-        "update-bot-session-meeting-url"
+        "update-bot-session-meeting-url",
       );
     }
 

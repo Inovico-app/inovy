@@ -22,6 +22,11 @@ export const addAgendaItem = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:create"),
     name: "add-agenda-item",
+    audit: {
+      resourceType: "agenda",
+      action: "create",
+      category: "mutation",
+    },
   })
   .schema(addAgendaItemSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -54,6 +59,11 @@ export const updateAgendaItem = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:create"),
     name: "update-agenda-item",
+    audit: {
+      resourceType: "agenda",
+      action: "update",
+      category: "mutation",
+    },
   })
   .schema(updateAgendaItemSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -89,6 +99,11 @@ export const deleteAgendaItem = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:create"),
     name: "delete-agenda-item",
+    audit: {
+      resourceType: "agenda",
+      action: "delete",
+      category: "mutation",
+    },
   })
   .schema(deleteAgendaItemSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -127,6 +142,11 @@ export const applyAgendaTemplate = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:create"),
     name: "apply-agenda-template",
+    audit: {
+      resourceType: "agenda_template",
+      action: "apply",
+      category: "mutation",
+    },
   })
   .schema(applyTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {

@@ -26,6 +26,11 @@ export const removeBotFromMeeting = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:delete"),
     name: "remove-bot-from-meeting",
+    audit: {
+      resourceType: "bot_session",
+      action: "delete",
+      category: "mutation",
+    },
   })
   .schema(removeBotFromMeetingSchema)
   .action(async ({ parsedInput, ctx }) => {

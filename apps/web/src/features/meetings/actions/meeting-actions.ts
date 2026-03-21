@@ -33,6 +33,11 @@ export const getOrCreateMeeting = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:create"),
     name: "get-or-create-meeting",
+    audit: {
+      resourceType: "meeting",
+      action: "create",
+      category: "mutation",
+    },
   })
   .schema(getOrCreateMeetingSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -75,6 +80,11 @@ export const updateMeeting = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:update"),
     name: "update-meeting",
+    audit: {
+      resourceType: "meeting",
+      action: "update",
+      category: "mutation",
+    },
   })
   .schema(updateMeetingSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -104,6 +114,11 @@ export const saveMeetingNotes = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:update"),
     name: "save-meeting-notes",
+    audit: {
+      resourceType: "meeting",
+      action: "update",
+      category: "mutation",
+    },
   })
   .schema(saveNotesSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -147,6 +162,11 @@ export const configurePostActions = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:update"),
     name: "configure-post-actions",
+    audit: {
+      resourceType: "meeting",
+      action: "update",
+      category: "mutation",
+    },
   })
   .schema(configurePostActionsSchema)
   .action(async ({ parsedInput, ctx }) => {

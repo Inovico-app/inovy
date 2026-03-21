@@ -31,6 +31,11 @@ export const generateAgendaFromAI = authorizedActionClient
   .metadata({
     permissions: policyToPermissions("recordings:update"),
     name: "generate-agenda-from-ai",
+    audit: {
+      resourceType: "agenda",
+      action: "generate",
+      category: "mutation",
+    },
   })
   .schema(generateAgendaSchema)
   .action(async ({ parsedInput, ctx }) => {

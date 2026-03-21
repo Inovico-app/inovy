@@ -42,7 +42,15 @@ const createCalendarEventWithBotSchema = z.object({
  * Uses the factory to resolve the connected calendar provider (Google or Microsoft).
  */
 export const createCalendarEventWithBot = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:create") })
+  .metadata({
+    name: "create-calendar-event-with-bot",
+    permissions: policyToPermissions("recordings:create"),
+    audit: {
+      resourceType: "meeting",
+      action: "create",
+      category: "mutation",
+    },
+  })
   .schema(createCalendarEventWithBotSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId, user } = ctx;
