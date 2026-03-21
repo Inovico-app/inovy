@@ -42,6 +42,10 @@ const nextConfig: NextConfig = {
     },
     proxyClientMaxBodySize: "500mb",
     optimizePackageImports: ["lucide-react"],
+    cachedNavigations: true,
+    sri: {
+      algorithm: "sha256",
+    },
   },
   async redirects() {
     return [

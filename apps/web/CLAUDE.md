@@ -172,4 +172,3 @@ coderrabit --prompt-only -t uncommitted
 - use `pnpm db:generate --name <migration-name>` to generate the migration file.
 - Give the migration file a descriptive name, e.g. 0001_create_users_table.ts, 0002_create_projects_table.ts, etc.
 - Never run `pnpm db:push` or `pnpm db:migrate` manually, always use the GitHub Actions workflow to run the migrations.
-
