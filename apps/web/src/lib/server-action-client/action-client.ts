@@ -53,7 +53,7 @@ export interface ActionContext {
   user?: BetterAuthUser;
   organizationId?: string;
   userTeamIds?: string[];
-  audit: AuditContext;
+  audit?: AuditContext;
 }
 
 /**
