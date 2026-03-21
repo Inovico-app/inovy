@@ -12,7 +12,15 @@ import { filterProjectsBySearch } from "@/lib/filters/project-filters";
 import type { AllowedStatus } from "@/server/data-access/projects.queries";
 import type { ProjectWithRecordingCountDto } from "@/server/dto/project.dto";
 import { ProjectService } from "@/server/services/project.service";
-import { CalendarIcon, FileTextIcon, FolderIcon, PlusIcon } from "lucide-react";
+import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
+import {
+  CalendarIcon,
+  FileTextIcon,
+  FolderIcon,
+  PlusIcon,
+  UsersIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -42,15 +50,19 @@ async function ProjectsList({
   }
 
   // Filter projects by search query
-  const projects = filterProjectsBySearch(
-    projectsResult.value,
-    searchQuery
-  );
+  const projects = filterProjectsBySearch(projectsResult.value, searchQuery);
+
+  // Resolve team names
+  const authResult = await getBetterAuthSession();
+  const orgId = authResult.isOk() ? authResult.value.organization?.id : null;
+  const teamsData = orgId ? await getCachedTeamsWithMemberCounts(orgId) : [];
+  const teamNameMap = new Map(teamsData.map((t) => [t.id, t.name]));
 
   // Creator details are already included via JOIN, no need to fetch separately
   const projectsWithCreators = projects.map((project) => ({
     ...project,
     createdBy: getCreatorDisplayName(project.creatorName, project.creatorEmail),
+    teamName: project.teamId ? (teamNameMap.get(project.teamId) ?? null) : null,
   }));
 
   return (
@@ -59,24 +71,26 @@ async function ProjectsList({
       {projectsWithCreators.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {projectsWithCreators.map(
-            (project: ProjectWithRecordingCountDto & { createdBy: string }) => (
+            (
+              project: ProjectWithRecordingCountDto & {
+                createdBy: string;
+                teamName: string | null;
+              },
+            ) => (
               <Card
                 key={project.id}
                 className="hover:shadow-lg transition-shadow cursor-pointer"
               >
                 <Link href={`/projects/${project.id}`}>
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
+                    <CardTitle className="flex items-center justify-between gap-2">
                       <span className="truncate">{project.name}</span>
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full capitalize ${
-                          project.status === "active"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                            : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
-                        }`}
-                      >
-                        {project.status}
-                      </span>
+                      {project.teamName && (
+                        <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-primary/10 text-primary shrink-0">
+                          <UsersIcon className="h-3 w-3" />
+                          {project.teamName}
+                        </span>
+                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -105,7 +119,7 @@ async function ProjectsList({
                   </CardContent>
                 </Link>
               </Card>
-            )
+            ),
           )}
         </div>
       ) : (
@@ -199,7 +213,10 @@ export default function ProjectsPage({ searchParams }: ProjectsPageProps) {
             <div className="h-12 bg-muted rounded animate-pulse" />
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {[...Array(3)].map((_, i) => (
-                <div key={`skeleton-${i}`} className="h-48 bg-muted rounded animate-pulse" />
+                <div
+                  key={`skeleton-${i}`}
+                  className="h-48 bg-muted rounded animate-pulse"
+                />
               ))}
             </div>
           </div>
@@ -210,4 +227,3 @@ export default function ProjectsPage({ searchParams }: ProjectsPageProps) {
     </Suspense>
   );
 }
-
