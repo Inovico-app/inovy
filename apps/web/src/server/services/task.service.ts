@@ -266,16 +266,6 @@ export class TaskService {
         );
       }
 
-      if (task.assigneeId !== authUser.id) {
-        return err(
-          ActionErrors.forbidden(
-            "You are not authorized to update this task",
-            { taskId },
-            "TaskService.updateTaskStatus",
-          ),
-        );
-      }
-
       // Use centralized organization isolation check
       try {
         assertOrganizationAccess(
@@ -402,16 +392,6 @@ export class TaskService {
             "TaskService.updateTaskMetadata",
           );
         }
-      }
-
-      if (task.assigneeId !== authUser.id) {
-        return err(
-          ActionErrors.forbidden(
-            "You are not authorized to update this task",
-            { taskId: input.taskId },
-            "TaskService.updateTaskMetadata",
-          ),
-        );
       }
 
       const { taskId, tagIds, ...taskUpdates } = input;
@@ -664,7 +644,7 @@ export class TaskService {
   /**
    * Convert database task to DTO
    */
-  private static toDto(task: Task): TaskDto {
+  static toDto(task: Task): TaskDto {
     return {
       id: task.id,
       recordingId: task.recordingId,
@@ -692,7 +672,7 @@ export class TaskService {
   /**
    * Convert database task with context to DTO
    */
-  private static toContextDto(task: TaskWithContext): TaskWithContextDto {
+  static toContextDto(task: TaskWithContext): TaskWithContextDto {
     return {
       id: task.id,
       recordingId: task.recordingId,

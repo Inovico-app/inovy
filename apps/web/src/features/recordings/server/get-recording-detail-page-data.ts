@@ -28,7 +28,7 @@ interface RecordingDetailPageData {
  * Returns `null` when the user is not authenticated or has no organization.
  */
 export async function getRecordingDetailPageData(
-  input: GetRecordingDetailPageDataInput
+  input: GetRecordingDetailPageDataInput,
 ): Promise<RecordingDetailPageData | null> {
   const { recordingId } = input;
 
@@ -45,7 +45,7 @@ export async function getRecordingDetailPageData(
   const [summary, tasks, transcriptionInsights, participantsConsent] =
     await Promise.all([
       getCachedSummary(recordingId, recording?.language ?? "nl"),
-      getCachedTasksByRecordingId(recordingId),
+      getCachedTasksByRecordingId(recordingId, organizationId),
       getCachedInsightByTypeInternal(recordingId, "transcription"),
       getCachedConsentParticipants(recordingId, organizationId),
     ]);

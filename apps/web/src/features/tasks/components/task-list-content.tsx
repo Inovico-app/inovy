@@ -17,6 +17,7 @@ interface TaskListContentProps {
   onSearchChange: (value: string) => void;
   onClearFilters: () => void;
   onStatusChange: (taskId: string, newStatus: TaskStatus) => Promise<void>;
+  title?: string;
 }
 
 export function TaskListContent({
@@ -29,6 +30,7 @@ export function TaskListContent({
   onSearchChange,
   onClearFilters,
   onStatusChange,
+  title = "All Tasks",
 }: TaskListContentProps) {
   return (
     <div className="space-y-4">
@@ -43,7 +45,7 @@ export function TaskListContent({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CardTitle>My Tasks</CardTitle>
+              <CardTitle>{title}</CardTitle>
               <Badge variant="outline">{tasks.length}</Badge>
               {totalPending > 0 && (
                 <Badge variant="secondary">{totalPending} pending</Badge>
@@ -77,4 +79,3 @@ export function TaskListContent({
     </div>
   );
 }
-

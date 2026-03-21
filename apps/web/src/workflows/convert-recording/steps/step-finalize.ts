@@ -16,7 +16,7 @@ import { RAGService } from "@/server/services/rag/rag.service";
 export async function executeFinalStep(
   recordingId: string,
   projectId: string,
-  orgCode: string
+  orgCode: string,
 ): Promise<void> {
   "use step";
 
@@ -54,6 +54,7 @@ export async function executeFinalStep(
 
     // Invalidate React Query caches
     CacheInvalidation.invalidateSummary(recordingId);
+    CacheInvalidation.invalidateTasksByRecording(recordingId, orgCode);
     CacheInvalidation.invalidateProject(projectId, orgCode);
 
     logger.info("Workflow Step 3: Finalization completed", {
@@ -69,4 +70,3 @@ export async function executeFinalStep(
     // Don't fail the workflow on finalization errors
   }
 }
-

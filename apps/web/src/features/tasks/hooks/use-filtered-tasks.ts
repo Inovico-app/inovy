@@ -7,6 +7,8 @@ interface UseFilteredTasksParams {
   selectedPriorities: TaskPriority[];
   selectedStatuses: TaskStatus[];
   selectedProjectIds: string[];
+  assignedToMe: boolean;
+  currentUserId: string;
   searchQuery: string;
   sortBy: SortField;
   sortOrder: SortOrder;
@@ -17,6 +19,8 @@ export function useFilteredTasks({
   selectedPriorities,
   selectedStatuses,
   selectedProjectIds,
+  assignedToMe,
+  currentUserId,
   searchQuery,
   sortBy,
   sortOrder,
@@ -24,24 +28,29 @@ export function useFilteredTasks({
   // React Compiler automatically memoizes this entire filtering/sorting logic
   let filtered = tasks;
 
+  // Filter by assigned to me
+  if (assignedToMe) {
+    filtered = filtered.filter((task) => task.assigneeId === currentUserId);
+  }
+
   // Filter by priorities
   if (selectedPriorities.length > 0) {
     filtered = filtered.filter((task) =>
-      selectedPriorities.includes(task.priority)
+      selectedPriorities.includes(task.priority),
     );
   }
 
   // Filter by statuses
   if (selectedStatuses.length > 0) {
     filtered = filtered.filter((task) =>
-      selectedStatuses.includes(task.status)
+      selectedStatuses.includes(task.status),
     );
   }
 
   // Filter by projects
   if (selectedProjectIds.length > 0) {
     filtered = filtered.filter((task) =>
-      selectedProjectIds.includes(task.projectId)
+      selectedProjectIds.includes(task.projectId),
     );
   }
 
@@ -53,7 +62,7 @@ export function useFilteredTasks({
         task.title.toLowerCase().includes(query) ||
         (task.description?.toLowerCase().includes(query) ?? false) ||
         task.project.name.toLowerCase().includes(query) ||
-        task.recording.title.toLowerCase().includes(query)
+        task.recording.title.toLowerCase().includes(query),
     );
   }
 
@@ -90,4 +99,3 @@ export function useFilteredTasks({
 
   return sorted;
 }
-

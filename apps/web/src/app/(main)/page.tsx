@@ -101,7 +101,10 @@ async function DashboardContent() {
         user,
       }),
       getCachedTaskStats(user.id, organizationId),
-      getCachedTasksWithContext(user.id, organizationId),
+      getCachedTasksWithContext(user.id, organizationId, undefined, {
+        user,
+        userTeamIds,
+      }),
       getCachedCalendarMeetings(user.id, organizationId, now, endOfDay).catch(
         () => [],
       ),

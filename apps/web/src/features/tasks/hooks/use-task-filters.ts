@@ -1,7 +1,12 @@
 "use client";
 
 import type { TaskPriority, TaskStatus } from "@/server/db/schema/tasks";
-import { parseAsArrayOf, parseAsString, useQueryStates } from "nuqs";
+import {
+  parseAsArrayOf,
+  parseAsBoolean,
+  parseAsString,
+  useQueryStates,
+} from "nuqs";
 import type { SortField, SortOrder } from "../components/task-sort";
 
 const VALID_PRIORITIES: TaskPriority[] = ["low", "medium", "high", "urgent"];
@@ -27,12 +32,14 @@ interface UseTaskFiltersReturn {
   selectedPriorities: TaskPriority[];
   selectedStatuses: TaskStatus[];
   selectedProjectIds: string[];
+  assignedToMe: boolean;
   sortBy: SortField;
   sortOrder: SortOrder;
   searchQuery: string;
   handlePrioritiesChange: (priorities: TaskPriority[]) => void;
   handleStatusesChange: (statuses: TaskStatus[]) => void;
   handleProjectIdsChange: (projectIds: string[]) => void;
+  handleAssignedToMeChange: (value: boolean) => void;
   handleSortChange: (sortBy: SortField, sortOrder: SortOrder) => void;
   handleSearchChange: (value: string) => void;
   handleClearFilters: () => void;
@@ -43,19 +50,19 @@ export function useTaskFilters(): UseTaskFiltersReturn {
     priorities: parseAsArrayOf(parseAsString).withDefault([]),
     statuses: parseAsArrayOf(parseAsString).withDefault(DEFAULT_STATUSES),
     projectIds: parseAsArrayOf(parseAsString).withDefault([]),
+    assignedToMe: parseAsBoolean.withDefault(false),
     sortBy: parseAsString.withDefault(DEFAULT_SORT_BY),
     sortOrder: parseAsString.withDefault(DEFAULT_SORT_ORDER),
     search: parseAsString.withDefault(""),
   });
 
   // Parse and validate filters
-  // React Compiler automatically memoizes these derived values
   const selectedPriorities = filters.priorities.filter((p): p is TaskPriority =>
-    VALID_PRIORITIES.includes(p as TaskPriority)
+    VALID_PRIORITIES.includes(p as TaskPriority),
   );
 
   const selectedStatuses = filters.statuses.filter((s): s is TaskStatus =>
-    VALID_STATUSES.includes(s as TaskStatus)
+    VALID_STATUSES.includes(s as TaskStatus),
   );
 
   const sortBy = (
@@ -74,6 +81,7 @@ export function useTaskFilters(): UseTaskFiltersReturn {
     selectedPriorities,
     selectedStatuses,
     selectedProjectIds: filters.projectIds,
+    assignedToMe: filters.assignedToMe,
     sortBy,
     sortOrder,
     searchQuery: filters.search.trim(),
@@ -86,6 +94,9 @@ export function useTaskFilters(): UseTaskFiltersReturn {
     handleProjectIdsChange: (projectIds) => {
       void setFilters({ projectIds });
     },
+    handleAssignedToMeChange: (value) => {
+      void setFilters({ assignedToMe: value });
+    },
     handleSortChange: (newSortBy, newSortOrder) => {
       void setFilters({ sortBy: newSortBy, sortOrder: newSortOrder });
     },
@@ -97,9 +108,9 @@ export function useTaskFilters(): UseTaskFiltersReturn {
         priorities: [],
         statuses: DEFAULT_STATUSES,
         projectIds: [],
+        assignedToMe: false,
         search: "",
       });
     },
   };
 }
-

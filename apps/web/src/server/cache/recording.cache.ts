@@ -1,30 +1,38 @@
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import type { BetterAuthUser } from "@/lib/auth";
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
+import { RecordingsQueries } from "../data-access/recordings.queries";
 import type { RecordingDto } from "../dto/recording.dto";
 import { RecordingService } from "../services/recording.service";
 
 /**
  * Cached recording queries
  * Uses Next.js 16 cache with tags for invalidation
+ *
+ * IMPORTANT: "use cache" functions must NOT call dynamic APIs (headers(),
+ * cookies(), etc.). Auth and team-access checks must happen in the caller
+ * (page / server action) before invoking these cached helpers.
  */
 
 /**
  * Get recording by ID (cached)
- * Calls RecordingService which includes business logic and auth checks
+ * Uses queries directly to avoid dynamic API calls inside cache scope.
+ * Callers must verify auth and team access before using the result.
  */
 export async function getCachedRecordingById(
   recordingId: string,
 ): Promise<RecordingDto | null> {
   "use cache";
   cacheTag(CacheTags.recording(recordingId));
-  const result = await RecordingService.getRecordingById(recordingId);
-  return result.isOk() ? (result.value ?? null) : null;
+
+  const recording = await RecordingsQueries.selectRecordingById(recordingId);
+  if (!recording) return null;
+
+  return RecordingService.toDto(recording);
 }
 
 /**
  * Get recordings by project ID (cached)
- * Calls RecordingService which includes business logic and auth checks
  */
 export async function getCachedRecordingsByProjectId(
   projectId: string,
@@ -49,7 +57,7 @@ export async function getCachedRecordingsByProjectId(
 
 /**
  * Get recordings by organization (cached)
- * Calls RecordingService which includes business logic and auth checks
+ * Team context must be resolved by the caller and passed in.
  */
 export async function getCachedRecordingsByOrganization(
   organizationId: string,
@@ -57,24 +65,16 @@ export async function getCachedRecordingsByOrganization(
     statusFilter?: "active" | "archived";
     search?: string;
     projectIds?: string[];
+    user?: BetterAuthUser;
+    userTeamIds?: string[];
   },
 ) {
   "use cache";
   cacheTag(CacheTags.recordingsByOrg(organizationId));
 
-  // Resolve team context from session so the query filters by the user's teams
-  const authResult = await getBetterAuthSession();
-  const teamContext =
-    authResult.isOk() && authResult.value.isAuthenticated
-      ? {
-          user: authResult.value.user ?? undefined,
-          userTeamIds: authResult.value.userTeamIds,
-        }
-      : {};
-
   const recordings = await RecordingService.getRecordingsByOrganization(
     organizationId,
-    { ...options, ...teamContext },
+    options,
   );
 
   if (recordings.isOk()) {

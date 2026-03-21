@@ -1,11 +1,11 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { getCachedUserProjects } from "@/server/cache/project.cache";
-import { getCachedTasksWithContext } from "@/server/cache/task.cache";
+import { getCachedAllTasksWithContext } from "@/server/cache/task.cache";
 import { GlobalTaskListClient } from "./global-task-list-client";
 
 /**
  * Server component that fetches tasks data and passes it to client component
- * Uses cache functions for optimal performance
+ * Fetches all org tasks (team-scoped) so users can see and help with team tasks
  */
 export async function TasksListServer() {
   const authResult = await getBetterAuthSession();
@@ -28,9 +28,12 @@ export async function TasksListServer() {
     );
   }
 
-  // Fetch tasks and projects in parallel (both cached)
+  // Fetch all org tasks (team-scoped) and projects in parallel
   const [tasks, projects] = await Promise.all([
-    getCachedTasksWithContext(user.id, organization.id),
+    getCachedAllTasksWithContext(organization.id, {
+      user,
+      userTeamIds,
+    }),
     getCachedUserProjects(organization.id, {
       userTeamIds,
       user,
@@ -38,6 +41,10 @@ export async function TasksListServer() {
   ]);
 
   return (
-    <GlobalTaskListClient initialTasks={tasks} initialProjects={projects} />
+    <GlobalTaskListClient
+      initialTasks={tasks}
+      initialProjects={projects}
+      currentUserId={user.id}
+    />
   );
 }
