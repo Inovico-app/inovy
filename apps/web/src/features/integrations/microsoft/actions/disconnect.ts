@@ -13,7 +13,15 @@ import { z } from "zod";
  * Disconnect Microsoft account
  */
 export const disconnectMicrosoftAccount = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:update") })
+  .metadata({
+    name: "disconnect-microsoft-account",
+    permissions: policyToPermissions("settings:update"),
+    audit: {
+      resourceType: "integration",
+      action: "disconnect",
+      category: "mutation",
+    },
+  })
   .schema(z.void())
   .action(async ({ ctx }) => {
     const { user } = ctx;

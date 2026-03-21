@@ -24,7 +24,13 @@ import {
  */
 export const startDriveWatchAction = authorizedActionClient
   .metadata({
+    name: "start-drive-watch",
     permissions: policyToPermissions("integrations:manage"),
+    audit: {
+      resourceType: "drive_watch",
+      action: "create",
+      category: "mutation",
+    },
   })
   .inputSchema(startDriveWatchSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -35,7 +41,7 @@ export const startDriveWatchAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Authentication required",
         undefined,
-        "startDriveWatchAction"
+        "startDriveWatchAction",
       );
     }
 
@@ -43,7 +49,7 @@ export const startDriveWatchAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "startDriveWatchAction"
+        "startDriveWatchAction",
       );
     }
 
@@ -54,13 +60,13 @@ export const startDriveWatchAction = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to verify Google Drive scopes",
         hasScopeResult.error,
-        "startDriveWatchAction"
+        "startDriveWatchAction",
       );
     }
 
     if (!hasScopeResult.value) {
       throw ActionErrors.badRequest(
-        "Missing permission: Google Drive (read files). Please grant this permission in Settings > Integrations."
+        "Missing permission: Google Drive (read files). Please grant this permission in Settings > Integrations.",
       );
     }
 
@@ -81,7 +87,7 @@ export const startDriveWatchAction = authorizedActionClient
       folderId,
       projectId,
       organizationId,
-      webhookUrl
+      webhookUrl,
     );
 
     return resultToActionResponse(result);
@@ -93,7 +99,13 @@ export const startDriveWatchAction = authorizedActionClient
  */
 export const stopDriveWatchAction = authorizedActionClient
   .metadata({
+    name: "stop-drive-watch",
     permissions: policyToPermissions("integrations:manage"),
+    audit: {
+      resourceType: "drive_watch",
+      action: "cancel",
+      category: "mutation",
+    },
   })
   .inputSchema(stopDriveWatchSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -104,7 +116,7 @@ export const stopDriveWatchAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Authentication required",
         undefined,
-        "stopDriveWatchAction"
+        "stopDriveWatchAction",
       );
     }
 
@@ -120,7 +132,13 @@ export const stopDriveWatchAction = authorizedActionClient
  */
 export const listDriveWatchesAction = authorizedActionClient
   .metadata({
+    name: "list-drive-watches",
     permissions: policyToPermissions("integrations:manage"),
+    audit: {
+      resourceType: "drive_watch",
+      action: "list",
+      category: "read",
+    },
   })
   .action(async ({ ctx }) => {
     const { user } = ctx;
@@ -129,7 +147,7 @@ export const listDriveWatchesAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Authentication required",
         undefined,
-        "listDriveWatchesAction"
+        "listDriveWatchesAction",
       );
     }
 
@@ -145,7 +163,13 @@ export const listDriveWatchesAction = authorizedActionClient
  */
 export const updateDriveWatchAction = authorizedActionClient
   .metadata({
+    name: "update-drive-watch",
     permissions: policyToPermissions("integrations:manage"),
+    audit: {
+      resourceType: "drive_watch",
+      action: "update",
+      category: "mutation",
+    },
   })
   .inputSchema(updateDriveWatchSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -156,7 +180,7 @@ export const updateDriveWatchAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "updateDriveWatchAction"
+        "updateDriveWatchAction",
       );
     }
 
@@ -171,7 +195,7 @@ export const updateDriveWatchAction = authorizedActionClient
       assertOrganizationAccess(
         watch.organizationId,
         organizationId,
-        "updateDriveWatchAction"
+        "updateDriveWatchAction",
       );
     } catch (error) {
       throw ActionErrors.notFound("Drive watch", "updateDriveWatchAction");
@@ -194,7 +218,7 @@ export const updateDriveWatchAction = authorizedActionClient
     // Stop old watch
     const stopResult = await DriveWatchesService.stopWatch(
       watch.userId,
-      watch.folderId
+      watch.folderId,
     );
 
     if (stopResult.isErr()) {
@@ -207,7 +231,7 @@ export const updateDriveWatchAction = authorizedActionClient
       watch.folderId,
       projectId,
       organizationId,
-      webhookUrl
+      webhookUrl,
     );
 
     return resultToActionResponse(startResult);
@@ -219,7 +243,13 @@ export const updateDriveWatchAction = authorizedActionClient
  */
 export const deleteDriveWatchAction = authorizedActionClient
   .metadata({
+    name: "delete-drive-watch",
     permissions: policyToPermissions("integrations:manage"),
+    audit: {
+      resourceType: "drive_watch",
+      action: "delete",
+      category: "mutation",
+    },
   })
   .inputSchema(deleteDriveWatchSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -230,7 +260,7 @@ export const deleteDriveWatchAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "deleteDriveWatchAction"
+        "deleteDriveWatchAction",
       );
     }
 
@@ -246,7 +276,7 @@ export const deleteDriveWatchAction = authorizedActionClient
       assertOrganizationAccess(
         watch.organizationId,
         organizationId,
-        "deleteDriveWatchAction"
+        "deleteDriveWatchAction",
       );
     } catch (error) {
       throw ActionErrors.notFound("Drive watch", "deleteDriveWatchAction");
@@ -255,7 +285,7 @@ export const deleteDriveWatchAction = authorizedActionClient
     // Stop watch via Drive API
     const stopResult = await DriveWatchesService.stopWatch(
       watch.userId,
-      watch.folderId
+      watch.folderId,
     );
 
     if (stopResult.isErr()) {
@@ -269,10 +299,9 @@ export const deleteDriveWatchAction = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to delete watch record",
         undefined,
-        "deleteDriveWatchAction"
+        "deleteDriveWatchAction",
       );
     }
 
     return { success: true };
   });
-

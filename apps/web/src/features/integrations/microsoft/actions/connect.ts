@@ -22,7 +22,15 @@ const getMicrosoftAuthUrlSchema = z.object({
  * Returns a redirect URL that initiates the OAuth flow.
  */
 export const getMicrosoftAuthUrl = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("settings:update") })
+  .metadata({
+    name: "get-microsoft-auth-url",
+    permissions: policyToPermissions("settings:update"),
+    audit: {
+      resourceType: "integration",
+      action: "connect",
+      category: "mutation",
+    },
+  })
   .schema(getMicrosoftAuthUrlSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
