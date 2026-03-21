@@ -22,6 +22,8 @@ import {
   ActionErrors,
   type ActionError,
 } from "../server-action-client/action-errors";
+import { type AuditContext } from "./audit-context";
+import { auditLoggingMiddleware } from "./audit-middleware";
 
 /**
  * Metadata schema for actions
@@ -31,6 +33,13 @@ const schemaMetadata = z.object({
   name: z.string().optional(),
   permissions: z.record(z.string(), z.array(z.string())), // Better Auth permission format
   skipAuth: z.boolean().optional(),
+  audit: z
+    .object({
+      resourceType: z.string(),
+      action: z.string(),
+      category: z.enum(["mutation", "read"]),
+    })
+    .optional(),
 });
 
 export type Metadata = z.infer<typeof schemaMetadata>;
@@ -44,6 +53,7 @@ export interface ActionContext {
   user?: BetterAuthUser;
   organizationId?: string;
   userTeamIds?: string[];
+  audit: AuditContext;
 }
 
 /**
@@ -59,7 +69,8 @@ export const authorizedActionClient = createSafeActionClient({
   defineMetadataSchema: () => schemaMetadata,
 })
   .use(actionLoggerMiddleware)
-  .use(authenticationMiddleware);
+  .use(authenticationMiddleware)
+  .use(auditLoggingMiddleware);
 
 /**
  * Creates a public action client without authentication
