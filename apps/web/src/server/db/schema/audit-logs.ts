@@ -13,53 +13,7 @@ import {
  * Supports SOC 2 compliance requirements
  */
 
-export const auditEventTypeEnum = pgEnum("audit_event_type", [
-  // Recording events
-  "recording_viewed",
-  "recording_downloaded",
-  "recording_streamed",
-  "recording_uploaded",
-  "recording_deleted",
-  "recording_archived",
-  "recording_restored",
-  // Task events
-  "task_created",
-  "task_updated",
-  "task_deleted",
-  "task_assigned",
-  "task_completed",
-  "task_uncompleted",
-  // User events
-  "user_login",
-  "user_logout",
-  "user_created",
-  "user_updated",
-  "user_deleted",
-  "user_deactivated",
-  "user_activated",
-  // Permission events
-  "permission_granted",
-  "permission_revoked",
-  "permission_updated",
-  "role_assigned",
-  "role_removed",
-  // Export events
-  "export_created",
-  "export_downloaded",
-  "audit_log_exported",
-  // Integration events
-  "integration_connected",
-  "integration_disconnected",
-  "integration_synced",
-  // Project events
-  "project_created",
-  "project_updated",
-  "project_deleted",
-  "project_archived",
-  // Other events
-  "settings_updated",
-  "organization_updated",
-]);
+export const auditCategoryEnum = pgEnum("audit_category", ["mutation", "read"]);
 
 export const auditResourceTypeEnum = pgEnum("audit_resource_type", [
   "recording",
@@ -75,6 +29,27 @@ export const auditResourceTypeEnum = pgEnum("audit_resource_type", [
   "consent",
   "knowledge_base",
   "chat",
+  "meeting",
+  "bot_session",
+  "bot_settings",
+  "bot_subscription",
+  "notification",
+  "team",
+  "onboarding",
+  "auto_action",
+  "agenda",
+  "agenda_template",
+  "share_token",
+  "drive_watch",
+  "knowledge_base_document",
+  "project_template",
+  "redaction",
+  "privacy_request",
+  "data_export",
+  "invitation",
+  "calendar",
+  "audit_log",
+  "blob",
 ]);
 
 export const auditActionEnum = pgEnum("audit_action", [
@@ -93,6 +68,33 @@ export const auditActionEnum = pgEnum("audit_action", [
   "connect",
   "disconnect",
   "sync",
+  "start",
+  "cancel",
+  "retry",
+  "subscribe",
+  "unsubscribe",
+  "complete",
+  "uncomplete",
+  "move",
+  "reprocess",
+  "upload",
+  "download",
+  "redact",
+  "invite",
+  "accept",
+  "reject",
+  "mark_read",
+  "generate",
+  "login",
+  "logout",
+  "verify",
+  "reset",
+  "list",
+  "get",
+  "search",
+  "detect",
+  "apply",
+  "check",
 ]);
 
 /**
@@ -102,12 +104,13 @@ export const auditActionEnum = pgEnum("audit_action", [
  */
 export const auditLogs = pgTable("audit_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
-  eventType: auditEventTypeEnum("event_type").notNull(),
+  eventType: text("event_type").notNull(),
   resourceType: auditResourceTypeEnum("resource_type").notNull(),
-  resourceId: uuid("resource_id"), // Can be null for system-level events
+  resourceId: text("resource_id"), // Can be null for system-level events
   userId: text("user_id").notNull(), // Better Auth user ID
   organizationId: text("organization_id").notNull(),
   action: auditActionEnum("action").notNull(),
+  category: auditCategoryEnum("category").notNull(),
   ipAddress: text("ip_address"), // IP address for audit trail
   userAgent: text("user_agent"), // User agent for audit trail
   metadata: jsonb("metadata").$type<Record<string, unknown> | null>(), // Additional context
@@ -122,4 +125,3 @@ export const auditLogs = pgTable("audit_logs", {
 
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
-
