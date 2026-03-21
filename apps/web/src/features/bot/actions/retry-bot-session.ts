@@ -20,7 +20,15 @@ const MAX_RETRIES = 3;
  * Can retry sessions in failed status with retryCount < MAX_RETRIES
  */
 export const retryBotSession = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:create") })
+  .metadata({
+    name: "retry-bot-session",
+    permissions: policyToPermissions("recordings:create"),
+    audit: {
+      resourceType: "bot_session",
+      action: "retry",
+      category: "mutation",
+    },
+  })
   .schema(retryBotSessionSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { sessionId } = parsedInput;
@@ -34,7 +42,7 @@ export const retryBotSession = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "retry-bot-session"
+        "retry-bot-session",
       );
     }
 
@@ -47,7 +55,7 @@ export const retryBotSession = authorizedActionClient
     // Find session and verify ownership and status
     const session = await BotSessionsQueries.findById(
       sessionId,
-      organizationId
+      organizationId,
     );
 
     if (!session) {
@@ -58,7 +66,7 @@ export const retryBotSession = authorizedActionClient
       throw ActionErrors.forbidden(
         "You can only retry your own bot sessions",
         undefined,
-        "retry-bot-session"
+        "retry-bot-session",
       );
     }
 
@@ -66,7 +74,7 @@ export const retryBotSession = authorizedActionClient
     if (session.botStatus !== "failed") {
       throw ActionErrors.badRequest(
         `Session cannot be retried. Current status: ${session.botStatus}`,
-        "retry-bot-session"
+        "retry-bot-session",
       );
     }
 
@@ -74,7 +82,7 @@ export const retryBotSession = authorizedActionClient
     if (session.retryCount >= MAX_RETRIES) {
       throw ActionErrors.badRequest(
         `Maximum retry attempts (${MAX_RETRIES}) reached for this session`,
-        "retry-bot-session"
+        "retry-bot-session",
       );
     }
 
@@ -82,7 +90,7 @@ export const retryBotSession = authorizedActionClient
     if (!session.meetingUrl || session.meetingUrl.trim() === "") {
       throw ActionErrors.badRequest(
         "Meeting URL is empty or invalid",
-        "retry-bot-session"
+        "retry-bot-session",
       );
     }
 
@@ -109,7 +117,7 @@ export const retryBotSession = authorizedActionClient
       try {
         await BotSessionsQueries.incrementRetryCount(
           session.id,
-          session.organizationId
+          session.organizationId,
         );
       } catch (incrementError) {
         logger.error("Failed to increment retry count", {
@@ -147,14 +155,14 @@ export const retryBotSession = authorizedActionClient
           recallStatus: status,
           botStatus: internalStatus,
           error: null, // Clear previous error
-        }
+        },
       );
 
     if (!updatedSession) {
       throw ActionErrors.internal(
         "Failed to update session and increment retry count",
         undefined,
-        "retry-bot-session"
+        "retry-bot-session",
       );
     }
 
@@ -209,4 +217,3 @@ export const retryBotSession = authorizedActionClient
 
     return { success: true, session: updatedSession };
   });
-

@@ -19,7 +19,13 @@ import { startBotSessionSchema } from "@/server/validation/bot/start-bot-session
  */
 export const startBotSessionAction = authorizedActionClient
   .metadata({
+    name: "start-bot-session",
     permissions: policyToPermissions("recordings:create"), // Bot sessions create recordings
+    audit: {
+      resourceType: "bot_session",
+      action: "start",
+      category: "mutation",
+    },
   })
   .inputSchema(startBotSessionSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -34,7 +40,7 @@ export const startBotSessionAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "start-bot-session"
+        "start-bot-session",
       );
     }
 
@@ -71,7 +77,7 @@ export const startBotSessionAction = authorizedActionClient
         userId: user.id,
       },
       undefined,
-      { botDisplayName, botJoinMessage }
+      { botDisplayName, botJoinMessage },
     );
 
     if (botResult.isErr()) {
@@ -116,8 +122,7 @@ export const startBotSessionAction = authorizedActionClient
       throw ActionErrors.internal(
         "Failed to create bot session record",
         error as Error,
-        "start-bot-session"
+        "start-bot-session",
       );
     }
   });
-

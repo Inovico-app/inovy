@@ -15,7 +15,15 @@ const getBotSessionDetailsSchema = z.object({
  * Used when opening the session details modal from meetings or bot sessions page
  */
 export const getBotSessionDetails = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:read") })
+  .metadata({
+    name: "get-bot-session-details",
+    permissions: policyToPermissions("recordings:read"),
+    audit: {
+      resourceType: "bot_session",
+      action: "get",
+      category: "read",
+    },
+  })
   .schema(getBotSessionDetailsSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId } = ctx;

@@ -13,7 +13,15 @@ import {
 } from "@/server/services/calendar/calendar-provider-factory";
 
 export const subscribeToSeriesAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:create") })
+  .metadata({
+    name: "subscribe-to-series",
+    permissions: policyToPermissions("recordings:create"),
+    audit: {
+      resourceType: "bot_subscription",
+      action: "subscribe",
+      category: "mutation",
+    },
+  })
   .schema(subscribeToSeriesSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { calendarEventId, calendarId, calendarProvider } = parsedInput;

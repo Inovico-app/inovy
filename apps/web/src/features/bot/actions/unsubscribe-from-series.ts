@@ -10,7 +10,15 @@ import { BotProviderFactory } from "@/server/services/bot-providers/factory";
 import { logger, serializeError } from "@/lib/logger";
 
 export const unsubscribeFromSeriesAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:delete") })
+  .metadata({
+    name: "unsubscribe-from-series",
+    permissions: policyToPermissions("recordings:delete"),
+    audit: {
+      resourceType: "bot_subscription",
+      action: "unsubscribe",
+      category: "mutation",
+    },
+  })
   .schema(unsubscribeFromSeriesSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { subscriptionId } = parsedInput;

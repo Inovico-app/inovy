@@ -5,7 +5,15 @@ import { authorizedActionClient } from "@/lib/server-action-client/action-client
 import { BotSeriesSubscriptionsQueries } from "@/server/data-access/bot-series-subscriptions.queries";
 
 export const getSeriesSubscriptionsAction = authorizedActionClient
-  .metadata({ permissions: policyToPermissions("recordings:read") })
+  .metadata({
+    name: "get-series-subscriptions",
+    permissions: policyToPermissions("recordings:read"),
+    audit: {
+      resourceType: "bot_subscription",
+      action: "list",
+      category: "read",
+    },
+  })
   .action(async ({ ctx }) => {
     const { user, organizationId } = ctx;
     if (!user || !organizationId) {
