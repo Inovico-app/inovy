@@ -5,6 +5,7 @@ import {
   type AuditLog,
   type NewAuditLog,
 } from "../db/schema/audit-logs";
+import { computeHash } from "../services/audit-log.service";
 
 type AuditEventType = AuditLog["eventType"];
 type AuditResourceType = AuditLog["resourceType"];
@@ -16,6 +17,7 @@ export interface AuditLogFilters {
   eventType?: AuditEventType[];
   resourceType?: AuditResourceType[];
   action?: AuditAction[];
+  category?: ("mutation" | "read")[];
   resourceId?: string;
   startDate?: Date;
   endDate?: Date;
@@ -51,7 +53,7 @@ export class AuditLogsQueries {
    */
   static async findByFilters(
     organizationId: string,
-    filters?: AuditLogFilters
+    filters?: AuditLogFilters,
   ): Promise<AuditLog[]> {
     const conditions = [eq(auditLogs.organizationId, organizationId)];
 
@@ -69,6 +71,10 @@ export class AuditLogsQueries {
 
     if (filters?.action && filters.action.length > 0) {
       conditions.push(inArray(auditLogs.action, filters.action));
+    }
+
+    if (filters?.category && filters.category.length > 0) {
+      conditions.push(inArray(auditLogs.category, filters.category));
     }
 
     if (filters?.resourceId) {
@@ -105,7 +111,7 @@ export class AuditLogsQueries {
    */
   static async countByFilters(
     organizationId: string,
-    filters?: Omit<AuditLogFilters, "limit" | "offset">
+    filters?: Omit<AuditLogFilters, "limit" | "offset">,
   ): Promise<number> {
     const conditions = [eq(auditLogs.organizationId, organizationId)];
 
@@ -123,6 +129,10 @@ export class AuditLogsQueries {
 
     if (filters?.action && filters.action.length > 0) {
       conditions.push(inArray(auditLogs.action, filters.action));
+    }
+
+    if (filters?.category && filters.category.length > 0) {
+      conditions.push(inArray(auditLogs.category, filters.category));
     }
 
     if (filters?.resourceId) {
@@ -152,7 +162,7 @@ export class AuditLogsQueries {
     resourceType: AuditResourceType,
     resourceId: string,
     organizationId: string,
-    limit = 100
+    limit = 100,
   ): Promise<AuditLog[]> {
     return db
       .select()
@@ -161,8 +171,8 @@ export class AuditLogsQueries {
         and(
           eq(auditLogs.resourceType, resourceType),
           eq(auditLogs.resourceId, resourceId),
-          eq(auditLogs.organizationId, organizationId)
-        )
+          eq(auditLogs.organizationId, organizationId),
+        ),
       )
       .orderBy(desc(auditLogs.createdAt))
       .limit(limit);
@@ -174,7 +184,7 @@ export class AuditLogsQueries {
   static async findByUser(
     userId: string,
     organizationId: string,
-    limit = 100
+    limit = 100,
   ): Promise<AuditLog[]> {
     return db
       .select()
@@ -182,8 +192,8 @@ export class AuditLogsQueries {
       .where(
         and(
           eq(auditLogs.userId, userId),
-          eq(auditLogs.organizationId, organizationId)
-        )
+          eq(auditLogs.organizationId, organizationId),
+        ),
       )
       .orderBy(desc(auditLogs.createdAt))
       .limit(limit);
@@ -195,7 +205,7 @@ export class AuditLogsQueries {
   static async findByEventType(
     eventType: AuditEventType,
     organizationId: string,
-    limit = 100
+    limit = 100,
   ): Promise<AuditLog[]> {
     return db
       .select()
@@ -203,19 +213,19 @@ export class AuditLogsQueries {
       .where(
         and(
           eq(auditLogs.eventType, eventType),
-          eq(auditLogs.organizationId, organizationId)
-        )
+          eq(auditLogs.organizationId, organizationId),
+        ),
       )
       .orderBy(desc(auditLogs.createdAt))
       .limit(limit);
   }
 
   /**
-   * Verify hash chain integrity for an organization
-   * Returns array of logs with broken hash chain
+   * Verify hash integrity for an organization
+   * Recomputes each record's hash individually and compares against stored hash
    */
   static async verifyHashChain(
-    organizationId: string
+    organizationId: string,
   ): Promise<Array<{ log: AuditLog; isValid: boolean }>> {
     const logs = await db
       .select()
@@ -224,12 +234,21 @@ export class AuditLogsQueries {
       .orderBy(auditLogs.createdAt);
 
     const results: Array<{ log: AuditLog; isValid: boolean }> = [];
-    let previousHash: string | null = null;
 
     for (const log of logs) {
-      const isValid = log.previousHash === previousHash;
+      const recomputedHash = computeHash({
+        eventType: log.eventType,
+        resourceType: log.resourceType,
+        resourceId: log.resourceId,
+        userId: log.userId,
+        organizationId: log.organizationId,
+        action: log.action,
+        category: log.category,
+        createdAt: log.createdAt,
+        metadata: log.metadata,
+      });
+      const isValid = log.hash === recomputedHash;
       results.push({ log, isValid });
-      previousHash = log.hash;
     }
 
     return results;
@@ -241,7 +260,7 @@ export class AuditLogsQueries {
   static async anonymizeByUserId(
     userId: string,
     organizationId: string,
-    anonymizedId: string
+    anonymizedId: string,
   ): Promise<void> {
     await db
       .update(auditLogs)
@@ -251,9 +270,8 @@ export class AuditLogsQueries {
       .where(
         and(
           eq(auditLogs.userId, userId),
-          eq(auditLogs.organizationId, organizationId)
-        )
+          eq(auditLogs.organizationId, organizationId),
+        ),
       );
   }
 }
-

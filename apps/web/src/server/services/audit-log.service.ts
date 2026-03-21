@@ -30,6 +30,7 @@ export interface CreateAuditLogParams {
   userId: string;
   organizationId: string;
   action: string;
+  category: "mutation" | "read";
   ipAddress?: string | null;
   userAgent?: string | null;
   metadata?: Record<string, unknown> | null;
@@ -37,30 +38,30 @@ export interface CreateAuditLogParams {
 
 /**
  * Compute hash for an audit log entry
- * Hash is computed from: previousHash + eventType + resourceType + resourceId + userId + organizationId + action + createdAt + metadata
+ * Hash is computed from: eventType + resourceType + resourceId + userId + organizationId + action + category + createdAt + metadata
  */
-function computeHash(
+export function computeHash(
   log: Pick<
     AuditLog,
-    | "previousHash"
     | "eventType"
     | "resourceType"
     | "resourceId"
     | "userId"
     | "organizationId"
     | "action"
+    | "category"
     | "createdAt"
     | "metadata"
-  >
+  >,
 ): string {
   const hashInput = JSON.stringify({
-    previousHash: log.previousHash ?? "",
     eventType: log.eventType,
     resourceType: log.resourceType,
     resourceId: log.resourceId ?? "",
     userId: log.userId,
     organizationId: log.organizationId,
     action: log.action,
+    category: log.category,
     createdAt: log.createdAt.toISOString(),
     metadata: log.metadata ?? {},
   });
@@ -73,39 +74,33 @@ export class AuditLogService {
    * Create a new audit log entry with hash chain
    */
   static async createAuditLog(
-    params: CreateAuditLogParams
+    params: CreateAuditLogParams,
   ): Promise<ActionResult<AuditLog>> {
     try {
-      // Get the latest log entry for this organization to get previous hash
-      const latestLog = await AuditLogsQueries.getLatestLog(
-        params.organizationId
-      );
-
-      const previousHash = latestLog?.hash ?? null;
-
       // Create the log entry (without hash first)
       const logEntry: Omit<NewAuditLog, "hash"> = {
-        eventType: params.eventType as NewAuditLog["eventType"],
+        eventType: params.eventType,
         resourceType: params.resourceType as NewAuditLog["resourceType"],
         resourceId: params.resourceId ?? null,
         userId: params.userId,
         organizationId: params.organizationId,
         action: params.action as NewAuditLog["action"],
+        category: params.category,
         ipAddress: params.ipAddress ?? null,
         userAgent: params.userAgent ?? null,
         metadata: params.metadata ?? null,
-        previousHash,
+        previousHash: null,
       };
 
       // Compute hash for this entry
       const hash = computeHash({
-        previousHash: logEntry.previousHash ?? null,
         eventType: logEntry.eventType,
         resourceType: logEntry.resourceType,
         resourceId: logEntry.resourceId ?? null,
         userId: logEntry.userId,
         organizationId: logEntry.organizationId,
         action: logEntry.action,
+        category: logEntry.category,
         createdAt: new Date(), // Use current timestamp for hash computation
         metadata: logEntry.metadata ?? null,
       });
@@ -132,8 +127,8 @@ export class AuditLogService {
         ActionErrors.internal(
           "Failed to create audit log",
           error as Error,
-          "AuditLogService.createAuditLog"
-        )
+          "AuditLogService.createAuditLog",
+        ),
       );
     }
   }
@@ -144,12 +139,12 @@ export class AuditLogService {
    */
   static async getAuditLogs(
     organizationId: string,
-    filters?: AuditLogFilters
+    filters?: AuditLogFilters,
   ): Promise<ActionResult<{ logs: AuditLog[]; total: number }>> {
     try {
       // Validate organization access before making any queries
       const orgContext = await validateOrganizationContext(
-        "AuditLogService.getAuditLogs"
+        "AuditLogService.getAuditLogs",
       );
       if (orgContext.isErr()) {
         return err(orgContext.error);
@@ -160,14 +155,14 @@ export class AuditLogService {
         assertOrganizationAccess(
           organizationId,
           orgContext.value.organizationId,
-          "AuditLogService.getAuditLogs"
+          "AuditLogService.getAuditLogs",
         );
       } catch {
         return err(
           ActionErrors.notFound(
             "Audit logs not found",
-            "AuditLogService.getAuditLogs"
-          )
+            "AuditLogService.getAuditLogs",
+          ),
         );
       }
 
@@ -189,14 +184,14 @@ export class AuditLogService {
       logger.error(
         "Failed to retrieve audit logs",
         { organizationId, filters },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to retrieve audit logs",
           error as Error,
-          "AuditLogService.getAuditLogs"
-        )
+          "AuditLogService.getAuditLogs",
+        ),
       );
     }
   }
@@ -209,12 +204,12 @@ export class AuditLogService {
     resourceType: AuditResourceType,
     resourceId: string,
     organizationId: string,
-    limit = 100
+    limit = 100,
   ): Promise<ActionResult<AuditLog[]>> {
     try {
       // Validate organization access before making any queries
       const orgContext = await validateOrganizationContext(
-        "AuditLogService.getAuditLogsByResource"
+        "AuditLogService.getAuditLogsByResource",
       );
       if (orgContext.isErr()) {
         return err(orgContext.error);
@@ -225,14 +220,14 @@ export class AuditLogService {
         assertOrganizationAccess(
           organizationId,
           orgContext.value.organizationId,
-          "AuditLogService.getAuditLogsByResource"
+          "AuditLogService.getAuditLogsByResource",
         );
       } catch {
         return err(
           ActionErrors.notFound(
             "Audit logs not found",
-            "AuditLogService.getAuditLogsByResource"
-          )
+            "AuditLogService.getAuditLogsByResource",
+          ),
         );
       }
 
@@ -240,7 +235,7 @@ export class AuditLogService {
         resourceType,
         resourceId,
         organizationId,
-        limit
+        limit,
       );
 
       return ok(logs);
@@ -248,14 +243,14 @@ export class AuditLogService {
       logger.error(
         "Failed to retrieve audit logs by resource",
         { resourceType, resourceId, organizationId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to retrieve audit logs by resource",
           error as Error,
-          "AuditLogService.getAuditLogsByResource"
-        )
+          "AuditLogService.getAuditLogsByResource",
+        ),
       );
     }
   }
@@ -267,12 +262,12 @@ export class AuditLogService {
   static async getAuditLogsByUser(
     userId: string,
     organizationId: string,
-    limit = 100
+    limit = 100,
   ): Promise<ActionResult<AuditLog[]>> {
     try {
       // Validate organization access before making any queries
       const orgContext = await validateOrganizationContext(
-        "AuditLogService.getAuditLogsByUser"
+        "AuditLogService.getAuditLogsByUser",
       );
       if (orgContext.isErr()) {
         return err(orgContext.error);
@@ -283,21 +278,21 @@ export class AuditLogService {
         assertOrganizationAccess(
           organizationId,
           orgContext.value.organizationId,
-          "AuditLogService.getAuditLogsByUser"
+          "AuditLogService.getAuditLogsByUser",
         );
       } catch {
         return err(
           ActionErrors.notFound(
             "Audit logs not found",
-            "AuditLogService.getAuditLogsByUser"
-          )
+            "AuditLogService.getAuditLogsByUser",
+          ),
         );
       }
 
       const logs = await AuditLogsQueries.findByUser(
         userId,
         organizationId,
-        limit
+        limit,
       );
 
       return ok(logs);
@@ -305,14 +300,14 @@ export class AuditLogService {
       logger.error(
         "Failed to retrieve audit logs by user",
         { userId, organizationId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to retrieve audit logs by user",
           error as Error,
-          "AuditLogService.getAuditLogsByUser"
-        )
+          "AuditLogService.getAuditLogsByUser",
+        ),
       );
     }
   }
@@ -323,12 +318,12 @@ export class AuditLogService {
    * Enforces organization isolation - only verifies logs for the specified organization
    */
   static async verifyHashChain(
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<Array<{ log: AuditLog; isValid: boolean }>>> {
     try {
       // Validate organization access before making any queries
       const orgContext = await validateOrganizationContext(
-        "AuditLogService.verifyHashChain"
+        "AuditLogService.verifyHashChain",
       );
       if (orgContext.isErr()) {
         return err(orgContext.error);
@@ -339,14 +334,14 @@ export class AuditLogService {
         assertOrganizationAccess(
           organizationId,
           orgContext.value.organizationId,
-          "AuditLogService.verifyHashChain"
+          "AuditLogService.verifyHashChain",
         );
       } catch {
         return err(
           ActionErrors.notFound(
             "Audit logs not found",
-            "AuditLogService.verifyHashChain"
-          )
+            "AuditLogService.verifyHashChain",
+          ),
         );
       }
 
@@ -366,14 +361,14 @@ export class AuditLogService {
       logger.error(
         "Failed to verify hash chain",
         { organizationId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to verify hash chain",
           error as Error,
-          "AuditLogService.verifyHashChain"
-        )
+          "AuditLogService.verifyHashChain",
+        ),
       );
     }
   }
@@ -398,4 +393,3 @@ export class AuditLogService {
     return { ipAddress, userAgent };
   }
 }
-
