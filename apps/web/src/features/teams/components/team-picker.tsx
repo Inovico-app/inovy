@@ -36,11 +36,13 @@ export function TeamPicker({ teams, value, onChange }: TeamPickerProps) {
         </SelectTrigger>
         <SelectContent>
           {teams.map((team) => (
-            <SelectItem key={team.id} value={team.id}>
+            <SelectItem key={team.id} value={team.id} label={team.name}>
               {team.name}
             </SelectItem>
           ))}
-          <SelectItem value="org-wide">Org-wide</SelectItem>
+          <SelectItem value="org-wide" label="Org-wide">
+            Org-wide
+          </SelectItem>
         </SelectContent>
       </Select>
       <VisibilityWarning teamName={selectedTeam?.name} />
