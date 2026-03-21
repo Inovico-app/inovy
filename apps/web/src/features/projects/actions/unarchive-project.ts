@@ -11,7 +11,13 @@ import { archiveProjectSchema } from "../../../server/validation/projects/archiv
  */
 export const unarchiveProjectAction = authorizedActionClient
   .metadata({
+    name: "unarchive-project",
     permissions: policyToPermissions("projects:update"),
+    audit: {
+      resourceType: "project",
+      action: "restore",
+      category: "mutation",
+    },
   })
   .inputSchema(archiveProjectSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -22,24 +28,23 @@ export const unarchiveProjectAction = authorizedActionClient
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
-        "unarchive-project"
+        "unarchive-project",
       );
     }
 
     // Unarchive project
     const result = await ProjectService.unarchiveProject(
       projectId,
-      organizationId
+      organizationId,
     );
 
     if (result.isErr()) {
       throw ActionErrors.internal(
         result.error.message,
         undefined,
-        "unarchive-project"
+        "unarchive-project",
       );
     }
 
     return { data: { success: result.value } };
   });
-

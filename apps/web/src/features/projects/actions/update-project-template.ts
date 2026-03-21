@@ -16,7 +16,13 @@ import { updateProjectTemplateSchema } from "@/server/validation/project-templat
  */
 export const updateProjectTemplateAction = authorizedActionClient
   .metadata({
+    name: "update-project-template",
     permissions: policyToPermissions("projects:update"),
+    audit: {
+      resourceType: "project_template",
+      action: "update",
+      category: "mutation",
+    },
   })
   .inputSchema(updateProjectTemplateSchema)
   .action(async ({ parsedInput, ctx }) => {
@@ -26,7 +32,7 @@ export const updateProjectTemplateAction = authorizedActionClient
     if (!user) {
       throw ActionErrors.unauthenticated(
         "User not found in context",
-        "update-project-template"
+        "update-project-template",
       );
     }
 
@@ -37,7 +43,7 @@ export const updateProjectTemplateAction = authorizedActionClient
     const result = await ProjectTemplateService.updateProjectTemplate(
       id,
       { instructions },
-      orgCode
+      orgCode,
     );
 
     // Revalidate project page if template exists
@@ -47,4 +53,3 @@ export const updateProjectTemplateAction = authorizedActionClient
 
     return resultToActionResponse(result);
   });
-
