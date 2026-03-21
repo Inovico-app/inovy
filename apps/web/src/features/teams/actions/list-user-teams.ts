@@ -40,12 +40,20 @@ export const listUserTeamsAction = authorizedActionClient
         auth.api.getSession({ headers: requestHeaders }),
       ]);
 
+      // Filter teams to only the active organization
+      const activeOrgId =
+        sessionData?.session?.activeOrganizationId ?? ctx.organizationId;
+
       const userTeams: UserTeam[] = Array.isArray(teamsResult)
-        ? teamsResult.map((team) => ({
-            id: team.id,
-            name: team.name,
-            organizationId: team.organizationId,
-          }))
+        ? teamsResult
+            .filter(
+              (team) => !activeOrgId || team.organizationId === activeOrgId,
+            )
+            .map((team) => ({
+              id: team.id,
+              name: team.name,
+              organizationId: team.organizationId,
+            }))
         : [];
 
       // Resolve activeTeamId from the session record

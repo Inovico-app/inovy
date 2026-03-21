@@ -1,7 +1,7 @@
 import { err, ok, type Result } from "neverthrow";
 import { headers } from "next/headers";
 import { cache } from "react";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/server/db";
 import {
   teamMembers,
@@ -130,18 +130,22 @@ async function fetchAndBuildSession(
     const organizations = organizationsResult ?? [];
     const activeMember = activeMemberResult ?? null;
 
-    // Resolve active team and user's team memberships
+    const activeOrganization = resolveActiveOrganization(
+      organizations,
+      activeMember,
+    );
+
+    // Resolve active team and user's team memberships (scoped to active org)
     let activeTeamId: string | null = null;
     let userTeamIds: string[] = [];
 
     if (session.user) {
-      // Get activeTeamId from session - try raw session data first
+      // Get activeTeamId from session
       const rawSession = session.session as
         | { activeTeamId?: string | null }
         | undefined;
       activeTeamId = rawSession?.activeTeamId ?? null;
 
-      // If not available from session object, query directly
       if (activeTeamId === undefined || activeTeamId === null) {
         try {
           const sessionRecord = await db
@@ -155,36 +159,39 @@ async function fetchAndBuildSession(
         }
       }
 
-      // Get user's team memberships
-      try {
-        const memberships = await db
-          .select({ teamId: teamMembers.teamId })
-          .from(teamMembers)
-          .where(eq(teamMembers.userId, session.user.id));
-        userTeamIds = memberships.map((m) => m.teamId);
-      } catch {
-        userTeamIds = [];
+      // Get user's team memberships filtered to the active organization
+      if (activeOrganization) {
+        try {
+          const { teams: teamsTable } = await import("@/server/db/schema/auth");
+          const memberships = await db
+            .select({ teamId: teamMembers.teamId })
+            .from(teamMembers)
+            .innerJoin(teamsTable, eq(teamMembers.teamId, teamsTable.id))
+            .where(
+              and(
+                eq(teamMembers.userId, session.user.id),
+                eq(teamsTable.organizationId, activeOrganization.id),
+              ),
+            );
+          userTeamIds = memberships.map((m) => m.teamId);
+        } catch {
+          userTeamIds = [];
+        }
+      }
+
+      // Reset activeTeamId if it's not in the user's current org teams
+      if (activeTeamId && !userTeamIds.includes(activeTeamId)) {
+        activeTeamId = null;
+        try {
+          await db
+            .update(sessionsTable)
+            .set({ activeTeamId: null })
+            .where(eq(sessionsTable.id, session.session.id));
+        } catch {
+          // Non-critical
+        }
       }
     }
-
-    // If user's active team is no longer in their memberships, reset to "All"
-    if (activeTeamId && !userTeamIds.includes(activeTeamId)) {
-      activeTeamId = null;
-      // Update the session record to clear activeTeamId
-      try {
-        await db
-          .update(sessionsTable)
-          .set({ activeTeamId: null })
-          .where(eq(sessionsTable.id, session.session.id));
-      } catch {
-        // Non-critical — the null activeTeamId in the response is sufficient
-      }
-    }
-
-    const activeOrganization = resolveActiveOrganization(
-      organizations,
-      activeMember,
-    );
 
     logger.auth.sessionCheck(true, {
       userId: session.user.id,
