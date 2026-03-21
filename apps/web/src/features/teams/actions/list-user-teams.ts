@@ -1,15 +1,12 @@
 "use server";
 
 import { z } from "zod";
-import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import {
   authorizedActionClient,
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { auth } from "@/lib/auth";
-import { db } from "@/server/db";
-import { sessions } from "@/server/db/schema/auth";
 import { ok, err } from "neverthrow";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { isOrganizationAdmin } from "@/lib/rbac/rbac";
@@ -22,7 +19,6 @@ export interface UserTeam {
 
 export interface UserTeamsData {
   teams: UserTeam[];
-  activeTeamId: string | null;
   isOrgAdmin: boolean;
 }
 
@@ -56,36 +52,6 @@ export const listUserTeamsAction = authorizedActionClient
             }))
         : [];
 
-      // Resolve activeTeamId from the session record
-      let activeTeamId: string | null = null;
-      if (sessionData?.session?.id) {
-        try {
-          const rawSession = sessionData.session as
-            | { activeTeamId?: string | null }
-            | undefined;
-          activeTeamId = rawSession?.activeTeamId ?? null;
-
-          // If not on the session object, query the DB directly
-          if (activeTeamId === null || activeTeamId === undefined) {
-            const [sessionRecord] = await db
-              .select({ activeTeamId: sessions.activeTeamId })
-              .from(sessions)
-              .where(eq(sessions.id, sessionData.session.id))
-              .limit(1);
-            activeTeamId = sessionRecord?.activeTeamId ?? null;
-          }
-        } catch {
-          activeTeamId = null;
-        }
-      }
-
-      // Validate that the active team is in the user's team list
-      if (activeTeamId && !userTeams.some((t) => t.id === activeTeamId)) {
-        if (!ctx.user || !isOrganizationAdmin(ctx.user)) {
-          activeTeamId = null;
-        }
-      }
-
       // Get member role from the session for org-level admin check
       const memberRole = sessionData?.session
         ? await (async () => {
@@ -105,7 +71,6 @@ export const listUserTeamsAction = authorizedActionClient
       return resultToActionResponse(
         ok({
           teams: userTeams,
-          activeTeamId,
           isOrgAdmin: isAdmin,
         } satisfies UserTeamsData),
       );

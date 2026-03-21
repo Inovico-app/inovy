@@ -7,7 +7,6 @@ import { buildTeamFilter } from "@/lib/rbac/team-isolation";
 import type { BetterAuthUser } from "@/lib/auth";
 
 interface TeamContextOptions {
-  activeTeamId?: string | null;
   userTeamIds?: string[];
   user?: BetterAuthUser;
 }
@@ -30,7 +29,6 @@ export async function getRecentProjectsForDashboard(
   if (teamContext?.user && teamContext?.userTeamIds) {
     const teamFilter = buildTeamFilter(
       projects.teamId,
-      teamContext.activeTeamId,
       teamContext.userTeamIds,
       teamContext.user,
     );
@@ -68,7 +66,6 @@ export async function getRecentRecordingsForDashboard(
   if (teamContext?.user && teamContext?.userTeamIds) {
     const teamFilter = buildTeamFilter(
       projects.teamId,
-      teamContext.activeTeamId,
       teamContext.userTeamIds,
       teamContext.user,
     );
@@ -109,7 +106,6 @@ export async function getDashboardStats(
   if (teamContext?.user && teamContext?.userTeamIds) {
     const teamFilter = buildTeamFilter(
       projects.teamId,
-      teamContext.activeTeamId,
       teamContext.userTeamIds,
       teamContext.user,
     );

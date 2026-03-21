@@ -216,7 +216,6 @@ export class ProjectQueries {
       status?: AllowedStatus;
     },
     options?: {
-      activeTeamId?: string | null;
       userTeamIds?: string[];
       user?: BetterAuthUser;
     },
@@ -232,7 +231,6 @@ export class ProjectQueries {
     if (options?.user && options?.userTeamIds) {
       const teamFilter = buildTeamFilter(
         projects.teamId,
-        options.activeTeamId,
         options.userTeamIds,
         options.user,
       );
@@ -283,7 +281,6 @@ export class ProjectQueries {
     organizationId: string,
     status?: AllowedStatus,
     options?: {
-      activeTeamId?: string | null;
       userTeamIds?: string[];
       user?: BetterAuthUser;
     },
@@ -297,7 +294,6 @@ export class ProjectQueries {
     if (options?.user && options?.userTeamIds) {
       const teamFilter = buildTeamFilter(
         projects.teamId,
-        options.activeTeamId,
         options.userTeamIds,
         options.user,
       );
@@ -419,7 +415,6 @@ export class ProjectQueries {
       limit?: number;
     },
     options?: {
-      activeTeamId?: string | null;
       userTeamIds?: string[];
       user?: BetterAuthUser;
     },
@@ -435,7 +430,6 @@ export class ProjectQueries {
     if (options?.user && options?.userTeamIds) {
       const teamFilter = buildTeamFilter(
         projects.teamId,
-        options.activeTeamId,
         options.userTeamIds,
         options.user,
       );

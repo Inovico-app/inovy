@@ -152,12 +152,7 @@ export class TaskService {
         );
       }
 
-      const {
-        user: authUser,
-        organization,
-        activeTeamId,
-        userTeamIds,
-      } = authResult.value;
+      const { user: authUser, organization, userTeamIds } = authResult.value;
 
       if (!authUser || !organization) {
         return err(
@@ -173,7 +168,6 @@ export class TaskService {
         ...filters,
         assigneeId: authUser.id,
         user: authUser,
-        activeTeamId,
         userTeamIds,
       });
 

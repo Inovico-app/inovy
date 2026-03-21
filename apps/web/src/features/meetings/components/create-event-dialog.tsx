@@ -59,7 +59,6 @@ export function CreateEventDialog({
     selectedProvider,
     setSelectedProvider,
     teams,
-    activeTeamId,
     isLoadingTeams,
   } = useCreateEventForm({ open, onOpenChange });
 
@@ -301,7 +300,6 @@ export function CreateEventDialog({
               teams={teams}
               value={watch("teamId") ?? null}
               onChange={(id) => setValue("teamId", id)}
-              activeTeamId={activeTeamId}
             />
           )}
 

@@ -5,7 +5,7 @@
  */
 
 import type { Column, SQL } from "drizzle-orm";
-import { eq, inArray, isNull, or } from "drizzle-orm";
+import { inArray, isNull, or } from "drizzle-orm";
 import { logger } from "../logger";
 import { ActionErrors } from "../server-action-client/action-errors";
 import { isOrganizationAdmin } from "./rbac";
@@ -16,13 +16,11 @@ import type { BetterAuthUser } from "../auth";
  *
  * Logic:
  * - Org admin: no team filter (sees everything in org)
- * - Active team set: teamId = activeTeamId OR teamId IS NULL (org-wide)
- * - "All Teams" (null): teamId IN userTeamIds OR teamId IS NULL
+ * - User has teams: teamId IN userTeamIds OR teamId IS NULL (org-wide)
  * - No teams: teamId IS NULL only
  */
 export function buildTeamFilter(
   teamIdColumn: Column,
-  activeTeamId: string | null | undefined,
   userTeamIds: string[],
   user: BetterAuthUser,
 ): SQL | undefined {
@@ -31,12 +29,7 @@ export function buildTeamFilter(
     return undefined;
   }
 
-  // Active team selected — show that team's resources + org-wide
-  if (activeTeamId) {
-    return or(eq(teamIdColumn, activeTeamId), isNull(teamIdColumn));
-  }
-
-  // "All Teams" — show user's teams + org-wide
+  // Show user's teams + org-wide
   if (userTeamIds.length > 0) {
     return or(inArray(teamIdColumn, userTeamIds), isNull(teamIdColumn));
   }

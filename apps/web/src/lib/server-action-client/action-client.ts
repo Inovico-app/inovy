@@ -43,7 +43,6 @@ export interface ActionContext {
   session?: SessionWithRoles;
   user?: BetterAuthUser;
   organizationId?: string;
-  activeTeamId?: string | null;
   userTeamIds?: string[];
 }
 
@@ -209,7 +208,6 @@ async function authenticationMiddleware({
       session,
       user,
       organizationId: organization?.id,
-      activeTeamId: session.value.activeTeamId,
       userTeamIds: session.value.userTeamIds,
     },
   });

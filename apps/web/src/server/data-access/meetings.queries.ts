@@ -46,7 +46,6 @@ export class MeetingsQueries {
     options?: {
       limit?: number;
       userId?: string;
-      activeTeamId?: string | null;
       userTeamIds?: string[];
       user?: BetterAuthUser;
     },
@@ -65,7 +64,6 @@ export class MeetingsQueries {
     if (options?.user && options?.userTeamIds) {
       const teamFilter = buildTeamFilter(
         meetings.teamId,
-        options.activeTeamId,
         options.userTeamIds,
         options.user,
       );

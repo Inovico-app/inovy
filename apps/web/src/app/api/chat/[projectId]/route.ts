@@ -35,8 +35,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { user, organization, member, activeTeamId, userTeamIds } =
-      authResult.value;
+    const { user, organization, member, userTeamIds } = authResult.value;
 
     if (!member?.role) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -166,7 +165,7 @@ export async function POST(
       projectId,
       organization.id,
       userRole,
-      { teamId: activeTeamId, userTeamIds },
+      { userTeamIds },
     );
 
     if (streamResult.isErr()) {

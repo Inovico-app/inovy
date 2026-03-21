@@ -86,7 +86,6 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
         limit: 10,
       },
       {
-        activeTeamId: teamId,
         userTeamIds: [teamId],
         user,
       },

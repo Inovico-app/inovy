@@ -9,17 +9,16 @@ import { useQuery } from "@tanstack/react-query";
 
 interface UserTeamsQueryData {
   teams: UserTeam[];
-  activeTeamId: string | null;
   isOrgAdmin: boolean;
 }
 
 export async function fetchUserTeams(): Promise<UserTeamsQueryData> {
   const result = await listUserTeamsAction({});
   const data = result?.data;
-  if (data && "teams" in data && "activeTeamId" in data) {
+  if (data && "teams" in data) {
     return data as UserTeamsQueryData;
   }
-  return { teams: [], activeTeamId: null, isOrgAdmin: false };
+  return { teams: [], isOrgAdmin: false };
 }
 
 /**
@@ -37,7 +36,6 @@ export function useTeamPicker() {
   });
 
   const teams = data?.teams ?? [];
-  const activeTeamId = data?.activeTeamId ?? null;
 
-  return { teams, activeTeamId, isLoading };
+  return { teams, isLoading };
 }

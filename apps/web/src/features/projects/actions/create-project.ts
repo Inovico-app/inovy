@@ -24,8 +24,8 @@ export const createProjectAction = authorizedActionClient
   })
   .inputSchema(createProjectSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { name, description, teamId: explicitTeamId } = parsedInput;
-    const { user, organizationId, activeTeamId } = ctx;
+    const { name, description, teamId } = parsedInput;
+    const { user, organizationId } = ctx;
 
     if (!user) {
       throw ActionErrors.unauthenticated(
@@ -41,9 +41,6 @@ export const createProjectAction = authorizedActionClient
         "create-project",
       );
     }
-
-    const teamId =
-      explicitTeamId !== undefined ? explicitTeamId : (activeTeamId ?? null);
 
     if (
       teamId &&

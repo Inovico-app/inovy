@@ -14,7 +14,7 @@ export async function RecordingsOverview() {
     );
   }
 
-  const { user, organization, activeTeamId, userTeamIds } = authResult.value;
+  const { user, organization, userTeamIds } = authResult.value;
 
   if (!user || !organization) {
     return (
@@ -30,7 +30,6 @@ export async function RecordingsOverview() {
   const [recordings, projects] = await Promise.all([
     getCachedRecordingsByOrganization(organizationId),
     getCachedUserProjects(organizationId, {
-      activeTeamId,
       userTeamIds,
       user,
     }),

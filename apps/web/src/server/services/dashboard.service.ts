@@ -36,7 +36,6 @@ interface DashboardOverview {
 }
 
 interface DashboardTeamContext {
-  activeTeamId?: string | null;
   userTeamIds?: string[];
   user?: BetterAuthUser;
 }

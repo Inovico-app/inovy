@@ -9,7 +9,6 @@ import type { BetterAuthUser } from "@/lib/auth";
  */
 
 interface TeamContextOptions {
-  activeTeamId?: string | null;
   userTeamIds?: string[];
   user?: BetterAuthUser;
 }
@@ -37,11 +36,7 @@ export async function getCachedUserProjects(
   teamContext?: TeamContextOptions,
 ) {
   "use cache";
-  const teamCacheKey = teamContext?.activeTeamId ?? "all";
-  cacheTag(
-    CacheTags.projectsByOrg(orgCode),
-    `projects-team-${orgCode}-${teamCacheKey}`,
-  );
+  cacheTag(CacheTags.projectsByOrg(orgCode));
 
   const projects = await ProjectQueries.findByOrganizationWithCreator(
     {

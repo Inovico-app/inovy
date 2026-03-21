@@ -19,20 +19,9 @@ interface TeamPickerProps {
   teams: TeamOption[];
   value: string | null;
   onChange: (teamId: string | null) => void;
-  activeTeamId?: string | null;
 }
 
-export function TeamPicker({
-  teams,
-  value,
-  onChange,
-  activeTeamId,
-}: TeamPickerProps) {
-  if (activeTeamId) {
-    const teamName = teams.find((t) => t.id === activeTeamId)?.name;
-    return <VisibilityWarning teamName={teamName} />;
-  }
-
+export function TeamPicker({ teams, value, onChange }: TeamPickerProps) {
   const selectedTeam = value ? teams.find((t) => t.id === value) : null;
 
   return (

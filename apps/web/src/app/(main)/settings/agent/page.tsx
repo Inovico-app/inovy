@@ -28,12 +28,11 @@ async function AgentContent() {
     redirect("/settings");
   }
 
-  const { organization, activeTeamId, userTeamIds, user } = authResult.value;
+  const { organization, userTeamIds, user } = authResult.value;
   const organizationId = organization.id;
 
   // Fetch projects for filtering (cached), filtered by team context
   const projects = await getCachedUserProjects(organizationId, {
-    activeTeamId,
     userTeamIds,
     user: user ?? undefined,
   });

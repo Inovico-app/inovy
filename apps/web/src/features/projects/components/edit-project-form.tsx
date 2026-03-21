@@ -42,11 +42,7 @@ export function EditProjectForm({
   onSuccess,
 }: EditProjectFormProps) {
   const router = useRouter();
-  const {
-    teams,
-    activeTeamId,
-    isLoading: isLoadingTeams,
-  } = useProjectTeamPicker();
+  const { teams, isLoading: isLoadingTeams } = useProjectTeamPicker();
 
   const form = useForm<UpdateProjectInput>({
     resolver: standardSchemaResolver(updateProjectSchema),
@@ -148,7 +144,6 @@ export function EditProjectForm({
                   teams={teams}
                   value={teamIdValue}
                   onChange={(id) => form.setValue("teamId", id)}
-                  activeTeamId={activeTeamId}
                 />
                 <FormMessage />
               </FormItem>

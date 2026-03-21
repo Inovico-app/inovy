@@ -374,7 +374,6 @@ export class RecordingsQueries {
       departmentId?: string;
       limit?: number;
       user?: BetterAuthUser;
-      activeTeamId?: string | null;
       userTeamIds?: string[];
     },
   ): Promise<Array<Recording & { projectName: string }>> {
@@ -396,7 +395,6 @@ export class RecordingsQueries {
     if (options?.user && options?.userTeamIds) {
       const teamFilter = buildTeamFilter(
         projects.teamId,
-        options.activeTeamId,
         options.userTeamIds,
         options.user,
       );

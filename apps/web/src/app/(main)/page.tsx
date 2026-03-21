@@ -44,7 +44,7 @@ async function DashboardContent() {
     );
   }
 
-  const { user, organization, activeTeamId, userTeamIds } = authResult.value;
+  const { user, organization, userTeamIds } = authResult.value;
   if (!user) {
     logger.warn("User session returned null in Dashboard", {
       component: "DashboardContent",
@@ -97,7 +97,6 @@ async function DashboardContent() {
   const [dashboardStats, taskStats, recentTasks, upcomingMeetings] =
     await Promise.all([
       getCachedDashboardOverview(organizationId, {
-        activeTeamId,
         userTeamIds,
         user,
       }),

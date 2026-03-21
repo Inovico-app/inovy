@@ -24,11 +24,7 @@ export function useCreateEventForm({
   open,
   onOpenChange,
 }: UseCreateEventFormProps) {
-  const {
-    teams,
-    activeTeamId,
-    isLoading: isLoadingTeams,
-  } = useCreateEventTeamPicker();
+  const { teams, isLoading: isLoadingTeams } = useCreateEventTeamPicker();
 
   const form = useForm<CreateEventFormData>({
     resolver: standardSchemaResolver(createEventFormSchema),
@@ -139,7 +135,6 @@ export function useCreateEventForm({
     setSelectedProvider,
     // Team picker
     teams,
-    activeTeamId,
     isLoadingTeams,
   };
 }

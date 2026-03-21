@@ -45,7 +45,7 @@ export const createCalendarEventWithBot = authorizedActionClient
   .metadata({ permissions: policyToPermissions("recordings:create") })
   .schema(createCalendarEventWithBotSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { organizationId, user, activeTeamId } = ctx;
+    const { organizationId, user } = ctx;
 
     if (!organizationId) {
       throw ActionErrors.forbidden("Organization context required");
@@ -87,8 +87,7 @@ export const createCalendarEventWithBot = authorizedActionClient
       teamId: explicitTeamId,
     } = parsedInput;
 
-    const teamId =
-      explicitTeamId !== undefined ? explicitTeamId : (activeTeamId ?? null);
+    const teamId = explicitTeamId ?? null;
 
     if (
       teamId &&

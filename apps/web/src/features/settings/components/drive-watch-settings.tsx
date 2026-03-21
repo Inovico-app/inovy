@@ -39,7 +39,7 @@ export async function DriveWatchSettings() {
 
   const userId = authResult.value.user.id;
   const organizationId = authResult.value.organization?.id;
-  const { activeTeamId, userTeamIds, user } = authResult.value;
+  const { userTeamIds, user } = authResult.value;
 
   if (!organizationId) {
     return (
@@ -55,7 +55,6 @@ export async function DriveWatchSettings() {
   // Fetch watches and projects using cached functions
   const watches = await getCachedDriveWatches(userId);
   const projects = await getCachedUserProjects(organizationId, {
-    activeTeamId,
     userTeamIds,
     user: user ?? undefined,
   });

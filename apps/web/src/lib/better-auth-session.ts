@@ -3,10 +3,7 @@ import { headers } from "next/headers";
 import { cache } from "react";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/server/db";
-import {
-  teamMembers,
-  sessions as sessionsTable,
-} from "@/server/db/schema/auth";
+import { teamMembers } from "@/server/db/schema/auth";
 import { auth, type BetterAuthUser } from "./auth";
 import { logger } from "./logger";
 
@@ -28,7 +25,6 @@ export interface BetterAuthSessionData {
   user: BetterAuthUser | null;
   organization: BetterAuthOrganization | null;
   member: BetterAuthMember | null;
-  activeTeamId: string | null;
   userTeamIds: string[];
 }
 
@@ -108,7 +104,6 @@ async function fetchAndBuildSession(
         user: null,
         organization: null,
         member: null,
-        activeTeamId: null,
         userTeamIds: [],
       });
     }
@@ -135,61 +130,25 @@ async function fetchAndBuildSession(
       activeMember,
     );
 
-    // Resolve active team and user's team memberships (scoped to active org)
-    let activeTeamId: string | null = null;
+    // Resolve user's team memberships (scoped to active org)
     let userTeamIds: string[] = [];
 
-    if (session.user) {
-      // Get activeTeamId from session
-      const rawSession = session.session as
-        | { activeTeamId?: string | null }
-        | undefined;
-      activeTeamId = rawSession?.activeTeamId ?? null;
-
-      if (activeTeamId === undefined || activeTeamId === null) {
-        try {
-          const sessionRecord = await db
-            .select({ activeTeamId: sessionsTable.activeTeamId })
-            .from(sessionsTable)
-            .where(eq(sessionsTable.id, session.session.id))
-            .limit(1);
-          activeTeamId = sessionRecord[0]?.activeTeamId ?? null;
-        } catch {
-          activeTeamId = null;
-        }
-      }
-
-      // Get user's team memberships filtered to the active organization
-      if (activeOrganization) {
-        try {
-          const { teams: teamsTable } = await import("@/server/db/schema/auth");
-          const memberships = await db
-            .select({ teamId: teamMembers.teamId })
-            .from(teamMembers)
-            .innerJoin(teamsTable, eq(teamMembers.teamId, teamsTable.id))
-            .where(
-              and(
-                eq(teamMembers.userId, session.user.id),
-                eq(teamsTable.organizationId, activeOrganization.id),
-              ),
-            );
-          userTeamIds = memberships.map((m) => m.teamId);
-        } catch {
-          userTeamIds = [];
-        }
-      }
-
-      // Reset activeTeamId if it's not in the user's current org teams
-      if (activeTeamId && !userTeamIds.includes(activeTeamId)) {
-        activeTeamId = null;
-        try {
-          await db
-            .update(sessionsTable)
-            .set({ activeTeamId: null })
-            .where(eq(sessionsTable.id, session.session.id));
-        } catch {
-          // Non-critical
-        }
+    if (session.user && activeOrganization) {
+      try {
+        const { teams: teamsTable } = await import("@/server/db/schema/auth");
+        const memberships = await db
+          .select({ teamId: teamMembers.teamId })
+          .from(teamMembers)
+          .innerJoin(teamsTable, eq(teamMembers.teamId, teamsTable.id))
+          .where(
+            and(
+              eq(teamMembers.userId, session.user.id),
+              eq(teamsTable.organizationId, activeOrganization.id),
+            ),
+          );
+        userTeamIds = memberships.map((m) => m.teamId);
+      } catch {
+        userTeamIds = [];
       }
     }
 
@@ -219,7 +178,6 @@ async function fetchAndBuildSession(
             role: activeMember.role,
           }
         : null,
-      activeTeamId,
       userTeamIds,
     });
   } catch (error) {

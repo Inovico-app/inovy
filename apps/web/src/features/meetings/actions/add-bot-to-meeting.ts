@@ -36,7 +36,7 @@ export const addBotToMeeting = authorizedActionClient
   })
   .schema(addBotToMeetingSchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { user, organizationId, activeTeamId } = ctx;
+    const { user, organizationId } = ctx;
 
     if (!user) {
       throw ActionErrors.unauthenticated("User context required");
@@ -46,16 +46,8 @@ export const addBotToMeeting = authorizedActionClient
       throw ActionErrors.forbidden("Organization context required");
     }
 
-    const {
-      calendarEventId,
-      meetingUrl,
-      meetingTitle,
-      projectId,
-      teamId: explicitTeamId,
-    } = parsedInput;
-
-    const teamId =
-      explicitTeamId !== undefined ? explicitTeamId : (activeTeamId ?? null);
+    const { calendarEventId, meetingUrl, meetingTitle, projectId, teamId } =
+      parsedInput;
 
     if (
       teamId &&

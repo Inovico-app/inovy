@@ -266,7 +266,6 @@ export class RecordingService {
       search?: string;
       projectIds?: string[];
       user?: BetterAuthUser;
-      activeTeamId?: string | null;
       userTeamIds?: string[];
     },
   ): Promise<ActionResult<Array<RecordingDto & { projectName: string }>>> {

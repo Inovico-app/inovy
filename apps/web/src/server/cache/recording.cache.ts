@@ -62,13 +62,12 @@ export async function getCachedRecordingsByOrganization(
   "use cache";
   cacheTag(CacheTags.recordingsByOrg(organizationId));
 
-  // Resolve team context from session so the query filters by the user's active team
+  // Resolve team context from session so the query filters by the user's teams
   const authResult = await getBetterAuthSession();
   const teamContext =
     authResult.isOk() && authResult.value.isAuthenticated
       ? {
           user: authResult.value.user ?? undefined,
-          activeTeamId: authResult.value.activeTeamId,
           userTeamIds: authResult.value.userTeamIds,
         }
       : {};

@@ -53,11 +53,7 @@ export function CreateProjectForm({
   showCard = true,
 }: CreateProjectFormProps = {}) {
   const router = useRouter();
-  const {
-    teams,
-    activeTeamId,
-    isLoading: isLoadingTeams,
-  } = useProjectTeamPicker();
+  const { teams, isLoading: isLoadingTeams } = useProjectTeamPicker();
 
   const form = useForm<CreateProjectInput>({
     resolver: standardSchemaResolver(createProjectSchema),
@@ -169,7 +165,6 @@ export function CreateProjectForm({
                   teams={teams}
                   value={teamIdValue}
                   onChange={(id) => form.setValue("teamId", id)}
-                  activeTeamId={activeTeamId}
                 />
                 <FormMessage />
               </FormItem>

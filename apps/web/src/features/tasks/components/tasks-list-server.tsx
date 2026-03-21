@@ -18,7 +18,7 @@ export async function TasksListServer() {
     );
   }
 
-  const { user, organization, activeTeamId, userTeamIds } = authResult.value;
+  const { user, organization, userTeamIds } = authResult.value;
 
   if (!user || !organization) {
     return (
@@ -32,7 +32,6 @@ export async function TasksListServer() {
   const [tasks, projects] = await Promise.all([
     getCachedTasksWithContext(user.id, organization.id),
     getCachedUserProjects(organization.id, {
-      activeTeamId,
       userTeamIds,
       user,
     }),

@@ -31,7 +31,6 @@ async function ChatPageContent() {
   // Get user's projects (cached), filtered by team context
   const projects = session.organization
     ? await getCachedUserProjects(session.organization.id, {
-        activeTeamId: session.activeTeamId,
         userTeamIds: session.userTeamIds,
         user: session.user,
       })

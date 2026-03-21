@@ -134,12 +134,7 @@ export class ProjectService {
         );
       }
 
-      const {
-        user: authUser,
-        organization,
-        activeTeamId,
-        userTeamIds,
-      } = authResult.value;
+      const { user: authUser, organization, userTeamIds } = authResult.value;
 
       if (!authUser || !organization) {
         return err(
@@ -160,7 +155,6 @@ export class ProjectService {
       const projects = await ProjectQueries.findByOrganizationWithCreator(
         projectFilters,
         {
-          activeTeamId,
           userTeamIds,
           user: authUser,
         },
@@ -199,12 +193,7 @@ export class ProjectService {
         );
       }
 
-      const {
-        user: authUser,
-        organization,
-        activeTeamId,
-        userTeamIds,
-      } = authResult.value;
+      const { user: authUser, organization, userTeamIds } = authResult.value;
 
       if (!authUser || !organization) {
         return err(
@@ -224,7 +213,6 @@ export class ProjectService {
 
       const projects =
         await ProjectQueries.findByOrganizationWithRecordingCount(filters, {
-          activeTeamId,
           userTeamIds,
           user: authUser,
         });
@@ -262,12 +250,7 @@ export class ProjectService {
         );
       }
 
-      const {
-        user: authUser,
-        organization,
-        activeTeamId,
-        userTeamIds,
-      } = authResult.value;
+      const { user: authUser, organization, userTeamIds } = authResult.value;
 
       if (!authUser || !organization) {
         return err(
@@ -284,7 +267,6 @@ export class ProjectService {
         organization.id,
         status,
         {
-          activeTeamId,
           userTeamIds,
           user: authUser,
         },

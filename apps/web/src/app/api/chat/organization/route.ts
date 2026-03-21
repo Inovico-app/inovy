@@ -50,7 +50,7 @@ export const POST = withRateLimit(
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      const { user, organization, member, activeTeamId, userTeamIds } = session;
+      const { user, organization, member, userTeamIds } = session;
       const organizationId = organization.id;
 
       if (!member?.role) {
@@ -200,7 +200,7 @@ export const POST = withRateLimit(
         message,
         organizationId,
         userRole,
-        { teamId: activeTeamId, userTeamIds },
+        { userTeamIds },
       );
 
       if (streamResult.isErr()) {

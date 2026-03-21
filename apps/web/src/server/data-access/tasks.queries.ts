@@ -61,7 +61,6 @@ export class TasksQueries {
       search?: string;
       departmentId?: string;
       user?: BetterAuthUser;
-      activeTeamId?: string | null;
       userTeamIds?: string[];
     },
   ): Promise<Task[]> {
@@ -87,7 +86,6 @@ export class TasksQueries {
     if (filters?.user && filters?.userTeamIds) {
       const teamFilter = buildTeamFilter(
         projects.teamId,
-        filters.activeTeamId,
         filters.userTeamIds,
         filters.user,
       );
@@ -133,7 +131,6 @@ export class TasksQueries {
       search?: string;
       departmentId?: string;
       user?: BetterAuthUser;
-      activeTeamId?: string | null;
       userTeamIds?: string[];
     },
   ): Promise<TaskWithContext[]> {
@@ -159,7 +156,6 @@ export class TasksQueries {
     if (filters?.user && filters?.userTeamIds) {
       const teamFilter = buildTeamFilter(
         projects.teamId,
-        filters.activeTeamId,
         filters.userTeamIds,
         filters.user,
       );
