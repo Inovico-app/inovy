@@ -208,6 +208,15 @@ export function RecordingSession({
         audioSource={config.audioSource}
         chunkManifest={session.chunkManifest}
         error={session.error}
+        devices={audioDevices}
+        selectedDeviceId={selectedDeviceId}
+        onDeviceChange={setSelectedDeviceId}
+        isDeviceSelectionDisabled={
+          session.status === "recording" || session.status === "paused"
+        }
+        isLoadingDevices={isLoadingDevices}
+        devicesError={devicesError}
+        onRetryDevices={refreshDevices}
         onPause={session.pause}
         onResume={session.resume}
         onStop={() => void session.stop()}
