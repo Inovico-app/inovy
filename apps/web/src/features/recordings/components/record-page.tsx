@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import type { AudioSource } from "@/features/recordings/core/recording-session.types";
 import { useAudioCapabilities } from "@/features/recordings/hooks/use-audio-capabilities";
+import { useAudioDevices } from "@/features/recordings/hooks/use-audio-devices";
 import type { UseRecordingSessionConfig } from "@/features/recordings/hooks/use-recording-session";
 import type { ProjectWithCreatorDto } from "@/server/dto/project.dto";
 import { ConsentBanner } from "@/features/recordings/components/consent-banner";
@@ -80,6 +81,7 @@ export function RecordPage({
   projectIdFromParams,
 }: RecordPageProps) {
   const capabilities = useAudioCapabilities();
+  const { devices: audioDevices } = useAudioDevices();
 
   const hasProjects = projects.length > 0 || !!projectIdFromParams;
 
@@ -97,6 +99,7 @@ export function RecordPage({
     );
   }
   const [audioSource, setAudioSource] = useState<AudioSource>("microphone");
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("default");
   const [liveTranscriptionEnabled, setLiveTranscriptionEnabled] =
     useState(true);
 
@@ -173,6 +176,9 @@ export function RecordPage({
           key={configKey}
           config={sessionConfig}
           autoStart
+          deviceId={
+            selectedDeviceId === "default" ? undefined : selectedDeviceId
+          }
           onDiscard={() => {
             setConsentGiven(false);
             setConsentGivenAt(null);
@@ -272,6 +278,48 @@ export function RecordPage({
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator className="my-2" />
             <DropdownMenuLabel className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+              Microfoon
+            </DropdownMenuLabel>
+            <div className="px-2 py-1.5 space-y-1.5">
+              <Select
+                value={selectedDeviceId}
+                onValueChange={(value) => {
+                  if (value != null) setSelectedDeviceId(value);
+                }}
+              >
+                <SelectTrigger
+                  className="w-full"
+                  aria-label="Selecteer microfoon"
+                >
+                  <SelectValue placeholder="Standaard microfoon">
+                    {selectedDeviceId === "default"
+                      ? "Standaard microfoon"
+                      : (audioDevices.find(
+                          (d) => d.deviceId === selectedDeviceId,
+                        )?.label ?? "Standaard microfoon")}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default" label="Standaard microfoon">
+                    Standaard microfoon
+                  </SelectItem>
+                  {audioDevices.map((device) => (
+                    <SelectItem
+                      key={device.deviceId}
+                      value={device.deviceId}
+                      label={device.label}
+                    >
+                      {device.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground/70">
+                Kan niet worden gewijzigd tijdens de opname
+              </p>
+            </div>
+            <DropdownMenuSeparator className="my-2" />
+            <DropdownMenuLabel className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
               Transcriptie
             </DropdownMenuLabel>
             <DropdownMenuCheckboxItem
@@ -322,6 +370,8 @@ export function RecordPage({
               </h1>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto">
                 {selectedAudioLabel}
+                {selectedDeviceId !== "default" &&
+                  ` \u00B7 ${audioDevices.find((d) => d.deviceId === selectedDeviceId)?.label ?? ""}`}
                 {liveTranscriptionEnabled && " \u00B7 Live transcriptie"}
               </p>
             </div>

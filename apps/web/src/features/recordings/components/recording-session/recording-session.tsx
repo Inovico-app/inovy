@@ -31,6 +31,8 @@ import { TranscriptionPanel } from "./transcription-panel";
 interface RecordingSessionProps {
   config: UseRecordingSessionConfig;
   autoStart?: boolean;
+  /** Microphone device ID selected on the pre-recording settings screen */
+  deviceId?: string;
   /** Called when the session is discarded/reset — parent should unmount this component */
   onDiscard?: () => void;
 }
@@ -38,10 +40,12 @@ interface RecordingSessionProps {
 export function RecordingSession({
   config,
   autoStart = false,
+  deviceId,
   onDiscard,
 }: RecordingSessionProps) {
   const router = useRouter();
   const session = useRecordingSession(config);
+
   // Track which warnings we've already shown
   const shownWarningsRef = useRef(new Set<string>());
 
@@ -59,7 +63,7 @@ export function RecordingSession({
     const id = requestAnimationFrame(() => {
       if (autoStartFired.current) return; // guard against double-fire
       autoStartFired.current = true;
-      session.start().catch((err) => {
+      session.start(deviceId).catch((err) => {
         console.error("[RecordingSession] Auto-start failed:", err);
       });
     });
@@ -120,7 +124,7 @@ export function RecordingSession({
     (isActiveRecording || session.transcription.segments.length > 0);
 
   // --- Loading: show only a spinner until the FSM reaches recording/paused/error ---
-  if (session.status === "idle" || session.status === "initializing") {
+  if (session.status === "initializing") {
     return (
       <>
         <div className="flex flex-col items-center justify-center gap-3 min-h-[calc(100vh-12rem)]">
@@ -157,24 +161,48 @@ export function RecordingSession({
 
   return (
     <>
-      {/* Mobile: Google Meet-style immersive overlay */}
-      <MobileRecordingView
-        status={session.status}
-        duration={session.duration}
-        transcription={session.transcription}
-        liveTranscriptionEnabled={config.liveTranscriptionEnabled}
-        audioSource={config.audioSource}
-        chunkManifest={session.chunkManifest}
-        error={session.error}
-        onPause={session.pause}
-        onResume={session.resume}
-        onStop={() => void session.stop()}
-        onSavePartial={() => void session.savePartial()}
-        onReset={() => {
-          session.reset();
-          onDiscard?.();
-        }}
-      />
+      {/* Idle state: visible on mobile only (desktop has its own idle view below) */}
+      {session.status === "idle" && (
+        <div className="flex flex-col items-center gap-6 justify-center min-h-[calc(100vh-12rem)] md:hidden">
+          <RecordingControls
+            status={session.status}
+            duration={session.duration}
+            errorIsRecoverable={session.error?.recoverable ?? false}
+            autoStarting={false}
+            onStart={() => void session.start(deviceId)}
+            onPause={session.pause}
+            onResume={session.resume}
+            onStop={() => void session.stop()}
+            onSavePartial={() => void session.savePartial()}
+            onReset={() => {
+              session.reset();
+
+              onDiscard?.();
+            }}
+          />
+        </div>
+      )}
+
+      {/* Mobile: Google Meet-style immersive overlay (not mounted in idle — idle has its own panel above) */}
+      {session.status !== "idle" && (
+        <MobileRecordingView
+          status={session.status}
+          duration={session.duration}
+          transcription={session.transcription}
+          liveTranscriptionEnabled={config.liveTranscriptionEnabled}
+          audioSource={config.audioSource}
+          chunkManifest={session.chunkManifest}
+          error={session.error}
+          onPause={session.pause}
+          onResume={session.resume}
+          onStop={() => void session.stop()}
+          onSavePartial={() => void session.savePartial()}
+          onReset={() => {
+            session.reset();
+            onDiscard?.();
+          }}
+        />
+      )}
 
       {/* Desktop: panel layout */}
       <div className="hidden md:block">
@@ -234,13 +262,14 @@ export function RecordingSession({
                     duration={session.duration}
                     errorIsRecoverable={session.error?.recoverable ?? false}
                     autoStarting={false}
-                    onStart={session.start}
+                    onStart={() => void session.start(deviceId)}
                     onPause={session.pause}
                     onResume={session.resume}
                     onStop={() => void session.stop()}
                     onSavePartial={() => void session.savePartial()}
                     onReset={() => {
                       session.reset();
+
                       onDiscard?.();
                     }}
                   />

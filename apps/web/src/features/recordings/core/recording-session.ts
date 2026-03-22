@@ -108,7 +108,7 @@ export class RecordingSession {
     };
   }
 
-  async start(): Promise<void> {
+  async start(deviceId?: string): Promise<void> {
     console.log(
       "[RecordingSession] start() called, current status:",
       this.state.status,
@@ -124,7 +124,7 @@ export class RecordingSession {
     console.log("[RecordingSession] start: initializing audio capture...");
 
     // Initialize audio capture
-    const initResult = await this.deps.audioCapture.initialize();
+    const initResult = await this.deps.audioCapture.initialize({ deviceId });
 
     if (initResult.isErr()) {
       console.error(
@@ -226,10 +226,6 @@ export class RecordingSession {
 
     this.deps.audioCapture.resume();
     this.startDurationTimer();
-
-    // Note: Deepgram keep-alive is managed internally by the
-    // LiveTranscriptionService. When chunks resume flowing, the service
-    // automatically transitions back from keep-alive mode.
   }
 
   async stop(): Promise<FinalizedRecording | null> {

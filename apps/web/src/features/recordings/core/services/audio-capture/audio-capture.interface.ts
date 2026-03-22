@@ -3,8 +3,12 @@ import type { ResultAsync } from "neverthrow";
 import type { CaptureError } from "../../recording-session.errors";
 import type { AudioChunk, Unsubscribe } from "../../recording-session.types";
 
+export interface AudioCaptureInitConfig {
+  deviceId?: string;
+}
+
 export interface AudioCaptureService {
-  initialize(): ResultAsync<void, CaptureError>;
+  initialize(config?: AudioCaptureInitConfig): ResultAsync<void, CaptureError>;
   start(timeslice: number): void;
   pause(): void;
   resume(): void;

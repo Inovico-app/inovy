@@ -21,7 +21,10 @@ import {
 import type { AudioChunk, Unsubscribe } from "../../recording-session.types";
 import { TypedEventEmitter } from "../../utils/event-emitter";
 import { ResourceTracker } from "../../utils/resource-tracker";
-import type { AudioCaptureService } from "./audio-capture.interface";
+import type {
+  AudioCaptureService,
+  AudioCaptureInitConfig,
+} from "./audio-capture.interface";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -69,26 +72,33 @@ export class MicrophoneCaptureService implements AudioCaptureService {
   // AudioCaptureService — initialize
   // -----------------------------------------------------------------------
 
-  initialize(): ResultAsync<void, CaptureError> {
-    return ResultAsync.fromPromise(this.doInitialize(), (error) =>
-      createCaptureError(
-        this.classifyInitError(error),
-        error instanceof Error ? error.message : String(error),
-        { cause: error },
-      ),
+  initialize(config?: AudioCaptureInitConfig): ResultAsync<void, CaptureError> {
+    return ResultAsync.fromPromise(
+      this.doInitialize(config?.deviceId),
+      (error) =>
+        createCaptureError(
+          this.classifyInitError(error),
+          error instanceof Error ? error.message : String(error),
+          { cause: error },
+        ),
     );
   }
 
-  private async doInitialize(): Promise<void> {
-    // Clean up any stale resources from a previous session
+  private async doInitialize(deviceId?: string): Promise<void> {
     this.releaseResources();
 
     // 1. Acquire raw microphone stream
+    const audioConstraints: MediaTrackConstraints = {
+      noiseSuppression: true,
+      echoCancellation: true,
+    };
+
+    if (deviceId && deviceId !== "default") {
+      audioConstraints.deviceId = { exact: deviceId };
+    }
+
     const rawStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        noiseSuppression: true,
-        echoCancellation: true,
-      },
+      audio: audioConstraints,
     });
 
     this.rawStream = rawStream;

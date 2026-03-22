@@ -19,7 +19,10 @@ import {
 import type { AudioChunk, Unsubscribe } from "../../recording-session.types";
 import { TypedEventEmitter } from "../../utils/event-emitter";
 import { ResourceTracker } from "../../utils/resource-tracker";
-import type { AudioCaptureService } from "./audio-capture.interface";
+import type {
+  AudioCaptureService,
+  AudioCaptureInitConfig,
+} from "./audio-capture.interface";
 import { type MixStreamsResult, mixStreams } from "./audio-mixer";
 import { MicrophoneCaptureService } from "./microphone-capture";
 import { SystemAudioCaptureService } from "./system-audio-capture";
@@ -66,8 +69,8 @@ export class CombinedCaptureService implements AudioCaptureService {
   // AudioCaptureService — initialize
   // -----------------------------------------------------------------------
 
-  initialize(): ResultAsync<void, CaptureError> {
-    return ResultAsync.fromPromise(this.doInitialize(), (error) =>
+  initialize(config?: AudioCaptureInitConfig): ResultAsync<void, CaptureError> {
+    return ResultAsync.fromPromise(this.doInitialize(config), (error) =>
       createCaptureError(
         "MEDIA_RECORDER_ERROR",
         error instanceof Error ? error.message : String(error),
@@ -76,11 +79,11 @@ export class CombinedCaptureService implements AudioCaptureService {
     );
   }
 
-  private async doInitialize(): Promise<void> {
+  private async doInitialize(config?: AudioCaptureInitConfig): Promise<void> {
     this.releaseResources();
 
     // 1. Initialize microphone first (required)
-    const micResult = await this.micService.initialize();
+    const micResult = await this.micService.initialize(config);
     if (micResult.isErr()) {
       throw micResult.error;
     }
@@ -89,7 +92,7 @@ export class CombinedCaptureService implements AudioCaptureService {
     this.micService.onError((err) => this.emitter.emit("error", err));
 
     // 2. Attempt system audio (optional — graceful degradation)
-    const systemResult = await this.systemService.initialize();
+    const systemResult = await this.systemService.initialize(config);
 
     if (systemResult.isErr()) {
       // Fall back to mic-only
