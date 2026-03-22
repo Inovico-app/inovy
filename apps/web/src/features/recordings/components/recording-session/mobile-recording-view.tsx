@@ -46,7 +46,7 @@ interface MobileRecordingViewProps {
   devicesError: Error | null;
   onRetryDevices: () => void;
   isSwitchingDevice: boolean;
-  switchError: Error | null;
+  switchError: RecordingError | null;
   onPause: () => void;
   onResume: () => void;
   onStop: () => void;

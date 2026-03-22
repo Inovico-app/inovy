@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AudioInputDevice } from "@/features/recordings/hooks/use-audio-devices";
+import type { RecordingError } from "@/features/recordings/core/recording-session.errors";
 import { Lock, Mic, RotateCcw, Settings2 } from "lucide-react";
 import { useId, useState } from "react";
 
@@ -31,7 +32,7 @@ interface DeviceSettingsPopoverProps {
   isLoading: boolean;
   error: Error | null;
   onRetry: () => void;
-  switchError?: Error | null;
+  switchError?: RecordingError | null;
 }
 
 export function DeviceSettingsPopover({

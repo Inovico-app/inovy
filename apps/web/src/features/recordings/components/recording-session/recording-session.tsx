@@ -205,10 +205,9 @@ export function RecordingSession({
             selectedDeviceId={selectedDeviceId}
             onDeviceChange={handleDeviceChange}
             isDisabled={false}
-            isLoading={isLoadingDevices || session.isSwitchingDevice}
+            isLoading={isLoadingDevices}
             error={devicesError}
             onRetry={refreshDevices}
-            switchError={session.status === "paused" ? session.error : null}
           />
         </div>
       )}
@@ -323,12 +322,9 @@ export function RecordingSession({
                       selectedDeviceId={selectedDeviceId}
                       onDeviceChange={handleDeviceChange}
                       isDisabled={false}
-                      isLoading={isLoadingDevices || session.isSwitchingDevice}
+                      isLoading={isLoadingDevices}
                       error={devicesError}
                       onRetry={refreshDevices}
-                      switchError={
-                        session.status === "paused" ? session.error : null
-                      }
                     />
                   )}
                 </div>
