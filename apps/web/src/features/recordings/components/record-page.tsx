@@ -280,7 +280,7 @@ export function RecordPage({
             <DropdownMenuLabel className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
               Microfoon
             </DropdownMenuLabel>
-            <div className="px-2 py-1.5">
+            <div className="px-2 py-1.5 space-y-1.5">
               <Select
                 value={selectedDeviceId}
                 onValueChange={(value) => {
@@ -314,6 +314,9 @@ export function RecordPage({
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-[11px] text-muted-foreground/70">
+                Kan niet worden gewijzigd tijdens de opname
+              </p>
             </div>
             <DropdownMenuSeparator className="my-2" />
             <DropdownMenuLabel className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
