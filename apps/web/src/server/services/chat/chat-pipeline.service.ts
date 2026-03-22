@@ -13,7 +13,11 @@
 
 import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
-import type { ActionResult } from "@/lib/server-action-client/action-errors";
+import {
+  ActionErrors,
+  type ActionResult,
+} from "@/lib/server-action-client/action-errors";
+import type { ProjectTemplateDto } from "@/server/dto/project-template.dto";
 import { getCachedAgentSettings } from "@/server/cache/agent-settings.cache";
 import { getCachedOrganizationSettings } from "@/server/cache/organization-settings.cache";
 import { ChatQueries } from "@/server/data-access/chat.queries";
@@ -379,7 +383,13 @@ export class ChatPipeline {
         error,
         scope: request.scope.kind,
       });
-      return err(error instanceof Error ? error : new Error("Unknown error"));
+      return err(
+        ActionErrors.internal(
+          error instanceof Error ? error.message : "Unknown error",
+          error instanceof Error ? error : undefined,
+          "ChatPipeline.sendMessage",
+        ),
+      );
     }
   }
 
@@ -505,5 +515,5 @@ interface ScopeContext {
   projectDescription: string | null;
   knowledgeContext: string;
   orgInstructions: string | null;
-  projectTemplate: unknown | null;
+  projectTemplate: ProjectTemplateDto | null;
 }
