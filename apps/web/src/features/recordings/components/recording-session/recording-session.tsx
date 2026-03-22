@@ -13,16 +13,18 @@ import {
 import { useNavigationGuard } from "@/hooks/use-navigation-guard";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
   useRecordingSession,
   type UseRecordingSessionConfig,
 } from "@/features/recordings/hooks/use-recording-session";
+import { useAudioDevices } from "@/features/recordings/hooks/use-audio-devices";
 import { RecordingStatusBadge } from "@/features/recordings/components/shared/recording-status-badge";
 import { AudioSourceIndicator } from "./audio-source-indicator";
 import { ChunkUploadStatus } from "./chunk-upload-status";
+import { DeviceSettingsPopover } from "./device-settings-popover";
 import { MobileRecordingView } from "./mobile-recording-view";
 import { RecordingControls } from "./recording-controls";
 import { RecoveryDialog } from "./recovery-dialog";
@@ -42,6 +44,13 @@ export function RecordingSession({
 }: RecordingSessionProps) {
   const router = useRouter();
   const session = useRecordingSession(config);
+  const {
+    devices: audioDevices,
+    isLoading: isLoadingDevices,
+    error: devicesError,
+    refreshDevices,
+  } = useAudioDevices();
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   // Track which warnings we've already shown
   const shownWarningsRef = useRef(new Set<string>());
 
@@ -59,7 +68,10 @@ export function RecordingSession({
     const id = requestAnimationFrame(() => {
       if (autoStartFired.current) return; // guard against double-fire
       autoStartFired.current = true;
-      session.start().catch((err) => {
+      // selectedDeviceId is intentionally captured at mount time (will be null).
+      // autoStart fires immediately — the user hasn't had time to pick a device,
+      // so we fall back to the system default mic. This is the desired behavior.
+      session.start(selectedDeviceId ?? undefined).catch((err) => {
         console.error("[RecordingSession] Auto-start failed:", err);
       });
     });
@@ -120,7 +132,7 @@ export function RecordingSession({
     (isActiveRecording || session.transcription.segments.length > 0);
 
   // --- Loading: show only a spinner until the FSM reaches recording/paused/error ---
-  if (session.status === "idle" || session.status === "initializing") {
+  if (session.status === "initializing") {
     return (
       <>
         <div className="flex flex-col items-center justify-center gap-3 min-h-[calc(100vh-12rem)]">
@@ -157,6 +169,36 @@ export function RecordingSession({
 
   return (
     <>
+      {/* Idle state: visible on mobile only (desktop has its own idle view below) */}
+      {session.status === "idle" && (
+        <div className="flex flex-col items-center gap-6 justify-center min-h-[calc(100vh-12rem)] md:hidden">
+          <RecordingControls
+            status={session.status}
+            duration={session.duration}
+            errorIsRecoverable={session.error?.recoverable ?? false}
+            autoStarting={false}
+            onStart={() => void session.start(selectedDeviceId ?? undefined)}
+            onPause={session.pause}
+            onResume={session.resume}
+            onStop={() => void session.stop()}
+            onSavePartial={() => void session.savePartial()}
+            onReset={() => {
+              session.reset();
+              onDiscard?.();
+            }}
+          />
+          <DeviceSettingsPopover
+            devices={audioDevices}
+            selectedDeviceId={selectedDeviceId}
+            onDeviceChange={setSelectedDeviceId}
+            isDisabled={false}
+            isLoading={isLoadingDevices}
+            error={devicesError}
+            onRetry={refreshDevices}
+          />
+        </div>
+      )}
+
       {/* Mobile: Google Meet-style immersive overlay */}
       <MobileRecordingView
         status={session.status}
@@ -234,7 +276,9 @@ export function RecordingSession({
                     duration={session.duration}
                     errorIsRecoverable={session.error?.recoverable ?? false}
                     autoStarting={false}
-                    onStart={session.start}
+                    onStart={() =>
+                      void session.start(selectedDeviceId ?? undefined)
+                    }
                     onPause={session.pause}
                     onResume={session.resume}
                     onStop={() => void session.stop()}
@@ -244,6 +288,17 @@ export function RecordingSession({
                       onDiscard?.();
                     }}
                   />
+                  {session.status === "idle" && (
+                    <DeviceSettingsPopover
+                      devices={audioDevices}
+                      selectedDeviceId={selectedDeviceId}
+                      onDeviceChange={setSelectedDeviceId}
+                      isDisabled={false}
+                      isLoading={isLoadingDevices}
+                      error={devicesError}
+                      onRetry={refreshDevices}
+                    />
+                  )}
                 </div>
 
                 {/* Status bar */}
@@ -252,6 +307,15 @@ export function RecordingSession({
                     <AudioSourceIndicator
                       audioSource={config.audioSource}
                       status={session.status}
+                    />
+                    <DeviceSettingsPopover
+                      devices={audioDevices}
+                      selectedDeviceId={selectedDeviceId}
+                      onDeviceChange={setSelectedDeviceId}
+                      isDisabled={true}
+                      isLoading={isLoadingDevices}
+                      error={devicesError}
+                      onRetry={refreshDevices}
                     />
                     <ChunkUploadStatus manifest={session.chunkManifest} />
                   </div>
