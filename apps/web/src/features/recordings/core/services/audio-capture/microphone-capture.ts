@@ -67,6 +67,7 @@ export class MicrophoneCaptureService implements AudioCaptureService {
   private lastChunkTimestamp = 0;
   private active = false;
   private gain = DEFAULT_GAIN;
+  private timeslice = 0;
 
   // -----------------------------------------------------------------------
   // AudioCaptureService — initialize
@@ -85,17 +86,21 @@ export class MicrophoneCaptureService implements AudioCaptureService {
   }
 
   private async doInitialize(deviceId?: string): Promise<void> {
-    // Clean up any stale resources from a previous session
     this.releaseResources();
+    await this.buildPipeline(deviceId);
+  }
 
+  /**
+   * Core pipeline: getUserMedia + AudioContext + GainNode.
+   * Does NOT call releaseResources() — caller is responsible for cleanup.
+   */
+  private async buildPipeline(deviceId?: string): Promise<void> {
     // 1. Acquire raw microphone stream
     const audioConstraints: MediaTrackConstraints = {
       noiseSuppression: true,
       echoCancellation: true,
     };
 
-    // Only set deviceId constraint if a specific device was selected
-    // Empty string or "default" means use system default
     if (deviceId && deviceId !== "default") {
       audioConstraints.deviceId = { exact: deviceId };
     }
@@ -139,10 +144,113 @@ export class MicrophoneCaptureService implements AudioCaptureService {
   }
 
   // -----------------------------------------------------------------------
+  // AudioCaptureService — reinitialize
+  // -----------------------------------------------------------------------
+
+  reinitialize(
+    config?: AudioCaptureInitConfig,
+  ): ResultAsync<void, CaptureError> {
+    return ResultAsync.fromPromise(
+      this.doReinitialize(config?.deviceId),
+      (error) =>
+        createCaptureError(
+          this.classifyInitError(error),
+          error instanceof Error ? error.message : String(error),
+          { cause: error },
+        ),
+    );
+  }
+
+  private async doReinitialize(deviceId?: string): Promise<void> {
+    // 1. Save state that must survive the rebuild
+    const savedChunkIndex = this.chunkIndex;
+    const savedLastChunkTimestamp = this.lastChunkTimestamp;
+    const savedGain = this.gain;
+    const savedTimeslice = this.timeslice;
+
+    // 2. Detach handlers from old recorder to prevent spurious events
+    if (this.recorder) {
+      this.recorder.ondataavailable = null;
+      this.recorder.onerror = null;
+    }
+
+    // 3. Stop the old MediaRecorder (it's in paused state)
+    if (this.recorder && this.recorder.state !== "inactive") {
+      await new Promise<void>((resolve) => {
+        const onStop = () => {
+          this.recorder?.removeEventListener("stop", onStop);
+          resolve();
+        };
+        this.recorder!.addEventListener("stop", onStop);
+        this.recorder!.stop();
+      });
+    }
+
+    // 4. Release browser resources (preserves event listeners and active flag)
+    this.releaseMediaResources();
+
+    // 5. Build new pipeline with new device (NOT doInitialize — that destroys listeners)
+    await this.buildPipeline(deviceId);
+
+    // 6. Restore gain
+    this.gain = savedGain;
+    if (this.gainNode) {
+      this.gainNode.gain.value = this.gain;
+    }
+
+    // 7. Create new MediaRecorder on the new stream
+    if (!this.processedStream) {
+      throw new Error("Cannot reinitialize: stream not available after init");
+    }
+
+    const mimeType = this.selectMimeType();
+    const recorder = new MediaRecorder(this.processedStream, {
+      ...(mimeType ? { mimeType } : {}),
+    });
+    this.recorder = recorder;
+
+    // 8. Restore chunk state BEFORE start (start may emit a micro-chunk)
+    this.chunkIndex = savedChunkIndex;
+    this.lastChunkTimestamp = savedLastChunkTimestamp;
+    this.timeslice = savedTimeslice;
+
+    // 9. Attach handlers
+    recorder.ondataavailable = (event: BlobEvent) => {
+      if (event.data.size === 0) return;
+      const now = Date.now();
+      const chunk: AudioChunk = {
+        data: event.data,
+        index: this.chunkIndex++,
+        timestamp: now,
+        duration: now - this.lastChunkTimestamp,
+      };
+      this.lastChunkTimestamp = now;
+      this.emitter.emit("chunk", chunk);
+    };
+
+    recorder.onerror = (event: Event) => {
+      this.emitter.emit(
+        "error",
+        createCaptureError(
+          "MEDIA_RECORDER_ERROR",
+          event instanceof ErrorEvent ? event.message : "MediaRecorder error",
+          { cause: event },
+        ),
+      );
+    };
+
+    // 10. Start then immediately pause — ready for resume()
+    recorder.start(savedTimeslice);
+    recorder.pause();
+  }
+
+  // -----------------------------------------------------------------------
   // AudioCaptureService — start / pause / resume
   // -----------------------------------------------------------------------
 
   start(timeslice: number): void {
+    this.timeslice = timeslice;
+
     if (!this.processedStream) {
       this.emitter.emit(
         "error",
@@ -279,14 +387,18 @@ export class MicrophoneCaptureService implements AudioCaptureService {
   // Internals
   // -----------------------------------------------------------------------
 
-  private releaseResources(): void {
-    this.active = false;
+  private releaseMediaResources(): void {
     this.resources.disposeAll();
     this.recorder = null;
     this.processedStream = null;
     this.rawStream = null;
     this.audioContext = null;
     this.gainNode = null;
+  }
+
+  private releaseResources(): void {
+    this.active = false;
+    this.releaseMediaResources();
     this.emitter.removeAllListeners();
   }
 
