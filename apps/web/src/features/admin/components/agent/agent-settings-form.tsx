@@ -39,11 +39,8 @@ interface AgentSettingsFormProps {
 }
 
 const AVAILABLE_MODELS = [
-  { value: "gpt-5-nano", label: "GPT-5 Nano" },
-  { value: "gpt-4o", label: "GPT-4o" },
-  { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
-  { value: "gpt-4", label: "GPT-4" },
-  { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
+  { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
+  { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
 ];
 
 const MODEL_ITEMS = Object.fromEntries(
@@ -99,7 +96,8 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
     updateAgentSettings(data);
   };
 
-  const isReasoningModel = form.watch("model") === "gpt-5-nano";
+  // Anthropic models don't support frequency/presence penalty
+  const isAnthropicModel = true;
 
   return (
     <Card>
@@ -144,20 +142,18 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
             />
 
             {/* Warning for reasoning models */}
-            {isReasoningModel && (
+            {isAnthropicModel && (
               <Alert
                 variant="default"
                 className="border-amber-500 bg-amber-50 dark:bg-amber-950/20"
               >
                 <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
                 <AlertTitle className="text-amber-900 dark:text-amber-100">
-                  Reasoning Model Selected
+                  Anthropic Model
                 </AlertTitle>
                 <AlertDescription className="text-amber-800 dark:text-amber-200">
-                  GPT-5 Nano is a reasoning model and does not support
-                  temperature, top-p, frequency penalty, or presence penalty
-                  settings. These parameters will be ignored when using this
-                  model.
+                  Anthropic models do not support frequency penalty or presence
+                  penalty settings. These parameters will be ignored.
                 </AlertDescription>
               </Alert>
             )}
@@ -225,12 +221,12 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel
-                    className={isReasoningModel ? "text-muted-foreground" : ""}
+                    className={isAnthropicModel ? "text-muted-foreground" : ""}
                   >
                     Temperature: {field.value.toFixed(2)}
-                    {isReasoningModel && (
+                    {isAnthropicModel && (
                       <span className="ml-2 text-xs text-muted-foreground">
-                        (Not used for reasoning models)
+                        (Not supported by Anthropic)
                       </span>
                     )}
                   </FormLabel>
@@ -244,13 +240,13 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
                         const arr = Array.isArray(v) ? v : [v];
                         field.onChange(arr[0]);
                       }}
-                      disabled={isReasoningModel}
-                      className={isReasoningModel ? "opacity-50" : ""}
+                      disabled={isAnthropicModel}
+                      className={isAnthropicModel ? "opacity-50" : ""}
                     />
                   </FormControl>
                   <FormDescription>
                     Controls randomness: 0 = deterministic, 2 = very creative
-                    {isReasoningModel && " (Disabled for reasoning models)"}
+                    {isAnthropicModel && " (Not supported by Anthropic)"}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -264,12 +260,12 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel
-                    className={isReasoningModel ? "text-muted-foreground" : ""}
+                    className={isAnthropicModel ? "text-muted-foreground" : ""}
                   >
                     Top P: {field.value.toFixed(2)}
-                    {isReasoningModel && (
+                    {isAnthropicModel && (
                       <span className="ml-2 text-xs text-muted-foreground">
-                        (Not used for reasoning models)
+                        (Not supported by Anthropic)
                       </span>
                     )}
                   </FormLabel>
@@ -283,13 +279,13 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
                         const arr = Array.isArray(v) ? v : [v];
                         field.onChange(arr[0]);
                       }}
-                      disabled={isReasoningModel}
-                      className={isReasoningModel ? "opacity-50" : ""}
+                      disabled={isAnthropicModel}
+                      className={isAnthropicModel ? "opacity-50" : ""}
                     />
                   </FormControl>
                   <FormDescription>
                     Nucleus sampling: controls diversity via nucleus probability
-                    {isReasoningModel && " (Disabled for reasoning models)"}
+                    {isAnthropicModel && " (Not supported by Anthropic)"}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -303,12 +299,12 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel
-                    className={isReasoningModel ? "text-muted-foreground" : ""}
+                    className={isAnthropicModel ? "text-muted-foreground" : ""}
                   >
                     Frequency Penalty: {field.value.toFixed(2)}
-                    {isReasoningModel && (
+                    {isAnthropicModel && (
                       <span className="ml-2 text-xs text-muted-foreground">
-                        (Not used for reasoning models)
+                        (Not supported by Anthropic)
                       </span>
                     )}
                   </FormLabel>
@@ -322,13 +318,13 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
                         const arr = Array.isArray(v) ? v : [v];
                         field.onChange(arr[0]);
                       }}
-                      disabled={isReasoningModel}
-                      className={isReasoningModel ? "opacity-50" : ""}
+                      disabled={isAnthropicModel}
+                      className={isAnthropicModel ? "opacity-50" : ""}
                     />
                   </FormControl>
                   <FormDescription>
                     Reduces likelihood of repeating tokens (-2 to 2)
-                    {isReasoningModel && " (Disabled for reasoning models)"}
+                    {isAnthropicModel && " (Not supported by Anthropic)"}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -342,12 +338,12 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel
-                    className={isReasoningModel ? "text-muted-foreground" : ""}
+                    className={isAnthropicModel ? "text-muted-foreground" : ""}
                   >
                     Presence Penalty: {field.value.toFixed(2)}
-                    {isReasoningModel && (
+                    {isAnthropicModel && (
                       <span className="ml-2 text-xs text-muted-foreground">
-                        (Not used for reasoning models)
+                        (Not supported by Anthropic)
                       </span>
                     )}
                   </FormLabel>
@@ -361,13 +357,13 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
                         const arr = Array.isArray(v) ? v : [v];
                         field.onChange(arr[0]);
                       }}
-                      disabled={isReasoningModel}
-                      className={isReasoningModel ? "opacity-50" : ""}
+                      disabled={isAnthropicModel}
+                      className={isAnthropicModel ? "opacity-50" : ""}
                     />
                   </FormControl>
                   <FormDescription>
                     Increases likelihood of talking about new topics (-2 to 2)
-                    {isReasoningModel && " (Disabled for reasoning models)"}
+                    {isAnthropicModel && " (Not supported by Anthropic)"}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

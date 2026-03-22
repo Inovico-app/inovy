@@ -16,7 +16,7 @@ export const agentSettings = pgTable(
   "agent_settings",
   {
     id: text("id").primaryKey().default("default"), // Single record with id "default"
-    model: text("model").notNull().default("gpt-5-nano"), // LLM model to use
+    model: text("model").notNull().default("claude-sonnet-4-6"), // LLM model to use
     maxTokens: integer("max_tokens").notNull().default(4000), // Maximum tokens for response
     maxContextTokens: integer("max_context_tokens").notNull().default(4000), // Maximum tokens for context
     temperature: real("temperature").notNull().default(0.7), // Temperature (0-2)
@@ -33,9 +33,8 @@ export const agentSettings = pgTable(
   (table) => ({
     // Ensure only one settings record exists
     uniqueId: unique().on(table.id),
-  })
+  }),
 );
 
 export type AgentSettings = typeof agentSettings.$inferSelect;
 export type NewAgentSettings = typeof agentSettings.$inferInsert;
-

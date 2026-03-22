@@ -1,17 +1,17 @@
-import { err, ok } from "neverthrow";
 import { logger } from "@/lib/logger";
 import {
   ActionErrors,
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
-import { RecallApiService } from "./recall-api.service";
-import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
+import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { type MeetingAgendaItem } from "@/server/db/schema/meeting-agenda-items";
 import { type Meeting } from "@/server/db/schema/meetings";
-import { openai } from "@ai-sdk/openai";
+import { anthropic } from "@ai-sdk/anthropic";
 import { generateObject } from "ai";
+import { err, ok } from "neverthrow";
 import { z } from "zod";
+import { RecallApiService } from "./recall-api.service";
 
 const agendaCheckResultSchema = z.object({
   items: z.array(
@@ -20,7 +20,7 @@ const agendaCheckResultSchema = z.object({
       covered: z.boolean(),
       summary: z.string(),
       keyPoints: z.array(z.string()),
-    })
+    }),
   ),
 });
 
@@ -30,7 +30,7 @@ export class AgendaTrackerService {
    */
   static async checkMeetingAgenda(
     meeting: Meeting,
-    recallBotId: string
+    recallBotId: string,
   ): Promise<ActionResult<{ newlyCovered: number }>> {
     try {
       // 1. Fetch transcript from Recall.ai
@@ -62,10 +62,10 @@ export class AgendaTrackerService {
 
       // 5. Get all agenda items (single query), derive unchecked subset
       const allItems = await MeetingAgendaItemsQueries.findByMeetingId(
-        meeting.id
+        meeting.id,
       );
       const uncheckedItems = allItems.filter(
-        (item) => item.status === "pending" || item.status === "in_progress"
+        (item) => item.status === "pending" || item.status === "in_progress",
       );
       if (uncheckedItems.length === 0) {
         return ok({ newlyCovered: 0 });
@@ -74,7 +74,7 @@ export class AgendaTrackerService {
       // 6. LLM analysis
       const result = await this.analyzeTranscript(
         transcriptText,
-        uncheckedItems
+        uncheckedItems,
       );
 
       if (result.isErr()) {
@@ -94,12 +94,12 @@ export class AgendaTrackerService {
                 coveredAt: new Date(),
                 aiSummary: itemResult.summary,
                 aiKeyPoints: itemResult.keyPoints,
-              }
-            )
-          )
+              },
+            ),
+          ),
       );
       const coveredItems = coveredResults.filter(
-        (item): item is MeetingAgendaItem => item !== null
+        (item): item is MeetingAgendaItem => item !== null,
       );
 
       // 8. Send chat message if items were newly covered
@@ -107,7 +107,7 @@ export class AgendaTrackerService {
         const message = this.composeChatMessage(allItems, coveredItems);
         const sendResult = await RecallApiService.sendChatMessage(
           recallBotId,
-          message
+          message,
         );
         if (sendResult.isErr()) {
           logger.warn("Failed to send agenda update chat message", {
@@ -132,30 +132,28 @@ export class AgendaTrackerService {
           component: "AgendaTrackerService",
           meetingId: meeting.id,
         },
-        error as Error
+        error as Error,
       );
       return err(
-        ActionErrors.internal("Failed to check meeting agenda", error)
+        ActionErrors.internal("Failed to check meeting agenda", error),
       );
     }
   }
 
   private static async analyzeTranscript(
     transcript: string,
-    uncheckedItems: MeetingAgendaItem[]
-  ): Promise<
-    ActionResult<z.infer<typeof agendaCheckResultSchema>>
-  > {
+    uncheckedItems: MeetingAgendaItem[],
+  ): Promise<ActionResult<z.infer<typeof agendaCheckResultSchema>>> {
     try {
       const itemsList = uncheckedItems
         .map(
           (item, i) =>
-            `${i + 1}. [ID: ${item.id}] ${item.title}${item.description ? ` - ${item.description}` : ""}`
+            `${i + 1}. [ID: ${item.id}] ${item.title}${item.description ? ` - ${item.description}` : ""}`,
         )
         .join("\n");
 
       const { object } = await generateObject({
-        model: openai("gpt-4o-mini"),
+        model: anthropic("claude-haiku-4-5"),
         schema: agendaCheckResultSchema,
         prompt: `You are analyzing a live meeting transcript to determine which agenda items have been discussed and covered.
 
@@ -178,22 +176,20 @@ Use the exact agendaItemId from the list above. Only mark items as covered if th
       logger.error(
         "Failed to analyze transcript with LLM",
         { component: "AgendaTrackerService" },
-        error as Error
+        error as Error,
       );
-      return err(
-        ActionErrors.internal("Failed to analyze transcript", error)
-      );
+      return err(ActionErrors.internal("Failed to analyze transcript", error));
     }
   }
 
   private static composeChatMessage(
     allItems: MeetingAgendaItem[],
-    newlyCoveredItems: MeetingAgendaItem[]
+    newlyCoveredItems: MeetingAgendaItem[],
   ): string {
     const coveredCount = allItems.filter(
       (item) =>
         item.status === "covered" ||
-        newlyCoveredItems.some((c) => c.id === item.id)
+        newlyCoveredItems.some((c) => c.id === item.id),
     ).length;
     const totalCount = allItems.length;
 
@@ -211,7 +207,7 @@ Use the exact agendaItemId from the list above. Only mark items as covered if th
       (item) =>
         item.status !== "covered" &&
         item.status !== "skipped" &&
-        !newlyCoveredItems.some((c) => c.id === item.id)
+        !newlyCoveredItems.some((c) => c.id === item.id),
     );
 
     if (remaining.length > 0) {

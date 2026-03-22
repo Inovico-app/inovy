@@ -8,7 +8,7 @@ import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { CacheInvalidation } from "@/lib/cache-utils";
-import { openai } from "@ai-sdk/openai";
+import { anthropic } from "@ai-sdk/anthropic";
 import { generateObject } from "ai";
 
 const generateAgendaSchema = z.object({
@@ -56,7 +56,7 @@ export const generateAgendaFromAI = authorizedActionClient
     );
 
     const { object } = await generateObject({
-      model: openai("gpt-4o-mini"),
+      model: anthropic("claude-sonnet-4-6"),
       schema: aiAgendaResultSchema,
       prompt: `Generate a structured meeting agenda based on this description:
 
