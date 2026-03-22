@@ -31,6 +31,7 @@ interface DeviceSettingsPopoverProps {
   isLoading: boolean;
   error: Error | null;
   onRetry: () => void;
+  switchError?: Error | null;
 }
 
 export function DeviceSettingsPopover({
@@ -41,6 +42,7 @@ export function DeviceSettingsPopover({
   isLoading,
   error,
   onRetry,
+  switchError,
 }: DeviceSettingsPopoverProps) {
   const instanceId = useId();
   const [open, setOpen] = useState(false);
@@ -162,7 +164,13 @@ export function DeviceSettingsPopover({
                   className="flex items-center gap-1.5 text-xs text-muted-foreground"
                 >
                   <Lock className="h-3 w-3 shrink-0" />
-                  <span>Wissel van microfoon door de opname te stoppen</span>
+                  <span>Pauzeer de opname om van microfoon te wisselen</span>
+                </p>
+              )}
+
+              {switchError && !isDisabled && (
+                <p className="text-xs text-destructive">
+                  {switchError.message || "Kon niet wisselen van microfoon"}
                 </p>
               )}
             </>
