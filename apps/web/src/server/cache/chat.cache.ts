@@ -2,7 +2,7 @@ import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import type { ChatConversation } from "../db/schema/chat-conversations";
 import type { ChatMessage } from "../db/schema/chat-messages";
-import { ChatService } from "../services/chat.service";
+import { ConversationService } from "../services/chat";
 
 /**
  * Cached chat queries
@@ -16,20 +16,21 @@ export interface ConversationsListResult {
 
 /**
  * Get conversation history/messages (cached)
- * Calls ChatService which includes business logic
+ * Calls ConversationService which includes business logic
  */
 export async function getCachedConversationHistory(
-  conversationId: string
+  conversationId: string,
 ): Promise<ChatMessage[]> {
   "use cache";
   cacheTag(CacheTags.conversationMessages(conversationId));
-  const result = await ChatService.getConversationHistory(conversationId);
+  const result =
+    await ConversationService.getConversationHistory(conversationId);
   return result.isOk() ? result.value : [];
 }
 
 /**
  * List conversations with pagination (cached)
- * Calls ChatService which includes business logic
+ * Calls ConversationService which includes business logic
  */
 export async function getCachedConversations(params: {
   userId: string;
@@ -42,7 +43,6 @@ export async function getCachedConversations(params: {
 }): Promise<ConversationsListResult> {
   "use cache";
   cacheTag(CacheTags.conversations(params.userId, params.organizationId ?? ""));
-  const result = await ChatService.listConversations(params);
+  const result = await ConversationService.listConversations(params);
   return result.isOk() ? result.value : { conversations: [], total: 0 };
 }
-
