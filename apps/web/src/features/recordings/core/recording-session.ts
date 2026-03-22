@@ -101,6 +101,11 @@ export class RecordingSession {
     return { ...this.state };
   }
 
+  /** Returns the active MediaStream from the audio capture service (if any). */
+  getMediaStream(): MediaStream | null {
+    return this.deps.audioCapture.getStream();
+  }
+
   onStateChange(callback: (state: RecordingSessionState) => void): Unsubscribe {
     this.stateListeners.add(callback);
     return () => {
