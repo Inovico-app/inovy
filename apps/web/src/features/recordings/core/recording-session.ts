@@ -222,6 +222,11 @@ export class RecordingSession {
   }
 
   resume(): void {
+    // Clear any switch-related warning before resuming
+    if (this.state.error?.severity === "warning") {
+      this.setState({ error: null, errorIsRecoverable: false });
+    }
+
     if (!this.transition("recording")) return;
 
     this.deps.audioCapture.resume();
@@ -230,6 +235,29 @@ export class RecordingSession {
     // Note: Deepgram keep-alive is managed internally by the
     // LiveTranscriptionService. When chunks resume flowing, the service
     // automatically transitions back from keep-alive mode.
+  }
+
+  async switchDevice(deviceId: string): Promise<void> {
+    if (this.state.status !== "paused") return;
+
+    // Clear any previous switch error before attempting
+    if (this.state.error?.severity === "warning") {
+      this.setState({ error: null, errorIsRecoverable: false });
+    }
+
+    const result = await this.deps.audioCapture.reinitialize({ deviceId });
+
+    if (result.isErr()) {
+      // Non-fatal: set warning error but stay paused (no FSM transition to error state)
+      this.setState({
+        error: {
+          ...result.error,
+          severity: "warning",
+          recoverable: true,
+        },
+        errorIsRecoverable: true,
+      });
+    }
   }
 
   async stop(): Promise<FinalizedRecording | null> {
