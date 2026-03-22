@@ -2,11 +2,11 @@
 
 import type { AuthContext } from "@/lib/auth-context";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { RecordingService } from "@/server/services/recording.service";
+import { archiveRecordingSchema } from "@/server/validation/recordings/archive-recording";
 import { revalidatePath } from "next/cache";
-import { authorizedActionClient } from "../../../lib/server-action-client/action-client";
-import { ActionErrors } from "../../../lib/server-action-client/action-errors";
-import { RecordingService } from "../../../server/services/recording.service";
-import { archiveRecordingSchema } from "../../../server/validation/recordings/archive-recording";
 
 /**
  * Unarchive recording action (uses same schema as archive)
@@ -24,7 +24,14 @@ export const unarchiveRecordingAction = authorizedActionClient
   .inputSchema(archiveRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
-    const { organizationId } = ctx;
+    const { user, organizationId } = ctx;
+
+    if (!user) {
+      throw ActionErrors.unauthenticated(
+        "User not found",
+        "unarchive-recording",
+      );
+    }
 
     if (!organizationId) {
       throw ActionErrors.forbidden(
@@ -34,11 +41,11 @@ export const unarchiveRecordingAction = authorizedActionClient
       );
     }
 
-    const auth = {
-      user: ctx.user!,
-      organizationId: ctx.organizationId!,
+    const auth: AuthContext = {
+      user,
+      organizationId,
       userTeamIds: ctx.userTeamIds ?? [],
-    } as const;
+    };
 
     // Get recording to find project ID for cache invalidation
     const recordingResult = await RecordingService.getRecordingById(

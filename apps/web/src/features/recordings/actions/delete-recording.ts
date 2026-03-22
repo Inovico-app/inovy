@@ -25,7 +25,11 @@ export const deleteRecordingAction = authorizedActionClient
   .inputSchema(deleteRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId, confirmationText } = parsedInput;
-    const { organizationId } = ctx;
+    const { user, organizationId } = ctx;
+
+    if (!user) {
+      throw ActionErrors.unauthenticated("User not found", "delete-recording");
+    }
 
     if (!organizationId) {
       throw ActionErrors.forbidden(
@@ -36,8 +40,8 @@ export const deleteRecordingAction = authorizedActionClient
     }
 
     const auth: AuthContext = {
-      user: ctx.user!,
-      organizationId: ctx.organizationId!,
+      user,
+      organizationId,
       userTeamIds: ctx.userTeamIds ?? [],
     };
 

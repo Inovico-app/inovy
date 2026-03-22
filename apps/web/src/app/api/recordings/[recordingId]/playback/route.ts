@@ -16,7 +16,7 @@ import { type NextRequest, NextResponse } from "next/server";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ recordingId: string }> }
+  { params }: { params: Promise<{ recordingId: string }> },
 ) {
   const { recordingId } = await params;
   try {
@@ -33,11 +33,11 @@ export async function GET(
 
     // Get recording
     const recordingResult =
-      await RecordingService.getRecordingById(recordingId);
+      await RecordingService.getRecordingByIdInternal(recordingId);
     if (recordingResult.isErr() || !recordingResult.value) {
       return NextResponse.json(
         { error: "Recording not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -48,12 +48,12 @@ export async function GET(
       assertOrganizationAccess(
         recording.organizationId,
         organization.id,
-        "recording-playback"
+        "recording-playback",
       );
     } catch {
       return NextResponse.json(
         { error: "Recording not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -66,7 +66,7 @@ export async function GET(
     const controller = new AbortController();
     const timeoutId = setTimeout(
       () => controller.abort(),
-      API_TIMEOUT_30_SECONDS
+      API_TIMEOUT_30_SECONDS,
     );
 
     let response: Response;
@@ -78,7 +78,7 @@ export async function GET(
       if (error instanceof Error && error.name === "AbortError") {
         return NextResponse.json(
           { error: "Request timeout while fetching recording file" },
-          { status: 504 }
+          { status: 504 },
         );
       }
       throw error;
@@ -87,7 +87,7 @@ export async function GET(
     if (!response.ok) {
       return NextResponse.json(
         { error: "Failed to fetch recording file" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -105,7 +105,7 @@ export async function GET(
         });
         return NextResponse.json(
           { error: "Failed to decrypt recording" },
-          { status: 500 }
+          { status: 500 },
         );
       }
     } else {
@@ -113,8 +113,7 @@ export async function GET(
       fileBuffer = Buffer.from(arrayBuffer);
     }
 
-    const isDownload =
-      request.nextUrl.searchParams.get("download") === "1";
+    const isDownload = request.nextUrl.searchParams.get("download") === "1";
     const contentDisposition = isDownload
       ? `attachment; filename="${recording.fileName}"`
       : `inline; filename="${recording.fileName}"`;
@@ -135,8 +134,7 @@ export async function GET(
     });
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

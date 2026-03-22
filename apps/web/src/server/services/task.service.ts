@@ -68,7 +68,7 @@ export class TaskService {
 
   static async getTasksByRecordingId(
     recordingId: string,
-    _auth: AuthContext,
+    auth: AuthContext,
   ): Promise<ActionResult<TaskDto[]>> {
     try {
       const tasks = await TasksQueries.getTasksByRecordingId(recordingId);
@@ -77,6 +77,24 @@ export class TaskService {
         return err(
           ActionErrors.notFound("Tasks", "TaskService.getTasksByRecordingId"),
         );
+      }
+
+      // Verify all returned tasks belong to the user's organization
+      for (const task of tasks) {
+        try {
+          assertOrganizationAccess(
+            task.organizationId,
+            auth.organizationId,
+            "TaskService.getTasksByRecordingId",
+          );
+        } catch {
+          return err(
+            ActionErrors.notFound(
+              "Tasks not found",
+              "TaskService.getTasksByRecordingId",
+            ),
+          );
+        }
       }
 
       return ok(tasks.map((task: Task) => this.toDto(task)));

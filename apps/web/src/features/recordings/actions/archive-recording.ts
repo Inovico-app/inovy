@@ -23,7 +23,11 @@ export const archiveRecordingAction = authorizedActionClient
   .inputSchema(archiveRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
-    const { organizationId } = ctx;
+    const { user, organizationId } = ctx;
+
+    if (!user) {
+      throw ActionErrors.unauthenticated("User not found", "archive-recording");
+    }
 
     if (!organizationId) {
       throw ActionErrors.forbidden(
@@ -34,8 +38,8 @@ export const archiveRecordingAction = authorizedActionClient
     }
 
     const auth: AuthContext = {
-      user: ctx.user!,
-      organizationId: ctx.organizationId!,
+      user,
+      organizationId,
       userTeamIds: ctx.userTeamIds ?? [],
     };
 

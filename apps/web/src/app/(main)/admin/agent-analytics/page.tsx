@@ -61,16 +61,12 @@ async function UserAnalyticsContent({
 
   // Get users list for filter dropdown (superadmins only)
   const usersResult = hasSuperAdminPermission
-    ? await AgentAnalyticsService.getUsersList(auth, organization?.id)
+    ? await AgentAnalyticsService.getUsersList(auth, organization.id)
     : ok([]);
 
   const users = usersResult.isOk() ? usersResult.value : [];
 
   // Fetch user engagement metrics
-  if (!organization) {
-    redirect("/");
-  }
-
   const engagementMetricsResult =
     await AgentAnalyticsService.getUserEngagementMetrics(
       selectedUserId,

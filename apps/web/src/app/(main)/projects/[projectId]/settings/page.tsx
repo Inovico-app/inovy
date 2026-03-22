@@ -48,7 +48,7 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
     authResult.value,
   );
 
-  if (projectResult.isErr()) {
+  if (projectResult.isErr() || !projectResult.value) {
     notFound();
   }
 

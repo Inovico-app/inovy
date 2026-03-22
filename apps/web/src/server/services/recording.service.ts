@@ -123,11 +123,12 @@ export class RecordingService {
   }
 
   /**
-   * Get a recording by ID
+   * Get a recording by ID (authenticated)
+   * Always enforces organization and team-level access isolation.
    */
   static async getRecordingById(
     id: string,
-    auth?: AuthContext,
+    auth: AuthContext,
   ): Promise<ActionResult<RecordingDto | null>> {
     logger.info("Fetching recording by ID", {
       component: "RecordingService.getRecordingById",
@@ -145,10 +146,15 @@ export class RecordingService {
         return ok(null);
       }
 
-      // Enforce team-level access isolation via the recording's project.
-      // When auth is provided (user-facing calls), verify team access.
-      // When auth is absent (system/workflow calls), skip the check.
-      if (recording.projectId && auth) {
+      // Always enforce organization-level access isolation
+      assertOrganizationAccess(
+        recording.organizationId,
+        auth.organizationId,
+        "RecordingService.getRecordingById",
+      );
+
+      // Enforce team-level access isolation via the recording's project
+      if (recording.projectId) {
         const project = await ProjectQueries.findById(
           recording.projectId,
           recording.organizationId,
@@ -182,6 +188,48 @@ export class RecordingService {
           "Failed to fetch recording",
           error as Error,
           "RecordingService.getRecordingById",
+        ),
+      );
+    }
+  }
+
+  /**
+   * Get a recording by ID without auth checks.
+   * Only for internal system/workflow callers (e.g. background jobs, workflow steps).
+   * User-facing code must use getRecordingById(id, auth) instead.
+   */
+  static async getRecordingByIdInternal(
+    id: string,
+  ): Promise<ActionResult<RecordingDto | null>> {
+    logger.info("Fetching recording by ID (internal)", {
+      component: "RecordingService.getRecordingByIdInternal",
+      recordingId: id,
+    });
+
+    try {
+      const recording = await RecordingsQueries.selectRecordingById(id);
+
+      if (!recording) {
+        logger.warn("Recording not found", {
+          component: "RecordingService.getRecordingByIdInternal",
+          recordingId: id,
+        });
+        return ok(null);
+      }
+
+      return ok(this.toDto(recording));
+    } catch (error) {
+      logger.error("Failed to fetch recording from database", {
+        component: "RecordingService.getRecordingByIdInternal",
+        error: serializeError(error),
+        recordingId: id,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to fetch recording",
+          error as Error,
+          "RecordingService.getRecordingByIdInternal",
         ),
       );
     }

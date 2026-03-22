@@ -44,8 +44,8 @@ export const reprocessRecordingAction = authorizedActionClient
     }
 
     const auth: AuthContext = {
-      user: ctx.user!,
-      organizationId: ctx.organizationId!,
+      user,
+      organizationId,
       userTeamIds: ctx.userTeamIds ?? [],
     };
 
@@ -113,15 +113,19 @@ export const getReprocessingStatusAction = authorizedActionClient
   .schema(getReprocessingStatusSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
-    const { organizationId } = ctx;
+    const { user, organizationId } = ctx;
+
+    if (!user) {
+      throw ActionErrors.unauthenticated("User not found");
+    }
 
     if (!organizationId) {
       throw ActionErrors.forbidden("Organization context required");
     }
 
     const auth2: AuthContext = {
-      user: ctx.user!,
-      organizationId: ctx.organizationId!,
+      user,
+      organizationId,
       userTeamIds: ctx.userTeamIds ?? [],
     };
 

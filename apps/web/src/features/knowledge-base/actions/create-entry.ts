@@ -49,7 +49,6 @@ export const createKnowledgeEntryAction = authorizedActionClient
       scope,
       scopeId,
       { term, definition, context, examples },
-      user.id,
       auth,
     );
 

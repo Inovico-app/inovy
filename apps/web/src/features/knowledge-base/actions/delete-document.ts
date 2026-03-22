@@ -37,14 +37,22 @@ export const deleteKnowledgeDocumentAction = authorizedActionClient
       );
     }
 
+    if (!organizationId) {
+      throw ActionErrors.forbidden(
+        "Organization context required",
+        undefined,
+        "delete-knowledge-document",
+      );
+    }
+
     // Get document first to know its scope for cache invalidation
     const { KnowledgeBaseDocumentsQueries } =
       await import("../../../server/data-access/knowledge-base-documents.queries");
     const document = await KnowledgeBaseDocumentsQueries.getDocumentById(id);
 
     const auth: AuthContext = {
-      user: ctx.user!,
-      organizationId: ctx.organizationId!,
+      user,
+      organizationId,
       userTeamIds: ctx.userTeamIds ?? [],
     };
 

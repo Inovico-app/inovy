@@ -332,7 +332,7 @@ export async function POST(request: NextRequest) {
         projectId,
         chatAuth,
       );
-      if (projectResult.isErr()) {
+      if (projectResult.isErr() || !projectResult.value) {
         return NextResponse.json(
           { error: "Project not found" },
           { status: 404 },

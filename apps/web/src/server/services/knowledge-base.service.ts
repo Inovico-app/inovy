@@ -250,19 +250,11 @@ export class KnowledgeBaseService {
       context?: string | null;
       examples?: string[] | null;
     },
-    userId: string,
-    auth?: AuthContext,
+    auth: AuthContext,
   ): Promise<ActionResult<KnowledgeEntryDto>> {
     try {
-      // Validate scope-specific permissions (skip if no auth - e.g. internal calls)
-      if (!auth) {
-        return err(
-          ActionErrors.unauthenticated(
-            "Authentication required",
-            "KnowledgeBaseService.createEntry",
-          ),
-        );
-      }
+      const userId = auth.user.id;
+
       const permissionResult = await this.validateScopePermissions(
         scope,
         scopeId,

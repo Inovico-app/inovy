@@ -40,7 +40,6 @@ export async function getCachedTeamsByOrganization(
 }
 
 /**
-/**
  * Get team by ID (cached)
  * Calls TeamService which includes business logic and auth checks
  */

@@ -38,11 +38,19 @@ export const deleteKnowledgeEntryAction = authorizedActionClient
       );
     }
 
+    if (!organizationId) {
+      throw ActionErrors.forbidden(
+        "Organization context required",
+        undefined,
+        "delete-knowledge-entry",
+      );
+    }
+
     const entry = await KnowledgeBaseEntriesQueries.getEntryById(id);
 
     const auth: AuthContext = {
-      user: ctx.user!,
-      organizationId: ctx.organizationId!,
+      user,
+      organizationId,
       userTeamIds: ctx.userTeamIds ?? [],
     };
 

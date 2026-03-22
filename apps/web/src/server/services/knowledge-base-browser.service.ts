@@ -136,7 +136,7 @@ export class KnowledgeBaseBrowserService {
         // search, consider implementing cursor-based pagination using documentId.
         const qdrantBatchSize = Math.max(requestedLimit * 5, 500);
         let currentOffset: string | number | null = requestedOffset;
-        let hasMoreFromQdrant = true;
+        let searchHasMore = true;
         const maxScrollBatches = 10; // Limit batches to prevent infinite loops
         let scrollBatchCount = 0;
         let filteredCount = 0;
@@ -145,7 +145,7 @@ export class KnowledgeBaseBrowserService {
         // Fetch batches until we have enough filtered results
         while (
           filteredCount < requestedLimit &&
-          hasMoreFromQdrant &&
+          searchHasMore &&
           scrollBatchCount < maxScrollBatches
         ) {
           const documentsResult = await this.qdrantService.listUniqueDocuments(
@@ -176,7 +176,7 @@ export class KnowledgeBaseBrowserService {
           filteredCount += Math.min(filteredBatch.length, remainingNeeded);
 
           // Update pagination state
-          hasMoreFromQdrant = documentsResult.value.hasMore;
+          searchHasMore = documentsResult.value.hasMore;
           currentOffset = documentsResult.value.nextOffset;
           scrollBatchCount++;
 
@@ -187,14 +187,14 @@ export class KnowledgeBaseBrowserService {
 
           // If we got fewer documents than the batch size, we've reached the end
           if (batchDocuments.length < qdrantBatchSize) {
-            hasMoreFromQdrant = false;
+            searchHasMore = false;
             break;
           }
         }
 
         // Store Qdrant pagination state for later use
         hasMoreFromQdrant =
-          hasMoreFromQdrant && scrollBatchCount < maxScrollBatches;
+          searchHasMore && scrollBatchCount < maxScrollBatches;
         nextOffset = hasMoreFromQdrant ? currentOffset : null;
       } else {
         // No search filter - use Qdrant's pagination directly
@@ -385,14 +385,32 @@ export class KnowledgeBaseBrowserService {
         return err(deleteResult.error);
       }
 
-      // Optionally delete from database if it exists
+      // Optionally delete from database if it exists and belongs to the same organization
       try {
         const dbDocument =
           await KnowledgeBaseDocumentsQueries.getDocumentById(documentId);
         if (dbDocument) {
-          // Delete chunks from Qdrant (already done above)
-          // Delete document record from database
-          await KnowledgeBaseDocumentsQueries.deleteDocument(documentId);
+          // Resolve the document's organization to verify it matches
+          let documentOrgId: string | null = null;
+          if (dbDocument.scope === "project" && dbDocument.scopeId) {
+            documentOrgId = await ProjectQueries.getOrganizationIdByProjectId(
+              dbDocument.scopeId,
+            );
+          } else if (
+            dbDocument.scope === "organization" &&
+            dbDocument.scopeId
+          ) {
+            documentOrgId = dbDocument.scopeId;
+          }
+
+          if (documentOrgId && documentOrgId === organizationId) {
+            await KnowledgeBaseDocumentsQueries.deleteDocument(documentId);
+          } else {
+            logger.warn(
+              "Skipped database deletion: document organization mismatch",
+              { documentId, documentOrgId, organizationId },
+            );
+          }
         }
       } catch (error) {
         // Log but don't fail if database deletion fails

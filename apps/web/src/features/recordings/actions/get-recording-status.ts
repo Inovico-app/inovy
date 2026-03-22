@@ -28,15 +28,26 @@ export const getRecordingStatusAction = authorizedActionClient
   .schema(getRecordingStatusSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
-    const { organizationId } = ctx;
+    const { user, organizationId } = ctx;
+
+    if (!user) {
+      throw ActionErrors.unauthenticated(
+        "User not found",
+        "get-recording-status",
+      );
+    }
 
     if (!organizationId) {
-      throw ActionErrors.forbidden("Organization context required");
+      throw ActionErrors.forbidden(
+        "Organization context required",
+        undefined,
+        "get-recording-status",
+      );
     }
 
     const auth: AuthContext = {
-      user: ctx.user!,
-      organizationId: ctx.organizationId!,
+      user,
+      organizationId,
       userTeamIds: ctx.userTeamIds ?? [],
     };
 

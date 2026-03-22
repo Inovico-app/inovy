@@ -21,9 +21,14 @@ export async function GET(request: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const organizationId = authResult.value.organization.id;
+    const { user, organization } = authResult.value;
+    if (!user) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const organizationId = organization.id;
     const auth: AuthContext = {
-      user: authResult.value.user!,
+      user,
       organizationId,
       userTeamIds: authResult.value.userTeamIds ?? [],
     };
