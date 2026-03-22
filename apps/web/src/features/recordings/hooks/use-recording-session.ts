@@ -38,6 +38,8 @@ export interface UseRecordingSessionReturn {
   start: (deviceId?: string) => Promise<void>;
   pause: () => void;
   resume: () => void;
+  switchDevice: (deviceId: string) => Promise<void>;
+  isSwitchingDevice: boolean;
   stop: () => Promise<StopResult | null>;
   savePartial: () => Promise<FinalizedRecording | null>;
   reset: () => void;
@@ -157,11 +159,26 @@ export function useRecordingSession(
     session.pause();
   }, []);
 
+  const [isSwitchingDevice, setIsSwitchingDevice] = useState(false);
+
   const resume = useCallback(() => {
+    if (isSwitchingDevice) return;
     const session = sessionRef.current;
     if (!session) return;
 
     session.resume();
+  }, [isSwitchingDevice]);
+
+  const switchDevice = useCallback(async (deviceId: string) => {
+    const session = sessionRef.current;
+    if (!session) return;
+
+    setIsSwitchingDevice(true);
+    try {
+      await session.switchDevice(deviceId);
+    } finally {
+      setIsSwitchingDevice(false);
+    }
   }, []);
 
   const stop = useCallback(async (): Promise<StopResult | null> => {
@@ -220,6 +237,8 @@ export function useRecordingSession(
     start,
     pause,
     resume,
+    switchDevice,
+    isSwitchingDevice,
     stop,
     savePartial,
     reset,
