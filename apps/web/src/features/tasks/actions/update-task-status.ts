@@ -1,70 +1,38 @@
 "use server";
 
-import { resolveAuthContext } from "@/lib/auth-context";
-import { logger } from "@/lib/logger";
-import { TaskService } from "@/server/services/task.service";
-import type { TaskDto } from "@/server/dto/task.dto";
+import type { AuthContext } from "@/lib/auth-context";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
-  updateTaskStatusSchema,
-  type UpdateTaskStatusInput,
-} from "@/server/validation/tasks/update-task-status";
+  authorizedActionClient,
+  resultToActionResponse,
+} from "@/lib/server-action-client/action-client";
+import { TaskService } from "@/server/services/task.service";
+import { updateTaskStatusSchema } from "@/server/validation/tasks/update-task-status";
 
-export async function updateTaskStatus(input: UpdateTaskStatusInput): Promise<{
-  success: boolean;
-  data?: TaskDto;
-  error?: string;
-}> {
-  try {
-    const authResult = await resolveAuthContext("updateTaskStatus");
-    if (authResult.isErr()) {
-      return { success: false, error: authResult.error.message };
-    }
+/**
+ * Server action to update a task's status
+ * Supports transitions between pending, in_progress, completed, and cancelled
+ */
+export const updateTaskStatusAction = authorizedActionClient
+  .metadata({
+    name: "update-task-status",
+    permissions: policyToPermissions("tasks:update"),
+    audit: {
+      resourceType: "task",
+      action: "update-status",
+      category: "mutation",
+    },
+  })
+  .inputSchema(updateTaskStatusSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { taskId, status } = parsedInput;
 
-    // Validate input
-    const validation = updateTaskStatusSchema.safeParse(input);
-    if (!validation.success) {
-      return {
-        success: false,
-        error: validation.error.issues[0]?.message ?? "Invalid input",
-      };
-    }
-
-    const { taskId, status } = validation.data;
-
-    // Update task status with authorization
-    const result = await TaskService.updateTaskStatus(
-      taskId,
-      status,
-      authResult.value,
-    );
-
-    if (result.isErr()) {
-      logger.error("Failed to update task status", {
-        component: "updateTaskStatus",
-        taskId,
-        status,
-        error: result.error.message,
-      });
-
-      return {
-        success: false,
-        error: result.error.message,
-      };
-    }
-
-    return {
-      success: true,
-      data: result.value,
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
     };
-  } catch (error) {
-    logger.error("Unexpected error updating task status", {
-      component: "updateTaskStatus",
-      error,
-    });
 
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    const result = await TaskService.updateTaskStatus(taskId, status, auth);
+    return resultToActionResponse(result);
+  });

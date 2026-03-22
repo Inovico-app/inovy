@@ -1,79 +1,41 @@
 "use server";
 
-import { resolveAuthContext } from "@/lib/auth-context";
-import { logger } from "@/lib/logger";
-import { AuditLogService } from "@/server/services/audit-log.service";
-import { NotificationService } from "@/server/services/notification.service";
+import type { AuthContext } from "@/lib/auth-context";
 import {
-  markAsReadSchema,
-  type MarkAsReadInput,
-} from "@/server/validation/notifications/mark-as-read";
-import type { NotificationDto } from "@/server/dto/notification.dto";
+  authorizedActionClient,
+  resultToActionResponse,
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { NotificationService } from "@/server/services/notification.service";
+import { markAsReadSchema } from "@/server/validation/notifications/mark-as-read";
 
-export async function markNotificationRead(input: MarkAsReadInput): Promise<{
-  success: boolean;
-  data?: NotificationDto;
-  error?: string;
-}> {
-  try {
-    const authResult = await resolveAuthContext("markNotificationRead");
-    if (authResult.isErr()) {
-      return { success: false, error: authResult.error.message };
-    }
-
-    const auth = authResult.value;
-
-    // Validate input
-    const validation = markAsReadSchema.safeParse(input);
-    if (!validation.success) {
-      return {
-        success: false,
-        error: validation.error.issues[0]?.message ?? "Invalid input",
-      };
-    }
-
-    const { notificationId } = validation.data;
-
-    // Mark as read
-    const result = await NotificationService.markAsRead(notificationId, auth);
-
-    if (result.isErr()) {
-      logger.error("Failed to mark notification as read", {
-        component: "markNotificationRead",
-        notificationId,
-        error: result.error.message,
-      });
-
-      return {
-        success: false,
-        error: result.error.message,
-      };
-    }
-
-    void AuditLogService.createAuditLog({
-      eventType: "notification_mark_read",
+export const markNotificationReadAction = authorizedActionClient
+  .metadata({
+    permissions: {},
+    audit: {
       resourceType: "notification",
-      resourceId: notificationId,
-      userId: auth.user.id,
-      organizationId: auth.organizationId,
       action: "mark_read",
       category: "mutation",
-      metadata: { actionName: "markNotificationRead" },
-    });
+    },
+  })
+  .inputSchema(markAsReadSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user, organizationId, userTeamIds } = ctx;
 
-    return {
-      success: true,
-      data: result.value,
-    };
-  } catch (error) {
-    logger.error("Unexpected error marking notification as read", {
-      component: "markNotificationRead",
-      error,
-    });
+    if (!user || !organizationId) {
+      throw ActionErrors.unauthenticated(
+        "User not found",
+        "markNotificationReadAction",
+      );
+    }
 
-    return {
-      success: false,
-      error: "An unexpected error occurred",
+    const auth: AuthContext = {
+      user,
+      organizationId,
+      userTeamIds: userTeamIds ?? [],
     };
-  }
-}
+
+    const { notificationId } = parsedInput;
+    const result = await NotificationService.markAsRead(notificationId, auth);
+    return resultToActionResponse(result);
+  });

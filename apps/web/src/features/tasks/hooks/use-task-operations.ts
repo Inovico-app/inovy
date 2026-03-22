@@ -5,7 +5,7 @@ import type { TaskStatus } from "@/server/db/schema/tasks";
 import type { TaskWithContextDto } from "@/server/dto/task.dto";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { updateTaskStatus } from "../actions/update-task-status";
+import { updateTaskStatusAction } from "../actions/update-task-status";
 
 interface UseTaskOperationsReturn {
   handleStatusChange: (taskId: string, newStatus: TaskStatus) => Promise<void>;
@@ -23,9 +23,12 @@ export function useTaskOperations(): UseTaskOperationsReturn {
       taskId: string;
       newStatus: TaskStatus;
     }) => {
-      const result = await updateTaskStatus({ taskId, status: newStatus });
-      if (!result.success) {
-        throw new Error(result.error ?? "Failed to update task status");
+      const result = await updateTaskStatusAction({
+        taskId,
+        status: newStatus,
+      });
+      if (result?.serverError) {
+        throw new Error(result.serverError);
       }
       return { taskId, newStatus };
     },
@@ -37,14 +40,14 @@ export function useTaskOperations(): UseTaskOperationsReturn {
 
       // Snapshot previous value
       const previousTasks = queryClient.getQueryData<TaskWithContextDto[]>(
-        queryKeys.tasks.userTasks()
+        queryKeys.tasks.userTasks(),
       );
 
       // Optimistically update cache
       queryClient.setQueryData<TaskWithContextDto[]>(
         queryKeys.tasks.userTasks(),
         (old) =>
-          old?.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+          old?.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),
       );
 
       return { previousTasks, taskId, newStatus };
@@ -54,11 +57,11 @@ export function useTaskOperations(): UseTaskOperationsReturn {
       if (context?.previousTasks) {
         queryClient.setQueryData(
           queryKeys.tasks.userTasks(),
-          context.previousTasks
+          context.previousTasks,
         );
       }
       toast.error(
-        error instanceof Error ? error.message : "Failed to update task status"
+        error instanceof Error ? error.message : "Failed to update task status",
       );
     },
     onSuccess: (data, variables, context) => {
@@ -67,13 +70,13 @@ export function useTaskOperations(): UseTaskOperationsReturn {
         data.newStatus === "completed"
           ? "completed"
           : data.newStatus === "in_progress"
-          ? "in progress"
-          : data.newStatus === "pending"
-          ? "pending"
-          : "cancelled";
+            ? "in progress"
+            : data.newStatus === "pending"
+              ? "pending"
+              : "cancelled";
 
       const currentTasks = queryClient.getQueryData<TaskWithContextDto[]>(
-        queryKeys.tasks.userTasks()
+        queryKeys.tasks.userTasks(),
       );
       const task = currentTasks?.find((t) => t.id === data.taskId);
 
@@ -84,18 +87,18 @@ export function useTaskOperations(): UseTaskOperationsReturn {
               onClick: () => {
                 if (context?.previousTasks) {
                   const previousTask = context.previousTasks.find(
-                    (t) => t.id === data.taskId
+                    (t) => t.id === data.taskId,
                   );
                   if (previousTask) {
                     // Trigger mutation to revert (fire and forget)
-                    void updateTaskStatus({
+                    void updateTaskStatusAction({
                       taskId: data.taskId,
                       status: previousTask.status,
                     }).then((revertResult) => {
-                      if (revertResult.success) {
+                      if (!revertResult?.serverError) {
                         queryClient.setQueryData(
                           queryKeys.tasks.userTasks(),
-                          context.previousTasks
+                          context.previousTasks,
                         );
                         toast.success("Status change undone");
                       } else {
@@ -122,4 +125,3 @@ export function useTaskOperations(): UseTaskOperationsReturn {
     isUpdating: mutation.isPending,
   };
 }
-

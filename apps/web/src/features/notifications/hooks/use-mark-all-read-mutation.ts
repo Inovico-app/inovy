@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { queryKeys } from "@/lib/query-keys";
-import { markAllNotificationsRead } from "../actions/mark-all-read";
+import { markAllNotificationsReadAction } from "../actions/mark-all-read";
 
 /**
  * React Query mutation for marking all notifications as read
@@ -14,10 +14,14 @@ export function useMarkAllReadMutation() {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await markAllNotificationsRead();
+      const response = await markAllNotificationsReadAction();
 
-      if (!response.success || !response.data) {
-        throw new Error(response.error ?? "Failed to mark all notifications as read");
+      if (response?.serverError) {
+        throw new Error(response.serverError);
+      }
+
+      if (!response?.data) {
+        throw new Error("Failed to mark all notifications as read");
       }
 
       return response.data.count;
@@ -28,15 +32,16 @@ export function useMarkAllReadMutation() {
         queryKey: queryKeys.notifications.all,
       });
 
-      toast.success(`${count} ${count === 1 ? "notificatie" : "notificaties"} gemarkeerd als gelezen`);
+      toast.success(
+        `${count} ${count === 1 ? "notificatie" : "notificaties"} gemarkeerd als gelezen`,
+      );
     },
     onError: (error) => {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to mark all notifications as read"
+          : "Failed to mark all notifications as read",
       );
     },
   });
 }
-
