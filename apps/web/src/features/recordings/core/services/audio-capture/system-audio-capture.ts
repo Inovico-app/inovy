@@ -18,7 +18,10 @@ import {
 import type { AudioChunk, Unsubscribe } from "../../recording-session.types";
 import { TypedEventEmitter } from "../../utils/event-emitter";
 import { ResourceTracker } from "../../utils/resource-tracker";
-import type { AudioCaptureService } from "./audio-capture.interface";
+import type {
+  AudioCaptureService,
+  AudioCaptureInitConfig,
+} from "./audio-capture.interface";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -59,7 +62,10 @@ export class SystemAudioCaptureService implements AudioCaptureService {
   // AudioCaptureService — initialize
   // -----------------------------------------------------------------------
 
-  initialize(): ResultAsync<void, CaptureError> {
+  // deviceId is ignored — system audio uses getDisplayMedia, not getUserMedia
+  initialize(
+    _config?: AudioCaptureInitConfig,
+  ): ResultAsync<void, CaptureError> {
     return ResultAsync.fromPromise(this.doInitialize(), (error) =>
       createCaptureError(
         this.classifyInitError(error),
