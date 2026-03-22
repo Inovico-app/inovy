@@ -13,7 +13,7 @@ import {
 import { useNavigationGuard } from "@/hooks/use-navigation-guard";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 import {
@@ -31,6 +31,8 @@ import { TranscriptionPanel } from "./transcription-panel";
 interface RecordingSessionProps {
   config: UseRecordingSessionConfig;
   autoStart?: boolean;
+  /** Microphone device ID selected on the pre-recording settings screen */
+  deviceId?: string;
   /** Called when the session is discarded/reset — parent should unmount this component */
   onDiscard?: () => void;
 }
@@ -38,11 +40,11 @@ interface RecordingSessionProps {
 export function RecordingSession({
   config,
   autoStart = false,
+  deviceId,
   onDiscard,
 }: RecordingSessionProps) {
   const router = useRouter();
   const session = useRecordingSession(config);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
 
   // Track which warnings we've already shown
   const shownWarningsRef = useRef(new Set<string>());
@@ -61,10 +63,7 @@ export function RecordingSession({
     const id = requestAnimationFrame(() => {
       if (autoStartFired.current) return; // guard against double-fire
       autoStartFired.current = true;
-      // selectedDeviceId is intentionally captured at mount time (will be null).
-      // autoStart fires immediately — the user hasn't had time to pick a device,
-      // so we fall back to the system default mic. This is the desired behavior.
-      session.start(selectedDeviceId ?? undefined).catch((err) => {
+      session.start(deviceId).catch((err) => {
         console.error("[RecordingSession] Auto-start failed:", err);
       });
     });
@@ -115,7 +114,6 @@ export function RecordingSession({
     onConfirmNavigation: () => {
       // Stop and destroy the session when user confirms leaving
       session.reset();
-      setSelectedDeviceId(null);
     },
   });
 
@@ -171,14 +169,14 @@ export function RecordingSession({
             duration={session.duration}
             errorIsRecoverable={session.error?.recoverable ?? false}
             autoStarting={false}
-            onStart={() => void session.start(selectedDeviceId ?? undefined)}
+            onStart={() => void session.start(deviceId)}
             onPause={session.pause}
             onResume={session.resume}
             onStop={() => void session.stop()}
             onSavePartial={() => void session.savePartial()}
             onReset={() => {
               session.reset();
-              setSelectedDeviceId(null);
+
               onDiscard?.();
             }}
           />
@@ -201,7 +199,6 @@ export function RecordingSession({
           onSavePartial={() => void session.savePartial()}
           onReset={() => {
             session.reset();
-            setSelectedDeviceId(null);
             onDiscard?.();
           }}
         />
@@ -265,16 +262,14 @@ export function RecordingSession({
                     duration={session.duration}
                     errorIsRecoverable={session.error?.recoverable ?? false}
                     autoStarting={false}
-                    onStart={() =>
-                      void session.start(selectedDeviceId ?? undefined)
-                    }
+                    onStart={() => void session.start(deviceId)}
                     onPause={session.pause}
                     onResume={session.resume}
                     onStop={() => void session.stop()}
                     onSavePartial={() => void session.savePartial()}
                     onReset={() => {
                       session.reset();
-                      setSelectedDeviceId(null);
+
                       onDiscard?.();
                     }}
                   />
