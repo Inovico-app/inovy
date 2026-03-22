@@ -56,6 +56,12 @@ export function DeviceSettingsPopover({
     return null;
   }
 
+  const displayLabel =
+    selectedDeviceId && selectedDeviceId !== "default"
+      ? (devices.find((d) => d.deviceId === selectedDeviceId)?.label ??
+        "Standaard microfoon")
+      : "Standaard microfoon";
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <Tooltip>
@@ -140,7 +146,9 @@ export function DeviceSettingsPopover({
                       isDisabled ? `${instanceId}-disabled-hint` : undefined
                     }
                   >
-                    <SelectValue placeholder="Standaard microfoon" />
+                    <SelectValue placeholder={displayLabel}>
+                      {displayLabel}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="default" label="Standaard microfoon">
