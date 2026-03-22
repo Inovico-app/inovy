@@ -1,32 +1,51 @@
 "use server";
 
-import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { AuditLogService } from "@/server/services/audit-log.service";
+import { logger } from "@/lib/logger";
+import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { getStorageProvider } from "@/server/services/storage";
+import { z } from "zod";
 
-export async function uploadFileToVercelBlobAction(file: File) {
-  const storage = await getStorageProvider();
-  await storage.put(`recordings/${file.name}`, file, {
-    access: "public",
-  });
+const uploadFileInputSchema = z.object({
+  file: z.instanceof(File),
+});
 
-  const authResult = await getBetterAuthSession();
-  if (authResult.isOk()) {
-    const { user, organization } = authResult.value;
-    if (user?.id && organization?.id) {
-      void AuditLogService.createAuditLog({
-        eventType: "blob_upload",
-        resourceType: "blob",
-        resourceId: null,
-        userId: user.id,
-        organizationId: organization.id,
-        action: "upload",
-        category: "mutation",
-        metadata: {
-          actionName: "uploadFileToVercelBlobAction",
-          fileName: file.name,
-        },
-      });
+/**
+ * Upload a file to blob storage (Vercel Blob or Azure).
+ * Auth and audit logging are handled by the action client middleware.
+ */
+export const uploadFileToVercelBlobAction = authorizedActionClient
+  .metadata({
+    name: "upload-file-to-blob",
+    permissions: {},
+    audit: {
+      resourceType: "blob",
+      action: "upload",
+      category: "mutation",
+    },
+  })
+  .inputSchema(uploadFileInputSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { file } = parsedInput;
+    const { user } = ctx;
+
+    if (!user) {
+      throw ActionErrors.unauthenticated(
+        "User not found",
+        "upload-file-to-blob",
+      );
     }
-  }
-}
+
+    logger.info("Uploading file to blob storage", {
+      component: "uploadFileToVercelBlobAction",
+      userId: user.id,
+      fileName: file.name,
+    });
+
+    const storage = await getStorageProvider();
+    await storage.put(`recordings/${file.name}`, file, {
+      access: "public",
+    });
+
+    ctx.audit?.setMetadata({ fileName: file.name });
+  });

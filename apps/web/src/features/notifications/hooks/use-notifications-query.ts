@@ -2,7 +2,7 @@
 
 import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
-import { getNotifications } from "../actions/get-notifications";
+import { getNotificationsAction } from "../actions/get-notifications";
 import type { NotificationFilters, NotificationListResponse } from "../types";
 
 /**
@@ -12,15 +12,19 @@ import type { NotificationFilters, NotificationListResponse } from "../types";
 export function useNotificationsQuery(
   filters?: NotificationFilters,
   initialData?: NotificationListResponse,
-  enabled = true
+  enabled = true,
 ) {
   return useQuery({
     queryKey: queryKeys.notifications.list(filters as Record<string, unknown>),
     queryFn: async () => {
-      const response = await getNotifications(filters);
+      const response = await getNotificationsAction(filters ?? {});
 
-      if (!response.success || !response.data) {
-        throw new Error(response.error ?? "Failed to fetch notifications");
+      if (response?.serverError) {
+        throw new Error(response.serverError);
+      }
+
+      if (!response?.data) {
+        throw new Error("Failed to fetch notifications");
       }
 
       return response.data;
@@ -30,4 +34,3 @@ export function useNotificationsQuery(
     enabled,
   });
 }
-
