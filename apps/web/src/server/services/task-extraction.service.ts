@@ -30,7 +30,7 @@ interface TaskExtractionResult {
 
 export class TaskExtractionService {
   /**
-   * Extract action items from transcription using OpenAI GPT-5
+   * Extract action items from transcription using Claude Sonnet 4.6
    * Includes AI-004 priority assignment logic
    */
   static async extractTasks(
@@ -40,7 +40,7 @@ export class TaskExtractionService {
     organizationId: string,
     createdById: string,
     utterances?: Array<{ speaker: number; text: string; start: number }>,
-    language = "nl"
+    language = "nl",
   ): Promise<ActionResult<TaskExtractionResult>> {
     try {
       logger.info("Starting task extraction", {
@@ -52,7 +52,7 @@ export class TaskExtractionService {
       // Get knowledge context for prompt building
       const knowledgeResult = await KnowledgeBaseService.getApplicableKnowledge(
         projectId,
-        organizationId
+        organizationId,
       );
       const knowledgeEntries = knowledgeResult.isOk()
         ? knowledgeResult.value
@@ -72,29 +72,29 @@ export class TaskExtractionService {
       // Call AI SDK with guardrails and retry logic
       const completion = await connectionPool.executeWithRetry(
         async () =>
-          connectionPool.withOpenAIClient(async (openai) => {
-            const guardedModel = createGuardedModel(openai("gpt-5-nano"), {
-              requestType: "task-extraction",
-              pii: { mode: "redact" },
-              audit: { enabled: false },
-            });
+          connectionPool.withAnthropicAISdkClient(async (anthropic) => {
+            const guardedModel = createGuardedModel(
+              anthropic("claude-sonnet-4-6"),
+              {
+                requestType: "task-extraction",
+                pii: { mode: "redact" },
+                audit: { enabled: false },
+              },
+            );
 
             return generateText({
               model: guardedModel,
               system: promptResult.systemPrompt,
               prompt: promptResult.userPrompt,
-              providerOptions: {
-                openai: { responseFormat: { type: "json_object" } },
-              },
             });
           }),
-        "openai"
+        "anthropic",
       );
 
       const responseContent = completion.text;
 
       if (!responseContent) {
-        logger.error("No content in OpenAI response", {
+        logger.error("No content in AI model response", {
           component: "TaskExtractionService.extractTasks",
         });
 
@@ -111,17 +111,17 @@ export class TaskExtractionService {
             title: "Taakextractie mislukt",
             message: `De taakextractie uit "${recording.title}" is mislukt.`,
             metadata: {
-              error: "No response from OpenAI",
+              error: "No response from AI model",
             },
           });
         }
 
         return err(
           ActionErrors.internal(
-            "No response from OpenAI",
+            "No response from AI model",
             undefined,
-            "TaskExtractionService.extractTasks"
-          )
+            "TaskExtractionService.extractTasks",
+          ),
         );
       }
 
@@ -130,7 +130,7 @@ export class TaskExtractionService {
       try {
         extractionResult = JSON.parse(responseContent);
       } catch (parseError) {
-        logger.error("Failed to parse OpenAI response", {
+        logger.error("Failed to parse AI model response", {
           component: "TaskExtractionService.extractTasks",
           error: parseError,
           responseContent,
@@ -139,8 +139,8 @@ export class TaskExtractionService {
           ActionErrors.internal(
             "Failed to parse task extraction response",
             parseError as Error,
-            "TaskExtractionService.extractTasks"
-          )
+            "TaskExtractionService.extractTasks",
+          ),
         );
       }
 
@@ -153,8 +153,8 @@ export class TaskExtractionService {
           ActionErrors.internal(
             "Invalid task extraction format",
             undefined,
-            "TaskExtractionService.extractTasks"
-          )
+            "TaskExtractionService.extractTasks",
+          ),
         );
       }
 
@@ -229,8 +229,8 @@ export class TaskExtractionService {
         ActionErrors.internal(
           "Failed to extract tasks",
           error as Error,
-          "TaskExtractionService.extractTasks"
-        )
+          "TaskExtractionService.extractTasks",
+        ),
       );
     }
   }
@@ -240,7 +240,7 @@ export class TaskExtractionService {
    */
   static async updateTaskPriority(
     taskId: string,
-    priority: "low" | "medium" | "high" | "urgent"
+    priority: "low" | "medium" | "high" | "urgent",
   ): Promise<ActionResult<void>> {
     try {
       await TasksQueries.updateTask(taskId, { priority });
@@ -262,10 +262,9 @@ export class TaskExtractionService {
         ActionErrors.internal(
           "Failed to update task priority",
           error as Error,
-          "TaskExtractionService.updateTaskPriority"
-        )
+          "TaskExtractionService.updateTaskPriority",
+        ),
       );
     }
   }
 }
-

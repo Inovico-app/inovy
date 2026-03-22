@@ -49,7 +49,7 @@ export class TranscriptionService {
    */
   static async transcribeUploadedFile(
     recordingId: string,
-    fileUrl: string
+    fileUrl: string,
   ): Promise<ActionResult<TranscriptionResult>> {
     try {
       logger.info("Starting transcription for uploaded file", {
@@ -61,7 +61,7 @@ export class TranscriptionService {
       // Update recording status to processing
       await RecordingsQueries.updateRecordingTranscriptionStatus(
         recordingId,
-        "processing"
+        "processing",
       );
 
       // Create AI insight record
@@ -79,15 +79,15 @@ export class TranscriptionService {
         return err(
           ActionErrors.notFound(
             "Recording",
-            "TranscriptionService.transcribeUploadedFile"
-          )
+            "TranscriptionService.transcribeUploadedFile",
+          ),
         );
       }
 
       // Fetch applicable knowledge base entries for this project
       const knowledgeResult = await KnowledgeBaseService.getApplicableKnowledge(
         existingRecording.projectId,
-        existingRecording.organizationId
+        existingRecording.organizationId,
       );
       const knowledgeEntries = knowledgeResult.isOk()
         ? knowledgeResult.value
@@ -134,7 +134,7 @@ export class TranscriptionService {
 
       const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
         { url: fetchableUrl },
-        deepgramOptions
+        deepgramOptions,
       );
 
       if (error) {
@@ -147,11 +147,11 @@ export class TranscriptionService {
           AIInsightsQueries.updateInsightStatus(
             insight.id,
             "failed",
-            error.message
+            error.message,
           ),
           RecordingsQueries.updateRecordingTranscriptionStatus(
             recordingId,
-            "failed"
+            "failed",
           ),
         ]);
 
@@ -174,8 +174,8 @@ export class TranscriptionService {
           ActionErrors.internal(
             `Transcription failed: ${error.message}`,
             new Error(error.message),
-            "TranscriptionService.transcribeUploadedFile"
-          )
+            "TranscriptionService.transcribeUploadedFile",
+          ),
         );
       }
 
@@ -191,8 +191,8 @@ export class TranscriptionService {
           ActionErrors.internal(
             "No transcription text in response",
             undefined,
-            "TranscriptionService.transcribeUploadedFile"
-          )
+            "TranscriptionService.transcribeUploadedFile",
+          ),
         );
       }
 
@@ -212,7 +212,7 @@ export class TranscriptionService {
           if (word.speaker !== undefined) {
             speakerMap.set(
               word.speaker,
-              (speakerMap.get(word.speaker) || 0) + 1
+              (speakerMap.get(word.speaker) || 0) + 1,
             );
           }
         });
@@ -243,7 +243,7 @@ export class TranscriptionService {
               end: utt.end,
               confidence: utt.confidence,
             });
-          }
+          },
         );
       }
 
@@ -264,7 +264,7 @@ export class TranscriptionService {
       await RecordingsQueries.updateRecordingTranscription(
         recordingId,
         transcriptionText,
-        "completed"
+        "completed",
       );
 
       // Run post-transcription correction with knowledge base (non-blocking)
@@ -273,7 +273,7 @@ export class TranscriptionService {
         recordingId,
         existingRecording.projectId,
         existingRecording.organizationId,
-        existingRecording.language ?? "nl"
+        existingRecording.language ?? "nl",
       ).catch((error) => {
         logger.warn("Failed to correct transcription with knowledge base", {
           recordingId,
@@ -322,8 +322,8 @@ export class TranscriptionService {
         ActionErrors.internal(
           "Unknown error during transcription",
           error as Error,
-          "TranscriptionService.transcribeUploadedFile"
-        )
+          "TranscriptionService.transcribeUploadedFile",
+        ),
       );
     }
   }
@@ -336,7 +336,7 @@ export class TranscriptionService {
     transcriptionText: string,
     speakers: Speaker[],
     utterances: Utterance[],
-    confidence: number
+    confidence: number,
   ): Promise<ActionResult<void>> {
     try {
       logger.info("Saving live transcription", {
@@ -364,7 +364,7 @@ export class TranscriptionService {
       await RecordingsQueries.updateRecordingTranscription(
         recordingId,
         transcriptionText,
-        "completed"
+        "completed",
       );
 
       logger.info("Live transcription saved successfully", {
@@ -383,8 +383,8 @@ export class TranscriptionService {
         ActionErrors.internal(
           "Failed to save live transcription",
           error as Error,
-          "TranscriptionService.saveLiveTranscription"
-        )
+          "TranscriptionService.saveLiveTranscription",
+        ),
       );
     }
   }
@@ -414,13 +414,13 @@ export class TranscriptionService {
     recordingId: string,
     projectId: string,
     organizationId: string,
-    language = "nl"
+    language = "nl",
   ): Promise<ActionResult<void>> {
     try {
       // Fetch applicable knowledge base entries
       const knowledgeResult = await KnowledgeBaseService.getApplicableKnowledge(
         projectId,
-        organizationId
+        organizationId,
       );
       if (knowledgeResult.isErr() || knowledgeResult.value.length === 0) {
         // No knowledge base entries, skip correction
@@ -445,23 +445,23 @@ export class TranscriptionService {
       // Call AI SDK with guardrails and retry logic
       const completion = await connectionPool.executeWithRetry(
         async () =>
-          connectionPool.withOpenAIClient(async (openai) => {
-            const guardedModel = createGuardedModel(openai("gpt-5-nano"), {
-              requestType: "transcription",
-              pii: { mode: "redact" },
-              audit: { enabled: false },
-            });
+          connectionPool.withAnthropicAISdkClient(async (anthropic) => {
+            const guardedModel = createGuardedModel(
+              anthropic("claude-sonnet-4-6"),
+              {
+                requestType: "transcription",
+                pii: { mode: "redact" },
+                audit: { enabled: false },
+              },
+            );
 
             return generateText({
               model: guardedModel,
               system: promptResult.systemPrompt,
               prompt: promptResult.userPrompt,
-              providerOptions: {
-                openai: { responseFormat: { type: "json_object" } },
-              },
             });
           }),
-        "openai"
+        "anthropic",
       );
 
       const responseContent = completion.text;
@@ -502,7 +502,7 @@ export class TranscriptionService {
       const insights =
         await AIInsightsQueries.getInsightsByRecordingId(recordingId);
       const transcriptionInsight = insights.find(
-        (i) => i.insightType === "transcription"
+        (i) => i.insightType === "transcription",
       );
 
       if (!transcriptionInsight) {
@@ -542,11 +542,10 @@ export class TranscriptionService {
       logger.error(
         "Failed to correct transcription with knowledge base",
         { recordingId },
-        error as Error
+        error as Error,
       );
       // Don't fail the whole process if correction fails
       return ok(undefined);
     }
   }
 }
-

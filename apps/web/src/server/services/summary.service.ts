@@ -22,13 +22,13 @@ import { NotificationService } from "./notification.service";
 
 export class SummaryService {
   /**
-   * Generate meeting summary from transcription using OpenAI GPT-5
+   * Generate meeting summary from transcription using Claude Sonnet 4.6
    */
   static async generateSummary(
     recordingId: string,
     transcriptionText: string,
     utterances?: Utterance[],
-    language?: string
+    language?: string,
   ): Promise<ActionResult<SummaryResult>> {
     try {
       logger.info("Starting summary generation", {
@@ -42,7 +42,7 @@ export class SummaryService {
         await RecordingsQueries.selectRecordingById(recordingId);
       if (!existingRecording) {
         return err(
-          ActionErrors.notFound("Recording", "SummaryService.generateSummary")
+          ActionErrors.notFound("Recording", "SummaryService.generateSummary"),
         );
       }
 
@@ -51,7 +51,7 @@ export class SummaryService {
       // Check cache (language-aware: only returns if stored summary matches requested language)
       const cachedResult = await getCachedSummary(
         recordingId,
-        resolvedLanguage
+        resolvedLanguage,
       );
 
       if (cachedResult) {
@@ -74,7 +74,7 @@ export class SummaryService {
       // Fetch applicable knowledge base entries for this project
       const knowledgeResult = await KnowledgeBaseService.getApplicableKnowledge(
         existingRecording.projectId,
-        existingRecording.organizationId
+        existingRecording.organizationId,
       );
       if (knowledgeResult.isErr()) {
         logger.warn("Failed to fetch applicable knowledge entries", {
@@ -110,35 +110,35 @@ export class SummaryService {
       // Call AI SDK with guardrails and retry logic
       const completion = await connectionPool.executeWithRetry(
         async () =>
-          connectionPool.withOpenAIClient(async (openai) => {
-            const guardedModel = createGuardedModel(openai("gpt-5-nano"), {
-              requestType: "summary",
-              pii: { mode: "redact" },
-              audit: { enabled: false },
-            });
+          connectionPool.withAnthropicAISdkClient(async (anthropic) => {
+            const guardedModel = createGuardedModel(
+              anthropic("claude-sonnet-4-6"),
+              {
+                requestType: "summary",
+                pii: { mode: "redact" },
+                audit: { enabled: false },
+              },
+            );
 
             return generateText({
               model: guardedModel,
               system: promptResult.systemPrompt,
               prompt: promptResult.userPrompt,
-              providerOptions: {
-                openai: { responseFormat: { type: "json_object" } },
-              },
             });
           }),
-        "openai"
+        "anthropic",
       );
 
       const responseContent = completion.text;
 
       if (!responseContent) {
-        logger.error("No content in OpenAI response", {
+        logger.error("No content in AI model response", {
           component: "SummaryService.generateSummary",
         });
         await AIInsightsQueries.updateInsightStatus(
           insight.id,
           "failed",
-          "No response from OpenAI"
+          "No response from AI model",
         );
 
         // Create failure notification
@@ -152,17 +152,17 @@ export class SummaryService {
             title: "Samenvatting mislukt",
             message: `De samenvatting van "${existingRecording.title}" is mislukt.`,
             metadata: {
-              error: "No response from OpenAI",
+              error: "No response from AI model",
             },
           });
         }
 
         return err(
           ActionErrors.internal(
-            "No content in OpenAI response",
+            "No content in AI model response",
             undefined,
-            "SummaryService.generateSummary"
-          )
+            "SummaryService.generateSummary",
+          ),
         );
       }
 
@@ -171,7 +171,7 @@ export class SummaryService {
       try {
         summaryContent = JSON.parse(responseContent);
       } catch (parseError) {
-        logger.error("Failed to parse OpenAI response", {
+        logger.error("Failed to parse AI model response", {
           component: "SummaryService.generateSummary",
           error: parseError,
           responseContent,
@@ -179,7 +179,7 @@ export class SummaryService {
         await AIInsightsQueries.updateInsightStatus(
           insight.id,
           "failed",
-          "Failed to parse summary"
+          "Failed to parse summary",
         );
 
         // Create failure notification
@@ -200,15 +200,15 @@ export class SummaryService {
 
         return err(
           ActionErrors.internal(
-            "Failed to parse OpenAI response",
+            "Failed to parse AI model response",
             parseError as Error,
-            "SummaryService.generateSummary"
-          )
+            "SummaryService.generateSummary",
+          ),
         );
       }
 
       // Calculate confidence based on usage and response quality
-      const confidence = 0.85; // GPT-5 is generally high confidence
+      const confidence = 0.85; // Claude Sonnet 4.6 is generally high confidence
 
       const result: SummaryResult = {
         content: summaryContent,
@@ -265,8 +265,8 @@ export class SummaryService {
         ActionErrors.internal(
           "Failed to generate summary",
           error as Error,
-          "SummaryService.generateSummary"
-        )
+          "SummaryService.generateSummary",
+        ),
       );
     }
   }
@@ -275,10 +275,9 @@ export class SummaryService {
    * Invalidate cached summary for a recording
    */
   static async invalidateSummaryCache(
-    recordingId: string
+    recordingId: string,
   ): Promise<ActionResult<void>> {
     CacheInvalidation.invalidateSummary(recordingId);
     return ok(undefined);
   }
 }
-

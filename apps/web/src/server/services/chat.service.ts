@@ -375,21 +375,24 @@ export class ChatService {
         isOrganizationLevel: false,
       });
 
-      // Stream response from GPT-5-nano with retry logic, request tracking, and guardrails
+      // Stream response from Claude Sonnet 4.6 with retry logic, request tracking, and guardrails
       let streamError: Error | null = null;
 
       const result = await connectionPool.executeWithRetry(
         async () =>
-          connectionPool.withOpenAIClient(async (openai) => {
-            const guardedModel = createGuardedModel(openai("gpt-5-nano"), {
-              organizationId,
-              userId: conversation.userId,
-              conversationId,
-              projectId,
-              chatContext: "project",
-              requestType: "chat",
-              pii: { mode: "redact" },
-            });
+          connectionPool.withAnthropicAISdkClient(async (anthropic) => {
+            const guardedModel = createGuardedModel(
+              anthropic("claude-sonnet-4-6"),
+              {
+                organizationId,
+                userId: conversation.userId,
+                conversationId,
+                projectId,
+                chatContext: "project",
+                requestType: "chat",
+                pii: { mode: "redact" },
+              },
+            );
 
             return streamText({
               model: guardedModel,
@@ -413,7 +416,7 @@ export class ChatService {
               },
             });
           }),
-        "openai",
+        "anthropic",
       );
 
       // Collect the full response with error handling
@@ -601,25 +604,30 @@ export class ChatService {
 
       // Stream response with error handling, request tracking, and guardrails
       // Note: Streaming endpoints use single-attempt by design to avoid duplicate streamed answers.
-      const { client: openai, pooled } =
-        connectionPool.getOpenAIClientWithTracking();
+      const tracked = connectionPool.getAnthropicAISdkClientWithTracking();
+      const anthropic = tracked.client;
+      const pooled = tracked.pooled;
       let streamError: Error | null = null;
       let errorMetricTracked = false;
 
       const startTime = Date.now();
       const userId = conversation.userId;
 
-      const isReasoningModel = agentSettings.model === "gpt-5-nano";
-
-      const guardedModel = createGuardedModel(openai(agentSettings.model), {
-        organizationId,
-        userId,
-        conversationId,
-        projectId,
-        chatContext: "project",
-        requestType: "chat",
-        pii: { mode: "redact" },
-      });
+      let guardedModel;
+      try {
+        guardedModel = createGuardedModel(anthropic(agentSettings.model), {
+          organizationId,
+          userId,
+          conversationId,
+          projectId,
+          chatContext: "project",
+          requestType: "chat",
+          pii: { mode: "redact" },
+        });
+      } catch (setupError) {
+        pooled.activeRequests--;
+        throw setupError;
+      }
 
       const toolContext: ToolContext = {
         organizationId,
@@ -750,7 +758,7 @@ export class ChatService {
           // Log model provenance for audit trail
           ModelProvenanceService.logInvocation({
             modelId: agentSettings.model,
-            provider: "openai",
+            provider: "anthropic",
             organizationId,
             conversationId,
             usage: {
@@ -791,13 +799,9 @@ export class ChatService {
         },
       };
 
-      // Only include these parameters for non-reasoning models
-      if (!isReasoningModel) {
-        streamTextOptions.temperature = agentSettings.temperature;
-        streamTextOptions.topP = agentSettings.topP;
-        streamTextOptions.frequencyPenalty = agentSettings.frequencyPenalty;
-        streamTextOptions.presencePenalty = agentSettings.presencePenalty;
-      }
+      // Anthropic supports temperature and topP but not frequency/presence penalty
+      streamTextOptions.temperature = agentSettings.temperature;
+      streamTextOptions.topP = agentSettings.topP;
 
       const result = streamText(streamTextOptions);
 
@@ -927,23 +931,28 @@ export class ChatService {
 
       // Stream response with error handling, request tracking, and guardrails
       // Note: Streaming endpoints use single-attempt by design to avoid duplicate streamed answers.
-      const { client: openai, pooled } =
-        connectionPool.getOpenAIClientWithTracking();
+      const tracked = connectionPool.getAnthropicAISdkClientWithTracking();
+      const anthropic = tracked.client;
+      const pooled = tracked.pooled;
       let streamError: Error | null = null;
 
       const startTime = Date.now();
       const userId = conversation.userId;
 
-      const isReasoningModel = agentSettings.model === "gpt-5-nano";
-
-      const guardedModel = createGuardedModel(openai(agentSettings.model), {
-        organizationId,
-        userId,
-        conversationId,
-        chatContext: "organization",
-        requestType: "chat",
-        pii: { mode: "redact" },
-      });
+      let guardedModel;
+      try {
+        guardedModel = createGuardedModel(anthropic(agentSettings.model), {
+          organizationId,
+          userId,
+          conversationId,
+          chatContext: "organization",
+          requestType: "chat",
+          pii: { mode: "redact" },
+        });
+      } catch (setupError) {
+        pooled.activeRequests--;
+        throw setupError;
+      }
 
       const orgToolContext: ToolContext = {
         organizationId,
@@ -1073,7 +1082,7 @@ export class ChatService {
           // Log model provenance for audit trail
           ModelProvenanceService.logInvocation({
             modelId: agentSettings.model,
-            provider: "openai",
+            provider: "anthropic",
             organizationId,
             conversationId,
             usage: {
@@ -1116,13 +1125,9 @@ export class ChatService {
         },
       };
 
-      // Only include these parameters for non-reasoning models
-      if (!isReasoningModel) {
-        streamTextOptions.temperature = agentSettings.temperature;
-        streamTextOptions.topP = agentSettings.topP;
-        streamTextOptions.frequencyPenalty = agentSettings.frequencyPenalty;
-        streamTextOptions.presencePenalty = agentSettings.presencePenalty;
-      }
+      // Anthropic supports temperature and topP but not frequency/presence penalty
+      streamTextOptions.temperature = agentSettings.temperature;
+      streamTextOptions.topP = agentSettings.topP;
 
       const result = streamText(streamTextOptions);
 
