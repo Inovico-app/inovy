@@ -1,8 +1,7 @@
 "use server";
 
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
-import { AuditLogService } from "@/server/services/audit-log.service";
 import { ProjectService } from "@/server/services/project.service";
 
 /**
@@ -15,7 +14,14 @@ export async function getUserProjects(): Promise<{
   error?: string;
 }> {
   try {
-    const result = await ProjectService.getProjectsByOrganization();
+    const authResult = await resolveAuthContext("getUserProjects");
+    if (authResult.isErr()) {
+      return { success: false, error: authResult.error.message };
+    }
+
+    const result = await ProjectService.getProjectsByOrganization(
+      authResult.value,
+    );
 
     if (result.isErr()) {
       logger.error("Failed to get user projects", {
@@ -34,23 +40,6 @@ export async function getUserProjects(): Promise<{
       id: project.id,
       name: project.name,
     }));
-
-    const authResult = await getBetterAuthSession();
-    if (authResult.isOk()) {
-      const { user, organization } = authResult.value;
-      if (user?.id && organization?.id) {
-        void AuditLogService.createAuditLog({
-          eventType: "project_list",
-          resourceType: "project",
-          resourceId: null,
-          userId: user.id,
-          organizationId: organization.id,
-          action: "list",
-          category: "read",
-          metadata: { actionName: "getUserProjects" },
-        });
-      }
-    }
 
     return {
       success: true,

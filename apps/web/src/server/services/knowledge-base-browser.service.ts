@@ -1,4 +1,4 @@
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import type { AuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import {
   ActionErrors,
@@ -42,7 +42,7 @@ export class KnowledgeBaseBrowserService {
       chunksCount: number;
       uploadDate?: Date;
     },
-    dbDocument?: KnowledgeDocumentDto | null
+    dbDocument?: KnowledgeDocumentDto | null,
   ): IndexedDocumentDto {
     return {
       documentId: qdrantDoc.documentId,
@@ -65,30 +65,18 @@ export class KnowledgeBaseBrowserService {
    * List unique documents from Qdrant with filtering
    */
   static async listDocuments(
-    filters: ListDocumentsFilters
+    auth: AuthContext,
+    filters: ListDocumentsFilters,
   ): Promise<ActionResult<ListDocumentsResponse>> {
     try {
-      // Verify authentication
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr() || !authResult.value.organization) {
-        return err(
-          ActionErrors.unauthenticated(
-            "Authentication required",
-            "KnowledgeBaseBrowserService.listDocuments"
-          )
-        );
-      }
-
-      const organizationId = authResult.value.organization.id;
-
       // Ensure user can only access their organization's documents
-      if (filters.organizationId !== organizationId) {
+      if (filters.organizationId !== auth.organizationId) {
         return err(
           ActionErrors.forbidden(
             "Access denied",
             undefined,
-            "KnowledgeBaseBrowserService.listDocuments"
-          )
+            "KnowledgeBaseBrowserService.listDocuments",
+          ),
         );
       }
 
@@ -165,7 +153,7 @@ export class KnowledgeBaseBrowserService {
             {
               limit: qdrantBatchSize,
               offset: currentOffset,
-            }
+            },
           );
 
           if (documentsResult.isErr()) {
@@ -179,7 +167,7 @@ export class KnowledgeBaseBrowserService {
             (doc) =>
               doc.filename?.toLowerCase().includes(searchLower) ||
               doc.title?.toLowerCase().includes(searchLower) ||
-              doc.documentId.toLowerCase().includes(searchLower)
+              doc.documentId.toLowerCase().includes(searchLower),
           );
 
           // Add filtered documents up to the requested limit
@@ -215,7 +203,7 @@ export class KnowledgeBaseBrowserService {
           {
             limit: requestedLimit,
             offset: requestedOffset,
-          }
+          },
         );
 
         if (documentsResult.isErr()) {
@@ -259,8 +247,8 @@ export class KnowledgeBaseBrowserService {
         ActionErrors.internal(
           "Failed to list documents",
           error as Error,
-          "KnowledgeBaseBrowserService.listDocuments"
-        )
+          "KnowledgeBaseBrowserService.listDocuments",
+        ),
       );
     }
   }
@@ -269,30 +257,20 @@ export class KnowledgeBaseBrowserService {
    * Get document preview with sample chunks
    */
   static async getDocumentPreview(
+    auth: AuthContext,
     documentId: string,
     organizationId: string,
-    sampleSize: number = 5
+    sampleSize: number = 5,
   ): Promise<ActionResult<DocumentPreviewDto>> {
     try {
-      // Verify authentication
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr() || !authResult.value.organization) {
-        return err(
-          ActionErrors.unauthenticated(
-            "Authentication required",
-            "KnowledgeBaseBrowserService.getDocumentPreview"
-          )
-        );
-      }
-
       // Ensure organization access
-      if (authResult.value.organization.id !== organizationId) {
+      if (auth.organizationId !== organizationId) {
         return err(
           ActionErrors.forbidden(
             "Access denied",
             undefined,
-            "KnowledgeBaseBrowserService.getDocumentPreview"
-          )
+            "KnowledgeBaseBrowserService.getDocumentPreview",
+          ),
         );
       }
 
@@ -321,8 +299,8 @@ export class KnowledgeBaseBrowserService {
         return err(
           ActionErrors.notFound(
             "Document",
-            "KnowledgeBaseBrowserService.getDocumentPreview"
-          )
+            "KnowledgeBaseBrowserService.getDocumentPreview",
+          ),
         );
       }
 
@@ -361,8 +339,8 @@ export class KnowledgeBaseBrowserService {
         ActionErrors.internal(
           "Failed to get document preview",
           error as Error,
-          "KnowledgeBaseBrowserService.getDocumentPreview"
-        )
+          "KnowledgeBaseBrowserService.getDocumentPreview",
+        ),
       );
     }
   }
@@ -371,29 +349,19 @@ export class KnowledgeBaseBrowserService {
    * Delete document from Qdrant
    */
   static async deleteDocument(
+    auth: AuthContext,
     documentId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<void>> {
     try {
-      // Verify authentication
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr() || !authResult.value.organization) {
-        return err(
-          ActionErrors.unauthenticated(
-            "Authentication required",
-            "KnowledgeBaseBrowserService.deleteDocument"
-          )
-        );
-      }
-
       // Ensure organization access
-      if (authResult.value.organization.id !== organizationId) {
+      if (auth.organizationId !== organizationId) {
         return err(
           ActionErrors.forbidden(
             "Access denied",
             undefined,
-            "KnowledgeBaseBrowserService.deleteDocument"
-          )
+            "KnowledgeBaseBrowserService.deleteDocument",
+          ),
         );
       }
 
@@ -451,8 +419,8 @@ export class KnowledgeBaseBrowserService {
         ActionErrors.internal(
           "Failed to delete document",
           error as Error,
-          "KnowledgeBaseBrowserService.deleteDocument"
-        )
+          "KnowledgeBaseBrowserService.deleteDocument",
+        ),
       );
     }
   }
@@ -461,29 +429,19 @@ export class KnowledgeBaseBrowserService {
    * Re-index document (if it exists in database)
    */
   static async reindexDocument(
+    auth: AuthContext,
     documentId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<void>> {
     try {
-      // Verify authentication
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr() || !authResult.value.organization) {
-        return err(
-          ActionErrors.unauthenticated(
-            "Authentication required",
-            "KnowledgeBaseBrowserService.reindexDocument"
-          )
-        );
-      }
-
       // Ensure organization access
-      if (authResult.value.organization.id !== organizationId) {
+      if (auth.organizationId !== organizationId) {
         return err(
           ActionErrors.forbidden(
             "Access denied",
             undefined,
-            "KnowledgeBaseBrowserService.reindexDocument"
-          )
+            "KnowledgeBaseBrowserService.reindexDocument",
+          ),
         );
       }
 
@@ -495,8 +453,8 @@ export class KnowledgeBaseBrowserService {
         return err(
           ActionErrors.notFound(
             "Document not found in database. Re-indexing is only available for documents uploaded through the knowledge base.",
-            "KnowledgeBaseBrowserService.reindexDocument"
-          )
+            "KnowledgeBaseBrowserService.reindexDocument",
+          ),
         );
       }
 
@@ -509,7 +467,7 @@ export class KnowledgeBaseBrowserService {
       if (dbDocument.scope === "project" && dbDocument.scopeId) {
         try {
           documentOrgId = await ProjectQueries.getOrganizationIdByProjectId(
-            dbDocument.scopeId
+            dbDocument.scopeId,
           );
         } catch (error) {
           logger.error("Failed to load project for organization ID", {
@@ -528,8 +486,8 @@ export class KnowledgeBaseBrowserService {
           ActionErrors.forbidden(
             "Access denied",
             undefined,
-            "KnowledgeBaseBrowserService.reindexDocument"
-          )
+            "KnowledgeBaseBrowserService.reindexDocument",
+          ),
         );
       }
 
@@ -558,10 +516,9 @@ export class KnowledgeBaseBrowserService {
         ActionErrors.internal(
           "Failed to re-index document",
           error as Error,
-          "KnowledgeBaseBrowserService.reindexDocument"
-        )
+          "KnowledgeBaseBrowserService.reindexDocument",
+        ),
       );
     }
   }
 }
-

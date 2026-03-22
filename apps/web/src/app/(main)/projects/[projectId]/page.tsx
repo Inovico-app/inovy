@@ -3,12 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export async function generateMetadata({ params }: ProjectDetailPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: ProjectDetailPageProps): Promise<Metadata> {
   const { projectId } = await params;
   return { title: `Project ${projectId}` };
 }
 import { ProjectActions } from "@/features/projects/components/project-actions";
 import { RecordingList } from "@/features/recordings/components/recording-list";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { ProjectService } from "@/server/services/project.service";
 import { RecordingService } from "@/server/services/recording.service";
 import { differenceInCalendarDays } from "date-fns";
@@ -43,8 +46,13 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
   const { projectId } = await params;
   const { search } = await searchParams;
 
+  const authResult = await resolveAuthContext("ProjectDetail");
+  if (authResult.isErr()) {
+    notFound();
+  }
+
   const [projectResult, statisticsResult] = await Promise.all([
-    ProjectService.getProjectById(projectId),
+    ProjectService.getProjectById(projectId, authResult.value),
     RecordingService.getProjectRecordingStatistics(projectId),
   ]);
 
@@ -230,7 +238,11 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
 
         {/* Navigation */}
         <div className="flex justify-between">
-          <Button variant="outline" render={<Link href="/projects" />} nativeButton={false}>
+          <Button
+            variant="outline"
+            render={<Link href="/projects" />}
+            nativeButton={false}
+          >
             ← Back to Projects
           </Button>
         </div>
@@ -261,4 +273,3 @@ export default async function ProjectDetailPage({
     </Suspense>
   );
 }
-

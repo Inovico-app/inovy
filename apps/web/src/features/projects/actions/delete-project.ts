@@ -1,5 +1,6 @@
 "use server";
 
+import type { AuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
@@ -38,8 +39,14 @@ export const deleteProjectAction = authorizedActionClient
       );
     }
 
+    const auth: AuthContext = {
+      user,
+      organizationId,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Get project to validate confirmation
-    const projectResult = await ProjectService.getProjectById(projectId);
+    const projectResult = await ProjectService.getProjectById(projectId, auth);
     if (projectResult.isErr() || !projectResult.value) {
       throw ActionErrors.notFound("Project", "delete-project");
     }
@@ -63,11 +70,7 @@ export const deleteProjectAction = authorizedActionClient
     }
 
     // Delete the project (this will handle blob cleanup internally)
-    const result = await ProjectService.deleteProject(
-      projectId,
-      organizationId,
-      user.id,
-    );
+    const result = await ProjectService.deleteProject(projectId, auth);
 
     if (result.isErr()) {
       throw result.error;

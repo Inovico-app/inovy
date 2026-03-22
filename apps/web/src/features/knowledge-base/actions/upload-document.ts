@@ -1,5 +1,6 @@
 "use server";
 
+import type { AuthContext } from "@/lib/auth-context";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
@@ -44,6 +45,12 @@ export const uploadKnowledgeDocumentAction = authorizedActionClient
       );
     }
 
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Upload document
     const result = await DocumentProcessingService.uploadDocument(
       file,
@@ -51,6 +58,7 @@ export const uploadKnowledgeDocumentAction = authorizedActionClient
       scopeId,
       { title, description },
       user.id,
+      auth,
     );
 
     if (result.isErr()) {
@@ -182,12 +190,19 @@ export const uploadKnowledgeDocumentsBatchAction = authorizedActionClient
         metadataArray[index]?.description ?? sharedDescription ?? null,
     }));
 
+    const auth2: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Upload documents batch
     const result = await DocumentProcessingService.uploadDocumentsBatch(
       filesWithMetadata,
       scope,
       scopeId,
       user.id,
+      auth2,
     );
 
     if (result.isErr()) {

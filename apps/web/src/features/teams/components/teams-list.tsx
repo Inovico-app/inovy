@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateShort } from "@/lib/formatters/date-formatters";
+import type { AuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
@@ -27,7 +28,12 @@ export async function TeamsList() {
   const { user, member, organization, userTeamIds } = authResult.value;
   const isAdmin = isOrganizationAdmin(user, member);
 
-  const allTeams = await getCachedTeamsWithMemberCounts(organization.id);
+  const auth: AuthContext = {
+    user,
+    organizationId: organization.id,
+    userTeamIds: userTeamIds ?? [],
+  };
+  const allTeams = await getCachedTeamsWithMemberCounts(organization.id, auth);
 
   // Filter: admins see all, others see only their teams
   const visibleTeams = isAdmin

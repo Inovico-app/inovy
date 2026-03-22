@@ -1,3 +1,4 @@
+import type { AuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { KnowledgeBaseBrowserService } from "@/server/services/knowledge-base-browser.service";
@@ -21,11 +22,15 @@ export async function GET(request: NextRequest) {
     }
 
     const organizationId = authResult.value.organization.id;
+    const auth: AuthContext = {
+      user: authResult.value.user!,
+      organizationId,
+      userTeamIds: authResult.value.userTeamIds ?? [],
+    };
 
     // Check if agent is enabled for this organization
-    const agentStatusResult = await AgentConfigService.isAgentEnabled(
-      organizationId
-    );
+    const agentStatusResult =
+      await AgentConfigService.isAgentEnabled(organizationId);
 
     if (agentStatusResult.isErr() || !agentStatusResult.value) {
       return Response.json(
@@ -33,7 +38,7 @@ export async function GET(request: NextRequest) {
           error: "Agent is disabled for this organization",
           code: "AGENT_DISABLED",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -47,7 +52,7 @@ export async function GET(request: NextRequest) {
     const offset = searchParams.get("offset") || null;
 
     // List documents
-    const result = await KnowledgeBaseBrowserService.listDocuments({
+    const result = await KnowledgeBaseBrowserService.listDocuments(auth, {
       organizationId,
       projectId,
       contentType,
@@ -63,7 +68,7 @@ export async function GET(request: NextRequest) {
       });
       return Response.json(
         { error: result.error.message },
-        { status: result.error.code === "INTERNAL_SERVER_ERROR" ? 500 : 400 }
+        { status: result.error.code === "INTERNAL_SERVER_ERROR" ? 500 : 400 },
       );
     }
 
@@ -94,11 +99,15 @@ export async function DELETE(request: NextRequest) {
     }
 
     const organizationId = authResult.value.organization.id;
+    const auth: AuthContext = {
+      user: authResult.value.user!,
+      organizationId,
+      userTeamIds: authResult.value.userTeamIds ?? [],
+    };
 
     // Check if agent is enabled for this organization
-    const agentStatusResult = await AgentConfigService.isAgentEnabled(
-      organizationId
-    );
+    const agentStatusResult =
+      await AgentConfigService.isAgentEnabled(organizationId);
 
     if (agentStatusResult.isErr() || !agentStatusResult.value) {
       return Response.json(
@@ -106,7 +115,7 @@ export async function DELETE(request: NextRequest) {
           error: "Agent is disabled for this organization",
           code: "AGENT_DISABLED",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -117,14 +126,15 @@ export async function DELETE(request: NextRequest) {
     if (!documentId || typeof documentId !== "string") {
       return Response.json(
         { error: "documentId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Delete document
     const result = await KnowledgeBaseBrowserService.deleteDocument(
+      auth,
       documentId,
-      organizationId
+      organizationId,
     );
 
     if (result.isErr()) {
@@ -135,7 +145,7 @@ export async function DELETE(request: NextRequest) {
       });
       return Response.json(
         { error: result.error.message },
-        { status: result.error.code === "INTERNAL_SERVER_ERROR" ? 500 : 400 }
+        { status: result.error.code === "INTERNAL_SERVER_ERROR" ? 500 : 400 },
       );
     }
 
@@ -148,4 +158,3 @@ export async function DELETE(request: NextRequest) {
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

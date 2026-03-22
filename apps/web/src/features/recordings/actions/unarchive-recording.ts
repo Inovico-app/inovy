@@ -1,5 +1,6 @@
 "use server";
 
+import type { AuthContext } from "@/lib/auth-context";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { revalidatePath } from "next/cache";
 import { authorizedActionClient } from "../../../lib/server-action-client/action-client";
@@ -33,9 +34,17 @@ export const unarchiveRecordingAction = authorizedActionClient
       );
     }
 
+    const auth = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    } as const;
+
     // Get recording to find project ID for cache invalidation
-    const recordingResult =
-      await RecordingService.getRecordingById(recordingId);
+    const recordingResult = await RecordingService.getRecordingById(
+      recordingId,
+      auth,
+    );
     if (recordingResult.isErr() || !recordingResult.value) {
       throw ActionErrors.notFound("Recording", "unarchive-recording");
     }

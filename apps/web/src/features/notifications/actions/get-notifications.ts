@@ -1,6 +1,6 @@
 "use server";
 
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import type {
   NotificationFiltersDto,
@@ -17,13 +17,14 @@ export async function getNotifications(
   error?: string;
 }> {
   try {
-    // Verify authentication at action boundary
-    const authResult = await getBetterAuthSession();
-    if (authResult.isErr() || !authResult.value.isAuthenticated) {
-      return { success: false, error: "Unauthorized" };
+    const authResult = await resolveAuthContext("getNotifications");
+    if (authResult.isErr()) {
+      return { success: false, error: authResult.error.message };
     }
 
-    const result = await NotificationService.getNotifications(filters);
+    const auth = authResult.value;
+
+    const result = await NotificationService.getNotifications(auth, filters);
 
     if (result.isErr()) {
       logger.error("Failed to get notifications", {
@@ -37,19 +38,16 @@ export async function getNotifications(
       };
     }
 
-    const { user, organization } = authResult.value;
-    if (user?.id && organization?.id) {
-      void AuditLogService.createAuditLog({
-        eventType: "notification_list",
-        resourceType: "notification",
-        resourceId: null,
-        userId: user.id,
-        organizationId: organization.id,
-        action: "list",
-        category: "read",
-        metadata: { actionName: "getNotifications" },
-      });
-    }
+    void AuditLogService.createAuditLog({
+      eventType: "notification_list",
+      resourceType: "notification",
+      resourceId: null,
+      userId: auth.user.id,
+      organizationId: auth.organizationId,
+      action: "list",
+      category: "read",
+      metadata: { actionName: "getNotifications" },
+    });
 
     return {
       success: true,

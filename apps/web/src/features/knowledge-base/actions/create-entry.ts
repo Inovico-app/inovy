@@ -1,5 +1,6 @@
 "use server";
 
+import type { AuthContext } from "@/lib/auth-context";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { Permissions } from "@/lib/rbac/permissions";
 import {
@@ -37,12 +38,19 @@ export const createKnowledgeEntryAction = authorizedActionClient
       );
     }
 
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Create entry
     const result = await KnowledgeBaseService.createEntry(
       scope,
       scopeId,
       { term, definition, context, examples },
       user.id,
+      auth,
     );
 
     if (result.isErr()) {

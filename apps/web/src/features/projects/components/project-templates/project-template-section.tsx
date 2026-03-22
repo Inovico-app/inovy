@@ -1,3 +1,4 @@
+import { resolveAuthContext } from "@/lib/auth-context";
 import { ProjectTemplateService } from "@/server/services/project-template.service";
 import { ProjectTemplateSectionClient } from "./project-template-section-client";
 
@@ -14,8 +15,20 @@ interface ProjectTemplateSectionProps {
 export async function ProjectTemplateSection({
   projectId,
 }: ProjectTemplateSectionProps) {
+  const authResult = await resolveAuthContext("ProjectTemplateSection");
+
+  if (authResult.isErr()) {
+    return (
+      <ProjectTemplateSectionClient
+        projectId={projectId}
+        initialTemplate={null}
+      />
+    );
+  }
+
   const template = await ProjectTemplateService.getProjectTemplateByProjectId(
-    projectId
+    authResult.value,
+    projectId,
   );
 
   return (

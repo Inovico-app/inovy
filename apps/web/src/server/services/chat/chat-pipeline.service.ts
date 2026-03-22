@@ -11,6 +11,7 @@
  * metrics, provenance, token budget, grounding, title generation).
  */
 
+import type { AuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import {
@@ -440,7 +441,12 @@ export class ChatPipeline {
     projectId: string,
     caller: ChatCaller,
   ): Promise<ScopeContext> {
-    const projectResult = await ProjectService.getProjectById(projectId);
+    const auth: AuthContext = {
+      user: caller.user,
+      organizationId: caller.organizationId,
+      userTeamIds: caller.userTeamIds ?? [],
+    };
+    const projectResult = await ProjectService.getProjectById(projectId, auth);
     const project = projectResult.isOk() ? projectResult.value : null;
 
     let knowledgeContext = "";
@@ -455,7 +461,10 @@ export class ChatPipeline {
       }
     }
 
-    const projectTemplate = await getCachedProjectTemplate(projectId);
+    const projectTemplate = await getCachedProjectTemplate(
+      projectId,
+      caller.organizationId,
+    );
 
     let orgInstructions: string | null = null;
     if (project) {

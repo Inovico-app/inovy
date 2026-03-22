@@ -1,5 +1,6 @@
 "use server";
 
+import type { AuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
@@ -140,8 +141,14 @@ export const getDeletionStatusAction = authorizedActionClient
     permissions: policyToPermissions("settings:read"),
     audit: { resourceType: "user", action: "get", category: "read" },
   })
-  .action(async () => {
-    const result = await GdprDeletionService.getDeletionRequestStatus();
+  .action(async ({ ctx }) => {
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
+    const result = await GdprDeletionService.getDeletionRequestStatus(auth);
 
     if (result.isErr()) {
       throw result.error;

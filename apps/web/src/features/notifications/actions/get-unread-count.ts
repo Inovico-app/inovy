@@ -1,6 +1,6 @@
 "use server";
 
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { NotificationService } from "@/server/services/notification.service";
@@ -11,13 +11,14 @@ export async function getUnreadCount(): Promise<{
   error?: string;
 }> {
   try {
-    // Verify authentication at action boundary
-    const authResult = await getBetterAuthSession();
-    if (authResult.isErr() || !authResult.value.isAuthenticated) {
-      return { success: false, error: "Unauthorized" };
+    const authResult = await resolveAuthContext("getUnreadCount");
+    if (authResult.isErr()) {
+      return { success: false, error: authResult.error.message };
     }
 
-    const result = await NotificationService.getUnreadCount();
+    const auth = authResult.value;
+
+    const result = await NotificationService.getUnreadCount(auth);
 
     if (result.isErr()) {
       logger.error("Failed to get unread count", {
@@ -31,19 +32,16 @@ export async function getUnreadCount(): Promise<{
       };
     }
 
-    const { user, organization } = authResult.value;
-    if (user?.id && organization?.id) {
-      void AuditLogService.createAuditLog({
-        eventType: "notification_get",
-        resourceType: "notification",
-        resourceId: null,
-        userId: user.id,
-        organizationId: organization.id,
-        action: "get",
-        category: "read",
-        metadata: { actionName: "getUnreadCount" },
-      });
-    }
+    void AuditLogService.createAuditLog({
+      eventType: "notification_get",
+      resourceType: "notification",
+      resourceId: null,
+      userId: auth.user.id,
+      organizationId: auth.organizationId,
+      action: "get",
+      category: "read",
+      metadata: { actionName: "getUnreadCount" },
+    });
 
     return {
       success: true,

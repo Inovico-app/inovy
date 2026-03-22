@@ -1,5 +1,6 @@
 "use server";
 
+import type { AuthContext } from "@/lib/auth-context";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
@@ -33,9 +34,17 @@ export const getRecordingStatusAction = authorizedActionClient
       throw ActionErrors.forbidden("Organization context required");
     }
 
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Get recording
-    const recordingResult =
-      await RecordingService.getRecordingById(recordingId);
+    const recordingResult = await RecordingService.getRecordingById(
+      recordingId,
+      auth,
+    );
     const recording = resultToActionResponse(recordingResult);
 
     if (!recording) {

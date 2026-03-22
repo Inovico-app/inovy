@@ -1,3 +1,4 @@
+import type { AuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
@@ -37,14 +38,19 @@ export async function POST(request: NextRequest) {
     if (!validationResult.success) {
       return NextResponse.json(
         { error: "Invalid request", details: validationResult.error },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const { projectId } = validationResult.data;
 
     // Verify user has access to the project
-    const projectResult = await ProjectService.getProjectById(projectId);
+    const auth: AuthContext = {
+      user,
+      organizationId: organization.id,
+      userTeamIds: authResult.value.userTeamIds ?? [],
+    };
+    const projectResult = await ProjectService.getProjectById(projectId, auth);
     if (projectResult.isErr()) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
@@ -55,7 +61,7 @@ export async function POST(request: NextRequest) {
       assertOrganizationAccess(
         project.organizationId,
         organization.id,
-        "api/embeddings/index"
+        "api/embeddings/index",
       );
     } catch {
       // Return 404 to prevent information leakage
@@ -68,14 +74,14 @@ export async function POST(request: NextRequest) {
     const ragService = new RAGService();
     const indexResult = await ragService.indexProject(
       projectId,
-      organization.id
+      organization.id,
     );
 
     if (indexResult.isErr()) {
       logger.error("Indexing failed", { error: indexResult.error, projectId });
       return NextResponse.json(
         { error: "Indexing failed", details: indexResult.error.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -91,8 +97,7 @@ export async function POST(request: NextRequest) {
     logger.error("Error in embeddings index API", { error });
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

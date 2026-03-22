@@ -198,6 +198,17 @@ vi.mock("../../tools", () => ({
 // ============================================================================
 
 const defaultCaller: ChatCaller = {
+  user: {
+    id: "user-1",
+    name: "Test User",
+    email: "test@example.com",
+    role: "user",
+    image: null,
+    emailVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    onboardingCompleted: true,
+  } as ChatCaller["user"],
   userId: "user-1",
   organizationId: "org-1",
   userRole: "member",

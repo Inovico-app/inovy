@@ -1,4 +1,4 @@
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { NotificationService } from "@/server/services/notification.service";
 import { NextResponse } from "next/server";
@@ -10,18 +10,15 @@ import { NextResponse } from "next/server";
  */
 export async function GET() {
   try {
-    // Verify authentication
-    const authResult = await getBetterAuthSession();
-    if (
-      authResult.isErr() ||
-      !authResult.value.isAuthenticated ||
-      !authResult.value.user
-    ) {
+    const authResult = await resolveAuthContext("UnreadCountRoute");
+    if (authResult.isErr()) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const auth = authResult.value;
+
     // Get unread count
-    const result = await NotificationService.getUnreadCount();
+    const result = await NotificationService.getUnreadCount(auth);
 
     if (result.isErr()) {
       logger.error("Failed to get unread count", {
@@ -31,7 +28,7 @@ export async function GET() {
 
       return NextResponse.json(
         { error: "Failed to get unread count" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -46,8 +43,7 @@ export async function GET() {
 
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

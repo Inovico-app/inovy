@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { isOrganizationAdmin, isTeamManager } from "@/lib/rbac/rbac";
 import { getCachedTeamById } from "@/server/cache/team.cache";
@@ -23,12 +24,14 @@ interface TeamDashboardProps {
 }
 
 export async function TeamDashboard({ teamId }: TeamDashboardProps) {
-  const authResult = await getBetterAuthSession();
+  const authCtxResult = await resolveAuthContext("TeamDashboard");
+  const sessionResult = await getBetterAuthSession();
 
   if (
-    authResult.isErr() ||
-    !authResult.value.isAuthenticated ||
-    !authResult.value.organization
+    authCtxResult.isErr() ||
+    sessionResult.isErr() ||
+    !sessionResult.value.isAuthenticated ||
+    !sessionResult.value.organization
   ) {
     return (
       <Card>
@@ -41,7 +44,8 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
     );
   }
 
-  const { user, member, organization } = authResult.value;
+  const auth = authCtxResult.value;
+  const { user, member, organization } = sessionResult.value;
 
   // user is guaranteed to be non-null after authentication check
   if (!user) {
@@ -56,7 +60,7 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
     );
   }
 
-  const team = await getCachedTeamById(teamId);
+  const team = await getCachedTeamById(teamId, auth);
 
   if (!team) {
     return (
@@ -74,7 +78,10 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
   const canManage = isAdmin || isLead;
 
   // Fetch team members with user details
-  const membersResult = await TeamService.getTeamMembersWithUserDetails(teamId);
+  const membersResult = await TeamService.getTeamMembersWithUserDetails(
+    teamId,
+    auth,
+  );
   const members = membersResult.isOk() ? membersResult.value : [];
 
   // Fetch team's projects with recording counts (capped at 10 for the dashboard)

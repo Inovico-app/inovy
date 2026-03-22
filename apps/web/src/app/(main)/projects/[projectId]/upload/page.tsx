@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export async function generateMetadata({ params }: UploadRecordingPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: UploadRecordingPageProps): Promise<Metadata> {
   const { projectId } = await params;
   return { title: `Upload Recording - Project ${projectId}` };
 }
+import { resolveAuthContext } from "@/lib/auth-context";
 import { ProjectService } from "@/server/services/project.service";
 import { ArrowLeftIcon } from "lucide-react";
 import type { Route } from "next";
@@ -20,8 +23,16 @@ interface UploadRecordingPageProps {
 async function UploadRecordingContent({ params }: UploadRecordingPageProps) {
   const { projectId } = await params;
 
+  const authResult = await resolveAuthContext("UploadRecording");
+  if (authResult.isErr()) {
+    notFound();
+  }
+
   // Verify project exists
-  const projectResult = await ProjectService.getProjectById(projectId);
+  const projectResult = await ProjectService.getProjectById(
+    projectId,
+    authResult.value,
+  );
 
   if (projectResult.isErr() || !projectResult.value) {
     notFound();
@@ -34,7 +45,13 @@ async function UploadRecordingContent({ params }: UploadRecordingPageProps) {
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
         <div>
-          <Button variant="ghost" size="sm" className="mb-4" render={<Link href={`/projects/${projectId}` as Route} />} nativeButton={false}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mb-4"
+            render={<Link href={`/projects/${projectId}` as Route} />}
+            nativeButton={false}
+          >
             <ArrowLeftIcon className="h-4 w-4 mr-2" />
             Back to Project
           </Button>
@@ -87,4 +104,3 @@ export default async function UploadRecordingPage({
     </Suspense>
   );
 }
-

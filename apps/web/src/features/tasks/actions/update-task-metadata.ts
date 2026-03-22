@@ -1,12 +1,10 @@
 "use server";
 
+import type { AuthContext } from "@/lib/auth-context";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { TaskService } from "@/server/services/task.service";
-import {
-  updateTaskMetadataSchema,
-  type UpdateTaskMetadataInput,
-} from "@/server/validation/tasks/update-task-metadata";
+import { updateTaskMetadataSchema } from "@/server/validation/tasks/update-task-metadata";
 
 /**
  * Server action to update task metadata
@@ -19,8 +17,14 @@ export const updateTaskMetadata = authorizedActionClient
     audit: { resourceType: "task", action: "update", category: "mutation" },
   })
   .schema(updateTaskMetadataSchema)
-  .action(async ({ parsedInput }: { parsedInput: UpdateTaskMetadataInput }) => {
-    const result = await TaskService.updateTaskMetadata(parsedInput);
+  .action(async ({ parsedInput, ctx }) => {
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
+    const result = await TaskService.updateTaskMetadata(parsedInput, auth);
 
     if (result.isErr()) {
       throw new Error(result.error.message);

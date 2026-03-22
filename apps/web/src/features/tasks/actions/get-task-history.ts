@@ -1,5 +1,6 @@
 "use server";
 
+import type { AuthContext } from "@/lib/auth-context";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { TaskService } from "@/server/services/task.service";
@@ -16,8 +17,14 @@ export const getTaskHistory = authorizedActionClient
     audit: { resourceType: "task", action: "read", category: "read" },
   })
   .schema(z.object({ taskId: z.string().uuid() }))
-  .action(async ({ parsedInput }) => {
-    const result = await TaskService.getTaskHistory(parsedInput.taskId);
+  .action(async ({ parsedInput, ctx }) => {
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
+    const result = await TaskService.getTaskHistory(parsedInput.taskId, auth);
 
     if (result.isErr()) {
       throw new Error(result.error.message);

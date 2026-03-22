@@ -9,7 +9,7 @@ import {
 import { ProjectKnowledgeBaseSection } from "@/features/knowledge-base/components/project-knowledge-base-section";
 import { EditProjectForm } from "@/features/projects/components/edit-project-form";
 import { ProjectTemplateSection } from "@/features/projects/components/project-templates/project-template-section";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { isProjectManager } from "@/lib/rbac/rbac";
 import {
   getCachedHierarchicalKnowledge,
@@ -37,8 +37,16 @@ interface ProjectSettingsPageProps {
 async function ProjectSettings({ params }: ProjectSettingsPageProps) {
   const { projectId } = await params;
 
+  const authResult = await resolveAuthContext("ProjectSettings");
+  if (authResult.isErr()) {
+    notFound();
+  }
+
   // Verify project exists and user has access
-  const projectResult = await ProjectService.getProjectById(projectId);
+  const projectResult = await ProjectService.getProjectById(
+    projectId,
+    authResult.value,
+  );
 
   if (projectResult.isErr()) {
     notFound();
@@ -47,11 +55,7 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
   const project = projectResult.value;
 
   // Check if user can edit (project manager or admin)
-  const authResult = await getBetterAuthSession();
-  const canEdit =
-    authResult.isOk() && authResult.value.user
-      ? await isProjectManager(authResult.value.user, projectId)
-      : false;
+  const canEdit = await isProjectManager(authResult.value.user, projectId);
 
   // Fetch knowledge base data in parallel
   const [projectEntries, projectDocuments, hierarchicalEntries] =

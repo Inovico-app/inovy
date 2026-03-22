@@ -251,6 +251,7 @@ export async function POST(request: NextRequest) {
 
       const streamResult = await ChatPipeline.sendMessage(
         {
+          user,
           userId: user.id,
           organizationId,
           userRole,
@@ -322,7 +323,15 @@ export async function POST(request: NextRequest) {
       }
 
       // Verify user has access to the project
-      const projectResult = await ProjectService.getProjectById(projectId);
+      const chatAuth = {
+        user,
+        organizationId,
+        userTeamIds: session.userTeamIds ?? [],
+      };
+      const projectResult = await ProjectService.getProjectById(
+        projectId,
+        chatAuth,
+      );
       if (projectResult.isErr()) {
         return NextResponse.json(
           { error: "Project not found" },
@@ -352,6 +361,7 @@ export async function POST(request: NextRequest) {
 
       const projectStreamResult = await ChatPipeline.sendMessage(
         {
+          user,
           userId: user.id,
           organizationId,
           userRole,
