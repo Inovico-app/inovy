@@ -257,6 +257,39 @@ export class RecordingSession {
         },
         errorIsRecoverable: true,
       });
+      return;
+    }
+
+    // Reconnect live transcription if the Deepgram WebSocket dropped during
+    // the pipeline rebuild (the old audio stream teardown can cause this)
+    if (this.config.liveTranscriptionEnabled && this.deps.liveTranscription) {
+      const txStatus = this.deps.liveTranscription.getStatus();
+      if (txStatus !== "connected") {
+        console.log(
+          "[RecordingSession] switchDevice: Deepgram connection lost during switch, reconnecting...",
+        );
+        const txResult = await this.deps.liveTranscription.connect({
+          model: "nova-3",
+          language: this.config.language,
+          enableDiarization: true,
+          interimResults: true,
+        });
+
+        if (txResult.isErr()) {
+          console.warn(
+            "[RecordingSession] switchDevice: Deepgram reconnect failed",
+            txResult.error,
+          );
+          this.addWarning(txResult.error);
+        } else {
+          this.setState({
+            transcription: {
+              ...this.state.transcription,
+              status: this.deps.liveTranscription.getStatus(),
+            },
+          });
+        }
+      }
     }
   }
 
