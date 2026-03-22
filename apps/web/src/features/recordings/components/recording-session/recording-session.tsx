@@ -13,18 +13,16 @@ import {
 import { useNavigationGuard } from "@/hooks/use-navigation-guard";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
   useRecordingSession,
   type UseRecordingSessionConfig,
 } from "@/features/recordings/hooks/use-recording-session";
-import { useAudioDevices } from "@/features/recordings/hooks/use-audio-devices";
 import { RecordingStatusBadge } from "@/features/recordings/components/shared/recording-status-badge";
 import { AudioSourceIndicator } from "./audio-source-indicator";
 import { ChunkUploadStatus } from "./chunk-upload-status";
-import { DeviceSettingsPopover } from "./device-settings-popover";
 import { MobileRecordingView } from "./mobile-recording-view";
 import { RecordingControls } from "./recording-controls";
 import { RecoveryDialog } from "./recovery-dialog";
@@ -44,23 +42,7 @@ export function RecordingSession({
 }: RecordingSessionProps) {
   const router = useRouter();
   const session = useRecordingSession(config);
-  const {
-    devices: audioDevices,
-    isLoading: isLoadingDevices,
-    error: devicesError,
-    refreshDevices,
-  } = useAudioDevices();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-
-  const handleDeviceChange = useCallback(
-    (deviceId: string) => {
-      setSelectedDeviceId(deviceId);
-      if (session.status === "paused") {
-        void session.switchDevice(deviceId);
-      }
-    },
-    [session],
-  );
 
   // Track which warnings we've already shown
   const shownWarningsRef = useRef(new Set<string>());
@@ -200,15 +182,6 @@ export function RecordingSession({
               onDiscard?.();
             }}
           />
-          <DeviceSettingsPopover
-            devices={audioDevices}
-            selectedDeviceId={selectedDeviceId}
-            onDeviceChange={handleDeviceChange}
-            isDisabled={false}
-            isLoading={isLoadingDevices}
-            error={devicesError}
-            onRetry={refreshDevices}
-          />
         </div>
       )}
 
@@ -222,17 +195,6 @@ export function RecordingSession({
           audioSource={config.audioSource}
           chunkManifest={session.chunkManifest}
           error={session.error}
-          devices={audioDevices}
-          selectedDeviceId={selectedDeviceId}
-          onDeviceChange={handleDeviceChange}
-          isDeviceSelectionDisabled={
-            session.status === "recording" || session.isSwitchingDevice
-          }
-          isLoadingDevices={isLoadingDevices}
-          devicesError={devicesError}
-          onRetryDevices={refreshDevices}
-          isSwitchingDevice={session.isSwitchingDevice}
-          switchError={session.status === "paused" ? session.error : null}
           onPause={session.pause}
           onResume={session.resume}
           onStop={() => void session.stop()}
@@ -316,17 +278,6 @@ export function RecordingSession({
                       onDiscard?.();
                     }}
                   />
-                  {session.status === "idle" && (
-                    <DeviceSettingsPopover
-                      devices={audioDevices}
-                      selectedDeviceId={selectedDeviceId}
-                      onDeviceChange={handleDeviceChange}
-                      isDisabled={false}
-                      isLoading={isLoadingDevices}
-                      error={devicesError}
-                      onRetry={refreshDevices}
-                    />
-                  )}
                 </div>
 
                 {/* Status bar */}
@@ -335,21 +286,6 @@ export function RecordingSession({
                     <AudioSourceIndicator
                       audioSource={config.audioSource}
                       status={session.status}
-                    />
-                    <DeviceSettingsPopover
-                      devices={audioDevices}
-                      selectedDeviceId={selectedDeviceId}
-                      onDeviceChange={handleDeviceChange}
-                      isDisabled={
-                        session.status === "recording" ||
-                        session.isSwitchingDevice
-                      }
-                      isLoading={isLoadingDevices || session.isSwitchingDevice}
-                      error={devicesError}
-                      onRetry={refreshDevices}
-                      switchError={
-                        session.status === "paused" ? session.error : null
-                      }
                     />
                     <ChunkUploadStatus manifest={session.chunkManifest} />
                   </div>

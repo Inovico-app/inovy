@@ -222,75 +222,10 @@ export class RecordingSession {
   }
 
   resume(): void {
-    // Clear any switch-related warning before resuming
-    if (this.state.error?.severity === "warning") {
-      this.setState({ error: null, errorIsRecoverable: false });
-    }
-
     if (!this.transition("recording")) return;
 
     this.deps.audioCapture.resume();
     this.startDurationTimer();
-
-    // Note: Deepgram keep-alive is managed internally by the
-    // LiveTranscriptionService. When chunks resume flowing, the service
-    // automatically transitions back from keep-alive mode.
-  }
-
-  async switchDevice(deviceId: string): Promise<void> {
-    if (this.state.status !== "paused") return;
-
-    // Clear any previous switch error before attempting
-    if (this.state.error?.severity === "warning") {
-      this.setState({ error: null, errorIsRecoverable: false });
-    }
-
-    const result = await this.deps.audioCapture.reinitialize({ deviceId });
-
-    if (result.isErr()) {
-      // Non-fatal: set warning error but stay paused (no FSM transition to error state)
-      this.setState({
-        error: {
-          ...result.error,
-          severity: "warning",
-          recoverable: true,
-        },
-        errorIsRecoverable: true,
-      });
-      return;
-    }
-
-    // Reconnect live transcription if the Deepgram WebSocket dropped during
-    // the pipeline rebuild (the old audio stream teardown can cause this)
-    if (this.config.liveTranscriptionEnabled && this.deps.liveTranscription) {
-      const txStatus = this.deps.liveTranscription.getStatus();
-      if (txStatus !== "connected") {
-        console.log(
-          "[RecordingSession] switchDevice: Deepgram connection lost during switch, reconnecting...",
-        );
-        const txResult = await this.deps.liveTranscription.connect({
-          model: "nova-3",
-          language: this.config.language,
-          enableDiarization: true,
-          interimResults: true,
-        });
-
-        if (txResult.isErr()) {
-          console.warn(
-            "[RecordingSession] switchDevice: Deepgram reconnect failed",
-            txResult.error,
-          );
-          this.addWarning(txResult.error);
-        } else {
-          this.setState({
-            transcription: {
-              ...this.state.transcription,
-              status: this.deps.liveTranscription.getStatus(),
-            },
-          });
-        }
-      }
-    }
   }
 
   async stop(): Promise<FinalizedRecording | null> {

@@ -128,52 +128,6 @@ describe("RecordingSession FSM", () => {
       expect(session.getState().status).toBe("error");
       expect(session.getState().error?.code).toBe("PERMISSION_DENIED");
     });
-
-    it("switches device while paused via switchDevice", async () => {
-      const { session, audioCapture } = createSession();
-      await session.start();
-      session.pause();
-      expect(session.getState().status).toBe("paused");
-
-      await session.switchDevice("new-device-456");
-
-      expect(audioCapture.getLastInitConfig()).toEqual({
-        deviceId: "new-device-456",
-      });
-      expect(session.getState().status).toBe("paused");
-    });
-
-    it("ignores switchDevice when not paused", async () => {
-      const { session, audioCapture } = createSession();
-      await session.start();
-      expect(session.getState().status).toBe("recording");
-
-      await session.switchDevice("new-device-456");
-
-      // Should still have the original config from start(), not the switch
-      expect(audioCapture.getLastInitConfig()).toEqual({
-        deviceId: undefined,
-      });
-    });
-
-    it("sets warning error on switchDevice failure", async () => {
-      const { session, audioCapture } = createSession();
-      await session.start();
-      session.pause();
-
-      // Configure fake to fail
-      audioCapture.shouldFailInitialize = true;
-      audioCapture.initializeError = createCaptureError(
-        "DEVICE_NOT_FOUND",
-        "Device not found",
-      );
-
-      await session.switchDevice("bad-device");
-
-      expect(session.getState().status).toBe("paused");
-      expect(session.getState().error).not.toBeNull();
-      expect(session.getState().error?.code).toBe("DEVICE_NOT_FOUND");
-    });
   });
 
   describe("chunk routing", () => {

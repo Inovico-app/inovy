@@ -9,7 +9,7 @@
  * disabled video track) are cleaned up on `stop()`.
  */
 
-import { ResultAsync, okAsync } from "neverthrow";
+import { ResultAsync } from "neverthrow";
 
 import {
   createCaptureError,
@@ -141,13 +141,6 @@ export class SystemAudioCaptureService implements AudioCaptureService {
     }
 
     this.active = true;
-  }
-
-  // deviceId is ignored — system audio uses getDisplayMedia, not getUserMedia
-  reinitialize(
-    _config?: AudioCaptureInitConfig,
-  ): ResultAsync<void, CaptureError> {
-    return okAsync(undefined);
   }
 
   // -----------------------------------------------------------------------

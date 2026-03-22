@@ -64,7 +64,6 @@ export class CombinedCaptureService implements AudioCaptureService {
   private lastChunkTimestamp = 0;
   private active = false;
   private micOnly = false;
-  private timeslice = 0;
 
   // -----------------------------------------------------------------------
   // AudioCaptureService — initialize
@@ -143,141 +142,10 @@ export class CombinedCaptureService implements AudioCaptureService {
   }
 
   // -----------------------------------------------------------------------
-  // AudioCaptureService — reinitialize
-  // -----------------------------------------------------------------------
-
-  reinitialize(
-    config?: AudioCaptureInitConfig,
-  ): ResultAsync<void, CaptureError> {
-    return ResultAsync.fromPromise(this.doReinitialize(config), (error) =>
-      createCaptureError(
-        "MEDIA_RECORDER_ERROR",
-        error instanceof Error ? error.message : String(error),
-        { cause: error },
-      ),
-    );
-  }
-
-  private async doReinitialize(config?: AudioCaptureInitConfig): Promise<void> {
-    // 1. Save state
-    const savedChunkIndex = this.chunkIndex;
-    const savedLastChunkTimestamp = this.lastChunkTimestamp;
-    const savedTimeslice = this.timeslice;
-
-    // 2. Detach handlers from old recorder
-    if (this.recorder) {
-      this.recorder.ondataavailable = null;
-      this.recorder.onerror = null;
-    }
-
-    // 3. Stop old MediaRecorder
-    if (this.recorder && this.recorder.state !== "inactive") {
-      await new Promise<void>((resolve) => {
-        const onStop = () => {
-          this.recorder?.removeEventListener("stop", onStop);
-          resolve();
-        };
-        this.recorder!.addEventListener("stop", onStop);
-        this.recorder!.stop();
-      });
-    }
-
-    // 4. Release mixer and recorder (preserves event listeners)
-    this.releaseMediaResources();
-
-    // 5. Reinitialize mic sub-service with new device
-    const micResult = await this.micService.reinitialize(config);
-    if (micResult.isErr()) {
-      throw micResult.error;
-    }
-
-    // 6. Rebuild stream: mixed or mic-only
-    const newMicStream = this.micService.getStream();
-    if (!newMicStream) {
-      throw new Error("Microphone stream not available after reinitialize");
-    }
-
-    let recordingStream: MediaStream;
-
-    if (this.micOnly) {
-      // mic-only mode: use mic stream directly
-      recordingStream = newMicStream;
-    } else {
-      // mixed mode: combine new mic + existing system stream
-      const systemStream = this.systemService.getStream();
-      const streams = systemStream
-        ? [newMicStream, systemStream]
-        : [newMicStream];
-      this.mixResult = mixStreams(streams);
-      recordingStream = this.mixResult.mixedStream;
-
-      // Register new mixer for cleanup (so stop() disposes it properly)
-      this.resources.track({
-        dispose: () => {
-          if (this.mixResult) {
-            this.mixResult.mixedStream.getTracks().forEach((t) => t.stop());
-            if (this.mixResult.audioContext.state !== "closed") {
-              void this.mixResult.audioContext.close();
-            }
-          }
-        },
-      });
-    }
-
-    // 7. Re-register mic error forwarding (mic's reinitialize preserves
-    // its own emitter, but combined's doInitialize registered the
-    // forwarding which was lost when we disposed resources)
-    this.micService.onError((err) => this.emitter.emit("error", err));
-
-    // 8. Create new MediaRecorder
-    const mimeType = this.selectMimeType();
-    const recorder = new MediaRecorder(recordingStream, {
-      ...(mimeType ? { mimeType } : {}),
-    });
-    this.recorder = recorder;
-
-    // 9. Restore chunk state BEFORE start (start may emit a micro-chunk)
-    this.chunkIndex = savedChunkIndex;
-    this.lastChunkTimestamp = savedLastChunkTimestamp;
-    this.timeslice = savedTimeslice;
-
-    // 10. Attach handlers
-    recorder.ondataavailable = (event: BlobEvent) => {
-      if (event.data.size === 0) return;
-      const now = Date.now();
-      const chunk: AudioChunk = {
-        data: event.data,
-        index: this.chunkIndex++,
-        timestamp: now,
-        duration: now - this.lastChunkTimestamp,
-      };
-      this.lastChunkTimestamp = now;
-      this.emitter.emit("chunk", chunk);
-    };
-
-    recorder.onerror = (event: Event) => {
-      this.emitter.emit(
-        "error",
-        createCaptureError(
-          "MEDIA_RECORDER_ERROR",
-          event instanceof ErrorEvent ? event.message : "MediaRecorder error",
-          { cause: event },
-        ),
-      );
-    };
-
-    // 11. Start then immediately pause
-    recorder.start(savedTimeslice);
-    recorder.pause();
-  }
-
-  // -----------------------------------------------------------------------
   // AudioCaptureService — start / pause / resume
   // -----------------------------------------------------------------------
 
   start(timeslice: number): void {
-    this.timeslice = timeslice;
-
     const stream = this.getRecordingStream();
 
     if (!stream) {
@@ -435,26 +303,11 @@ export class CombinedCaptureService implements AudioCaptureService {
     return this.mixResult?.mixedStream ?? null;
   }
 
-  /**
-   * Release the combined service's own resources (mixer, recorder)
-   * WITHOUT clearing event listeners or active flag.
-   */
-  private releaseMediaResources(): void {
-    // Dispose mixer AudioContext
-    if (this.mixResult) {
-      this.mixResult.mixedStream.getTracks().forEach((t) => t.stop());
-      if (this.mixResult.audioContext.state !== "closed") {
-        void this.mixResult.audioContext.close();
-      }
-    }
+  private releaseResources(): void {
+    this.active = false;
     this.resources.disposeAll();
     this.recorder = null;
     this.mixResult = null;
-  }
-
-  private releaseResources(): void {
-    this.active = false;
-    this.releaseMediaResources();
     this.emitter.removeAllListeners();
   }
 

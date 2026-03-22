@@ -21,10 +21,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
-import type { AudioInputDevice } from "@/features/recordings/hooks/use-audio-devices";
 import { AudioSourceIndicator } from "./audio-source-indicator";
 import { ChunkUploadStatus } from "./chunk-upload-status";
-import { DeviceSettingsPopover } from "./device-settings-popover";
 
 interface MobileRecordingViewProps {
   status: RecordingStatus;
@@ -38,15 +36,6 @@ interface MobileRecordingViewProps {
   audioSource: AudioSource;
   chunkManifest: ChunkManifest;
   error: RecordingError | null;
-  devices: AudioInputDevice[];
-  selectedDeviceId: string | null;
-  onDeviceChange: (deviceId: string) => void;
-  isDeviceSelectionDisabled: boolean;
-  isLoadingDevices: boolean;
-  devicesError: Error | null;
-  onRetryDevices: () => void;
-  isSwitchingDevice: boolean;
-  switchError: RecordingError | null;
   onPause: () => void;
   onResume: () => void;
   onStop: () => void;
@@ -70,15 +59,6 @@ export function MobileRecordingView({
   audioSource,
   chunkManifest,
   error,
-  devices,
-  selectedDeviceId,
-  onDeviceChange,
-  isDeviceSelectionDisabled,
-  isLoadingDevices,
-  devicesError,
-  onRetryDevices,
-  isSwitchingDevice,
-  switchError,
   onPause,
   onResume,
   onStop,
@@ -227,16 +207,6 @@ export function MobileRecordingView({
       <div className="relative px-4 pt-4 pb-8 bg-card/60 backdrop-blur-2xl border-t border-border/20">
         {isActive && (
           <div className="flex items-center justify-center gap-5">
-            <DeviceSettingsPopover
-              devices={devices}
-              selectedDeviceId={selectedDeviceId}
-              onDeviceChange={onDeviceChange}
-              isDisabled={isDeviceSelectionDisabled}
-              isLoading={isLoadingDevices || isSwitchingDevice}
-              error={devicesError}
-              onRetry={onRetryDevices}
-              switchError={switchError}
-            />
             {isRecording ? (
               <Button
                 onClick={onPause}

@@ -36,16 +36,6 @@ export class FakeAudioCaptureService implements AudioCaptureService {
     return okAsync(undefined);
   }
 
-  reinitialize(
-    config?: AudioCaptureInitConfig,
-  ): ResultAsync<void, CaptureError> {
-    this.lastInitConfig = config;
-    if (this.shouldFailInitialize && this.initializeError) {
-      return errAsync(this.initializeError);
-    }
-    return okAsync(undefined);
-  }
-
   getLastInitConfig(): AudioCaptureInitConfig | undefined {
     return this.lastInitConfig;
   }

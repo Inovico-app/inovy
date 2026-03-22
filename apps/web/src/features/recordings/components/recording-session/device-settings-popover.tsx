@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AudioInputDevice } from "@/features/recordings/hooks/use-audio-devices";
-import type { RecordingError } from "@/features/recordings/core/recording-session.errors";
 import { Lock, Mic, RotateCcw, Settings2 } from "lucide-react";
 import { useId, useState } from "react";
 
@@ -32,7 +31,6 @@ interface DeviceSettingsPopoverProps {
   isLoading: boolean;
   error: Error | null;
   onRetry: () => void;
-  switchError?: RecordingError | null;
 }
 
 export function DeviceSettingsPopover({
@@ -43,7 +41,6 @@ export function DeviceSettingsPopover({
   isLoading,
   error,
   onRetry,
-  switchError,
 }: DeviceSettingsPopoverProps) {
   const instanceId = useId();
   const [open, setOpen] = useState(false);
@@ -174,12 +171,6 @@ export function DeviceSettingsPopover({
                 >
                   <Lock className="h-3 w-3 shrink-0" />
                   <span>Pauzeer de opname om van microfoon te wisselen</span>
-                </p>
-              )}
-
-              {switchError && !isDisabled && (
-                <p className="text-xs text-destructive">
-                  {switchError.message || "Kon niet wisselen van microfoon"}
                 </p>
               )}
             </>
