@@ -122,6 +122,7 @@ export function RecordingSession({
     onConfirmNavigation: () => {
       // Stop and destroy the session when user confirms leaving
       session.reset();
+      setSelectedDeviceId(null);
     },
   });
 
@@ -184,6 +185,7 @@ export function RecordingSession({
             onSavePartial={() => void session.savePartial()}
             onReset={() => {
               session.reset();
+              setSelectedDeviceId(null);
               onDiscard?.();
             }}
           />
@@ -199,33 +201,36 @@ export function RecordingSession({
         </div>
       )}
 
-      {/* Mobile: Google Meet-style immersive overlay */}
-      <MobileRecordingView
-        status={session.status}
-        duration={session.duration}
-        transcription={session.transcription}
-        liveTranscriptionEnabled={config.liveTranscriptionEnabled}
-        audioSource={config.audioSource}
-        chunkManifest={session.chunkManifest}
-        error={session.error}
-        devices={audioDevices}
-        selectedDeviceId={selectedDeviceId}
-        onDeviceChange={setSelectedDeviceId}
-        isDeviceSelectionDisabled={
-          session.status === "recording" || session.status === "paused"
-        }
-        isLoadingDevices={isLoadingDevices}
-        devicesError={devicesError}
-        onRetryDevices={refreshDevices}
-        onPause={session.pause}
-        onResume={session.resume}
-        onStop={() => void session.stop()}
-        onSavePartial={() => void session.savePartial()}
-        onReset={() => {
-          session.reset();
-          onDiscard?.();
-        }}
-      />
+      {/* Mobile: Google Meet-style immersive overlay (not mounted in idle — idle has its own panel above) */}
+      {session.status !== "idle" && (
+        <MobileRecordingView
+          status={session.status}
+          duration={session.duration}
+          transcription={session.transcription}
+          liveTranscriptionEnabled={config.liveTranscriptionEnabled}
+          audioSource={config.audioSource}
+          chunkManifest={session.chunkManifest}
+          error={session.error}
+          devices={audioDevices}
+          selectedDeviceId={selectedDeviceId}
+          onDeviceChange={setSelectedDeviceId}
+          isDeviceSelectionDisabled={
+            session.status === "recording" || session.status === "paused"
+          }
+          isLoadingDevices={isLoadingDevices}
+          devicesError={devicesError}
+          onRetryDevices={refreshDevices}
+          onPause={session.pause}
+          onResume={session.resume}
+          onStop={() => void session.stop()}
+          onSavePartial={() => void session.savePartial()}
+          onReset={() => {
+            session.reset();
+            setSelectedDeviceId(null);
+            onDiscard?.();
+          }}
+        />
+      )}
 
       {/* Desktop: panel layout */}
       <div className="hidden md:block">
@@ -294,6 +299,7 @@ export function RecordingSession({
                     onSavePartial={() => void session.savePartial()}
                     onReset={() => {
                       session.reset();
+                      setSelectedDeviceId(null);
                       onDiscard?.();
                     }}
                   />

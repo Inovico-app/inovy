@@ -123,9 +123,9 @@ export function DeviceSettingsPopover({
                   Selecteer microfoon
                 </label>
                 <Select
-                  value={selectedDeviceId ?? undefined}
+                  value={selectedDeviceId ?? "default"}
                   onValueChange={(value) => {
-                    if (value) onDeviceChange(value);
+                    if (value != null) onDeviceChange(value);
                   }}
                   disabled={isDisabled}
                 >
@@ -140,6 +140,9 @@ export function DeviceSettingsPopover({
                     <SelectValue placeholder="Standaard microfoon" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="default" label="Standaard microfoon">
+                      Standaard microfoon
+                    </SelectItem>
                     {devices.map((device) => (
                       <SelectItem
                         key={device.deviceId}
