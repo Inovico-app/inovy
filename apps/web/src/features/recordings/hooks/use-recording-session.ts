@@ -35,7 +35,7 @@ export interface UseRecordingSessionReturn {
     segments: TranscriptSegment[];
     currentCaption: string | null;
   };
-  start: () => Promise<void>;
+  start: (deviceId?: string) => Promise<void>;
   pause: () => void;
   resume: () => void;
   stop: () => Promise<StopResult | null>;
@@ -143,11 +143,11 @@ export function useRecordingSession(
 
   // --- Action callbacks ---
 
-  const start = useCallback(async () => {
+  const start = useCallback(async (deviceId?: string) => {
     const session = sessionRef.current;
     if (!session) return;
 
-    await session.start();
+    await session.start(deviceId);
   }, []);
 
   const pause = useCallback(() => {
