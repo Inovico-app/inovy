@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
+import { LiveWaveform } from "@/components/ui/live-waveform";
 import {
   useRecordingSession,
   type UseRecordingSessionConfig,
@@ -188,6 +189,7 @@ export function RecordingSession({
         <MobileRecordingView
           status={session.status}
           duration={session.duration}
+          mediaStream={session.mediaStream}
           transcription={session.transcription}
           liveTranscriptionEnabled={config.liveTranscriptionEnabled}
           audioSource={config.audioSource}
@@ -254,6 +256,37 @@ export function RecordingSession({
                     </p>
                   </div>
                 )}
+
+                {/* Live waveform visualization */}
+                {session.mediaStream &&
+                  (isActiveRecording ||
+                    session.status === "stopping" ||
+                    session.status === "finalizing") && (
+                    <div className="relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-b from-muted/30 to-muted/10 p-6 flex-shrink-0">
+                      <div className="flex h-32 items-center justify-center">
+                        <LiveWaveform
+                          active={session.status === "recording"}
+                          processing={
+                            session.status === "stopping" ||
+                            session.status === "finalizing"
+                          }
+                          stream={session.mediaStream}
+                          barWidth={5}
+                          barGap={2}
+                          barRadius={8}
+                          fadeEdges
+                          fadeWidth={48}
+                          sensitivity={0.8}
+                          smoothingTimeConstant={0.85}
+                          className="w-full text-muted-foreground"
+                        />
+                      </div>
+                      {/* Subtle glow effect when recording */}
+                      {session.status === "recording" && (
+                        <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent pointer-events-none" />
+                      )}
+                    </div>
+                  )}
 
                 {/* Controls */}
                 <div className="flex flex-col items-center gap-6 flex-1 justify-center">

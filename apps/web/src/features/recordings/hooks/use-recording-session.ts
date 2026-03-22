@@ -30,6 +30,8 @@ export interface UseRecordingSessionReturn {
   duration: number;
   error: RecordingError | null;
   chunkManifest: ChunkManifest;
+  /** The active MediaStream from the audio capture service (available while recording/paused). */
+  mediaStream: MediaStream | null;
   transcription: {
     status: ConnectionStatus;
     segments: TranscriptSegment[];
@@ -99,6 +101,7 @@ export function useRecordingSession(
 ): UseRecordingSessionReturn {
   const sessionRef = useRef<RecordingSession | null>(null);
   const [state, setState] = useState<RecordingSessionState>(getDefaultState);
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
   // --- Session lifecycle: create on mount, destroy on unmount ---
   // Config is captured at mount time (immutable-config pattern).
@@ -117,9 +120,17 @@ export function useRecordingSession(
     const session = createRecordingSession(sessionConfig);
     sessionRef.current = session;
 
-    // Subscribe to state changes
+    // Subscribe to state changes — sync mediaStream in the same batch to avoid
+    // a render where active=true but stream=null (which causes LiveWaveform to
+    // fall back to getUserMedia and race with the real stream).
     const unsubscribe = session.onStateChange((newState) => {
       setState(newState);
+
+      if (newState.status === "recording" || newState.status === "paused") {
+        setMediaStream(session.getMediaStream());
+      } else {
+        setMediaStream(null);
+      }
     });
 
     // Sync initial state
@@ -212,6 +223,7 @@ export function useRecordingSession(
     duration: state.duration,
     error: state.error,
     chunkManifest: state.chunks,
+    mediaStream,
     transcription: {
       status: state.transcription.status,
       segments: state.transcription.segments,
