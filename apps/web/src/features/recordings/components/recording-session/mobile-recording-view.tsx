@@ -45,6 +45,8 @@ interface MobileRecordingViewProps {
   isLoadingDevices: boolean;
   devicesError: Error | null;
   onRetryDevices: () => void;
+  isSwitchingDevice: boolean;
+  switchError: Error | null;
   onPause: () => void;
   onResume: () => void;
   onStop: () => void;
@@ -75,6 +77,8 @@ export function MobileRecordingView({
   isLoadingDevices,
   devicesError,
   onRetryDevices,
+  isSwitchingDevice,
+  switchError,
   onPause,
   onResume,
   onStop,
@@ -228,9 +232,10 @@ export function MobileRecordingView({
               selectedDeviceId={selectedDeviceId}
               onDeviceChange={onDeviceChange}
               isDisabled={isDeviceSelectionDisabled}
-              isLoading={isLoadingDevices}
+              isLoading={isLoadingDevices || isSwitchingDevice}
               error={devicesError}
               onRetry={onRetryDevices}
+              switchError={switchError}
             />
             {isRecording ? (
               <Button

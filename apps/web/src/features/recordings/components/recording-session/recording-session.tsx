@@ -13,7 +13,7 @@ import {
 import { useNavigationGuard } from "@/hooks/use-navigation-guard";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -51,6 +51,17 @@ export function RecordingSession({
     refreshDevices,
   } = useAudioDevices();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+
+  const handleDeviceChange = useCallback(
+    (deviceId: string) => {
+      setSelectedDeviceId(deviceId);
+      if (session.status === "paused") {
+        void session.switchDevice(deviceId);
+      }
+    },
+    [session],
+  );
+
   // Track which warnings we've already shown
   const shownWarningsRef = useRef(new Set<string>());
 
@@ -192,11 +203,12 @@ export function RecordingSession({
           <DeviceSettingsPopover
             devices={audioDevices}
             selectedDeviceId={selectedDeviceId}
-            onDeviceChange={setSelectedDeviceId}
+            onDeviceChange={handleDeviceChange}
             isDisabled={false}
-            isLoading={isLoadingDevices}
+            isLoading={isLoadingDevices || session.isSwitchingDevice}
             error={devicesError}
             onRetry={refreshDevices}
+            switchError={session.status === "paused" ? session.error : null}
           />
         </div>
       )}
@@ -213,13 +225,15 @@ export function RecordingSession({
           error={session.error}
           devices={audioDevices}
           selectedDeviceId={selectedDeviceId}
-          onDeviceChange={setSelectedDeviceId}
+          onDeviceChange={handleDeviceChange}
           isDeviceSelectionDisabled={
-            session.status === "recording" || session.status === "paused"
+            session.status === "recording" || session.isSwitchingDevice
           }
           isLoadingDevices={isLoadingDevices}
           devicesError={devicesError}
           onRetryDevices={refreshDevices}
+          isSwitchingDevice={session.isSwitchingDevice}
+          switchError={session.status === "paused" ? session.error : null}
           onPause={session.pause}
           onResume={session.resume}
           onStop={() => void session.stop()}
@@ -307,11 +321,14 @@ export function RecordingSession({
                     <DeviceSettingsPopover
                       devices={audioDevices}
                       selectedDeviceId={selectedDeviceId}
-                      onDeviceChange={setSelectedDeviceId}
+                      onDeviceChange={handleDeviceChange}
                       isDisabled={false}
-                      isLoading={isLoadingDevices}
+                      isLoading={isLoadingDevices || session.isSwitchingDevice}
                       error={devicesError}
                       onRetry={refreshDevices}
+                      switchError={
+                        session.status === "paused" ? session.error : null
+                      }
                     />
                   )}
                 </div>
@@ -326,11 +343,17 @@ export function RecordingSession({
                     <DeviceSettingsPopover
                       devices={audioDevices}
                       selectedDeviceId={selectedDeviceId}
-                      onDeviceChange={setSelectedDeviceId}
-                      isDisabled={true}
-                      isLoading={isLoadingDevices}
+                      onDeviceChange={handleDeviceChange}
+                      isDisabled={
+                        session.status === "recording" ||
+                        session.isSwitchingDevice
+                      }
+                      isLoading={isLoadingDevices || session.isSwitchingDevice}
                       error={devicesError}
                       onRetry={refreshDevices}
+                      switchError={
+                        session.status === "paused" ? session.error : null
+                      }
                     />
                     <ChunkUploadStatus manifest={session.chunkManifest} />
                   </div>
