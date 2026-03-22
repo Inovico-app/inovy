@@ -1,6 +1,6 @@
 "use server";
 
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { NotificationService } from "@/server/services/notification.service";
@@ -11,13 +11,14 @@ export async function markAllNotificationsRead(): Promise<{
   error?: string;
 }> {
   try {
-    // Verify authentication at action boundary
-    const authResult = await getBetterAuthSession();
-    if (authResult.isErr() || !authResult.value.isAuthenticated) {
-      return { success: false, error: "Unauthorized" };
+    const authResult = await resolveAuthContext("markAllNotificationsRead");
+    if (authResult.isErr()) {
+      return { success: false, error: authResult.error.message };
     }
 
-    const result = await NotificationService.markAllAsRead();
+    const auth = authResult.value;
+
+    const result = await NotificationService.markAllAsRead(auth);
 
     if (result.isErr()) {
       logger.error("Failed to mark all notifications as read", {
@@ -31,19 +32,16 @@ export async function markAllNotificationsRead(): Promise<{
       };
     }
 
-    const { user, organization } = authResult.value;
-    if (user?.id && organization?.id) {
-      void AuditLogService.createAuditLog({
-        eventType: "notification_mark_read",
-        resourceType: "notification",
-        resourceId: null,
-        userId: user.id,
-        organizationId: organization.id,
-        action: "mark_read",
-        category: "mutation",
-        metadata: { actionName: "markAllNotificationsRead" },
-      });
-    }
+    void AuditLogService.createAuditLog({
+      eventType: "notification_mark_read",
+      resourceType: "notification",
+      resourceId: null,
+      userId: auth.user.id,
+      organizationId: auth.organizationId,
+      action: "mark_read",
+      category: "mutation",
+      metadata: { actionName: "markAllNotificationsRead" },
+    });
 
     return {
       success: true,

@@ -1,5 +1,6 @@
 "use server";
 
+import type { AuthContext } from "@/lib/auth-context";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
@@ -27,15 +28,34 @@ export const getRecordingStatusAction = authorizedActionClient
   .schema(getRecordingStatusSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
-    const { organizationId } = ctx;
+    const { user, organizationId } = ctx;
 
-    if (!organizationId) {
-      throw ActionErrors.forbidden("Organization context required");
+    if (!user) {
+      throw ActionErrors.unauthenticated(
+        "User not found",
+        "get-recording-status",
+      );
     }
 
+    if (!organizationId) {
+      throw ActionErrors.forbidden(
+        "Organization context required",
+        undefined,
+        "get-recording-status",
+      );
+    }
+
+    const auth: AuthContext = {
+      user,
+      organizationId,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Get recording
-    const recordingResult =
-      await RecordingService.getRecordingById(recordingId);
+    const recordingResult = await RecordingService.getRecordingById(
+      recordingId,
+      auth,
+    );
     const recording = resultToActionResponse(recordingResult);
 
     if (!recording) {

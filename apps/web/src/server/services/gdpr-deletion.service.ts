@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import { getStorageProvider } from "./storage";
 import { err, ok } from "neverthrow";
-import { getBetterAuthSession } from "../../lib/better-auth-session";
+import type { AuthContext } from "@/lib/auth-context";
 import { logger } from "../../lib/logger";
 import {
   ActionErrors,
@@ -561,36 +561,13 @@ export class GdprDeletionService {
 
   /**
    * Get deletion request status for the authenticated user
-   * Handles authentication internally
    */
-  static async getDeletionRequestStatus(): Promise<
-    ActionResult<UserDeletionRequest | null>
-  > {
+  static async getDeletionRequestStatus(
+    auth: AuthContext,
+  ): Promise<ActionResult<UserDeletionRequest | null>> {
     try {
-      // Check authentication
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "GdprDeletionService.getDeletionRequestStatus",
-          ),
-        );
-      }
-
-      const { user: authUser } = authResult.value;
-      if (!authUser) {
-        return err(
-          ActionErrors.unauthenticated(
-            "Authentication required",
-            "GdprDeletionService.getDeletionRequestStatus",
-          ),
-        );
-      }
-
       const request = await UserDeletionRequestsQueries.findByUserId(
-        authUser.id,
+        auth.user.id,
       );
       return ok(request);
     } catch (error) {

@@ -4,11 +4,11 @@ import type { WorkflowResult } from "@/workflows/lib/workflow-result";
 import { failure, success } from "@/workflows/lib/workflow-result";
 
 export async function getRecordingStep(
-  recordingId: string
+  recordingId: string,
 ): Promise<WorkflowResult<RecordingDto | null>> {
   "use step";
 
-  const result = await RecordingService.getRecordingById(recordingId);
+  const result = await RecordingService.getRecordingByIdInternal(recordingId);
 
   if (result.isErr()) {
     return failure(result.error);
@@ -16,4 +16,3 @@ export async function getRecordingStep(
 
   return success(result.value ?? null);
 }
-

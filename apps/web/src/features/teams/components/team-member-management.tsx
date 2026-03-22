@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { getCachedTeamById } from "@/server/cache/team.cache";
 import { OrganizationService } from "@/server/services/organization.service";
 import { TeamService } from "@/server/services/team.service";
@@ -23,13 +23,9 @@ interface TeamMemberManagementProps {
 export async function TeamMemberManagement({
   teamId,
 }: TeamMemberManagementProps) {
-  const authResult = await getBetterAuthSession();
+  const authResult = await resolveAuthContext("TeamMemberManagement");
 
-  if (
-    authResult.isErr() ||
-    !authResult.value.isAuthenticated ||
-    !authResult.value.organization
-  ) {
+  if (authResult.isErr()) {
     return (
       <Card>
         <CardContent className="text-center py-8">
@@ -41,8 +37,8 @@ export async function TeamMemberManagement({
     );
   }
 
-  const { organization } = authResult.value;
-  const team = await getCachedTeamById(teamId);
+  const auth = authResult.value;
+  const team = await getCachedTeamById(teamId, auth);
 
   if (!team) {
     return (
@@ -55,12 +51,15 @@ export async function TeamMemberManagement({
   }
 
   // Fetch team members with user details (name, email, image)
-  const membersResult = await TeamService.getTeamMembersWithUserDetails(teamId);
+  const membersResult = await TeamService.getTeamMembersWithUserDetails(
+    teamId,
+    auth,
+  );
   const teamMembers = membersResult.isOk() ? membersResult.value : [];
 
   // Fetch all organization members to show available users
   const orgMembersResult = await OrganizationService.getOrganizationMembers(
-    organization.id,
+    auth.organizationId,
   );
   const allMembers = orgMembersResult.isOk() ? orgMembersResult.value : [];
 

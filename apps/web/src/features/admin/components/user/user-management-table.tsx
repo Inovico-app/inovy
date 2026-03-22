@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { getUserDisplayName } from "@/lib/formatters/display-formatters";
 import { logger } from "@/lib/logger";
 import { getCachedTeamsByOrganization } from "@/server/cache/team.cache";
@@ -26,7 +26,7 @@ export async function UserManagementTable() {
   let fetchError: Error | null = null;
 
   try {
-    authResult = await getBetterAuthSession();
+    authResult = await resolveAuthContext("UserManagementTable");
   } catch (error) {
     logger.error("Failed to fetch organization members", {}, error as Error);
     fetchError = error as Error;
@@ -44,11 +44,7 @@ export async function UserManagementTable() {
     );
   }
 
-  if (
-    authResult.isErr() ||
-    !authResult.value.isAuthenticated ||
-    !authResult.value.organization
-  ) {
+  if (authResult.isErr()) {
     return (
       <Card>
         <CardContent className="text-center py-8">
@@ -60,20 +56,22 @@ export async function UserManagementTable() {
     );
   }
 
-  const { organization } = authResult.value;
+  const auth = authResult.value;
+  const organization = { id: auth.organizationId };
 
   try {
     membersResult = await OrganizationService.getOrganizationMembers(
-      organization.id
+      organization.id,
     );
 
     // Fetch teams for all users in a single batch query
-    allTeams = await getCachedTeamsByOrganization(organization.id);
+    allTeams = await getCachedTeamsByOrganization(organization.id, auth);
 
     // Batch fetch all user teams
     userTeamsResult = await TeamService.getUserTeamsByUserIds(
       membersResult.isOk() ? membersResult.value.map((m) => m.id) : [],
-      organization.id
+      organization.id,
+      auth,
     );
   } catch (error) {
     logger.error("Failed to fetch organization members", {}, error as Error);
@@ -103,7 +101,7 @@ export async function UserManagementTable() {
     for (const [userId, userTeams] of batchUserTeamsMap.entries()) {
       userTeamsMap.set(
         userId,
-        userTeams.map((ut) => ({ teamId: ut.teamId, role: ut.role }))
+        userTeams.map((ut) => ({ teamId: ut.teamId, role: ut.role })),
       );
     }
   }
@@ -235,4 +233,3 @@ export async function UserManagementTable() {
     </Card>
   );
 }
-

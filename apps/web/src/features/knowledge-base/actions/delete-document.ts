@@ -1,5 +1,6 @@
 "use server";
 
+import type { AuthContext } from "@/lib/auth-context";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
@@ -36,13 +37,31 @@ export const deleteKnowledgeDocumentAction = authorizedActionClient
       );
     }
 
+    if (!organizationId) {
+      throw ActionErrors.forbidden(
+        "Organization context required",
+        undefined,
+        "delete-knowledge-document",
+      );
+    }
+
     // Get document first to know its scope for cache invalidation
     const { KnowledgeBaseDocumentsQueries } =
       await import("../../../server/data-access/knowledge-base-documents.queries");
     const document = await KnowledgeBaseDocumentsQueries.getDocumentById(id);
 
+    const auth: AuthContext = {
+      user,
+      organizationId,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Delete document
-    const result = await DocumentProcessingService.deleteDocument(id, user.id);
+    const result = await DocumentProcessingService.deleteDocument(
+      id,
+      user.id,
+      auth,
+    );
 
     if (result.isErr()) {
       throw result.error;

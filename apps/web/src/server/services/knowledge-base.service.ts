@@ -1,4 +1,4 @@
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import type { AuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
@@ -31,48 +31,17 @@ export class KnowledgeBaseService {
     projectId: string | null,
     organizationId: string | null,
     teamId?: string | null,
+    auth?: AuthContext,
   ): Promise<ActionResult<KnowledgeEntryDto[]>> {
     try {
       if (!organizationId) {
         return ok([]);
       }
 
-      // Validate organization access
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr() || !authResult.value.user) {
-        return err(
-          ActionErrors.unauthenticated(
-            "Authentication required",
-            "KnowledgeBaseService.getApplicableKnowledge",
-          ),
-        );
-      }
-
-      const userOrgId = authResult.value.organization?.id;
-      if (!userOrgId) {
-        return err(
-          ActionErrors.forbidden(
-            "User does not belong to an organization",
-            undefined,
-            "KnowledgeBaseService.getApplicableKnowledge",
-          ),
-        );
-      }
-
-      // Verify organization matches
-      if (organizationId !== userOrgId) {
-        return err(
-          ActionErrors.notFound(
-            "Project",
-            "KnowledgeBaseService.getApplicableKnowledge",
-          ),
-        );
-      }
-
-      // Verify project exists and belongs to user's organization (only when projectId is provided)
-      if (projectId) {
-        const project = await ProjectQueries.findById(projectId, userOrgId);
-        if (!project) {
+      // When auth context is provided, validate organization access
+      if (auth) {
+        // Verify organization matches
+        if (organizationId !== auth.organizationId) {
           return err(
             ActionErrors.notFound(
               "Project",
@@ -80,32 +49,51 @@ export class KnowledgeBaseService {
             ),
           );
         }
-      }
 
-      // If teamId is provided, verify team exists and user is a member
-      if (teamId && teamId.trim().length > 0) {
-        const team = await TeamQueries.selectTeamById(teamId, userOrgId);
-        if (!team) {
-          return err(
-            ActionErrors.notFound(
-              "Team",
-              "KnowledgeBaseService.getApplicableKnowledge",
-            ),
+        // Verify project exists and belongs to user's organization (only when projectId is provided)
+        if (projectId) {
+          const project = await ProjectQueries.findById(
+            projectId,
+            auth.organizationId,
           );
+          if (!project) {
+            return err(
+              ActionErrors.notFound(
+                "Project",
+                "KnowledgeBaseService.getApplicableKnowledge",
+              ),
+            );
+          }
         }
 
-        const userTeam = await UserTeamQueries.selectUserTeam(
-          authResult.value.user.id,
-          teamId,
-        );
-        if (!userTeam) {
-          return err(
-            ActionErrors.forbidden(
-              "You are not a member of this team",
-              undefined,
-              "KnowledgeBaseService.getApplicableKnowledge",
-            ),
+        // If teamId is provided, verify team exists and user is a member
+        if (teamId && teamId.trim().length > 0) {
+          const team = await TeamQueries.selectTeamById(
+            teamId,
+            auth.organizationId,
           );
+          if (!team) {
+            return err(
+              ActionErrors.notFound(
+                "Team",
+                "KnowledgeBaseService.getApplicableKnowledge",
+              ),
+            );
+          }
+
+          const userTeam = await UserTeamQueries.selectUserTeam(
+            auth.user.id,
+            teamId,
+          );
+          if (!userTeam) {
+            return err(
+              ActionErrors.forbidden(
+                "You are not a member of this team",
+                undefined,
+                "KnowledgeBaseService.getApplicableKnowledge",
+              ),
+            );
+          }
         }
       }
 
@@ -144,11 +132,10 @@ export class KnowledgeBaseService {
     scope: KnowledgeBaseScope,
     scopeId: string | null,
     options?: { includeInactive?: boolean; allowUnauthenticated?: boolean },
+    auth?: AuthContext,
   ): Promise<ActionResult<KnowledgeEntryDto[]>> {
     try {
-      // Validate scope-specific permissions
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr() || !authResult.value.user) {
+      if (!auth) {
         // Only return empty array if explicitly allowed (e.g., during revalidation)
         if (options?.allowUnauthenticated) {
           return ok([]);
@@ -167,8 +154,9 @@ export class KnowledgeBaseService {
       const permissionResult = await this.validateScopePermissions(
         scope,
         scopeId,
-        authResult.value.user.id,
+        auth.user.id,
         "read",
+        auth,
       );
       if (permissionResult.isErr()) {
         return err(permissionResult.error);
@@ -204,6 +192,7 @@ export class KnowledgeBaseService {
     scope: KnowledgeBaseScope,
     scopeId: string | null,
     searchTerm: string,
+    auth: AuthContext,
   ): Promise<ActionResult<KnowledgeEntryDto[]>> {
     try {
       if (!searchTerm || searchTerm.trim().length === 0) {
@@ -215,22 +204,12 @@ export class KnowledgeBaseService {
         );
       }
 
-      // Validate scope-specific permissions
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr() || !authResult.value.user) {
-        return err(
-          ActionErrors.unauthenticated(
-            "Authentication required",
-            "KnowledgeBaseService.searchKnowledge",
-          ),
-        );
-      }
-
       const permissionResult = await this.validateScopePermissions(
         scope,
         scopeId,
-        authResult.value.user.id,
+        auth.user.id,
         "read",
+        auth,
       );
       if (permissionResult.isErr()) {
         return err(permissionResult.error);
@@ -271,15 +250,17 @@ export class KnowledgeBaseService {
       context?: string | null;
       examples?: string[] | null;
     },
-    userId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<KnowledgeEntryDto>> {
     try {
-      // Validate scope-specific permissions
+      const userId = auth.user.id;
+
       const permissionResult = await this.validateScopePermissions(
         scope,
         scopeId,
         userId,
         "write",
+        auth,
       );
       if (permissionResult.isErr()) {
         return err(
@@ -356,6 +337,7 @@ export class KnowledgeBaseService {
     id: string,
     data: UpdateKnowledgeEntryDto,
     userId: string,
+    auth?: AuthContext,
   ): Promise<ActionResult<KnowledgeEntryDto>> {
     try {
       // Get existing entry to check permissions
@@ -369,12 +351,22 @@ export class KnowledgeBaseService {
         );
       }
 
+      if (!auth) {
+        return err(
+          ActionErrors.unauthenticated(
+            "Authentication required",
+            "KnowledgeBaseService.updateEntry",
+          ),
+        );
+      }
+
       // Validate scope-specific permissions
       const permissionResult = await this.validateScopePermissions(
         existing.scope,
         existing.scopeId,
         userId,
         "write",
+        auth,
       );
       if (permissionResult.isErr()) {
         return err(
@@ -459,6 +451,7 @@ export class KnowledgeBaseService {
   static async deleteEntry(
     id: string,
     userId: string,
+    auth?: AuthContext,
   ): Promise<ActionResult<void>> {
     try {
       // Get existing entry to check permissions
@@ -472,12 +465,22 @@ export class KnowledgeBaseService {
         );
       }
 
+      if (!auth) {
+        return err(
+          ActionErrors.unauthenticated(
+            "Authentication required",
+            "KnowledgeBaseService.deleteEntry",
+          ),
+        );
+      }
+
       // Validate scope-specific permissions
       const permissionResult = await this.validateScopePermissions(
         existing.scope,
         existing.scopeId,
         userId,
         "write",
+        auth,
       );
       if (permissionResult.isErr()) {
         return permissionResult;
@@ -524,6 +527,7 @@ export class KnowledgeBaseService {
     entryId: string,
     toScope: KnowledgeBaseScope,
     userId: string,
+    auth?: AuthContext,
   ): Promise<ActionResult<KnowledgeEntryDto>> {
     try {
       // Get existing entry
@@ -537,12 +541,22 @@ export class KnowledgeBaseService {
         );
       }
 
+      if (!auth) {
+        return err(
+          ActionErrors.unauthenticated(
+            "Authentication required",
+            "KnowledgeBaseService.promoteEntry",
+          ),
+        );
+      }
+
       // Validate user has access to the source entry
       const sourcePermissionResult = await this.validateScopePermissions(
         existing.scope,
         existing.scopeId,
         userId,
         "read",
+        auth,
       );
       if (sourcePermissionResult.isErr()) {
         return err(sourcePermissionResult.error);
@@ -586,6 +600,7 @@ export class KnowledgeBaseService {
         targetScopeId,
         userId,
         "write",
+        auth,
       );
       if (permissionResult.isErr()) {
         return err(
@@ -724,11 +739,10 @@ export class KnowledgeBaseService {
     scope: KnowledgeBaseScope,
     scopeId: string | null,
     options?: { allowUnauthenticated?: boolean },
+    auth?: AuthContext,
   ): Promise<ActionResult<KnowledgeDocumentDto[]>> {
     try {
-      // Validate scope-specific permissions
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr() || !authResult.value.user) {
+      if (!auth) {
         // Only return empty array if explicitly allowed (e.g., during revalidation)
         if (options?.allowUnauthenticated) {
           return ok([]);
@@ -747,8 +761,9 @@ export class KnowledgeBaseService {
       const permissionResult = await this.validateScopePermissions(
         scope,
         scopeId,
-        authResult.value.user.id,
+        auth.user.id,
         "read",
+        auth,
       );
       if (permissionResult.isErr()) {
         return err(permissionResult.error);
@@ -791,14 +806,24 @@ export class KnowledgeBaseService {
       fileType: string;
     },
     userId: string,
+    auth?: AuthContext,
   ): Promise<ActionResult<KnowledgeDocumentDto>> {
     try {
+      if (!auth) {
+        return err(
+          ActionErrors.unauthenticated(
+            "Authentication required",
+            "KnowledgeBaseService.createDocument",
+          ),
+        );
+      }
       // Validate scope-specific permissions
       const permissionResult = await this.validateScopePermissions(
         scope,
         scopeId,
         userId,
         "write",
+        auth,
       );
       if (permissionResult.isErr()) {
         return err(
@@ -859,6 +884,7 @@ export class KnowledgeBaseService {
   static async deleteDocument(
     id: string,
     userId: string,
+    auth?: AuthContext,
   ): Promise<ActionResult<void>> {
     try {
       // Get existing document to check permissions
@@ -872,12 +898,22 @@ export class KnowledgeBaseService {
         );
       }
 
+      if (!auth) {
+        return err(
+          ActionErrors.unauthenticated(
+            "Authentication required",
+            "KnowledgeBaseService.deleteDocument",
+          ),
+        );
+      }
+
       // Validate scope-specific permissions
       const permissionResult = await this.validateScopePermissions(
         existing.scope,
         existing.scopeId,
         userId,
         "write",
+        auth,
       );
       if (permissionResult.isErr()) {
         return permissionResult;
@@ -928,20 +964,9 @@ export class KnowledgeBaseService {
     scopeId: string | null,
     userId: string,
     operation: "read" | "write",
+    auth: AuthContext,
   ): Promise<ActionResult<void>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr() || !authResult.value.user) {
-        return err(
-          ActionErrors.unauthenticated(
-            "Authentication required",
-            "KnowledgeBaseService.validateScopePermissions",
-          ),
-        );
-      }
-
-      const user = authResult.value.user;
-
       if (scope === "project") {
         // Project scope: Check project exists and user has access
         if (!scopeId) {
@@ -956,7 +981,7 @@ export class KnowledgeBaseService {
         // Verify project exists and belongs to user's organization
         const project = await ProjectQueries.findById(
           scopeId,
-          authResult.value.organization?.id ?? "",
+          auth.organizationId,
         );
         if (!project) {
           return err(
@@ -987,7 +1012,7 @@ export class KnowledgeBaseService {
         // Verify team exists
         const team = await TeamQueries.selectTeamById(
           scopeId,
-          authResult.value.organization?.id ?? "",
+          auth.organizationId,
         );
         if (!team) {
           return err(
@@ -1030,7 +1055,7 @@ export class KnowledgeBaseService {
         }
 
         // Verify organization matches user's organization
-        if (scopeId !== authResult.value.organization?.id) {
+        if (scopeId !== auth.organizationId) {
           return err(
             ActionErrors.forbidden(
               "Cannot access other organization's knowledge base",

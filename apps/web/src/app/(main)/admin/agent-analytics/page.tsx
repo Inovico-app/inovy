@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAnalyticsChartsLazy } from "@/features/admin/components/agent/user-analytics-charts-lazy";
 import { UserAnalyticsFilters } from "@/features/admin/components/agent/user-analytics-filters";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { AgentAnalyticsService } from "@/server/services/agent-analytics.service";
@@ -25,22 +25,20 @@ interface UserAnalyticsContentProps {
 async function UserAnalyticsContent({
   searchParams,
 }: UserAnalyticsContentProps) {
-  const authResult = await getBetterAuthSession();
+  const authResult = await resolveAuthContext("UserAnalyticsContent");
 
   if (authResult.isErr()) {
     redirect("/sign-in");
   }
 
-  const { user, organization } = authResult.value;
-
-  if (!user) {
-    redirect("/sign-in");
-  }
+  const auth = authResult.value;
+  const { user } = auth;
+  const organization = { id: auth.organizationId };
 
   // Check if user has admin permissions (admin or superadmin)
   const hasAdminPermission = await checkPermission(Permissions.admin.all);
   const hasSuperAdminPermission = await checkPermission(
-    Permissions.superadmin.all
+    Permissions.superadmin.all,
   );
 
   if (!hasAdminPermission) {
@@ -63,22 +61,18 @@ async function UserAnalyticsContent({
 
   // Get users list for filter dropdown (superadmins only)
   const usersResult = hasSuperAdminPermission
-    ? await AgentAnalyticsService.getUsersList(organization?.id)
+    ? await AgentAnalyticsService.getUsersList(auth, organization.id)
     : ok([]);
 
   const users = usersResult.isOk() ? usersResult.value : [];
 
   // Fetch user engagement metrics
-  if (!organization) {
-    redirect("/");
-  }
-
   const engagementMetricsResult =
     await AgentAnalyticsService.getUserEngagementMetrics(
       selectedUserId,
       organization.id,
       startDate,
-      endDate
+      endDate,
     );
 
   const engagementMetrics = engagementMetricsResult.isOk()
@@ -186,4 +180,3 @@ export default function UserAnalyticsPage({
     </Suspense>
   );
 }
-

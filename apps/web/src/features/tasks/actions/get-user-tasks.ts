@@ -1,8 +1,7 @@
 "use server";
 
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
-import { AuditLogService } from "@/server/services/audit-log.service";
 import type { TaskWithContextDto } from "@/server/dto/task.dto";
 import { TaskService } from "@/server/services/task.service";
 import {
@@ -21,6 +20,11 @@ export async function getUserTasks(filters?: FilterTasksInput): Promise<{
   error?: string;
 }> {
   try {
+    const authResult = await resolveAuthContext("getUserTasks");
+    if (authResult.isErr()) {
+      return { success: false, error: authResult.error.message };
+    }
+
     // Validate filters if provided
     if (filters) {
       const validation = filterTasksSchema.safeParse(filters);
@@ -32,7 +36,10 @@ export async function getUserTasks(filters?: FilterTasksInput): Promise<{
       }
     }
 
-    const result = await TaskService.getTasksWithContext(filters);
+    const result = await TaskService.getTasksWithContext(
+      authResult.value,
+      filters,
+    );
 
     if (result.isErr()) {
       logger.error("Failed to get user tasks", {
@@ -44,23 +51,6 @@ export async function getUserTasks(filters?: FilterTasksInput): Promise<{
         success: false,
         error: result.error.message,
       };
-    }
-
-    const authResult = await getBetterAuthSession();
-    if (authResult.isOk()) {
-      const { user, organization } = authResult.value;
-      if (user?.id && organization?.id) {
-        void AuditLogService.createAuditLog({
-          eventType: "task_list",
-          resourceType: "task",
-          resourceId: null,
-          userId: user.id,
-          organizationId: organization.id,
-          action: "list",
-          category: "read",
-          metadata: { actionName: "getUserTasks" },
-        });
-      }
     }
 
     return {

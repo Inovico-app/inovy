@@ -1,6 +1,6 @@
 "use server";
 
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { NotificationService } from "@/server/services/notification.service";
@@ -16,11 +16,12 @@ export async function markNotificationRead(input: MarkAsReadInput): Promise<{
   error?: string;
 }> {
   try {
-    // Verify authentication at action boundary
-    const authResult = await getBetterAuthSession();
-    if (authResult.isErr() || !authResult.value.isAuthenticated) {
-      return { success: false, error: "Unauthorized" };
+    const authResult = await resolveAuthContext("markNotificationRead");
+    if (authResult.isErr()) {
+      return { success: false, error: authResult.error.message };
     }
+
+    const auth = authResult.value;
 
     // Validate input
     const validation = markAsReadSchema.safeParse(input);
@@ -34,7 +35,7 @@ export async function markNotificationRead(input: MarkAsReadInput): Promise<{
     const { notificationId } = validation.data;
 
     // Mark as read
-    const result = await NotificationService.markAsRead(notificationId);
+    const result = await NotificationService.markAsRead(notificationId, auth);
 
     if (result.isErr()) {
       logger.error("Failed to mark notification as read", {
@@ -49,19 +50,16 @@ export async function markNotificationRead(input: MarkAsReadInput): Promise<{
       };
     }
 
-    const { user, organization } = authResult.value;
-    if (user?.id && organization?.id) {
-      void AuditLogService.createAuditLog({
-        eventType: "notification_mark_read",
-        resourceType: "notification",
-        resourceId: notificationId,
-        userId: user.id,
-        organizationId: organization.id,
-        action: "mark_read",
-        category: "mutation",
-        metadata: { actionName: "markNotificationRead" },
-      });
-    }
+    void AuditLogService.createAuditLog({
+      eventType: "notification_mark_read",
+      resourceType: "notification",
+      resourceId: notificationId,
+      userId: auth.user.id,
+      organizationId: auth.organizationId,
+      action: "mark_read",
+      category: "mutation",
+      metadata: { actionName: "markNotificationRead" },
+    });
 
     return {
       success: true,

@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { getCachedTeamById } from "@/server/cache/team.cache";
 import { TeamService } from "@/server/services/team.service";
 import { ArrowLeftIcon } from "lucide-react";
@@ -20,13 +20,9 @@ interface TeamSettingsProps {
 }
 
 export async function TeamSettings({ teamId }: TeamSettingsProps) {
-  const authResult = await getBetterAuthSession();
+  const authResult = await resolveAuthContext("TeamSettings");
 
-  if (
-    authResult.isErr() ||
-    !authResult.value.isAuthenticated ||
-    !authResult.value.organization
-  ) {
+  if (authResult.isErr()) {
     return (
       <Card>
         <CardContent className="text-center py-8">
@@ -38,7 +34,8 @@ export async function TeamSettings({ teamId }: TeamSettingsProps) {
     );
   }
 
-  const team = await getCachedTeamById(teamId);
+  const auth = authResult.value;
+  const team = await getCachedTeamById(teamId, auth);
 
   if (!team) {
     return (
@@ -51,7 +48,7 @@ export async function TeamSettings({ teamId }: TeamSettingsProps) {
   }
 
   // Fetch team statistics
-  const membersResult = await TeamService.getTeamMembers(teamId);
+  const membersResult = await TeamService.getTeamMembers(teamId, auth);
   const memberCount = membersResult.isOk() ? membersResult.value.length : 0;
 
   return (
@@ -67,7 +64,9 @@ export async function TeamSettings({ teamId }: TeamSettingsProps) {
           <h1 className="text-3xl font-bold text-foreground mb-1">
             {team.name} - Settings
           </h1>
-          <p className="text-muted-foreground">Manage team information and settings</p>
+          <p className="text-muted-foreground">
+            Manage team information and settings
+          </p>
         </div>
       </div>
 
@@ -120,4 +119,3 @@ export async function TeamSettings({ teamId }: TeamSettingsProps) {
     </div>
   );
 }
-

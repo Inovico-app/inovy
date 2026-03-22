@@ -1,5 +1,6 @@
 "use server";
 
+import type { AuthContext } from "@/lib/auth-context";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { Permissions } from "@/lib/rbac/permissions";
 import {
@@ -37,10 +38,24 @@ export const deleteKnowledgeEntryAction = authorizedActionClient
       );
     }
 
+    if (!organizationId) {
+      throw ActionErrors.forbidden(
+        "Organization context required",
+        undefined,
+        "delete-knowledge-entry",
+      );
+    }
+
     const entry = await KnowledgeBaseEntriesQueries.getEntryById(id);
 
+    const auth: AuthContext = {
+      user,
+      organizationId,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Delete entry
-    const result = await KnowledgeBaseService.deleteEntry(id, user.id);
+    const result = await KnowledgeBaseService.deleteEntry(id, user.id, auth);
 
     if (result.isErr()) {
       throw result.error;

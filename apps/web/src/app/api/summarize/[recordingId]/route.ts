@@ -13,7 +13,7 @@ import { type NextRequest, NextResponse } from "next/server";
 export const POST = withRateLimit(
   async (
     request: NextRequest,
-    props: { params: Promise<{ recordingId: string }> }
+    props: { params: Promise<{ recordingId: string }> },
   ) => {
     try {
       const { recordingId } = await props.params;
@@ -38,12 +38,12 @@ export const POST = withRateLimit(
 
       // Get recording
       const recordingResult =
-        await RecordingService.getRecordingById(recordingId);
+        await RecordingService.getRecordingByIdInternal(recordingId);
 
       if (recordingResult.isErr() || !recordingResult.value) {
         return NextResponse.json(
           { error: "Recording not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -56,7 +56,7 @@ export const POST = withRateLimit(
         assertOrganizationAccess(
           recording.organizationId,
           organization?.id,
-          "api/summarize/[recordingId]/POST"
+          "api/summarize/[recordingId]/POST",
         );
       } catch (error) {
         // Return 404 to prevent information leakage
@@ -67,7 +67,7 @@ export const POST = withRateLimit(
       if (!recording.transcriptionText) {
         return NextResponse.json(
           { error: "Recording not yet transcribed" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -80,7 +80,7 @@ export const POST = withRateLimit(
       const transcriptionInsightResult =
         await AIInsightService.getInsightByTypeInternal(
           recordingId,
-          "transcription"
+          "transcription",
         );
 
       let utterances;
@@ -96,7 +96,7 @@ export const POST = withRateLimit(
         recordingId,
         recording.transcriptionText,
         utterances,
-        recording.language ?? "nl"
+        recording.language ?? "nl",
       );
 
       if (result.isErr()) {
@@ -108,7 +108,7 @@ export const POST = withRateLimit(
 
         return NextResponse.json(
           { error: result.error.message },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -124,7 +124,7 @@ export const POST = withRateLimit(
 
       return NextResponse.json(
         { error: "Internal server error" },
-        { status: 500 }
+        { status: 500 },
       );
     }
   },
@@ -142,13 +142,13 @@ export const POST = withRateLimit(
       return authResult.value.user?.id ?? null;
     }
     return null;
-  }
+  },
 );
 
 // GET endpoint to retrieve existing summary
 export async function GET(
   request: NextRequest,
-  props: { params: Promise<{ recordingId: string }> }
+  props: { params: Promise<{ recordingId: string }> },
 ) {
   try {
     const { recordingId } = await props.params;
@@ -171,12 +171,12 @@ export async function GET(
 
     // Get recording
     const recordingResult =
-      await RecordingService.getRecordingById(recordingId);
+      await RecordingService.getRecordingByIdInternal(recordingId);
 
     if (recordingResult.isErr() || !recordingResult.value) {
       return NextResponse.json(
         { error: "Recording not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -189,7 +189,7 @@ export async function GET(
       assertOrganizationAccess(
         recording.organizationId,
         organization?.id,
-        "api/summarize/[recordingId]/GET"
+        "api/summarize/[recordingId]/GET",
       );
     } catch (error) {
       // Return 404 to prevent information leakage
@@ -203,7 +203,7 @@ export async function GET(
     if (summaryInsightResult.isErr()) {
       return NextResponse.json(
         { error: "Failed to retrieve summary" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -228,8 +228,7 @@ export async function GET(
 
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

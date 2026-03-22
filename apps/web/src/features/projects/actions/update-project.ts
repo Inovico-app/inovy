@@ -1,5 +1,6 @@
 "use server";
 
+import type { AuthContext } from "@/lib/auth-context";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -26,7 +27,7 @@ export const updateProjectAction = authorizedActionClient
     const { projectId, name, description, teamId } = parsedInput;
     const { organizationId } = ctx;
 
-    if (!organizationId) {
+    if (!organizationId || !ctx.user) {
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
@@ -34,11 +35,17 @@ export const updateProjectAction = authorizedActionClient
       );
     }
 
+    const auth: AuthContext = {
+      user: ctx.user,
+      organizationId,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Update project
     const result = await ProjectService.updateProject(
       projectId,
       { name, description, teamId },
-      organizationId,
+      auth,
     );
 
     if (result.isErr()) {

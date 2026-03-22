@@ -1,3 +1,4 @@
+import type { AuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import {
   ActionErrors,
@@ -23,13 +24,14 @@ export class PendingTeamAssignmentsService {
   static async applyPendingAssignments(
     invitationId: string,
     userId: string,
-    organizationId: string
+    organizationId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<void>> {
     try {
       // Get pending team assignments
       const teamIds =
         await PendingTeamAssignmentsQueries.getPendingAssignmentsByInvitationId(
-          invitationId
+          invitationId,
         );
 
       if (teamIds.length === 0) {
@@ -39,8 +41,8 @@ export class PendingTeamAssignmentsService {
       // Assign user to each team
       const results = await Promise.all(
         teamIds.map((teamId) =>
-          TeamService.assignUserToTeam(userId, teamId, "member")
-        )
+          TeamService.assignUserToTeam(userId, teamId, "member", auth),
+        ),
       );
 
       // Check if any assignments failed
@@ -56,21 +58,21 @@ export class PendingTeamAssignmentsService {
         // Still delete pending assignments even if some failed
         // The successful ones are already applied
         await PendingTeamAssignmentsQueries.deletePendingAssignmentsByInvitationId(
-          invitationId
+          invitationId,
         );
 
         return err(
           ActionErrors.internal(
             `Failed to assign user to ${failures.length} team(s)`,
             undefined,
-            "PendingTeamAssignmentsService.applyPendingAssignments"
-          )
+            "PendingTeamAssignmentsService.applyPendingAssignments",
+          ),
         );
       }
 
       // Delete pending assignments after successful application
       await PendingTeamAssignmentsQueries.deletePendingAssignmentsByInvitationId(
-        invitationId
+        invitationId,
       );
 
       logger.info("Applied pending team assignments", {
@@ -93,10 +95,9 @@ export class PendingTeamAssignmentsService {
         ActionErrors.internal(
           "Failed to apply pending team assignments",
           error as Error,
-          "PendingTeamAssignmentsService.applyPendingAssignments"
-        )
+          "PendingTeamAssignmentsService.applyPendingAssignments",
+        ),
       );
     }
   }
 }
-

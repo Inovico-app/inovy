@@ -7,8 +7,8 @@ import {
   ActionErrors,
   type ActionResult,
 } from "../../lib/server-action-client/action-errors";
+import type { AuthContext } from "../../lib/auth-context";
 import type { BetterAuthUser } from "../../lib/auth";
-import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { ProjectQueries } from "../data-access/projects.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { type NewRecording, type Recording } from "../db/schema/recordings";
@@ -123,10 +123,12 @@ export class RecordingService {
   }
 
   /**
-   * Get a recording by ID
+   * Get a recording by ID (authenticated)
+   * Always enforces organization and team-level access isolation.
    */
   static async getRecordingById(
     id: string,
+    auth: AuthContext,
   ): Promise<ActionResult<RecordingDto | null>> {
     logger.info("Fetching recording by ID", {
       component: "RecordingService.getRecordingById",
@@ -144,22 +146,15 @@ export class RecordingService {
         return ok(null);
       }
 
-      // Enforce team-level access isolation via the recording's project.
-      // Fail-closed: if the recording belongs to a project and we cannot verify
-      // team access (session failure or project not found), deny access rather
-      // than silently returning the recording.
+      // Always enforce organization-level access isolation
+      assertOrganizationAccess(
+        recording.organizationId,
+        auth.organizationId,
+        "RecordingService.getRecordingById",
+      );
+
+      // Enforce team-level access isolation via the recording's project
       if (recording.projectId) {
-        const sessionResult = await getBetterAuthSession();
-        if (sessionResult.isErr() || !sessionResult.value.user) {
-          return err(
-            ActionErrors.forbidden(
-              "Unable to verify access",
-              undefined,
-              "RecordingService.getRecordingById",
-            ),
-          );
-        }
-        const { user: sessionUser, userTeamIds } = sessionResult.value;
         const project = await ProjectQueries.findById(
           recording.projectId,
           recording.organizationId,
@@ -174,8 +169,8 @@ export class RecordingService {
         }
         assertTeamAccess(
           project.teamId,
-          userTeamIds,
-          sessionUser,
+          auth.userTeamIds,
+          auth.user,
           "RecordingService.getRecordingById",
         );
       }
@@ -193,6 +188,48 @@ export class RecordingService {
           "Failed to fetch recording",
           error as Error,
           "RecordingService.getRecordingById",
+        ),
+      );
+    }
+  }
+
+  /**
+   * Get a recording by ID without auth checks.
+   * Only for internal system/workflow callers (e.g. background jobs, workflow steps).
+   * User-facing code must use getRecordingById(id, auth) instead.
+   */
+  static async getRecordingByIdInternal(
+    id: string,
+  ): Promise<ActionResult<RecordingDto | null>> {
+    logger.info("Fetching recording by ID (internal)", {
+      component: "RecordingService.getRecordingByIdInternal",
+      recordingId: id,
+    });
+
+    try {
+      const recording = await RecordingsQueries.selectRecordingById(id);
+
+      if (!recording) {
+        logger.warn("Recording not found", {
+          component: "RecordingService.getRecordingByIdInternal",
+          recordingId: id,
+        });
+        return ok(null);
+      }
+
+      return ok(this.toDto(recording));
+    } catch (error) {
+      logger.error("Failed to fetch recording from database", {
+        component: "RecordingService.getRecordingByIdInternal",
+        error: serializeError(error),
+        recordingId: id,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to fetch recording",
+          error as Error,
+          "RecordingService.getRecordingByIdInternal",
         ),
       );
     }

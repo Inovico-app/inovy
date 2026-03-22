@@ -12,7 +12,7 @@ import { type NextRequest, NextResponse } from "next/server";
 export const POST = withRateLimit(
   async (
     request: NextRequest,
-    props: { params: Promise<{ recordingId: string }> }
+    props: { params: Promise<{ recordingId: string }> },
   ) => {
     try {
       const { recordingId } = await props.params;
@@ -37,7 +37,7 @@ export const POST = withRateLimit(
 
       // Get recording
       const recordingResult =
-        await RecordingService.getRecordingById(recordingId);
+        await RecordingService.getRecordingByIdInternal(recordingId);
 
       if (recordingResult.isErr()) {
         logger.error("Recording not found", {
@@ -46,7 +46,7 @@ export const POST = withRateLimit(
         });
         return NextResponse.json(
           { error: recordingResult.error?.message ?? "Unknown error" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -59,7 +59,7 @@ export const POST = withRateLimit(
         });
         return NextResponse.json(
           { error: "Recording not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -70,7 +70,7 @@ export const POST = withRateLimit(
         assertOrganizationAccess(
           recording.organizationId,
           organization?.id,
-          "api/transcribe/[recordingId]"
+          "api/transcribe/[recordingId]",
         );
       } catch (error) {
         // Return 404 to prevent information leakage
@@ -86,7 +86,7 @@ export const POST = withRateLimit(
       // Start transcription (this will run in background)
       const result = await TranscriptionService.transcribeUploadedFile(
         recordingId,
-        recording.fileUrl
+        recording.fileUrl,
       );
 
       if (result.isErr()) {
@@ -98,7 +98,7 @@ export const POST = withRateLimit(
 
         return NextResponse.json(
           { error: result.error.message },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -114,7 +114,7 @@ export const POST = withRateLimit(
 
       return NextResponse.json(
         { error: "Internal server error" },
-        { status: 500 }
+        { status: 500 },
       );
     }
   },
@@ -132,6 +132,5 @@ export const POST = withRateLimit(
       return authResult.value.user?.id ?? null;
     }
     return null;
-  }
+  },
 );
-

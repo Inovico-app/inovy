@@ -1,3 +1,4 @@
+import type { BetterAuthUser } from "@/lib/auth";
 import type {
   ActionError,
   ActionResult,
@@ -27,6 +28,7 @@ export type ChatScope = ProjectScope | OrganizationScope;
 // ============================================================================
 
 export interface ChatCaller {
+  readonly user: BetterAuthUser;
   readonly userId: string;
   readonly organizationId: string;
   readonly userRole: string;

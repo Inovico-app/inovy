@@ -1,8 +1,8 @@
 import type { BetterAuthUser } from "@/lib/auth";
+import type { AuthContext } from "@/lib/auth-context";
 import type { ActionResult } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
-import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { ProjectTemplateQueries } from "../data-access/project-templates.queries";
@@ -21,38 +21,14 @@ export class ProjectTemplateService {
    * Get a project template by project ID
    */
   static async getProjectTemplateByProjectId(
-    projectId: string
+    auth: AuthContext,
+    projectId: string,
   ): Promise<ActionResult<ProjectTemplateDto | null>> {
     try {
-      // Check authentication and get session
-      const authResult = await getBetterAuthSession();
-
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "ProjectTemplateService.getProjectTemplateByProjectId"
-          )
-        );
-      }
-
-      const { organization } = authResult.value;
-
-      if (!organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "ProjectTemplateService.getProjectTemplateByProjectId"
-          )
-        );
-      }
-
       // Get template
       const template = await ProjectTemplateQueries.findByProjectId(
         projectId,
-        organization.id
+        auth.organizationId,
       );
 
       return ok(template);
@@ -60,14 +36,14 @@ export class ProjectTemplateService {
       logger.error(
         "Failed to get project template",
         { projectId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to get project template",
           error as Error,
-          "ProjectTemplateService.getProjectTemplateByProjectId"
-        )
+          "ProjectTemplateService.getProjectTemplateByProjectId",
+        ),
       );
     }
   }
@@ -78,21 +54,21 @@ export class ProjectTemplateService {
   static async createProjectTemplate(
     input: { projectId: string; instructions: string },
     user: NonNullable<BetterAuthUser>,
-    orgCode: string
+    orgCode: string,
   ): Promise<ActionResult<ProjectTemplateDto>> {
     try {
       // Check if template already exists for this project
       const existing = await ProjectTemplateQueries.findByProjectId(
         input.projectId,
-        orgCode
+        orgCode,
       );
 
       if (existing) {
         return err(
           ActionErrors.conflict(
             "Template already exists for this project",
-            "create-project-template"
-          )
+            "create-project-template",
+          ),
         );
       }
 
@@ -113,14 +89,14 @@ export class ProjectTemplateService {
       logger.error(
         "Failed to create project template",
         { projectId: input.projectId, orgCode, user },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to create project template",
           error as Error,
-          "ProjectTemplateService.createProjectTemplate"
-        )
+          "ProjectTemplateService.createProjectTemplate",
+        ),
       );
     }
   }
@@ -131,21 +107,21 @@ export class ProjectTemplateService {
   static async updateProjectTemplate(
     templateId: string,
     input: { instructions: string },
-    orgCode: string
+    orgCode: string,
   ): Promise<ActionResult<ProjectTemplateDto>> {
     try {
       // Get existing template
       const existing = await ProjectTemplateQueries.findById(
         templateId,
-        orgCode
+        orgCode,
       );
 
       if (!existing) {
         return err(
           ActionErrors.notFound(
             "Template",
-            "ProjectTemplateService.updateProjectTemplate"
-          )
+            "ProjectTemplateService.updateProjectTemplate",
+          ),
         );
       }
 
@@ -156,15 +132,15 @@ export class ProjectTemplateService {
       const template = await ProjectTemplateQueries.update(
         templateId,
         orgCode,
-        updateData
+        updateData,
       );
 
       if (!template) {
         return err(
           ActionErrors.notFound(
             "Template",
-            "ProjectTemplateService.updateProjectTemplate"
-          )
+            "ProjectTemplateService.updateProjectTemplate",
+          ),
         );
       }
 
@@ -176,14 +152,14 @@ export class ProjectTemplateService {
       logger.error(
         "Failed to update project template",
         { templateId, orgCode },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to update project template",
           error as Error,
-          "ProjectTemplateService.updateProjectTemplate"
-        )
+          "ProjectTemplateService.updateProjectTemplate",
+        ),
       );
     }
   }
@@ -193,21 +169,21 @@ export class ProjectTemplateService {
    */
   static async deleteProjectTemplate(
     templateId: string,
-    orgCode: string
+    orgCode: string,
   ): Promise<ActionResult<boolean>> {
     try {
       // Get existing template to find project ID for cache invalidation
       const existing = await ProjectTemplateQueries.findById(
         templateId,
-        orgCode
+        orgCode,
       );
 
       if (!existing) {
         return err(
           ActionErrors.notFound(
             "Template",
-            "ProjectTemplateService.deleteProjectTemplate"
-          )
+            "ProjectTemplateService.deleteProjectTemplate",
+          ),
         );
       }
 
@@ -223,16 +199,15 @@ export class ProjectTemplateService {
       logger.error(
         "Failed to delete project template",
         { templateId, orgCode },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to delete project template",
           error as Error,
-          "ProjectTemplateService.deleteProjectTemplate"
-        )
+          "ProjectTemplateService.deleteProjectTemplate",
+        ),
       );
     }
   }
 }
-

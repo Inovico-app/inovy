@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import type { AuthContext } from "../../../lib/auth-context";
 import { policyToPermissions } from "../../../lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -43,12 +44,21 @@ export const createTeam = authorizedActionClient
       );
     }
 
-    const result = await TeamService.createTeam({
-      organizationId,
-      name,
-      description: description ?? null,
-      departmentId: departmentId ?? null,
-    });
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
+    const result = await TeamService.createTeam(
+      {
+        organizationId,
+        name,
+        description: description ?? null,
+        departmentId: departmentId ?? null,
+      },
+      auth,
+    );
 
     // Revalidate Next.js route cache (service handles data cache invalidation)
     if (result.isOk()) {
@@ -97,7 +107,13 @@ export const updateTeam = authorizedActionClient
       updateData.departmentId = departmentId ?? null;
     }
 
-    const result = await TeamService.updateTeam(id, updateData);
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
+    const result = await TeamService.updateTeam(id, updateData, auth);
 
     // Revalidate Next.js route cache (service handles data cache invalidation)
     if (result.isOk()) {
@@ -133,7 +149,13 @@ export const deleteTeam = authorizedActionClient
       );
     }
 
-    const result = await TeamService.deleteTeam(id);
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
+    const result = await TeamService.deleteTeam(id, auth);
 
     // Revalidate Next.js route cache (service handles data cache invalidation)
     if (result.isOk()) {
@@ -169,7 +191,18 @@ export const assignUserToTeam = authorizedActionClient
       );
     }
 
-    const result = await TeamService.assignUserToTeam(userId, teamId, role);
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
+    const result = await TeamService.assignUserToTeam(
+      userId,
+      teamId,
+      role,
+      auth,
+    );
 
     // Revalidate Next.js route cache (service handles data cache invalidation)
     if (result.isOk()) {
@@ -211,7 +244,13 @@ export const removeUserFromTeam = authorizedActionClient
       );
     }
 
-    const result = await TeamService.removeUserFromTeam(userId, teamId);
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
+    const result = await TeamService.removeUserFromTeam(userId, teamId, auth);
 
     // Revalidate Next.js route cache (service handles data cache invalidation)
     if (result.isOk()) {
@@ -248,7 +287,18 @@ export const updateUserTeamRole = authorizedActionClient
       );
     }
 
-    const result = await TeamService.updateUserTeamRole(userId, teamId, role);
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
+    const result = await TeamService.updateUserTeamRole(
+      userId,
+      teamId,
+      role,
+      auth,
+    );
 
     // Revalidate Next.js route cache (service handles data cache invalidation)
     if (result.isOk()) {

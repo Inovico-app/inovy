@@ -11,6 +11,7 @@ import {
   getCachedOrganizationById,
   getCachedOrganizationMembers,
 } from "@/server/cache/organization.cache";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
@@ -28,11 +29,15 @@ async function OrganizationContent({
 }: {
   organizationId: string;
 }) {
+  const authResult = await resolveAuthContext("OrganizationContent");
+
   // Fetch organization, members, and teams
   const [organization, members, teams] = await Promise.all([
     getCachedOrganizationById(organizationId),
     getCachedOrganizationMembers(organizationId),
-    getCachedTeamsWithMemberCounts(organizationId),
+    authResult.isOk()
+      ? getCachedTeamsWithMemberCounts(organizationId, authResult.value)
+      : Promise.resolve([]),
   ]);
 
   if (!organization) {
@@ -77,7 +82,7 @@ async function OrganizationContent({
 async function OrganizationPageContent({ params }: OrganizationPageProps) {
   // Check if user has superadmin permissions
   const hasSuperAdminPermission = await checkPermission(
-    Permissions.superadmin.all
+    Permissions.superadmin.all,
   );
 
   if (!hasSuperAdminPermission) {
@@ -95,7 +100,13 @@ async function OrganizationPageContent({ params }: OrganizationPageProps) {
             View and manage organization settings
           </p>
         </div>
-        <Button variant="ghost" size="icon" className="w-fit px-4" render={<Link href="/admin/organizations" />} nativeButton={false}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="w-fit px-4"
+          render={<Link href="/admin/organizations" />}
+          nativeButton={false}
+        >
           <ArrowLeftIcon className="h-5 w-5 mr-2" />
           Back to organizations
         </Button>
@@ -140,4 +151,3 @@ export default function OrganizationPage(props: OrganizationPageProps) {
     </Suspense>
   );
 }
-

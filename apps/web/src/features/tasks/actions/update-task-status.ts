@@ -1,8 +1,7 @@
 "use server";
 
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
-import { AuditLogService } from "@/server/services/audit-log.service";
 import { TaskService } from "@/server/services/task.service";
 import type { TaskDto } from "@/server/dto/task.dto";
 import {
@@ -16,6 +15,11 @@ export async function updateTaskStatus(input: UpdateTaskStatusInput): Promise<{
   error?: string;
 }> {
   try {
+    const authResult = await resolveAuthContext("updateTaskStatus");
+    if (authResult.isErr()) {
+      return { success: false, error: authResult.error.message };
+    }
+
     // Validate input
     const validation = updateTaskStatusSchema.safeParse(input);
     if (!validation.success) {
@@ -28,7 +32,11 @@ export async function updateTaskStatus(input: UpdateTaskStatusInput): Promise<{
     const { taskId, status } = validation.data;
 
     // Update task status with authorization
-    const result = await TaskService.updateTaskStatus(taskId, status);
+    const result = await TaskService.updateTaskStatus(
+      taskId,
+      status,
+      authResult.value,
+    );
 
     if (result.isErr()) {
       logger.error("Failed to update task status", {
@@ -42,23 +50,6 @@ export async function updateTaskStatus(input: UpdateTaskStatusInput): Promise<{
         success: false,
         error: result.error.message,
       };
-    }
-
-    const authResult = await getBetterAuthSession();
-    if (authResult.isOk()) {
-      const { user, organization } = authResult.value;
-      if (user?.id && organization?.id) {
-        void AuditLogService.createAuditLog({
-          eventType: "task_update",
-          resourceType: "task",
-          resourceId: taskId,
-          userId: user.id,
-          organizationId: organization.id,
-          action: "update",
-          category: "mutation",
-          metadata: { actionName: "updateTaskStatus", status },
-        });
-      }
     }
 
     return {

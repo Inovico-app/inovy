@@ -3,6 +3,7 @@
 import { sendEmailFromTemplate } from "@/emails/client";
 import OrganizationInvitationEmail from "@/emails/templates/organization-invitation-email";
 import { auth } from "@/lib/auth";
+import type { AuthContext } from "@/lib/auth-context";
 import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
@@ -279,14 +280,20 @@ export const assignMemberToTeams = authorizedActionClient
       organizationId: z.string().min(1, "Organization ID is required"),
     }),
   )
-  .action(async ({ parsedInput }) => {
+  .action(async ({ parsedInput, ctx }) => {
     const { userId, teamIds, organizationId } = parsedInput;
 
     try {
+      const authCtx: AuthContext = {
+        user: ctx.user!,
+        organizationId: ctx.organizationId!,
+        userTeamIds: ctx.userTeamIds ?? [],
+      };
+
       // Assign user to each team
       const results = await Promise.all(
         teamIds.map((teamId) =>
-          TeamService.assignUserToTeam(userId, teamId, "member"),
+          TeamService.assignUserToTeam(userId, teamId, "member", authCtx),
         ),
       );
 
