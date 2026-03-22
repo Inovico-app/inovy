@@ -416,7 +416,7 @@ export class ChatService {
               },
             });
           }),
-        "openai",
+        "anthropic",
       );
 
       // Collect the full response with error handling
@@ -604,23 +604,30 @@ export class ChatService {
 
       // Stream response with error handling, request tracking, and guardrails
       // Note: Streaming endpoints use single-attempt by design to avoid duplicate streamed answers.
-      const { client: anthropic, pooled } =
-        connectionPool.getAnthropicAISdkClientWithTracking();
+      const tracked = connectionPool.getAnthropicAISdkClientWithTracking();
+      const anthropic = tracked.client;
+      const pooled = tracked.pooled;
       let streamError: Error | null = null;
       let errorMetricTracked = false;
 
       const startTime = Date.now();
       const userId = conversation.userId;
 
-      const guardedModel = createGuardedModel(anthropic(agentSettings.model), {
-        organizationId,
-        userId,
-        conversationId,
-        projectId,
-        chatContext: "project",
-        requestType: "chat",
-        pii: { mode: "redact" },
-      });
+      let guardedModel;
+      try {
+        guardedModel = createGuardedModel(anthropic(agentSettings.model), {
+          organizationId,
+          userId,
+          conversationId,
+          projectId,
+          chatContext: "project",
+          requestType: "chat",
+          pii: { mode: "redact" },
+        });
+      } catch (setupError) {
+        pooled.activeRequests--;
+        throw setupError;
+      }
 
       const toolContext: ToolContext = {
         organizationId,
@@ -924,21 +931,28 @@ export class ChatService {
 
       // Stream response with error handling, request tracking, and guardrails
       // Note: Streaming endpoints use single-attempt by design to avoid duplicate streamed answers.
-      const { client: anthropic, pooled } =
-        connectionPool.getAnthropicAISdkClientWithTracking();
+      const tracked = connectionPool.getAnthropicAISdkClientWithTracking();
+      const anthropic = tracked.client;
+      const pooled = tracked.pooled;
       let streamError: Error | null = null;
 
       const startTime = Date.now();
       const userId = conversation.userId;
 
-      const guardedModel = createGuardedModel(anthropic(agentSettings.model), {
-        organizationId,
-        userId,
-        conversationId,
-        chatContext: "organization",
-        requestType: "chat",
-        pii: { mode: "redact" },
-      });
+      let guardedModel;
+      try {
+        guardedModel = createGuardedModel(anthropic(agentSettings.model), {
+          organizationId,
+          userId,
+          conversationId,
+          chatContext: "organization",
+          requestType: "chat",
+          pii: { mode: "redact" },
+        });
+      } catch (setupError) {
+        pooled.activeRequests--;
+        throw setupError;
+      }
 
       const orgToolContext: ToolContext = {
         organizationId,

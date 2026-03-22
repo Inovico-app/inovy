@@ -132,13 +132,13 @@ export class SummaryService {
       const responseContent = completion.text;
 
       if (!responseContent) {
-        logger.error("No content in OpenAI response", {
+        logger.error("No content in AI model response", {
           component: "SummaryService.generateSummary",
         });
         await AIInsightsQueries.updateInsightStatus(
           insight.id,
           "failed",
-          "No response from OpenAI",
+          "No response from AI model",
         );
 
         // Create failure notification
@@ -152,14 +152,14 @@ export class SummaryService {
             title: "Samenvatting mislukt",
             message: `De samenvatting van "${existingRecording.title}" is mislukt.`,
             metadata: {
-              error: "No response from OpenAI",
+              error: "No response from AI model",
             },
           });
         }
 
         return err(
           ActionErrors.internal(
-            "No content in OpenAI response",
+            "No content in AI model response",
             undefined,
             "SummaryService.generateSummary",
           ),
@@ -171,7 +171,7 @@ export class SummaryService {
       try {
         summaryContent = JSON.parse(responseContent);
       } catch (parseError) {
-        logger.error("Failed to parse OpenAI response", {
+        logger.error("Failed to parse AI model response", {
           component: "SummaryService.generateSummary",
           error: parseError,
           responseContent,
@@ -200,7 +200,7 @@ export class SummaryService {
 
         return err(
           ActionErrors.internal(
-            "Failed to parse OpenAI response",
+            "Failed to parse AI model response",
             parseError as Error,
             "SummaryService.generateSummary",
           ),

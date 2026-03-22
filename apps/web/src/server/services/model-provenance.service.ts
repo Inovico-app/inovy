@@ -88,6 +88,13 @@ const MODEL_REGISTRY: readonly ModelEntry[] = [
     usedBy: "AgendaTrackerService",
   },
   {
+    modelId: "text-embedding-3-large",
+    provider: "openai",
+    purpose: "Embeddings for vector store (RAG)",
+    configurable: false,
+    usedBy: "EmbeddingService / DocumentService",
+  },
+  {
     modelId: "text-moderation-latest",
     provider: "openai",
     purpose: "Input content moderation",

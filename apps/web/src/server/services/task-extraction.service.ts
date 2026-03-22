@@ -94,7 +94,7 @@ export class TaskExtractionService {
       const responseContent = completion.text;
 
       if (!responseContent) {
-        logger.error("No content in OpenAI response", {
+        logger.error("No content in AI model response", {
           component: "TaskExtractionService.extractTasks",
         });
 
@@ -111,14 +111,14 @@ export class TaskExtractionService {
             title: "Taakextractie mislukt",
             message: `De taakextractie uit "${recording.title}" is mislukt.`,
             metadata: {
-              error: "No response from OpenAI",
+              error: "No response from AI model",
             },
           });
         }
 
         return err(
           ActionErrors.internal(
-            "No response from OpenAI",
+            "No response from AI model",
             undefined,
             "TaskExtractionService.extractTasks",
           ),
@@ -130,7 +130,7 @@ export class TaskExtractionService {
       try {
         extractionResult = JSON.parse(responseContent);
       } catch (parseError) {
-        logger.error("Failed to parse OpenAI response", {
+        logger.error("Failed to parse AI model response", {
           component: "TaskExtractionService.extractTasks",
           error: parseError,
           responseContent,
