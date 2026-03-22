@@ -9,6 +9,9 @@ export interface AudioCaptureInitConfig {
 
 export interface AudioCaptureService {
   initialize(config?: AudioCaptureInitConfig): ResultAsync<void, CaptureError>;
+  reinitialize(
+    config?: AudioCaptureInitConfig,
+  ): ResultAsync<void, CaptureError>;
   start(timeslice: number): void;
   pause(): void;
   resume(): void;
