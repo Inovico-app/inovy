@@ -21,7 +21,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AudioInputDevice } from "@/features/recordings/hooks/use-audio-devices";
 import { Lock, Mic, RotateCcw, Settings2 } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 interface DeviceSettingsPopoverProps {
   devices: AudioInputDevice[];
@@ -42,6 +42,7 @@ export function DeviceSettingsPopover({
   error,
   onRetry,
 }: DeviceSettingsPopoverProps) {
+  const instanceId = useId();
   const [open, setOpen] = useState(false);
 
   // Don't render if browser doesn't support enumerateDevices
@@ -51,9 +52,6 @@ export function DeviceSettingsPopover({
   ) {
     return null;
   }
-
-  const selectedDevice = devices.find((d) => d.deviceId === selectedDeviceId);
-  const displayLabel = selectedDevice?.label ?? "Standaard microfoon";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -82,13 +80,13 @@ export function DeviceSettingsPopover({
       <PopoverContent
         className="w-72"
         role="dialog"
-        aria-labelledby="device-popover-heading"
+        aria-labelledby={`${instanceId}-popover-heading`}
       >
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Mic className="h-4 w-4 text-muted-foreground" />
             <h4
-              id="device-popover-heading"
+              id={`${instanceId}-popover-heading`}
               className="text-sm font-semibold leading-none"
             >
               Microfoon
@@ -119,7 +117,7 @@ export function DeviceSettingsPopover({
             <>
               <div className="space-y-1.5">
                 <label
-                  htmlFor="mic-device-select"
+                  htmlFor={`${instanceId}-mic-select`}
                   className="text-xs font-medium text-muted-foreground"
                 >
                   Selecteer microfoon
@@ -132,21 +130,23 @@ export function DeviceSettingsPopover({
                   disabled={isDisabled}
                 >
                   <SelectTrigger
-                    id="mic-device-select"
+                    id={`${instanceId}-mic-select`}
                     className={`w-full ${isDisabled ? "pointer-events-none" : ""}`}
                     aria-disabled={isDisabled || undefined}
                     aria-describedby={
-                      isDisabled ? "device-disabled-hint" : undefined
+                      isDisabled ? `${instanceId}-disabled-hint` : undefined
                     }
                   >
-                    <SelectValue placeholder="Standaard microfoon">
-                      <span className="truncate">{displayLabel}</span>
-                    </SelectValue>
+                    <SelectValue placeholder="Standaard microfoon" />
                   </SelectTrigger>
                   <SelectContent>
                     {devices.map((device) => (
-                      <SelectItem key={device.deviceId} value={device.deviceId}>
-                        <span className="truncate">{device.label}</span>
+                      <SelectItem
+                        key={device.deviceId}
+                        value={device.deviceId}
+                        label={device.label}
+                      >
+                        {device.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -155,7 +155,7 @@ export function DeviceSettingsPopover({
 
               {isDisabled && (
                 <p
-                  id="device-disabled-hint"
+                  id={`${instanceId}-disabled-hint`}
                   className="flex items-center gap-1.5 text-xs text-muted-foreground"
                 >
                   <Lock className="h-3 w-3 shrink-0" />
