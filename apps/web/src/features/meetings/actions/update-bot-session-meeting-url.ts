@@ -1,6 +1,5 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
@@ -88,9 +87,6 @@ export const updateBotSessionMeetingUrl = authorizedActionClient
         "update-bot-session-meeting-url",
       );
     }
-
-    CacheInvalidation.invalidateBotSession(sessionId, organizationId);
-    CacheInvalidation.invalidateBotSessions(organizationId);
 
     logger.info("Successfully updated bot session meeting URL", {
       userId: user.id,

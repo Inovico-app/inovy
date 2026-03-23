@@ -1,6 +1,5 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
@@ -104,9 +103,6 @@ export const updateBotSessionProject = authorizedActionClient
         "update-bot-session-project",
       );
     }
-
-    CacheInvalidation.invalidateBotSession(sessionId, organizationId);
-    CacheInvalidation.invalidateBotSessions(organizationId);
 
     logger.info("Successfully updated bot session project", {
       userId: user.id,

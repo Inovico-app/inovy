@@ -5,7 +5,6 @@ import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
 import { BotSessionsQueries } from "@/server/data-access/bot-sessions.queries";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
@@ -300,8 +299,6 @@ export const createCalendarEventWithBot = authorizedActionClient
                     meetingId: meetingResult.value.id,
                   });
                 }
-
-                CacheInvalidation.invalidateBotSessions(organizationId);
 
                 logger.info("Successfully created bot session", {
                   userId: user.id,

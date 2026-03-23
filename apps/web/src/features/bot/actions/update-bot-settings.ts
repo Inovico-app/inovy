@@ -1,6 +1,5 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
@@ -66,9 +65,6 @@ export const updateBotSettings = authorizedActionClient
         "update-bot-settings",
       );
     }
-
-    // Invalidate cache
-    CacheInvalidation.invalidateBotSettings(user.id, organizationId);
 
     logger.info("Successfully updated bot settings", {
       userId: user.id,

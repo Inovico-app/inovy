@@ -7,7 +7,6 @@ import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { connectionPool } from "@/server/services/connection-pool.service";
 import { generateObject } from "ai";
 
@@ -84,6 +83,5 @@ Keep items focused and time-appropriate for a typical meeting.`,
       })),
     );
 
-    CacheInvalidation.invalidateMeetingAgendaItems(parsedInput.meetingId);
     return { success: true, items };
   });
