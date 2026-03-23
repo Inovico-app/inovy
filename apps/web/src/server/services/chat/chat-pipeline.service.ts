@@ -489,8 +489,10 @@ export class ChatPipeline {
     organizationId: string,
     caller: ChatCaller,
   ): Promise<ScopeContext> {
+    // Always use the authenticated caller's org ID to prevent spoofing
+    const trustedOrgId = caller.organizationId;
     const knowledgeResult = await KnowledgeModule.getKnowledge({
-      organizationId,
+      organizationId: trustedOrgId,
       teamId: caller.teamId ?? null,
     });
     const knowledgeContext = knowledgeResult.isOk()

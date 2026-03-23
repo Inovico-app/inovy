@@ -64,8 +64,8 @@ export class TextExtractor {
    */
   static cleanText(text: string): string {
     return text
-      .replace(/\s+/g, " ") // Normalize whitespace
-      .replace(/\n{3,}/g, "\n\n") // Normalize line breaks
+      .replace(/\n{3,}/g, "\n\n") // Normalize excessive line breaks first
+      .replace(/[^\S\n]+/g, " ") // Collapse spaces/tabs but preserve newlines
       .trim();
   }
 

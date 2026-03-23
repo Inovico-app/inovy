@@ -131,8 +131,9 @@ export class SemanticChunker {
     overlap: number,
   ): string[] {
     const chunks: string[] = [];
+    const step = Math.max(1, chunkSize - overlap);
 
-    for (let i = 0; i < text.length; i += chunkSize - overlap) {
+    for (let i = 0; i < text.length; i += step) {
       chunks.push(text.slice(i, i + chunkSize));
     }
 

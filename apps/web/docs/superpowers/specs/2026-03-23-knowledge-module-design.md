@@ -258,7 +258,7 @@ export class KnowledgeModule {
 
 The module lives under `src/server/services/knowledge/` to align with the existing convention (the chat module lives at `src/server/services/chat/`, not under a `modules/` directory).
 
-```
+```text
 src/server/services/knowledge/
   index.ts                    # KnowledgeModule static facade (public API)
   types.ts                    # ScopeRef, ScopeTarget, SearchHit, KnowledgeContext, etc.

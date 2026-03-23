@@ -44,11 +44,29 @@ export class DocumentPipeline {
     auth?: AuthContext,
   ): Promise<ActionResult<void>> {
     try {
-      // Step 1 — mark as processing
-      await KnowledgeBaseDocumentsQueries.updateProcessingStatus(
-        documentId,
-        "processing",
-      );
+      // Step 1 — mark as processing (abort if this fails)
+      try {
+        await KnowledgeBaseDocumentsQueries.updateProcessingStatus(
+          documentId,
+          "processing",
+        );
+      } catch (statusError) {
+        logger.error("Failed to mark document as processing", {
+          component: COMPONENT,
+          documentId,
+          error:
+            statusError instanceof Error
+              ? statusError.message
+              : String(statusError),
+        });
+        return err(
+          ActionErrors.internal(
+            "Failed to update document processing status",
+            statusError as Error,
+            `${COMPONENT}.processDocument`,
+          ),
+        );
+      }
 
       // Step 2 — verify document exists
       const document =
@@ -125,12 +143,42 @@ export class DocumentPipeline {
       const processedDocument = pipelineResult.value;
 
       // Step 6 — persist extracted text and mark as completed
-      await KnowledgeBaseDocumentsQueries.updateDocument(documentId, {
-        extractedText: processedDocument.chunks
-          .map((chunk) => chunk.content)
-          .join("\n\n"),
-        processingStatus: "completed",
-      });
+      try {
+        await KnowledgeBaseDocumentsQueries.updateDocument(documentId, {
+          extractedText: processedDocument.chunks
+            .map((chunk) => chunk.content)
+            .join("\n\n"),
+          processingStatus: "completed",
+        });
+      } catch (updateError) {
+        logger.error("Failed to mark document as completed", {
+          component: COMPONENT,
+          documentId,
+          error:
+            updateError instanceof Error
+              ? updateError.message
+              : String(updateError),
+        });
+        // Attempt to mark as failed so it doesn't stay stuck as "processing"
+        try {
+          await KnowledgeBaseDocumentsQueries.updateProcessingStatus(
+            documentId,
+            "failed",
+            updateError instanceof Error
+              ? updateError.message
+              : "Failed to persist extracted text",
+          );
+        } catch {
+          // Best-effort — already logged the root cause above
+        }
+        return err(
+          ActionErrors.internal(
+            "Failed to persist extracted text",
+            updateError as Error,
+            `${COMPONENT}.processDocument`,
+          ),
+        );
+      }
 
       logger.info("Document processed successfully", {
         component: COMPONENT,

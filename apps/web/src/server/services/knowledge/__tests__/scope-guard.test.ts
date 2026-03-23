@@ -256,3 +256,110 @@ describe("ScopeGuard.validate", () => {
     expect(result.isOk()).toBe(true);
   });
 });
+
+// ============================================================================
+// validateDocumentAccess
+// ============================================================================
+
+describe("ScopeGuard.validateDocumentAccess", () => {
+  const baseDoc = {
+    id: "doc-1",
+    title: "Test",
+    description: null,
+    fileUrl: "https://blob/test.pdf",
+    fileName: "test.pdf",
+    fileSize: 1000,
+    fileType: "application/pdf",
+    extractedText: null,
+    processingStatus: "completed" as const,
+    processingError: null,
+    createdById: "user-1",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  it("project scope — valid project allows access", async () => {
+    mockFindById.mockResolvedValue({ id: "proj-1" });
+
+    const result = await ScopeGuard.validateDocumentAccess(
+      { ...baseDoc, scope: "project" as const, scopeId: "proj-1" },
+      mockAuth,
+    );
+
+    expect(result.isOk()).toBe(true);
+  });
+
+  it("project scope — missing project denies access", async () => {
+    mockFindById.mockResolvedValue(null);
+
+    const result = await ScopeGuard.validateDocumentAccess(
+      { ...baseDoc, scope: "project" as const, scopeId: "proj-999" },
+      mockAuth,
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.code).toBe("NOT_FOUND");
+    }
+  });
+
+  it("team scope — member allows access", async () => {
+    mockSelectTeamById.mockResolvedValue({ id: "team-1" });
+    mockSelectUserTeam.mockResolvedValue({
+      userId: "user-1",
+      teamId: "team-1",
+    });
+
+    const result = await ScopeGuard.validateDocumentAccess(
+      { ...baseDoc, scope: "team" as const, scopeId: "team-1" },
+      mockAuth,
+    );
+
+    expect(result.isOk()).toBe(true);
+  });
+
+  it("team scope — non-member denies access", async () => {
+    mockSelectTeamById.mockResolvedValue({ id: "team-1" });
+    mockSelectUserTeam.mockResolvedValue(null);
+
+    const result = await ScopeGuard.validateDocumentAccess(
+      { ...baseDoc, scope: "team" as const, scopeId: "team-1" },
+      mockAuth,
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.code).toBe("NOT_FOUND");
+    }
+  });
+
+  it("organization scope — matching org allows access", async () => {
+    const result = await ScopeGuard.validateDocumentAccess(
+      { ...baseDoc, scope: "organization" as const, scopeId: "org-1" },
+      mockAuth,
+    );
+
+    expect(result.isOk()).toBe(true);
+  });
+
+  it("organization scope — mismatched org denies access", async () => {
+    const result = await ScopeGuard.validateDocumentAccess(
+      { ...baseDoc, scope: "organization" as const, scopeId: "org-other" },
+      mockAuth,
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.code).toBe("NOT_FOUND");
+    }
+  });
+
+  it("global scope — allows access", async () => {
+    const result = await ScopeGuard.validateDocumentAccess(
+      { ...baseDoc, scope: "global" as const, scopeId: null },
+      mockAuth,
+    );
+
+    expect(result.isOk()).toBe(true);
+  });
+});

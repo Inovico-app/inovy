@@ -43,7 +43,17 @@ export async function getCachedKnowledgeEntries(
   }
 
   cacheTag(tag);
-  return KnowledgeBaseEntriesQueries.getEntriesByScope(scope, scopeId);
+
+  try {
+    return await KnowledgeBaseEntriesQueries.getEntriesByScope(scope, scopeId);
+  } catch (error) {
+    logger.error(
+      "Failed to get knowledge entries by scope",
+      { scope, scopeId },
+      error as Error,
+    );
+    return [];
+  }
 }
 
 /**
@@ -74,7 +84,20 @@ export async function getCachedKnowledgeDocuments(
   }
 
   cacheTag(tag);
-  return KnowledgeBaseDocumentsQueries.getDocumentsByScope(scope, scopeId);
+
+  try {
+    return await KnowledgeBaseDocumentsQueries.getDocumentsByScope(
+      scope,
+      scopeId,
+    );
+  } catch (error) {
+    logger.error(
+      "Failed to get knowledge documents by scope",
+      { scope, scopeId },
+      error as Error,
+    );
+    return [];
+  }
 }
 
 /**

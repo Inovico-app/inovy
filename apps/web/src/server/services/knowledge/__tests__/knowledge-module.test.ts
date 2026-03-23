@@ -94,6 +94,22 @@ describe("KnowledgeModule.getKnowledge", () => {
     );
   });
 
+  it("forwards teamId to getHierarchicalEntries", async () => {
+    mockGetHierarchicalEntries.mockResolvedValue([]);
+
+    await KnowledgeModule.getKnowledge({
+      projectId: "proj-1",
+      organizationId: "org-1",
+      teamId: "team-1",
+    });
+
+    expect(mockGetHierarchicalEntries).toHaveBeenCalledWith(
+      "proj-1",
+      "org-1",
+      "team-1",
+    );
+  });
+
   it("returns empty glossary when no entries", async () => {
     mockGetHierarchicalEntries.mockResolvedValue([]);
 

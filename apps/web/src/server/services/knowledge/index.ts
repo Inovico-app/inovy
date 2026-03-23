@@ -279,6 +279,9 @@ export class KnowledgeModule {
         );
       }
 
+      // Normalize term before duplicate check and storage
+      const normalizedTerm = data.term.trim();
+
       // Check duplicate term within scope
       const existingEntries =
         await KnowledgeBaseEntriesQueries.getEntriesByScope(
@@ -287,12 +290,12 @@ export class KnowledgeModule {
           { includeInactive: true },
         );
       const duplicate = existingEntries.find(
-        (e) => e.term.toLowerCase() === data.term.toLowerCase(),
+        (e) => e.term.toLowerCase() === normalizedTerm.toLowerCase(),
       );
       if (duplicate) {
         return err(
           ActionErrors.conflict(
-            `Term "${data.term}" already exists in this scope`,
+            `Term "${normalizedTerm}" already exists in this scope`,
             context,
           ),
         );
@@ -301,7 +304,7 @@ export class KnowledgeModule {
       const createDto: CreateKnowledgeEntryDto = {
         scope: target.scope,
         scopeId: target.scopeId,
-        term: data.term.trim(),
+        term: normalizedTerm,
         definition: data.definition.trim(),
         context: data.context?.trim() ?? null,
         examples: data.examples ?? null,
@@ -378,8 +381,9 @@ export class KnowledgeModule {
         );
       }
 
-      // If term is being changed, check for duplicates
-      if (data.term) {
+      // If term is being changed, normalize and check for duplicates
+      const normalizedTerm = data.term?.trim();
+      if (normalizedTerm) {
         const existingEntries =
           await KnowledgeBaseEntriesQueries.getEntriesByScope(
             existing.scope,
@@ -389,24 +393,32 @@ export class KnowledgeModule {
         const duplicate = existingEntries.find(
           (e) =>
             e.id !== entryId &&
-            e.term.toLowerCase() === (data.term?.toLowerCase() ?? ""),
+            e.term.toLowerCase() === normalizedTerm.toLowerCase(),
         );
         if (duplicate) {
           return err(
             ActionErrors.conflict(
-              `Term "${data.term}" already exists in this scope`,
+              `Term "${normalizedTerm}" already exists in this scope`,
               context,
             ),
           );
         }
       }
 
-      const updated = await KnowledgeBaseEntriesQueries.updateEntry(entryId, {
-        ...data,
-        term: data.term?.trim(),
-        definition: data.definition?.trim(),
-        context: data.context?.trim() ?? null,
-      });
+      // Build update payload — only include fields that were provided
+      const updatePayload: Record<string, unknown> = {};
+      if (normalizedTerm !== undefined) updatePayload.term = normalizedTerm;
+      if (data.definition !== undefined)
+        updatePayload.definition = data.definition.trim();
+      if ("context" in data)
+        updatePayload.context = data.context?.trim() ?? null;
+      if (data.examples !== undefined) updatePayload.examples = data.examples;
+      if (data.isActive !== undefined) updatePayload.isActive = data.isActive;
+
+      const updated = await KnowledgeBaseEntriesQueries.updateEntry(
+        entryId,
+        updatePayload,
+      );
 
       if (!updated) {
         return err(ActionErrors.notFound("Knowledge base entry", context));
@@ -543,14 +555,7 @@ export class KnowledgeModule {
         );
       }
 
-      // Resolve target scopeId
-      const targetScopeId =
-        toScope === "global"
-          ? null
-          : toScope === "organization"
-            ? existing.scopeId
-            : null;
-
+      // Reject project promotion (no way to specify target projectId)
       if (toScope === "project") {
         return err(
           ActionErrors.badRequest(
@@ -559,6 +564,16 @@ export class KnowledgeModule {
           ),
         );
       }
+
+      // Resolve target scopeId based on the destination scope
+      const targetScopeId =
+        toScope === "global"
+          ? null
+          : toScope === "organization"
+            ? auth.organizationId
+            : toScope === "team"
+              ? existing.scopeId // team-to-team promotion preserves team
+              : null;
 
       // Validate write access on target scope
       const targetGuardResult = await ScopeGuard.validate(
@@ -687,21 +702,39 @@ export class KnowledgeModule {
         addRandomSuffix: true,
       });
 
-      // Create DB record
-      const createDto: CreateKnowledgeDocumentDto = {
-        scope: target.scope,
-        scopeId: target.scopeId,
-        title: metadata.title.trim(),
-        description: metadata.description?.trim() ?? null,
-        fileUrl: blobResult.url,
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type,
-        createdById: userId,
-      };
+      // Create DB record — clean up blob on failure
+      let document;
+      try {
+        const createDto: CreateKnowledgeDocumentDto = {
+          scope: target.scope,
+          scopeId: target.scopeId,
+          title: metadata.title.trim(),
+          description: metadata.description?.trim() ?? null,
+          fileUrl: blobResult.url,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          createdById: userId,
+        };
 
-      const document =
-        await KnowledgeBaseDocumentsQueries.createDocument(createDto);
+        document =
+          await KnowledgeBaseDocumentsQueries.createDocument(createDto);
+      } catch (dbError) {
+        // Compensate: delete orphaned blob
+        try {
+          await storage.del(blobResult.url);
+        } catch (cleanupError) {
+          logger.warn("Failed to clean up blob after DB write failure", {
+            component: COMPONENT,
+            blobUrl: blobResult.url,
+            error:
+              cleanupError instanceof Error
+                ? cleanupError.message
+                : String(cleanupError),
+          });
+        }
+        throw dbError;
+      }
 
       logger.info("Document uploaded to knowledge base", {
         component: COMPONENT,
@@ -776,30 +809,31 @@ export class KnowledgeModule {
         );
       }
 
-      // Validate all files upfront
-      const validFiles: DocumentBatchInput[] = [];
-      const validationResults: BatchUploadResult[] = [];
+      // Validate all files upfront — track original indices for correct result ordering
+      const validFiles: Array<{ item: DocumentBatchInput; index: number }> = [];
+      const resultMap = new Map<number, BatchUploadResult>();
 
-      for (const item of files) {
+      for (let i = 0; i < files.length; i++) {
+        const item = files[i]!;
         const fileValidation = DocumentPipeline.validateFile(item.file);
         if (fileValidation.isErr()) {
-          validationResults.push({
+          resultMap.set(i, {
             success: false,
             fileName: item.file.name,
             error: fileValidation.error.message,
           });
         } else {
-          validFiles.push(item);
+          validFiles.push({ item, index: i });
         }
       }
 
       // Early return if no valid files
       if (validFiles.length === 0) {
-        return ok(validationResults);
+        return ok(files.map((_, i) => resultMap.get(i)!));
       }
 
       // Upload valid files in parallel
-      const uploadPromises = validFiles.map(async (item) => {
+      const uploadPromises = validFiles.map(async ({ item, index }) => {
         try {
           const blobPath = `knowledge-base/${target.scope}/${target.scopeId ?? "global"}/${item.file.name}`;
           const storage = await getStorageProvider();
@@ -841,11 +875,12 @@ export class KnowledgeModule {
             );
           });
 
-          return {
+          resultMap.set(index, {
             success: true as const,
             document,
             fileName: item.file.name,
-          };
+          });
+          return { index };
         } catch (error) {
           logger.error(
             "Failed to upload document in batch",
@@ -857,40 +892,23 @@ export class KnowledgeModule {
             },
             error as Error,
           );
-          return {
+          resultMap.set(index, {
             success: false as const,
             fileName: item.file.name,
             error:
               error instanceof Error
                 ? error.message
                 : "Failed to upload document",
-          };
+          });
+          return { index };
         }
       });
 
-      const uploadResults = await Promise.allSettled(uploadPromises);
-
-      // Build result map by fileName
-      const resultMap = new Map<string, BatchUploadResult>();
-
-      for (const validationResult of validationResults) {
-        resultMap.set(validationResult.fileName, validationResult);
-      }
-
-      for (const uploadResult of uploadResults) {
-        if (uploadResult.status === "fulfilled") {
-          resultMap.set(uploadResult.value.fileName, uploadResult.value);
-        } else {
-          logger.error("Unexpected rejected promise in batch upload", {
-            component: COMPONENT,
-            error: uploadResult.reason,
-          });
-        }
-      }
+      await Promise.allSettled(uploadPromises);
 
       // Reconstruct results in original file order
-      const allResults: BatchUploadResult[] = files.map((item) => {
-        const result = resultMap.get(item.file.name);
+      const allResults: BatchUploadResult[] = files.map((item, index) => {
+        const result = resultMap.get(index);
         if (result) {
           return result;
         }
@@ -910,7 +928,7 @@ export class KnowledgeModule {
         scopeId: target.scopeId,
         totalFiles: files.length,
         validFiles: validFiles.length,
-        validationErrors: validationResults.length,
+        validationErrors: files.length - validFiles.length,
         successful: successfulCount,
         failed: failedCount,
         userId,
@@ -1184,22 +1202,37 @@ export class KnowledgeModule {
   ): Promise<ActionResult<KnowledgeDocumentDto>> {
     const context = `${COMPONENT}.getDocumentForView`;
 
-    const document =
-      await KnowledgeBaseDocumentsQueries.getDocumentById(documentId);
-    if (!document) {
-      return err(ActionErrors.notFound("Document", context));
-    }
+    try {
+      const document =
+        await KnowledgeBaseDocumentsQueries.getDocumentById(documentId);
+      if (!document) {
+        return err(ActionErrors.notFound("Document", context));
+      }
 
-    const accessResult = await ScopeGuard.validateDocumentAccess(
-      document,
-      auth,
-      context,
-    );
-    if (accessResult.isErr()) {
-      return err(accessResult.error);
-    }
+      const accessResult = await ScopeGuard.validateDocumentAccess(
+        document,
+        auth,
+        context,
+      );
+      if (accessResult.isErr()) {
+        return err(accessResult.error);
+      }
 
-    return ok(document);
+      return ok(document);
+    } catch (error) {
+      logger.error(
+        "Failed to get document for view",
+        { component: COMPONENT, documentId },
+        error as Error,
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to get document for view",
+          error as Error,
+          context,
+        ),
+      );
+    }
   }
 
   /**

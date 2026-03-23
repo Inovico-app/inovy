@@ -59,11 +59,7 @@ export class ScopeGuard {
           return err(ActionErrors.notFound("Project", context));
         }
 
-        // For write operations, project access check suffices —
-        // project members can write.
-        if (operation === "write") {
-          // Project members can write - validated by project access check above
-        }
+        // Write access is implied by project membership (validated above).
       } else if (scope === "team") {
         if (!scopeId) {
           return err(
@@ -178,6 +174,7 @@ export class ScopeGuard {
    * leaking information about resources the caller should not know exist.
    *
    * - **project**:      project must exist in the caller's org.
+   * - **team**:          team must exist in the caller's org; caller must be a member.
    * - **organization**:  `document.scopeId` must match `auth.organizationId`.
    * - **global**:        read access allowed (future: restrict further).
    */
@@ -199,6 +196,28 @@ export class ScopeGuard {
           auth.organizationId,
         );
         if (!project) {
+          return err(ActionErrors.notFound("Document", context));
+        }
+      } else if (document.scope === "team") {
+        if (!document.scopeId) {
+          return err(
+            ActionErrors.badRequest("Team scope requires scopeId", context),
+          );
+        }
+
+        const team = await TeamQueries.selectTeamById(
+          document.scopeId,
+          auth.organizationId,
+        );
+        if (!team) {
+          return err(ActionErrors.notFound("Document", context));
+        }
+
+        const userTeam = await UserTeamQueries.selectUserTeam(
+          auth.user.id,
+          document.scopeId,
+        );
+        if (!userTeam) {
           return err(ActionErrors.notFound("Document", context));
         }
       } else if (document.scope === "organization") {
