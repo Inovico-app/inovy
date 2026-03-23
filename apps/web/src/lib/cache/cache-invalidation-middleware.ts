@@ -35,14 +35,9 @@ export async function cacheInvalidationMiddleware({
   ctx: ActionContext;
   metadata: Metadata;
 }) {
-  // 1. Run the action body first. If it throws, skip invalidation entirely.
-  let result: MiddlewareResult<string, ActionContext>;
-  try {
-    result = await next({ ctx });
-  } catch (error) {
-    // Action body failed — do NOT invalidate cache, re-throw immediately
-    throw error;
-  }
+  // 1. Run the action body first. If it throws, the error propagates
+  //    and none of the invalidation logic below executes.
+  const result = await next({ ctx });
 
   // 2. After success, check if this is a mutation that needs invalidation
   const audit = metadata.audit;
