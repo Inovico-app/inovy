@@ -4,7 +4,6 @@ import { sendEmailFromTemplate } from "@/emails/client";
 import OrganizationInvitationEmail from "@/emails/templates/organization-invitation-email";
 import { auth } from "@/lib/auth";
 import type { AuthContext } from "@/lib/auth-context";
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
@@ -90,14 +89,6 @@ export const inviteMemberToOrganization = authorizedActionClient
               result.id,
               teamIds,
             );
-          }
-
-          // Invalidate cache
-          CacheInvalidation.invalidateOrganization(organizationId);
-          if (teamIds && teamIds.length > 0) {
-            teamIds.forEach((teamId) => {
-              CacheInvalidation.invalidateTeamMembers(teamId);
-            });
           }
 
           // Revalidate routes
@@ -193,12 +184,6 @@ export const inviteMemberToOrganization = authorizedActionClient
             }),
           });
 
-          CacheInvalidation.invalidateOrganization(organizationId);
-          if (teamIds && teamIds.length > 0) {
-            teamIds.forEach((teamId) => {
-              CacheInvalidation.invalidateTeamMembers(teamId);
-            });
-          }
           revalidatePath(`/admin/organizations/${organizationId}`);
           revalidatePath("/admin/organizations");
           revalidatePath("/admin/users");
@@ -310,12 +295,6 @@ export const assignMemberToTeams = authorizedActionClient
           ),
         );
       }
-
-      // Invalidate cache
-      CacheInvalidation.invalidateOrganization(organizationId);
-      teamIds.forEach((teamId) => {
-        CacheInvalidation.invalidateTeamMembers(teamId);
-      });
 
       // Revalidate routes
       revalidatePath(`/admin/organizations/${organizationId}`);

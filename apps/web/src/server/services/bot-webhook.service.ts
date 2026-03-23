@@ -1,4 +1,4 @@
-import { CacheInvalidation } from "@/lib/cache-utils";
+import { invalidateFor } from "@/lib/cache";
 import { getStorageProvider } from "./storage";
 import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
 import { err, ok } from "neverthrow";
@@ -426,9 +426,14 @@ export class BotWebhookService {
         });
       }
 
-      CacheInvalidation.invalidateBotSessions(organizationId);
-      CacheInvalidation.invalidateBotSession(session.id, organizationId);
-      CacheInvalidation.invalidateNotifications(session.userId, organizationId);
+      invalidateFor("bot_session", "update", {
+        organizationId,
+        input: { sessionId: session.id },
+      });
+      invalidateFor("notification", "update", {
+        userId: session.userId,
+        organizationId,
+      });
 
       logger.info("Bot successfully kicked via chat command", {
         component: "BotWebhookService.processChatMessage",

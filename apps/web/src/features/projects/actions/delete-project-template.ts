@@ -1,6 +1,5 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { getUserOrganizationId } from "@/lib/server-action-client/action-helpers";
 import {
@@ -48,11 +47,6 @@ export const deleteProjectTemplateAction = authorizedActionClient
       id,
       orgCode,
     );
-
-    // Revalidate project page if template existed
-    if (result.isOk() && template) {
-      CacheInvalidation.invalidateProject(template.projectId, orgCode);
-    }
 
     return resultToActionResponse(result);
   });

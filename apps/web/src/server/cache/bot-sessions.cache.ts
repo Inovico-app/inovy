@@ -1,6 +1,6 @@
 "use cache";
 
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { logger } from "@/lib/logger";
 import { BotSessionsQueries } from "@/server/data-access/bot-sessions.queries";
 import type { BotSession, BotStatus } from "@/server/db/schema/bot-sessions";
@@ -21,7 +21,7 @@ export async function getCachedBotSessions(
     status?: BotStatus | BotStatus[];
     limit?: number;
     offset?: number;
-  }
+  },
 ): Promise<{
   sessions: BotSession[];
   total: number;
@@ -29,7 +29,7 @@ export async function getCachedBotSessions(
   nextOffset: number | null;
 }> {
   "use cache";
-  cacheTag(CacheTags.botSessions(organizationId));
+  cacheTag(...tagsFor("botSessions", { organizationId }));
 
   logger.info("Fetching bot sessions", {
     organizationId,
@@ -40,7 +40,7 @@ export async function getCachedBotSessions(
 
   const result = await BotSessionsQueries.findByStatusWithPagination(
     organizationId,
-    options
+    options,
   );
 
   return result;
@@ -52,7 +52,7 @@ export async function getCachedBotSessions(
  */
 export async function getCachedBotSessionDetails(
   sessionId: string,
-  organizationId: string
+  organizationId: string,
 ): Promise<
   | (BotSession & {
       recording?: {
@@ -70,8 +70,8 @@ export async function getCachedBotSessionDetails(
 > {
   "use cache";
   cacheTag(
-    CacheTags.botSession(sessionId),
-    CacheTags.botSessions(organizationId)
+    ...tagsFor("botSession", { sessionId }),
+    ...tagsFor("botSessions", { organizationId }),
   );
 
   logger.info("Fetching bot session details", {
@@ -81,7 +81,7 @@ export async function getCachedBotSessionDetails(
 
   const result = await BotSessionsQueries.findByIdWithRecording(
     sessionId,
-    organizationId
+    organizationId,
   );
 
   return result;
@@ -93,10 +93,10 @@ export async function getCachedBotSessionDetails(
  */
 export async function getCachedBotSessionsByCalendarEventIds(
   calendarEventIds: string[],
-  organizationId: string
+  organizationId: string,
 ): Promise<Map<string, BotSession>> {
   "use cache";
-  cacheTag(CacheTags.botSessions(organizationId));
+  cacheTag(...tagsFor("botSessions", { organizationId }));
 
   logger.info("Fetching bot sessions by calendar event IDs", {
     organizationId,
@@ -105,7 +105,7 @@ export async function getCachedBotSessionsByCalendarEventIds(
 
   const result = await BotSessionsQueries.findByCalendarEventIds(
     calendarEventIds,
-    organizationId
+    organizationId,
   );
 
   logger.info("Successfully fetched bot sessions by calendar event IDs", {
@@ -115,4 +115,3 @@ export async function getCachedBotSessionsByCalendarEventIds(
 
   return result;
 }
-

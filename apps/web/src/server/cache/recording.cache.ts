@@ -1,5 +1,5 @@
 import type { BetterAuthUser } from "@/lib/auth";
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import type { RecordingDto } from "../dto/recording.dto";
@@ -23,7 +23,7 @@ export async function getCachedRecordingById(
   recordingId: string,
 ): Promise<RecordingDto | null> {
   "use cache";
-  cacheTag(CacheTags.recording(recordingId));
+  cacheTag(...tagsFor("recording", { recordingId }));
 
   const recording = await RecordingsQueries.selectRecordingById(recordingId);
   if (!recording) return null;
@@ -40,7 +40,7 @@ export async function getCachedRecordingsByProjectId(
   options?: { search?: string },
 ) {
   "use cache";
-  cacheTag(CacheTags.recordingsByProject(projectId));
+  cacheTag(...tagsFor("recording", { projectId }));
 
   const recordings = await RecordingService.getRecordingsByProjectId(
     projectId,
@@ -70,7 +70,7 @@ export async function getCachedRecordingsByOrganization(
   },
 ) {
   "use cache";
-  cacheTag(CacheTags.recordingsByOrg(organizationId));
+  cacheTag(...tagsFor("recording", { organizationId }));
 
   const recordings = await RecordingService.getRecordingsByOrganization(
     organizationId,

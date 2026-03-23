@@ -1,4 +1,4 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import type { ChatConversation } from "../db/schema/chat-conversations";
 import type { ChatMessage } from "../db/schema/chat-messages";
@@ -22,7 +22,7 @@ export async function getCachedConversationHistory(
   conversationId: string,
 ): Promise<ChatMessage[]> {
   "use cache";
-  cacheTag(CacheTags.conversationMessages(conversationId));
+  cacheTag(...tagsFor("conversation", { conversationId }));
   const result =
     await ConversationService.getConversationHistory(conversationId);
   return result.isOk() ? result.value : [];
@@ -42,7 +42,14 @@ export async function getCachedConversations(params: {
   limit?: number;
 }): Promise<ConversationsListResult> {
   "use cache";
-  cacheTag(CacheTags.conversations(params.userId, params.organizationId ?? ""));
+  cacheTag(
+    ...tagsFor("conversation", {
+      userId: params.userId,
+      ...(params.organizationId
+        ? { organizationId: params.organizationId }
+        : {}),
+    }),
+  );
   const result = await ConversationService.listConversations(params);
   return result.isOk() ? result.value : { conversations: [], total: 0 };
 }

@@ -1,5 +1,5 @@
 import { err, ok } from "neverthrow";
-import { CacheInvalidation } from "../../lib/cache-utils";
+import { invalidateFor } from "../../lib/cache";
 import { logger, serializeError } from "../../lib/logger";
 import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
 import { assertTeamAccess } from "../../lib/rbac/team-isolation";
@@ -92,10 +92,10 @@ export class RecordingService {
 
       // Invalidate recordings cache for this project
       if (invalidateCache) {
-        CacheInvalidation.invalidateProjectRecordings(
-          recording.projectId,
-          recording.organizationId,
-        );
+        invalidateFor("recording", "upload", {
+          organizationId: recording.organizationId,
+          input: { projectId: recording.projectId },
+        });
       }
 
       logger.info("Successfully created recording", {
@@ -419,11 +419,10 @@ export class RecordingService {
       }
 
       // Invalidate cache for this recording
-      CacheInvalidation.invalidateRecording(
-        id,
-        updatedRecording.projectId,
+      invalidateFor("recording", "update", {
         organizationId,
-      );
+        input: { recordingId: id, projectId: updatedRecording.projectId },
+      });
 
       logger.info("Successfully updated recording metadata", {
         component: "RecordingService.updateRecordingMetadata",
@@ -515,11 +514,10 @@ export class RecordingService {
 
       if (result) {
         // Invalidate cache for this recording
-        CacheInvalidation.invalidateRecording(
-          recordingId,
-          recording.projectId,
-          orgCode,
-        );
+        invalidateFor("recording", "archive", {
+          organizationId: orgCode,
+          input: { recordingId, projectId: recording.projectId },
+        });
 
         logger.info("Successfully archived recording", {
           component: "RecordingService.archiveRecording",
@@ -576,11 +574,10 @@ export class RecordingService {
 
       if (result) {
         // Invalidate cache for this recording
-        CacheInvalidation.invalidateRecording(
-          recordingId,
-          recording.projectId,
-          orgCode,
-        );
+        invalidateFor("recording", "restore", {
+          organizationId: orgCode,
+          input: { recordingId, projectId: recording.projectId },
+        });
 
         logger.info("Successfully unarchived recording", {
           component: "RecordingService.unarchiveRecording",
@@ -662,11 +659,10 @@ export class RecordingService {
       }
 
       // Invalidate cache for this recording
-      CacheInvalidation.invalidateRecording(
-        recordingId,
-        recording.projectId,
-        orgCode,
-      );
+      invalidateFor("recording", "delete", {
+        organizationId: orgCode,
+        input: { recordingId, projectId: recording.projectId },
+      });
 
       logger.info("Successfully deleted recording", {
         component: "RecordingService.deleteRecording",
@@ -813,19 +809,14 @@ export class RecordingService {
       }
 
       // Invalidate cache for both source and target projects
-      CacheInvalidation.invalidateProjectRecordings(
-        sourceProjectId,
+      invalidateFor("recording", "move", {
         organizationId,
-      );
-      CacheInvalidation.invalidateProjectRecordings(
-        targetProjectId,
-        organizationId,
-      );
-      CacheInvalidation.invalidateRecording(
-        recordingId,
-        targetProjectId,
-        organizationId,
-      );
+        input: {
+          recordingId,
+          oldProjectId: sourceProjectId,
+          newProjectId: targetProjectId,
+        },
+      });
 
       logger.info("Successfully moved recording", {
         component: "RecordingService.moveRecording",

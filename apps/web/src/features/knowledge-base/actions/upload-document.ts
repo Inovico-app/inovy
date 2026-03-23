@@ -1,7 +1,6 @@
 "use server";
 
 import type { AuthContext } from "@/lib/auth-context";
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -63,18 +62,6 @@ export const uploadKnowledgeDocumentAction = authorizedActionClient
 
     if (result.isErr()) {
       throw result.error;
-    }
-
-    // Invalidate cache
-    CacheInvalidation.invalidateKnowledge(scope, scopeId);
-    if (scope === "project" && scopeId && organizationId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(scopeId, organizationId);
-    } else if (scope === "team" && scopeId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
-    } else if (scope === "organization" && scopeId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
-    } else if (scope === "global") {
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, null);
     }
 
     // Revalidate relevant pages
@@ -207,18 +194,6 @@ export const uploadKnowledgeDocumentsBatchAction = authorizedActionClient
 
     if (result.isErr()) {
       throw result.error;
-    }
-
-    // Invalidate cache
-    CacheInvalidation.invalidateKnowledge(scope, scopeId);
-    if (scope === "project" && scopeId && organizationId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(scopeId, organizationId);
-    } else if (scope === "team" && scopeId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
-    } else if (scope === "organization" && scopeId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
-    } else if (scope === "global") {
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, null);
     }
 
     // Revalidate relevant pages

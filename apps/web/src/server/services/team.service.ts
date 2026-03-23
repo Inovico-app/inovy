@@ -1,7 +1,6 @@
 import type { Team, TeamInput, TeamMember } from "better-auth/plugins";
 import { err, ok } from "neverthrow";
 import type { AuthContext } from "../../lib/auth-context";
-import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
 import {
@@ -348,9 +347,6 @@ export class TeamService {
 
       const team = await TeamQueries.insertTeam(teamInput as TeamInput);
 
-      // Invalidate cache
-      CacheInvalidation.invalidateTeamCache(data.organizationId);
-
       const teamDto: TeamDto = {
         id: team.id,
         departmentId: data.departmentId ?? null,
@@ -419,8 +415,6 @@ export class TeamService {
       const finalDescription =
         data.description !== undefined ? data.description : null;
 
-      CacheInvalidation.invalidateTeamCache(existing.organizationId, id);
-
       const teamDto: TeamDto = {
         id: team.id,
         departmentId: finalDepartmentId,
@@ -471,9 +465,6 @@ export class TeamService {
       await UserTeamQueries.deleteAllTeamMembers(id);
 
       await TeamQueries.deleteTeam(id, existing.organizationId);
-
-      // Invalidate cache
-      CacheInvalidation.invalidateTeamCache(existing.organizationId, id);
 
       return ok(undefined);
     } catch (error) {
@@ -532,9 +523,6 @@ export class TeamService {
         role,
       });
 
-      // Invalidate cache
-      CacheInvalidation.invalidateTeamCache(team.organizationId);
-
       const userTeamDto: UserTeamRoleDto = {
         userId: userTeam.userId,
         teamId: userTeam.teamId,
@@ -586,9 +574,6 @@ export class TeamService {
       );
 
       await UserTeamQueries.deleteUserTeam(userId, teamId);
-
-      // Invalidate cache
-      CacheInvalidation.invalidateTeamCache(team.organizationId);
 
       return ok(undefined);
     } catch (error) {
@@ -645,9 +630,6 @@ export class TeamService {
           ActionErrors.notFound("UserTeam", "TeamService.updateUserTeamRole"),
         );
       }
-
-      // Invalidate cache
-      CacheInvalidation.invalidateTeamCache(team.organizationId);
 
       const userTeamDto: UserTeamRoleDto = {
         userId: userTeam.userId,

@@ -1,7 +1,6 @@
 import { err, ok } from "neverthrow";
-import { revalidateTag } from "next/cache";
 import type { AuthContext } from "../../lib/auth-context";
-import { CacheInvalidation, CacheTags } from "../../lib/cache-utils";
+import { invalidateFor } from "../../lib/cache";
 import { logger } from "../../lib/logger";
 import {
   ActionErrors,
@@ -35,14 +34,10 @@ export class NotificationService {
       const notification = await NotificationsQueries.createNotification(data);
 
       // Invalidate cache for this user
-      revalidateTag(
-        CacheTags.notifications(data.userId, data.organizationId),
-        "max",
-      );
-      revalidateTag(
-        CacheTags.notificationUnreadCount(data.userId, data.organizationId),
-        "max",
-      );
+      invalidateFor("notification", "update", {
+        userId: data.userId,
+        organizationId: data.organizationId,
+      });
 
       return ok(this.toDto(notification));
     } catch (error) {
@@ -211,7 +206,10 @@ export class NotificationService {
    * Invalidate notification cache for a user
    */
   static async invalidateCache(userId: string, orgCode: string): Promise<void> {
-    CacheInvalidation.invalidateNotifications(userId, orgCode);
+    invalidateFor("notification", "update", {
+      userId,
+      organizationId: orgCode,
+    });
   }
 
   /**

@@ -1,4 +1,4 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import { SummaryEditService } from "../services/summary-edit.service";
 import { TranscriptionEditService } from "../services/transcription-edit.service";
@@ -32,13 +32,13 @@ export interface SummaryHistoryEntry {
  */
 export async function getCachedTranscriptionHistory(
   recordingId: string,
-  organizationId: string
+  organizationId: string,
 ): Promise<TranscriptionHistoryEntry[]> {
   "use cache";
-  cacheTag(CacheTags.transcriptionHistory(recordingId));
+  cacheTag(...tagsFor("transcriptionHistory", { recordingId }));
   const result = await TranscriptionEditService.getTranscriptionHistory(
     recordingId,
-    organizationId
+    organizationId,
   );
   return result.isOk() ? result.value : [];
 }
@@ -49,14 +49,13 @@ export async function getCachedTranscriptionHistory(
  */
 export async function getCachedSummaryHistory(
   recordingId: string,
-  organizationId: string
+  organizationId: string,
 ): Promise<SummaryHistoryEntry[]> {
   "use cache";
-  cacheTag(CacheTags.summaryHistory(recordingId));
+  cacheTag(...tagsFor("summaryHistory", { recordingId }));
   const result = await SummaryEditService.getSummaryHistory(
     recordingId,
-    organizationId
+    organizationId,
   );
   return result.isOk() ? result.value : [];
 }
-

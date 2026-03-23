@@ -1,6 +1,5 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
@@ -51,7 +50,6 @@ export const disconnectMicrosoftAccount = authorizedActionClient
       userId: user.id,
     });
 
-    CacheInvalidation.invalidateMicrosoftConnection(user.id);
     revalidatePath("/settings");
 
     return { success: true };

@@ -1,4 +1,4 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import type { ConsentParticipant } from "../db/schema/consent";
 import { ConsentService } from "../services/consent.service";
@@ -9,14 +9,13 @@ import { ConsentService } from "../services/consent.service";
  */
 export async function getCachedConsentParticipants(
   recordingId: string,
-  organizationId: string
+  organizationId: string,
 ): Promise<ConsentParticipant[]> {
   "use cache";
-  cacheTag(CacheTags.consentParticipants(recordingId, organizationId));
+  cacheTag(...tagsFor("consent", { recordingId, organizationId }));
   const result = await ConsentService.getConsentParticipants(
     recordingId,
-    organizationId
+    organizationId,
   );
   return result.isOk() ? result.value : [];
 }
-

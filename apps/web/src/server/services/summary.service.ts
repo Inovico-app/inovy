@@ -1,4 +1,4 @@
-import { CacheInvalidation } from "@/lib/cache-utils";
+import { invalidateFor } from "@/lib/cache";
 import { logger } from "@/lib/logger";
 import {
   ActionErrors,
@@ -228,7 +228,13 @@ export class SummaryService {
       });
 
       // Invalidate cache to pick up the new summary
-      CacheInvalidation.invalidateSummary(recordingId);
+      invalidateFor("recording", "update", {
+        organizationId: existingRecording.organizationId,
+        input: {
+          recordingId,
+          projectId: existingRecording.projectId,
+        },
+      });
 
       logger.info("Summary generated successfully", {
         component: "SummaryService.generateSummary",
@@ -269,15 +275,5 @@ export class SummaryService {
         ),
       );
     }
-  }
-
-  /**
-   * Invalidate cached summary for a recording
-   */
-  static async invalidateSummaryCache(
-    recordingId: string,
-  ): Promise<ActionResult<void>> {
-    CacheInvalidation.invalidateSummary(recordingId);
-    return ok(undefined);
   }
 }

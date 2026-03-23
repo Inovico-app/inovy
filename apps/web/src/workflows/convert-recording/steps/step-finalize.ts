@@ -1,4 +1,4 @@
-import { CacheInvalidation } from "@/lib/cache-utils";
+import { invalidateFor } from "@/lib/cache";
 import { logger } from "@/lib/logger";
 import { RAGService } from "@/server/services/rag/rag.service";
 
@@ -52,10 +52,15 @@ export async function executeFinalStep(
         });
       });
 
-    // Invalidate React Query caches
-    CacheInvalidation.invalidateSummary(recordingId);
-    CacheInvalidation.invalidateTasksByRecording(recordingId, orgCode);
-    CacheInvalidation.invalidateProject(projectId, orgCode);
+    // Invalidate caches
+    invalidateFor("recording", "update", {
+      organizationId: orgCode,
+      input: { recordingId, projectId },
+    });
+    invalidateFor("project", "update", {
+      organizationId: orgCode,
+      input: { projectId },
+    });
 
     logger.info("Workflow Step 3: Finalization completed", {
       component: "ConvertRecordingWorkflow",

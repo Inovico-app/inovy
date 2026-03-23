@@ -1,6 +1,5 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger, serializeError } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
@@ -201,11 +200,6 @@ export const retryBotSession = authorizedActionClient
       });
       // Continue - notification failure should not block the retry action
     }
-
-    // Invalidate caches
-    CacheInvalidation.invalidateBotSessions(organizationId);
-    CacheInvalidation.invalidateBotSession(sessionId, organizationId);
-    CacheInvalidation.invalidateNotifications(user.id, organizationId);
 
     logger.info("Successfully retried bot session", {
       userId: user.id,

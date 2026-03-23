@@ -1,10 +1,10 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import { InvitationService } from "../services/invitation.service";
 
 export async function getCachedInvitationDetails(invitationId: string) {
   "use cache";
-  cacheTag(CacheTags.invitation(invitationId));
+  cacheTag(...tagsFor("invitation", { invitationId }));
 
   const result = await InvitationService.getInvitationDetails(invitationId);
   if (result.isErr()) {
@@ -12,4 +12,3 @@ export async function getCachedInvitationDetails(invitationId: string) {
   }
   return result.value ?? null;
 }
-

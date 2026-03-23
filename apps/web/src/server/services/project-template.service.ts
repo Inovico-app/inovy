@@ -3,7 +3,6 @@ import type { AuthContext } from "@/lib/auth-context";
 import type { ActionResult } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
-import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { ProjectTemplateQueries } from "../data-access/project-templates.queries";
 import type {
@@ -81,9 +80,6 @@ export class ProjectTemplateService {
 
       const template = await ProjectTemplateQueries.create(templateData);
 
-      // Invalidate cache
-      CacheInvalidation.invalidateProjectTemplate(input.projectId);
-
       return ok(template);
     } catch (error) {
       logger.error(
@@ -144,9 +140,6 @@ export class ProjectTemplateService {
         );
       }
 
-      // Invalidate cache
-      CacheInvalidation.invalidateProjectTemplate(existing.projectId);
-
       return ok(template);
     } catch (error) {
       logger.error(
@@ -188,11 +181,6 @@ export class ProjectTemplateService {
       }
 
       const result = await ProjectTemplateQueries.delete(templateId, orgCode);
-
-      if (result) {
-        // Invalidate cache
-        CacheInvalidation.invalidateProjectTemplate(existing.projectId);
-      }
 
       return ok(result);
     } catch (error) {
