@@ -11,7 +11,7 @@ import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../ai/middleware";
 import { resolveFetchableUrl } from "@/server/services/storage";
 import { connectionPool } from "./connection-pool.service";
-import { KnowledgeBaseService } from "./knowledge-base.service";
+import { KnowledgeModule } from "./knowledge";
 import { NotificationService } from "./notification.service";
 import { PromptBuilder } from "./prompt-builder.service";
 
@@ -85,12 +85,12 @@ export class TranscriptionService {
       }
 
       // Fetch applicable knowledge base entries for this project
-      const knowledgeResult = await KnowledgeBaseService.getApplicableKnowledge(
-        existingRecording.projectId,
-        existingRecording.organizationId,
-      );
+      const knowledgeResult = await KnowledgeModule.getKnowledge({
+        projectId: existingRecording.projectId,
+        organizationId: existingRecording.organizationId,
+      });
       const knowledgeEntries = knowledgeResult.isOk()
-        ? knowledgeResult.value
+        ? knowledgeResult.value.entries
         : [];
 
       // Format knowledge entries as Deepgram keywords
@@ -418,16 +418,19 @@ export class TranscriptionService {
   ): Promise<ActionResult<void>> {
     try {
       // Fetch applicable knowledge base entries
-      const knowledgeResult = await KnowledgeBaseService.getApplicableKnowledge(
+      const knowledgeResult = await KnowledgeModule.getKnowledge({
         projectId,
         organizationId,
-      );
-      if (knowledgeResult.isErr() || knowledgeResult.value.length === 0) {
+      });
+      if (
+        knowledgeResult.isErr() ||
+        knowledgeResult.value.entries.length === 0
+      ) {
         // No knowledge base entries, skip correction
         return ok(undefined);
       }
 
-      const knowledgeEntries = knowledgeResult.value;
+      const knowledgeEntries = knowledgeResult.value.entries;
 
       // Build knowledge context for correction prompt
       // Persists knowledge entry id so that the LLM can reference the correct entry.

@@ -34,7 +34,7 @@ import { AgentTokenBudgetService } from "../agent-token-budget.service";
 import { connectionPool } from "../connection-pool.service";
 import { ConversationContextManager } from "../conversation-context-manager.service";
 import { ConversationIntegrityService } from "../conversation-integrity.service";
-import { KnowledgeBaseService } from "../knowledge-base.service";
+import { KnowledgeModule } from "../knowledge";
 import { ModelProvenanceService } from "../model-provenance.service";
 import { ProjectService } from "../project.service";
 import { PromptBuilder } from "../prompt-builder.service";
@@ -451,13 +451,13 @@ export class ChatPipeline {
 
     let knowledgeContext = "";
     if (project) {
-      const knowledgeResult = await KnowledgeBaseService.buildKnowledgeContext(
+      const knowledgeResult = await KnowledgeModule.getKnowledge({
         projectId,
-        project.organizationId,
-        caller.teamId ?? null,
-      );
+        organizationId: project.organizationId,
+        teamId: caller.teamId ?? null,
+      });
       if (knowledgeResult.isOk()) {
-        knowledgeContext = knowledgeResult.value;
+        knowledgeContext = knowledgeResult.value.glossary;
       }
     }
 
@@ -489,13 +489,14 @@ export class ChatPipeline {
     organizationId: string,
     caller: ChatCaller,
   ): Promise<ScopeContext> {
-    const knowledgeResult = await KnowledgeBaseService.buildKnowledgeContext(
-      null,
-      organizationId,
-      caller.teamId ?? null,
-    );
+    // Always use the authenticated caller's org ID to prevent spoofing
+    const trustedOrgId = caller.organizationId;
+    const knowledgeResult = await KnowledgeModule.getKnowledge({
+      organizationId: trustedOrgId,
+      teamId: caller.teamId ?? null,
+    });
     const knowledgeContext = knowledgeResult.isOk()
-      ? knowledgeResult.value
+      ? knowledgeResult.value.glossary
       : "";
 
     const orgSettings = await getCachedOrganizationSettings(organizationId);

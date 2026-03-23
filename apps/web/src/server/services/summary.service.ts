@@ -17,7 +17,7 @@ import {
   type SummaryContent,
   type SummaryResult,
 } from "../cache/summary.cache";
-import { KnowledgeBaseService } from "./knowledge-base.service";
+import { KnowledgeModule } from "./knowledge";
 import { NotificationService } from "./notification.service";
 
 export class SummaryService {
@@ -72,10 +72,10 @@ export class SummaryService {
       });
 
       // Fetch applicable knowledge base entries for this project
-      const knowledgeResult = await KnowledgeBaseService.getApplicableKnowledge(
-        existingRecording.projectId,
-        existingRecording.organizationId,
-      );
+      const knowledgeResult = await KnowledgeModule.getKnowledge({
+        projectId: existingRecording.projectId,
+        organizationId: existingRecording.organizationId,
+      });
       if (knowledgeResult.isErr()) {
         logger.warn("Failed to fetch applicable knowledge entries", {
           component: "SummaryService.generateSummary",
@@ -84,7 +84,7 @@ export class SummaryService {
         });
       }
       const knowledgeEntries = knowledgeResult.isOk()
-        ? knowledgeResult.value
+        ? knowledgeResult.value.entries
         : [];
 
       logger.info("Using knowledge base for summary", {
@@ -95,9 +95,9 @@ export class SummaryService {
       });
 
       // Build knowledge context for prompt
-      const knowledgeContext = knowledgeEntries
-        .map((entry) => `${entry.term}: ${entry.definition}`)
-        .join("\n");
+      const knowledgeContext = knowledgeResult.isOk()
+        ? knowledgeResult.value.glossary
+        : "";
 
       // Build prompt using PromptBuilder (resolvedLanguage already set above)
       const promptResult = PromptBuilder.Summaries.buildPrompt({

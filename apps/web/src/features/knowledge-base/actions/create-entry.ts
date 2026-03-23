@@ -8,7 +8,7 @@ import {
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { KnowledgeBaseService } from "@/server/services/knowledge-base.service";
+import { KnowledgeModule } from "@/server/services/knowledge";
 import { createKnowledgeEntrySchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 
@@ -44,9 +44,8 @@ export const createKnowledgeEntryAction = authorizedActionClient
     };
 
     // Create entry
-    const result = await KnowledgeBaseService.createEntry(
-      scope,
-      scopeId,
+    const result = await KnowledgeModule.createEntry(
+      { scope, scopeId },
       { term, definition, context, examples },
       auth,
     );

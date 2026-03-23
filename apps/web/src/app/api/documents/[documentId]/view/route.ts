@@ -1,5 +1,5 @@
 import { resolveAuthContext } from "@/lib/auth-context";
-import { DocumentProcessingService } from "@/server/services/document-processing.service";
+import { KnowledgeModule } from "@/server/services/knowledge";
 import { resolveFetchableUrl } from "@/server/services/storage";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -18,7 +18,7 @@ export async function GET(
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
-  const result = await DocumentProcessingService.getDocumentForView(
+  const result = await KnowledgeModule.getDocumentForView(
     documentId,
     authResult.value,
   );

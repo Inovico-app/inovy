@@ -10,7 +10,7 @@ import { PromptBuilder } from "@/server/services/prompt-builder.service";
 import { generateText } from "ai";
 import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../ai/middleware";
-import { KnowledgeBaseService } from "./knowledge-base.service";
+import { KnowledgeModule } from "./knowledge";
 import { NotificationService } from "./notification.service";
 
 interface ExtractedTask {
@@ -50,16 +50,13 @@ export class TaskExtractionService {
       });
 
       // Get knowledge context for prompt building
-      const knowledgeResult = await KnowledgeBaseService.getApplicableKnowledge(
+      const knowledgeResult = await KnowledgeModule.getKnowledge({
         projectId,
         organizationId,
-      );
-      const knowledgeEntries = knowledgeResult.isOk()
-        ? knowledgeResult.value
-        : [];
-      const knowledgeContext = knowledgeEntries
-        .map((entry) => `${entry.term}: ${entry.definition}`)
-        .join("\n");
+      });
+      const knowledgeContext = knowledgeResult.isOk()
+        ? knowledgeResult.value.glossary
+        : "";
 
       // Build prompt using PromptBuilder
       const promptResult = PromptBuilder.Tasks.buildPrompt({

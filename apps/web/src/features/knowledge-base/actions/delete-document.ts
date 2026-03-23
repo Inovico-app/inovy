@@ -7,7 +7,7 @@ import {
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { DocumentProcessingService } from "@/server/services/document-processing.service";
+import { KnowledgeModule } from "@/server/services/knowledge";
 import { deleteKnowledgeDocumentSchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 
@@ -56,11 +56,7 @@ export const deleteKnowledgeDocumentAction = authorizedActionClient
     };
 
     // Delete document
-    const result = await DocumentProcessingService.deleteDocument(
-      id,
-      user.id,
-      auth,
-    );
+    const result = await KnowledgeModule.deleteDocument(id, auth);
 
     if (result.isErr()) {
       throw result.error;
