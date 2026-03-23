@@ -1,7 +1,6 @@
 "use cache";
 
 import { tagsFor } from "@/lib/cache";
-import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import { DashboardService } from "../services/dashboard.service";
 import type { BetterAuthUser } from "@/lib/auth";
@@ -28,11 +27,7 @@ export async function getCachedDashboardOverview(
   teamContext?: DashboardTeamContext,
 ) {
   "use cache";
-  cacheTag(
-    ...tagsFor("dashboard", { organizationId }),
-    CacheTags.recentProjects(organizationId),
-    CacheTags.recentRecordings(organizationId),
-  );
+  cacheTag(...tagsFor("dashboard", { organizationId }));
 
   const result = await DashboardService.getDashboardOverview(
     organizationId,

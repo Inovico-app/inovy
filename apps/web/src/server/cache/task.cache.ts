@@ -43,10 +43,7 @@ export async function getCachedTaskStats(
   orgCode: string,
 ): Promise<TaskStatsDto> {
   "use cache";
-  cacheTag(
-    ...tagsFor("task", { userId, organizationId: orgCode }),
-    CacheTags.taskStats(userId, orgCode),
-  );
+  cacheTag(...tagsFor("task", { userId, organizationId: orgCode }));
 
   return await TasksQueries.getTaskStats(orgCode, userId);
 }

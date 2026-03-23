@@ -96,26 +96,30 @@ function projectTags(ctx: InvalidationContext): string[] {
 
 /** Tags for invalidating recording list caches (no specific recording). */
 function recordingListTags(ctx: InvalidationContext): string[] {
-  const projectId = ctx.input.projectId as string;
-  return [
-    CacheTags.recordingsByProject(projectId),
-    CacheTags.recordingsByOrg(ctx.organizationId),
-    CacheTags.dashboardStats(ctx.organizationId),
-    CacheTags.recentRecordings(ctx.organizationId),
-  ];
+  const projectId = ctx.input.projectId as string | undefined;
+  const tags: string[] = [];
+  if (projectId) {
+    tags.push(CacheTags.recordingsByProject(projectId));
+  }
+  if (ctx.organizationId) {
+    tags.push(
+      CacheTags.recordingsByOrg(ctx.organizationId),
+      CacheTags.dashboardStats(ctx.organizationId),
+      CacheTags.recentRecordings(ctx.organizationId),
+    );
+  }
+  return tags;
 }
 
 /** Tags for invalidating a specific recording + its list caches. */
 function recordingTags(ctx: InvalidationContext): string[] {
-  const recordingId = ctx.input.recordingId as string;
-  const projectId = ctx.input.projectId as string;
-  return [
-    CacheTags.recording(recordingId),
-    CacheTags.recordingsByProject(projectId),
-    CacheTags.recordingsByOrg(ctx.organizationId),
-    CacheTags.dashboardStats(ctx.organizationId),
-    CacheTags.recentRecordings(ctx.organizationId),
-  ];
+  const recordingId = ctx.input.recordingId as string | undefined;
+  const tags: string[] = [];
+  if (recordingId) {
+    tags.push(CacheTags.recording(recordingId));
+  }
+  tags.push(...recordingListTags(ctx));
+  return tags;
 }
 
 /** Tags for invalidating knowledge base caches. */
@@ -185,7 +189,22 @@ export const CACHE_POLICIES: Record<string, CachePolicy> = {
   },
   "recording:reprocess": (ctx) => {
     const recordingId = ctx.input.recordingId as string;
-    return [CacheTags.recording(recordingId), CacheTags.summary(recordingId)];
+    const projectId = ctx.input.projectId as string | undefined;
+    const tags = [
+      CacheTags.recording(recordingId),
+      CacheTags.summary(recordingId),
+    ];
+    if (projectId) {
+      tags.push(CacheTags.recordingsByProject(projectId));
+    }
+    if (ctx.organizationId) {
+      tags.push(
+        CacheTags.recordingsByOrg(ctx.organizationId),
+        CacheTags.dashboardStats(ctx.organizationId),
+        CacheTags.recentRecordings(ctx.organizationId),
+      );
+    }
+    return tags;
   },
 
   // ── Knowledge Base ────────────────────────────────────────────────────
@@ -248,6 +267,23 @@ export const CACHE_POLICIES: Record<string, CachePolicy> = {
   "organization:delete": (ctx) => [
     CacheTags.organization(ctx.organizationId),
     CacheTags.organizations(),
+  ],
+
+  // ── Consent ──────────────────────────────────────────────────────────
+  "consent:grant": (ctx) => {
+    const recordingId = ctx.input.recordingId as string | undefined;
+    if (!recordingId) return [];
+    return [CacheTags.consentParticipants(recordingId, ctx.organizationId)];
+  },
+  "consent:revoke": (ctx) => {
+    const recordingId = ctx.input.recordingId as string | undefined;
+    if (!recordingId) return [];
+    return [CacheTags.consentParticipants(recordingId, ctx.organizationId)];
+  },
+
+  // ── Organization Settings ──────────────────────────────────────────
+  "organization_settings:update": (ctx) => [
+    CacheTags.organizationSettings(ctx.organizationId),
   ],
 
   // ── Settings ──────────────────────────────────────────────────────────

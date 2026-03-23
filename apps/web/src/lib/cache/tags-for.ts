@@ -54,8 +54,10 @@ export function tagsFor(entity: CacheEntity, refs: CacheRefs = {}): string[] {
       break;
 
     case "task":
-      if (refs.userId && refs.organizationId)
+      if (refs.userId && refs.organizationId) {
         tags.push(CacheTags.tasksByUser(refs.userId, refs.organizationId));
+        tags.push(CacheTags.taskStats(refs.userId, refs.organizationId));
+      }
       if (refs.organizationId)
         tags.push(CacheTags.tasksByOrg(refs.organizationId));
       break;
@@ -139,8 +141,11 @@ export function tagsFor(entity: CacheEntity, refs: CacheRefs = {}): string[] {
       break;
 
     case "dashboard":
-      if (refs.organizationId)
+      if (refs.organizationId) {
         tags.push(CacheTags.dashboardStats(refs.organizationId));
+        tags.push(CacheTags.recentProjects(refs.organizationId));
+        tags.push(CacheTags.recentRecordings(refs.organizationId));
+      }
       break;
 
     case "autoActions":

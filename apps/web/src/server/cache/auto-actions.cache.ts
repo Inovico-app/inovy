@@ -32,7 +32,7 @@ export async function getCachedAutoActionStats(
   provider: "google" | "microsoft",
 ): Promise<AutoActionStats | null> {
   "use cache";
-  cacheTag(...tagsFor("autoActions", { userId }));
+  cacheTag(...tagsFor("autoActions", { userId, organizationId }));
   const result = await AutoActionsService.getAutoActionStats(
     userId,
     organizationId,
@@ -52,7 +52,7 @@ export async function getCachedRecentAutoActions(
   options?: { limit?: number; type?: "calendar_event" | "email_draft" },
 ): Promise<RecentAutoAction[]> {
   "use cache";
-  cacheTag(...tagsFor("autoActions", { userId }));
+  cacheTag(...tagsFor("autoActions", { userId, organizationId }));
   const result = await AutoActionsService.getRecentAutoActions(
     userId,
     organizationId,

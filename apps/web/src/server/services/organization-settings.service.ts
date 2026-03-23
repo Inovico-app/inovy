@@ -1,4 +1,5 @@
 import type { BetterAuthUser } from "@/lib/auth";
+import { invalidateFor } from "@/lib/cache";
 import { logger } from "@/lib/logger";
 import {
   ActionErrors,
@@ -67,6 +68,10 @@ export class OrganizationSettingsService {
         organizationId,
         instructions,
         createdById: userId,
+      });
+
+      invalidateFor("organization_settings", "update", {
+        organizationId,
       });
 
       return ok({

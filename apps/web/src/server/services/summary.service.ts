@@ -229,7 +229,11 @@ export class SummaryService {
 
       // Invalidate cache to pick up the new summary
       invalidateFor("recording", "update", {
-        input: { recordingId },
+        organizationId: existingRecording.organizationId,
+        input: {
+          recordingId,
+          projectId: existingRecording.projectId,
+        },
       });
 
       logger.info("Summary generated successfully", {
@@ -271,17 +275,5 @@ export class SummaryService {
         ),
       );
     }
-  }
-
-  /**
-   * Invalidate cached summary for a recording
-   */
-  static async invalidateSummaryCache(
-    recordingId: string,
-  ): Promise<ActionResult<void>> {
-    invalidateFor("recording", "update", {
-      input: { recordingId },
-    });
-    return ok(undefined);
   }
 }

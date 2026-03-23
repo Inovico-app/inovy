@@ -45,7 +45,9 @@ export async function getCachedConversations(params: {
   cacheTag(
     ...tagsFor("conversation", {
       userId: params.userId,
-      organizationId: params.organizationId ?? "",
+      ...(params.organizationId
+        ? { organizationId: params.organizationId }
+        : {}),
     }),
   );
   const result = await ConversationService.listConversations(params);

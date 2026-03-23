@@ -1,4 +1,4 @@
-import { invalidateCache } from "../cache-utils";
+import { revalidateCacheTags } from "../cache-utils";
 import { logger } from "../logger";
 import { CACHE_POLICIES } from "./cache-policies";
 import type { InvalidationContext } from "./types";
@@ -41,7 +41,7 @@ export function invalidateFor(
     }
 
     if (tags.length > 0) {
-      invalidateCache(...tags);
+      revalidateCacheTags(...tags);
     }
   } catch (error) {
     logger.error(`[cache] Policy "${key}" threw an error`, {

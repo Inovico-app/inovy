@@ -116,6 +116,7 @@ export class MeetingService {
       }
 
       invalidateFor("meeting", "update", {
+        userId: meeting.createdById ?? "",
         organizationId,
         input: { meetingId },
       });

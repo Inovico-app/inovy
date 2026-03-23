@@ -1,4 +1,4 @@
-import { updateTag as nextUpdateTag } from "next/cache";
+import { revalidateTag, updateTag as nextUpdateTag } from "next/cache";
 
 /**
  * Cache tag utilities for Next.js 16 cache system
@@ -188,13 +188,24 @@ export const CacheTags = {
 } as const;
 
 /**
- * Invalidate cache by tags
- * Wrapper around Next.js updateTag for consistency
- * updateTag immediately updates the cache
- * rather than waiting for the next revalidation
+ * Invalidate cache by tags using updateTag (Server Actions only).
+ * updateTag immediately expires cached data for read-your-own-writes.
+ * Only safe inside Server Actions — use {@link revalidateCacheTags} for
+ * Route Handlers, services, and workflows.
  */
 export function invalidateCache(...tags: string[]): void {
   for (const tag of tags) {
     nextUpdateTag(tag);
+  }
+}
+
+/**
+ * Invalidate cache by tags using revalidateTag (safe everywhere).
+ * Uses stale-while-revalidate semantics — works in Route Handlers,
+ * services, workflows, and Server Actions.
+ */
+export function revalidateCacheTags(...tags: string[]): void {
+  for (const tag of tags) {
+    revalidateTag(tag, "max");
   }
 }

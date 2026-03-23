@@ -1,4 +1,5 @@
 import { err, ok } from "neverthrow";
+import { invalidateFor } from "../../lib/cache";
 import { logger } from "../../lib/logger";
 import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
 import {
@@ -142,6 +143,12 @@ export class ConsentService {
         // Audit failure doesn't block consent operation, but is logged for monitoring
       }
 
+      // Invalidate consent cache (needed for Route Handler callers)
+      invalidateFor("consent", "grant", {
+        organizationId,
+        input: { recordingId },
+      });
+
       // Log only participantId (UUID), never PII like email or name
       logger.info("Consent granted", {
         component: "ConsentService.grantConsent",
@@ -235,6 +242,12 @@ export class ConsentService {
         );
         // Audit failure doesn't block consent operation, but is logged for monitoring
       }
+
+      // Invalidate consent cache (needed for Route Handler callers)
+      invalidateFor("consent", "revoke", {
+        organizationId,
+        input: { recordingId },
+      });
 
       // Log only participantId (UUID), never PII like email or name
       logger.info("Consent revoked", {
