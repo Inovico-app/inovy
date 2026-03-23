@@ -1,4 +1,4 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { logger } from "@/lib/logger";
 import { cacheTag } from "next/cache";
 import { OrganizationSettingsQueries } from "../data-access/organization-settings.queries";
@@ -42,7 +42,7 @@ export interface OrganizationDetailDto {
  */
 export async function getCachedOrganizationMembers(organizationId: string) {
   "use cache";
-  cacheTag(CacheTags.orgMembers(organizationId));
+  cacheTag(...tagsFor("orgMembers", { organizationId }));
 
   try {
     // Use DAL to get members
@@ -74,7 +74,7 @@ export async function getCachedOrganizationMembers(organizationId: string) {
     logger.error(
       "Failed to get members for organization",
       { organizationId },
-      error as Error
+      error as Error,
     );
     return [];
   }
@@ -85,10 +85,10 @@ export async function getCachedOrganizationMembers(organizationId: string) {
  * Fetches from the database with Next.js cache
  */
 export async function getCachedOrganizationInstructions(
-  organizationId: string
+  organizationId: string,
 ): Promise<OrganizationSettingsDto | null> {
   "use cache";
-  cacheTag(CacheTags.organizationInstructions(organizationId));
+  cacheTag(...tagsFor("orgInstructions", { organizationId }));
 
   try {
     const instructions =
@@ -99,7 +99,7 @@ export async function getCachedOrganizationInstructions(
     logger.error(
       "Failed to get organization instructions",
       { organizationId },
-      error as Error
+      error as Error,
     );
     return null;
   }
@@ -114,7 +114,7 @@ export async function getCachedAllOrganizations(): Promise<
   OrganizationListDto[]
 > {
   "use cache";
-  cacheTag(CacheTags.organizations());
+  cacheTag(...tagsFor("organizations", {}));
 
   try {
     // Use DAL to get all organizations with member counts
@@ -134,7 +134,7 @@ export async function getCachedAllOrganizations(): Promise<
  */
 export async function getCachedOrganizationById(organizationId: string) {
   "use cache";
-  cacheTag(CacheTags.organization(organizationId));
+  cacheTag(...tagsFor("organization", { organizationId }));
 
   try {
     // Use DAL to get organization by ID
@@ -149,7 +149,7 @@ export async function getCachedOrganizationById(organizationId: string) {
     logger.error(
       "Failed to get organization by ID",
       { organizationId },
-      error as Error
+      error as Error,
     );
     return null;
   }
@@ -161,7 +161,7 @@ export async function getCachedOrganizationById(organizationId: string) {
  */
 export async function getCachedAgentConfig(organizationId: string) {
   "use cache";
-  cacheTag(CacheTags.organization(organizationId));
+  cacheTag(...tagsFor("organization", { organizationId }));
 
   try {
     const agentEnabled =
@@ -172,9 +172,8 @@ export async function getCachedAgentConfig(organizationId: string) {
     logger.error(
       "Failed to get agent configuration",
       { organizationId },
-      error as Error
+      error as Error,
     );
     return true; // Default to enabled on error
   }
 }
-

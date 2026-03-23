@@ -1,4 +1,4 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import type { OrganizationSettingsDto } from "../dto/organization-settings.dto";
 import { OrganizationSettingsQueries } from "../data-access/organization-settings.queries";
@@ -13,15 +13,14 @@ import { OrganizationSettingsQueries } from "../data-access/organization-setting
  * Returns null if no settings exist or on error
  */
 export async function getCachedOrganizationSettings(
-  orgCode: string
+  orgCode: string,
 ): Promise<OrganizationSettingsDto | null> {
   "use cache";
-  cacheTag(CacheTags.organizationSettings(orgCode));
+  cacheTag(...tagsFor("orgSettings", { organizationId: orgCode }));
 
   try {
-    const settings = await OrganizationSettingsQueries.findByOrganizationId(
-      orgCode
-    );
+    const settings =
+      await OrganizationSettingsQueries.findByOrganizationId(orgCode);
 
     if (!settings) {
       return null;
@@ -43,4 +42,3 @@ export async function getCachedOrganizationSettings(
     return null;
   }
 }
-

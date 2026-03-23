@@ -1,4 +1,4 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { logger } from "@/lib/logger";
 import type { CalendarEvent } from "@/server/services/google-calendar.service";
 import { GoogleCalendarService } from "@/server/services/google-calendar.service";
@@ -20,10 +20,10 @@ export async function getCachedCalendarMeetings(
   organizationId: string,
   timeMin: Date,
   timeMax: Date,
-  calendarIds?: string[] | null
+  calendarIds?: string[] | null,
 ): Promise<CalendarEvent[]> {
   "use cache";
-  cacheTag(CacheTags.calendarMeetings(userId, organizationId));
+  cacheTag(...tagsFor("calendarMeetings", { userId, organizationId }));
 
   logger.info("Fetching calendar meetings", {
     userId,
@@ -47,7 +47,9 @@ export async function getCachedCalendarMeetings(
     });
     // Rethrow error so error boundaries can handle it
     // Convert ActionError to Error for proper error boundary handling
-    const error = new Error(result.error.message || "Failed to fetch calendar meetings");
+    const error = new Error(
+      result.error.message || "Failed to fetch calendar meetings",
+    );
     error.name = result.error.code || "CalendarMeetingsError";
     throw error;
   }
@@ -61,4 +63,3 @@ export async function getCachedCalendarMeetings(
   // Unwrap Result for Next.js cache serialization
   return result.value;
 }
-

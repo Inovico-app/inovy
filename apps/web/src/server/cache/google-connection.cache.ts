@@ -1,4 +1,4 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { logger } from "@/lib/logger";
 import { GoogleOAuthService } from "@/server/services/google-oauth.service";
 import { cacheTag } from "next/cache";
@@ -9,10 +9,10 @@ export interface GoogleConnectionStatus {
 }
 
 async function getCachedGoogleConnectionStatusInternal(
-  userId: string
+  userId: string,
 ): Promise<GoogleConnectionStatus> {
   "use cache";
-  cacheTag(CacheTags.googleConnection(userId));
+  cacheTag(...tagsFor("googleConnection", { userId }));
 
   const result = await GoogleOAuthService.getConnectionStatus(userId);
 
@@ -31,7 +31,7 @@ async function getCachedGoogleConnectionStatusInternal(
 }
 
 export async function getCachedGoogleConnectionStatus(
-  userId: string
+  userId: string,
 ): Promise<GoogleConnectionStatus> {
   return getCachedGoogleConnectionStatusInternal(userId);
 }

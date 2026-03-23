@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth-context";
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import type { TeamDto, UserTeamRoleDto } from "../dto/team.dto";
 import { TeamService } from "../services/team.service";
@@ -19,7 +19,7 @@ export async function getCachedTeamsByOrganization(
   auth: AuthContext,
 ): Promise<TeamDto[]> {
   "use cache: private";
-  cacheTag(CacheTags.teamsByOrg(organizationId));
+  cacheTag(...tagsFor("team", { organizationId }));
 
   const teams = await TeamService.getTeamsByOrganization(organizationId, auth);
 
@@ -48,7 +48,7 @@ export async function getCachedTeamById(
   auth: AuthContext,
 ): Promise<TeamDto | null> {
   "use cache: private";
-  cacheTag(CacheTags.team(id));
+  cacheTag(...tagsFor("team", { teamId: id }));
 
   const team = await TeamService.getTeamById(id, auth);
 
@@ -78,7 +78,7 @@ export async function getCachedUserTeams(
   auth: AuthContext,
 ): Promise<UserTeamRoleDto[]> {
   "use cache: private";
-  cacheTag(CacheTags.userTeams(userId, organizationId));
+  cacheTag(...tagsFor("userTeams", { userId, organizationId }));
 
   const userTeams = await TeamService.getUserTeams(userId, auth);
 
@@ -111,7 +111,7 @@ export async function getCachedTeamsWithMemberCounts(
   auth: AuthContext,
 ): Promise<TeamWithMemberCount[]> {
   "use cache: private";
-  cacheTag(CacheTags.teamsByOrg(organizationId));
+  cacheTag(...tagsFor("team", { organizationId }));
 
   const teams = await getCachedTeamsByOrganization(organizationId, auth);
 
