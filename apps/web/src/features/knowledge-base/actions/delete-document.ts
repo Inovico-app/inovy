@@ -1,7 +1,6 @@
 "use server";
 
 import type { AuthContext } from "@/lib/auth-context";
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -67,24 +66,6 @@ export const deleteKnowledgeDocumentAction = authorizedActionClient
       throw result.error;
     }
 
-    // Invalidate cache based on document scope
-    if (document) {
-      CacheInvalidation.invalidateKnowledge(document.scope, document.scopeId);
-      if (document.scope === "project" && document.scopeId && organizationId) {
-        CacheInvalidation.invalidateKnowledgeHierarchy(
-          document.scopeId,
-          organizationId,
-        );
-      } else if (document.scope === "team" && document.scopeId) {
-        CacheInvalidation.invalidateKnowledgeHierarchy(null, document.scopeId);
-      } else if (document.scope === "organization" && document.scopeId) {
-        CacheInvalidation.invalidateKnowledgeHierarchy(null, document.scopeId);
-      } else if (document.scope === "global") {
-        CacheInvalidation.invalidateKnowledgeHierarchy(null, null);
-      }
-    } else {
-      // Document not found - cache invalidation handled by service error
-    }
     // Revalidate relevant pages
     if (document?.scope === "project" && document.scopeId) {
       revalidatePath(`/projects/${document.scopeId}/settings`);

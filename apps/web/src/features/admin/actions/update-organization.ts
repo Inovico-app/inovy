@@ -1,7 +1,6 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -74,10 +73,6 @@ export const updateOrganization = authorizedActionClient
           ),
         );
       }
-
-      // Invalidate cache
-      CacheInvalidation.invalidateOrganizations();
-      CacheInvalidation.invalidateOrganization(id);
 
       // Revalidate Next.js route cache
       revalidatePath("/admin/organizations");

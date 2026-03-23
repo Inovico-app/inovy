@@ -1,7 +1,6 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -69,9 +68,6 @@ export const inviteMember = authorizedActionClient
           ),
         );
       }
-
-      // Invalidate cache
-      CacheInvalidation.invalidateOrganization(organizationId);
 
       // Revalidate routes
       revalidatePath("/admin/users");
@@ -158,9 +154,6 @@ export const removeMember = authorizedActionClient
         );
       }
 
-      // Invalidate cache
-      CacheInvalidation.invalidateOrganization(organizationId);
-
       // Revalidate routes
       revalidatePath("/admin/users");
       revalidatePath("/settings/organization");
@@ -232,9 +225,6 @@ export const updateMemberRole = authorizedActionClient
           ),
         );
       }
-
-      // Invalidate cache
-      CacheInvalidation.invalidateOrganization(organizationId);
 
       // Revalidate routes
       revalidatePath("/admin/users");

@@ -1,7 +1,6 @@
 "use server";
 
 import type { AuthContext } from "@/lib/auth-context";
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { Permissions } from "@/lib/rbac/permissions";
 import {
   authorizedActionClient,
@@ -61,24 +60,6 @@ export const deleteKnowledgeEntryAction = authorizedActionClient
       throw result.error;
     }
 
-    // Invalidate cache based on entry scope
-    if (entry) {
-      CacheInvalidation.invalidateKnowledge(entry.scope, entry.scopeId);
-      if (entry.scope === "project" && entry.scopeId && organizationId) {
-        CacheInvalidation.invalidateKnowledgeHierarchy(
-          entry.scopeId,
-          organizationId,
-        );
-      } else if (entry.scope === "team" && entry.scopeId) {
-        CacheInvalidation.invalidateKnowledgeHierarchy(null, entry.scopeId);
-      } else if (entry.scope === "organization" && entry.scopeId) {
-        CacheInvalidation.invalidateKnowledgeHierarchy(null, entry.scopeId);
-      } else if (entry.scope === "global") {
-        CacheInvalidation.invalidateKnowledgeHierarchy(null, null);
-      }
-    } else {
-      // Entry not found - cache invalidation handled by service error
-    }
     // Revalidate relevant pages
     if (entry?.scope === "project" && entry?.scopeId) {
       revalidatePath(`/projects/${entry.scopeId}/settings`);

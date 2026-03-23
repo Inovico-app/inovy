@@ -1,7 +1,6 @@
 "use server";
 
 import type { AuthContext } from "@/lib/auth-context";
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { Permissions } from "@/lib/rbac/permissions";
 import {
   authorizedActionClient,
@@ -54,21 +53,6 @@ export const createKnowledgeEntryAction = authorizedActionClient
 
     if (result.isErr()) {
       throw createErrorForNextSafeAction(result.error);
-    }
-
-    // Invalidate cache
-    CacheInvalidation.invalidateKnowledge(scope, scopeId);
-    if (scope === "project" && scopeId && organizationId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(scopeId, organizationId);
-    } else if (scope === "team" && scopeId) {
-      // Invalidate team knowledge hierarchy
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
-    } else if (scope === "organization" && scopeId) {
-      // Invalidate all project hierarchies in this org
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
-    } else if (scope === "global") {
-      // Invalidate all hierarchies
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, null);
     }
 
     // Revalidate relevant pages
