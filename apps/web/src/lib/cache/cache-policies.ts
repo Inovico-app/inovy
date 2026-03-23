@@ -196,7 +196,10 @@ export const CACHE_POLICIES: Record<string, CachePolicy> = {
   "knowledge_base_document:upload": (ctx) => knowledgeTags(ctx),
 
   // ── Meetings ──────────────────────────────────────────────────────────
-  "meeting:create": (ctx) => [CacheTags.meetings(ctx.organizationId)],
+  "meeting:create": (ctx) => [
+    CacheTags.meetings(ctx.organizationId),
+    CacheTags.calendarMeetings(ctx.userId, ctx.organizationId),
+  ],
   "meeting:update": (ctx) => {
     const meetingId = ctx.input.meetingId as string;
     return [
@@ -290,6 +293,7 @@ export const CACHE_POLICIES: Record<string, CachePolicy> = {
     const projectId = ctx.input.projectId as string;
     return [
       CacheTags.project(projectId),
+      CacheTags.projectTemplate(projectId),
       CacheTags.projectsByOrg(ctx.organizationId),
       CacheTags.dashboardStats(ctx.organizationId),
       CacheTags.recentProjects(ctx.organizationId),

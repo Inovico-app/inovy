@@ -16,11 +16,9 @@ export function invalidateFor(
   const policy = CACHE_POLICIES[key];
 
   if (!policy) {
-    if (process.env.NODE_ENV === "development") {
-      logger.warn(`[cache] No policy found for "${key}"`, {
-        component: "invalidateFor",
-      });
-    }
+    logger.warn(`[cache] No policy found for "${key}"`, {
+      component: "invalidateFor",
+    });
     return;
   }
 

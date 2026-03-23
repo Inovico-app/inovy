@@ -29,6 +29,7 @@ describe("buildKnowledgeTags", () => {
     expect(tags).toContain("knowledge-entries:project:proj-789");
     expect(tags).toContain("knowledge-documents:project:proj-789");
     expect(tags).toContain("knowledge-entries:org:org-123");
+    expect(tags).toContain("knowledge-documents:org:org-123");
     expect(tags).toContain("knowledge-entries:global");
     expect(tags).toContain("knowledge-documents:global");
     expect(tags).toContain("knowledge-hierarchy:project:proj-789:org:org-123");

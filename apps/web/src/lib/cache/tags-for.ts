@@ -111,8 +111,12 @@ export function tagsFor(entity: CacheEntity, refs: CacheRefs = {}): string[] {
       break;
 
     case "notification":
-      if (refs.userId && refs.organizationId)
+      if (refs.userId && refs.organizationId) {
         tags.push(CacheTags.notifications(refs.userId, refs.organizationId));
+        tags.push(
+          CacheTags.notificationUnreadCount(refs.userId, refs.organizationId),
+        );
+      }
       break;
 
     case "botSettings":
@@ -140,7 +144,10 @@ export function tagsFor(entity: CacheEntity, refs: CacheRefs = {}): string[] {
       break;
 
     case "autoActions":
-      if (refs.userId) tags.push(CacheTags.autoActions(refs.userId));
+      if (refs.userId) {
+        tags.push(CacheTags.autoActions(refs.userId));
+        tags.push(CacheTags.autoActionStats(refs.userId));
+      }
       break;
 
     case "transcriptionHistory":
