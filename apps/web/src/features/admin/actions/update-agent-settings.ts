@@ -1,6 +1,5 @@
 "use server";
 
-import { CacheTags } from "@/lib/cache-utils";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -9,7 +8,6 @@ import {
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { AgentSettingsQueries } from "@/server/data-access/agent-settings.queries";
 import { err, ok } from "neverthrow";
-import { updateTag } from "next/cache";
 import { z } from "zod";
 
 const updateAgentSettingsSchema = z.object({
@@ -37,9 +35,6 @@ export const updateAgentSettings = authorizedActionClient
     try {
       const updated =
         await AgentSettingsQueries.updateAgentSettings(parsedInput);
-
-      // Invalidate cache
-      updateTag(CacheTags.agentSettings());
 
       return resultToActionResponse(ok({ success: true, data: updated }));
     } catch (error) {

@@ -254,6 +254,7 @@ export const CACHE_POLICIES: Record<string, CachePolicy> = {
   "settings:update": (ctx) => [
     CacheTags.organization(ctx.organizationId),
     CacheTags.organizations(),
+    CacheTags.agentSettings(),
   ],
 
   // ── Invitations ───────────────────────────────────────────────────────
