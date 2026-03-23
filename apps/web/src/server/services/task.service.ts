@@ -4,7 +4,6 @@ import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import type { ActionResult } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
-import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { getCachedTaskStats } from "../cache/task.cache";
 import { ProjectQueries } from "../data-access/projects.queries";
@@ -224,8 +223,6 @@ export class TaskService {
         );
       }
 
-      await this.invalidateCache(auth.user.id, auth.organizationId);
-
       return ok(this.toDto(updated));
     } catch (error) {
       logger.error("Failed to update task status", {}, error as Error);
@@ -315,8 +312,6 @@ export class TaskService {
           });
         }
       }
-
-      await this.invalidateCache(auth.user.id, auth.organizationId);
 
       return ok(this.toDto(updated));
     } catch (error) {
@@ -502,14 +497,6 @@ export class TaskService {
         ),
       );
     }
-  }
-
-  /**
-   * Invalidate task cache for a user
-   * Called after task mutations (create, update, delete)
-   */
-  static async invalidateCache(userId: string, orgCode: string): Promise<void> {
-    CacheInvalidation.invalidateTaskCache(userId, orgCode);
   }
 
   /**

@@ -1,4 +1,4 @@
-import { CacheInvalidation } from "@/lib/cache-utils";
+import { invalidateFor } from "@/lib/cache";
 import { logger } from "@/lib/logger";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 
@@ -9,7 +9,7 @@ export async function updateWorkflowStatus(
   recordingId: string,
   status: "idle" | "running" | "completed" | "failed",
   error?: string,
-  retryCount?: number
+  retryCount?: number,
 ): Promise<void> {
   "use step";
 
@@ -32,7 +32,7 @@ export async function updateWorkflowStatus(
 
     const result = await RecordingsQueries.updateRecording(
       recordingId,
-      updates
+      updates,
     );
 
     logger.info("Workflow status updated", {
@@ -43,11 +43,10 @@ export async function updateWorkflowStatus(
     });
 
     if (result) {
-      CacheInvalidation.invalidateRecording(
-        recordingId,
-        result.projectId,
-        result.organizationId
-      );
+      invalidateFor("recording", "update", {
+        organizationId: result.organizationId,
+        input: { recordingId, projectId: result.projectId },
+      });
     }
   } catch (updateError) {
     logger.error("Failed to update workflow status", {
@@ -57,4 +56,3 @@ export async function updateWorkflowStatus(
     });
   }
 }
-

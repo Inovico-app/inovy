@@ -262,6 +262,12 @@ export const CACHE_POLICIES: Record<string, CachePolicy> = {
     CacheTags.orgMembers(ctx.organizationId),
   ],
 
+  // ── Notifications ───────────────────────────────────────────────────
+  "notification:update": (ctx) => [
+    CacheTags.notifications(ctx.userId, ctx.organizationId),
+    CacheTags.notificationUnreadCount(ctx.userId, ctx.organizationId),
+  ],
+
   // ── Integrations ──────────────────────────────────────────────────────
   "integration:disconnect": (ctx) => {
     const provider = ctx.input.provider as string;

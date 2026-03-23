@@ -1,5 +1,4 @@
 import type { BetterAuthUser } from "@/lib/auth";
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import {
   ActionErrors,
@@ -19,7 +18,7 @@ export class OrganizationSettingsService {
    * @param organizationId - Better Auth organization ID (UUID)
    */
   static async getOrganizationSettings(
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<OrganizationSettingsDto | null>> {
     try {
       const settings =
@@ -41,14 +40,14 @@ export class OrganizationSettingsService {
       logger.error(
         "Failed to get organization settings",
         { organizationId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to get organization settings",
           error as Error,
-          "OrganizationSettingsService.getOrganizationSettings"
-        )
+          "OrganizationSettingsService.getOrganizationSettings",
+        ),
       );
     }
   }
@@ -60,7 +59,7 @@ export class OrganizationSettingsService {
   static async updateOrganizationSettings(
     organizationId: string,
     instructions: string,
-    userId: string
+    userId: string,
   ): Promise<ActionResult<OrganizationSettingsDto>> {
     try {
       // Use createOrUpdate to handle both cases
@@ -69,9 +68,6 @@ export class OrganizationSettingsService {
         instructions,
         createdById: userId,
       });
-
-      // Invalidate cache
-      CacheInvalidation.invalidateOrganizationSettings(organizationId);
 
       return ok({
         id: settings.id,
@@ -85,14 +81,14 @@ export class OrganizationSettingsService {
       logger.error(
         "Failed to update organization settings",
         { organizationId, userId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to update organization settings",
           error as Error,
-          "OrganizationSettingsService.updateOrganizationSettings"
-        )
+          "OrganizationSettingsService.updateOrganizationSettings",
+        ),
       );
     }
   }
@@ -105,12 +101,12 @@ export class OrganizationSettingsService {
   static async createInstructions(
     instructions: string,
     organizationId: string,
-    user: BetterAuthUser
+    user: BetterAuthUser,
   ): Promise<ActionResult<OrganizationSettingsDto>> {
     return this.updateOrganizationSettings(
       organizationId,
       instructions,
-      user.id
+      user.id,
     );
   }
 
@@ -121,7 +117,7 @@ export class OrganizationSettingsService {
    */
   static async updateInstructions(
     instructions: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<OrganizationSettingsDto>> {
     // Note: We need a userId but the caller doesn't provide one.
     // For updates, we'll use the existing createdById from the DB
@@ -133,30 +129,29 @@ export class OrganizationSettingsService {
         return err(
           ActionErrors.notFound(
             "Organization settings",
-            "OrganizationSettingsService.updateInstructions"
-          )
+            "OrganizationSettingsService.updateInstructions",
+          ),
         );
       }
 
       return this.updateOrganizationSettings(
         organizationId,
         instructions,
-        existing.createdById
+        existing.createdById,
       );
     } catch (error) {
       logger.error(
         "Failed to update instructions",
         { organizationId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to update instructions",
           error as Error,
-          "OrganizationSettingsService.updateInstructions"
-        )
+          "OrganizationSettingsService.updateInstructions",
+        ),
       );
     }
   }
 }
-

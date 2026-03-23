@@ -7,7 +7,6 @@ import {
 import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import { getStorageProvider } from "./storage";
 import { err, ok } from "neverthrow";
-import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { getCachedProjectByIdWithCreator } from "../cache/project.cache";
 import type { AllowedStatus } from "../data-access/projects.queries";
@@ -218,7 +217,6 @@ export class ProjectService {
     };
     try {
       const project = await ProjectQueries.create(projectData);
-      CacheInvalidation.invalidateProjectCache(auth.organizationId);
       return ok(project);
     } catch (error) {
       logger.error(
@@ -270,8 +268,6 @@ export class ProjectService {
           ActionErrors.notFound("Project", "ProjectService.updateProject"),
         );
       }
-      CacheInvalidation.invalidateProjectCache(auth.organizationId);
-
       if (input.teamId !== undefined) {
         const qdrant = QdrantClientService.getInstance();
         const newTeamPayload = input.teamId
@@ -321,10 +317,6 @@ export class ProjectService {
         auth.organizationId,
       );
 
-      if (result) {
-        CacheInvalidation.invalidateProjectCache(auth.organizationId);
-      }
-
       return ok(result);
     } catch (error) {
       const errorMessage = "Failed to archive project";
@@ -351,10 +343,6 @@ export class ProjectService {
         projectId,
         auth.organizationId,
       );
-
-      if (result) {
-        CacheInvalidation.invalidateProjectCache(auth.organizationId);
-      }
 
       return ok(result);
     } catch (error) {
@@ -487,8 +475,6 @@ export class ProjectService {
           ),
         );
       }
-      // Invalidate all project caches
-      CacheInvalidation.invalidateProjectCache(auth.organizationId);
       logger.info("Successfully deleted project", {
         component: "ProjectService.deleteProject",
         projectId,
