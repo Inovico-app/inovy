@@ -11,12 +11,10 @@ import {
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
-import { RAGService } from "../rag/rag.service";
+import { SearchEngine } from "../knowledge/search-engine";
 import { SearchResultFormatter } from "../search-result-formatter.service";
 import type { SearchResult } from "../rag/types";
 import type { ContentType, ContextWithSources, SourceCitation } from "./types";
-
-const ragService = new RAGService();
 
 // ============================================================================
 // Source Description Formatting
@@ -139,15 +137,16 @@ export class ChatContextService {
     options?: { teamId?: string | null; userTeamIds?: string[] },
   ): Promise<ActionResult<ContextWithSources>> {
     try {
-      const searchResult = await ragService.search(query, "", {
-        projectId,
-        limit: 8,
-        scoreThreshold: 0.6,
-        useHybrid: true,
-        useReranking: true,
-        teamId: options?.teamId,
-        userTeamIds: options?.userTeamIds,
-      });
+      const searchResult = await SearchEngine.searchRaw(
+        query,
+        {
+          organizationId: "",
+          projectId,
+          teamId: options?.teamId,
+          userTeamIds: options?.userTeamIds,
+        },
+        { limit: 8, scoreThreshold: 0.6, useHybrid: true, useReranking: true },
+      );
 
       if (searchResult.isErr()) {
         return err(searchResult.error);
@@ -187,15 +186,20 @@ export class ChatContextService {
     options?: { teamId?: string | null; userTeamIds?: string[] },
   ): Promise<ActionResult<ContextWithSources>> {
     try {
-      const searchResult = await ragService.search(query, "", {
-        organizationId,
-        limit: 12,
-        scoreThreshold: 0.6,
-        useHybrid: false,
-        useReranking: true,
-        teamId: options?.teamId,
-        userTeamIds: options?.userTeamIds,
-      });
+      const searchResult = await SearchEngine.searchRaw(
+        query,
+        {
+          organizationId,
+          teamId: options?.teamId,
+          userTeamIds: options?.userTeamIds,
+        },
+        {
+          limit: 12,
+          scoreThreshold: 0.6,
+          useHybrid: false,
+          useReranking: true,
+        },
+      );
 
       if (searchResult.isErr()) {
         return err(searchResult.error);

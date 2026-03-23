@@ -140,12 +140,12 @@ vi.mock("../../conversation-integrity.service", () => ({
   },
 }));
 
-vi.mock("../../knowledge-base.service", () => ({
-  KnowledgeBaseService: {
-    buildKnowledgeContext: vi.fn().mockResolvedValue({
+vi.mock("../../knowledge", () => ({
+  KnowledgeModule: {
+    getKnowledge: vi.fn().mockResolvedValue({
       isOk: () => true,
       isErr: () => false,
-      value: "",
+      value: { glossary: "", entries: [] },
     }),
   },
 }));
