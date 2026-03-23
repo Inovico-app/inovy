@@ -1,6 +1,5 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
@@ -53,9 +52,6 @@ export const updateSummary = authorizedActionClient
         "update-summary",
       );
     }
-
-    // Invalidate summary cache
-    CacheInvalidation.invalidateSummary(parsedInput.recordingId);
 
     return result.value;
   });

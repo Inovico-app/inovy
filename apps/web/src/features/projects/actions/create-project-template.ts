@@ -1,6 +1,5 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { getUserOrganizationId } from "@/lib/server-action-client/action-helpers";
@@ -49,7 +48,6 @@ export const createProjectTemplateAction = authorizedActionClient
 
     // Revalidate project page
     if (result.isOk()) {
-      CacheInvalidation.invalidateProject(projectId, orgCode);
       revalidatePath(`/projects/${projectId}/settings`);
     }
 
