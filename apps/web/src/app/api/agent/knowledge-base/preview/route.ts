@@ -1,7 +1,7 @@
 import type { AuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
-import { KnowledgeBaseBrowserService } from "@/server/services/knowledge-base-browser.service";
+import { KnowledgeModule } from "@/server/services/knowledge";
 import { AgentConfigService } from "@/server/services/agent-config.service";
 import type { NextRequest } from "next/server";
 
@@ -78,10 +78,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Get document preview
-    const result = await KnowledgeBaseBrowserService.getDocumentPreview(
-      auth,
+    const result = await KnowledgeModule.getDocumentPreview(
       documentId,
-      organizationId,
+      auth,
       sampleSize,
     );
 

@@ -1318,11 +1318,13 @@ export class KnowledgeModule {
   static async getDocumentPreview(
     documentId: string,
     auth: AuthContext,
+    sampleSize?: number,
   ): Promise<ActionResult<DocumentPreview>> {
     return KnowledgeBaseBrowserService.getDocumentPreview(
       auth,
       documentId,
       auth.organizationId,
+      sampleSize,
     );
   }
 }

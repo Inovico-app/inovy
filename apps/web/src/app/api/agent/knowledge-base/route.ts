@@ -1,7 +1,7 @@
 import type { AuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
-import { KnowledgeBaseBrowserService } from "@/server/services/knowledge-base-browser.service";
+import { KnowledgeModule } from "@/server/services/knowledge";
 import { AgentConfigService } from "@/server/services/agent-config.service";
 import type { NextRequest } from "next/server";
 
@@ -52,8 +52,7 @@ export async function GET(request: NextRequest) {
     const offset = searchParams.get("offset") || null;
 
     // List documents
-    const result = await KnowledgeBaseBrowserService.listDocuments(auth, {
-      organizationId,
+    const result = await KnowledgeModule.browseIndex(auth, {
       projectId,
       contentType,
       search,
@@ -131,11 +130,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete document
-    const result = await KnowledgeBaseBrowserService.deleteDocument(
-      auth,
-      documentId,
-      organizationId,
-    );
+    const result = await KnowledgeModule.deleteDocument(documentId, auth);
 
     if (result.isErr()) {
       logger.error("Failed to delete document", {
