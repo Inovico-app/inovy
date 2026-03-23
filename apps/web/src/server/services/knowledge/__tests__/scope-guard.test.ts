@@ -52,6 +52,8 @@ const mockAuth: AuthContext = {
     updatedAt: new Date(),
     emailVerified: true,
     twoFactorEnabled: false,
+    role: "user",
+    onboardingCompleted: true,
   },
   organizationId: "org-1",
   userTeamIds: ["team-1"],
