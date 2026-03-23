@@ -1,4 +1,4 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import { cache } from "react";
 import { ProjectTemplateQueries } from "../data-access/project-templates.queries";
@@ -26,7 +26,7 @@ export const getCachedProjectTemplate = cache(
   ): Promise<ProjectTemplateDto | null> => {
     "use cache";
 
-    cacheTag(CacheTags.projectTemplate(projectId));
+    cacheTag(...tagsFor("projectTemplate", { projectId }));
     // Fetch template for the project directly from the data-access layer
     const result = await ProjectTemplateQueries.findByProjectId(
       projectId,

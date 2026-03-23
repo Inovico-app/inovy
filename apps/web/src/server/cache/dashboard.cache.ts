@@ -1,5 +1,6 @@
 "use cache";
 
+import { tagsFor } from "@/lib/cache";
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import { DashboardService } from "../services/dashboard.service";
@@ -28,7 +29,7 @@ export async function getCachedDashboardOverview(
 ) {
   "use cache";
   cacheTag(
-    CacheTags.dashboardStats(organizationId),
+    ...tagsFor("dashboard", { organizationId }),
     CacheTags.recentProjects(organizationId),
     CacheTags.recentRecordings(organizationId),
   );

@@ -1,4 +1,4 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import { NotificationsQueries } from "../data-access/notifications.queries";
 import type { NotificationFiltersDto } from "../dto/notification.dto";
@@ -14,15 +14,15 @@ import type { NotificationFiltersDto } from "../dto/notification.dto";
 export async function getCachedNotifications(
   userId: string,
   orgCode: string,
-  filters?: NotificationFiltersDto
+  filters?: NotificationFiltersDto,
 ) {
   "use cache";
-  cacheTag(CacheTags.notifications(userId, orgCode));
+  cacheTag(...tagsFor("notification", { userId, organizationId: orgCode }));
 
   return await NotificationsQueries.getNotificationsByUser(
     userId,
     orgCode,
-    filters
+    filters,
   );
 }
 
@@ -31,14 +31,10 @@ export async function getCachedNotifications(
  */
 export async function getCachedUnreadCount(
   userId: string,
-  orgCode: string
+  orgCode: string,
 ): Promise<number> {
   "use cache";
-  cacheTag(
-    CacheTags.notificationUnreadCount(userId, orgCode),
-    CacheTags.notifications(userId, orgCode)
-  );
+  cacheTag(...tagsFor("notification", { userId, organizationId: orgCode }));
 
   return await NotificationsQueries.getUnreadCount(userId, orgCode);
 }
-

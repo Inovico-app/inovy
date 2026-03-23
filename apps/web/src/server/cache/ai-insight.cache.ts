@@ -1,4 +1,4 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import type { AIInsightDto, InsightType } from "../dto/ai-insight.dto";
 import { AIInsightService } from "../services/ai-insight.service";
@@ -9,16 +9,15 @@ import { AIInsightService } from "../services/ai-insight.service";
  */
 export async function getCachedInsightByTypeInternal(
   recordingId: string,
-  insightType: InsightType
+  insightType: InsightType,
 ): Promise<AIInsightDto | null> {
   "use cache";
-  cacheTag(CacheTags.aiInsightByType(recordingId, insightType));
+  cacheTag(...tagsFor("aiInsight", { recordingId, insightType }));
 
   const result = await AIInsightService.getInsightByTypeInternal(
     recordingId,
-    insightType
+    insightType,
   );
 
   return result.isOk() ? result.value : null;
 }
-
