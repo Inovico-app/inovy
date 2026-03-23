@@ -7,7 +7,7 @@ import {
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { DocumentProcessingService } from "@/server/services/document-processing.service";
+import { KnowledgeModule } from "@/server/services/knowledge";
 import {
   uploadKnowledgeDocumentSchema,
   uploadKnowledgeDocumentsBatchSchema,
@@ -51,12 +51,10 @@ export const uploadKnowledgeDocumentAction = authorizedActionClient
     };
 
     // Upload document
-    const result = await DocumentProcessingService.uploadDocument(
+    const result = await KnowledgeModule.uploadDocument(
       file,
-      scope,
-      scopeId,
+      { scope, scopeId },
       { title, description },
-      user.id,
       auth,
     );
 
@@ -184,11 +182,9 @@ export const uploadKnowledgeDocumentsBatchAction = authorizedActionClient
     };
 
     // Upload documents batch
-    const result = await DocumentProcessingService.uploadDocumentsBatch(
+    const result = await KnowledgeModule.uploadDocumentsBatch(
       filesWithMetadata,
-      scope,
-      scopeId,
-      user.id,
+      { scope, scopeId },
       auth2,
     );
 

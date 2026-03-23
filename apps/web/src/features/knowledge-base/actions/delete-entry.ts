@@ -8,7 +8,7 @@ import {
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { KnowledgeBaseEntriesQueries } from "@/server/data-access/knowledge-base-entries.queries";
-import { KnowledgeBaseService } from "@/server/services/knowledge-base.service";
+import { KnowledgeModule } from "@/server/services/knowledge";
 import { deleteKnowledgeEntrySchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 
@@ -54,7 +54,7 @@ export const deleteKnowledgeEntryAction = authorizedActionClient
     };
 
     // Delete entry
-    const result = await KnowledgeBaseService.deleteEntry(id, user.id, auth);
+    const result = await KnowledgeModule.deleteEntry(id, auth);
 
     if (result.isErr()) {
       throw result.error;
