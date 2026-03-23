@@ -1,5 +1,5 @@
 import { CacheTags } from "../cache-utils";
-import type { CachePolicy } from "./types";
+import type { CachePolicy, InvalidationContext } from "./types";
 
 /**
  * Builds cache tags for the knowledge base hierarchy.
@@ -67,8 +67,232 @@ export function buildKnowledgeTags(
   return tags;
 }
 
+// ---------------------------------------------------------------------------
+// Shared helpers — reused by policies that share the same tag set
+// ---------------------------------------------------------------------------
+
+/** Tags for invalidating project list caches (no specific project). */
+function projectListTags(ctx: InvalidationContext): string[] {
+  return [
+    CacheTags.projectsByOrg(ctx.organizationId),
+    CacheTags.projectCount(ctx.organizationId),
+    CacheTags.dashboardStats(ctx.organizationId),
+    CacheTags.recentProjects(ctx.organizationId),
+  ];
+}
+
+/** Tags for invalidating a specific project + its list caches. */
+function projectTags(ctx: InvalidationContext): string[] {
+  const projectId = ctx.input.projectId as string;
+  return [
+    CacheTags.project(projectId),
+    CacheTags.projectsByOrg(ctx.organizationId),
+    CacheTags.projectCount(ctx.organizationId),
+    CacheTags.projectTemplate(projectId),
+    CacheTags.dashboardStats(ctx.organizationId),
+    CacheTags.recentProjects(ctx.organizationId),
+  ];
+}
+
+/** Tags for invalidating recording list caches (no specific recording). */
+function recordingListTags(ctx: InvalidationContext): string[] {
+  const projectId = ctx.input.projectId as string;
+  return [
+    CacheTags.recordingsByProject(projectId),
+    CacheTags.recordingsByOrg(ctx.organizationId),
+    CacheTags.dashboardStats(ctx.organizationId),
+    CacheTags.recentRecordings(ctx.organizationId),
+  ];
+}
+
+/** Tags for invalidating a specific recording + its list caches. */
+function recordingTags(ctx: InvalidationContext): string[] {
+  const recordingId = ctx.input.recordingId as string;
+  const projectId = ctx.input.projectId as string;
+  return [
+    CacheTags.recording(recordingId),
+    CacheTags.recordingsByProject(projectId),
+    CacheTags.recordingsByOrg(ctx.organizationId),
+    CacheTags.dashboardStats(ctx.organizationId),
+    CacheTags.recentRecordings(ctx.organizationId),
+  ];
+}
+
+/** Tags for invalidating knowledge base caches. */
+function knowledgeTags(ctx: InvalidationContext): string[] {
+  const scope = ctx.input.scope as
+    | "project"
+    | "organization"
+    | "global"
+    | "team";
+  const scopeId = ctx.input.scopeId as string | null | undefined;
+  return buildKnowledgeTags(scope, scopeId, ctx.organizationId);
+}
+
+/** Tags for invalidating meeting agenda items. */
+function agendaTags(ctx: InvalidationContext): string[] {
+  const meetingId = ctx.input.meetingId as string;
+  return [CacheTags.meetingAgendaItems(meetingId)];
+}
+
+// ---------------------------------------------------------------------------
+// CACHE_POLICIES registry
+// ---------------------------------------------------------------------------
+
 /**
- * Registry of cache policies keyed by action name.
- * Populated incrementally — Task 3 will add entries here.
+ * Registry of cache policies keyed by `"resourceType:action"`.
+ *
+ * Each entry is a pure function that, given an {@link InvalidationContext},
+ * returns the list of cache tag strings that should be invalidated.
  */
-export const CACHE_POLICIES: Record<string, CachePolicy> = {};
+export const CACHE_POLICIES: Record<string, CachePolicy> = {
+  // ── Projects ──────────────────────────────────────────────────────────
+  "project:create": (ctx) => projectListTags(ctx),
+  "project:update": (ctx) => projectTags(ctx),
+  "project:delete": (ctx) => projectTags(ctx),
+  "project:archive": (ctx) => projectTags(ctx),
+  "project:restore": (ctx) => projectTags(ctx),
+
+  // ── Recordings ────────────────────────────────────────────────────────
+  "recording:upload": (ctx) => recordingListTags(ctx),
+  "recording:update": (ctx) => recordingTags(ctx),
+  "recording:delete": (ctx) => recordingTags(ctx),
+  "recording:archive": (ctx) => recordingTags(ctx),
+  "recording:restore": (ctx) => recordingTags(ctx),
+  "recording:move": (ctx) => {
+    const recordingId = ctx.input.recordingId as string;
+    const oldProjectId = ctx.input.oldProjectId as string | undefined;
+    const newProjectId = ctx.input.newProjectId as string | undefined;
+    const projectId = ctx.input.projectId as string | undefined;
+    const tags = [
+      CacheTags.recording(recordingId),
+      CacheTags.recordingsByOrg(ctx.organizationId),
+      CacheTags.dashboardStats(ctx.organizationId),
+      CacheTags.recentRecordings(ctx.organizationId),
+    ];
+    // Invalidate both old and new project recording lists
+    if (oldProjectId) {
+      tags.push(CacheTags.recordingsByProject(oldProjectId));
+    }
+    if (newProjectId) {
+      tags.push(CacheTags.recordingsByProject(newProjectId));
+    }
+    // Fallback: if only a generic projectId is provided
+    if (projectId && projectId !== oldProjectId && projectId !== newProjectId) {
+      tags.push(CacheTags.recordingsByProject(projectId));
+    }
+    return tags;
+  },
+  "recording:reprocess": (ctx) => {
+    const recordingId = ctx.input.recordingId as string;
+    return [CacheTags.recording(recordingId), CacheTags.summary(recordingId)];
+  },
+
+  // ── Knowledge Base ────────────────────────────────────────────────────
+  "knowledge_base:create": (ctx) => knowledgeTags(ctx),
+  "knowledge_base:update": (ctx) => knowledgeTags(ctx),
+  "knowledge_base:delete": (ctx) => knowledgeTags(ctx),
+  "knowledge_base_document:delete": (ctx) => knowledgeTags(ctx),
+  "knowledge_base_document:upload": (ctx) => knowledgeTags(ctx),
+
+  // ── Meetings ──────────────────────────────────────────────────────────
+  "meeting:create": (ctx) => [CacheTags.meetings(ctx.organizationId)],
+  "meeting:update": (ctx) => {
+    const meetingId = ctx.input.meetingId as string;
+    return [
+      CacheTags.meeting(meetingId),
+      CacheTags.meetings(ctx.organizationId),
+      CacheTags.calendarMeetings(ctx.userId, ctx.organizationId),
+    ];
+  },
+
+  // ── Agenda ────────────────────────────────────────────────────────────
+  "agenda:create": (ctx) => agendaTags(ctx),
+  "agenda:update": (ctx) => agendaTags(ctx),
+  "agenda:delete": (ctx) => agendaTags(ctx),
+  "agenda:generate": (ctx) => agendaTags(ctx),
+
+  // ── Bot Settings ──────────────────────────────────────────────────────
+  "bot_settings:update": (ctx) => [
+    CacheTags.botSettings(ctx.userId, ctx.organizationId),
+  ],
+
+  // ── Bot Sessions ──────────────────────────────────────────────────────
+  "bot_session:create": (ctx) => [CacheTags.botSessions(ctx.organizationId)],
+  "bot_session:update": (ctx) => {
+    const sessionId = ctx.input.sessionId as string;
+    return [
+      CacheTags.botSession(sessionId),
+      CacheTags.botSessions(ctx.organizationId),
+    ];
+  },
+  "bot_session:delete": (ctx) => {
+    const sessionId = ctx.input.sessionId as string;
+    return [
+      CacheTags.botSession(sessionId),
+      CacheTags.botSessions(ctx.organizationId),
+      CacheTags.notifications(ctx.userId, ctx.organizationId),
+      CacheTags.notificationUnreadCount(ctx.userId, ctx.organizationId),
+    ];
+  },
+
+  // ── Organizations ─────────────────────────────────────────────────────
+  "organization:create": () => [CacheTags.organizations()],
+  "organization:update": (ctx) => [
+    CacheTags.organization(ctx.organizationId),
+    CacheTags.organizations(),
+  ],
+  "organization:delete": (ctx) => [
+    CacheTags.organization(ctx.organizationId),
+    CacheTags.organizations(),
+  ],
+
+  // ── Settings ──────────────────────────────────────────────────────────
+  "settings:update": (ctx) => [
+    CacheTags.organization(ctx.organizationId),
+    CacheTags.organizations(),
+  ],
+
+  // ── Invitations ───────────────────────────────────────────────────────
+  "invitation:invite": (ctx) => [
+    CacheTags.organization(ctx.organizationId),
+    CacheTags.orgMembers(ctx.organizationId),
+  ],
+
+  // ── Integrations ──────────────────────────────────────────────────────
+  "integration:disconnect": (ctx) => {
+    const provider = ctx.input.provider as string;
+    if (provider === "google") {
+      return [CacheTags.googleConnection(ctx.userId)];
+    }
+    if (provider === "microsoft") {
+      return [CacheTags.microsoftConnection(ctx.userId)];
+    }
+    return [];
+  },
+
+  // ── Project Templates ─────────────────────────────────────────────────
+  "project_template:create": (ctx) => {
+    const projectId = ctx.input.projectId as string;
+    return [
+      CacheTags.project(projectId),
+      CacheTags.projectTemplate(projectId),
+      CacheTags.projectsByOrg(ctx.organizationId),
+      CacheTags.dashboardStats(ctx.organizationId),
+      CacheTags.recentProjects(ctx.organizationId),
+    ];
+  },
+  "project_template:update": (ctx) => {
+    const projectId = ctx.input.projectId as string;
+    return [CacheTags.projectTemplate(projectId)];
+  },
+  "project_template:delete": (ctx) => {
+    const projectId = ctx.input.projectId as string;
+    return [
+      CacheTags.project(projectId),
+      CacheTags.projectsByOrg(ctx.organizationId),
+      CacheTags.dashboardStats(ctx.organizationId),
+      CacheTags.recentProjects(ctx.organizationId),
+    ];
+  },
+};
