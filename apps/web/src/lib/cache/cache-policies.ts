@@ -83,15 +83,21 @@ function projectListTags(ctx: InvalidationContext): string[] {
 
 /** Tags for invalidating a specific project + its list caches. */
 function projectTags(ctx: InvalidationContext): string[] {
-  const projectId = ctx.input.projectId as string;
-  return [
+  const projectId = ctx.input.projectId as string | undefined;
+  if (!projectId) return projectListTags(ctx);
+  const tags = [
     CacheTags.project(projectId),
-    CacheTags.projectsByOrg(ctx.organizationId),
-    CacheTags.projectCount(ctx.organizationId),
     CacheTags.projectTemplate(projectId),
-    CacheTags.dashboardStats(ctx.organizationId),
-    CacheTags.recentProjects(ctx.organizationId),
   ];
+  if (ctx.organizationId) {
+    tags.push(
+      CacheTags.projectsByOrg(ctx.organizationId),
+      CacheTags.projectCount(ctx.organizationId),
+      CacheTags.dashboardStats(ctx.organizationId),
+      CacheTags.recentProjects(ctx.organizationId),
+    );
+  }
+  return tags;
 }
 
 /** Tags for invalidating recording list caches (no specific recording). */
@@ -164,16 +170,21 @@ export const CACHE_POLICIES: Record<string, CachePolicy> = {
   "recording:archive": (ctx) => recordingTags(ctx),
   "recording:restore": (ctx) => recordingTags(ctx),
   "recording:move": (ctx) => {
-    const recordingId = ctx.input.recordingId as string;
+    const recordingId = ctx.input.recordingId as string | undefined;
     const oldProjectId = ctx.input.oldProjectId as string | undefined;
     const newProjectId = ctx.input.newProjectId as string | undefined;
     const projectId = ctx.input.projectId as string | undefined;
-    const tags = [
-      CacheTags.recording(recordingId),
-      CacheTags.recordingsByOrg(ctx.organizationId),
-      CacheTags.dashboardStats(ctx.organizationId),
-      CacheTags.recentRecordings(ctx.organizationId),
-    ];
+    const tags: string[] = [];
+    if (recordingId) {
+      tags.push(CacheTags.recording(recordingId));
+    }
+    if (ctx.organizationId) {
+      tags.push(
+        CacheTags.recordingsByOrg(ctx.organizationId),
+        CacheTags.dashboardStats(ctx.organizationId),
+        CacheTags.recentRecordings(ctx.organizationId),
+      );
+    }
     // Invalidate both old and new project recording lists
     if (oldProjectId) {
       tags.push(CacheTags.recordingsByProject(oldProjectId));

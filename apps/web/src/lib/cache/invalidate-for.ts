@@ -22,6 +22,14 @@ export function invalidateFor(
     return;
   }
 
+  if (!ctx.organizationId && !ctx.userId) {
+    logger.warn(
+      `[cache] invalidateFor("${key}") called without userId or organizationId — skipping to avoid malformed tags`,
+      { component: "invalidateFor" },
+    );
+    return;
+  }
+
   const fullCtx: InvalidationContext = {
     userId: ctx.userId ?? "",
     organizationId: ctx.organizationId ?? "",
@@ -33,10 +41,10 @@ export function invalidateFor(
   try {
     const tags = policy(fullCtx);
 
-    if (tags.length === 0 && process.env.NODE_ENV === "development") {
+    if (tags.length === 0) {
       logger.warn(
         `[cache] Policy "${key}" resolved zero tags — required context fields may be missing`,
-        { component: "invalidateFor", ctx: fullCtx },
+        { component: "invalidateFor" },
       );
     }
 
