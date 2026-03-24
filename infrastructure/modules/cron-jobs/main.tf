@@ -1,31 +1,22 @@
 # Cron Jobs for Inovy application
 # Uses Azure Container App Jobs with schedule triggers to call the app's cron API endpoints.
 # Each job runs a lightweight Alpine/curl container that hits the endpoint with the CRON_SECRET.
+# The module is target-agnostic: pass any app_url (Azure Container App, Vercel, etc.)
+# and a target prefix to avoid name collisions when calling the module multiple times.
+#
+# Azure Container App Job names must be <= 32 characters. We use each job's short_name (not the
+# map key) in the resource name: cron-{target}-{short_name}-{environment}.
 
 locals {
-  cron_jobs = {
-    renew-drive-watches = {
-      path                = "/api/cron/renew-drive-watches"
-      cron_expression     = "0 0 * * *" # Daily at midnight UTC
-      timeout_in_seconds  = 300
-    }
-    monitor-calendar = {
-      path                = "/api/cron/monitor-calendar"
-      cron_expression     = "*/5 * * * *" # Every 5 minutes
-      timeout_in_seconds  = 120
-    }
-    poll-bot-status = {
-      path                = "/api/cron/poll-bot-status"
-      cron_expression     = "*/1 * * * *" # Every 1 minute
-      timeout_in_seconds  = 60
-    }
+  cron_job_resource_name = {
+    for k, j in var.jobs : k => "cron-${var.target}-${j.short_name}-${var.environment}"
   }
 }
 
 resource "azurerm_container_app_job" "cron" {
-  for_each = local.cron_jobs
+  for_each = var.jobs
 
-  name                         = "cron-${each.key}-${var.environment}"
+  name                         = local.cron_job_resource_name[each.key]
   location                     = var.location
   resource_group_name          = var.resource_group_name
   container_app_environment_id = var.container_app_environment_id
@@ -41,7 +32,7 @@ resource "azurerm_container_app_job" "cron" {
 
   template {
     container {
-      name   = "cron-${each.key}"
+      name   = "cron-${each.value.short_name}"
       image  = "curlimages/curl:8.5.0"
       cpu    = 0.25
       memory = "0.5Gi"
@@ -52,8 +43,8 @@ resource "azurerm_container_app_job" "cron" {
       ]
 
       env {
-        name        = "APP_URL"
-        value       = var.app_url
+        name  = "APP_URL"
+        value = var.app_url
       }
 
       env {
@@ -69,6 +60,13 @@ resource "azurerm_container_app_job" "cron" {
   }
 
   tags = merge(var.tags, {
-    Component = "cron-${each.key}"
+    Component = "cron-${var.target}-${each.key}"
   })
+
+  lifecycle {
+    precondition {
+      condition = length(local.cron_job_resource_name[each.key]) <= 32
+      error_message = "Container App Job name must be <= 32 characters (Azure limit). Actual length ${length(local.cron_job_resource_name[each.key])}: ${local.cron_job_resource_name[each.key]}"
+    }
+  }
 }

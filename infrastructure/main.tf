@@ -6,6 +6,53 @@ provider "azurerm" {
 # RFC 4122 DNS namespace for deterministic UUID v5 generation (role assignment names)
 locals {
   uuid_namespace_dns = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+
+  # Shared cron job definitions — used by both Azure and Vercel module instances.
+  # short_name keeps Azure Container App Job resource names <= 32 chars (cron-{target}-{short_name}-{env}).
+  all_cron_jobs = {
+    renew-drive-watches = {
+      short_name         = "renew-dw"
+      path               = "/api/cron/renew-drive-watches"
+      cron_expression    = "0 0 * * *" # Daily at midnight UTC
+      timeout_in_seconds = 300
+    }
+    monitor-calendar = {
+      short_name         = "mon-cal"
+      path               = "/api/cron/monitor-calendar"
+      cron_expression    = "*/5 * * * *" # Every 5 minutes
+      timeout_in_seconds = 120
+    }
+    poll-bot-status = {
+      short_name         = "poll-bot"
+      path               = "/api/cron/poll-bot-status"
+      cron_expression    = "*/1 * * * *" # Every 1 minute
+      timeout_in_seconds = 60
+    }
+    agenda-check = {
+      short_name         = "agenda"
+      path               = "/api/cron/agenda-check"
+      cron_expression    = "*/5 * * * *" # Every 5 minutes
+      timeout_in_seconds = 120
+    }
+    data-retention = {
+      short_name         = "data-ret"
+      path               = "/api/cron/data-retention"
+      cron_expression    = "0 3 * * *" # Daily at 3 AM UTC
+      timeout_in_seconds = 600
+    }
+    backup-verification = {
+      short_name         = "bak-verify"
+      path               = "/api/cron/backup-verification"
+      cron_expression    = "0 4 1 * *" # 1st of month at 4 AM UTC
+      timeout_in_seconds = 300
+    }
+    backfill-series = {
+      short_name         = "series-bf"
+      path               = "/api/cron/backfill-series"
+      cron_expression    = "0 2 * * *" # Daily at 2 AM UTC
+      timeout_in_seconds = 300
+    }
+  }
 }
 
 terraform {
@@ -131,7 +178,7 @@ module "container_app_environment" {
   location                     = var.location
   resource_group_name          = azurerm_resource_group.inovy.name
   subnet_container_apps_id     = module.networking.subnet_container_apps_id
-  log_analytics_retention_days  = var.log_analytics_retention_days
+  log_analytics_retention_days = var.log_analytics_retention_days
 
   depends_on = [
     module.networking
@@ -158,16 +205,16 @@ data "azurerm_container_app_environment" "current" {
 module "redis" {
   source = "./modules/redis-container-app"
 
-  environment                    = var.environment
-  location                       = var.location
-  resource_group_name            = azurerm_resource_group.inovy.name
-  container_app_environment_id   = data.azurerm_container_app_environment.current.id
-  redis_password                 = var.redis_password
-  redis_image                    = var.redis_image
-  redis_cpu                      = var.redis_cpu
-  redis_memory                   = var.redis_memory
-  redis_min_replicas             = var.redis_min_replicas
-  redis_max_replicas             = var.redis_max_replicas
+  environment                  = var.environment
+  location                     = var.location
+  resource_group_name          = azurerm_resource_group.inovy.name
+  container_app_environment_id = data.azurerm_container_app_environment.current.id
+  redis_password               = var.redis_password
+  redis_image                  = var.redis_image
+  redis_cpu                    = var.redis_cpu
+  redis_memory                 = var.redis_memory
+  redis_min_replicas           = var.redis_min_replicas
+  redis_max_replicas           = var.redis_max_replicas
 
   depends_on = [
     module.container_app_environment
@@ -184,16 +231,16 @@ module "redis" {
 module "qdrant" {
   source = "./modules/qdrant-container-app"
 
-  environment                    = var.environment
-  location                       = var.location
-  resource_group_name            = azurerm_resource_group.inovy.name
-  container_app_environment_id   = data.azurerm_container_app_environment.current.id
-  qdrant_image                   = var.qdrant_image
-  qdrant_cpu                     = var.qdrant_cpu
-  qdrant_memory                  = var.qdrant_memory
-  qdrant_min_replicas            = var.qdrant_min_replicas
-  qdrant_max_replicas            = var.qdrant_max_replicas
-  qdrant_storage_quota_gb        = var.qdrant_storage_quota_gb
+  environment                  = var.environment
+  location                     = var.location
+  resource_group_name          = azurerm_resource_group.inovy.name
+  container_app_environment_id = data.azurerm_container_app_environment.current.id
+  qdrant_image                 = var.qdrant_image
+  qdrant_cpu                   = var.qdrant_cpu
+  qdrant_memory                = var.qdrant_memory
+  qdrant_min_replicas          = var.qdrant_min_replicas
+  qdrant_max_replicas          = var.qdrant_max_replicas
+  qdrant_storage_quota_gb      = var.qdrant_storage_quota_gb
 
   depends_on = [
     module.container_app_environment
@@ -226,7 +273,7 @@ module "container_registry" {
 resource "azurerm_role_assignment" "container_app_acr_pull" {
   name                             = uuidv5(local.uuid_namespace_dns, "inovy-${var.environment}-container-app-acr-pull")
   scope                            = module.container_registry.acr_id
-  role_definition_id                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/providers/Microsoft.Authorization/roleDefinitions/7f951dda-4ed3-4680-a7ca-43fe172d538d" # AcrPull
+  role_definition_id               = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/providers/Microsoft.Authorization/roleDefinitions/7f951dda-4ed3-4680-a7ca-43fe172d538d" # AcrPull
   principal_id                     = module.container_app_identity.managed_identity_principal_id
   skip_service_principal_aad_check = true
 
@@ -240,17 +287,17 @@ resource "azurerm_role_assignment" "container_app_acr_pull" {
 module "storage" {
   source = "./modules/storage"
 
-  environment                         = var.environment
-  location                            = var.location
-  resource_group_name                 = azurerm_resource_group.inovy.name
-  storage_container_name              = "inovy"
-  storage_account_tier                 = var.storage_account_tier
-  storage_account_replication_type    = var.storage_account_replication_type
-  storage_blob_retention_days          = var.storage_blob_retention_days
-  storage_blob_restore_days           = var.storage_blob_restore_days
-  managed_identity_principal_id       = module.container_app_identity.managed_identity_principal_id
-  uuid_namespace                      = local.uuid_namespace_dns
-  cors_allowed_origins                = [
+  environment                      = var.environment
+  location                         = var.location
+  resource_group_name              = azurerm_resource_group.inovy.name
+  storage_container_name           = "inovy"
+  storage_account_tier             = var.storage_account_tier
+  storage_account_replication_type = var.storage_account_replication_type
+  storage_blob_retention_days      = var.storage_blob_retention_days
+  storage_blob_restore_days        = var.storage_blob_restore_days
+  managed_identity_principal_id    = module.container_app_identity.managed_identity_principal_id
+  uuid_namespace                   = local.uuid_namespace_dns
+  cors_allowed_origins = [
     var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${data.azurerm_container_app_environment.current.default_domain}" : "http://inovy-app-${var.environment}.${data.azurerm_container_app_environment.current.default_domain}"
   ]
 
@@ -266,20 +313,48 @@ module "storage" {
   }
 }
 
-# Cron Jobs Module
-module "cron_jobs" {
+# Cron Jobs — Azure Container App target
+module "cron_jobs_azure" {
   source = "./modules/cron-jobs"
 
   environment                  = var.environment
   location                     = var.location
   resource_group_name          = azurerm_resource_group.inovy.name
   container_app_environment_id = data.azurerm_container_app_environment.current.id
+  target                       = "azure"
   app_url                      = var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${data.azurerm_container_app_environment.current.default_domain}" : "http://inovy-app-${var.environment}.${data.azurerm_container_app_environment.current.default_domain}"
   cron_secret                  = var.cron_secret
+
+  jobs = local.all_cron_jobs
 
   depends_on = [
     module.container_app_environment,
     module.container_app
+  ]
+
+  tags = {
+    Environment = var.environment
+    Application = "inovy"
+    ManagedBy   = "terraform"
+  }
+}
+
+# Cron Jobs — Vercel deployment target
+module "cron_jobs_vercel" {
+  source = "./modules/cron-jobs"
+
+  environment                  = var.environment
+  location                     = var.location
+  resource_group_name          = azurerm_resource_group.inovy.name
+  container_app_environment_id = data.azurerm_container_app_environment.current.id
+  target                       = "vercel"
+  app_url                      = var.vercel_url
+  cron_secret                  = var.cron_secret
+
+  jobs = local.all_cron_jobs
+
+  depends_on = [
+    module.container_app_environment
   ]
 
   tags = {
@@ -296,14 +371,14 @@ module "container_app" {
   environment                                  = var.environment
   location                                     = var.location
   resource_group_name                          = azurerm_resource_group.inovy.name
-  container_app_environment_id                  = data.azurerm_container_app_environment.current.id
-  container_app_environment_default_domain      = data.azurerm_container_app_environment.current.default_domain
+  container_app_environment_id                 = data.azurerm_container_app_environment.current.id
+  container_app_environment_default_domain     = data.azurerm_container_app_environment.current.default_domain
   managed_identity_id                          = module.container_app_identity.managed_identity_id
   postgresql_admin_login                       = module.database.postgresql_administrator_login
   postgresql_admin_password                    = var.postgresql_admin_password
   postgresql_fqdn                              = module.database.postgresql_server_fqdn
   postgresql_database_name                     = module.database.postgresql_database_name
-  redis_url                                     = module.redis.redis_url
+  redis_url                                    = module.redis.redis_url
   qdrant_url                                   = "http://qdrant-${var.environment}.internal.${data.azurerm_container_app_environment.current.default_domain}"
   qdrant_api_key                               = var.qdrant_api_key
   storage_account_name                         = module.storage.storage_account_name
@@ -335,12 +410,12 @@ module "container_app" {
   resend_reply_to_email                        = var.resend_reply_to_email
   google_client_id                             = var.google_client_id
   google_client_secret                         = var.google_client_secret
-  google_redirect_uri                           = var.google_redirect_uri
+  google_redirect_uri                          = var.google_redirect_uri
   microsoft_client_id                          = var.microsoft_client_id
-  microsoft_client_secret                       = var.microsoft_client_secret
-  microsoft_tenant_id                           = var.microsoft_tenant_id
-  next_public_webhook_url                       = var.next_public_webhook_url
-  next_public_kvk_number                        = var.next_public_kvk_number
+  microsoft_client_secret                      = var.microsoft_client_secret
+  microsoft_tenant_id                          = var.microsoft_tenant_id
+  next_public_webhook_url                      = var.next_public_webhook_url
+  next_public_kvk_number                       = var.next_public_kvk_number
 
   depends_on = [
     module.networking,
@@ -362,17 +437,17 @@ module "container_app" {
 module "db_migrate_job" {
   source = "./modules/db-migrate-job"
 
-  environment                    = var.environment
-  location                       = var.location
-  resource_group_name            = azurerm_resource_group.inovy.name
-  container_app_environment_id   = data.azurerm_container_app_environment.current.id
-  managed_identity_id            = module.container_app_identity.managed_identity_id
-  container_app_image            = "${module.container_registry.acr_login_server}/inovy-app:latest"
-  acr_login_server               = module.container_registry.acr_login_server
-  postgresql_admin_login         = module.database.postgresql_administrator_login
-  postgresql_admin_password      = var.postgresql_admin_password
-  postgresql_fqdn                = module.database.postgresql_server_fqdn
-  postgresql_database_name       = module.database.postgresql_database_name
+  environment                  = var.environment
+  location                     = var.location
+  resource_group_name          = azurerm_resource_group.inovy.name
+  container_app_environment_id = data.azurerm_container_app_environment.current.id
+  managed_identity_id          = module.container_app_identity.managed_identity_id
+  container_app_image          = "${module.container_registry.acr_login_server}/inovy-app:latest"
+  acr_login_server             = module.container_registry.acr_login_server
+  postgresql_admin_login       = module.database.postgresql_administrator_login
+  postgresql_admin_password    = var.postgresql_admin_password
+  postgresql_fqdn              = module.database.postgresql_server_fqdn
+  postgresql_database_name     = module.database.postgresql_database_name
 
   depends_on = [
     module.container_registry,
