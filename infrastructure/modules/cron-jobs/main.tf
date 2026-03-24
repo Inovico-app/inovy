@@ -1,31 +1,13 @@
 # Cron Jobs for Inovy application
 # Uses Azure Container App Jobs with schedule triggers to call the app's cron API endpoints.
 # Each job runs a lightweight Alpine/curl container that hits the endpoint with the CRON_SECRET.
-
-locals {
-  cron_jobs = {
-    renew-drive-watches = {
-      path                = "/api/cron/renew-drive-watches"
-      cron_expression     = "0 0 * * *" # Daily at midnight UTC
-      timeout_in_seconds  = 300
-    }
-    monitor-calendar = {
-      path                = "/api/cron/monitor-calendar"
-      cron_expression     = "*/5 * * * *" # Every 5 minutes
-      timeout_in_seconds  = 120
-    }
-    poll-bot-status = {
-      path                = "/api/cron/poll-bot-status"
-      cron_expression     = "*/1 * * * *" # Every 1 minute
-      timeout_in_seconds  = 60
-    }
-  }
-}
+# The module is target-agnostic: pass any app_url (Azure Container App, Vercel, etc.)
+# and a target prefix to avoid name collisions when calling the module multiple times.
 
 resource "azurerm_container_app_job" "cron" {
-  for_each = local.cron_jobs
+  for_each = var.jobs
 
-  name                         = "cron-${each.key}-${var.environment}"
+  name                         = "cron-${var.target}-${each.key}-${var.environment}"
   location                     = var.location
   resource_group_name          = var.resource_group_name
   container_app_environment_id = var.container_app_environment_id
@@ -52,8 +34,8 @@ resource "azurerm_container_app_job" "cron" {
       ]
 
       env {
-        name        = "APP_URL"
-        value       = var.app_url
+        name  = "APP_URL"
+        value = var.app_url
       }
 
       env {
@@ -69,6 +51,6 @@ resource "azurerm_container_app_job" "cron" {
   }
 
   tags = merge(var.tags, {
-    Component = "cron-${each.key}"
+    Component = "cron-${var.target}-${each.key}"
   })
 }

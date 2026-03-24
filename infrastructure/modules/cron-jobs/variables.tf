@@ -18,9 +18,23 @@ variable "container_app_environment_id" {
   type        = string
 }
 
-variable "app_url" {
-  description = "Base URL of the Inovy application (e.g., https://inovy-app-prd.example.com)"
+variable "target" {
+  description = "Target platform identifier used to prefix resource names (e.g., 'azure', 'vercel')"
   type        = string
+}
+
+variable "app_url" {
+  description = "Base URL of the target application (e.g., https://inovy.vercel.app or https://inovy-app-prd.example.com)"
+  type        = string
+}
+
+variable "jobs" {
+  description = "Map of cron job definitions. Each entry defines a path, cron_expression, and timeout_in_seconds."
+  type = map(object({
+    path               = string
+    cron_expression    = string
+    timeout_in_seconds = number
+  }))
 }
 
 variable "cron_secret" {
