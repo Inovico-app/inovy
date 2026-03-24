@@ -29,8 +29,13 @@ variable "app_url" {
 }
 
 variable "jobs" {
-  description = "Map of cron job definitions. Each entry defines a path, cron_expression, and timeout_in_seconds."
+  description = <<-EOT
+    Map of cron job definitions. Each entry defines path, schedule, timeout, and short_name.
+    short_name is used for Azure Container App Job resource names and must keep the full name
+    cron-{target}-{short_name}-{environment} at or below 32 characters (Azure limit).
+  EOT
   type = map(object({
+    short_name         = string
     path               = string
     cron_expression    = string
     timeout_in_seconds = number

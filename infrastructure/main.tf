@@ -7,39 +7,47 @@ provider "azurerm" {
 locals {
   uuid_namespace_dns = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
 
-  # Shared cron job definitions — used by both Azure and Vercel module instances
+  # Shared cron job definitions — used by both Azure and Vercel module instances.
+  # short_name keeps Azure Container App Job resource names <= 32 chars (cron-{target}-{short_name}-{env}).
   all_cron_jobs = {
     renew-drive-watches = {
+      short_name         = "renew-dw"
       path               = "/api/cron/renew-drive-watches"
       cron_expression    = "0 0 * * *" # Daily at midnight UTC
       timeout_in_seconds = 300
     }
     monitor-calendar = {
+      short_name         = "mon-cal"
       path               = "/api/cron/monitor-calendar"
       cron_expression    = "*/5 * * * *" # Every 5 minutes
       timeout_in_seconds = 120
     }
     poll-bot-status = {
+      short_name         = "poll-bot"
       path               = "/api/cron/poll-bot-status"
       cron_expression    = "*/1 * * * *" # Every 1 minute
       timeout_in_seconds = 60
     }
     agenda-check = {
+      short_name         = "agenda"
       path               = "/api/cron/agenda-check"
       cron_expression    = "*/5 * * * *" # Every 5 minutes
       timeout_in_seconds = 120
     }
     data-retention = {
+      short_name         = "data-ret"
       path               = "/api/cron/data-retention"
       cron_expression    = "0 3 * * *" # Daily at 3 AM UTC
       timeout_in_seconds = 600
     }
     backup-verification = {
+      short_name         = "bak-verify"
       path               = "/api/cron/backup-verification"
       cron_expression    = "0 4 1 * *" # 1st of month at 4 AM UTC
       timeout_in_seconds = 300
     }
     backfill-series = {
+      short_name         = "series-bf"
       path               = "/api/cron/backfill-series"
       cron_expression    = "0 2 * * *" # Daily at 2 AM UTC
       timeout_in_seconds = 300
