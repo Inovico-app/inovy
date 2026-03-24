@@ -1,4 +1,12 @@
-import { pgTable, text, timestamp, uuid, real, integer, boolean } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  real,
+  integer,
+  boolean,
+} from "drizzle-orm/pg-core";
 import { recordings } from "./recordings";
 import { projects } from "./projects";
 
@@ -17,7 +25,7 @@ export const tasks = pgTable("tasks", {
   id: uuid("id").defaultRandom().primaryKey(),
   recordingId: uuid("recording_id")
     .notNull()
-    .references(() => recordings.id),
+    .references(() => recordings.id, { onDelete: "cascade" }),
   projectId: uuid("project_id")
     .notNull()
     .references(() => projects.id),
@@ -51,4 +59,3 @@ export const tasks = pgTable("tasks", {
 
 export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;
-
