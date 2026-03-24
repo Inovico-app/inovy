@@ -22,7 +22,10 @@ import type { ProjectTemplateDto } from "@/server/dto/project-template.dto";
 import { getCachedAgentSettings } from "@/server/cache/agent-settings.cache";
 import { getCachedOrganizationSettings } from "@/server/cache/organization-settings.cache";
 import { ChatQueries } from "@/server/data-access/chat.queries";
-import type { NewChatMessage } from "@/server/db/schema/chat-messages";
+import type {
+  NewChatMessage,
+  SourceReference,
+} from "@/server/db/schema/chat-messages";
 import { stepCountIs, streamText } from "ai";
 import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../../ai/middleware";
@@ -227,6 +230,9 @@ export class ChatPipeline {
       // --- Determine step budget by role ---
       const maxSteps = caller.userRole === "viewer" ? 5 : 10;
 
+      // Closure variable to pass sources from onFinish to messageMetadata
+      let extractedSources: SourceReference[] = [];
+
       // --- Build streamText options ---
       const streamTextOptions: Parameters<typeof streamText>[0] = {
         model: guardedModel,
@@ -338,6 +344,7 @@ export class ChatPipeline {
 
           // Extract sources from searchKnowledge tool results
           const sources = extractSourcesFromToolResults(toolCalls, toolResults);
+          extractedSources = sources;
 
           // Save assistant message after streaming is complete
           const assistantMessageEntry: NewChatMessage = {
@@ -376,7 +383,14 @@ export class ChatPipeline {
       const result = streamText(streamTextOptions);
 
       return ok({
-        response: result.toUIMessageStreamResponse(),
+        response: result.toUIMessageStreamResponse({
+          messageMetadata: ({ part }) => {
+            if (part.type === "finish" && extractedSources.length > 0) {
+              return { sources: extractedSources };
+            }
+            return {};
+          },
+        }),
         conversationId,
       });
     } catch (error) {

@@ -1,22 +1,22 @@
 import {
   Message,
-  MessageAvatar,
   MessageContent,
+  MessageResponse,
 } from "@/components/ai-elements/message";
 import {
+  Source,
   Sources,
   SourcesContent,
   SourcesTrigger,
 } from "@/components/ai-elements/sources";
-import { useCitationParser } from "../hooks/use-citation-parser";
+import { Tool, ToolContent, ToolHeader } from "@/components/ai-elements/tool";
+import type { ToolUIPart } from "ai";
 import {
   getToolName,
   isToolPart,
   type MessagePart,
   type SourceReference,
 } from "../types";
-import { CitationMarker } from "./citation-marker";
-import { EnhancedSourceCard } from "./enhanced-source-card";
 import { ToolResultCard } from "./tool-result-card";
 
 interface ChatMessage {
@@ -28,98 +28,67 @@ interface ChatMessage {
 interface ChatMessageListProps {
   messages: ChatMessage[];
   messageSourcesMap: Record<string, SourceReference[]>;
-  sourceRefsMap: React.MutableRefObject<
-    Record<string, Record<number, HTMLDivElement | null>>
-  >;
   context: "organization" | "project";
   projectId: string | null;
-  setSourceRef: (
-    messageId: string,
-    sourceIndex: number,
-    element: HTMLDivElement | null
-  ) => void;
+  isStreaming?: boolean;
 }
 
 export function ChatMessageList({
   messages,
   messageSourcesMap,
-  sourceRefsMap,
   context,
   projectId,
-  setSourceRef,
+  isStreaming,
 }: ChatMessageListProps) {
-  const { parseCitations, scrollToSource } = useCitationParser();
-
-  // Initialize source refs for all messages before rendering
-  for (const message of messages) {
-    if (!sourceRefsMap.current[message.id]) {
-      sourceRefsMap.current[message.id] = {};
-    }
-  }
-
-  const handleCitationClick = (messageId: string, sourceIndex: number) => {
-    scrollToSource(messageId, sourceIndex, sourceRefsMap);
-  };
-
   return (
     <>
-      {messages.map((message) => {
+      {messages.map((message, messageIndex) => {
+        const isLastAssistant =
+          message.role === "assistant" && messageIndex === messages.length - 1;
+
         return (
           <Message key={message.id} from={message.role}>
-            <MessageAvatar
-              src={
-                message.role === "user"
-                  ? "/placeholder-user.png"
-                  : "/placeholder-assistant.png"
-              }
-              name={message.role === "user" ? "Me" : "AI"}
-            />
             <MessageContent>
-              <div className="whitespace-pre-wrap break-words">
-                {message.parts.map((part, index) => {
-                  if (isToolPart(part)) {
-                    return (
-                      <ToolResultCard
-                        key={`part-${index}-${part.type}`}
-                        toolName={getToolName(part)}
-                        part={part}
+              {message.parts.map((part, index) => {
+                if (isToolPart(part)) {
+                  const toolName = getToolName(part);
+                  return (
+                    <Tool key={`part-${index}-${part.type}`}>
+                      <ToolHeader
+                        title={toolName}
+                        type={part.type as ToolUIPart["type"]}
+                        state={part.state as ToolUIPart["state"]}
                       />
+                      <ToolContent>
+                        <div className="p-3">
+                          <ToolResultCard toolName={toolName} part={part} />
+                        </div>
+                      </ToolContent>
+                    </Tool>
+                  );
+                }
+                if (part.type === "text") {
+                  if (message.role === "assistant") {
+                    return (
+                      <MessageResponse
+                        key={`text-part-${index}`}
+                        isAnimating={isLastAssistant && isStreaming}
+                      >
+                        {part.text || ""}
+                      </MessageResponse>
                     );
                   }
-                  if (part.type === "text") {
-                    // Parse citations for assistant messages
-                    if (message.role === "assistant") {
-                      const parsedParts = parseCitations(
-                        part.text || "",
-                        message.id
-                      );
-                      return (
-                        <span key={`text-part-${index}`}>
-                          {parsedParts.map((part, i) => {
-                            if (part.type === "text") {
-                              return <span key={`parsed-text-${i}`}>{part.content}</span>;
-                            }
-                            return (
-                              <CitationMarker
-                                key={`${part.messageId}-citation-${i}`}
-                                citationNumber={part.citationNumber ?? 0}
-                                onClick={() =>
-                                  handleCitationClick(
-                                    part.messageId ?? "",
-                                    part.citationIndex ?? 0
-                                  )
-                                }
-                              />
-                            );
-                          })}
-                        </span>
-                      );
-                    }
-                    return <span key={`raw-text-${index}`}>{part.text}</span>;
-                  }
-                  return null;
-                })}
-              </div>
+                  return (
+                    <span
+                      key={`raw-text-${index}`}
+                      className="whitespace-pre-wrap break-words"
+                    >
+                      {part.text}
+                    </span>
+                  );
+                }
+                return null;
+              })}
 
               {/* Show sources only when assistant message has actual content */}
               {message.role === "assistant" &&
@@ -135,24 +104,20 @@ export function ChatMessageList({
                     />
                     <SourcesContent>
                       {messageSourcesMap[message.id].map((source, index) => {
-                        // For organization context, use source.projectId
-                        // For project context, use projectId from query state
-                        const enhancedSource = {
-                          ...source,
-                          projectId:
-                            context === "organization"
-                              ? source.projectId
-                              : (projectId ?? undefined),
-                        };
+                        const resolvedProjectId =
+                          context === "organization"
+                            ? source.projectId
+                            : (projectId ?? undefined);
+                        const href =
+                          resolvedProjectId && source.recordingId
+                            ? `/projects/${resolvedProjectId}/recordings/${source.recordingId}${source.timestamp !== undefined ? `?t=${Math.floor(source.timestamp)}` : ""}`
+                            : undefined;
 
                         return (
-                          <EnhancedSourceCard
+                          <Source
                             key={`${source.contentId}-${index}`}
-                            source={enhancedSource}
-                            sourceIndex={index}
-                            ref={(el) => {
-                              setSourceRef(message.id, index, el);
-                            }}
+                            href={href}
+                            title={source.title}
                           />
                         );
                       })}
@@ -166,4 +131,3 @@ export function ChatMessageList({
     </>
   );
 }
-
