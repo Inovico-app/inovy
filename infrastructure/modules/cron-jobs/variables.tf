@@ -48,6 +48,16 @@ variable "cron_secret" {
   sensitive   = true
 }
 
+variable "acr_login_server" {
+  description = "ACR login server (e.g. inovyacrprd.azurecr.io). Cron jobs pull curl from this registry instead of Docker Hub."
+  type        = string
+}
+
+variable "managed_identity_id" {
+  description = "User-assigned managed identity resource ID for AcrPull (same identity as the main Container App; must have AcrPull on the ACR)."
+  type        = string
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

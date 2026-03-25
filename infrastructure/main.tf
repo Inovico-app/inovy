@@ -324,12 +324,17 @@ module "cron_jobs_azure" {
   target                       = "azure"
   app_url                      = var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${data.azurerm_container_app_environment.current.default_domain}" : "http://inovy-app-${var.environment}.${data.azurerm_container_app_environment.current.default_domain}"
   cron_secret                  = var.cron_secret
+  acr_login_server             = module.container_registry.acr_login_server
+  managed_identity_id          = module.container_app_identity.managed_identity_id
 
   jobs = local.all_cron_jobs
 
   depends_on = [
     module.container_app_environment,
-    module.container_app
+    module.container_app,
+    module.container_registry,
+    module.container_app_identity,
+    azurerm_role_assignment.container_app_acr_pull,
   ]
 
   tags = {
@@ -350,11 +355,16 @@ module "cron_jobs_vercel" {
   target                       = "vercel"
   app_url                      = var.vercel_url
   cron_secret                  = var.cron_secret
+  acr_login_server             = module.container_registry.acr_login_server
+  managed_identity_id          = module.container_app_identity.managed_identity_id
 
   jobs = local.all_cron_jobs
 
   depends_on = [
-    module.container_app_environment
+    module.container_app_environment,
+    module.container_registry,
+    module.container_app_identity,
+    azurerm_role_assignment.container_app_acr_pull,
   ]
 
   tags = {

@@ -11,6 +11,8 @@ locals {
   cron_job_resource_name = {
     for k, j in var.jobs : k => "cron-${var.target}-${j.short_name}-${var.environment}"
   }
+  # Mirrored into ACR via CI (az acr import) — see .github/workflows/azure-infra.yml
+  cron_curl_image = "${var.acr_login_server}/curlimages/curl:8.5.0"
 }
 
 resource "azurerm_container_app_job" "cron" {
@@ -30,16 +32,32 @@ resource "azurerm_container_app_job" "cron" {
     replica_completion_count = 1
   }
 
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [var.managed_identity_id]
+  }
+
+  dynamic "registry" {
+    for_each = var.acr_login_server != "" ? [1] : []
+    content {
+      server   = var.acr_login_server
+      identity = var.managed_identity_id
+    }
+  }
+
   template {
     container {
       name   = "cron-${each.value.short_name}"
-      image  = "curlimages/curl:8.5.0"
+      image  = local.cron_curl_image
       cpu    = 0.25
       memory = "0.5Gi"
 
+      # Use double quotes so sh expands CRON_SECRET and APP_URL. Single quotes would send the
+      # literal "${CRON_SECRET}" in the Authorization header (401 Unauthorized).
+      # FULL_URL is echoed to console logs so Log Analytics shows the resolved request URL.
       command = [
         "/bin/sh", "-c",
-        "curl -sf -H 'Authorization: Bearer $${CRON_SECRET}' $${APP_URL}${each.value.path}"
+        "FULL_URL=\"$${APP_URL}${each.value.path}\"; echo \"Cron target URL: $FULL_URL\"; curl -sS -H \"Authorization: Bearer $${CRON_SECRET}\" \"$FULL_URL\""
       ]
 
       env {
