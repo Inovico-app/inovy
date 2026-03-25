@@ -54,7 +54,7 @@ resource "azurerm_container_app_job" "cron" {
 
       command = [
         "/bin/sh", "-c",
-        "curl -H 'Authorization: Bearer $${CRON_SECRET}' $${APP_URL}${each.value.path}"
+        "curl -sS -H 'Authorization: Bearer $${CRON_SECRET}' $${APP_URL}${each.value.path}"
       ]
 
       env {
