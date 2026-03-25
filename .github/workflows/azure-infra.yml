@@ -89,10 +89,21 @@ jobs:
             ACR_NAME="inovyacr$(echo '${{ inputs.environment }}' | tr -d '-')"
           fi
           echo "Importing curlimages/curl:8.5.0 into ACR: $ACR_NAME"
-          az acr import \
+          set +e
+          IMPORT_OUT=$(az acr import \
             --name "$ACR_NAME" \
             --source docker.io/curlimages/curl:8.5.0 \
-            --image curlimages/curl:8.5.0
+            --image curlimages/curl:8.5.0 2>&1)
+          IMPORT_RC=$?
+          set -e
+          if [ "$IMPORT_RC" -ne 0 ]; then
+            if echo "$IMPORT_OUT" | grep -q 'already exists in target registry'; then
+              echo "curl image tag already present in ACR; continuing"
+            else
+              echo "$IMPORT_OUT"
+              exit 1
+            fi
+          fi
 
       - name: Terraform Force Unlock
         if: ${{ inputs.terraform_unlock != '' }}
@@ -197,10 +208,21 @@ jobs:
             ACR_NAME="inovyacr$(echo '${{ inputs.environment }}' | tr -d '-')"
           fi
           echo "Importing curlimages/curl:8.5.0 into ACR: $ACR_NAME"
-          az acr import \
+          set +e
+          IMPORT_OUT=$(az acr import \
             --name "$ACR_NAME" \
             --source docker.io/curlimages/curl:8.5.0 \
-            --image curlimages/curl:8.5.0
+            --image curlimages/curl:8.5.0 2>&1)
+          IMPORT_RC=$?
+          set -e
+          if [ "$IMPORT_RC" -ne 0 ]; then
+            if echo "$IMPORT_OUT" | grep -q 'already exists in target registry'; then
+              echo "curl image tag already present in ACR; continuing"
+            else
+              echo "$IMPORT_OUT"
+              exit 1
+            fi
+          fi
 
       - name: Terraform Init
         working-directory: infrastructure
