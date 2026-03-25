@@ -142,13 +142,13 @@ export function OrganizationListClient({
                       {format(new Date(org.createdAt), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell>
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {}
                       <Button
                         variant="ghost"
                         size="sm"
                         render={
                           <Link
-                            href={`/admin/organizations/${org.id}` as any}
+                            href={`/admin/organizations/${org.id}` as string}
                           />
                         }
                         nativeButton={false}
