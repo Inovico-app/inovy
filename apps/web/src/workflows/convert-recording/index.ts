@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { RecallApiService } from "@/server/services/recall-api.service";
 import type { WorkflowResult as SerializableResult } from "@/workflows/lib/workflow-result";
 import { failure, success } from "@/workflows/lib/workflow-result";
 import { updateWorkflowStatus } from "../shared/update-status";
@@ -33,7 +34,9 @@ import type { WorkflowResult } from "./types";
  */
 export async function convertRecordingIntoAiInsights(
   recordingId: string,
-  isReprocessing = false
+  isReprocessing = false,
+  recallBotId?: string,
+  externalRecordingId?: string,
 ): Promise<SerializableResult<WorkflowResult>> {
   "use workflow";
 
@@ -63,9 +66,31 @@ export async function convertRecordingIntoAiInsights(
     let transcriptionText = recording.transcriptionText;
 
     if (!isReprocessing || !transcriptionText) {
+      // Determine source URL: Recall URL for bot recordings, fileUrl for others
+      let sourceUrl = recording.fileUrl;
+
+      if (recallBotId && externalRecordingId) {
+        const urlResult = await RecallApiService.getRecordingDownloadUrl(
+          recallBotId,
+          externalRecordingId,
+        );
+        if (urlResult.isErr()) {
+          const errorMsg = `Failed to get Recall URL: ${urlResult.error}`;
+          await updateWorkflowStatus(recordingId, "failed", errorMsg);
+          return failure(errorMsg);
+        }
+        sourceUrl = urlResult.value.url;
+      }
+
+      if (!sourceUrl) {
+        const errorMsg = "No source URL available for transcription";
+        await updateWorkflowStatus(recordingId, "failed", errorMsg);
+        return failure(errorMsg);
+      }
+
       const transcriptionResult = await executeTranscriptionStep(
         recordingId,
-        recording.fileUrl
+        sourceUrl,
       );
 
       if (!transcriptionResult.success) {
@@ -124,7 +149,7 @@ export async function convertRecordingIntoAiInsights(
         recording.organizationId,
         recording.createdById,
         utterances,
-        language
+        language,
       ),
     ]);
 
@@ -132,7 +157,7 @@ export async function convertRecordingIntoAiInsights(
     const validationResult = await validateParallelResults(
       recordingId,
       summaryResult,
-      taskExtractionResult
+      taskExtractionResult,
     );
 
     if (!validationResult.success) {
@@ -150,7 +175,7 @@ export async function convertRecordingIntoAiInsights(
     await executeFinalStep(
       recordingId,
       recording.projectId,
-      recording.organizationId
+      recording.organizationId,
     );
 
     // Update workflow status to completed
@@ -197,4 +222,3 @@ export async function convertRecordingIntoAiInsights(
     return failure(errorMsg);
   }
 }
-
