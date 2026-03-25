@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,7 +149,7 @@ export function OrganizationListClient({
                         size="sm"
                         render={
                           <Link
-                            href={`/admin/organizations/${org.id}` as string}
+                            href={`/admin/organizations/${org.id}` as Route}
                           />
                         }
                         nativeButton={false}
