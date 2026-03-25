@@ -1,4 +1,5 @@
 import { useAction } from "next-safe-action/hooks";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getOrCreateMeeting } from "../actions/meeting-actions";
@@ -20,7 +21,7 @@ export function useNavigateToMeeting(options?: UseNavigateToMeetingOptions) {
       const returnTo = calendarSearch
         ? `?returnTo=${encodeURIComponent(calendarSearch)}`
         : "";
-      router.push(`/meetings/${data.meetingId}/prep${returnTo}` as never);
+      router.push(`/meetings/${data.meetingId}/prep${returnTo}` as Route);
 
       // Reset action state to prevent re-triggering on component remount
       reset();

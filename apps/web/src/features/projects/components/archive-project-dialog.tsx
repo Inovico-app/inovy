@@ -1,6 +1,7 @@
 "use client";
 
 import { ArchiveIcon, ArchiveRestoreIcon, Loader2Icon } from "lucide-react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -66,7 +67,7 @@ export function ArchiveProjectDialog({
 
       toast.success(`Project "${projectName}" archived successfully`);
       router.refresh();
-      router.push("/projects" as never);
+      router.push("/projects" as Route);
     } catch (error) {
       console.error("Error archiving project:", error);
       toast.error("Failed to archive project");

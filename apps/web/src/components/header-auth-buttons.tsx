@@ -42,7 +42,7 @@ export function HeaderAuthButtons() {
     await signOut({
       fetchOptions: {
         onSuccess: () => {
-          router.push("/sign-in" as never); // redirect to login page
+          router.push("/sign-in" as Route); // redirect to login page
           router.refresh();
         },
       },

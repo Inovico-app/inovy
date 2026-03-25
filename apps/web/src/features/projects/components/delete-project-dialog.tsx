@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2Icon, Trash2Icon } from "lucide-react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDeleteProjectState } from "../hooks/use-delete-project-state";
@@ -121,7 +122,7 @@ export function DeleteProjectDialog({
 
       toast.success(`Project "${projectName}" deleted successfully`);
       setOpen(false);
-      router.push("/projects" as never);
+      router.push("/projects" as Route);
       router.refresh();
     } catch (error) {
       console.error("Error deleting project:", error);

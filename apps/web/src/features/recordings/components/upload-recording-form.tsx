@@ -17,6 +17,7 @@ import {
   MAX_FILE_SIZE,
 } from "@/server/validation/recordings/upload-recording";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, type ChangeEvent, type DragEvent } from "react";
 import { useForm } from "react-hook-form";
@@ -206,7 +207,7 @@ export function UploadRecordingForm({
         onSuccess(blob.pathname); // Pass pathname as identifier
       } else {
         // Navigate to project page
-        router.push(`/projects/${projectId}` as never);
+        router.push(`/projects/${projectId}` as Route);
       }
     } catch (err) {
       // Handle abort error differently from other errors

@@ -1,6 +1,7 @@
 "use client";
 
 import { signOut } from "@/lib/auth-client";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -14,7 +15,7 @@ export function useInvitationSignOut(invitationId: string) {
       await signOut({
         fetchOptions: {
           onSuccess: () => {
-            router.push(`/accept-invitation/${invitationId}` as never);
+            router.push(`/accept-invitation/${invitationId}` as Route);
             router.refresh();
           },
         },

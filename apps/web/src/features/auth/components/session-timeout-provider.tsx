@@ -12,6 +12,7 @@ import {
 import { useSessionTimeout } from "@/features/auth/hooks/use-session-timeout";
 import { authClient } from "@/lib/auth-client";
 import { logger } from "@/lib/logger";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useCallback, type ReactNode } from "react";
 
@@ -34,7 +35,7 @@ export function SessionTimeoutProvider({
   const handleTimeout = useCallback(async () => {
     try {
       await authClient.signOut();
-      router.push("/sign-in?reason=session-expired" as never);
+      router.push("/sign-in?reason=session-expired" as Route);
     } catch (error) {
       logger.error("Failed to sign out on session timeout", {
         error,
@@ -42,7 +43,7 @@ export function SessionTimeoutProvider({
         action: "handleTimeout",
       });
       // Force redirect even if sign-out fails
-      router.push("/sign-in?reason=session-expired" as never);
+      router.push("/sign-in?reason=session-expired" as Route);
     }
   }, [router]);
 

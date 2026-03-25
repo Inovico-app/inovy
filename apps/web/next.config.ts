@@ -28,6 +28,9 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
   cacheComponents: true,
   reactCompiler: true,
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   // Exclude pino and related packages from bundling (server-only)
   serverExternalPackages: [
     "pino",

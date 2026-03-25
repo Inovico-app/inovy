@@ -1,4 +1,5 @@
 import { useAction } from "next-safe-action/hooks";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { moveRecordingAction } from "../actions/move-recording";
@@ -26,7 +27,7 @@ export function useMoveRecordingMutation(
 
         // Redirect to the recording detail page in the new project
         router.push(
-          `/projects/${targetProjectId}/recordings/${recordingId}` as never,
+          `/projects/${targetProjectId}/recordings/${recordingId}` as Route,
         );
 
         options?.onSuccess?.();
