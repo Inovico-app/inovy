@@ -20,7 +20,9 @@ export function RecordingInfoCard({ recording }: RecordingInfoCardProps) {
           <div className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Date:</span>
-            <span className="text-sm">{formatDateLong(recording.recordingDate)}</span>
+            <span className="text-sm">
+              {formatDateLong(recording.recordingDate)}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <ClockIcon className="h-4 w-4 text-muted-foreground" />
@@ -32,13 +34,19 @@ export function RecordingInfoCard({ recording }: RecordingInfoCardProps) {
           <div className="flex items-center gap-2">
             <FileIcon className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">File size:</span>
-            <span className="text-sm">{formatFileSize(recording.fileSize)}</span>
+            <span className="text-sm">
+              {recording.fileSize != null
+                ? formatFileSize(recording.fileSize)
+                : "—"}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <FileIcon className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Format:</span>
             <span className="text-sm">
-              {recording.fileName.split(".").pop()?.toUpperCase()}
+              {recording.fileName != null
+                ? (recording.fileName.split(".").pop()?.toUpperCase() ?? "—")
+                : "—"}
             </span>
           </div>
         </div>
@@ -46,5 +54,3 @@ export function RecordingInfoCard({ recording }: RecordingInfoCardProps) {
     </Card>
   );
 }
-
-

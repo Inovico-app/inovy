@@ -116,13 +116,19 @@ export function RecordingCardWithStatus({
           </div>
           {recording.duration && (
             <div className="flex items-center gap-1.5">
-              {getFileIcon(recording.fileMimeType)}
+              {recording.fileMimeType != null ? (
+                getFileIcon(recording.fileMimeType)
+              ) : (
+                <FileAudioIcon className="h-5 w-5 text-muted-foreground" />
+              )}
               <span>{formatDurationCompact(recording.duration)}</span>
             </div>
           )}
           <div className="flex items-center gap-1.5">
             <span className="text-xs">
-              {formatFileSizePrecise(recording.fileSize)}
+              {recording.fileSize != null
+                ? formatFileSizePrecise(recording.fileSize)
+                : "—"}
             </span>
           </div>
         </div>
@@ -146,4 +152,3 @@ export function RecordingCardWithStatus({
     </Link>
   );
 }
-

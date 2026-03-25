@@ -210,11 +210,15 @@ export function BotSessionDetailsModal({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">File Size:</span>
-                      <span>{formatFileSize(session.recording.fileSize)}</span>
+                      <span>
+                        {session.recording.fileSize != null
+                          ? formatFileSize(session.recording.fileSize)
+                          : "—"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">File Type:</span>
-                      <span>{session.recording.fileMimeType}</span>
+                      <span>{session.recording.fileMimeType ?? "—"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
