@@ -32,11 +32,18 @@ export interface BlobProperties {
   contentType?: string;
 }
 
+export interface CopyFromUrlResult {
+  url: string;
+  pathname: string;
+  contentLength: number | null;
+  contentType: string | null;
+}
+
 export interface StorageProvider {
   put(
     path: string,
     data: File | Buffer | Blob,
-    options: StoragePutOptions
+    options: StoragePutOptions,
   ): Promise<StoragePutResult>;
 
   del(url: string): Promise<void>;
@@ -48,7 +55,7 @@ export interface StorageProvider {
    */
   getBlobProperties?(
     url: string,
-    options?: { pathname?: string }
+    options?: { pathname?: string },
   ): Promise<BlobProperties>;
 
   /**
@@ -56,12 +63,25 @@ export interface StorageProvider {
    * Only used by Azure (Vercel uses its own handleUpload flow).
    */
   generateClientUploadToken?(
-    options: ClientUploadOptions
+    options: ClientUploadOptions,
   ): Promise<ClientUploadToken>;
 
   /**
    * Generate a read-only signed URL for a blob.
    * Required for Azure when public access is disabled; Vercel blob URLs are typically public.
    */
-  generateReadSasUrl?(blobUrl: string, expiresInMinutes?: number): Promise<string>;
+  generateReadSasUrl?(
+    blobUrl: string,
+    expiresInMinutes?: number,
+  ): Promise<string>;
+
+  /**
+   * Copy a blob from an external URL using server-side copy.
+   * The data flows directly from source to Azure — it never passes through the calling process.
+   */
+  copyFromURL?(
+    sourceUrl: string,
+    destinationPath: string,
+    options?: { access?: "public" | "private" },
+  ): Promise<CopyFromUrlResult>;
 }
