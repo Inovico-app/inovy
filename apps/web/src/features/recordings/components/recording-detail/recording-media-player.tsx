@@ -7,6 +7,31 @@ interface RecordingMediaPlayerProps {
 }
 
 export function RecordingMediaPlayer({ recording }: RecordingMediaPlayerProps) {
+  // Early return if storage not complete
+  if (
+    recording.storageStatus !== "completed" ||
+    !recording.fileUrl ||
+    !recording.fileMimeType ||
+    !recording.fileName
+  ) {
+    return (
+      <Card id="player">
+        <CardHeader>
+          <CardTitle>Playback</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-48 rounded-lg border bg-muted">
+            <p className="text-muted-foreground text-sm">
+              {recording.storageStatus === "failed"
+                ? "Recording storage failed"
+                : "Recording is being uploaded..."}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const isVideo = recording.fileMimeType.startsWith("video/");
   const isAudio = recording.fileMimeType.startsWith("audio/");
 
@@ -31,4 +56,3 @@ export function RecordingMediaPlayer({ recording }: RecordingMediaPlayerProps) {
     </Card>
   );
 }
-

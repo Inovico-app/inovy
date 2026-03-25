@@ -77,6 +77,25 @@ export const POST = withRateLimit(
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
 
+      if (!recording.fileUrl || recording.storageStatus !== "completed") {
+        if (
+          recording.storageStatus === "pending" ||
+          recording.storageStatus === "processing"
+        ) {
+          return NextResponse.json(
+            {
+              error: "Recording file not yet available",
+              storageStatus: recording.storageStatus,
+            },
+            { status: 202, headers: { "Retry-After": "10" } },
+          );
+        }
+        return NextResponse.json(
+          { error: "Recording has no file URL" },
+          { status: 422 },
+        );
+      }
+
       logger.info("Starting transcription", {
         component: "TranscribeRoute",
         recordingId,

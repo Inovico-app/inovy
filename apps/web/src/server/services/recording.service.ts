@@ -11,7 +11,11 @@ import type { AuthContext } from "../../lib/auth-context";
 import type { BetterAuthUser } from "../../lib/auth";
 import { ProjectQueries } from "../data-access/projects.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
-import { type NewRecording, type Recording } from "../db/schema/recordings";
+import {
+  type NewRecording,
+  type Recording,
+  type RecordingStatus,
+} from "../db/schema/recordings";
 import { type RecordingDto } from "../dto/recording.dto";
 import { RAGService } from "./rag/rag.service";
 
@@ -846,6 +850,58 @@ export class RecordingService {
   }
 
   /**
+   * Update recording storage fields (fileUrl, fileName, fileSize, fileMimeType, storageStatus)
+   * Used by the bot-webhook workflow after the recording file has been downloaded and stored.
+   */
+  static async updateRecordingStorage(
+    recordingId: string,
+    data: {
+      fileUrl?: string | null;
+      fileName?: string | null;
+      fileSize?: number | null;
+      fileMimeType?: string | null;
+      storageStatus?: RecordingStatus;
+    },
+  ): Promise<ActionResult<void>> {
+    logger.info("Updating recording storage", {
+      component: "RecordingService.updateRecordingStorage",
+      recordingId,
+    });
+
+    try {
+      const updated = await RecordingsQueries.updateRecording(
+        recordingId,
+        data,
+      );
+
+      if (!updated) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "RecordingService.updateRecordingStorage",
+          ),
+        );
+      }
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Failed to update recording storage", {
+        component: "RecordingService.updateRecordingStorage",
+        error: serializeError(error),
+        recordingId,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to update recording storage",
+          error as Error,
+          "RecordingService.updateRecordingStorage",
+        ),
+      );
+    }
+  }
+
+  /**
    * Convert database recording to DTO
    */
   static toDto(recording: Recording): RecordingDto {
@@ -854,10 +910,12 @@ export class RecordingService {
       projectId: recording.projectId,
       title: recording.title,
       description: recording.description,
-      fileUrl: recording.fileUrl,
-      fileName: recording.fileName,
-      fileSize: recording.fileSize,
-      fileMimeType: recording.fileMimeType,
+      fileUrl: recording.fileUrl ?? null,
+      fileName: recording.fileName ?? null,
+      fileSize: recording.fileSize ?? null,
+      fileMimeType: recording.fileMimeType ?? null,
+      storageStatus: recording.storageStatus,
+      recallBotId: recording.recallBotId ?? null,
       duration: recording.duration,
       recordingDate: recording.recordingDate,
       recordingMode: recording.recordingMode,

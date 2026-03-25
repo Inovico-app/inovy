@@ -12,6 +12,7 @@ import type {
   BlobProperties,
   ClientUploadOptions,
   ClientUploadToken,
+  CopyFromUrlResult,
   StorageProvider,
   StoragePutOptions,
   StoragePutResult,
@@ -25,7 +26,8 @@ function getClient(): BlobServiceClient {
     if (!connectionString) {
       throw new Error("AZURE_STORAGE_CONNECTION_STRING is not set");
     }
-    _blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
+    _blobServiceClient =
+      BlobServiceClient.fromConnectionString(connectionString);
   }
   return _blobServiceClient;
 }
@@ -35,7 +37,7 @@ function getSharedKeyCredential(): StorageSharedKeyCredential {
   const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
   if (!accountName || !accountKey) {
     throw new Error(
-      "AZURE_STORAGE_ACCOUNT_NAME and AZURE_STORAGE_ACCOUNT_KEY are required for SAS token generation"
+      "AZURE_STORAGE_ACCOUNT_NAME and AZURE_STORAGE_ACCOUNT_KEY are required for SAS token generation",
     );
   }
   return new StorageSharedKeyCredential(accountName, accountKey);
@@ -69,7 +71,7 @@ function encodeBlobPathForUrl(blobPath: string): string {
 function generateBlobSasUrl(
   blobUrl: string,
   permissions: string,
-  expiresInMinutes = 15
+  expiresInMinutes = 15,
 ): string {
   const credential = getSharedKeyCredential();
   const url = new URL(blobUrl);
@@ -88,16 +90,12 @@ function generateBlobSasUrl(
       startsOn: new Date(),
       expiresOn,
     },
-    credential
+    credential,
   ).toString();
 
   const encodedPath =
     "/" +
-    url.pathname
-      .split("/")
-      .filter(Boolean)
-      .map(encodeURIComponent)
-      .join("/");
+    url.pathname.split("/").filter(Boolean).map(encodeURIComponent).join("/");
   return `${url.origin}${encodedPath}?${sasToken}`;
 }
 
@@ -105,7 +103,7 @@ export class AzureStorageProvider implements StorageProvider {
   async put(
     blobPath: string,
     data: File | Buffer | Blob,
-    options: StoragePutOptions
+    options: StoragePutOptions,
   ): Promise<StoragePutResult> {
     const containerName = getContainerName(options.access);
     const accountName = getAccountName();
@@ -151,7 +149,7 @@ export class AzureStorageProvider implements StorageProvider {
 
   async getBlobProperties(
     url: string,
-    options?: { pathname?: string }
+    options?: { pathname?: string },
   ): Promise<BlobProperties> {
     // Use connection string (SharedKey) for server-side property checks.
     // SAS can fail with 403 due to storage firewall, IP restrictions, or URL parsing.
@@ -161,8 +159,7 @@ export class AzureStorageProvider implements StorageProvider {
     const containerName = pathParts[0]!;
     // When pathname is provided, use it directly to avoid URL encoding/decoding mismatches
     // that can cause BlobNotFound (e.g. spaces, special chars in the blob path).
-    const blobName =
-      options?.pathname ?? pathParts.slice(1).join("/");
+    const blobName = options?.pathname ?? pathParts.slice(1).join("/");
 
     const containerClient = client.getContainerClient(containerName);
     const blobClient = containerClient.getBlobClient(blobName);
@@ -175,7 +172,7 @@ export class AzureStorageProvider implements StorageProvider {
   }
 
   async generateClientUploadToken(
-    options: ClientUploadOptions
+    options: ClientUploadOptions,
   ): Promise<ClientUploadToken> {
     const credential = getSharedKeyCredential();
     const containerName = getContainerName(options.access);
@@ -187,7 +184,7 @@ export class AzureStorageProvider implements StorageProvider {
 
     const expiresOn = new Date();
     expiresOn.setMinutes(
-      expiresOn.getMinutes() + (options.expiresInMinutes ?? 30)
+      expiresOn.getMinutes() + (options.expiresInMinutes ?? 30),
     );
 
     const sasToken = generateBlobSASQueryParameters(
@@ -200,7 +197,7 @@ export class AzureStorageProvider implements StorageProvider {
         // Omit contentType: SAS with contentType can reject uploads when client sends
         // a different Content-Type (e.g. mp4 as audio/mp4 vs video/mp4, or empty on Safari)
       },
-      credential
+      credential,
     ).toString();
 
     const blobUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${encodeBlobPathForUrl(finalPath)}`;
@@ -214,9 +211,45 @@ export class AzureStorageProvider implements StorageProvider {
 
   async generateReadSasUrl(
     blobUrl: string,
-    expiresInMinutes = 60
+    expiresInMinutes = 60,
   ): Promise<string> {
     return generateBlobSasUrl(blobUrl, "r", expiresInMinutes);
   }
-}
 
+  async copyFromURL(
+    sourceUrl: string,
+    destinationPath: string,
+    options?: { access?: "public" | "private" },
+  ): Promise<CopyFromUrlResult> {
+    const containerName = getContainerName(options?.access ?? "private");
+    const accountName = getAccountName();
+
+    const blobUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${encodeBlobPathForUrl(destinationPath)}`;
+
+    // Generate SAS with write permissions for the destination blob
+    const sasUrl = generateBlobSasUrl(blobUrl, "cw", 60); // 60 min for large copies
+    const blobClient = new BlobClient(sasUrl);
+
+    // Start server-side copy — Azure fetches from sourceUrl directly
+    const poller = await blobClient.beginCopyFromURL(sourceUrl);
+    const copyResult = await poller.pollUntilDone();
+
+    if (copyResult.copyStatus !== "success") {
+      throw new Error(
+        `Azure copy failed with status: ${copyResult.copyStatus ?? "unknown"}`,
+      );
+    }
+
+    // Get blob properties for contentLength and contentType
+    const props = await this.getBlobProperties(blobUrl, {
+      pathname: destinationPath,
+    });
+
+    return {
+      url: blobUrl,
+      pathname: destinationPath,
+      contentLength: props.contentLength ?? null,
+      contentType: props.contentType ?? null,
+    };
+  }
+}

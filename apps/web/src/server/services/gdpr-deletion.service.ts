@@ -273,7 +273,9 @@ export class GdprDeletionService {
     for (const recording of ownedRecordings) {
       try {
         // Delete file from blob storage
-        await storage.del(recording.fileUrl);
+        if (recording.fileUrl) {
+          await storage.del(recording.fileUrl);
+        }
       } catch (error) {
         logger.warn("Failed to delete recording file", {
           component: "GdprDeletionService.deleteUserOwnedRecordings",

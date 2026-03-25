@@ -72,104 +72,109 @@ export function RecordingCard({
 
   return (
     <>
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              {projectName && (
-                <Badge variant="outline" className="text-xs">
-                  {projectName}
-                </Badge>
+      <Card className="hover:shadow-md transition-shadow">
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                {projectName && (
+                  <Badge variant="outline" className="text-xs">
+                    {projectName}
+                  </Badge>
+                )}
+              </div>
+              <Link
+                href={
+                  `/projects/${projectId}/recordings/${recording.id}` as Route
+                }
+                className="hover:underline"
+              >
+                <CardTitle className="truncate">{recording.title}</CardTitle>
+              </Link>
+              {recording.description && (
+                <CardDescription className="line-clamp-2 mt-1">
+                  {recording.description}
+                </CardDescription>
               )}
             </div>
-            <Link
-              href={
-                `/projects/${projectId}/recordings/${recording.id}` as Route
-              }
-              className="hover:underline"
-            >
-              <CardTitle className="truncate">{recording.title}</CardTitle>
-            </Link>
-            {recording.description && (
-              <CardDescription className="line-clamp-2 mt-1">
-                {recording.description}
-              </CardDescription>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge className={statusConfig.className}>
-              {statusConfig.label}
-            </Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
-                <MoreVerticalIcon className="h-4 w-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setShowEditModal(true)}>
-                  <EditIcon className="h-4 w-4 mr-2" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowMoveDialog(true)}>
-                  <ArrowRightIcon className="h-4 w-4 mr-2" />
-                  Move to Project
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem disabled>
-                  Archive (Coming Soon)
-                </DropdownMenuItem>
-                <DropdownMenuItem disabled className="text-destructive">
-                  Delete (Coming Soon)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <CalendarIcon className="h-4 w-4" />
-            <span>{formatDateShort(recording.recordingDate)}</span>
-          </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <FileAudioIcon className="h-4 w-4" />
-            <span>{formatFileSizePrecise(recording.fileSize)}</span>
-          </div>
-          {recording.duration && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <ClockIcon className="h-4 w-4" />
-              <span>{formatDurationCompact(recording.duration)}</span>
+            <div className="flex items-center gap-2">
+              <Badge className={statusConfig.className}>
+                {statusConfig.label}
+              </Badge>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={<Button variant="ghost" size="sm" />}
+                >
+                  <MoreVerticalIcon className="h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setShowEditModal(true)}>
+                    <EditIcon className="h-4 w-4 mr-2" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowMoveDialog(true)}>
+                    <ArrowRightIcon className="h-4 w-4 mr-2" />
+                    Move to Project
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled>
+                    Archive (Coming Soon)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled className="text-destructive">
+                    Delete (Coming Soon)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          )}
-          <div className="flex items-center gap-2 text-muted-foreground text-xs">
-            Uploaded {formatDateShort(recording.createdAt)}
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <CalendarIcon className="h-4 w-4" />
+              <span>{formatDateShort(recording.recordingDate)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <FileAudioIcon className="h-4 w-4" />
+              <span>
+                {recording.fileSize != null
+                  ? formatFileSizePrecise(recording.fileSize)
+                  : "—"}
+              </span>
+            </div>
+            {recording.duration && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <ClockIcon className="h-4 w-4" />
+                <span>{formatDurationCompact(recording.duration)}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-muted-foreground text-xs">
+              Uploaded {formatDateShort(recording.createdAt)}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-    <Activity
-      name="edit-recording-modal"
-      mode={showEditModal ? "visible" : "hidden"}
-    >
-      <EditRecordingModal
-        recording={recording}
-        onOpenChange={setShowEditModal}
-      />
-    </Activity>
+      <Activity
+        name="edit-recording-modal"
+        mode={showEditModal ? "visible" : "hidden"}
+      >
+        <EditRecordingModal
+          recording={recording}
+          onOpenChange={setShowEditModal}
+        />
+      </Activity>
 
-    <Activity
-      name="move-recording-dialog"
-      mode={showMoveDialog ? "visible" : "hidden"}
-    >
-      <MoveRecordingDialog
-        recording={recording}
-        currentProjectId={projectId}
-        onOpenChange={setShowMoveDialog}
-      />
-    </Activity>
+      <Activity
+        name="move-recording-dialog"
+        mode={showMoveDialog ? "visible" : "hidden"}
+      >
+        <MoveRecordingDialog
+          recording={recording}
+          currentProjectId={projectId}
+          onOpenChange={setShowMoveDialog}
+        />
+      </Activity>
     </>
   );
 }
-

@@ -43,10 +43,14 @@ export const recordings = pgTable(
       .references(() => projects.id),
     title: text("title").notNull(),
     description: text("description"),
-    fileUrl: text("file_url").notNull(),
-    fileName: text("file_name").notNull(),
-    fileSize: integer("file_size").notNull(),
-    fileMimeType: text("file_mime_type").notNull(),
+    fileUrl: text("file_url"),
+    fileName: text("file_name"),
+    fileSize: integer("file_size"),
+    fileMimeType: text("file_mime_type"),
+    storageStatus: text("storage_status", { enum: recordingStatusEnum })
+      .notNull()
+      .default("completed"),
+    recallBotId: text("recall_bot_id"),
     duration: integer("duration"), // in seconds
     recordingDate: timestamp("recording_date", {
       withTimezone: true,
@@ -104,12 +108,11 @@ export const recordings = pgTable(
     // Ensure unique external recording ID per organization
     uniqueExternalRecordingIdPerOrg: unique().on(
       table.organizationId,
-      table.externalRecordingId
+      table.externalRecordingId,
     ),
     meetingIdIdx: index("recordings_meeting_id_idx").on(table.meetingId),
-  })
+  }),
 );
 
 export type Recording = typeof recordings.$inferSelect;
 export type NewRecording = typeof recordings.$inferInsert;
-

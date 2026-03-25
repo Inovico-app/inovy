@@ -57,6 +57,30 @@ export async function GET(
       );
     }
 
+    // Check storage status — file may not be available yet
+    if (!recording.fileUrl || recording.storageStatus !== "completed") {
+      if (recording.storageStatus === "failed") {
+        return NextResponse.json(
+          { error: "Recording storage failed" },
+          { status: 500 },
+        );
+      }
+      return NextResponse.json(
+        {
+          error: "Recording file not yet available",
+          storageStatus: recording.storageStatus,
+        },
+        { status: 202, headers: { "Retry-After": "10" } },
+      );
+    }
+
+    // For non-encrypted recordings, redirect to SAS URL to avoid buffering large files
+    if (!recording.isEncrypted) {
+      const sasUrl = await resolveFetchableUrl(recording.fileUrl, 60);
+      return NextResponse.redirect(sasUrl, 302);
+    }
+
+    // Encrypted path: resolve URL, download, and decrypt
     // Resolve fetch URL: Azure blobs need a read SAS token (public access disabled)
     const fetchUrl = await resolveFetchableUrl(recording.fileUrl, 60);
 
@@ -91,36 +115,42 @@ export async function GET(
       );
     }
 
-    // Decrypt if encrypted
     let fileBuffer: Buffer;
-    if (recording.isEncrypted) {
-      try {
-        const encryptedData = await response.arrayBuffer();
-        fileBuffer = decrypt(Buffer.from(encryptedData).toString("base64"));
-      } catch (error) {
-        logger.error("Failed to decrypt recording", {
-          component: "recording-playback-route",
-          recordingId,
-          error: error instanceof Error ? error : new Error(String(error)),
-        });
-        return NextResponse.json(
-          { error: "Failed to decrypt recording" },
-          { status: 500 },
-        );
-      }
-    } else {
-      const arrayBuffer = await response.arrayBuffer();
-      fileBuffer = Buffer.from(arrayBuffer);
+    try {
+      const encryptedData = await response.arrayBuffer();
+      fileBuffer = decrypt(Buffer.from(encryptedData).toString("base64"));
+    } catch (error) {
+      logger.error("Failed to decrypt recording", {
+        component: "recording-playback-route",
+        recordingId,
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
+      return NextResponse.json(
+        { error: "Failed to decrypt recording" },
+        { status: 500 },
+      );
     }
+
+    const fileMimeType = recording.fileMimeType ?? "application/octet-stream";
+    const MIME_TO_EXT: Record<string, string> = {
+      "video/mp4": "mp4",
+      "video/webm": "webm",
+      "audio/mp3": "mp3",
+      "audio/mpeg": "mp3",
+      "audio/wav": "wav",
+      "audio/m4a": "m4a",
+    };
+    const fileName =
+      recording.fileName ?? `recording.${MIME_TO_EXT[fileMimeType] ?? "bin"}`;
 
     const isDownload = request.nextUrl.searchParams.get("download") === "1";
     const contentDisposition = isDownload
-      ? `attachment; filename="${recording.fileName}"`
-      : `inline; filename="${recording.fileName}"`;
+      ? `attachment; filename="${fileName}"`
+      : `inline; filename="${fileName}"`;
 
     return new NextResponse(fileBuffer as unknown as BodyInit, {
       headers: {
-        "Content-Type": recording.fileMimeType,
+        "Content-Type": fileMimeType,
         "Content-Length": fileBuffer.length.toString(),
         "Content-Disposition": contentDisposition,
         "Cache-Control": `private, max-age=${CACHE_MAX_AGE_1_HOUR}`,

@@ -4,10 +4,12 @@ import { failure, success } from "@/workflows/lib/workflow-result";
 import { updateWorkflowStatus } from "../shared/update-status";
 import { getAiInsightsStep } from "./steps/step-ai-insights";
 import { executeFinalStep } from "./steps/step-finalize";
+import { executePostActionsStep } from "./steps/step-post-actions";
 import { getRecordingStep } from "./steps/step-get-recording";
 import { sendSuccessNotification } from "./steps/step-send-notification";
 import { executeSummaryStep } from "./steps/step-summary";
 import { executeTaskExtractionStep } from "./steps/step-tasks";
+import { fetchRecallUrlStep } from "./steps/step-fetch-recall-url";
 import { executeTranscriptionStep } from "./steps/step-transcription";
 import { validateParallelResults } from "./steps/step-validate-parallel-results";
 import type { WorkflowResult } from "./types";
@@ -33,7 +35,9 @@ import type { WorkflowResult } from "./types";
  */
 export async function convertRecordingIntoAiInsights(
   recordingId: string,
-  isReprocessing = false
+  isReprocessing = false,
+  recallBotId?: string,
+  externalRecordingId?: string,
 ): Promise<SerializableResult<WorkflowResult>> {
   "use workflow";
 
@@ -63,9 +67,31 @@ export async function convertRecordingIntoAiInsights(
     let transcriptionText = recording.transcriptionText;
 
     if (!isReprocessing || !transcriptionText) {
+      // Determine source URL: Recall URL for bot recordings, fileUrl for others
+      let sourceUrl = recording.fileUrl;
+
+      if (recallBotId && externalRecordingId) {
+        const urlResult = await fetchRecallUrlStep(
+          recallBotId,
+          externalRecordingId,
+        );
+        if (!urlResult.success || !urlResult.value) {
+          const errorMsg = "Failed to get Recall URL";
+          await updateWorkflowStatus(recordingId, "failed", errorMsg);
+          return failure(errorMsg);
+        }
+        sourceUrl = urlResult.value;
+      }
+
+      if (!sourceUrl) {
+        const errorMsg = "No source URL available for transcription";
+        await updateWorkflowStatus(recordingId, "failed", errorMsg);
+        return failure(errorMsg);
+      }
+
       const transcriptionResult = await executeTranscriptionStep(
         recordingId,
-        recording.fileUrl
+        sourceUrl,
       );
 
       if (!transcriptionResult.success) {
@@ -124,7 +150,7 @@ export async function convertRecordingIntoAiInsights(
         recording.organizationId,
         recording.createdById,
         utterances,
-        language
+        language,
       ),
     ]);
 
@@ -132,7 +158,7 @@ export async function convertRecordingIntoAiInsights(
     const validationResult = await validateParallelResults(
       recordingId,
       summaryResult,
-      taskExtractionResult
+      taskExtractionResult,
     );
 
     if (!validationResult.success) {
@@ -150,8 +176,11 @@ export async function convertRecordingIntoAiInsights(
     await executeFinalStep(
       recordingId,
       recording.projectId,
-      recording.organizationId
+      recording.organizationId,
     );
+
+    // Step 4: Execute post-meeting actions (depends on transcript being available)
+    await executePostActionsStep(recordingId, recording.organizationId);
 
     // Update workflow status to completed
     await updateWorkflowStatus(recordingId, "completed", undefined);
@@ -197,4 +226,3 @@ export async function convertRecordingIntoAiInsights(
     return failure(errorMsg);
   }
 }
-
