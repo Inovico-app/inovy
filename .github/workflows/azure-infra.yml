@@ -77,6 +77,23 @@ jobs:
           echo "$TF_VARS_B64" | base64 -d > terraform.tfvars
           echo "Created terraform.tfvars from decoded TF_VARS environment variable"
 
+      - name: Import cron curl image to ACR
+        working-directory: infrastructure
+        run: |
+          set -euo pipefail
+          ACR_NAME=""
+          if [ -f terraform.tfvars ]; then
+            ACR_NAME=$(grep -E '^[[:space:]]*acr_name[[:space:]]*=' terraform.tfvars 2>/dev/null | sed -E 's/.*=[[:space:]]*"([^"]*)".*/\1/' | head -1 || true)
+          fi
+          if [ -z "${ACR_NAME// }" ]; then
+            ACR_NAME="inovyacr$(echo '${{ inputs.environment }}' | tr -d '-')"
+          fi
+          echo "Importing curlimages/curl:8.5.0 into ACR: $ACR_NAME"
+          az acr import \
+            --name "$ACR_NAME" \
+            --source docker.io/curlimages/curl:8.5.0 \
+            --image curlimages/curl:8.5.0
+
       - name: Terraform Force Unlock
         if: ${{ inputs.terraform_unlock != '' }}
         working-directory: infrastructure
@@ -159,6 +176,31 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.6.0"
+
+      - name: Create terraform.tfvars from TF_VARS
+        working-directory: infrastructure
+        env:
+          TF_VARS_B64: ${{ vars.TF_VARS }}
+        run: |
+          echo "$TF_VARS_B64" | base64 -d > terraform.tfvars
+          echo "Created terraform.tfvars from decoded TF_VARS environment variable"
+
+      - name: Import cron curl image to ACR
+        working-directory: infrastructure
+        run: |
+          set -euo pipefail
+          ACR_NAME=""
+          if [ -f terraform.tfvars ]; then
+            ACR_NAME=$(grep -E '^[[:space:]]*acr_name[[:space:]]*=' terraform.tfvars 2>/dev/null | sed -E 's/.*=[[:space:]]*"([^"]*)".*/\1/' | head -1 || true)
+          fi
+          if [ -z "${ACR_NAME// }" ]; then
+            ACR_NAME="inovyacr$(echo '${{ inputs.environment }}' | tr -d '-')"
+          fi
+          echo "Importing curlimages/curl:8.5.0 into ACR: $ACR_NAME"
+          az acr import \
+            --name "$ACR_NAME" \
+            --source docker.io/curlimages/curl:8.5.0 \
+            --image curlimages/curl:8.5.0
 
       - name: Terraform Init
         working-directory: infrastructure
