@@ -11,7 +11,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 async function MeetingsContent({
-  searchParams,
+  searchParams: _searchParams,
 }: {
   searchParams: Promise<{
     month?: string;

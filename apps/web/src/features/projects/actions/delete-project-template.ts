@@ -40,7 +40,7 @@ export const deleteProjectTemplateAction = authorizedActionClient
     const orgCode = getUserOrganizationId(user, organizationId);
 
     // Get template to find project ID before deletion
-    const template = await ProjectTemplateQueries.findById(id, orgCode);
+    const _template = await ProjectTemplateQueries.findById(id, orgCode);
 
     // Delete template using service
     const result = await ProjectTemplateService.deleteProjectTemplate(

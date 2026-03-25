@@ -38,7 +38,7 @@ export function EmailSignUpForm({
   onSubmit,
   onCancel,
   isLoading,
-  isSigningUp,
+  _isSigningUp,
   signUpError,
 }: EmailSignUpFormProps) {
   const emailForm = useForm<EmailSignUpValues>({
@@ -58,10 +58,7 @@ export function EmailSignUpForm({
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
       <Form {...emailForm}>
-        <form
-          onSubmit={emailForm.handleSubmit(onSubmit)}
-          className="space-y-4"
-        >
+        <form onSubmit={emailForm.handleSubmit(onSubmit)} className="space-y-4">
           <fieldset className="space-y-4" disabled={isLoading}>
             <legend className="sr-only">
               Create account with email and password
@@ -146,11 +143,7 @@ export function EmailSignUpForm({
               >
                 Annuleren
               </Button>
-              <Button
-                type="submit"
-                className="flex-1"
-                disabled={isLoading}
-              >
+              <Button type="submit" className="flex-1" disabled={isLoading}>
                 Registreren
               </Button>
             </div>

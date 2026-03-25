@@ -398,7 +398,7 @@ export class RecordingService {
           organizationId,
           "RecordingService.updateRecordingMetadata",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -638,7 +638,7 @@ export class RecordingService {
           orgCode,
           "RecordingService.deleteRecording",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -729,7 +729,7 @@ export class RecordingService {
           organizationId,
           "RecordingService.moveRecording",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",

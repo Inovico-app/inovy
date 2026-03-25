@@ -29,12 +29,6 @@ export const insightProcessingStatusEnum = [
 export type InsightProcessingStatus =
   (typeof insightProcessingStatusEnum)[number];
 
-interface Speaker {
-  id: number;
-  name?: string;
-  utterances: number;
-}
-
 interface Utterance {
   speaker: number;
   text: string;
@@ -75,4 +69,3 @@ export const aiInsights = pgTable("ai_insights", {
 
 export type AIInsight = typeof aiInsights.$inferSelect;
 export type NewAIInsight = typeof aiInsights.$inferInsert;
-

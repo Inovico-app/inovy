@@ -7,7 +7,6 @@ export const metadata: Metadata = { title: "Projects" };
 import { ProjectSearch } from "@/features/projects/components/project-search";
 import { ProjectTeamFilter } from "@/features/projects/components/project-team-filter";
 import { ProjectTabs } from "@/features/projects/components/project-tabs";
-import { formatDateShort } from "@/lib/formatters/date-formatters";
 import { getCreatorDisplayName } from "@/lib/formatters/display-formatters";
 import { filterProjectsBySearch } from "@/lib/filters/project-filters";
 import type { AllowedStatus } from "@/server/data-access/projects.queries";
@@ -16,7 +15,6 @@ import { resolveAuthContext } from "@/lib/auth-context";
 import { ProjectService } from "@/server/services/project.service";
 import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
 import {
-  CalendarIcon,
   FileTextIcon,
   FolderIcon,
   GlobeIcon,

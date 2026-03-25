@@ -1,4 +1,11 @@
-import { pgTable, text, timestamp, uuid, real, integer, boolean } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  real,
+  integer,
+} from "drizzle-orm/pg-core";
 import { recordings } from "./recordings";
 import { projects } from "./projects";
 
@@ -51,4 +58,3 @@ export const tasks = pgTable("tasks", {
 
 export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;
-

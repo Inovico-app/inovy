@@ -27,7 +27,7 @@ export const POST = withRateLimit(
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      const user = authResult.value.user;
+      const _user = authResult.value.user;
 
       // Verify RBAC permission (viewers cannot trigger transcription)
       const hasPermission = await checkPermission(Permissions.recording.update);
@@ -72,7 +72,7 @@ export const POST = withRateLimit(
           organization?.id,
           "api/transcribe/[recordingId]",
         );
-      } catch (error) {
+      } catch (_error) {
         // Return 404 to prevent information leakage
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }

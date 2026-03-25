@@ -35,7 +35,7 @@ export const getAgentMetrics = authorizedActionClient
     },
   })
   .schema(getMetricsSchema)
-  .action(async ({ ctx, parsedInput }) => {
+  .action(async ({ ctx: _ctx, parsedInput }) => {
     try {
       const { startDate, endDate, organizationId, userId, limit, offset } =
         parsedInput;

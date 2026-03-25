@@ -187,7 +187,7 @@ export class TaskService {
           auth.organizationId,
           "TaskService.updateTaskStatus",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Task not found",
@@ -259,7 +259,7 @@ export class TaskService {
           auth.organizationId,
           "TaskService.updateTaskMetadata",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Task not found",
@@ -347,7 +347,7 @@ export class TaskService {
           auth.organizationId,
           "TaskService.getTaskHistory",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound("Task not found", "TaskService.getTaskHistory"),
         );

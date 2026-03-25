@@ -19,17 +19,17 @@ interface UseChatContextReturn {
     context: "organization" | "project";
     projectId?: string;
   } | null;
-  setContext: (context: "organization" | "project") => void;
-  setProjectId: (projectId: string | null) => void;
-  setConversationId: (id: string | null) => void;
+  setContext: (context: "organization" | "project") => Promise<URLSearchParams>;
+  setProjectId: (projectId: string | null) => Promise<URLSearchParams>;
+  setConversationId: (id: string | null) => Promise<URLSearchParams>;
   handleContextChange: (
     newContext: "organization" | "project",
-    newProjectId?: string
+    newProjectId?: string,
   ) => void;
   handleContextChangeWithMessages: (
     newContext: "organization" | "project",
     newProjectId?: string,
-    hasMessages?: boolean
+    hasMessages?: boolean,
   ) => void;
   handleConfirmContextSwitch: () => void;
   setShowSwitchDialog: (show: boolean) => void;
@@ -53,7 +53,7 @@ export function useChatContext({
     {
       defaultValue: initialContext,
       parse: (value) => (value === "organization" ? "organization" : "project"),
-    }
+    },
   );
 
   const [projectId, setProjectId] = useQueryState("projectId", {
@@ -81,14 +81,14 @@ export function useChatContext({
         setProjectId(newProjectId);
       }
       setPendingContext(null);
-    }
+    },
   );
 
   const handleContextChange = useEffectEvent(
     (
       newContext: "organization" | "project",
       newProjectId: string | undefined,
-      hasMessages: boolean
+      hasMessages: boolean,
     ) => {
       // Check if context is actually changing
       const isContextChanging =
@@ -107,7 +107,7 @@ export function useChatContext({
         // No messages, switch immediately
         applyContextChange(newContext, newProjectId);
       }
-    }
+    },
   );
 
   const handleConfirmContextSwitch = useEffectEvent(() => {
@@ -138,14 +138,14 @@ export function useChatContext({
     setConversationId,
     handleContextChange: (
       newContext: "organization" | "project",
-      newProjectId?: string
+      newProjectId?: string,
     ): void => {
       handleContextChange(newContext, newProjectId ?? undefined, false);
     },
     handleContextChangeWithMessages: (
       newContext: "organization" | "project",
       newProjectId?: string,
-      hasMessages = false
+      hasMessages = false,
     ): void => {
       handleContextChange(newContext, newProjectId ?? undefined, hasMessages);
     },
@@ -154,4 +154,3 @@ export function useChatContext({
     getTargetContextName,
   };
 }
-

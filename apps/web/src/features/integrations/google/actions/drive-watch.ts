@@ -197,7 +197,7 @@ export const updateDriveWatchAction = authorizedActionClient
         organizationId,
         "updateDriveWatchAction",
       );
-    } catch (error) {
+    } catch (_error) {
       throw ActionErrors.notFound("Drive watch", "updateDriveWatchAction");
     }
 
@@ -278,7 +278,7 @@ export const deleteDriveWatchAction = authorizedActionClient
         organizationId,
         "deleteDriveWatchAction",
       );
-    } catch (error) {
+    } catch (_error) {
       throw ActionErrors.notFound("Drive watch", "deleteDriveWatchAction");
     }
 

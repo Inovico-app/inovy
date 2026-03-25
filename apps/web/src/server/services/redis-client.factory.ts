@@ -1,3 +1,5 @@
+import type * as UpstashRedis from "@upstash/redis";
+
 import { logger } from "@/lib/logger";
 import { platform } from "@/lib/platform";
 
@@ -59,7 +61,7 @@ function createUpstashClient(): RedisClient | null {
   try {
     const { Redis } =
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require("@upstash/redis") as typeof import("@upstash/redis");
+      require("@upstash/redis") as typeof UpstashRedis;
     const client = new Redis({ url: redisUrl, token: redisToken });
 
     logger.info("Redis client initialized (Upstash)", {

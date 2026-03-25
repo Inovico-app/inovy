@@ -43,12 +43,16 @@ export function ProjectKnowledgeBaseSection({
   organizationId,
   canEdit,
 }: ProjectKnowledgeBaseSectionProps) {
-  const [projectEntries, setProjectEntries] = useState(() => initialProjectEntries);
+  const [projectEntries, setProjectEntries] = useState(
+    () => initialProjectEntries,
+  );
   const [documents, setDocuments] = useState(() => initialProjectDocuments);
-  const [hierarchicalEntries, setHierarchicalEntries] =
-    useState(() => initialHierarchicalEntries);
+  const [hierarchicalEntries, setHierarchicalEntries] = useState(
+    () => initialHierarchicalEntries,
+  );
   const [showCreateEntryDialog, setShowCreateEntryDialog] = useState(false);
-  const [showUploadDocumentDialog, setShowUploadDocumentDialog] = useState(false);
+  const [showUploadDocumentDialog, setShowUploadDocumentDialog] =
+    useState(false);
 
   const handleEntryCreated = (entry: KnowledgeEntryDto) => {
     setProjectEntries((prev) => [...prev, entry]);
@@ -61,7 +65,7 @@ export function ProjectKnowledgeBaseSection({
       return updated
         .filter((e, idx, arr) => {
           const firstIndex = arr.findIndex(
-            (item) => item.term.toLowerCase() === e.term.toLowerCase()
+            (item) => item.term.toLowerCase() === e.term.toLowerCase(),
           );
           return idx === firstIndex;
         })
@@ -77,13 +81,13 @@ export function ProjectKnowledgeBaseSection({
 
   const handleEntryUpdated = (updatedEntry: KnowledgeEntryDto) => {
     setProjectEntries((prev) =>
-      prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e))
+      prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e)),
     );
     // Update hierarchical entries
     setHierarchicalEntries((prev) =>
       prev.map((e) =>
-        e.id === updatedEntry.id ? { ...updatedEntry, priority: 1 } : e
-      )
+        e.id === updatedEntry.id ? { ...updatedEntry, priority: 1 } : e,
+      ),
     );
   };
 
@@ -95,11 +99,9 @@ export function ProjectKnowledgeBaseSection({
       if (deleted && deleted.priority === 1) {
         // Find if there's an org/global entry with same term to restore
         const term = deleted.term.toLowerCase();
-        const otherScopes = prev.filter(
+        const _otherScopes = prev.filter(
           (e) =>
-            e.term.toLowerCase() === term &&
-            e.id !== entryId &&
-            e.priority > 1
+            e.term.toLowerCase() === term && e.id !== entryId && e.priority > 1,
         );
         // Remove the deleted entry, keep others
         return prev.filter((e) => e.id !== entryId);
@@ -224,4 +226,3 @@ export function ProjectKnowledgeBaseSection({
     </Card>
   );
 }
-

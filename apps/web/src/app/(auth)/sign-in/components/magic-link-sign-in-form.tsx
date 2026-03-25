@@ -31,7 +31,7 @@ export function MagicLinkSignInForm({
   onSubmit,
   onCancel,
   isLoading,
-  isSendingMagicLink,
+  _isSendingMagicLink,
   magicLinkError,
 }: MagicLinkSignInFormProps) {
   const magicLinkForm = useForm<MagicLinkFormValues>({
@@ -102,11 +102,7 @@ export function MagicLinkSignInForm({
               >
                 Annuleren
               </Button>
-              <Button
-                type="submit"
-                className="flex-1"
-                disabled={isLoading}
-              >
+              <Button type="submit" className="flex-1" disabled={isLoading}>
                 Versturen
               </Button>
             </div>

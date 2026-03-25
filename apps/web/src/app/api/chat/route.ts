@@ -347,7 +347,7 @@ export async function POST(request: NextRequest) {
           organizationId,
           "api/chat/POST",
         );
-      } catch (error) {
+      } catch (_error) {
         // Return 404 to prevent information leakage
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }

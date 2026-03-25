@@ -1,5 +1,3 @@
-import type { SourceReference } from "../types";
-
 interface CitationPart {
   type: "text" | "citation";
   content?: string;
@@ -9,24 +7,18 @@ interface CitationPart {
 }
 
 interface UseCitationParserReturn {
-  parseCitations: (
-    text: string,
-    messageId: string
-  ) => CitationPart[];
+  parseCitations: (text: string, messageId: string) => CitationPart[];
   scrollToSource: (
     messageId: string,
     sourceIndex: number,
     sourceRefsMap: React.MutableRefObject<
       Record<string, Record<number, HTMLDivElement | null>>
-    >
+    >,
   ) => void;
 }
 
 export function useCitationParser(): UseCitationParserReturn {
-  const parseCitations = (
-    text: string,
-    messageId: string
-  ): CitationPart[] => {
+  const parseCitations = (text: string, messageId: string): CitationPart[] => {
     const citationRegex = /\[(\d+)\]/g;
     const parts: CitationPart[] = [];
     let lastIndex = 0;
@@ -69,7 +61,7 @@ export function useCitationParser(): UseCitationParserReturn {
     sourceIndex: number,
     sourceRefsMap: React.MutableRefObject<
       Record<string, Record<number, HTMLDivElement | null>>
-    >
+    >,
   ) => {
     const sourceRef = sourceRefsMap.current[messageId]?.[sourceIndex];
     if (sourceRef) {

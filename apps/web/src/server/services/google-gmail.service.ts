@@ -27,7 +27,7 @@ export class GoogleGmailService {
     options?: {
       subject?: string;
       additionalContent?: string;
-    }
+    },
   ): Promise<ActionResult<{ draftId: string; draftUrl: string }>> {
     try {
       // Verify recording belongs to organization
@@ -35,14 +35,14 @@ export class GoogleGmailService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "GoogleGmailService.createDraftFromSummary"
+          "GoogleGmailService.createDraftFromSummary",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
-            "GoogleGmailService.createDraftFromSummary"
-          )
+            "GoogleGmailService.createDraftFromSummary",
+          ),
         );
       }
 
@@ -54,8 +54,8 @@ export class GoogleGmailService {
           ActionErrors.internal(
             "Failed to get valid access token",
             tokenResult.error,
-            "GoogleGmailService.createDraftFromSummary"
-          )
+            "GoogleGmailService.createDraftFromSummary",
+          ),
         );
       }
 
@@ -81,7 +81,7 @@ export class GoogleGmailService {
       htmlBody +=
         "<div style='color: #666; font-size: 14px; margin-bottom: 20px;'>";
       htmlBody += `<p><strong>Date:</strong> ${new Date(
-        recording.createdAt
+        recording.createdAt,
       ).toLocaleDateString("en-US", {
         weekday: "long",
         year: "numeric",
@@ -153,8 +153,8 @@ export class GoogleGmailService {
           ActionErrors.internal(
             "Failed to create Gmail draft - no draft ID returned",
             undefined,
-            "GoogleGmailService.createDraftFromSummary"
-          )
+            "GoogleGmailService.createDraftFromSummary",
+          ),
         );
       }
 
@@ -189,7 +189,7 @@ export class GoogleGmailService {
       logger.error(
         errorMessage,
         { userId, recordingId: recording.id },
-        error as Error
+        error as Error,
       );
 
       // Record failed action
@@ -211,8 +211,8 @@ export class GoogleGmailService {
         ActionErrors.internal(
           errorMessage,
           error as Error,
-          "GoogleGmailService.createDraftFromSummary"
-        )
+          "GoogleGmailService.createDraftFromSummary",
+        ),
       );
     }
   }
@@ -222,7 +222,7 @@ export class GoogleGmailService {
    */
   static async getDraft(
     userId: string,
-    draftId: string
+    draftId: string,
   ): Promise<ActionResult<unknown>> {
     try {
       const tokenResult = await GoogleOAuthService.getValidAccessToken(userId);
@@ -232,8 +232,8 @@ export class GoogleGmailService {
           ActionErrors.internal(
             "Failed to get valid access token",
             tokenResult.error,
-            "GoogleGmailService.getDraft"
-          )
+            "GoogleGmailService.getDraft",
+          ),
         );
       }
 
@@ -256,14 +256,14 @@ export class GoogleGmailService {
       logger.error(
         "Failed to get Gmail draft",
         { userId, draftId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to get Gmail draft",
           error as Error,
-          "GoogleGmailService.getDraft"
-        )
+          "GoogleGmailService.getDraft",
+        ),
       );
     }
   }
@@ -273,7 +273,7 @@ export class GoogleGmailService {
    */
   static async deleteDraft(
     userId: string,
-    draftId: string
+    draftId: string,
   ): Promise<ActionResult<boolean>> {
     try {
       const tokenResult = await GoogleOAuthService.getValidAccessToken(userId);
@@ -283,8 +283,8 @@ export class GoogleGmailService {
           ActionErrors.internal(
             "Failed to get valid access token",
             tokenResult.error,
-            "GoogleGmailService.deleteDraft"
-          )
+            "GoogleGmailService.deleteDraft",
+          ),
         );
       }
 
@@ -308,16 +308,15 @@ export class GoogleGmailService {
       logger.error(
         "Failed to delete Gmail draft",
         { userId, draftId },
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to delete Gmail draft",
           error as Error,
-          "GoogleGmailService.deleteDraft"
-        )
+          "GoogleGmailService.deleteDraft",
+        ),
       );
     }
   }
 }
-

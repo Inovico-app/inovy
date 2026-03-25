@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import {
   redactions,
@@ -15,19 +15,14 @@ export class RedactionsQueries {
    * Create a new redaction
    */
   static async createRedaction(data: NewRedaction): Promise<Redaction> {
-    const [redaction] = await db
-      .insert(redactions)
-      .values(data)
-      .returning();
+    const [redaction] = await db.insert(redactions).values(data).returning();
     return redaction;
   }
 
   /**
    * Create multiple redactions in a single transaction
    */
-  static async createRedactions(
-    data: NewRedaction[]
-  ): Promise<Redaction[]> {
+  static async createRedactions(data: NewRedaction[]): Promise<Redaction[]> {
     if (data.length === 0) {
       return [];
     }
@@ -38,7 +33,7 @@ export class RedactionsQueries {
    * Get all redactions for a recording
    */
   static async getRedactionsByRecordingId(
-    recordingId: string
+    recordingId: string,
   ): Promise<Redaction[]> {
     return await db
       .select()
@@ -74,7 +69,7 @@ export class RedactionsQueries {
    * Delete all redactions for a recording
    */
   static async deleteRedactionsByRecordingId(
-    recordingId: string
+    recordingId: string,
   ): Promise<number> {
     const result = await db
       .delete(redactions)
@@ -88,7 +83,7 @@ export class RedactionsQueries {
    */
   static async updateRedaction(
     id: string,
-    updates: Partial<Omit<NewRedaction, "id" | "recordingId" | "createdAt">>
+    updates: Partial<Omit<NewRedaction, "id" | "recordingId" | "createdAt">>,
   ): Promise<Redaction | null> {
     const [updated] = await db
       .update(redactions)
@@ -101,4 +96,3 @@ export class RedactionsQueries {
     return updated ?? null;
   }
 }
-

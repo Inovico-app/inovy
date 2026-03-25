@@ -12,8 +12,8 @@ import type {
 import { buildTeamFilter } from "@/lib/rbac/team-isolation";
 import type { BetterAuthUser } from "@/lib/auth";
 
-const allowedStatus = ["active", "archived", "completed"] as const;
-export type AllowedStatus = (typeof allowedStatus)[number];
+const _allowedStatus = ["active", "archived", "completed"] as const;
+export type AllowedStatus = (typeof _allowedStatus)[number];
 
 /**
  * Database queries for Project operations

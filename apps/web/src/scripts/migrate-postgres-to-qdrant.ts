@@ -62,7 +62,7 @@ async function migrateEmbeddings() {
 
   let migrated = 0;
   let failed = 0;
-  const batchSize = 100;
+  const _batchSize = 100;
 
   // Group by contentId and contentType to batch process
   const grouped = new Map<string, PostgresEmbedding[]>();
@@ -104,7 +104,7 @@ async function migrateEmbeddings() {
         const result = await ragService.addDocumentBatch(
           documents,
           userId,
-          firstEmbedding.organizationId
+          firstEmbedding.organizationId,
         );
 
         if (result.isErr()) {
@@ -166,4 +166,3 @@ migrateEmbeddings()
     });
     process.exit(1);
   });
-

@@ -67,7 +67,7 @@ export const reprocessRecordingAction = authorizedActionClient
         organizationId,
         "reprocessRecordingAction",
       );
-    } catch (error) {
+    } catch (_error) {
       throw ActionErrors.notFound("Recording");
     }
 
@@ -147,7 +147,7 @@ export const getReprocessingStatusAction = authorizedActionClient
         organizationId,
         "getReprocessingStatusAction",
       );
-    } catch (error) {
+    } catch (_error) {
       throw ActionErrors.notFound("Recording");
     }
 

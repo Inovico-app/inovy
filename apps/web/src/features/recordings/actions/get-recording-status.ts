@@ -69,7 +69,7 @@ export const getRecordingStatusAction = authorizedActionClient
         organizationId,
         "getRecordingStatusAction",
       );
-    } catch (error) {
+    } catch (_error) {
       throw ActionErrors.notFound("Recording");
     }
 
