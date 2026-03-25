@@ -445,6 +445,7 @@ export class ProjectService {
       const storage = await getStorageProvider();
       const blobDeletionPromises = recordings.map(async (recording) => {
         try {
+          if (!recording.fileUrl) return;
           await storage.del(recording.fileUrl);
           logger.info("Deleted recording file from blob storage", {
             component: "ProjectService.deleteProject",

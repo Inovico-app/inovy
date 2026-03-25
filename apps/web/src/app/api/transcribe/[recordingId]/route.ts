@@ -77,6 +77,13 @@ export const POST = withRateLimit(
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
 
+      if (!recording.fileUrl) {
+        return NextResponse.json(
+          { error: "Recording has no file URL" },
+          { status: 422 },
+        );
+      }
+
       logger.info("Starting transcription", {
         component: "TranscribeRoute",
         recordingId,
