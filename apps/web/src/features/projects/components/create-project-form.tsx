@@ -28,6 +28,7 @@ import {
 } from "@/server/validation/projects/create-project";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { useAction } from "next-safe-action/hooks";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -74,7 +75,7 @@ export function CreateProjectForm({
           if (onSuccess) {
             onSuccess(data.id);
           } else {
-            router.push(`/projects/${data.id}`);
+            router.push(`/projects/${data.id}` as Route);
           }
         }
       },

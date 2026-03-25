@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PlusIcon } from "lucide-react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CreateProjectForm } from "./create-project-form";
@@ -63,7 +64,7 @@ export function CreateProjectModal({
   const handleSuccess = (projectId: string) => {
     handleOpenChange(false);
     // Navigate to the newly created project
-    router.push(`/projects/${projectId}`);
+    router.push(`/projects/${projectId}` as Route);
     router.refresh();
   };
 
@@ -89,4 +90,3 @@ export function CreateProjectModal({
     </Dialog>
   );
 }
-

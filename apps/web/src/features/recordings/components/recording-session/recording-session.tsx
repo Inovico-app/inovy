@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useNavigationGuard } from "@/hooks/use-navigation-guard";
 import { Loader2 } from "lucide-react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
@@ -78,7 +79,7 @@ export function RecordingSession({
     if (session.status !== "complete") return;
 
     toast.success("Opname voltooid!");
-    router.push(`/projects/${config.projectId}`);
+    router.push(`/projects/${config.projectId}` as Route);
     router.refresh();
   }, [session.status, config.projectId, router]);
 

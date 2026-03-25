@@ -1,4 +1,5 @@
 import { useAction } from "next-safe-action/hooks";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { moveRecordingAction } from "../actions/move-recording";
@@ -12,7 +13,7 @@ interface UseMoveRecordingMutationOptions {
  * Manages the server action call, loading state, and success/error handling
  */
 export function useMoveRecordingMutation(
-  options?: UseMoveRecordingMutationOptions
+  options?: UseMoveRecordingMutationOptions,
 ) {
   const router = useRouter();
 
@@ -25,7 +26,9 @@ export function useMoveRecordingMutation(
         toast.success("Recording moved successfully");
 
         // Redirect to the recording detail page in the new project
-        router.push(`/projects/${targetProjectId}/recordings/${recordingId}`);
+        router.push(
+          `/projects/${targetProjectId}/recordings/${recordingId}` as Route,
+        );
 
         options?.onSuccess?.();
       }
@@ -33,7 +36,8 @@ export function useMoveRecordingMutation(
     onError: (error) => {
       console.error("Move recording error:", error);
       toast.error(
-        error.error.serverError ?? "Failed to move recording. Please try again."
+        error.error.serverError ??
+          "Failed to move recording. Please try again.",
       );
     },
   });
@@ -43,4 +47,3 @@ export function useMoveRecordingMutation(
     isMoving: isExecuting,
   };
 }
-

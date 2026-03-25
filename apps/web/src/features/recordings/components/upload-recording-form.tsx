@@ -17,13 +17,9 @@ import {
   MAX_FILE_SIZE,
 } from "@/server/validation/recordings/upload-recording";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import {
-  useEffect,
-  useRef,
-  type ChangeEvent,
-  type DragEvent,
-} from "react";
+import { useEffect, useRef, type ChangeEvent, type DragEvent } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useUploadState } from "../hooks/use-upload-state";
@@ -121,11 +117,11 @@ export function UploadRecordingForm({
     // Validate file type
     if (
       !ALLOWED_MIME_TYPES.includes(
-        selectedFile.type as (typeof ALLOWED_MIME_TYPES)[number]
+        selectedFile.type as (typeof ALLOWED_MIME_TYPES)[number],
       )
     ) {
       setUploadError(
-        "Unsupported file type. Please upload mp3, mp4, wav, m4a, or webm files."
+        "Unsupported file type. Please upload mp3, mp4, wav, m4a, or webm files.",
       );
       return;
     }
@@ -133,7 +129,7 @@ export function UploadRecordingForm({
     // Validate file size
     if (selectedFile.size > MAX_FILE_SIZE) {
       setUploadError(
-        `File size exceeds maximum of ${MAX_FILE_SIZE / 1024 / 1024}MB.`
+        `File size exceeds maximum of ${MAX_FILE_SIZE / 1024 / 1024}MB.`,
       );
       return;
     }
@@ -211,7 +207,7 @@ export function UploadRecordingForm({
         onSuccess(blob.pathname); // Pass pathname as identifier
       } else {
         // Navigate to project page
-        router.push(`/projects/${projectId}`);
+        router.push(`/projects/${projectId}` as Route);
       }
     } catch (err) {
       // Handle abort error differently from other errors
@@ -220,10 +216,11 @@ export function UploadRecordingForm({
         return; // Don't show error toast for intentional cancellation
       }
 
-      const errorMessage = err instanceof Error ? err.message : "An error occurred";
+      const errorMessage =
+        err instanceof Error ? err.message : "An error occurred";
       setUploadError(errorMessage);
       toast.error(
-        err instanceof Error ? err.message : "An error occurred during upload"
+        err instanceof Error ? err.message : "An error occurred during upload",
       );
     } finally {
       abortControllerRef.current = null;
@@ -232,7 +229,10 @@ export function UploadRecordingForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 min-w-0 overflow-hidden">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="space-y-6 min-w-0 overflow-hidden"
+      >
         {/* File Upload Area */}
         <div className="space-y-2 min-w-0 overflow-hidden">
           <FormLabel htmlFor="file">Recording File *</FormLabel>
@@ -251,7 +251,9 @@ export function UploadRecordingForm({
         </div>
 
         {/* Upload Progress */}
-        {state.isUploading && <UploadProgressBar progress={state.uploadProgress} />}
+        {state.isUploading && (
+          <UploadProgressBar progress={state.uploadProgress} />
+        )}
 
         {/* Title Field */}
         <FormField
@@ -324,13 +326,19 @@ export function UploadRecordingForm({
         {/* Action Buttons */}
         <div className="flex gap-3 justify-end">
           {onCancel && (
-            <Button type="button" variant="outline" onClick={handleCancelUpload}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancelUpload}
+            >
               {state.isUploading ? "Cancel Upload" : "Cancel"}
             </Button>
           )}
           <Button
             type="submit"
-            disabled={!state.file || !form.formState.isValid || state.isUploading}
+            disabled={
+              !state.file || !form.formState.isValid || state.isUploading
+            }
           >
             {state.isUploading ? "Uploading..." : "Upload Recording"}
           </Button>
