@@ -32,7 +32,7 @@ export function MagicLinkSignUpForm({
   onSubmit,
   onCancel,
   isLoading,
-  _isSendingMagicLink,
+  isSendingMagicLink: _isSendingMagicLink,
   magicLinkError,
 }: MagicLinkSignUpFormProps) {
   const magicLinkForm = useForm<MagicLinkValues>({

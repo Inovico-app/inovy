@@ -31,7 +31,7 @@ export function MagicLinkSignInForm({
   onSubmit,
   onCancel,
   isLoading,
-  _isSendingMagicLink,
+  isSendingMagicLink: _isSendingMagicLink,
   magicLinkError,
 }: MagicLinkSignInFormProps) {
   const magicLinkForm = useForm<MagicLinkFormValues>({

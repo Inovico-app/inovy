@@ -38,7 +38,7 @@ export function EmailSignUpForm({
   onSubmit,
   onCancel,
   isLoading,
-  _isSigningUp,
+  isSigningUp: _isSigningUp,
   signUpError,
 }: EmailSignUpFormProps) {
   const emailForm = useForm<EmailSignUpValues>({
