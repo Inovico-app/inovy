@@ -10,10 +10,12 @@ export interface RecordingDto {
   projectId: string;
   title: string;
   description: string | null;
-  fileUrl: string;
-  fileName: string;
-  fileSize: number;
-  fileMimeType: string;
+  fileUrl: string | null;
+  fileName: string | null;
+  fileSize: number | null;
+  fileMimeType: string | null;
+  storageStatus: RecordingStatus;
+  recallBotId: string | null;
   duration: number | null;
   recordingDate: Date;
   recordingMode: RecordingMode;
@@ -41,4 +43,3 @@ export interface RecordingDto {
   createdAt: Date;
   updatedAt: Date;
 }
-
