@@ -52,9 +52,11 @@ resource "azurerm_container_app_job" "cron" {
       cpu    = 0.25
       memory = "0.5Gi"
 
+      # Use double quotes so sh expands CRON_SECRET and APP_URL. Single quotes would send the
+      # literal "${CRON_SECRET}" in the Authorization header (401 Unauthorized).
       command = [
         "/bin/sh", "-c",
-        "curl -sS -H 'Authorization: Bearer $${CRON_SECRET}' $${APP_URL}${each.value.path}"
+        "curl -sS -H \"Authorization: Bearer $${CRON_SECRET}\" \"$${APP_URL}${each.value.path}\""
       ]
 
       env {
