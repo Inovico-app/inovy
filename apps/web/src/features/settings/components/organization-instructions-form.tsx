@@ -20,7 +20,7 @@ interface OrganizationInstructionsFormProps {
  */
 export function OrganizationInstructionsForm({
   initialValue,
-  organizationId,
+  organizationId: _organizationId,
   onSave,
   onCancel,
   isLoading = false,
@@ -98,10 +98,7 @@ export function OrganizationInstructionsForm({
           >
             Cancel
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isDisabled || !hasChanges}
-          >
+          <Button onClick={handleSubmit} disabled={isDisabled || !hasChanges}>
             {isSaving && <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />}
             Save Instructions
           </Button>
@@ -110,4 +107,3 @@ export function OrganizationInstructionsForm({
     </div>
   );
 }
-

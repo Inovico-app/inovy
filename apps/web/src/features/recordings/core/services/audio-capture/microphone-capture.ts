@@ -12,7 +12,7 @@
  */
 
 import { createAudioContext } from "@/lib/audio/create-audio-context";
-import { ResultAsync, okAsync } from "neverthrow";
+import { ResultAsync } from "neverthrow";
 
 import {
   createCaptureError,

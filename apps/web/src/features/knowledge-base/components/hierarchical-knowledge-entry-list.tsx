@@ -2,7 +2,6 @@
 
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -16,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PencilIcon, TrashIcon, MoreVerticalIcon, ArrowUpIcon } from "lucide-react";
+import { PencilIcon, TrashIcon, MoreVerticalIcon } from "lucide-react";
 import { useState } from "react";
 import type { HierarchicalKnowledgeEntryDto } from "@/server/dto/knowledge-base.dto";
 import { EditKnowledgeEntryDialog } from "./edit-knowledge-entry-dialog";
@@ -31,7 +30,10 @@ interface HierarchicalKnowledgeEntryListProps {
   onEntryDeleted: (entryId: string) => void;
 }
 
-const scopeLabels: Record<number, { label: string; variant: "default" | "secondary" | "outline" }> = {
+const scopeLabels: Record<
+  number,
+  { label: string; variant: "default" | "secondary" | "outline" }
+> = {
   1: { label: "Project", variant: "default" },
   2: { label: "Organization", variant: "secondary" },
   3: { label: "Global", variant: "outline" },
@@ -39,21 +41,24 @@ const scopeLabels: Record<number, { label: string; variant: "default" | "seconda
 
 export function HierarchicalKnowledgeEntryList({
   entries,
-  projectId,
-  organizationId,
+  projectId: _projectId,
+  organizationId: _organizationId,
   canEdit,
   onEntryUpdated,
   onEntryDeleted,
 }: HierarchicalKnowledgeEntryListProps) {
-  const [editingEntry, setEditingEntry] = useState<HierarchicalKnowledgeEntryDto | null>(null);
-  const [deletingEntry, setDeletingEntry] = useState<HierarchicalKnowledgeEntryDto | null>(null);
+  const [editingEntry, setEditingEntry] =
+    useState<HierarchicalKnowledgeEntryDto | null>(null);
+  const [deletingEntry, setDeletingEntry] =
+    useState<HierarchicalKnowledgeEntryDto | null>(null);
 
   if (entries.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">No knowledge entries available</p>
         <p className="text-sm text-muted-foreground mt-2">
-          Project entries override organization entries, which override global entries
+          Project entries override organization entries, which override global
+          entries
         </p>
       </div>
     );
@@ -100,7 +105,11 @@ export function HierarchicalKnowledgeEntryList({
                           <strong className="text-sm">Examples:</strong>
                           <ul className="list-disc list-inside mt-1 text-sm text-muted-foreground">
                             {entry.examples.map((example, idx) => (
-                              <li key={`example-${idx}-${example.slice(0, 20)}`}>{example}</li>
+                              <li
+                                key={`example-${idx}-${example.slice(0, 20)}`}
+                              >
+                                {example}
+                              </li>
                             ))}
                           </ul>
                         </div>
@@ -108,11 +117,21 @@ export function HierarchicalKnowledgeEntryList({
                     </div>
                     {canEdit && entry.priority === 1 && (
                       <DropdownMenu>
-                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label={`Actions for ${entry.term}`} />}>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Actions for ${entry.term}`}
+                            />
+                          }
+                        >
                           <MoreVerticalIcon className="h-4 w-4" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditingEntry(entry)}>
+                          <DropdownMenuItem
+                            onClick={() => setEditingEntry(entry)}
+                          >
                             <PencilIcon className="h-4 w-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
@@ -174,7 +193,11 @@ export function HierarchicalKnowledgeEntryList({
                           <strong className="text-sm">Examples:</strong>
                           <ul className="list-disc list-inside mt-1 text-sm text-muted-foreground">
                             {entry.examples.map((example, idx) => (
-                              <li key={`example-${idx}-${example.slice(0, 20)}`}>{example}</li>
+                              <li
+                                key={`example-${idx}-${example.slice(0, 20)}`}
+                              >
+                                {example}
+                              </li>
                             ))}
                           </ul>
                         </div>
@@ -227,7 +250,11 @@ export function HierarchicalKnowledgeEntryList({
                           <strong className="text-sm">Examples:</strong>
                           <ul className="list-disc list-inside mt-1 text-sm text-muted-foreground">
                             {entry.examples.map((example, idx) => (
-                              <li key={`example-${idx}-${example.slice(0, 20)}`}>{example}</li>
+                              <li
+                                key={`example-${idx}-${example.slice(0, 20)}`}
+                              >
+                                {example}
+                              </li>
                             ))}
                           </ul>
                         </div>
@@ -248,7 +275,10 @@ export function HierarchicalKnowledgeEntryList({
           open={!!editingEntry}
           onOpenChange={(open) => !open && setEditingEntry(null)}
           onSuccess={(updatedEntry) => {
-            onEntryUpdated({ ...updatedEntry, priority: editingEntry.priority });
+            onEntryUpdated({
+              ...updatedEntry,
+              priority: editingEntry.priority,
+            });
             setEditingEntry(null);
           }}
         />
@@ -269,4 +299,3 @@ export function HierarchicalKnowledgeEntryList({
     </div>
   );
 }
-

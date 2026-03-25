@@ -40,7 +40,7 @@ export function AgentConfigListClient({
     return organizations.filter(
       (org) =>
         org.name.toLowerCase().includes(query) ||
-        org.slug.toLowerCase().includes(query)
+        org.slug.toLowerCase().includes(query),
     );
   }, [organizations, searchQuery]);
 
@@ -51,7 +51,7 @@ export function AgentConfigListClient({
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedOrganizations = filteredOrganizations.slice(
     startIndex,
-    endIndex
+    endIndex,
   );
 
   // Reset to first page when search changes
@@ -115,6 +115,7 @@ export function AgentConfigListClient({
                     <TableCell>
                       <div className="flex items-center gap-3">
                         {org.logo ? (
+                          /* eslint-disable-next-line @next/next/no-img-element -- dynamic external org logo */
                           <img
                             src={org.logo}
                             alt={org.name}
@@ -203,4 +204,3 @@ export function AgentConfigListClient({
     </div>
   );
 }
-

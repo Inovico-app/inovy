@@ -87,7 +87,7 @@ export const createGmailDraft = authorizedActionClient
         organizationId,
         "createGmailDraft",
       );
-    } catch (error) {
+    } catch (_error) {
       throw ActionErrors.notFound("Recording", "create-gmail-draft");
     }
 

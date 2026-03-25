@@ -5,7 +5,12 @@
 
 import type { TaskWithContextDto } from "@/server/dto/task.dto";
 
-export type TaskSortBy = "createdAt" | "dueDate" | "priority" | "status" | "title";
+export type TaskSortBy =
+  | "createdAt"
+  | "dueDate"
+  | "priority"
+  | "status"
+  | "title";
 export type TaskSortOrder = "asc" | "desc";
 
 /**
@@ -18,7 +23,7 @@ export type TaskSortOrder = "asc" | "desc";
 export function sortTasks(
   tasks: TaskWithContextDto[],
   sortBy: TaskSortBy,
-  sortOrder: TaskSortOrder = "desc"
+  sortOrder: TaskSortOrder = "desc",
 ): TaskWithContextDto[] {
   const sorted = [...tasks];
 
@@ -42,12 +47,12 @@ export function sortTasks(
             new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
         }
         break;
-      case "priority":
+      case "priority": {
         const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
-        comparison =
-          priorityOrder[a.priority] - priorityOrder[b.priority];
+        comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
         break;
-      case "status":
+      }
+      case "status": {
         const statusOrder = {
           pending: 0,
           in_progress: 1,
@@ -56,6 +61,7 @@ export function sortTasks(
         };
         comparison = statusOrder[a.status] - statusOrder[b.status];
         break;
+      }
       case "title":
         comparison = a.title.localeCompare(b.title);
         break;
@@ -68,4 +74,3 @@ export function sortTasks(
 
   return sorted;
 }
-

@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, CheckCircle2, Circle, SkipForward } from "lucide-react";
 import { MeetingHeader } from "./meeting-header";
 import {
-  agendaItemStatusColors,
   postActionStatusColors,
   formatStatusLabel,
 } from "../lib/meeting-constants";
@@ -42,9 +41,7 @@ export function MeetingDetailContent({
   postActions,
 }: MeetingDetailContentProps) {
   const participants = (meeting.participants as MeetingParticipant[]) ?? [];
-  const coveredCount = agendaItems.filter(
-    (i) => i.status === "covered"
-  ).length;
+  const coveredCount = agendaItems.filter((i) => i.status === "covered").length;
   const postNotes = notes.find((n) => n.type === "post_meeting");
   const preNotes = notes.find((n) => n.type === "pre_meeting");
 
@@ -124,7 +121,14 @@ export function MeetingDetailContent({
           <CardContent className="space-y-4">
             {preNotes && (
               <Collapsible>
-                <CollapsibleTrigger render={<Button variant="ghost" className="w-full justify-between font-medium text-sm" />}>
+                <CollapsibleTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-between font-medium text-sm"
+                    />
+                  }
+                >
                   Pre-Meeting Notes
                   <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
@@ -137,9 +141,7 @@ export function MeetingDetailContent({
             )}
             {postNotes && (
               <div>
-                <h4 className="font-medium text-sm mb-2">
-                  Post-Meeting Notes
-                </h4>
+                <h4 className="font-medium text-sm mb-2">Post-Meeting Notes</h4>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                   {postNotes.content}
                 </p>

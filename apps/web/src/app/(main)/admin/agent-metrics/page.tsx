@@ -35,7 +35,7 @@ async function AgentMetricsContent({ searchParams }: AgentMetricsContentProps) {
   }
 
   const auth = authResult.value;
-  const { user } = auth;
+  const { user: _user } = auth;
   const organization = { id: auth.organizationId };
 
   // Check if user has admin permissions (admin or superadmin)

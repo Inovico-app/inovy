@@ -16,7 +16,7 @@ export class UserNotesService {
     recordingId: string,
     userNotes: string,
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<void>> {
     try {
       logger.info("Updating user notes", {
@@ -31,7 +31,10 @@ export class UserNotesService {
         await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
-          ActionErrors.notFound("Recording", "UserNotesService.updateUserNotes")
+          ActionErrors.notFound(
+            "Recording",
+            "UserNotesService.updateUserNotes",
+          ),
         );
       }
 
@@ -39,14 +42,14 @@ export class UserNotesService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "UserNotesService.updateUserNotes"
+          "UserNotesService.updateUserNotes",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
-            "UserNotesService.updateUserNotes"
-          )
+            "UserNotesService.updateUserNotes",
+          ),
         );
       }
 
@@ -61,7 +64,7 @@ export class UserNotesService {
           recordingId,
         });
         return err(
-          ActionErrors.notFound("Summary", "UserNotesService.updateUserNotes")
+          ActionErrors.notFound("Summary", "UserNotesService.updateUserNotes"),
         );
       }
 
@@ -69,7 +72,7 @@ export class UserNotesService {
       await AIInsightsQueries.updateUserNotes(
         summaryInsight.id,
         userNotes,
-        userId
+        userId,
       );
 
       logger.info("User notes updated successfully", {
@@ -89,10 +92,9 @@ export class UserNotesService {
         ActionErrors.internal(
           "Failed to update user notes",
           error,
-          "UserNotesService.updateUserNotes"
-        )
+          "UserNotesService.updateUserNotes",
+        ),
       );
     }
   }
 }
-

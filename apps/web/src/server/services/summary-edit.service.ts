@@ -25,16 +25,19 @@ export class SummaryEditService {
   static async updateSummary(
     input: UpdateSummaryInput,
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<{ success: boolean; versionNumber: number }>> {
     try {
       // Verify recording belongs to organization
       const recording = await RecordingsQueries.selectRecordingById(
-        input.recordingId
+        input.recordingId,
       );
       if (!recording) {
         return err(
-          ActionErrors.notFound("Recording", "SummaryEditService.updateSummary")
+          ActionErrors.notFound(
+            "Recording",
+            "SummaryEditService.updateSummary",
+          ),
         );
       }
 
@@ -42,32 +45,32 @@ export class SummaryEditService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "SummaryEditService.updateSummary"
+          "SummaryEditService.updateSummary",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
-            "SummaryEditService.updateSummary"
-          )
+            "SummaryEditService.updateSummary",
+          ),
         );
       }
 
       // Get existing summary insight
       const summaryInsight = await AIInsightsQueries.getInsightByType(
         input.recordingId,
-        "summary"
+        "summary",
       );
 
       if (!summaryInsight) {
         return err(
-          ActionErrors.notFound("Summary", "SummaryEditService.updateSummary")
+          ActionErrors.notFound("Summary", "SummaryEditService.updateSummary"),
         );
       }
 
       // Get the latest version number
       const latestVersion = await SummaryHistoryQueries.getLatestVersionNumber(
-        input.recordingId
+        input.recordingId,
       );
       const newVersion = latestVersion + 1;
 
@@ -84,7 +87,7 @@ export class SummaryEditService {
       const updated = await AIInsightsQueries.updateInsightWithEdit(
         summaryInsight.id,
         input.content,
-        userId
+        userId,
       );
 
       if (!updated) {
@@ -92,8 +95,8 @@ export class SummaryEditService {
           ActionErrors.internal(
             "Failed to update summary",
             undefined,
-            "SummaryEditService.updateSummary"
-          )
+            "SummaryEditService.updateSummary",
+          ),
         );
       }
 
@@ -114,8 +117,8 @@ export class SummaryEditService {
         ActionErrors.internal(
           "Unexpected error updating summary",
           error as Error,
-          "SummaryEditService.updateSummary"
-        )
+          "SummaryEditService.updateSummary",
+        ),
       );
     }
   }
@@ -125,7 +128,7 @@ export class SummaryEditService {
    */
   static async getSummaryHistory(
     recordingId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<
     ActionResult<
       Array<{
@@ -146,8 +149,8 @@ export class SummaryEditService {
         return err(
           ActionErrors.notFound(
             "Recording",
-            "SummaryEditService.getSummaryHistory"
-          )
+            "SummaryEditService.getSummaryHistory",
+          ),
         );
       }
 
@@ -155,20 +158,20 @@ export class SummaryEditService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "SummaryEditService.getSummaryHistory"
+          "SummaryEditService.getSummaryHistory",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
-            "SummaryEditService.getSummaryHistory"
-          )
+            "SummaryEditService.getSummaryHistory",
+          ),
         );
       }
 
       const history =
         await SummaryHistoryQueries.selectSummaryHistoryByRecordingId(
-          recordingId
+          recordingId,
         );
 
       return ok(history);
@@ -182,10 +185,9 @@ export class SummaryEditService {
         ActionErrors.internal(
           "Unexpected error getting summary history",
           error as Error,
-          "SummaryEditService.getSummaryHistory"
-        )
+          "SummaryEditService.getSummaryHistory",
+        ),
       );
     }
   }
 }
-

@@ -27,7 +27,7 @@ interface UseBulkMoveRecordingsMutationOptions {
  * Manages multiple server action calls, loading state, progress tracking, and success/error handling
  */
 export function useBulkMoveRecordingsMutation(
-  options?: UseBulkMoveRecordingsMutationOptions
+  options?: UseBulkMoveRecordingsMutationOptions,
 ) {
   const router = useRouter();
   const [isMoving, setIsMoving] = useState(false);
@@ -40,7 +40,7 @@ export function useBulkMoveRecordingsMutation(
 
   const moveRecordings = async (
     recordings: Array<{ id: string; title: string }>,
-    targetProjectId: string
+    targetProjectId: string,
   ) => {
     setIsMoving(true);
 
@@ -56,7 +56,7 @@ export function useBulkMoveRecordingsMutation(
     options?.onProgress?.(initialProgress);
 
     // Move recordings one by one using Promise.allSettled
-    const movePromises = recordings.map(async (recording, index) => {
+    const movePromises = recordings.map(async (recording, _index) => {
       try {
         const result = await moveRecordingAction({
           recordingId: recording.id,
@@ -156,11 +156,11 @@ export function useBulkMoveRecordingsMutation(
     // Show summary toast
     if (succeeded === total) {
       toast.success(
-        `Successfully moved ${succeeded} recording${succeeded > 1 ? "s" : ""}`
+        `Successfully moved ${succeeded} recording${succeeded > 1 ? "s" : ""}`,
       );
     } else if (succeeded > 0) {
       toast.warning(
-        `Moved ${succeeded} of ${total} recordings successfully. ${failed} failed.`
+        `Moved ${succeeded} of ${total} recordings successfully. ${failed} failed.`,
       );
     } else {
       toast.error(`Failed to move ${failed} recording${failed > 1 ? "s" : ""}`);
@@ -180,4 +180,3 @@ export function useBulkMoveRecordingsMutation(
     progress,
   };
 }
-

@@ -42,7 +42,7 @@ export function UserAnalyticsFilters({
   const [endDate, setEndDate] = useState(
     initialEndDate.toISOString().slice(0, 16),
   );
-  const [userId, setUserId] = useQueryStates(
+  const [_userId, setUserId] = useQueryStates(
     {
       userId: parseAsString,
     },

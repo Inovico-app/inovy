@@ -57,7 +57,7 @@ export function CalendarGrid({
 
       {/* Calendar grid */}
       <div className="grid grid-cols-7">
-        {days.map((day, index) => {
+        {days.map((day, _index) => {
           const dateKey = format(day.date, "yyyy-MM-dd");
           const dayMeetings = meetingsByDate.get(dateKey) ?? [];
 

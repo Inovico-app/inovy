@@ -45,7 +45,7 @@ export class ReprocessingService {
           organizationId,
           "ReprocessingService.canReprocess",
         );
-      } catch (error) {
+      } catch {
         return ok({
           canReprocess: false,
           reason: "Recording not found",
@@ -156,7 +156,7 @@ export class ReprocessingService {
           organizationId,
           "ReprocessingService.backupCurrentInsights",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -296,7 +296,7 @@ export class ReprocessingService {
           organizationId,
           "ReprocessingService.triggerReprocessing",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -491,7 +491,7 @@ export class ReprocessingService {
           organizationId,
           "ReprocessingService.getReprocessingStatus",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",

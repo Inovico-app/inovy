@@ -323,29 +323,31 @@ export class LiveTranscriptionServiceImpl implements LiveTranscriptionService {
 
     const delay = RECONNECT_DELAYS_MS[attempt] ?? 4_000;
 
-    setTimeout(async () => {
-      if (this.explicitDisconnect) return;
+    setTimeout(() => {
+      void (async () => {
+        if (this.explicitDisconnect) return;
 
-      try {
-        const config = this.currentConfig;
-        if (!config) {
-          this.setStatus("failed");
-          return;
-        }
+        try {
+          const config = this.currentConfig;
+          if (!config) {
+            this.setStatus("failed");
+            return;
+          }
 
-        await this.connectAsync(config);
+          await this.connectAsync(config);
 
-        // Re-check after async connect — disconnect() may have been called while connecting
-        if (this.explicitDisconnect) {
-          this.connection?.requestClose();
-          this.connection = null;
-          this.setStatus("disconnected");
+          // Re-check after async connect — disconnect() may have been called while connecting
+          if (this.explicitDisconnect) {
+            this.connection?.requestClose();
+            this.connection = null;
+            this.setStatus("disconnected");
+          }
+        } catch {
+          if (!this.explicitDisconnect) {
+            this.attemptReconnect(attempt + 1);
+          }
         }
-      } catch {
-        if (!this.explicitDisconnect) {
-          this.attemptReconnect(attempt + 1);
-        }
-      }
+      })();
     }, delay);
   }
 
@@ -386,27 +388,29 @@ export class LiveTranscriptionServiceImpl implements LiveTranscriptionService {
   private startTokenRefreshTimer(): void {
     this.clearTokenRefreshTimer();
 
-    this.tokenRefreshTimer = setTimeout(async () => {
-      if (this.explicitDisconnect) return;
-      if (!this.currentConfig) return;
+    this.tokenRefreshTimer = setTimeout(() => {
+      void (async () => {
+        if (this.explicitDisconnect) return;
+        if (!this.currentConfig) return;
 
-      // Mark as refreshing to prevent handleUnexpectedClose from triggering
-      this.isRefreshing = true;
+        // Mark as refreshing to prevent handleUnexpectedClose from triggering
+        this.isRefreshing = true;
 
-      // Disconnect current connection and reconnect with fresh token
-      this.clearTimers();
-      if (this.connection) {
-        this.connection.requestClose();
-        this.connection = null;
-      }
+        // Disconnect current connection and reconnect with fresh token
+        this.clearTimers();
+        if (this.connection) {
+          this.connection.requestClose();
+          this.connection = null;
+        }
 
-      try {
-        await this.connectAsync(this.currentConfig);
-      } catch {
-        this.setStatus("failed");
-      } finally {
-        this.isRefreshing = false;
-      }
+        try {
+          await this.connectAsync(this.currentConfig);
+        } catch {
+          this.setStatus("failed");
+        } finally {
+          this.isRefreshing = false;
+        }
+      })();
     }, TOKEN_REFRESH_MS);
   }
 

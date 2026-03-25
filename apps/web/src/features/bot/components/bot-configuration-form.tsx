@@ -35,7 +35,7 @@ interface BotConfigurationFormProps {
   onUpdate: () => void;
 }
 
-type BotSettingsFormValues = z.infer<typeof botSettingsSchema>;
+type _BotSettingsFormValues = z.infer<typeof botSettingsSchema>;
 
 /**
  * Bot configuration form component

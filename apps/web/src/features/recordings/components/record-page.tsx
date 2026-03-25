@@ -1,6 +1,5 @@
 "use client";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -28,7 +27,6 @@ import { ConsentBanner } from "@/features/recordings/components/consent-banner";
 import { RecordingSession } from "@/features/recordings/components/recording-session/recording-session";
 import {
   FolderIcon,
-  InfoIcon,
   Mic,
   Monitor,
   Combine,
@@ -88,16 +86,6 @@ export function RecordPage({
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     projectIdFromParams ?? projects[0]?.id ?? "",
   );
-
-  if (!hasProjects) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-4 py-16">
-        <p className="text-muted-foreground">
-          Maak eerst een project aan om een opname te starten.
-        </p>
-      </div>
-    );
-  }
   const [audioSource, setAudioSource] = useState<AudioSource>("microphone");
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("default");
   const [liveTranscriptionEnabled, setLiveTranscriptionEnabled] =
@@ -167,6 +155,16 @@ export function RecordPage({
   const selectedAudioLabel =
     AUDIO_SOURCE_OPTIONS.find((o) => o.value === audioSource)?.label ??
     "Microfoon";
+
+  if (!hasProjects) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-16">
+        <p className="text-muted-foreground">
+          Maak eerst een project aan om een opname te starten.
+        </p>
+      </div>
+    );
+  }
 
   // Active recording view — full width, no hero
   if (consentGiven && effectiveProjectId) {

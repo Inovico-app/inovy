@@ -61,7 +61,7 @@ function createAudioCaptureService(
 export function createRecordingSession(
   config: CreateRecordingSessionConfig,
 ): RecordingSession {
-  const { organizationId, userId } = config;
+  const { organizationId: _organizationId, userId: _userId } = config;
 
   // 1. Pick AudioCaptureService based on config.audioSource
   const audioCapture = createAudioCaptureService(config.audioSource);

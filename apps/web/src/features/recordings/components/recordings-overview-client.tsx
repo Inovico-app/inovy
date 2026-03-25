@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { RecordingDto } from "@/server/dto/recording.dto";
 import { RecordingCard } from "./recording-card";
 import { RecordingsFilters } from "./recordings-filters";
@@ -59,7 +59,7 @@ export function RecordingsOverviewClient({
         projectName: string;
         recordings: Array<RecordingDto & { projectName: string }>;
       }
-    >
+    >,
   );
 
   const groupedRecordingsList = Object.values(groupedRecordings);
@@ -119,8 +119,8 @@ export function RecordingsOverviewClient({
                   {searchQuery || selectedProjectIds.length > 0
                     ? "No recordings found matching your filters"
                     : statusFilter === "active"
-                    ? "No active recordings yet"
-                    : "No archived recordings"}
+                      ? "No active recordings yet"
+                      : "No archived recordings"}
                 </p>
               </CardContent>
             </Card>
@@ -129,7 +129,9 @@ export function RecordingsOverviewClient({
               {groupedRecordingsList.map((group) => (
                 <div key={group.projectId} className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-semibold">{group.projectName}</h2>
+                    <h2 className="text-lg font-semibold">
+                      {group.projectName}
+                    </h2>
                     <Badge variant="outline">{group.recordings.length}</Badge>
                   </div>
                   <div className="space-y-3">
@@ -162,4 +164,3 @@ export function RecordingsOverviewClient({
     </div>
   );
 }
-

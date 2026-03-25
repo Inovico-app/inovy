@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,14 +25,16 @@ export function NotificationBell() {
   // Fetch recent notifications when dropdown opens
   const { data: notificationsData } = useNotificationsQuery(
     { limit: 5 },
-    undefined
+    undefined,
   );
 
   const recentNotifications = notificationsData?.notifications ?? [];
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="relative" />}>
+      <DropdownMenuTrigger
+        render={<Button variant="ghost" size="icon" className="relative" />}
+      >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
           <Badge
@@ -74,7 +76,9 @@ export function NotificationBell() {
           <Button
             variant="ghost"
             className="w-full"
-            render={<Link href="/notifications" onClick={() => setIsOpen(false)} />}
+            render={
+              <Link href="/notifications" onClick={() => setIsOpen(false)} />
+            }
             nativeButton={false}
           >
             Bekijk alle notificaties
@@ -84,4 +88,3 @@ export function NotificationBell() {
     </DropdownMenu>
   );
 }
-

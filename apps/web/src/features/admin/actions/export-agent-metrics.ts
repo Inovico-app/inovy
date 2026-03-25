@@ -33,7 +33,7 @@ export const exportAgentMetrics = authorizedActionClient
     },
   })
   .schema(exportMetricsSchema)
-  .action(async ({ ctx, parsedInput }) => {
+  .action(async ({ ctx: _ctx, parsedInput }) => {
     try {
       const { startDate, endDate, organizationId, userId } = parsedInput;
 

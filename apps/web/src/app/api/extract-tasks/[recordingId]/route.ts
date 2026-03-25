@@ -58,7 +58,7 @@ export const POST = withRateLimit(
           organization?.id,
           "api/extract-tasks/[recordingId]",
         );
-      } catch (error) {
+      } catch (_error) {
         // Return 404 to prevent information leakage
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }

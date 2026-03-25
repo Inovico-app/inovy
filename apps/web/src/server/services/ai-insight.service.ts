@@ -68,7 +68,7 @@ export class AIInsightService {
           organizationId,
           "AIInsightService.getInsightsByRecordingId",
         );
-      } catch (_error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -144,7 +144,7 @@ export class AIInsightService {
           organizationId,
           "AIInsightService.getInsightByType",
         );
-      } catch (_error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -312,7 +312,7 @@ export class AIInsightService {
           organizationId,
           "AIInsightService.updateInsightWithEdit",
         );
-      } catch (_error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "AI Insight not found",
@@ -382,7 +382,7 @@ export class AIInsightService {
           organizationId,
           "AIInsightService.updateSpeakerNames",
         );
-      } catch (_error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -564,7 +564,7 @@ export class AIInsightService {
           organizationId,
           "AIInsightService.deleteInsight",
         );
-      } catch (_error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "AI Insight not found",
