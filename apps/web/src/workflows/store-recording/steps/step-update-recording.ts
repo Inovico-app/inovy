@@ -22,7 +22,7 @@ export async function updateRecordingStorageStep(
       {
         fileUrl: params.fileUrl,
         fileName: params.fileName,
-        fileSize: params.fileSize ?? 0,
+        fileSize: params.fileSize,
         fileMimeType: params.fileMimeType ?? "video/mp4",
         storageStatus: "completed",
       },

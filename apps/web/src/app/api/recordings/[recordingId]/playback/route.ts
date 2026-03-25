@@ -131,8 +131,17 @@ export async function GET(
       );
     }
 
-    const fileName = recording.fileName ?? "recording";
     const fileMimeType = recording.fileMimeType ?? "application/octet-stream";
+    const MIME_TO_EXT: Record<string, string> = {
+      "video/mp4": "mp4",
+      "video/webm": "webm",
+      "audio/mp3": "mp3",
+      "audio/mpeg": "mp3",
+      "audio/wav": "wav",
+      "audio/m4a": "m4a",
+    };
+    const fileName =
+      recording.fileName ?? `recording.${MIME_TO_EXT[fileMimeType] ?? "bin"}`;
 
     const isDownload = request.nextUrl.searchParams.get("download") === "1";
     const contentDisposition = isDownload

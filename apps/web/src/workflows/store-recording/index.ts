@@ -52,7 +52,7 @@ export async function storeRecordingFromRecall(
     const timestamp = Date.now();
     let lastError: string = "Unknown error";
 
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       if (attempt > 0) {
         const delay =
           RETRY_DELAYS[attempt - 1] ?? RETRY_DELAYS[RETRY_DELAYS.length - 1];

@@ -4,6 +4,7 @@ import { failure, success } from "@/workflows/lib/workflow-result";
 import { updateWorkflowStatus } from "../shared/update-status";
 import { getAiInsightsStep } from "./steps/step-ai-insights";
 import { executeFinalStep } from "./steps/step-finalize";
+import { executePostActionsStep } from "./steps/step-post-actions";
 import { getRecordingStep } from "./steps/step-get-recording";
 import { sendSuccessNotification } from "./steps/step-send-notification";
 import { executeSummaryStep } from "./steps/step-summary";
@@ -177,6 +178,9 @@ export async function convertRecordingIntoAiInsights(
       recording.projectId,
       recording.organizationId,
     );
+
+    // Step 4: Execute post-meeting actions (depends on transcript being available)
+    await executePostActionsStep(recordingId, recording.organizationId);
 
     // Update workflow status to completed
     await updateWorkflowStatus(recordingId, "completed", undefined);

@@ -869,7 +869,20 @@ export class RecordingService {
     });
 
     try {
-      await RecordingsQueries.updateRecording(recordingId, data);
+      const updated = await RecordingsQueries.updateRecording(
+        recordingId,
+        data,
+      );
+
+      if (!updated) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "RecordingService.updateRecordingStorage",
+          ),
+        );
+      }
+
       return ok(undefined);
     } catch (error) {
       logger.error("Failed to update recording storage", {

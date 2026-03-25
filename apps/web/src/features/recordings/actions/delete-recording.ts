@@ -86,12 +86,12 @@ export const deleteRecordingAction = authorizedActionClient
       const storage = await getStorageProvider();
       if (recording.fileUrl) {
         await storage.del(recording.fileUrl);
+        logger.info("Successfully deleted blob file", {
+          component: "deleteRecordingAction",
+          recordingId,
+          fileUrl: recording.fileUrl,
+        });
       }
-      logger.info("Successfully deleted blob file", {
-        component: "deleteRecordingAction",
-        recordingId,
-        fileUrl: recording.fileUrl,
-      });
     } catch (error) {
       // Log the error but don't fail the entire operation
       // The recording is already deleted from the database

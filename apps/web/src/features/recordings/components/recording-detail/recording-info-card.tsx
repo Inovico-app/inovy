@@ -44,9 +44,12 @@ export function RecordingInfoCard({ recording }: RecordingInfoCardProps) {
             <FileIcon className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Format:</span>
             <span className="text-sm">
-              {recording.fileName != null
-                ? (recording.fileName.split(".").pop()?.toUpperCase() ?? "—")
-                : "—"}
+              {recording.fileMimeType != null
+                ? (recording.fileMimeType.split("/").pop()?.toUpperCase() ??
+                  "—")
+                : recording.fileName != null
+                  ? (recording.fileName.split(".").pop()?.toUpperCase() ?? "—")
+                  : "—"}
             </span>
           </div>
         </div>

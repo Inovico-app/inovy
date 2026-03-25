@@ -19,6 +19,10 @@ export async function copyToAzureStep(
     const storage = await getStorageProvider();
 
     if (!storage.copyFromURL) {
+      logger.warn("Storage provider does not support copyFromURL", {
+        component: "StoreRecordingWorkflow",
+        destinationPath,
+      });
       return failure(
         new Error("Storage provider does not support copyFromURL"),
       );

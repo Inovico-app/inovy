@@ -31,10 +31,22 @@ export async function fetchRecallDownloadUrl(
       return failure(result.error);
     }
 
+    const rawFormat = result.value.format ?? "mp4";
+    const FORMAT_TO_MIME: Record<string, string> = {
+      mp4: "video/mp4",
+      webm: "video/webm",
+      mp3: "audio/mp3",
+      wav: "audio/wav",
+      m4a: "audio/m4a",
+    };
+    const mimeType = rawFormat.includes("/")
+      ? rawFormat
+      : (FORMAT_TO_MIME[rawFormat] ?? "video/mp4");
+
     return success({
       url: result.value.url,
       duration: result.value.duration ?? null,
-      mimeType: result.value.format ?? "video/mp4",
+      mimeType,
     });
   } catch (error) {
     return failure(
