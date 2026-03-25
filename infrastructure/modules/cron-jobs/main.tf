@@ -54,9 +54,10 @@ resource "azurerm_container_app_job" "cron" {
 
       # Use double quotes so sh expands CRON_SECRET and APP_URL. Single quotes would send the
       # literal "${CRON_SECRET}" in the Authorization header (401 Unauthorized).
+      # FULL_URL is echoed to console logs so Log Analytics shows the resolved request URL.
       command = [
         "/bin/sh", "-c",
-        "curl -sS -H \"Authorization: Bearer $${CRON_SECRET}\" \"$${APP_URL}${each.value.path}\""
+        "FULL_URL=\"$${APP_URL}${each.value.path}\"; echo \"Cron target URL: $FULL_URL\"; curl -sS -H \"Authorization: Bearer $${CRON_SECRET}\" \"$FULL_URL\""
       ]
 
       env {
