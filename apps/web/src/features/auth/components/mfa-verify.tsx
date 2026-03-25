@@ -43,7 +43,7 @@ export function MfaVerify() {
       }
 
       toast.success("Signed in successfully");
-      router.push("/");
+      router.push("/" as never);
     } catch (error) {
       logger.error("MFA TOTP verify error", {
         error,
@@ -70,7 +70,7 @@ export function MfaVerify() {
       }
 
       toast.success("Signed in successfully");
-      router.push("/");
+      router.push("/" as never);
     } catch (error) {
       logger.error("MFA backup code verify error", {
         error,

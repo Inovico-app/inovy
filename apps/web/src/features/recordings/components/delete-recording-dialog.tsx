@@ -41,7 +41,7 @@ export function DeleteRecordingDialog({
   const handleDelete = async () => {
     if (confirmationText !== "DELETE" && confirmationText !== recordingTitle) {
       setError(
-        'Please type "DELETE" or the exact recording title to confirm deletion'
+        'Please type "DELETE" or the exact recording title to confirm deletion',
       );
       return;
     }
@@ -73,7 +73,7 @@ export function DeleteRecordingDialog({
 
       toast.success(`Recording "${recordingTitle}" deleted successfully`);
       router.refresh();
-      router.push(`/projects/${projectId}`);
+      router.push(`/projects/${projectId}` as never);
     } catch (error) {
       console.error("Error deleting recording:", error);
       const errorMessage = "Failed to delete recording";
@@ -170,4 +170,3 @@ export function DeleteRecordingDialog({
     </Dialog>
   );
 }
-

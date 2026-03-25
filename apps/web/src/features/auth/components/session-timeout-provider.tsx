@@ -34,7 +34,7 @@ export function SessionTimeoutProvider({
   const handleTimeout = useCallback(async () => {
     try {
       await authClient.signOut();
-      router.push("/sign-in?reason=session-expired");
+      router.push("/sign-in?reason=session-expired" as never);
     } catch (error) {
       logger.error("Failed to sign out on session timeout", {
         error,
@@ -42,7 +42,7 @@ export function SessionTimeoutProvider({
         action: "handleTimeout",
       });
       // Force redirect even if sign-out fails
-      router.push("/sign-in?reason=session-expired");
+      router.push("/sign-in?reason=session-expired" as never);
     }
   }, [router]);
 

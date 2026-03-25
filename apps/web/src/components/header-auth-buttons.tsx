@@ -42,7 +42,7 @@ export function HeaderAuthButtons() {
     await signOut({
       fetchOptions: {
         onSuccess: () => {
-          router.push("/sign-in"); // redirect to login page
+          router.push("/sign-in" as never); // redirect to login page
           router.refresh();
         },
       },
@@ -94,7 +94,11 @@ export function HeaderAuthButtons() {
 
     return (
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="ghost" className="relative h-9 w-9 rounded-full" />}>
+        <DropdownMenuTrigger
+          render={
+            <Button variant="ghost" className="relative h-9 w-9 rounded-full" />
+          }
+        >
           <Avatar className="h-9 w-9">
             <AvatarImage
               src={user.image ?? undefined}
@@ -120,18 +124,26 @@ export function HeaderAuthButtons() {
           <DropdownMenuSeparator />
           {isAdmin && (
             <>
-              <DropdownMenuItem render={<Link href="/admin" className="cursor-pointer" />}>
+              <DropdownMenuItem
+                render={<Link href="/admin" className="cursor-pointer" />}
+              >
                 <Shield className="mr-2 h-4 w-4" />
                 <span>Admin Panel</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </>
           )}
-          <DropdownMenuItem render={<Link href="/settings/profile" className="cursor-pointer" />}>
+          <DropdownMenuItem
+            render={
+              <Link href="/settings/profile" className="cursor-pointer" />
+            }
+          >
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/settings" className="cursor-pointer" />}>
+          <DropdownMenuItem
+            render={<Link href="/settings" className="cursor-pointer" />}
+          >
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>
@@ -153,4 +165,3 @@ export function HeaderAuthButtons() {
     </Button>
   );
 }
-

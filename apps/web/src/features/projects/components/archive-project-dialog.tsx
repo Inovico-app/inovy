@@ -66,7 +66,7 @@ export function ArchiveProjectDialog({
 
       toast.success(`Project "${projectName}" archived successfully`);
       router.refresh();
-      router.push("/projects");
+      router.push("/projects" as never);
     } catch (error) {
       console.error("Error archiving project:", error);
       toast.error("Failed to archive project");
@@ -103,17 +103,17 @@ export function ArchiveProjectDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       {!isControlled && (
         <DialogTrigger render={<Button variant={variant} size="sm" />}>
-            {isArchived ? (
-              <>
-                <ArchiveRestoreIcon className="h-4 w-4 mr-2" />
-                Restore Project
-              </>
-            ) : (
-              <>
-                <ArchiveIcon className="h-4 w-4 mr-2" />
-                Archive Project
-              </>
-            )}
+          {isArchived ? (
+            <>
+              <ArchiveRestoreIcon className="h-4 w-4 mr-2" />
+              Restore Project
+            </>
+          ) : (
+            <>
+              <ArchiveIcon className="h-4 w-4 mr-2" />
+              Archive Project
+            </>
+          )}
         </DialogTrigger>
       )}
       <DialogContent>
@@ -164,4 +164,3 @@ export function ArchiveProjectDialog({
     </Dialog>
   );
 }
-

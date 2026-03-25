@@ -63,7 +63,7 @@ export function CreateProjectModal({
   const handleSuccess = (projectId: string) => {
     handleOpenChange(false);
     // Navigate to the newly created project
-    router.push(`/projects/${projectId}`);
+    router.push(`/projects/${projectId}` as never);
     router.refresh();
   };
 
@@ -89,4 +89,3 @@ export function CreateProjectModal({
     </Dialog>
   );
 }
-

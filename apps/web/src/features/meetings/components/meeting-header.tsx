@@ -39,7 +39,7 @@ export function MeetingHeader({
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => router.push(backUrl)}
+        onClick={() => router.push(backUrl as never)}
         className="text-muted-foreground hover:text-foreground -ml-2 gap-1.5"
       >
         <ArrowLeft className="h-4 w-4" />

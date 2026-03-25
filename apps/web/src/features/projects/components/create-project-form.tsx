@@ -74,7 +74,7 @@ export function CreateProjectForm({
           if (onSuccess) {
             onSuccess(data.id);
           } else {
-            router.push(`/projects/${data.id}`);
+            router.push(`/projects/${data.id}` as never);
           }
         }
       },

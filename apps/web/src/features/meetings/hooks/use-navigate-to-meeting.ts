@@ -20,7 +20,7 @@ export function useNavigateToMeeting(options?: UseNavigateToMeetingOptions) {
       const returnTo = calendarSearch
         ? `?returnTo=${encodeURIComponent(calendarSearch)}`
         : "";
-      router.push(`/meetings/${data.meetingId}/prep${returnTo}`);
+      router.push(`/meetings/${data.meetingId}/prep${returnTo}` as never);
 
       // Reset action state to prevent re-triggering on component remount
       reset();

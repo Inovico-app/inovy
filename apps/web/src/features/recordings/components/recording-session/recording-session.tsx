@@ -78,7 +78,7 @@ export function RecordingSession({
     if (session.status !== "complete") return;
 
     toast.success("Opname voltooid!");
-    router.push(`/projects/${config.projectId}`);
+    router.push(`/projects/${config.projectId}` as never);
     router.refresh();
   }, [session.status, config.projectId, router]);
 

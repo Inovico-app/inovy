@@ -46,7 +46,7 @@ export function OrganizationDangerZone({
 
       if (result?.data) {
         toast.success("Organization deleted successfully");
-        router.push("/admin/organizations");
+        router.push("/admin/organizations" as never);
       } else if (result?.validationErrors) {
         const errors = Object.values(result.validationErrors)
           .flat()
@@ -77,7 +77,15 @@ export function OrganizationDangerZone({
       </CardHeader>
       <CardContent>
         <AlertDialog>
-          <AlertDialogTrigger render={<Button variant="destructive" disabled={isDeleting} className="gap-2" />}>
+          <AlertDialogTrigger
+            render={
+              <Button
+                variant="destructive"
+                disabled={isDeleting}
+                className="gap-2"
+              />
+            }
+          >
             {isDeleting ? (
               <>
                 <Loader2Icon className="h-4 w-4 animate-spin" />
@@ -118,4 +126,3 @@ export function OrganizationDangerZone({
     </Card>
   );
 }
-

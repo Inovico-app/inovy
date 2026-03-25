@@ -14,7 +14,7 @@ export function useInvitationSignOut(invitationId: string) {
       await signOut({
         fetchOptions: {
           onSuccess: () => {
-            router.push(`/accept-invitation/${invitationId}`);
+            router.push(`/accept-invitation/${invitationId}` as never);
             router.refresh();
           },
         },
