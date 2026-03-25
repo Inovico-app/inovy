@@ -41,7 +41,7 @@ Reuses the existing `convertRecordingIntoAiInsights` workflow with a modified so
 4. Finalize (reuse existing step): cache invalidation, notifications
 ```
 
-**Key detail:** `TranscriptionService.transcribeUploadedFile()` already handles non-Azure URLs via `resolveFetchableUrl()` (returns them unchanged). The workflow fetches a fresh Recall URL via `getRecordingDownloadUrl(recallBotId, externalRecordingId)` and passes it directly — no SAS resolution needed.
+**Key change:** `TranscriptionService.transcribeUploadedFile()` must accept a direct URL in addition to blob storage URLs, bypassing SAS resolution when a non-blob URL is provided.
 
 ### Storage Workflow
 
@@ -57,9 +57,7 @@ New workflow that copies the recording to Azure Blob without the file ever passi
 
 Zero memory on Vercel. The copy is async on Azure's side.
 
-**Recall URL expiry:** Recall download URLs are temporary/signed. Each workflow fetches a fresh URL via `getRecordingDownloadUrl()` at the start of its execution rather than receiving it from the webhook handler. This ensures the URL is as fresh as possible and avoids issues with expiry during long Azure copy operations.
-
-**`beginCopyFromURL` compatibility:** Azure's `beginCopyFromURL` issues a plain GET to the source URL. Recall download URLs are pre-signed (similar to S3 pre-signed URLs) with auth in the query string, so this should work. **Before implementation, verify with a manual test** that Azure can fetch from a Recall URL. Fallback: if `beginCopyFromURL` fails due to header requirements, use a lightweight streaming proxy (fetch stream → upload stream) inside a workflow step, which still avoids buffering the full file.
+**Recall URL expiry:** Recall download URLs are temporary/signed. Both workflows kick off immediately from the webhook handler, so expiry is not a concern.
 
 ## Failure Handling
 
@@ -73,76 +71,36 @@ The two workflows are independent. Partial failures are handled via status field
 
 Each workflow can be retried independently without affecting the other.
 
-### Storage Workflow Retry Strategy
-
-Mirrors the existing transcription retry logic (exponential backoff):
-
-- Max retries: 3
-- Backoff delays: 1s, 5s, 15s
-- On each retry: fetch a fresh Recall download URL (previous one may have expired)
-- On exhaustion: set `storageStatus: "failed"`, send failure notification
-
-### Status Lifecycle
-
-```text
-storageStatus:       pending → processing → completed
-                                         ↘ failed (retryable)
-
-transcriptionStatus: pending → processing → completed
-                                         ↘ failed (retryable)
-```
-
-Both statuses are set to `pending` when the recording DB entry is created. Each workflow manages its own status independently.
-
-### Post-Meeting Actions
-
-`PostActionExecutorService.executePostActions` fires at the end of the transcription workflow (in the finalize step), since post-actions depend on transcription results (summaries, tasks). This matches the current behavior.
-
 ## Changes
 
 ### Modify
 
 1. **`bot-webhook.service.ts`** — `processRecordingDone` becomes a thin dispatcher:
-   - Check for existing recording by `externalRecordingId` (preserve current deduplication logic for Svix retries)
-   - Create recording DB entry with Recall metadata: `externalRecordingId`, `recallBotId`, duration, project/meeting associations. File fields (`fileUrl`, `fileName`, `fileSize`, `fileMimeType`) are `null`. Set `storageStatus: "pending"`, `transcriptionStatus: "pending"`
+   - Create recording DB entry with Recall metadata (no file URL yet)
    - Update bot session
-   - Kick off both workflows in parallel, passing `recordingId`, `recallBotId`, and `externalRecordingId` (each workflow fetches its own fresh Recall URL using the latter two)
+   - Kick off transcription and storage workflows in parallel
    - Remove all download/encrypt/upload logic
 
-2. **`TranscriptionService`** — No changes needed. `resolveFetchableUrl()` in `url-utils.ts` already returns non-Azure URLs unchanged (`if (!isAzureBlobUrl(url)) return url`). The Recall URL will pass through to Deepgram as-is.
+2. **`TranscriptionService`** — Accept a direct URL (Recall download URL) in addition to blob storage URLs. When the URL is not a blob storage URL, skip `resolveFetchableUrl()` SAS resolution and pass it directly to Deepgram.
 
-3. **`convertRecordingIntoAiInsights` workflow** — Modify to accept `recallBotId` and `externalRecordingId` parameters alongside `recordingId`. For bot recordings, the workflow fetches a fresh Recall URL via `getRecordingDownloadUrl(recallBotId, externalRecordingId)` and uses it for transcription instead of `recording.fileUrl`. For upload/live recordings (where these params are absent), the existing `recording.fileUrl` path is unchanged.
+3. **`StorageProvider` interface** — Add `copyFromURL(sourceUrl: string, destinationPath: string): Promise<CopyResult>` method.
 
-4. **`StorageProvider` interface** — Add `copyFromURL(sourceUrl: string, destinationPath: string): Promise<CopyResult>` method.
+4. **Azure storage implementation** — Implement `copyFromURL` using Azure Blob SDK's `beginCopyFromURL`. Poll for copy completion.
 
-5. **Azure storage implementation** — Implement `copyFromURL` using Azure Blob SDK's `beginCopyFromURL`. Polling for copy completion happens inside a workflow step with retry semantics. Use `syncCopyFromURL` for files under 256 MB (faster, synchronous).
-
-6. **Recording DB schema** — Two changes:
-   - Add `storageStatus` field with values: `pending` | `processing` | `completed` | `failed`
-   - Make `fileUrl`, `fileName`, `fileSize`, `fileMimeType` **nullable**. The webhook handler creates the recording entry before the file is available. The storage workflow populates these fields upon completion. Requires a DB migration.
-   - **Migration impact:** All code reading these fields must handle `null`. Key consumers to audit:
-     - `RecordingDto` — update types to `string | null` / `number | null`
-     - `recording-media-player.tsx` — guards on `fileMimeType` before `.startsWith()`
-     - `recording-info-card.tsx` — guards on `fileName` before `.split()`
-     - `recording-card.tsx` / `recording-card-with-status.tsx` — null-safe rendering of `fileSize`, `fileMimeType`
-     - `bot-session-details-modal.tsx` — null-safe rendering of session recording fields
-     - `delete-recording.ts` / `gdpr-deletion.service.ts` — skip `storage.del()` when `fileUrl` is null
-     - Playback endpoint — return 202 when `storageStatus` is not `completed`
-
-7. **Playback endpoint** (`/api/recordings/[recordingId]/playback`) — Check `storageStatus` before attempting to resolve file URL. Return 202 with retry-after header when storage is pending/processing, and appropriate error when failed. **Note:** the current playback endpoint buffers the full file into memory, which would still OOM for large bot recordings. For non-encrypted bot recordings, redirect to a time-limited SAS URL instead of proxying the file through Vercel. This is a follow-up optimization tracked separately.
+5. **Recording DB schema** — Add `storageStatus` field with values: `pending` | `processing` | `completed` | `failed`. The existing `transcriptionStatus` field continues to track transcription state.
 
 ### Create
 
-1. **Storage workflow** (`src/workflows/store-recording/`) — New workflow using `"use workflow"` / `"use step"` directives (matching existing workflow patterns):
-   - Step 1: Fetch fresh Recall download URL via `getRecordingDownloadUrl(recallBotId, externalRecordingId)`
-   - Step 2: Call `storageProvider.copyFromURL()` (with polling inside the step)
-   - Step 3: Update recording DB entry with blob URL, fileSize, mimeType
-   - Updates `storageStatus` throughout (`pending` → `processing` → `completed`/`failed`)
-   - Retry strategy: 3 retries with exponential backoff (1s, 5s, 15s), fresh URL on each retry
+1. **Storage workflow** (`src/workflows/store-recording/`) — New workflow:
+   - Fetches Recall download URL
+   - Calls `storageProvider.copyFromURL()`
+   - Updates recording DB entry with blob URL, fileSize, mimeType
+   - Updates `storageStatus` throughout
 
 ### Remove
 
-1. **App-level encryption for bot recordings** — The `downloadRecording()` helper, buffer encryption step, and encryption metadata in `processRecordingDone` are removed for bot recordings. The encryption logic and `ENABLE_ENCRYPTION_AT_REST` env var are **retained** for `upload` and `live` recording modes, which still go through the existing buffer-based flow. Bot recordings are the only mode affected by this change.
+1. **App-level encryption in recording flow** — The `downloadRecording()` helper, buffer encryption step, and encryption metadata in `processRecordingDone` become unused for bot recordings. Remove or gate behind a flag.
+2. **`ENABLE_ENCRYPTION_AT_REST` usage in recording flow** — No longer needed for bot recordings since Azure SSE handles encryption.
 
 ### No Changes
 
