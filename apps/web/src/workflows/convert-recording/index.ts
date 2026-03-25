@@ -1,5 +1,4 @@
 import { logger } from "@/lib/logger";
-import { RecallApiService } from "@/server/services/recall-api.service";
 import type { WorkflowResult as SerializableResult } from "@/workflows/lib/workflow-result";
 import { failure, success } from "@/workflows/lib/workflow-result";
 import { updateWorkflowStatus } from "../shared/update-status";
@@ -9,6 +8,7 @@ import { getRecordingStep } from "./steps/step-get-recording";
 import { sendSuccessNotification } from "./steps/step-send-notification";
 import { executeSummaryStep } from "./steps/step-summary";
 import { executeTaskExtractionStep } from "./steps/step-tasks";
+import { fetchRecallUrlStep } from "./steps/step-fetch-recall-url";
 import { executeTranscriptionStep } from "./steps/step-transcription";
 import { validateParallelResults } from "./steps/step-validate-parallel-results";
 import type { WorkflowResult } from "./types";
@@ -70,16 +70,16 @@ export async function convertRecordingIntoAiInsights(
       let sourceUrl = recording.fileUrl;
 
       if (recallBotId && externalRecordingId) {
-        const urlResult = await RecallApiService.getRecordingDownloadUrl(
+        const urlResult = await fetchRecallUrlStep(
           recallBotId,
           externalRecordingId,
         );
-        if (urlResult.isErr()) {
-          const errorMsg = `Failed to get Recall URL: ${urlResult.error}`;
+        if (!urlResult.success || !urlResult.value) {
+          const errorMsg = "Failed to get Recall URL";
           await updateWorkflowStatus(recordingId, "failed", errorMsg);
           return failure(errorMsg);
         }
-        sourceUrl = urlResult.value.url;
+        sourceUrl = urlResult.value;
       }
 
       if (!sourceUrl) {

@@ -1,10 +1,10 @@
 import { logger } from "@/lib/logger";
-import { RecordingService } from "@/server/services/recording.service";
 import type { WorkflowResult as SerializableResult } from "@/workflows/lib/workflow-result";
 import { failure, success } from "@/workflows/lib/workflow-result";
 import { copyToAzureStep } from "./steps/step-copy-to-azure";
 import { fetchRecallDownloadUrl } from "./steps/step-fetch-recall-url";
 import { updateRecordingStorageStep } from "./steps/step-update-recording";
+import { updateStorageStatusStep } from "./steps/step-update-storage-status";
 import { MAX_RETRIES, RETRY_DELAYS, type StorageWorkflowResult } from "./types";
 
 const MIME_TO_EXT: Record<string, string> = {
@@ -47,9 +47,7 @@ export async function storeRecordingFromRecall(
       recallBotId,
     });
 
-    await RecordingService.updateRecordingStorage(recordingId, {
-      storageStatus: "processing",
-    });
+    await updateStorageStatusStep(recordingId, "processing");
 
     const timestamp = Date.now();
     let lastError: string = "Unknown error";
@@ -115,9 +113,7 @@ export async function storeRecordingFromRecall(
       });
     }
 
-    await RecordingService.updateRecordingStorage(recordingId, {
-      storageStatus: "failed",
-    });
+    await updateStorageStatusStep(recordingId, "failed");
 
     return failure(lastError);
   } catch (error) {
@@ -130,9 +126,7 @@ export async function storeRecordingFromRecall(
       error,
     });
 
-    await RecordingService.updateRecordingStorage(recordingId, {
-      storageStatus: "failed",
-    });
+    await updateStorageStatusStep(recordingId, "failed");
 
     return failure(errorMsg);
   }
