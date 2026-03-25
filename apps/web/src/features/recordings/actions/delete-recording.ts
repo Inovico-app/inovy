@@ -84,7 +84,9 @@ export const deleteRecordingAction = authorizedActionClient
     // Delete file from blob storage
     try {
       const storage = await getStorageProvider();
-      await storage.del(recording.fileUrl);
+      if (recording.fileUrl) {
+        await storage.del(recording.fileUrl);
+      }
       logger.info("Successfully deleted blob file", {
         component: "deleteRecordingAction",
         recordingId,
