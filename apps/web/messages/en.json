@@ -8,11 +8,31 @@
     "create": "Create",
     "back": "Back",
     "next": "Next",
+    "previous": "Previous",
     "search": "Search",
     "noResults": "No results found",
     "error": "Something went wrong",
     "retry": "Try again",
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "viewAll": "View all",
+    "close": "Close",
+    "confirm": "Confirm",
+    "reset": "Reset",
+    "apply": "Apply",
+    "saving": "Saving...",
+    "pageOf": "Page {current} of {total}",
+    "brandName": "Inovy",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "pending": "Pending",
+    "active": "Active",
+    "archived": "Archived",
+    "completed": "Completed",
+    "failed": "Failed",
+    "processing": "Processing...",
+    "unknown": "Unknown"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -23,7 +43,127 @@
     "chat": "Chat",
     "settings": "Settings",
     "admin": "Admin",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "botSessions": "Bot Sessions",
+    "teams": "Teams",
+    "management": "Management",
+    "record": "Record",
+    "newRecording": "New Recording"
+  },
+  "sidebar": {
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "adminSection": "Admin",
+    "legal": "Legal",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service"
+  },
+  "mobileSidebar": {
+    "openMenu": "Open navigation menu",
+    "mainNav": "Main navigation"
+  },
+  "headerAuth": {
+    "unavailable": "Auth unavailable",
+    "defaultUserName": "User",
+    "roleSuperadmin": "Superadmin",
+    "roleAdmin": "Admin",
+    "adminPanel": "Admin Panel",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logOut": "Log out",
+    "login": "Login"
+  },
+  "adminNav": {
+    "users": "Users",
+    "teams": "Teams",
+    "compliance": "Compliance",
+    "auditLogs": "Audit Logs",
+    "analytics": "Analytics",
+    "metrics": "Metrics",
+    "agentConfig": "Agent Config",
+    "organizations": "Organizations",
+    "ariaLabel": "Admin navigation"
+  },
+  "settingsNav": {
+    "ariaLabel": "Settings navigation",
+    "overview": "Overview",
+    "overviewDescription": "Settings overview and status",
+    "profile": "Profile",
+    "profileDescription": "Manage your personal account",
+    "organization": "Organization",
+    "organizationDescription": "View organization information",
+    "agent": "Agent",
+    "agentDescription": "Browse knowledge base documents",
+    "notetaker": "Notetaker",
+    "notetakerDescription": "Configure notetaker assistant preferences",
+    "integrations": "Integrations",
+    "integrationsDescription": "Manage third-party connections"
+  },
+  "settingsSidebar": {
+    "heading": "Settings",
+    "description": "Manage your preferences"
+  },
+  "adminSidebar": {
+    "heading": "Admin",
+    "description": "Manage your system",
+    "userManagement": "User Management",
+    "userManagementDescription": "Manage roles and permissions",
+    "auditLogs": "Audit Logs",
+    "auditLogsDescription": "Track system events",
+    "userAnalytics": "User Analytics",
+    "userAnalyticsDescription": "User engagement and feedback metrics",
+    "agentMetrics": "Agent Metrics",
+    "agentMetricsDescription": "System-wide metrics and detailed records",
+    "agentConfiguration": "Agent Configuration",
+    "agentConfigurationDescription": "Manage agent access per organization",
+    "organizations": "Organizations",
+    "organizationsDescription": "View and edit organizations",
+    "systemSettings": "System Settings",
+    "systemSettingsDescription": "Configure preferences",
+    "soonBadge": "Soon"
+  },
+  "roles": {
+    "owner": "Owner",
+    "admin": "Admin",
+    "superadmin": "Superadmin",
+    "manager": "Manager",
+    "user": "Member",
+    "viewer": "Viewer"
+  },
+  "theme": {
+    "toggle": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "orgSwitcher": {
+    "switchError": "Failed to switch organization. Please try again.",
+    "activeOrg": "Active organization: {name}",
+    "switchOrg": "Switch organization. Current: {name}",
+    "searchPlaceholder": "Search organizations...",
+    "noOrgFound": "No organization found."
+  },
+  "cookieConsent": {
+    "ariaLabel": "Cookie notice",
+    "message": "We use only essential cookies required for the application to function (session management and authentication). No tracking or marketing cookies are used. See our <privacyLink>Privacy Policy</privacyLink> for details.",
+    "privacyLink": "Privacy Policy",
+    "acknowledge": "Got it"
+  },
+  "errors": {
+    "accessDeniedTitle": "Access Denied",
+    "accessDeniedDescription": "The resource you're trying to access either doesn't exist or you don't have permission to view it.",
+    "accessDeniedReason1": "The resource may have been deleted or moved",
+    "accessDeniedReason2": "You may not have the required permissions",
+    "accessDeniedReason3": "The resource may belong to a different organization",
+    "contactAdmin": "If you believe this is an error, please contact your organization administrator.",
+    "errorTitle": "Error"
+  },
+  "agentDisabled": {
+    "title": "Agent Disabled",
+    "description": "The AI agent has been disabled for this organization.",
+    "details": "Chat functionality and other agent features are currently unavailable. Please contact your administrator."
   },
   "dashboard": {
     "title": "Dashboard",

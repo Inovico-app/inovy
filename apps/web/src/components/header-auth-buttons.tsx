@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { Settings, Shield, User } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
@@ -26,6 +27,8 @@ export function HeaderAuthButtons() {
   const { data: roleData, isPending: isRolePending } =
     useActiveMemberRole(isAuthenticated);
   const router = useRouter();
+  const t = useTranslations("headerAuth");
+  const tCommon = useTranslations("common");
 
   const isLoading = isPending ?? isRolePending;
 
@@ -61,13 +64,15 @@ export function HeaderAuthButtons() {
     // Show fallback UI when auth service is down
     return (
       <div className="flex items-center gap-3">
-        <span className="text-sm text-muted-foreground">Auth unavailable</span>
+        <span className="text-sm text-muted-foreground">
+          {t("unavailable")}
+        </span>
         <Button
           variant="outline"
           size="sm"
           onClick={() => window.location.reload()}
         >
-          Retry
+          {tCommon("retry")}
         </Button>
       </div>
     );
@@ -75,7 +80,7 @@ export function HeaderAuthButtons() {
 
   if (isAuthenticated && user) {
     // Get user initials for avatar fallback
-    const userName = user.name ?? user.email ?? "User";
+    const userName = user.name ?? user.email ?? t("defaultUserName");
     const initials =
       userName
         .split(" ")
@@ -102,7 +107,7 @@ export function HeaderAuthButtons() {
           <Avatar className="h-9 w-9">
             <AvatarImage
               src={user.image ?? undefined}
-              alt={user.email ?? "User"}
+              alt={user.email ?? t("defaultUserName")}
             />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
@@ -117,7 +122,11 @@ export function HeaderAuthButtons() {
                 </p>
               </div>
               <Badge className="capitalize">
-                {isSuperAdmin ? "Superadmin" : isAdmin ? "Admin" : firstRole}
+                {isSuperAdmin
+                  ? t("roleSuperadmin")
+                  : isAdmin
+                    ? t("roleAdmin")
+                    : firstRole}
               </Badge>
             </div>
           </DropdownMenuLabel>
@@ -128,7 +137,7 @@ export function HeaderAuthButtons() {
                 render={<Link href="/admin" className="cursor-pointer" />}
               >
                 <Shield className="mr-2 h-4 w-4" />
-                <span>Admin Panel</span>
+                <span>{t("adminPanel")}</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </>
@@ -139,20 +148,20 @@ export function HeaderAuthButtons() {
             }
           >
             <User className="mr-2 h-4 w-4" />
-            <span>Profile</span>
+            <span>{t("profile")}</span>
           </DropdownMenuItem>
           <DropdownMenuItem
             render={<Link href="/settings" className="cursor-pointer" />}
           >
             <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
+            <span>{t("settings")}</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={handleLogoutClick}
             className="cursor-pointer"
           >
-            <span>Log out</span>
+            <span>{t("logOut")}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -161,7 +170,7 @@ export function HeaderAuthButtons() {
 
   return (
     <Button size="sm" onClick={handleLoginClick}>
-      Login
+      {t("login")}
     </Button>
   );
 }

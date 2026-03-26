@@ -17,6 +17,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -24,8 +25,8 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { data } = useActiveMemberRole();
   const { isAdmin, isSuperAdmin } = data ?? {};
+  const t = useTranslations();
 
-  // Prevent hydration mismatch and restore collapsed state from localStorage
   useEffect(() => {
     setMounted(true);
     const savedState = localStorage.getItem("sidebar-collapsed");
@@ -62,6 +63,12 @@ export function Sidebar() {
 
   const showAdminSection = isAdmin || isSuperAdmin;
 
+  // Resolve translated labels from keys like "nav.dashboard" → t("nav.dashboard")
+  const resolveLabel = (labelKey: string) => {
+    const [namespace, key] = labelKey.split(".") as [string, string];
+    return t(`${namespace}.${key}`);
+  };
+
   return (
     <aside
       className={cn(
@@ -69,11 +76,10 @@ export function Sidebar() {
         collapsed ? "w-16" : "w-64",
       )}
     >
-      {/* Header */}
       <header className="flex h-14 items-center justify-between px-4 border-b">
         {!collapsed && (
           <Link href="/" className="font-semibold text-xl">
-            Inovy
+            {t("common.brandName")}
           </Link>
         )}
         <Button
@@ -81,7 +87,11 @@ export function Sidebar() {
           size="icon"
           onClick={toggleCollapsed}
           className={cn("h-8 w-8", collapsed && "mx-auto")}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={
+            collapsed
+              ? t("sidebar.expandSidebar")
+              : t("sidebar.collapseSidebar")
+          }
           aria-expanded={!collapsed}
         >
           {collapsed ? (
@@ -92,15 +102,13 @@ export function Sidebar() {
         </Button>
       </header>
 
-      {/* Organization Switcher */}
       <OrganizationSwitcher collapsed={collapsed} />
 
-      {/* Navigation */}
       <nav className="flex-1 space-y-1 p-2">
-        {/* Main Navigation */}
         <div className="space-y-1">
-          {navLinks.map(({ to, label, icon: Icon }) => {
+          {navLinks.map(({ to, labelKey, icon: Icon }) => {
             const active = isNavActive(pathname, to);
+            const label = resolveLabel(labelKey);
             const linkContent = (
               <Link
                 key={to}
@@ -133,18 +141,18 @@ export function Sidebar() {
           })}
         </div>
 
-        {/* Admin Section */}
         {showAdminSection && (
           <>
             <div className="my-4 border-t" />
             {!collapsed && (
               <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Admin
+                {t("sidebar.adminSection")}
               </div>
             )}
             <div className="space-y-1">
-              {adminLinks.map(({ to, label, icon: Icon }) => {
+              {adminLinks.map(({ to, labelKey, icon: Icon }) => {
                 const active = isNavActive(pathname, to);
+                const label = resolveLabel(labelKey);
                 const linkContent = (
                   <Link
                     key={to}
@@ -180,37 +188,36 @@ export function Sidebar() {
         )}
       </nav>
 
-      {/* Footer */}
       <div className="border-t p-2 space-y-2">
         <Link href="/record" as={"/record" as Route}>
           <Button
             className={cn("w-full justify-start gap-2", collapsed && "px-2")}
             variant="default"
             size={collapsed ? "icon" : "default"}
-            aria-label={collapsed ? "New Recording" : undefined}
+            aria-label={collapsed ? t("nav.newRecording") : undefined}
           >
             <Plus className="h-4 w-4 shrink-0" />
-            {!collapsed && <span>New Recording</span>}
+            {!collapsed && <span>{t("nav.newRecording")}</span>}
           </Button>
         </Link>
 
         {!collapsed ? (
           <nav
-            aria-label="Legal"
+            aria-label={t("sidebar.legal")}
             className="flex items-center justify-center gap-3 px-1 pt-1"
           >
             <Link
               href="/privacy-policy"
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
-              Privacy
+              {t("sidebar.privacy")}
             </Link>
             <span className="text-muted-foreground/60 text-xs">&middot;</span>
             <Link
               href="/terms-of-service"
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
-              Voorwaarden
+              {t("sidebar.terms")}
             </Link>
           </nav>
         ) : (
@@ -221,13 +228,15 @@ export function Sidebar() {
                   <Link
                     href="/privacy-policy"
                     className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:text-muted-foreground"
-                    aria-label="Privacybeleid"
+                    aria-label={t("sidebar.privacyPolicy")}
                   />
                 }
               >
                 <Scale className="h-3.5 w-3.5" />
               </TooltipTrigger>
-              <TooltipContent side="right">Privacy</TooltipContent>
+              <TooltipContent side="right">
+                {t("sidebar.privacy")}
+              </TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger
@@ -235,13 +244,13 @@ export function Sidebar() {
                   <Link
                     href="/terms-of-service"
                     className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:text-muted-foreground"
-                    aria-label="Algemene Voorwaarden"
+                    aria-label={t("sidebar.termsOfService")}
                   />
                 }
               >
                 <FileText className="h-3.5 w-3.5" />
               </TooltipTrigger>
-              <TooltipContent side="right">Voorwaarden</TooltipContent>
+              <TooltipContent side="right">{t("sidebar.terms")}</TooltipContent>
             </Tooltip>
           </div>
         )}

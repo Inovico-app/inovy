@@ -1,11 +1,16 @@
 "use client";
 
-import { SETTINGS_NAV_ITEMS } from "@/features/settings/lib/settings-nav-items";
+import { getSettingsNavItems } from "@/features/settings/lib/settings-nav-items";
+import type { Route } from "next";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 
 export function SettingsSidebar() {
   const pathname = usePathname();
+  const tSidebar = useTranslations("settingsSidebar");
+  const tNav = useTranslations("settingsNav");
+  const settingsNavItems = getSettingsNavItems(tNav);
 
   const isActive = (href: string) => {
     if (href === "/settings") return pathname === "/settings";
@@ -15,18 +20,20 @@ export function SettingsSidebar() {
   return (
     <aside className="w-64 border-r bg-card/50 flex-shrink-0 hidden md:flex flex-col">
       <div className="p-6 pb-4">
-        <h2 className="text-lg font-semibold">Settings</h2>
-        <p className="text-sm text-muted-foreground">Manage your preferences</p>
+        <h2 className="text-lg font-semibold">{tSidebar("heading")}</h2>
+        <p className="text-sm text-muted-foreground">
+          {tSidebar("description")}
+        </p>
       </div>
 
       <nav className="flex-1 px-3 pb-6 space-y-0.5">
-        {SETTINGS_NAV_ITEMS.map((item) => {
+        {settingsNavItems.map((item) => {
           const active = isActive(item.href);
 
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={item.href as Route}
               aria-current={active ? "page" : undefined}
               className={`group flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                 active
@@ -36,7 +43,9 @@ export function SettingsSidebar() {
             >
               <item.icon
                 className={`h-4 w-4 flex-shrink-0 ${
-                  active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                  active
+                    ? "text-primary"
+                    : "text-muted-foreground group-hover:text-foreground"
                 }`}
               />
               <div className="flex-1 min-w-0">

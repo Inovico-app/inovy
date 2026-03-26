@@ -13,26 +13,31 @@ import {
 
 export interface NavLink {
   to: string;
-  label: string;
+  labelKey: string;
   icon: React.ComponentType<{ className?: string }>;
   requiresAdmin?: boolean;
   requiresSuperAdmin?: boolean;
 }
 
 export const navLinks: NavLink[] = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/recordings", label: "Recordings", icon: FileAudio },
-  { to: "/chat", label: "Chat", icon: MessageSquare },
-  { to: "/projects", label: "Projects", icon: FolderKanban },
-  { to: "/tasks", label: "Tasks", icon: CheckSquare },
-  { to: "/meetings", label: "Meetings", icon: Calendar },
-  { to: "/bot/sessions", label: "Bot Sessions", icon: Bot },
-  { to: "/teams", label: "Teams", icon: Users },
-  { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/", labelKey: "nav.dashboard", icon: LayoutDashboard },
+  { to: "/recordings", labelKey: "nav.recordings", icon: FileAudio },
+  { to: "/chat", labelKey: "nav.chat", icon: MessageSquare },
+  { to: "/projects", labelKey: "nav.projects", icon: FolderKanban },
+  { to: "/tasks", labelKey: "nav.tasks", icon: CheckSquare },
+  { to: "/meetings", labelKey: "nav.meetings", icon: Calendar },
+  { to: "/bot/sessions", labelKey: "nav.botSessions", icon: Bot },
+  { to: "/teams", labelKey: "nav.teams", icon: Users },
+  { to: "/settings", labelKey: "nav.settings", icon: Settings },
 ];
 
 export const adminLinks: NavLink[] = [
-  { to: "/admin", label: "Management", icon: ShieldAlert, requiresAdmin: true },
+  {
+    to: "/admin",
+    labelKey: "nav.management",
+    icon: ShieldAlert,
+    requiresAdmin: true,
+  },
 ];
 
 export function isNavActive(pathname: string, href: string): boolean {

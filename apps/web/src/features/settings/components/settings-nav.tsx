@@ -1,10 +1,12 @@
 "use client";
 
 import { HorizontalNav } from "@/components/horizontal-nav";
-import { SETTINGS_NAV_ITEMS } from "@/features/settings/lib/settings-nav-items";
+import { getSettingsNavItems } from "@/features/settings/lib/settings-nav-items";
+import { useTranslations } from "next-intl";
 
 export function SettingsNav() {
-  const items = SETTINGS_NAV_ITEMS.map((item) => ({
+  const t = useTranslations("settingsNav");
+  const items = getSettingsNavItems(t).map((item) => ({
     href: item.href,
     icon: item.icon,
     label: item.label,
@@ -12,7 +14,7 @@ export function SettingsNav() {
 
   return (
     <div className="md:hidden">
-      <HorizontalNav items={items} ariaLabel="Settings navigation" />
+      <HorizontalNav items={items} ariaLabel={t("ariaLabel")} />
     </div>
   );
 }

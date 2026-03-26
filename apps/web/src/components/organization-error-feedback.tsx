@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, ShieldAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 
 interface OrganizationErrorFeedbackProps {
@@ -18,6 +19,7 @@ interface OrganizationErrorFeedbackProps {
 export function OrganizationErrorFeedback({
   error,
 }: OrganizationErrorFeedbackProps) {
+  const t = useTranslations("errors");
   const isOrganizationError =
     error.isOrganizationViolation ||
     error.code === "NOT_FOUND" ||
@@ -28,19 +30,15 @@ export function OrganizationErrorFeedback({
     return (
       <Alert variant="destructive">
         <ShieldAlert className="h-4 w-4" />
-        <AlertTitle>Access Denied</AlertTitle>
+        <AlertTitle>{t("accessDeniedTitle")}</AlertTitle>
         <AlertDescription>
-          The resource you&apos;re trying to access either doesn&apos;t exist or you
-          don&apos;t have permission to view it. This could be because:
+          {t("accessDeniedDescription")}
           <ul className="list-disc list-inside mt-2 space-y-1">
-            <li>The resource belongs to a different organization</li>
-            <li>The resource has been deleted</li>
-            <li>You don&apos;t have the required permissions</li>
+            <li>{t("accessDeniedReason1")}</li>
+            <li>{t("accessDeniedReason2")}</li>
+            <li>{t("accessDeniedReason3")}</li>
           </ul>
-          <p className="mt-2">
-            If you believe this is an error, please contact your organization
-            administrator.
-          </p>
+          <p className="mt-2">{t("contactAdmin")}</p>
         </AlertDescription>
       </Alert>
     );
@@ -49,9 +47,8 @@ export function OrganizationErrorFeedback({
   return (
     <Alert variant="destructive">
       <AlertCircle className="h-4 w-4" />
-      <AlertTitle>Error</AlertTitle>
+      <AlertTitle>{t("errorTitle")}</AlertTitle>
       <AlertDescription>{error.message}</AlertDescription>
     </Alert>
   );
 }
-

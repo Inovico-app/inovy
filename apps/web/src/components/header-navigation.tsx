@@ -3,22 +3,23 @@
 import { useUserRole } from "@/hooks/use-user-role";
 import type { Route } from "next";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface NavLink {
   to: string;
-  label: string;
+  labelKey: string;
   requiresAdmin?: boolean;
 }
 
 const navLinks: NavLink[] = [
-  { to: "/", label: "Dashboard" },
-  { to: "/record", label: "Record" },
-  { to: "/chat", label: "Chat" },
-  { to: "/projects", label: "Projects" },
-  { to: "/tasks", label: "Tasks" },
-  { to: "/admin", label: "Management", requiresAdmin: true },
+  { to: "/", labelKey: "nav.dashboard" },
+  { to: "/record", labelKey: "nav.record" },
+  { to: "/chat", labelKey: "nav.chat" },
+  { to: "/projects", labelKey: "nav.projects" },
+  { to: "/tasks", labelKey: "nav.tasks" },
+  { to: "/admin", labelKey: "nav.management", requiresAdmin: true },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -33,6 +34,7 @@ export function HeaderNavigation() {
   const [mounted, setMounted] = useState(false);
   const { data: userRoleData } = useUserRole();
   const { isAdmin, isSuperAdmin, roles: _roles } = userRoleData ?? {};
+  const t = useTranslations();
 
   // Prevent hydration mismatch — intentional synchronous setState in mount effect
   useEffect(() => {
@@ -46,13 +48,13 @@ export function HeaderNavigation() {
       <nav className="flex gap-4">
         {navLinks
           .filter((link) => !link.requiresAdmin)
-          .map(({ to, label }) => (
+          .map(({ to, labelKey }) => (
             <Link
               key={to}
               href={to as Route}
               className="text-sm font-medium hover:underline underline-offset-4"
             >
-              {label}
+              {t(labelKey)}
             </Link>
           ))}
       </nav>
@@ -65,7 +67,7 @@ export function HeaderNavigation() {
         .filter(({ requiresAdmin }) =>
           requiresAdmin ? Boolean(isAdmin || isSuperAdmin) : true,
         )
-        .map(({ to, label }) => {
+        .map(({ to, labelKey }) => {
           const active = isActive(pathname, to);
           return (
             <div key={to} className="flex items-center gap-1.5">
@@ -77,7 +79,7 @@ export function HeaderNavigation() {
                     : "text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
                 }`}
               >
-                {label}
+                {t(labelKey)}
               </Link>
             </div>
           );
