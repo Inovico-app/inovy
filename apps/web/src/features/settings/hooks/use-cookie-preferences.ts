@@ -1,5 +1,5 @@
 import { COOKIE_CONSENT_KEY } from "@/lib/constants/cookie-consent";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export function useCookiePreferences() {
   const [hasConsented, setHasConsented] = useState(false);
@@ -13,16 +13,15 @@ export function useCookiePreferences() {
     }
   }, []);
 
-  const handleResetConsent = useCallback(() => {
+  function handleResetConsent() {
     try {
       localStorage.removeItem(COOKIE_CONSENT_KEY);
       setHasConsented(false);
-      // Reload to re-trigger the cookie consent banner
       window.location.reload();
     } catch {
       // localStorage unavailable
     }
-  }, []);
+  }
 
   return { hasConsented, handleResetConsent };
 }

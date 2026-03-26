@@ -1,10 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { COOKIE_CONSENT_KEY } from "@/lib/constants/cookie-consent";
 import { Cookie } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { COOKIE_CONSENT_KEY } from "@/lib/constants/cookie-consent";
 import { useEffect, useState } from "react";
 
 /**

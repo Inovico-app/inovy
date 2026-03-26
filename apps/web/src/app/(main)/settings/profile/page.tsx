@@ -1,9 +1,9 @@
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AutoProcessToggle } from "@/features/recordings/components/auto-process-toggle";
-import { DataDeletion } from "@/features/settings/components/data-deletion";
 import { CookiePreferences } from "@/features/settings/components/cookie-preferences";
+import { DataDeletion } from "@/features/settings/components/data-deletion";
 import { DataExport } from "@/features/settings/components/data-export";
 import { PrivacyRights } from "@/features/settings/components/privacy-rights";
 import { ProfileForm } from "@/features/settings/components/profile-form";
@@ -17,8 +17,8 @@ import {
 } from "@/server/cache/team.cache";
 import { UserService } from "@/server/services/user.service";
 import { Building2Icon, UsersIcon } from "lucide-react";
-import Link from "next/link";
 import type { Route } from "next";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
