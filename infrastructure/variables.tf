@@ -419,6 +419,12 @@ variable "microsoft_use_federated_credential" {
   default     = true
 }
 
+variable "microsoft_entra_oauth_application_object_id" {
+  description = "Entra application (object) ID for the Microsoft OAuth app registration — required for federated identity credential. Not the client ID. From portal (Overview) or: az ad app show --id <MICROSOFT_CLIENT_ID> --query id -o tsv. Add to terraform.tfvars / TF_VARS (GitHub variable); avoids Graph Application.Read on the Terraform service principal."
+  type        = string
+  default     = ""
+}
+
 variable "next_public_webhook_url" {
   description = "Public webhook URL for Google Drive (optional; derived from app URL if empty)"
   type        = string

@@ -82,7 +82,9 @@ Terraform (see `infrastructure/azuread-microsoft-oauth.tf`) can create an **`azu
 
 At runtime the app obtains a managed-identity token for `api://AzureADTokenExchange/.default` and sends it as **`client_assertion`** (JWT bearer) to the Microsoft token endpoint for **Graph integration** flows (`microsoft-oauth.ts`). This removes the need to pass `client_secret` for those requests when `MICROSOFT_USE_FEDERATED_CREDENTIAL=true` and `MICROSOFT_ASSERTION_IDENTITY_CLIENT_ID` is set.
 
-The Entra app’s Terraform/OIDC principal needs permission to manage app credentials (e.g. Application Administrator), or apply this resource with an admin account.
+The Entra app’s Terraform/OIDC principal needs permission to **create or update** federated credentials on that app registration (e.g. **Application Administrator**), or run apply with an admin principal.
+
+Terraform does **not** look up the app by client ID via Microsoft Graph (that requires `Application.Read.All` and often returns **403** for the infrastructure service principal). Instead, set **`microsoft_entra_oauth_application_object_id`** in `terraform.tfvars` / `TF_VARS`, or GitHub variable **`MICROSOFT_ENTRA_OAUTH_APPLICATION_OBJECT_ID`**, to this registration’s **Object (principal) ID** from Entra Overview (not the Application (client) ID). Example: `az ad app show --id "$MICROSOFT_CLIENT_ID" --query id -o tsv`.
 
 Rotate and sync (example — replace resource group/name if yours differ):
 

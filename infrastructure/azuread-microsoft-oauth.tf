@@ -2,18 +2,15 @@
 # to authenticate as the Microsoft OAuth app registration (client assertion instead of client secret
 # for token endpoints used by apps/web Microsoft Graph integration).
 # See: https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation-config-app-trust-managed-identity
-
-data "azuread_application" "microsoft_oauth" {
-  count = local.microsoft_federated_credential_enabled ? 1 : 0
-
-  client_id = var.microsoft_client_id
-}
+#
+# Use var.microsoft_entra_oauth_application_object_id (Entra app *object* ID) instead of a data source:
+# the Terraform OIDC service principal often lacks Microsoft Graph permission to list applications (403).
 
 resource "azuread_application_federated_identity_credential" "microsoft_oauth_container_app_mi" {
   count = local.microsoft_federated_credential_enabled ? 1 : 0
 
   # azuread v3.x: application_id is the Entra application (object) ID
-  application_id = data.azuread_application.microsoft_oauth[0].object_id
+  application_id = var.microsoft_entra_oauth_application_object_id
   display_name   = "inovy-container-app-uami-${var.environment}"
   description    = "Trust user-assigned MI for OAuth client assertion (Graph / token exchange)"
   audiences      = ["api://AzureADTokenExchange"]
@@ -21,4 +18,13 @@ resource "azuread_application_federated_identity_credential" "microsoft_oauth_co
   subject        = module.container_app_identity.managed_identity_principal_id
 
   depends_on = [module.container_app_identity]
+
+  lifecycle {
+    precondition {
+      condition = (
+        var.microsoft_entra_oauth_application_object_id != ""
+      )
+      error_message = "When microsoft_use_federated_credential is enabled for Azure, set microsoft_entra_oauth_application_object_id to the Entra app registration object ID (az ad app show --id <MICROSOFT_CLIENT_ID> --query id -o tsv)."
+    }
+  }
 }
