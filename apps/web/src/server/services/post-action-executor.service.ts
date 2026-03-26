@@ -14,6 +14,7 @@ import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { TasksQueries } from "@/server/data-access/tasks.queries";
 import { type MeetingPostAction } from "@/server/db/schema/meeting-post-actions";
 import { type Meeting } from "@/server/db/schema/meetings";
+import { NotificationService } from "@/server/services/notification.service";
 import SummaryEmail from "@/emails/templates/summary-email";
 
 export class PostActionExecutorService {
@@ -331,12 +332,43 @@ export class PostActionExecutorService {
     meeting: Meeting,
     _action: MeetingPostAction,
   ): Promise<void> {
-    // TODO: Implement
-    // 1. Generate meeting_share_token (requiresAuth, requiresOrgMembership, 30 day expiry)
-    // 2. Send notification/email with secure link
-    logger.info("Share recording - not yet implemented", {
+    const recording = await RecordingsQueries.selectRecordingByMeetingId(
+      meeting.id,
+    );
+
+    // Generate share token
+    const rawToken = randomBytes(32).toString("hex");
+    const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+    await MeetingShareTokensQueries.insert({
+      meetingId: meeting.id,
+      createdById: meeting.createdById,
+      tokenHash,
+      expiresAt,
+      requiresAuth: true,
+      requiresOrgMembership: true,
+    });
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const shareUrl = `${appUrl}/meetings/${meeting.id}?token=${rawToken}`;
+
+    // Notify the meeting creator
+    await NotificationService.createNotification({
+      userId: meeting.createdById,
+      organizationId: meeting.organizationId,
+      projectId: meeting.projectId ?? undefined,
+      recordingId: recording?.id ?? null,
+      type: "recording_processed",
+      title: "Opname beschikbaar",
+      message: `De opname van "${meeting.title}" is klaar en kan gedeeld worden.`,
+      metadata: { shareUrl },
+    });
+
+    logger.info("Recording share token created and notification sent", {
       component: "PostActionExecutorService",
       meetingId: meeting.id,
+      recordingId: recording?.id,
     });
   }
 
