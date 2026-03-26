@@ -484,6 +484,13 @@
       "when": 1774534259977,
       "tag": "0074_add-transcript-chunks",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1774539144998,
+      "tag": "0075_add-works-council-approvals",
+      "breakpoints": true
     }
   ]
 }

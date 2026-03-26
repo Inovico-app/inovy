@@ -13,6 +13,7 @@ export const consentMethodEnum = [
   "explicit",
   "implicit",
   "bot-notification",
+  "works_council_approval",
 ] as const;
 export type ConsentMethod = (typeof consentMethodEnum)[number];
 
@@ -51,11 +52,10 @@ export const consentParticipants = pgTable(
     // Ensure one consent record per participant per recording
     uniqueParticipantPerRecording: unique().on(
       table.recordingId,
-      table.participantEmail
+      table.participantEmail,
     ),
-  })
+  }),
 );
 
 export type ConsentParticipant = typeof consentParticipants.$inferSelect;
 export type NewConsentParticipant = typeof consentParticipants.$inferInsert;
-
