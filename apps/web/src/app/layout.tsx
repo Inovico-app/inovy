@@ -10,7 +10,7 @@ import { JetBrains_Mono, Geist } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages } from "next-intl/server";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import "../index.css";
 import { cn } from "@/lib/utils";
 
@@ -39,8 +39,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = await getLocale();
-  const messages = await getMessages();
+  const [locale, messages, t] = await Promise.all([
+    getLocale(),
+    getMessages(),
+    getTranslations("common"),
+  ]);
 
   return (
     <html
@@ -55,7 +58,7 @@ export default async function RootLayout({
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:text-sm focus:font-medium focus:shadow-lg"
         >
-          {locale === "nl" ? "Ga naar hoofdinhoud" : "Skip to main content"}
+          {t("skipToContent")}
         </a>
         <AriaLiveRegion />
         <BetterAuthProvider>

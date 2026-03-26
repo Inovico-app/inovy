@@ -11,7 +11,8 @@
     "search": "Zoeken",
     "noResults": "Geen resultaten gevonden",
     "error": "Er is iets misgegaan",
-    "retry": "Opnieuw proberen"
+    "retry": "Opnieuw proberen",
+    "skipToContent": "Ga naar hoofdinhoud"
   },
   "nav": {
     "dashboard": "Dashboard",

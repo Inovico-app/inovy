@@ -11,7 +11,8 @@
     "search": "Search",
     "noResults": "No results found",
     "error": "Something went wrong",
-    "retry": "Try again"
+    "retry": "Try again",
+    "skipToContent": "Skip to main content"
   },
   "nav": {
     "dashboard": "Dashboard",
