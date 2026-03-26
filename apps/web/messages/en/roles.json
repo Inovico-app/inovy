@@ -1,0 +1,8 @@
+{
+  "owner": "Owner",
+  "admin": "Admin",
+  "superadmin": "Superadmin",
+  "manager": "Manager",
+  "user": "Member",
+  "viewer": "Viewer"
+}

@@ -1,0 +1,15 @@
+{
+  "ariaLabel": "Settings navigation",
+  "overview": "Overview",
+  "overviewDescription": "Settings overview and status",
+  "profile": "Profile",
+  "profileDescription": "Manage your personal account",
+  "organization": "Organization",
+  "organizationDescription": "View organization information",
+  "agent": "Agent",
+  "agentDescription": "Browse knowledge base documents",
+  "notetaker": "Notetaker",
+  "notetakerDescription": "Configure notetaker assistant preferences",
+  "integrations": "Integrations",
+  "integrationsDescription": "Manage third-party connections"
+}

@@ -1,0 +1,11 @@
+{
+  "unavailable": "Authenticatie niet beschikbaar",
+  "defaultUserName": "Gebruiker",
+  "roleSuperadmin": "Superadmin",
+  "roleAdmin": "Admin",
+  "adminPanel": "Beheerpaneel",
+  "profile": "Profiel",
+  "settings": "Instellingen",
+  "logOut": "Uitloggen",
+  "login": "Inloggen"
+}

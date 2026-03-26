@@ -1,0 +1,15 @@
+{
+  "ariaLabel": "Instellingennavigatie",
+  "overview": "Overzicht",
+  "overviewDescription": "Overzicht en status van instellingen",
+  "profile": "Profiel",
+  "profileDescription": "Beheer je persoonlijke account",
+  "organization": "Organisatie",
+  "organizationDescription": "Bekijk organisatie-informatie",
+  "agent": "Agent",
+  "agentDescription": "Blader door kennisbankdocumenten",
+  "notetaker": "Notulist",
+  "notetakerDescription": "Stel de voorkeuren van de notulist in",
+  "integrations": "Integraties",
+  "integrationsDescription": "Beheer koppelingen met externe diensten"
+}

@@ -1,0 +1,16 @@
+{
+  "dashboard": "Dashboard",
+  "recordings": "Opnames",
+  "meetings": "Vergaderingen",
+  "projects": "Projecten",
+  "tasks": "Taken",
+  "chat": "Chat",
+  "settings": "Instellingen",
+  "admin": "Beheer",
+  "notifications": "Meldingen",
+  "botSessions": "Bot-sessies",
+  "teams": "Teams",
+  "management": "Beheer",
+  "record": "Opnemen",
+  "newRecording": "Nieuwe opname"
+}

@@ -1,0 +1,7 @@
+{
+  "switchError": "Kan niet van organisatie wisselen. Probeer het opnieuw.",
+  "activeOrg": "Actieve organisatie: {name}",
+  "switchOrg": "Wissel van organisatie. Huidig: {name}",
+  "searchPlaceholder": "Organisaties zoeken...",
+  "noOrgFound": "Geen organisatie gevonden."
+}

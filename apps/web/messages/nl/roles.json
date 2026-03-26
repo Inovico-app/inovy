@@ -1,0 +1,8 @@
+{
+  "owner": "Eigenaar",
+  "admin": "Admin",
+  "superadmin": "Superadmin",
+  "manager": "Manager",
+  "user": "Lid",
+  "viewer": "Kijker"
+}

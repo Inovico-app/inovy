@@ -1,0 +1,11 @@
+{
+  "users": "Gebruikers",
+  "teams": "Teams",
+  "compliance": "Compliance",
+  "auditLogs": "Auditlogboek",
+  "analytics": "Analyse",
+  "metrics": "Statistieken",
+  "agentConfig": "Agent-configuratie",
+  "organizations": "Organisaties",
+  "ariaLabel": "Beheernavigatie"
+}

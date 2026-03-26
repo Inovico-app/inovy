@@ -1,0 +1,9 @@
+{
+  "accessDeniedTitle": "Access Denied",
+  "accessDeniedDescription": "The resource you're trying to access either doesn't exist or you don't have permission to view it.",
+  "accessDeniedReason1": "The resource may have been deleted or moved",
+  "accessDeniedReason2": "You may not have the required permissions",
+  "accessDeniedReason3": "The resource may belong to a different organization",
+  "contactAdmin": "If you believe this is an error, please contact your organization administrator.",
+  "errorTitle": "Error"
+}

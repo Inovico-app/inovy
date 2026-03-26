@@ -1,0 +1,16 @@
+{
+  "dashboard": "Dashboard",
+  "recordings": "Recordings",
+  "meetings": "Meetings",
+  "projects": "Projects",
+  "tasks": "Tasks",
+  "chat": "Chat",
+  "settings": "Settings",
+  "admin": "Admin",
+  "notifications": "Notifications",
+  "botSessions": "Bot Sessions",
+  "teams": "Teams",
+  "management": "Management",
+  "record": "Record",
+  "newRecording": "New Recording"
+}

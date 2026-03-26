@@ -1,0 +1,19 @@
+{
+  "heading": "Beheer",
+  "description": "Beheer je systeem",
+  "userManagement": "Gebruikersbeheer",
+  "userManagementDescription": "Beheer rollen en rechten",
+  "auditLogs": "Auditlogboek",
+  "auditLogsDescription": "Volg systeemgebeurtenissen",
+  "userAnalytics": "Gebruikersanalyse",
+  "userAnalyticsDescription": "Betrokkenheid en feedback van gebruikers",
+  "agentMetrics": "Agent-statistieken",
+  "agentMetricsDescription": "Systeembrede statistieken en gedetailleerde gegevens",
+  "agentConfiguration": "Agent-configuratie",
+  "agentConfigurationDescription": "Beheer agenttoegang per organisatie",
+  "organizations": "Organisaties",
+  "organizationsDescription": "Bekijk en bewerk organisaties",
+  "systemSettings": "Systeeminstellingen",
+  "systemSettingsDescription": "Voorkeuren instellen",
+  "soonBadge": "Binnenkort"
+}
