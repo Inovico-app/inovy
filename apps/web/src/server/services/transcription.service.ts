@@ -118,6 +118,10 @@ export class TranscriptionService {
         paragraphs: true,
         numerals: true,
         detect_language: true,
+        // Redact payment card numbers at the transcription level — they never
+        // reach the database. Full PII detection (BSN, email, phone, etc.) is
+        // handled post-transcription by RedactionService with reviewable results.
+        redact: ["pci"],
       };
 
       // Add keywords if available
