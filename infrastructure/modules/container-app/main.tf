@@ -197,15 +197,12 @@ resource "azurerm_container_app" "inovy" {
       }
 
       # Optional when using hybrid: Better Auth may still need a secret while Graph uses federated assertion.
+      # Nested dynamic blocks here require a set (not a map) for for_each under Terraform 1.6 + this provider schema.
       dynamic "env" {
-        for_each = (
-          var.microsoft_client_secret != ""
-          ? { microsoft_client_secret = var.microsoft_client_secret }
-          : {}
-        )
+        for_each = var.microsoft_client_secret != "" ? toset(["microsoft_client_secret"]) : toset([])
         content {
           name  = "MICROSOFT_CLIENT_SECRET"
-          value = each.value
+          value = var.microsoft_client_secret
         }
       }
 
