@@ -18,13 +18,4 @@ resource "azuread_application_federated_identity_credential" "microsoft_oauth_co
   subject        = module.container_app_identity.managed_identity_principal_id
 
   depends_on = [module.container_app_identity]
-
-  lifecycle {
-    precondition {
-      condition = (
-        var.microsoft_entra_oauth_application_object_id != ""
-      )
-      error_message = "When microsoft_use_federated_credential is enabled for Azure, set microsoft_entra_oauth_application_object_id to the Entra app registration object ID (az ad app show --id <MICROSOFT_CLIENT_ID> --query id -o tsv)."
-    }
-  }
 }

@@ -54,11 +54,13 @@ locals {
     }
   }
 
-  # Entra federated identity credential (see azuread-microsoft-oauth.tf)
+  # Entra federated identity credential (see azuread-microsoft-oauth.tf).
+  # Requires microsoft_entra_oauth_application_object_id (Graph lookup removed — avoids 403 for Terraform SP).
   microsoft_federated_credential_enabled = (
     var.microsoft_use_federated_credential &&
     var.microsoft_client_id != "" &&
-    var.next_public_platform == "azure"
+    var.next_public_platform == "azure" &&
+    var.microsoft_entra_oauth_application_object_id != ""
   )
 }
 
