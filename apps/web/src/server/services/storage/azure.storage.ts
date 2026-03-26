@@ -229,6 +229,7 @@ export class AzureStorageProvider implements StorageProvider {
 
     let nodeStream: Readable | undefined;
     let contentLength: string | null = null;
+    let contentType = "application/octet-stream";
 
     // Stream the file from the source (Recall.ai/S3) through to Azure Blob Storage.
     // We use streaming download→upload instead of beginCopyFromURL because Azure's
@@ -252,7 +253,7 @@ export class AzureStorageProvider implements StorageProvider {
         throw new Error("Source response has no body");
       }
 
-      const contentType =
+      contentType =
         response.headers.get("content-type") ?? "application/octet-stream";
       contentLength = response.headers.get("content-length");
 
