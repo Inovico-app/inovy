@@ -69,7 +69,13 @@ export class ComplianceDashboardQueries {
       .where(eq(recordings.organizationId, organizationId))
       .groupBy(consentParticipants.consentStatus);
 
-    const stats = { total: 0, granted: 0, pending: 0, revoked: 0, expired: 0 };
+    const stats = {
+      total: 0,
+      granted: 0,
+      pending: 0,
+      revoked: 0,
+      expired: 0,
+    };
     for (const row of result) {
       const c = Number(row.count);
       stats.total += c;
@@ -88,25 +94,17 @@ export class ComplianceDashboardQueries {
   static async getRedactionStats(
     organizationId: string,
   ): Promise<RedactionStats> {
-    const byType = await db
+    // Single query with multi-column GROUP BY instead of two separate queries
+    const result = await db
       .select({
         redactionType: redactions.redactionType,
-        count: count(),
-      })
-      .from(redactions)
-      .innerJoin(recordings, eq(redactions.recordingId, recordings.id))
-      .where(eq(recordings.organizationId, organizationId))
-      .groupBy(redactions.redactionType);
-
-    const byDetection = await db
-      .select({
         detectedBy: redactions.detectedBy,
         count: count(),
       })
       .from(redactions)
       .innerJoin(recordings, eq(redactions.recordingId, recordings.id))
       .where(eq(recordings.organizationId, organizationId))
-      .groupBy(redactions.detectedBy);
+      .groupBy(redactions.redactionType, redactions.detectedBy);
 
     const stats: RedactionStats = {
       total: 0,
@@ -117,18 +115,16 @@ export class ComplianceDashboardQueries {
       manual: 0,
     };
 
-    for (const row of byType) {
+    for (const row of result) {
       const c = Number(row.count);
       stats.total += c;
-      if (row.redactionType === "pii") stats.pii = c;
-      else if (row.redactionType === "phi") stats.phi = c;
-      else if (row.redactionType === "custom") stats.custom = c;
-    }
 
-    for (const row of byDetection) {
-      const c = Number(row.count);
-      if (row.detectedBy === "automatic") stats.automatic = c;
-      else if (row.detectedBy === "manual") stats.manual = c;
+      if (row.redactionType === "pii") stats.pii += c;
+      else if (row.redactionType === "phi") stats.phi += c;
+      else if (row.redactionType === "custom") stats.custom += c;
+
+      if (row.detectedBy === "automatic") stats.automatic += c;
+      else if (row.detectedBy === "manual") stats.manual += c;
     }
 
     return stats;
@@ -171,37 +167,37 @@ export class ComplianceDashboardQueries {
   static async getRetentionStats(
     organizationId: string,
   ): Promise<RetentionStats> {
+    // Single query with status grouping + MIN(created_at)
     const result = await db
-      .select({
-        total: count(),
-        oldest: sql<string>`MIN(${recordings.createdAt})`,
-      })
-      .from(recordings)
-      .where(eq(recordings.organizationId, organizationId));
-
-    const statusResult = await db
       .select({
         status: recordings.status,
         count: count(),
+        oldest: sql<string>`MIN(${recordings.createdAt})`,
       })
       .from(recordings)
       .where(eq(recordings.organizationId, organizationId))
       .groupBy(recordings.status);
 
+    let total = 0;
     let active = 0;
     let archived = 0;
-    for (const row of statusResult) {
-      if (row.status === "active") active = Number(row.count);
-      else if (row.status === "archived") archived = Number(row.count);
+    let oldest: string | null = null;
+
+    for (const row of result) {
+      const c = Number(row.count);
+      total += c;
+      if (row.status === "active") active = c;
+      else if (row.status === "archived") archived = c;
+      if (row.oldest && (!oldest || row.oldest < oldest)) {
+        oldest = row.oldest;
+      }
     }
 
     return {
-      totalRecordings: Number(result[0]?.total ?? 0),
+      totalRecordings: total,
       activeRecordings: active,
       archivedRecordings: archived,
-      oldestRecordingDate: result[0]?.oldest
-        ? new Date(result[0].oldest)
-        : null,
+      oldestRecordingDate: oldest ? new Date(oldest) : null,
     };
   }
 
@@ -209,37 +205,28 @@ export class ComplianceDashboardQueries {
     organizationId: string,
     sinceDate?: Date,
   ): Promise<AuditLogStats> {
-    const since = sinceDate ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days
+    const since = sinceDate ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const categoryResult = await db
-      .select({
-        category: auditLogs.category,
-        count: count(),
-      })
-      .from(auditLogs)
-      .where(
-        and(
-          eq(auditLogs.organizationId, organizationId),
-          gte(auditLogs.createdAt, since),
-        ),
-      )
-      .groupBy(auditLogs.category);
+    const conditions = and(
+      eq(auditLogs.organizationId, organizationId),
+      gte(auditLogs.createdAt, since),
+    );
 
-    const topEvents = await db
-      .select({
-        eventType: auditLogs.eventType,
-        count: count(),
-      })
-      .from(auditLogs)
-      .where(
-        and(
-          eq(auditLogs.organizationId, organizationId),
-          gte(auditLogs.createdAt, since),
-        ),
-      )
-      .groupBy(auditLogs.eventType)
-      .orderBy(sql`count(*) DESC`)
-      .limit(5);
+    // Run both queries in parallel instead of sequentially
+    const [categoryResult, topEvents] = await Promise.all([
+      db
+        .select({ category: auditLogs.category, count: count() })
+        .from(auditLogs)
+        .where(conditions)
+        .groupBy(auditLogs.category),
+      db
+        .select({ eventType: auditLogs.eventType, count: count() })
+        .from(auditLogs)
+        .where(conditions)
+        .groupBy(auditLogs.eventType)
+        .orderBy(sql`count(*) DESC`)
+        .limit(5),
+    ]);
 
     let mutations = 0;
     let reads = 0;
