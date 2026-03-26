@@ -25,6 +25,7 @@ async function AdminUsersHeader() {
 }
 
 async function TeamAssignmentTab() {
+  const t = await getTranslations("admin.users");
   const authCtxResult = await resolveAuthContext("TeamAssignmentTab");
   const sessionResult = await getBetterAuthSession();
 
@@ -82,6 +83,7 @@ async function TeamAssignmentTab() {
 }
 
 async function AdminUsersContainer() {
+  const t = await getTranslations("admin.users");
   // Check if user is authenticated and has admin permissions
   const sessionResult = await getBetterAuthSession();
 

@@ -61,7 +61,8 @@ async function BotSettingsContentWrapper() {
   return <BotSettingsContent initialSettings={settingsResult.value} />;
 }
 
-export default function BotSettingsPage() {
+export default async function BotSettingsPage() {
+  const t = await getTranslations("settings.bot");
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />

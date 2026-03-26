@@ -30,6 +30,7 @@ async function OrganizationContent({
 }: {
   organizationId: string;
 }) {
+  const t = await getTranslations("admin.organizations");
   const authResult = await resolveAuthContext("OrganizationContent");
 
   // Fetch organization, members, and teams
