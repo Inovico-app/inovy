@@ -6,9 +6,11 @@ import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 async function BotSettingsContentWrapper() {
+  const t = await getTranslations("settings.bot");
   const authResult = await getBetterAuthSession();
 
   if (authResult.isErr() || !authResult.value.user) {
@@ -59,13 +61,11 @@ async function BotSettingsContentWrapper() {
   return <BotSettingsContent initialSettings={settingsResult.value} />;
 }
 
-export default function BotSettingsPage() {
+export default async function BotSettingsPage() {
+  const t = await getTranslations("settings.bot");
   return (
     <>
-      <PageHeader
-        title="Notetaker Settings"
-        description="Configure your notetaker assistant preferences and manage recording consent"
-      />
+      <PageHeader title={t("title")} description={t("description")} />
       <Suspense
         fallback={
           <div className="space-y-6">

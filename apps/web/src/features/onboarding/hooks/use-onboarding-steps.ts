@@ -1,18 +1,7 @@
+import { useTranslations } from "next-intl";
 import type { OnboardingFormValues } from "../schemas/onboarding-form.schema";
 
 export type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-
-export const STEPS: Array<{ number: Step; title: string }> = [
-  { number: 1, title: "Naam" },
-  { number: 2, title: "Account Type" },
-  { number: 3, title: "Onderzoeksvraag" },
-  { number: 4, title: "Agenda" },
-  { number: 5, title: "Organization Size" },
-  { number: 6, title: "Hoe heb je over ons gehoord?" },
-  { number: 7, title: "Nieuwsbrief" },
-  { number: 8, title: "Je organisatie" },
-  { number: 9, title: "Nodig collega's uit" },
-];
 
 // Define the flow paths for each signup type
 const INDIVIDUAL_FLOW: Step[] = [1, 2, 3, 4, 6, 7];
@@ -21,8 +10,22 @@ const ORGANIZATION_FLOW: Step[] = [1, 2, 8, 5, 9, 6, 7];
 export function useOnboardingSteps(
   currentStep: Step,
   formData: OnboardingFormValues,
-  completedSteps: Set<Step>
+  completedSteps: Set<Step>,
 ) {
+  const t = useTranslations("onboarding");
+
+  const STEPS: Array<{ number: Step; title: string }> = [
+    { number: 1, title: t("stepTitleName") },
+    { number: 2, title: t("stepTitleAccountType") },
+    { number: 3, title: t("stepTitleResearchQuestion") },
+    { number: 4, title: t("stepTitleCalendar") },
+    { number: 5, title: t("stepTitleOrgSize") },
+    { number: 6, title: t("stepTitleReferral") },
+    { number: 7, title: t("stepTitleNewsletter") },
+    { number: 8, title: t("stepTitleOrgName") },
+    { number: 9, title: t("stepTitleInvite") },
+  ];
+
   const flow =
     formData.signupType === "individual" ? INDIVIDUAL_FLOW : ORGANIZATION_FLOW;
 
@@ -93,4 +96,3 @@ export function useOnboardingSteps(
     isStepCompleted,
   };
 }
-

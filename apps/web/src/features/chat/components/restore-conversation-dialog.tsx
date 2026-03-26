@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTranslations } from "next-intl";
 
 interface RestoreConversationDialogProps {
   open: boolean;
@@ -26,11 +27,13 @@ export function RestoreConversationDialog({
   isRestoring = false,
   daysRemaining,
 }: RestoreConversationDialogProps) {
+  const t = useTranslations("chat");
+  const tc = useTranslations("common");
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Restore Conversation?</AlertDialogTitle>
+          <AlertDialogTitle>{t("restoreConversationTitle")}</AlertDialogTitle>
           <AlertDialogDescription>
             This conversation will be restored to your active conversations.
             {daysRemaining !== undefined && (
@@ -43,7 +46,9 @@ export function RestoreConversationDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isRestoring}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isRestoring}>
+            {tc("cancel")}
+          </AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
@@ -51,11 +56,10 @@ export function RestoreConversationDialog({
             }}
             disabled={isRestoring}
           >
-            {isRestoring ? "Restoring..." : "Restore"}
+            {isRestoring ? t("restoring") : "Restore"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
 }
-

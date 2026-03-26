@@ -29,6 +29,7 @@ import {
 } from "../validation/upload-recording-form.schema";
 import { FileDropZone } from "./upload-file-drop-zone";
 import { UploadProgressBar } from "./upload-progress-bar";
+import { useTranslations } from "next-intl";
 
 interface UploadRecordingFormProps {
   projectId: string;
@@ -41,6 +42,8 @@ export function UploadRecordingForm({
   onSuccess,
   onCancel,
 }: UploadRecordingFormProps) {
+  const t = useTranslations("recordings");
+  const tc = useTranslations("common");
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -120,16 +123,14 @@ export function UploadRecordingForm({
         selectedFile.type as (typeof ALLOWED_MIME_TYPES)[number],
       )
     ) {
-      setUploadError(
-        "Unsupported file type. Please upload mp3, mp4, wav, m4a, or webm files.",
-      );
+      setUploadError(t("upload.unsupportedFileType"));
       return;
     }
 
     // Validate file size
     if (selectedFile.size > MAX_FILE_SIZE) {
       setUploadError(
-        `File size exceeds maximum of ${MAX_FILE_SIZE / 1024 / 1024}MB.`,
+        t("upload.fileSizeExceeded", { size: MAX_FILE_SIZE / 1024 / 1024 }),
       );
       return;
     }
@@ -153,7 +154,7 @@ export function UploadRecordingForm({
   const handleCancelUpload = () => {
     if (abortControllerRef.current && state.isUploading) {
       abortControllerRef.current.abort();
-      toast.info("Upload cancelled");
+      toast.info(t("upload.uploadCancelled"));
       cancelUpload();
     }
 
@@ -164,7 +165,7 @@ export function UploadRecordingForm({
 
   const onSubmit = async (data: UploadRecordingFormValues) => {
     if (!state.file) {
-      setUploadError("Please select a file to upload");
+      setUploadError(t("upload.selectFileError"));
       return;
     }
 
@@ -212,7 +213,7 @@ export function UploadRecordingForm({
     } catch (err) {
       // Handle abort error differently from other errors
       if (err instanceof Error && err.name === "AbortError") {
-        setUploadError("Upload cancelled");
+        setUploadError(t("upload.uploadCancelled"));
         return; // Don't show error toast for intentional cancellation
       }
 
@@ -220,7 +221,7 @@ export function UploadRecordingForm({
         err instanceof Error ? err.message : "An error occurred";
       setUploadError(errorMessage);
       toast.error(
-        err instanceof Error ? err.message : "An error occurred during upload",
+        err instanceof Error ? err.message : t("upload.errorOccurred"),
       );
     } finally {
       abortControllerRef.current = null;
@@ -235,7 +236,7 @@ export function UploadRecordingForm({
       >
         {/* File Upload Area */}
         <div className="space-y-2 min-w-0 overflow-hidden">
-          <FormLabel htmlFor="file">Recording File *</FormLabel>
+          <FormLabel htmlFor="file">{t("upload.recordingFile")}</FormLabel>
           <FileDropZone
             file={state.file}
             isDragging={state.isDragging}
@@ -261,11 +262,11 @@ export function UploadRecordingForm({
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Title *</FormLabel>
+              <FormLabel>{t("upload.titleField")}</FormLabel>
               <FormControl>
                 <Input
                   {...field}
-                  placeholder="Enter recording title"
+                  placeholder={t("upload.titlePlaceholder")}
                   maxLength={200}
                   disabled={state.isUploading}
                 />
@@ -281,11 +282,11 @@ export function UploadRecordingForm({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>{t("upload.descriptionField")}</FormLabel>
               <FormControl>
                 <Textarea
                   {...field}
-                  placeholder="Enter recording description (optional)"
+                  placeholder={t("upload.descriptionPlaceholder")}
                   maxLength={1000}
                   disabled={state.isUploading}
                   rows={4}
@@ -302,7 +303,7 @@ export function UploadRecordingForm({
           name="recordingDate"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Recording Date *</FormLabel>
+              <FormLabel>{t("upload.recordingDateField")}</FormLabel>
               <FormControl>
                 <Input
                   {...field}
@@ -331,7 +332,7 @@ export function UploadRecordingForm({
               variant="outline"
               onClick={handleCancelUpload}
             >
-              {state.isUploading ? "Cancel Upload" : "Cancel"}
+              {state.isUploading ? t("upload.cancelUpload") : tc("cancel")}
             </Button>
           )}
           <Button
@@ -340,7 +341,9 @@ export function UploadRecordingForm({
               !state.file || !form.formState.isValid || state.isUploading
             }
           >
-            {state.isUploading ? "Uploading..." : "Upload Recording"}
+            {state.isUploading
+              ? t("upload.uploading")
+              : t("upload.uploadButton")}
           </Button>
         </div>
       </form>

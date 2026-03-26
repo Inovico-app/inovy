@@ -1,0 +1,11 @@
+{
+  "users": "Users",
+  "teams": "Teams",
+  "compliance": "Compliance",
+  "auditLogs": "Audit Logs",
+  "analytics": "Analytics",
+  "metrics": "Metrics",
+  "agentConfig": "Agent Config",
+  "organizations": "Organizations",
+  "ariaLabel": "Admin navigation"
+}

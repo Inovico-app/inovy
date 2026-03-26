@@ -1,4 +1,5 @@
 import { ConversationEmptyState } from "@/components/ai-elements/conversation";
+import { useTranslations } from "next-intl";
 import { Building2, FolderOpen } from "lucide-react";
 
 interface ChatEmptyStateProps {
@@ -6,10 +7,8 @@ interface ChatEmptyStateProps {
   projectName?: string;
 }
 
-export function ChatEmptyState({
-  context,
-  projectName,
-}: ChatEmptyStateProps) {
+export function ChatEmptyState({ context, projectName }: ChatEmptyStateProps) {
+  const t = useTranslations("chat");
   if (context === "organization") {
     return (
       <ConversationEmptyState
@@ -18,11 +17,11 @@ export function ChatEmptyState({
             <Building2 className="h-8 w-8 text-primary" />
           </div>
         }
-        title="Ask questions across your organization"
-        description="Search through all projects, recordings, transcriptions, and tasks. Get cross-project insights and find information across your entire organization."
+        title={t("orgEmptyTitle")}
+        description={t("orgEmptyDescription")}
       >
         <div className="mt-4 max-w-md text-left">
-          <p className="text-xs font-semibold mb-2">Example questions:</p>
+          <p className="text-xs font-semibold mb-2">{t("exampleQuestions")}</p>
           <ul className="text-xs space-y-1 text-muted-foreground">
             <li>• "What are the common issues across all projects?"</li>
             <li>• "Show me all high-priority tasks from the last month"</li>
@@ -41,11 +40,15 @@ export function ChatEmptyState({
           <FolderOpen className="h-8 w-8 text-primary" />
         </div>
       }
-      title={`Ask questions about ${projectName ?? "this project"}`}
-      description="Search through recordings, transcriptions, and tasks in this project. Get insights and find information quickly."
+      title={
+        projectName
+          ? t("projectEmptyTitle", { name: projectName })
+          : t("projectEmptyTitleDefault")
+      }
+      description={t("projectEmptyDescription")}
     >
       <div className="mt-4 max-w-md text-left">
-        <p className="text-xs font-semibold mb-2">Example questions:</p>
+        <p className="text-xs font-semibold mb-2">{t("exampleQuestions")}</p>
         <ul className="text-xs space-y-1 text-muted-foreground">
           <li>• "What were the main topics discussed in recent meetings?"</li>
           <li>• "Show me all tasks assigned to John"</li>
@@ -56,4 +59,3 @@ export function ChatEmptyState({
     </ConversationEmptyState>
   );
 }
-

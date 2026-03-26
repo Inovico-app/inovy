@@ -18,9 +18,11 @@ import {
 } from "@/server/cache/knowledge-base.cache";
 import { OrganizationService } from "@/server/services/organization.service";
 import { Building2Icon, ClockIcon, MailIcon, UsersIcon } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 async function OrganizationContent() {
+  const t = await getTranslations("settings.organization");
   const authResult = await getBetterAuthSession();
 
   if (authResult.isErr()) {
@@ -39,7 +41,7 @@ async function OrganizationContent() {
   if (!organization) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">No organization data available</p>
+        <p className="text-muted-foreground">{t("noOrganizationData")}</p>
       </div>
     );
   }
@@ -97,21 +99,23 @@ async function OrganizationContent() {
     <Card>
       <CardHeader>
         <CardTitle className="text-base font-medium">
-          Organization Details
+          {t("organizationDetails")}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-3">
           <Building2Icon className="h-4 w-4 text-muted-foreground" />
           <div>
-            <p className="text-sm text-muted-foreground">Organization Name</p>
+            <p className="text-sm text-muted-foreground">
+              {t("organizationName")}
+            </p>
             <p className="text-sm font-medium">{orgName}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <UsersIcon className="h-4 w-4 text-muted-foreground" />
           <div>
-            <p className="text-sm text-muted-foreground">Members</p>
+            <p className="text-sm text-muted-foreground">{t("members")}</p>
             <p className="text-sm font-medium">
               {members.length} {members.length === 1 ? "member" : "members"}
             </p>
@@ -127,7 +131,9 @@ async function OrganizationContent() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-medium">Members</CardTitle>
+            <CardTitle className="text-base font-medium">
+              {t("members")}
+            </CardTitle>
             {canEdit && <InviteUserDialog />}
           </div>
         </CardHeader>
@@ -181,7 +187,7 @@ async function OrganizationContent() {
           {pendingInvitations.length > 0 && (
             <div className="mt-6">
               <p className="text-sm font-medium text-muted-foreground mb-3">
-                Pending Invitations ({pendingInvitations.length})
+                {t("pendingInvitations", { count: pendingInvitations.length })}
               </p>
               <div className="space-y-2">
                 {pendingInvitations.map((invitation) => (
@@ -206,7 +212,9 @@ async function OrganizationContent() {
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
                         <ClockIcon className="h-3 w-3" />
-                        Expires {formatDateShort(invitation.expiresAt)}
+                        {t("expires", {
+                          date: formatDateShort(invitation.expiresAt),
+                        })}
                       </div>
                     </div>
                   </div>
@@ -240,10 +248,7 @@ async function OrganizationContent() {
 
   return (
     <>
-      <PageHeader
-        title="Organization"
-        description="Manage your organization settings and members"
-      />
+      <PageHeader title={t("title")} description={t("description")} />
       {/* Outer Suspense (in OrganizationPage) satisfies nuqs useSearchParams requirement */}
       <OrganizationTabs
         generalContent={generalContent}

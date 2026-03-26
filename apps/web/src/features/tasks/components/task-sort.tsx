@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export type SortField = "priority" | "dueDate" | "createdAt" | "project";
 export type SortOrder = "asc" | "desc";
@@ -29,6 +30,7 @@ const sortOptions: Array<{ value: SortField; label: string }> = [
 ];
 
 export function TaskSort({ sortBy, sortOrder, onSortChange }: TaskSortProps) {
+  const t = useTranslations("tasks");
   const currentSortLabel =
     sortOptions.find((opt) => opt.value === sortBy)?.label ?? "Priority";
 
@@ -38,9 +40,11 @@ export function TaskSort({ sortBy, sortOrder, onSortChange }: TaskSortProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground">Sort by:</span>
+      <span className="text-sm text-muted-foreground">{t("sortBy")}</span>
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="h-8" />}>
+        <DropdownMenuTrigger
+          render={<Button variant="outline" size="sm" className="h-8" />}
+        >
           <ArrowUpDown className="h-3 w-3 mr-2" />
           {currentSortLabel}
         </DropdownMenuTrigger>
@@ -66,7 +70,7 @@ export function TaskSort({ sortBy, sortOrder, onSortChange }: TaskSortProps) {
         size="sm"
         className="h-8 w-8 p-0"
         onClick={toggleSortOrder}
-        title={sortOrder === "asc" ? "Ascending" : "Descending"}
+        title={sortOrder === "asc" ? t("ascending") : t("descending")}
       >
         {sortOrder === "asc" ? (
           <ArrowUp className="h-3 w-3" />
@@ -77,4 +81,3 @@ export function TaskSort({ sortBy, sortOrder, onSortChange }: TaskSortProps) {
     </div>
   );
 }
-

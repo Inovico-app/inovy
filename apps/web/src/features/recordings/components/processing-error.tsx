@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card";
+import { getTranslations } from "next-intl/server";
 
 interface ProcessingErrorProps {
   title?: string;
@@ -14,38 +15,44 @@ interface ProcessingErrorProps {
   onRetry?: () => void;
 }
 
-export function ProcessingError({
-  title = "Processing Failed",
-  message = "There was an error processing this recording. This could be due to an unsupported file format, corrupted file, or a temporary service issue.",
+export async function ProcessingError({
+  title,
+  message,
   recordingTitle,
   onRetry,
 }: ProcessingErrorProps) {
+  const t = await getTranslations("recordings");
+  const effectiveTitle = title ?? t("processingError.title");
+  const effectiveMessage = message ?? t("processingError.defaultMessage");
   return (
     <Card className="border-destructive/50">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-destructive">
           <AlertCircleIcon className="h-5 w-5" />
-          {title}
+          {effectiveTitle}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           {recordingTitle && (
             <p className="text-sm font-medium">
-              Recording: <span className="font-normal">{recordingTitle}</span>
+              {t("processingError.recordingLabel")}{" "}
+              <span className="font-normal">{recordingTitle}</span>
             </p>
           )}
-          <p className="text-sm text-muted-foreground">{message}</p>
+          <p className="text-sm text-muted-foreground">{effectiveMessage}</p>
         </div>
 
         <div className="flex flex-col gap-3 pt-2">
           <div className="text-sm">
-            <p className="font-medium mb-1">What you can do:</p>
+            <p className="font-medium mb-1">
+              {t("processingError.whatYouCanDo")}
+            </p>
             <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-              <li>Verify the file is not corrupted and try uploading again</li>
-              <li>Ensure the file format is supported (mp3, mp4, wav, m4a)</li>
-              <li>Check if the file size is within limits (max 100MB)</li>
-              <li>Contact support if the issue persists</li>
+              <li>{t("processingError.tip1")}</li>
+              <li>{t("processingError.tip2")}</li>
+              <li>{t("processingError.tip3")}</li>
+              <li>{t("processingError.tip4")}</li>
             </ul>
           </div>
 
@@ -56,13 +63,13 @@ export function ProcessingError({
               size="sm"
               className="w-fit"
             >
-              Retry Processing
+              {t("processingError.retryProcessing")}
             </Button>
           )}
 
           <div className="pt-2 border-t">
             <p className="text-xs text-muted-foreground">
-              Need help? Contact{" "}
+              {t("processingError.needHelp")}{" "}
               <a
                 href="mailto:support@example.com"
                 className="text-primary hover:underline"
@@ -76,4 +83,3 @@ export function ProcessingError({
     </Card>
   );
 }
-

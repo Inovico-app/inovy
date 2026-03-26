@@ -14,8 +14,10 @@ import { setAutoProcessPreference } from "@/features/recordings/lib/recording-pr
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 export function AutoProcessToggle() {
+  const t = useTranslations("recordings");
   const [isEnabled, setIsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -42,18 +44,18 @@ export function AutoProcessToggle() {
 
       toast.success(
         newValue
-          ? "Auto-verwerking ingeschakeld"
-          : "Auto-verwerking uitgeschakeld",
+          ? t("autoProcess.enabledToast")
+          : t("autoProcess.disabledToast"),
         {
           description: newValue
-            ? "Live opnames worden automatisch verwerkt na opslaan"
-            : "Je kunt verwerking handmatig starten per opname",
-        }
+            ? t("autoProcess.enabledDescription")
+            : t("autoProcess.disabledDescription"),
+        },
       );
     } catch (error) {
       console.error("Failed to update auto-process preference:", error);
-      toast.error("Fout bij opslaan van voorkeuren", {
-        description: "Probeer het opnieuw",
+      toast.error(t("autoProcess.saveFailed"), {
+        description: t("autoProcess.saveFailedDescription"),
       });
     } finally {
       setIsSaving(false);
@@ -64,10 +66,8 @@ export function AutoProcessToggle() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Live opname verwerking</CardTitle>
-          <CardDescription>
-            Beheer automatische AI verwerking voor live opnames
-          </CardDescription>
+          <CardTitle>{t("autoProcess.title")}</CardTitle>
+          <CardDescription>{t("autoProcess.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
@@ -81,10 +81,8 @@ export function AutoProcessToggle() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Live opname verwerking</CardTitle>
-        <CardDescription>
-          Beheer automatische AI verwerking voor live opnames
-        </CardDescription>
+        <CardTitle>{t("autoProcess.title")}</CardTitle>
+        <CardDescription>{t("autoProcess.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between space-x-4">
@@ -110,15 +108,15 @@ export function AutoProcessToggle() {
                 Opslaan...
               </>
             ) : isEnabled ? (
-              "Ingeschakeld"
+              t("autoProcess.enabled")
             ) : (
-              "Uitgeschakeld"
+              t("autoProcess.disabled")
             )}
           </Button>
         </div>
 
         <div className="rounded-lg bg-muted p-4 text-sm">
-          <p className="font-medium mb-2">Let op:</p>
+          <p className="font-medium mb-2">{t("autoProcess.noteTitle")}</p>
           <ul className="list-disc list-inside space-y-1 text-muted-foreground">
             <li>
               Deze instelling is alleen van toepassing op{" "}
@@ -135,4 +133,3 @@ export function AutoProcessToggle() {
     </Card>
   );
 }
-

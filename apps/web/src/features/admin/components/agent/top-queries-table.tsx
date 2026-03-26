@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useTranslations } from "next-intl";
 import { formatDistanceToNow } from "date-fns";
 
 interface TopQuery {
@@ -22,19 +23,20 @@ interface TopQueriesTableProps {
 }
 
 export function TopQueriesTable({ queries }: TopQueriesTableProps) {
+  const t = useTranslations("admin.metrics");
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top Queries</CardTitle>
+        <CardTitle>{t("topQueries")}</CardTitle>
       </CardHeader>
       <CardContent>
         {queries.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Query</TableHead>
-                <TableHead className="text-right">Count</TableHead>
-                <TableHead className="text-right">Last Used</TableHead>
+                <TableHead>{t("query")}</TableHead>
+                <TableHead className="text-right">{t("count")}</TableHead>
+                <TableHead className="text-right">{t("lastUsed")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -62,4 +64,3 @@ export function TopQueriesTable({ queries }: TopQueriesTableProps) {
     </Card>
   );
 }
-

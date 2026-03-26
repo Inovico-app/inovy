@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslations } from "next-intl";
 import { TabsContent } from "@/components/ui/tabs";
 
 interface UserAnalyticsPerformanceProps {
@@ -16,6 +17,7 @@ interface UserAnalyticsPerformanceProps {
 export function UserAnalyticsPerformance({
   queryComplexity,
 }: UserAnalyticsPerformanceProps) {
+  const t = useTranslations("admin.analytics");
   return (
     <TabsContent value="performance" className="space-y-6 mt-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
@@ -29,7 +31,9 @@ export function UserAnalyticsPerformance({
             <div className="text-2xl font-bold">
               {queryComplexity.averageQueryLength}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Characters</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("characters")}
+            </p>
           </CardContent>
         </Card>
 
@@ -43,7 +47,9 @@ export function UserAnalyticsPerformance({
             <div className="text-2xl font-bold">
               {queryComplexity.averageTokenCount.toLocaleString()}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Per request</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("perRequest")}
+            </p>
           </CardContent>
         </Card>
 
@@ -57,7 +63,9 @@ export function UserAnalyticsPerformance({
             <div className="text-2xl font-bold">
               {queryComplexity.totalTokens.toLocaleString()}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Total usage</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("totalUsage")}
+            </p>
           </CardContent>
         </Card>
 
@@ -71,9 +79,7 @@ export function UserAnalyticsPerformance({
             <div className="text-2xl font-bold">
               {queryComplexity.averageLatency}ms
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Response time
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">Response time</p>
           </CardContent>
         </Card>
 

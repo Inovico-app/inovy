@@ -1,12 +1,8 @@
 "use client";
 
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQueryState } from "nuqs";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 interface OrganizationTabsProps {
@@ -20,6 +16,7 @@ export function OrganizationTabs({
   membersContent,
   aiContent,
 }: OrganizationTabsProps) {
+  const t = useTranslations("settings.organization");
   const [tab, setTab] = useQueryState("tab", {
     defaultValue: "general",
     shallow: false,
@@ -32,9 +29,9 @@ export function OrganizationTabs({
       className="w-full"
     >
       <TabsList>
-        <TabsTrigger value="general">General</TabsTrigger>
-        <TabsTrigger value="members">Members & Teams</TabsTrigger>
-        <TabsTrigger value="ai">AI & Knowledge Base</TabsTrigger>
+        <TabsTrigger value="general">{t("generalTab")}</TabsTrigger>
+        <TabsTrigger value="members">{t("membersTab")}</TabsTrigger>
+        <TabsTrigger value="ai">{t("aiTab")}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="general" className="mt-6">

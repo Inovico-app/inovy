@@ -10,6 +10,7 @@ import {
 import type { OrganizationDetailDto } from "@/server/cache/organization.cache";
 import { format } from "date-fns";
 import { Building2Icon, CalendarIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 
 interface OrganizationDetailProps {
@@ -21,11 +22,12 @@ export function OrganizationDetail({
   organization,
   memberCount,
 }: OrganizationDetailProps) {
+  const t = useTranslations("admin.organizations");
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Organization Information</CardTitle>
-        <CardDescription>Basic details about this organization</CardDescription>
+        <CardTitle>{t("organizationInfo")}</CardTitle>
+        <CardDescription>{t("basicDetails")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-4">
@@ -61,7 +63,9 @@ export function OrganizationDetail({
                 <p className="text-3xl font-bold tracking-tight">
                   {memberCount}
                 </p>
-                <p className="text-xs text-muted-foreground">Active users</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("activeUsers")}
+                </p>
               </div>
               <div className="rounded-lg bg-primary/10 p-3 ring-1 ring-primary/20">
                 <Building2Icon className="h-5 w-5 text-primary" />
@@ -133,4 +137,3 @@ export function OrganizationDetail({
     </Card>
   );
 }
-

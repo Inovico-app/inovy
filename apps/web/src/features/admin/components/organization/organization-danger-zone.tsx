@@ -23,6 +23,7 @@ import { Loader2Icon, TrashIcon } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { deleteOrganization } from "../../actions/delete-organization";
 
@@ -37,6 +38,7 @@ export function OrganizationDangerZone({
   organizationName,
   memberCount,
 }: OrganizationDangerZoneProps) {
+  const t = useTranslations("admin.organizations");
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -46,7 +48,7 @@ export function OrganizationDangerZone({
       const result = await deleteOrganization({ id: organizationId });
 
       if (result?.data) {
-        toast.success("Organization deleted successfully");
+        toast.success(t("organizationDeleted"));
         router.push("/admin/organizations" as Route);
       } else if (result?.validationErrors) {
         const errors = Object.values(result.validationErrors)
@@ -57,7 +59,7 @@ export function OrganizationDangerZone({
         toast.error(result.serverError);
       }
     } catch (error) {
-      toast.error("Failed to delete organization");
+      toast.error(t("organizationDeleteFailed"));
       console.error(error);
     } finally {
       setIsDeleting(false);
@@ -71,10 +73,7 @@ export function OrganizationDangerZone({
           <TrashIcon className="h-5 w-5" />
           Danger Zone
         </CardTitle>
-        <CardDescription>
-          Permanently delete this organization and all associated data. This
-          action cannot be undone.
-        </CardDescription>
+        <CardDescription>{t("dangerZoneDescription")}</CardDescription>
       </CardHeader>
       <CardContent>
         <AlertDialog>
@@ -101,7 +100,7 @@ export function OrganizationDangerZone({
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogTitle>{t("deleteConfirmTitle")}</AlertDialogTitle>
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete the
                 organization <strong>{organizationName}</strong> and remove all

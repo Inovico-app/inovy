@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslations } from "next-intl";
 import { TabsContent } from "@/components/ui/tabs";
 
 interface UserAnalyticsQualityProps {
@@ -22,6 +23,7 @@ export function UserAnalyticsQuality({
   qualityIndicators,
   conversationPatterns,
 }: UserAnalyticsQualityProps) {
+  const t = useTranslations("admin.analytics");
   return (
     <TabsContent value="quality" className="space-y-6 mt-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -35,9 +37,7 @@ export function UserAnalyticsQuality({
             <div className="text-2xl font-bold">
               {qualityIndicators.averageResponseQuality.toFixed(1)}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Quality score
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">Quality score</p>
           </CardContent>
         </Card>
 
@@ -101,7 +101,7 @@ export function UserAnalyticsQuality({
             <div className="text-2xl font-bold">
               {conversationPatterns.averageDuration}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Minutes</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("minutes")}</p>
           </CardContent>
         </Card>
 
@@ -115,7 +115,9 @@ export function UserAnalyticsQuality({
             <div className="text-2xl font-bold">
               {conversationPatterns.longestConversation}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Messages</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("messagesUnit")}
+            </p>
           </CardContent>
         </Card>
 
@@ -139,18 +141,18 @@ export function UserAnalyticsQuality({
       {/* Feedback Section (Placeholder) */}
       <Card>
         <CardHeader>
-          <CardTitle>User Feedback</CardTitle>
+          <CardTitle>{t("userFeedback")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <p className="text-muted-foreground mb-2">
-              Feedback tracking will be available soon
+              {t("feedbackComingSoon")}
             </p>
             <div className="text-2xl font-bold text-muted-foreground">
               0% Positive
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              This metric will track user satisfaction ratings
+              {t("feedbackMetricDescription")}
             </p>
           </div>
         </CardContent>

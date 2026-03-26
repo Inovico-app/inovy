@@ -23,6 +23,7 @@ import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2Icon, SaveIcon } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { z } from "zod";
 import { checkOrganizationSlug } from "../../actions/create-organization";
@@ -36,7 +37,7 @@ const organizationEditSchema = z.object({
     .max(50)
     .regex(
       /^[a-z0-9-]+$/,
-      "Slug must contain only lowercase letters, numbers, and hyphens"
+      "Slug must contain only lowercase letters, numbers, and hyphens",
     ),
   logo: z.string().url("Must be a valid URL").optional().or(z.literal("")),
 });
@@ -50,6 +51,7 @@ interface OrganizationEditFormProps {
 export function OrganizationEditForm({
   organization,
 }: OrganizationEditFormProps) {
+  const t = useTranslations("admin.organizations");
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
 
   const form = useForm<OrganizationEditFormValues>({
@@ -71,7 +73,7 @@ export function OrganizationEditForm({
       });
 
       if (result?.data) {
-        toast.success("Organization updated successfully");
+        toast.success(t("organizationUpdated"));
       } else if (result?.validationErrors) {
         const errors = Object.values(result.validationErrors)
           .flat()
@@ -81,7 +83,7 @@ export function OrganizationEditForm({
         toast.error(result.serverError);
       }
     } catch (error) {
-      toast.error("Failed to update organization");
+      toast.error(t("organizationUpdateFailed"));
       console.error(error);
     }
   };
@@ -112,8 +114,8 @@ export function OrganizationEditForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Edit Organization</CardTitle>
-        <CardDescription>Update the organization details</CardDescription>
+        <CardTitle>{t("editOrganization")}</CardTitle>
+        <CardDescription>{t("updateDetails")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -123,7 +125,7 @@ export function OrganizationEditForm({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Organization Name</FormLabel>
+                  <FormLabel>{t("organizationName")}</FormLabel>
                   <FormControl>
                     <Input placeholder="My Organization" {...field} />
                   </FormControl>
@@ -140,7 +142,7 @@ export function OrganizationEditForm({
               name="slug"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Slug</FormLabel>
+                  <FormLabel>{t("slugLabel")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input
@@ -172,7 +174,7 @@ export function OrganizationEditForm({
               name="logo"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Logo URL (Optional)</FormLabel>
+                  <FormLabel>{t("logoUrl")}</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="https://example.com/logo.png"
@@ -205,4 +207,3 @@ export function OrganizationEditForm({
     </Card>
   );
 }
-

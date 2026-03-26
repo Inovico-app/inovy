@@ -3,6 +3,7 @@
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
@@ -23,8 +24,9 @@ interface UseCreateCalendarEventOptions {
  * Handles the server action call, loading state, and success/error handling
  */
 export function useCreateCalendarEvent(
-  options?: UseCreateCalendarEventOptions
+  options?: UseCreateCalendarEventOptions,
 ) {
+  const t = useTranslations("meetings");
   const router = useRouter();
   const queryClient = useQueryClient();
   const optionsRef = useRef(options);
@@ -36,11 +38,11 @@ export function useCreateCalendarEvent(
         const { eventUrl, sessionId, error } = data;
 
         if (error) {
-          toast.warning("Event created with warnings", {
+          toast.warning(t("toast.eventCreatedWithWarnings"), {
             description: error,
             action: eventUrl
               ? {
-                  label: "Open Event",
+                  label: t("toast.openEvent"),
                   onClick: () => {
                     window.open(eventUrl, "_blank");
                   },
@@ -48,13 +50,13 @@ export function useCreateCalendarEvent(
               : undefined,
           });
         } else {
-          toast.success("Calendar event created successfully", {
+          toast.success(t("toast.eventCreated"), {
             description: sessionId
-              ? "Event and bot session created"
-              : "Event created",
+              ? t("toast.eventCreatedWithBot")
+              : t("toast.eventCreatedWithoutBot"),
             action: eventUrl
               ? {
-                  label: "Open Event",
+                  label: t("toast.openEvent"),
                   onClick: () => {
                     window.open(eventUrl, "_blank");
                   },
@@ -64,7 +66,9 @@ export function useCreateCalendarEvent(
         }
 
         // Invalidate meetings query cache to show the new event immediately
-        void queryClient.invalidateQueries({ queryKey: queryKeys.meetings.all });
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.meetings.all,
+        });
 
         // Refresh the page to ensure all server components are updated
         router.refresh();
@@ -74,8 +78,8 @@ export function useCreateCalendarEvent(
       }
     },
     onError: ({ error }) => {
-      toast.error("Failed to create calendar event", {
-        description: error.serverError || "Please try again",
+      toast.error(t("toast.eventCreateFailed"), {
+        description: error.serverError || t("toast.pleaseTryAgain"),
       });
 
       // Call custom onError callback if provided

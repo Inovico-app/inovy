@@ -7,6 +7,7 @@ import { ArrowRightIcon, CheckIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { BulkMoveRecordingsDialog } from "./bulk-move-recordings-dialog";
 import { RecordingCardWithStatus } from "./recording-card-with-status";
+import { useTranslations } from "next-intl";
 
 interface RecordingListClientProps {
   recordings: RecordingDto[];
@@ -17,9 +18,10 @@ export function RecordingListClient({
   recordings,
   projectId,
 }: RecordingListClientProps) {
+  const t = useTranslations("recordings");
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedRecordingIds, setSelectedRecordingIds] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [showBulkMoveDialog, setShowBulkMoveDialog] = useState(false);
 
@@ -55,10 +57,11 @@ export function RecordingListClient({
   };
 
   const selectedRecordings = recordings.filter((r) =>
-    selectedRecordingIds.has(r.id)
+    selectedRecordingIds.has(r.id),
   );
 
-  const allSelected = recordings.length > 0 && selectedRecordingIds.size === recordings.length;
+  const allSelected =
+    recordings.length > 0 && selectedRecordingIds.size === recordings.length;
   const someSelected = selectedRecordingIds.size > 0 && !allSelected;
 
   return (
@@ -73,12 +76,12 @@ export function RecordingListClient({
           {selectionMode ? (
             <>
               <XIcon className="h-4 w-4 mr-2" />
-              Cancel Selection
+              {t("selection.cancelSelection")}
             </>
           ) : (
             <>
               <CheckIcon className="h-4 w-4 mr-2" />
-              Select Multiple
+              {t("selection.selectMultiple")}
             </>
           )}
         </Button>
@@ -86,7 +89,10 @@ export function RecordingListClient({
         {selectionMode && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">
-              {selectedRecordingIds.size} of {recordings.length} selected
+              {t("selection.selectedOf", {
+                selected: selectedRecordingIds.size,
+                total: recordings.length,
+              })}
             </span>
           </div>
         )}
@@ -100,20 +106,21 @@ export function RecordingListClient({
               <Checkbox
                 checked={allSelected}
                 onCheckedChange={handleSelectAll}
-                className={someSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                className={
+                  someSelected ? "data-[state=checked]:bg-primary/50" : ""
+                }
               />
               <span className="text-sm font-medium">
                 {allSelected
-                  ? "Deselect All"
-                  : someSelected
-                    ? "Select All"
-                    : "Select All"}
+                  ? t("selection.deselectAll")
+                  : t("selection.selectAll")}
               </span>
             </div>
             <div className="h-4 w-px bg-border" />
             <span className="text-sm text-muted-foreground">
-              {selectedRecordingIds.size} recording
-              {selectedRecordingIds.size !== 1 ? "s" : ""} selected
+              {t("selection.recordingsSelected", {
+                count: selectedRecordingIds.size,
+              })}
             </span>
           </div>
           <Button
@@ -122,7 +129,7 @@ export function RecordingListClient({
             disabled={selectedRecordingIds.size === 0}
           >
             <ArrowRightIcon className="h-4 w-4 mr-2" />
-            Move Selected
+            {t("selection.moveSelected")}
           </Button>
         </div>
       )}
@@ -151,4 +158,3 @@ export function RecordingListClient({
     </div>
   );
 }
-

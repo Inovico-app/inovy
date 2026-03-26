@@ -25,6 +25,7 @@ import { AlertTriangle, EyeOff, Shield, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 import { PII_TYPE_COLORS, PII_TYPE_LABELS } from "./pii-redaction-helpers";
 import { PIITextHighlight } from "./pii-text-highlight";
+import { useTranslations } from "next-intl";
 
 interface PIIRedactionProps {
   recordingId: string;
@@ -37,6 +38,8 @@ export function PIIRedaction({
   transcriptionText,
   onRedactionsChange,
 }: PIIRedactionProps) {
+  const t = useTranslations("recordings");
+  const tc = useTranslations("common");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDetection, setSelectedDetection] =
     useState<PIIDetection | null>(null);
@@ -90,22 +93,22 @@ export function PIIRedaction({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            <CardTitle>PII Redactie</CardTitle>
+            <CardTitle>{t("pii.title")}</CardTitle>
           </div>
           <div className="flex items-center gap-2">
             {hasDetections && (
-              <Badge variant="outline">{detections.length} gedetecteerd</Badge>
+              <Badge variant="outline">
+                {t("pii.detected", { count: detections.length })}
+              </Badge>
             )}
             {hasRedactions && (
               <Badge variant="secondary">
-                {redactions.length} geredacteerd
+                {t("pii.redacted", { count: redactions.length })}
               </Badge>
             )}
           </div>
         </div>
-        <CardDescription>
-          Detecteer en redacteer persoonsgegevens uit transcripties
-        </CardDescription>
+        <CardDescription>{t("pii.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-2">
@@ -118,7 +121,7 @@ export function PIIRedaction({
             size="sm"
           >
             <Sparkles className="h-4 w-4 mr-2" />
-            Detecteer PII
+            {t("pii.detectPii")}
           </Button>
           {hasDetections && (
             <Button
@@ -128,7 +131,7 @@ export function PIIRedaction({
               size="sm"
             >
               <EyeOff className="h-4 w-4 mr-2" />
-              Pas Alle Redacties Toe
+              {t("pii.applyAllRedactions")}
             </Button>
           )}
         </div>
@@ -137,14 +140,14 @@ export function PIIRedaction({
           <div className="space-y-2">
             <Progress value={null} className="w-full" />
             <p className="text-sm text-muted-foreground">
-              {isDetectingPII ? "PII detecteren..." : "Redacties laden..."}
+              {isDetectingPII ? t("pii.detecting") : t("pii.loadingRedactions")}
             </p>
           </div>
         )}
 
         {hasDetections && (
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold">Gedetecteerde PII:</h4>
+            <h4 className="text-sm font-semibold">{t("pii.detectedPii")}</h4>
             <div className="space-y-1 max-h-40 overflow-y-auto">
               {detections.map((detection, _index) => {
                 const redacted = isRedacted(
@@ -179,7 +182,7 @@ export function PIIRedaction({
                     <div className="flex items-center gap-1">
                       {redacted ? (
                         <Badge variant="secondary" className="text-xs">
-                          Geredacteerd
+                          {t("pii.redactedBadge")}
                         </Badge>
                       ) : (
                         <Button
@@ -201,7 +204,9 @@ export function PIIRedaction({
 
         {hasRedactions && (
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold">Redactie Geschiedenis:</h4>
+            <h4 className="text-sm font-semibold">
+              {t("pii.redactionHistory")}
+            </h4>
             <div className="space-y-1 max-h-40 overflow-y-auto">
               {redactions.map((redaction) => (
                 <div
@@ -221,8 +226,8 @@ export function PIIRedaction({
                     </span>
                     <Badge variant="secondary" className="text-xs">
                       {redaction.detectedBy === "automatic"
-                        ? "Automatisch"
-                        : "Handmatig"}
+                        ? t("pii.automatic")
+                        : t("pii.manual")}
                     </Badge>
                   </div>
                   <Button
@@ -241,7 +246,7 @@ export function PIIRedaction({
 
         {hasDetections && transcriptionText && (
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold">Voorvertoning:</h4>
+            <h4 className="text-sm font-semibold">{t("pii.preview")}</h4>
             <div className="p-4 rounded-lg bg-muted/50 text-sm max-h-60 overflow-y-auto">
               <PIITextHighlight
                 transcriptionText={transcriptionText}
@@ -260,8 +265,7 @@ export function PIIRedaction({
             <div className="flex items-center gap-2 p-4 rounded-lg bg-muted/50">
               <AlertTriangle className="h-4 w-4 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                Geen PII gedetecteerd. Klik op "Detecteer PII" om de
-                transcriptie te scannen.
+                {t("pii.noPiiDetected")}
               </p>
             </div>
           )}
@@ -270,7 +274,7 @@ export function PIIRedaction({
           <div className="flex items-center gap-2 p-4 rounded-lg bg-muted/50">
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              Geen transcriptie beschikbaar voor redactie.
+              {t("pii.noTranscription")}
             </p>
           </div>
         )}
@@ -279,15 +283,15 @@ export function PIIRedaction({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Redactie Bevestigen</DialogTitle>
+            <DialogTitle>{t("pii.confirmRedaction")}</DialogTitle>
             <DialogDescription>
-              Weet je zeker dat je deze PII wilt redacteren?
+              {t("pii.confirmRedactionDescription")}
             </DialogDescription>
           </DialogHeader>
           {selectedDetection && (
             <div className="space-y-2">
               <div>
-                <span className="text-sm font-medium">Type: </span>
+                <span className="text-sm font-medium">{t("pii.type")} </span>
                 <Badge
                   variant="outline"
                   className={PII_TYPE_COLORS[selectedDetection.type] || ""}
@@ -297,11 +301,13 @@ export function PIIRedaction({
                 </Badge>
               </div>
               <div>
-                <span className="text-sm font-medium">Tekst: </span>
+                <span className="text-sm font-medium">{t("pii.text")} </span>
                 <span className="text-sm">{selectedDetection.text}</span>
               </div>
               <div>
-                <span className="text-sm font-medium">Vertrouwen: </span>
+                <span className="text-sm font-medium">
+                  {t("pii.confidenceLabel")}{" "}
+                </span>
                 <span className="text-sm">
                   {Math.round(selectedDetection.confidence * 100)}%
                 </span>
@@ -310,13 +316,15 @@ export function PIIRedaction({
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Annuleren
+              {tc("cancel")}
             </Button>
             <Button
               onClick={handleConfirmRedaction}
               disabled={isCreatingRedaction}
             >
-              {isCreatingRedaction ? "Redacteren..." : "Redactie Bevestigen"}
+              {isCreatingRedaction
+                ? t("pii.redacting")
+                : t("pii.confirmRedactionButton")}
             </Button>
           </DialogFooter>
         </DialogContent>

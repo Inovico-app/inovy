@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Save,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMeetingActions } from "../hooks/use-meeting-actions";
 import { postActionStatusColors } from "../lib/meeting-constants";
 import type { MeetingPostAction } from "@/server/db/schema/meeting-post-actions";
@@ -63,7 +64,7 @@ const allActionTypes: PostActionType[] = [
 ];
 
 function buildInitialEnabled(
-  postActions: MeetingPostAction[]
+  postActions: MeetingPostAction[],
 ): Record<PostActionType, boolean> {
   const initial: Record<PostActionType, boolean> = {
     send_summary_email: false,
@@ -84,17 +85,18 @@ export function PostActionConfig({
   meetingId,
   postActions,
 }: PostActionConfigProps) {
+  const t = useTranslations("meetings");
   const { configurePostActions, isConfiguringPostActions } =
     useMeetingActions();
 
   const initialEnabled = useMemo(
     () => buildInitialEnabled(postActions),
-    [postActions]
+    [postActions],
   );
   const [enabled, setEnabled] = useState(initialEnabled);
 
   const hasChanges = allActionTypes.some(
-    (type) => enabled[type] !== initialEnabled[type]
+    (type) => enabled[type] !== initialEnabled[type],
   );
 
   const handleToggle = (type: PostActionType) => {
@@ -177,7 +179,7 @@ export function PostActionConfig({
       {hasChanges && (
         <div className="flex items-center justify-between pt-2 border-t border-border/40">
           <p className="text-xs text-muted-foreground">
-            {enabledCount} action{enabledCount !== 1 ? "s" : ""} selected
+            {t("postActions.actionsSelected", { count: enabledCount })}
           </p>
           <Button
             size="sm"
@@ -185,7 +187,9 @@ export function PostActionConfig({
             disabled={isConfiguringPostActions}
           >
             <Save className="mr-1.5 h-3.5 w-3.5" />
-            {isConfiguringPostActions ? "Saving..." : "Save Configuration"}
+            {isConfiguringPostActions
+              ? t("postActions.savingConfiguration")
+              : t("postActions.saveConfiguration")}
           </Button>
         </div>
       )}

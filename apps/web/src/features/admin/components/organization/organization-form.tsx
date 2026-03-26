@@ -17,6 +17,7 @@ import { Loader2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
@@ -32,7 +33,7 @@ const organizationFormSchema = z.object({
     .max(50)
     .regex(
       /^[a-z0-9-]+$/,
-      "Slug must contain only lowercase letters, numbers, and hyphens"
+      "Slug must contain only lowercase letters, numbers, and hyphens",
     ),
   logo: z.string().url("Must be a valid URL").optional().or(z.literal("")),
 });
@@ -50,6 +51,7 @@ export function OrganizationForm({
   onSuccess,
   submitLabel = "Create Organization",
 }: OrganizationFormProps) {
+  const t = useTranslations("admin.organizations");
   const router = useRouter();
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
 
@@ -71,7 +73,7 @@ export function OrganizationForm({
       });
 
       if (result?.data) {
-        toast.success("Organization created successfully");
+        toast.success(t("organizationCreated"));
         form.reset();
         onSuccess?.();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -85,7 +87,7 @@ export function OrganizationForm({
         toast.error(result.serverError);
       }
     } catch (error) {
-      toast.error("Failed to create organization");
+      toast.error(t("organizationCreateFailed"));
       console.error(error);
     }
   };
@@ -133,7 +135,7 @@ export function OrganizationForm({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Organization Name</FormLabel>
+              <FormLabel>{t("organizationName")}</FormLabel>
               <FormControl>
                 <Input
                   placeholder="My Organization"
@@ -157,7 +159,7 @@ export function OrganizationForm({
           name="slug"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Slug</FormLabel>
+              <FormLabel>{t("slugLabel")}</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
@@ -189,7 +191,7 @@ export function OrganizationForm({
           name="logo"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Logo URL (Optional)</FormLabel>
+              <FormLabel>{t("logoUrl")}</FormLabel>
               <FormControl>
                 <Input
                   placeholder="https://example.com/logo.png"
@@ -229,4 +231,3 @@ export function OrganizationForm({
     </Form>
   );
 }
-

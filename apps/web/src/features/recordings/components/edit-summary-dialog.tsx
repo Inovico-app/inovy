@@ -17,6 +17,7 @@ import { Edit, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useEditSummaryForm } from "../hooks/use-edit-summary-form";
 import { useUpdateSummaryMutation } from "../hooks/use-update-summary-mutation";
+import { useTranslations } from "next-intl";
 
 interface EditSummaryDialogProps {
   recordingId: string;
@@ -29,6 +30,7 @@ export function EditSummaryDialog({
   summary,
   onSuccess,
 }: EditSummaryDialogProps) {
+  const t = useTranslations("recordings");
   const [open, setOpen] = useState(false);
   const { formState, setField, resetForm } = useEditSummaryForm(summary);
 
@@ -76,77 +78,80 @@ export function EditSummaryDialog({
     >
       <DialogTrigger render={<Button variant="outline" size="sm" />}>
         <Edit className="h-4 w-4 mr-2" />
-        Edit Summary
+        {t("summary.editSummary")}
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Edit Summary</DialogTitle>
+            <DialogTitle>{t("summary.editSummary")}</DialogTitle>
             <DialogDescription>
-              Edit the AI-generated summary. Each line will become a separate
-              item. Changes will be tracked in version history.
+              {t("summary.editSummaryDescription")}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             {/* Overview */}
             <div className="space-y-2">
-              <Label htmlFor="overview">Overview</Label>
+              <Label htmlFor="overview">{t("summary.overview")}</Label>
               <Textarea
                 id="overview"
                 value={formState.overview}
                 onChange={(e) => setField("overview", e.target.value)}
-                placeholder="A brief paragraph summarizing the meeting..."
+                placeholder={t("summary.overviewPlaceholder")}
                 rows={3}
                 className="text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                {formState.overview.length} characters
+                {t("summary.characters", { count: formState.overview.length })}
               </p>
             </div>
 
             {/* Topics */}
             <div className="space-y-2">
-              <Label htmlFor="topics">Key Topics</Label>
+              <Label htmlFor="topics">{t("summary.keyTopicsLabel")}</Label>
               <Textarea
                 id="topics"
                 value={formState.topics}
                 onChange={(e) => setField("topics", e.target.value)}
-                placeholder="One topic per line..."
+                placeholder={t("summary.topicsPlaceholder")}
                 rows={4}
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                {formState.topics.split("\n").filter(Boolean).length} topics
+                {t("summary.topicsCount", {
+                  count: formState.topics.split("\n").filter(Boolean).length,
+                })}
               </p>
             </div>
 
             {/* Decisions */}
             <div className="space-y-2">
-              <Label htmlFor="decisions">Decisions</Label>
+              <Label htmlFor="decisions">{t("summary.decisionsLabel")}</Label>
               <Textarea
                 id="decisions"
                 value={formState.decisions}
                 onChange={(e) => setField("decisions", e.target.value)}
-                placeholder="One decision per line..."
+                placeholder={t("summary.decisionsPlaceholder")}
                 rows={4}
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                {formState.decisions.split("\n").filter(Boolean).length} decisions
+                {t("summary.decisionsCount", {
+                  count: formState.decisions.split("\n").filter(Boolean).length,
+                })}
               </p>
             </div>
 
             {/* Change Description */}
             <div className="space-y-2">
               <Label htmlFor="changeDescription">
-                Change Description (Optional)
+                {t("summary.changeDescription")}
               </Label>
               <Textarea
                 id="changeDescription"
                 value={formState.changeDescription}
                 onChange={(e) => setField("changeDescription", e.target.value)}
-                placeholder="Describe what you changed..."
+                placeholder={t("summary.changeDescriptionPlaceholder")}
                 rows={2}
               />
             </div>
@@ -173,4 +178,3 @@ export function EditSummaryDialog({
     </Dialog>
   );
 }
-

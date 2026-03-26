@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { ProtectedPage } from "@/components/protected-page";
 import { RecordingsOverview } from "@/features/recordings/components/recordings-overview";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 export const metadata: Metadata = { title: "Recordings" };
 
 export default async function RecordingsPage() {
+  const t = await getTranslations("recordings");
+
   // CACHE COMPONENTS: Wrap dynamic content in Suspense to enable static shell generation
   // RecordingsOverview accesses auth data and recordings, making it dynamic
   return (
@@ -25,11 +28,10 @@ export default async function RecordingsPage() {
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-foreground">
-                All Recordings
+                {t("page.allRecordings")}
               </h1>
               <p className="text-muted-foreground mt-2">
-                View and manage all recordings across all projects in your
-                organization
+                {t("page.allRecordingsDescription")}
               </p>
             </div>
 
@@ -41,4 +43,3 @@ export default async function RecordingsPage() {
     </Suspense>
   );
 }
-

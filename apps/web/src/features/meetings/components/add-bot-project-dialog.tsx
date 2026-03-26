@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useTranslations } from "next-intl";
 
 interface AddBotProjectDialogProps {
   open: boolean;
@@ -42,6 +43,8 @@ export function AddBotProjectDialog({
   defaultProjectId,
   isLoadingProjects,
 }: AddBotProjectDialogProps) {
+  const t = useTranslations("meetings");
+  const tc = useTranslations("common");
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     defaultProjectId ?? "",
   );
@@ -74,23 +77,25 @@ export function AddBotProjectDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Add Notetaker Assistant</DialogTitle>
+          <DialogTitle>{t("botDialog.title")}</DialogTitle>
           <DialogDescription>
             {meetingTitle
-              ? `Add a notetaker assistant to "${meetingTitle}"?`
-              : "Add a notetaker assistant to this meeting?"}
+              ? t("botDialog.descriptionWithTitle", { title: meetingTitle })
+              : t("botDialog.descriptionGeneric")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="project-select">Project</Label>
+            <Label htmlFor="project-select">
+              {t("botDialog.projectLabel")}
+            </Label>
             <Select
               value={selectedProjectId}
               onValueChange={(value) => setSelectedProjectId(value ?? "")}
               disabled={isLoadingProjects || projects.length === 0}
             >
               <SelectTrigger id="project-select">
-                <SelectValue placeholder="Select a project" />
+                <SelectValue placeholder={t("botDialog.selectProject")} />
               </SelectTrigger>
               <SelectContent>
                 {projects.map((project) => (
@@ -102,17 +107,17 @@ export function AddBotProjectDialog({
             </Select>
             {projects.length === 0 && !isLoadingProjects && (
               <p className="text-sm text-destructive">
-                No active projects found. Please create a project first.
+                {t("botDialog.noProjects")}
               </p>
             )}
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {tc("cancel")}
           </Button>
           <Button onClick={handleAccept} disabled={!selectedProjectId}>
-            Add Notetaker
+            {t("botDialog.addNotetaker")}
           </Button>
         </DialogFooter>
       </DialogContent>

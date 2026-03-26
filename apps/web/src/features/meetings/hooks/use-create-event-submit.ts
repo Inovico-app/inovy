@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import type { CreateEventFormData } from "../lib/create-event-schema";
 
@@ -36,6 +37,7 @@ export function useCreateEventSubmit({
   buildRecurrenceRules,
   provider,
 }: UseCreateEventSubmitProps) {
+  const t = useTranslations("meetings");
   const onSubmit = useCallback(
     (data: CreateEventFormData) => {
       const recurrenceResult = buildRecurrenceRules(data);
@@ -75,7 +77,7 @@ export function useCreateEventSubmit({
       );
 
       if (calculatedDuration < 15) {
-        toast.error("Duration must be at least 15 minutes");
+        toast.error(t("toast.durationMinimum"));
         return;
       }
 
@@ -96,7 +98,7 @@ export function useCreateEventSubmit({
         teamId: data.teamId ?? null,
       });
     },
-    [createEvent, buildRecurrenceRules, provider],
+    [createEvent, buildRecurrenceRules, provider, t],
   );
 
   return { onSubmit };

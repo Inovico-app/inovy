@@ -24,28 +24,19 @@ import {
 import type { TaskDto } from "@/server/dto/task.dto";
 import { useUpdateTaskMutation } from "../hooks/use-update-task-mutation";
 import { Pencil, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface TaskEditDialogProps {
   task: TaskDto;
   trigger?: React.ReactElement;
 }
 
-const priorityLabels = {
-  low: "Laag",
-  medium: "Normaal",
-  high: "Hoog",
-  urgent: "Urgent",
-} as const;
-
-const statusLabels = {
-  pending: "Te doen",
-  in_progress: "Bezig",
-  completed: "Voltooid",
-  cancelled: "Geannuleerd",
-} as const;
+// Priority and status labels are resolved dynamically via useTranslations in the component
 
 export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("tasks");
+  const tc = useTranslations("common");
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || "");
   const [priority, setPriority] = useState(task.priority);
@@ -53,6 +44,20 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
   const [dueDate, setDueDate] = useState(
     task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
   );
+
+  const priorityLabels = {
+    low: t("priorityLow"),
+    medium: t("priorityMedium"),
+    high: t("priorityHigh"),
+    urgent: t("priorityUrgent"),
+  } as const;
+
+  const statusLabels = {
+    pending: t("statusPending"),
+    in_progress: t("statusInProgress"),
+    completed: t("statusCompleted"),
+    cancelled: t("statusCancelled"),
+  } as const;
 
   const updateMutation = useUpdateTaskMutation();
 
@@ -97,38 +102,37 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
       <DialogContent className="sm:max-w-[600px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Taak bewerken</DialogTitle>
+            <DialogTitle>{t("editTaskDialogTitle")}</DialogTitle>
             <DialogDescription>
-              Wijzig de details van deze taak. Klik op opslaan wanneer je klaar
-              bent.
+              {t("editTaskDialogDescription")}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="title">Titel *</Label>
+              <Label htmlFor="title">{t("titleRequired")}</Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Taak titel"
+                placeholder={t("taskTitlePlaceholder")}
                 required
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="description">Beschrijving</Label>
+              <Label htmlFor="description">{t("descriptionLabel")}</Label>
               <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Beschrijving van de taak"
+                placeholder={t("taskDescriptionPlaceholder")}
                 rows={4}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="priority">Prioriteit</Label>
+                <Label htmlFor="priority">{t("priorityLabel")}</Label>
                 <Select
                   value={priority}
                   onValueChange={(value) =>
@@ -183,7 +187,7 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="dueDate">Deadline</Label>
+              <Label htmlFor="dueDate">{t("deadlineLabel")}</Label>
               <Input
                 id="dueDate"
                 type="date"
@@ -199,13 +203,13 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
               onClick={() => setOpen(false)}
               disabled={updateMutation.isPending}
             >
-              Annuleren
+              {tc("cancel")}
             </Button>
             <Button type="submit" disabled={updateMutation.isPending}>
               {updateMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Opslaan
+              {tc("save")}
             </Button>
           </DialogFooter>
         </form>

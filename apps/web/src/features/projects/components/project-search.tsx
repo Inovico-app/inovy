@@ -1,12 +1,15 @@
 "use client";
 
 import { SearchIcon, XIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useQueryState } from "nuqs";
 import { useRef, useState } from "react";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 
 export function ProjectSearch() {
+  const t = useTranslations("projects");
+  const tc = useTranslations("common");
   const [search, setSearch] = useQueryState("search", {
     defaultValue: "",
     shallow: false,
@@ -36,7 +39,7 @@ export function ProjectSearch() {
         <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="Search projects..."
+          placeholder={t("searchPlaceholder")}
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
           className="pl-9 w-64"
@@ -54,9 +57,8 @@ export function ProjectSearch() {
         )}
       </div>
       <Button type="submit" size="sm">
-        Search
+        {tc("search")}
       </Button>
     </form>
   );
 }
-

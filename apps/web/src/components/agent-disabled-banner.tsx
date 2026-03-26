@@ -1,27 +1,25 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangleIcon } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 interface AgentDisabledBannerProps {
   organizationName?: string;
   className?: string;
 }
 
-export function AgentDisabledBanner({
-  organizationName,
+export async function AgentDisabledBanner({
+  organizationName: _organizationName,
   className,
 }: AgentDisabledBannerProps) {
+  const t = await getTranslations("agentDisabled");
+
   return (
     <Alert variant="destructive" className={className}>
       <AlertTriangleIcon className="h-4 w-4" />
-      <AlertTitle>Agent Disabled</AlertTitle>
+      <AlertTitle>{t("title")}</AlertTitle>
       <AlertDescription>
-        {organizationName
-          ? `The AI agent has been disabled for ${organizationName}.`
-          : "The AI agent has been disabled for your organization."}{" "}
-        Chat functionality and other agent features are currently unavailable.
-        Please contact support if you have any questions.
+        {t("description")} {t("details")}
       </AlertDescription>
     </Alert>
   );
 }
-

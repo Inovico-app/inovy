@@ -17,10 +17,12 @@ import {
   getCachedTasksWithContext,
 } from "@/server/cache/task.cache";
 import { OnboardingService } from "@/server/services/onboarding.service";
+import { getTranslations } from "next-intl/server";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 async function DashboardContent() {
+  const t = await getTranslations("dashboard");
   const authResult = await getBetterAuthSession();
 
   if (authResult.isErr()) {
@@ -33,11 +35,10 @@ async function DashboardContent() {
       <div className="container mx-auto max-w-4xl px-4 py-8">
         <div className="text-center space-y-4">
           <h1 className="text-3xl font-bold text-destructive">
-            Unable to Load Dashboard
+            {t("unableToLoad")}
           </h1>
           <p className="text-muted-foreground">
-            We encountered an error loading your user information. Please try
-            refreshing the page.
+            {t("unableToLoadDescription")}
           </p>
         </div>
       </div>
@@ -53,10 +54,8 @@ async function DashboardContent() {
     return (
       <div className="container mx-auto max-w-4xl px-4 py-8">
         <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold">Welcome to Inovy</h1>
-          <p className="text-muted-foreground">
-            Please log in to access your dashboard.
-          </p>
+          <h1 className="text-3xl font-bold">{t("welcomeToInovy")}</h1>
+          <p className="text-muted-foreground">{t("pleaseLogIn")}</p>
         </div>
       </div>
     );
@@ -80,9 +79,9 @@ async function DashboardContent() {
     return (
       <div className="container mx-auto max-w-4xl px-4 py-8">
         <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold">Organization Required</h1>
+          <h1 className="text-3xl font-bold">{t("organizationRequired")}</h1>
           <p className="text-muted-foreground">
-            You need to be part of an organization to access the dashboard.
+            {t("organizationRequiredDescription")}
           </p>
         </div>
       </div>

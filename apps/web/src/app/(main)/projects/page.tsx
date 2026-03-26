@@ -22,6 +22,7 @@ import {
   UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 interface ProjectsListProps {
@@ -35,12 +36,13 @@ async function ProjectsList({
   status = "active",
   teamFilter,
 }: ProjectsListProps) {
+  const t = await getTranslations("projects");
   const authResult = await resolveAuthContext("ProjectsList");
   if (authResult.isErr()) {
     return (
       <div className="container mx-auto py-8 px-4">
         <div className="text-center">
-          <p className="text-red-500">Authentication required</p>
+          <p className="text-red-500">{t("authRequired")}</p>
         </div>
       </div>
     );
@@ -57,8 +59,9 @@ async function ProjectsList({
       <div className="container mx-auto py-8 px-4">
         <div className="text-center">
           <p className="text-red-500">
-            Failed to load projects:{" "}
-            {projectsResult.error?.message ?? "Unknown error"}
+            {t("failedToLoad", {
+              error: projectsResult.error?.message ?? "Unknown error",
+            })}
           </p>
         </div>
       </div>
@@ -117,7 +120,7 @@ async function ProjectsList({
                       ) : (
                         <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground shrink-0">
                           <GlobeIcon className="h-3 w-3" />
-                          Everyone
+                          {t("everyone")}
                         </span>
                       )}
                     </CardTitle>
@@ -131,14 +134,11 @@ async function ProjectsList({
                     <div className="space-y-2">
                       <div className="flex items-center text-xs text-muted-foreground">
                         <FolderIcon className="h-3 w-3 mr-1" />
-                        {project.recordingCount}{" "}
-                        {project.recordingCount === 1
-                          ? "recording"
-                          : "recordings"}
+                        {t("recordingCount", { count: project.recordingCount })}
                       </div>
                       <div className="flex items-center text-xs text-muted-foreground">
                         <FileTextIcon className="h-3 w-3 mr-1" />
-                        By {project.createdBy}
+                        {t("createdBy", { name: project.createdBy })}
                       </div>
                     </div>
                   </CardContent>
@@ -152,24 +152,24 @@ async function ProjectsList({
           <CardContent className="text-center py-12">
             <h3 className="text-lg font-semibold mb-2">
               {searchQuery
-                ? "No projects found"
+                ? t("noProjectsFound")
                 : status === "archived"
-                  ? "No archived projects"
-                  : "No projects yet"}
+                  ? t("noArchivedProjects")
+                  : t("noProjectsYet")}
             </h3>
             <p className="text-muted-foreground mb-6">
               {searchQuery
-                ? "Try adjusting your search criteria."
+                ? t("adjustSearch")
                 : status === "archived"
-                  ? "Projects you archive will appear here."
-                  : "Create your first project to start organizing your meeting recordings."}
+                  ? t("archivedAppearHere")
+                  : t("createFirstDescription")}
             </p>
             {!searchQuery && status === "active" && (
               <CreateProjectModal
                 trigger={
                   <Button>
                     <PlusIcon className="h-4 w-4 mr-2" />
-                    Create Your First Project
+                    {t("createFirstProject")}
                   </Button>
                 }
               />
@@ -190,6 +190,7 @@ async function ProjectsPageContent({
     team?: string;
   }>;
 }) {
+  const t = await getTranslations("projects");
   const { search, status, team } = await searchParamsPromise;
   const projectStatus = (
     status === "archived" ? "archived" : "active"
@@ -212,10 +213,8 @@ async function ProjectsPageContent({
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Projects</h1>
-            <p className="text-muted-foreground mt-2">
-              Organize your meeting recordings by project
-            </p>
+            <h1 className="text-3xl font-bold text-foreground">{t("title")}</h1>
+            <p className="text-muted-foreground mt-2">{t("subtitle")}</p>
           </div>
           <CreateProjectModal />
         </div>

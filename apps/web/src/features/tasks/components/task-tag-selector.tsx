@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Tags, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useOrganizationTags } from "../hooks/use-organization-tags";
 import { useCreateTagMutation } from "../hooks/use-create-tag-mutation";
 
@@ -39,6 +40,8 @@ export function TaskTagSelector({
   selectedTagIds,
   onTagsChange,
 }: TaskTagSelectorProps) {
+  const t = useTranslations("tasks");
+  const tc = useTranslations("common");
   const [isCreating, setIsCreating] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState(predefinedColors[0]);
@@ -70,32 +73,34 @@ export function TaskTagSelector({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <Label>Tags</Label>
+        <Label>{t("tags")}</Label>
         <Dialog open={isCreating} onOpenChange={setIsCreating}>
-          <DialogTrigger render={<Button variant="outline" size="sm" type="button" />}>
+          <DialogTrigger
+            render={<Button variant="outline" size="sm" type="button" />}
+          >
             <Plus className="h-3 w-3 mr-1" />
-            New Tag
+            {t("newTag")}
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Tag</DialogTitle>
+              <DialogTitle>Create {t("newTag")}</DialogTitle>
               <DialogDescription>
-                Create a new tag to organize your tasks.
+                {t("createNewTagDescription")}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="tag-name">Tag Name</Label>
+                <Label htmlFor="tag-name">{t("tagNameLabel")}</Label>
                 <Input
                   id="tag-name"
                   value={newTagName}
                   onChange={(e) => setNewTagName(e.target.value)}
-                  placeholder="e.g., Important, Follow-up"
+                  placeholder={t("tagNamePlaceholder")}
                   maxLength={50}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Color</Label>
+                <Label>{t("colorLabel")}</Label>
                 <div className="flex flex-wrap gap-2">
                   {predefinedColors.map((color) => (
                     <button
@@ -108,7 +113,7 @@ export function TaskTagSelector({
                           : "border-transparent"
                       }`}
                       style={{ backgroundColor: color }}
-                      aria-label={`Select color ${color}`}
+                      aria-label={t("selectColor", { color })}
                     />
                   ))}
                 </div>
@@ -124,7 +129,7 @@ export function TaskTagSelector({
                 }}
                 type="button"
               >
-                Cancel
+                {tc("cancel")}
               </Button>
               <Button
                 onClick={handleCreateTag}
@@ -134,7 +139,7 @@ export function TaskTagSelector({
                 {createTagMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Create Tag
+                {t("createTag")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -142,13 +147,13 @@ export function TaskTagSelector({
       </div>
 
       {isLoading && (
-        <div className="text-sm text-muted-foreground">Loading tags...</div>
+        <div className="text-sm text-muted-foreground">{t("loadingTags")}</div>
       )}
 
       {!isLoading && tags && tags.length === 0 && (
         <div className="text-sm text-muted-foreground py-2">
           <Tags className="h-4 w-4 inline mr-1" />
-          No tags available. Create one to get started.
+          {t("noTagsAvailable")}
         </div>
       )}
 
@@ -183,4 +188,3 @@ export function TaskTagSelector({
     </div>
   );
 }
-

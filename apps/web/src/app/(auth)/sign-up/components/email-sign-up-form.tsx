@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { signUpEmailSchema } from "@/features/auth/validation/auth.schema";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 
@@ -41,6 +42,7 @@ export function EmailSignUpForm({
   isSigningUp: _isSigningUp,
   signUpError,
 }: EmailSignUpFormProps) {
+  const t = useTranslations("auth");
   const emailForm = useForm<EmailSignUpValues>({
     resolver: standardSchemaResolver(emailSignUpSchema),
     defaultValues: {
@@ -60,14 +62,12 @@ export function EmailSignUpForm({
       <Form {...emailForm}>
         <form onSubmit={emailForm.handleSubmit(onSubmit)} className="space-y-4">
           <fieldset className="space-y-4" disabled={isLoading}>
-            <legend className="sr-only">
-              Create account with email and password
-            </legend>
+            <legend className="sr-only">{t("emailSignUpLegend")}</legend>
 
             {signUpError && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Foutmelding</AlertTitle>
+                <AlertTitle>{t("errorTitle")}</AlertTitle>
                 <AlertDescription>{signUpError}</AlertDescription>
               </Alert>
             )}
@@ -77,11 +77,11 @@ export function EmailSignUpForm({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Naam</FormLabel>
+                  <FormLabel>{t("nameLabel")}</FormLabel>
                   <FormControl>
                     <Input
                       type="text"
-                      placeholder="Jan Jansen"
+                      placeholder={t("namePlaceholder")}
                       autoComplete="name"
                       autoFocus
                       {...field}
@@ -97,11 +97,11 @@ export function EmailSignUpForm({
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{t("emailLabel")}</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="je@voorbeeld.nl"
+                      placeholder={t("emailPlaceholder")}
                       autoComplete="email"
                       {...field}
                     />
@@ -116,7 +116,7 @@ export function EmailSignUpForm({
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Wachtwoord</FormLabel>
+                  <FormLabel>{t("passwordLabel")}</FormLabel>
                   <FormControl>
                     <Input
                       type="password"
@@ -126,7 +126,7 @@ export function EmailSignUpForm({
                     />
                   </FormControl>
                   <FormDescription className="text-xs">
-                    Minimaal 8 tekens
+                    {t("passwordMinLength")}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -141,10 +141,10 @@ export function EmailSignUpForm({
                 disabled={isLoading}
                 className="flex-1"
               >
-                Annuleren
+                {t("cancel")}
               </Button>
               <Button type="submit" className="flex-1" disabled={isLoading}>
-                Registreren
+                {t("register")}
               </Button>
             </div>
           </fieldset>

@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 interface ProjectTemplateFormProps {
@@ -31,6 +32,8 @@ export function ProjectTemplateForm({
   onCancel,
   isLoading = false,
 }: ProjectTemplateFormProps) {
+  const t = useTranslations("projects");
+  const tc = useTranslations("common");
   const [instructions, setInstructions] = useState(() => initialValue);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -56,10 +59,12 @@ export function ProjectTemplateForm({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <label htmlFor="project-instructions" className="text-sm font-medium">Project Instructions</label>
+        <label htmlFor="project-instructions" className="text-sm font-medium">
+          {t("projectInstructions")}
+        </label>
         <Textarea
           id="project-instructions"
-          placeholder="Enter project-specific guidelines and instructions for the AI. These will be included in chat responses to help guide AI behavior for this project."
+          placeholder={t("projectInstructionsPlaceholder")}
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
           disabled={isLoading || isSaving}
@@ -68,20 +73,19 @@ export function ProjectTemplateForm({
           maxLength={50000}
         />
         <div className="text-xs text-muted-foreground">
-          {instructions.length} / 50000 characters
+          {t("characters", { count: instructions.length, max: 50000 })}
         </div>
       </div>
 
       <div className="flex gap-2 justify-end">
         <Button variant="outline" onClick={onCancel} disabled={isDisabled}>
-          Cancel
+          {tc("cancel")}
         </Button>
         <Button onClick={handleSubmit} disabled={isDisabled}>
           {isSaving && <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />}
-          Save Template
+          {t("saveTemplate")}
         </Button>
       </div>
     </div>
   );
 }
-

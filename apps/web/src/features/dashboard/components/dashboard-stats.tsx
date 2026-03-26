@@ -5,6 +5,7 @@ import {
   MicIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 import type { TaskStatsDto } from "@/server/dto/task.dto";
 
@@ -14,11 +15,13 @@ interface DashboardStatsProps {
   taskStats: TaskStatsDto | null;
 }
 
-export function DashboardStats({
+export async function DashboardStats({
   totalProjects,
   totalRecordings,
   taskStats,
 }: DashboardStatsProps) {
+  const t = await getTranslations("dashboard");
+
   const pendingTasks = taskStats
     ? taskStats.byStatus.pending + taskStats.byStatus.in_progress
     : 0;
@@ -26,25 +29,25 @@ export function DashboardStats({
 
   const tiles = [
     {
-      label: "Projects",
+      label: t("projects"),
       value: totalProjects,
       icon: FolderIcon,
       href: "/projects",
     },
     {
-      label: "Recordings",
+      label: t("recordings"),
       value: totalRecordings,
       href: "/recordings",
       icon: MicIcon,
     },
     {
-      label: "Pending",
+      label: t("pending"),
       value: pendingTasks,
       href: "/tasks",
       icon: ListTodoIcon,
     },
     {
-      label: "Completed",
+      label: t("completed"),
       value: completedTasks,
       href: "/tasks",
       icon: CheckCircle2Icon,
@@ -52,7 +55,7 @@ export function DashboardStats({
   ] as const;
 
   return (
-    <section aria-label="Overview statistics">
+    <section aria-label={t("overviewStatistics")}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {tiles.map((tile) => (
           <Link

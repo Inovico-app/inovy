@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { MessageSquare, Plus, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useConversationHistory } from "../hooks/use-conversation-history";
 import { useConversationSearch } from "../hooks/use-conversation-search";
@@ -28,6 +29,7 @@ export function ConversationHistorySidebar({
   onNewConversation,
   className,
 }: ConversationHistorySidebarProps) {
+  const t = useTranslations("chat");
   const [filter, setFilter] = useState<
     "all" | "active" | "archived" | "deleted"
   >("active");
@@ -42,7 +44,7 @@ export function ConversationHistorySidebar({
       page,
       limit: 20,
     },
-    !isSearching
+    !isSearching,
   );
 
   const {
@@ -74,10 +76,10 @@ export function ConversationHistorySidebar({
     }
 
     const emptyMessages = {
-      active: "No active conversations yet",
-      archived: "No archived conversations",
-      deleted: "No deleted conversations",
-      all: "No conversations yet",
+      active: t("noActiveConversations"),
+      archived: t("noArchivedConversations"),
+      deleted: t("noDeletedConversations"),
+      all: t("noConversationsYet"),
     };
 
     return (
@@ -89,11 +91,16 @@ export function ConversationHistorySidebar({
   };
 
   return (
-    <div className={cn("flex flex-col h-full w-80 bg-background border-r", className)}>
+    <div
+      className={cn(
+        "flex flex-col h-full w-80 bg-background border-r",
+        className,
+      )}
+    >
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b shrink-0">
-          <h2 className="text-lg font-semibold">Conversation History</h2>
+          <h2 className="text-lg font-semibold">{t("conversationHistory")}</h2>
         </div>
 
         {/* Search */}
@@ -101,7 +108,7 @@ export function ConversationHistorySidebar({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search conversations..."
+              placeholder={t("searchConversations")}
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-9"
@@ -154,7 +161,7 @@ export function ConversationHistorySidebar({
                       onSelectConversation(conversation.id);
                     }}
                   />
-                )
+                ),
               )}
             </div>
           ) : (
@@ -187,12 +194,12 @@ export function ConversationHistorySidebar({
           </div>
         )}
 
-        {/* Fixed New Conversation Button */}
+        {/* Fixed {t("newConversation")} Button */}
         {onNewConversation && (
           <div className="p-4 border-t shrink-0 bg-background">
             <Button className="w-full" onClick={onNewConversation}>
               <Plus className="h-4 w-4 mr-2" />
-              New Conversation
+              {t("newConversation")}
             </Button>
           </div>
         )}
@@ -200,4 +207,3 @@ export function ConversationHistorySidebar({
     </div>
   );
 }
-

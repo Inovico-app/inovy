@@ -2,11 +2,13 @@
 
 import { Button } from "@/components/ui/button";
 import { XIcon, SparklesIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 const DISMISSED_KEY = "inovy:notetaker-guidance-dismissed";
 
 export function NotetakerGuidanceBanner() {
+  const t = useTranslations("meetings");
   const [isDismissed, setIsDismissed] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -34,7 +36,7 @@ export function NotetakerGuidanceBanner() {
         size="icon"
         className="absolute right-2 top-2 h-6 w-6"
         onClick={handleDismiss}
-        aria-label="Dismiss guidance"
+        aria-label={t("notetakerBanner.dismissAriaLabel")}
       >
         <XIcon className="h-3.5 w-3.5" />
       </Button>
@@ -43,13 +45,9 @@ export function NotetakerGuidanceBanner() {
           <SparklesIcon className="h-4 w-4 text-primary" />
         </div>
         <div>
-          <p className="text-sm font-medium">
-            Get AI-powered notes for your meetings
-          </p>
+          <p className="text-sm font-medium">{t("notetakerBanner.title")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Click &quot;Add Notetaker&quot; on any upcoming meeting, or paste a
-            meeting link above to get automatic transcripts, summaries, and
-            action items.
+            {t("notetakerBanner.description")}
           </p>
         </div>
       </div>

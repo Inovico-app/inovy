@@ -9,6 +9,7 @@ import {
   getCachedAgentConfig,
   getCachedAllOrganizations,
 } from "@/server/cache/organization.cache";
+import { getTranslations } from "next-intl/server";
 import { AgentConfigListClient } from "./agent-config-list-client";
 
 export interface AgentConfigOrgDto {
@@ -22,6 +23,7 @@ export interface AgentConfigOrgDto {
 }
 
 export async function AgentConfigList() {
+  const t = await getTranslations("admin.agentConfig");
   const organizations = await getCachedAllOrganizations();
 
   // Get agent config for each organization
@@ -32,14 +34,14 @@ export async function AgentConfigList() {
         ...org,
         agentEnabled,
       };
-    })
+    }),
   );
 
   return (
     <Card>
       <CardHeader>
         <div>
-          <CardTitle>Agent Configuration</CardTitle>
+          <CardTitle>{t("configTitle")}</CardTitle>
           <CardDescription>
             {orgsWithConfig.length === 0
               ? "No organizations yet"
@@ -53,4 +55,3 @@ export async function AgentConfigList() {
     </Card>
   );
 }
-

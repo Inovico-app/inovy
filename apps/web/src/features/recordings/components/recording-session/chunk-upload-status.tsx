@@ -2,6 +2,7 @@
 
 import type { ChunkManifest } from "@/features/recordings/core/recording-session.types";
 import { CloudUpload } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface ChunkUploadStatusProps {
   manifest: ChunkManifest;
@@ -12,6 +13,7 @@ export function ChunkUploadStatus({
   manifest,
   className,
 }: ChunkUploadStatusProps) {
+  const t = useTranslations("recordings");
   if (manifest.totalChunks === 0) return null;
 
   const allUploaded = manifest.uploadedChunks === manifest.totalChunks;
@@ -19,7 +21,10 @@ export function ChunkUploadStatus({
   return (
     <div
       className={`flex items-center gap-1.5 text-xs text-muted-foreground ${className ?? ""}`}
-      aria-label={`${manifest.uploadedChunks} van ${manifest.totalChunks} fragmenten geupload`}
+      aria-label={t("chunks.chunksUploaded", {
+        uploaded: manifest.uploadedChunks,
+        total: manifest.totalChunks,
+      })}
     >
       <CloudUpload
         className={`w-3.5 h-3.5 ${allUploaded ? "text-green-600 dark:text-green-400" : "animate-pulse"}`}
@@ -27,7 +32,7 @@ export function ChunkUploadStatus({
       <span className="font-mono tabular-nums">
         {manifest.uploadedChunks} / {manifest.totalChunks}
       </span>
-      <span>fragmenten</span>
+      <span>{t("chunks.chunksLabel")}</span>
     </div>
   );
 }

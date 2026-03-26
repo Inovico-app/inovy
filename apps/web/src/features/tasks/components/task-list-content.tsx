@@ -5,6 +5,7 @@ import type { TaskWithContextDto } from "@/server/dto/task.dto";
 import { TaskCard } from "./task-card";
 import { TaskListEmpty } from "./task-list-empty";
 import { TaskSearch } from "./task-search";
+import { useTranslations } from "next-intl";
 import { TaskSort, type SortField, type SortOrder } from "./task-sort";
 
 interface TaskListContentProps {
@@ -30,15 +31,16 @@ export function TaskListContent({
   onSearchChange,
   onClearFilters,
   onStatusChange,
-  title = "All Tasks",
+  title,
 }: TaskListContentProps) {
+  const t = useTranslations("tasks");
   return (
     <div className="space-y-4">
       {/* Search Bar */}
       <TaskSearch
         value={searchQuery}
         onChange={onSearchChange}
-        placeholder="Search by title, description, project, or recording..."
+        placeholder={t("searchPlaceholder")}
       />
 
       <Card>
@@ -48,7 +50,9 @@ export function TaskListContent({
               <CardTitle>{title}</CardTitle>
               <Badge variant="outline">{tasks.length}</Badge>
               {totalPending > 0 && (
-                <Badge variant="secondary">{totalPending} pending</Badge>
+                <Badge variant="secondary">
+                  {totalPending} {t("pending")}
+                </Badge>
               )}
             </div>
             <TaskSort

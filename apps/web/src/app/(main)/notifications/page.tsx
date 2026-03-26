@@ -1,27 +1,20 @@
 import { NotificationsListServer } from "@/features/notifications/components/notifications-list-server";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 export const metadata: Metadata = { title: "Notifications" };
 
-/**
- * Notifications page
- * Shows all notifications for the authenticated user
- * Uses server-side data fetching with cache for optimal performance
- */
-export default function NotificationsPage() {
+export default async function NotificationsPage() {
+  const t = await getTranslations("notifications");
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Notificaties</h1>
-          <p className="text-muted-foreground mt-2">
-            Bekijk alle updates over je opnames en AI-verwerking
-          </p>
+          <h1 className="text-3xl font-bold text-foreground">{t("title")}</h1>
+          <p className="text-muted-foreground mt-2">{t("subtitle")}</p>
         </div>
-
-        {/* Notifications List - server-side fetching with cache */}
         <Suspense
           fallback={
             <div className="space-y-6">
@@ -36,4 +29,3 @@ export default function NotificationsPage() {
     </div>
   );
 }
-

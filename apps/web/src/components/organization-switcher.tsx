@@ -27,6 +27,7 @@ import {
 } from "@/hooks/use-organization-switcher";
 import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
@@ -38,15 +39,6 @@ function getOrgInitials(name: string): string {
   return name.slice(0, 2).toUpperCase() || "??";
 }
 
-function formatRole(role: string): string {
-  const r = role?.toLowerCase() ?? "";
-  if (r === "owner") return "Owner";
-  if (r === "admin" || r === "superadmin") return "Admin";
-  if (r === "manager") return "Manager";
-  if (r === "viewer") return "Viewer";
-  return "Member";
-}
-
 interface OrganizationSwitcherProps {
   collapsed?: boolean;
 }
@@ -56,6 +48,8 @@ export function OrganizationSwitcher({
 }: OrganizationSwitcherProps) {
   const { state, actions } = useOrganizationSwitcher();
   const [open, setOpen] = useState(false);
+  const tRoles = useTranslations("roles");
+  const tOrg = useTranslations("orgSwitcher");
 
   const {
     organizations,
@@ -64,6 +58,18 @@ export function OrganizationSwitcher({
     isLoading,
     isSwitching,
   } = state;
+
+  const formatRole = useCallback(
+    (role: string): string => {
+      const r = role?.toLowerCase() ?? "";
+      if (r === "owner") return tRoles("owner");
+      if (r === "admin" || r === "superadmin") return tRoles("admin");
+      if (r === "manager") return tRoles("manager");
+      if (r === "viewer") return tRoles("viewer");
+      return tRoles("user");
+    },
+    [tRoles],
+  );
 
   const handleSelect = useCallback(
     async (org: OrganizationWithRole) => {
@@ -75,10 +81,10 @@ export function OrganizationSwitcher({
         await actions.switchOrganization(org.id);
         setOpen(false);
       } catch {
-        toast.error("Failed to switch organization. Please try again.");
+        toast.error(tOrg("switchError"));
       }
     },
-    [activeOrganization?.id, actions]
+    [activeOrganization?.id, actions, tOrg],
   );
 
   if (isLoading) {
@@ -86,7 +92,7 @@ export function OrganizationSwitcher({
       <div
         className={cn(
           "flex items-center gap-2 px-3 py-2",
-          collapsed && "justify-center px-2"
+          collapsed && "justify-center px-2",
         )}
       >
         <Skeleton className="h-8 w-8 rounded-full" />
@@ -106,17 +112,20 @@ export function OrganizationSwitcher({
       className={cn(
         "flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors",
         isMultiOrg && "hover:bg-accent/50 cursor-pointer",
-        collapsed ? "justify-center w-10" : "w-full min-w-0"
+        collapsed ? "justify-center w-10" : "w-full min-w-0",
       )}
       aria-label={
         collapsed
-          ? `Active organization: ${activeOrganization.name}`
+          ? tOrg("activeOrg", { name: activeOrganization.name })
           : undefined
       }
     >
       <div className="relative shrink-0">
         <Avatar className="h-8 w-8">
-          <AvatarImage src={activeOrganization.logo ?? undefined} alt={activeOrganization.name} />
+          <AvatarImage
+            src={activeOrganization.logo ?? undefined}
+            alt={activeOrganization.name}
+          />
           <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
             {getOrgInitials(activeOrganization.name)}
           </AvatarFallback>
@@ -157,7 +166,9 @@ export function OrganizationSwitcher({
     if (collapsed) {
       return (
         <Tooltip>
-          <TooltipTrigger render={<div className="flex justify-center px-2 py-2" />}>
+          <TooltipTrigger
+            render={<div className="flex justify-center px-2 py-2" />}
+          >
             {triggerContent}
           </TooltipTrigger>
           <TooltipContent side="right">
@@ -174,7 +185,7 @@ export function OrganizationSwitcher({
     return (
       <div
         className="px-3 py-2"
-        aria-label={`Organization: ${activeOrganization.name}`}
+        aria-label={tOrg("activeOrg", { name: activeOrganization.name })}
       >
         {triggerContent}
       </div>
@@ -189,11 +200,11 @@ export function OrganizationSwitcher({
             type="button"
             className={cn(
               "w-full text-left outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg",
-              collapsed && "flex justify-center"
+              collapsed && "flex justify-center",
             )}
             aria-expanded={open}
             aria-haspopup="listbox"
-            aria-label={`Switch organization. Current: ${activeOrganization.name}`}
+            aria-label={tOrg("switchOrg", { name: activeOrganization.name })}
             title={
               collapsed
                 ? `${activeOrganization.name}. Click to switch.`
@@ -210,9 +221,9 @@ export function OrganizationSwitcher({
         side="right"
       >
         <Command>
-          <CommandInput placeholder="Search organizations..." />
+          <CommandInput placeholder={tOrg("searchPlaceholder")} />
           <CommandList>
-            <CommandEmpty>No organization found.</CommandEmpty>
+            <CommandEmpty>{tOrg("noOrgFound")}</CommandEmpty>
             <CommandGroup>
               {organizations.map((org) => {
                 const isActive = org.id === activeOrganization.id;
@@ -249,4 +260,3 @@ export function OrganizationSwitcher({
     </Popover>
   );
 }
-

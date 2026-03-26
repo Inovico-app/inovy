@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface RemoveBotConfirmDialogProps {
   open: boolean;
@@ -35,26 +36,29 @@ export function RemoveBotConfirmDialog({
   meetingTitle,
   isRemoving = false,
 }: RemoveBotConfirmDialogProps) {
+  const t = useTranslations("meetings");
+  const tc = useTranslations("common");
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Remove Notetaker from Meeting</DialogTitle>
+          <DialogTitle>{t("removeDialog.title")}</DialogTitle>
           <DialogDescription>
             {meetingTitle
-              ? `Remove the notetaker from "${meetingTitle}"?`
-              : "Remove the notetaker from this meeting?"}
+              ? t("removeDialog.descriptionWithTitle", { title: meetingTitle })
+              : t("removeDialog.descriptionGeneric")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="rounded-lg bg-muted p-4 space-y-2">
             <p className="text-sm font-medium">
-              What happens when you remove the notetaker
+              {t("removeDialog.whatHappens")}
             </p>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
-              <li>The notetaker will not join the meeting</li>
-              <li>If the notetaker is already in the meeting, it will leave</li>
-              <li>No new recording will be created for this meeting</li>
+              <li>{t("removeDialog.consequence1")}</li>
+              <li>{t("removeDialog.consequence2")}</li>
+              <li>{t("removeDialog.consequence3")}</li>
             </ul>
           </div>
         </div>
@@ -64,7 +68,7 @@ export function RemoveBotConfirmDialog({
             onClick={() => onOpenChange(false)}
             disabled={isRemoving}
           >
-            Cancel
+            {tc("cancel")}
           </Button>
           <Button
             variant="destructive"
@@ -77,10 +81,10 @@ export function RemoveBotConfirmDialog({
                   className="h-4 w-4 mr-2 animate-spin"
                   aria-hidden={true}
                 />
-                Removing...
+                {t("removeDialog.removing")}
               </>
             ) : (
-              "Remove Notetaker"
+              t("removeDialog.removeNotetaker")
             )}
           </Button>
         </DialogFooter>

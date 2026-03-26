@@ -14,6 +14,7 @@ import {
 } from "@/features/meetings/lib/calendar-utils";
 import { format } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { CreateEventDialog } from "../create-event-dialog";
 import { MeetingsFilter } from "../meetings/meetings-filter";
@@ -84,6 +85,7 @@ export function CalendarHeader({
   onTimePeriodChange,
   isMobile = false,
 }: CalendarHeaderProps) {
+  const t = useTranslations("meetings");
   const [dialogOpen, setDialogOpen] = useState(false);
   const navLabels = getNavLabel(view);
 
@@ -93,7 +95,7 @@ export function CalendarHeader({
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={onToday}>
-              Today
+              {t("calendar.today")}
             </Button>
             <div className="flex items-center gap-1">
               <Button
@@ -147,10 +149,10 @@ export function CalendarHeader({
           <Button
             size="sm"
             onClick={() => setDialogOpen(true)}
-            aria-label="New event"
+            aria-label={t("calendar.newEventAriaLabel")}
           >
             <Plus className="h-4 w-4 mr-2" />
-            New Event
+            {t("calendar.newEvent")}
           </Button>
         </div>
       </div>

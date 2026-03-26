@@ -13,6 +13,7 @@ import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils"
 import { formatTimeRange } from "@/features/meetings/lib/calendar-utils";
 import { cn } from "@/lib/utils";
 import { FileVideoIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 
 interface CalendarEventItemProps {
@@ -26,13 +27,16 @@ export function CalendarEventItem({
   compact = false,
   onMeetingClick,
 }: CalendarEventItemProps) {
+  const t = useTranslations("meetings");
   const timeDisplay = formatTimeRange(meeting.start, meeting.end);
   const hasBotSession = !!meeting.botSession;
   const botSession = meeting.botSession;
   const isPast = meeting.end <= new Date();
   const hasRecording = !!(botSession?.recordingId && botSession?.projectId);
   const NoNotetakerFallback = (
-    <span className="text-xs text-muted-foreground">No notetaker</span>
+    <span className="text-xs text-muted-foreground">
+      {t("list.noNotetaker")}
+    </span>
   );
 
   const content = (
@@ -53,9 +57,9 @@ export function CalendarEventItem({
                   />
                 }
               >
-                Invited
+                {t("list.invited")}
               </TooltipTrigger>
-              <TooltipContent>You were invited to this meeting</TooltipContent>
+              <TooltipContent>{t("list.invitedTooltip")}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         )}
@@ -66,7 +70,7 @@ export function CalendarEventItem({
           <>
             <div
               role="group"
-              aria-label="Notetaker session controls"
+              aria-label={t("bot.notetakerSessionAriaLabel")}
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
             >
@@ -81,8 +85,8 @@ export function CalendarEventItem({
               <Link
                 href={`/projects/${botSession.projectId}/recordings/${botSession.recordingId}`}
                 className="inline-flex items-center rounded p-0.5 text-primary transition-colors hover:bg-accent hover:text-accent-foreground"
-                aria-label="View recording"
-                title="View recording"
+                aria-label={t("list.viewRecordingAriaLabel")}
+                title={t("list.viewRecordingAriaLabel")}
                 onClick={(e) => e.stopPropagation()}
               >
                 <FileVideoIcon className="h-3.5 w-3.5" />
@@ -94,7 +98,7 @@ export function CalendarEventItem({
         ) : (
           <div
             role="group"
-            aria-label="Add notetaker controls"
+            aria-label={t("bot.addNotetakerAriaLabelControls")}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >
@@ -153,11 +157,9 @@ export function CalendarEventItem({
                 <TooltipTrigger
                   render={<Badge variant="secondary" className="shrink-0" />}
                 >
-                  Invited
+                  {t("list.invited")}
                 </TooltipTrigger>
-                <TooltipContent>
-                  You were invited to this meeting
-                </TooltipContent>
+                <TooltipContent>{t("list.invitedTooltip")}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )}
@@ -172,7 +174,7 @@ export function CalendarEventItem({
       </div>
       <div
         role="group"
-        aria-label="Meeting actions"
+        aria-label={t("list.meetingActionsAriaLabel")}
         className="flex min-h-[44px] flex-col items-end justify-center gap-1"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
@@ -188,10 +190,10 @@ export function CalendarEventItem({
               <Link
                 href={`/projects/${botSession.projectId}/recordings/${botSession.recordingId}`}
                 className="inline-flex items-center gap-1 text-xs text-primary transition-colors hover:underline"
-                aria-label="View recording"
+                aria-label={t("list.viewRecordingAriaLabel")}
               >
                 <FileVideoIcon className="h-3.5 w-3.5" />
-                <span>View Recording</span>
+                <span>{t("list.viewRecording")}</span>
               </Link>
             )}
           </>

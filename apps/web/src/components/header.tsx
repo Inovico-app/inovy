@@ -1,17 +1,20 @@
 import { NotificationBell } from "@/features/notifications/components/notification-bell";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { HeaderAuthButtons } from "./header-auth-buttons";
 import { HeaderNavigation } from "./header-navigation";
 import { ModeToggle } from "./mode-toggle";
 
-export function Header() {
+export async function Header() {
+  const t = await getTranslations("common");
+
   return (
     <div>
       <div className="flex flex-row items-center justify-between px-4 py-3">
         <div className="flex items-center gap-6">
           <Link href="/" className="font-semibold text-xl">
-            Inovy
+            {t("brandName")}
           </Link>
           <Suspense fallback={null}>
             <HeaderNavigation />
@@ -39,4 +42,3 @@ export function Header() {
     </div>
   );
 }
-

@@ -14,7 +14,17 @@ import {
 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
+
+interface MenuItemDef {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  titleKey: string;
+  descriptionKey: string;
+  disabled?: boolean;
+  badgeKey?: string;
+}
 
 interface MenuItem {
   href: string;
@@ -25,62 +35,63 @@ interface MenuItem {
   badge?: string;
 }
 
-const BASE_ADMIN_MENU_ITEMS: MenuItem[] = [
+const BASE_ADMIN_MENU_ITEMS: MenuItemDef[] = [
   {
     href: "/admin/users",
     icon: UsersIcon,
-    title: "User Management",
-    description: "Manage roles and permissions",
+    titleKey: "userManagement",
+    descriptionKey: "userManagementDescription",
   },
   {
     href: "/admin/audit-logs",
     icon: FileTextIcon,
-    title: "Audit Logs",
-    description: "Track system events",
+    titleKey: "auditLogs",
+    descriptionKey: "auditLogsDescription",
   },
   {
     href: "/admin/agent-analytics",
     icon: BarChart3Icon,
-    title: "User Analytics",
-    description: "User engagement and feedback metrics",
+    titleKey: "userAnalytics",
+    descriptionKey: "userAnalyticsDescription",
   },
   {
     href: "/admin/agent-metrics",
     icon: ActivityIcon,
-    title: "Agent Metrics",
-    description: "System-wide metrics and detailed records",
+    titleKey: "agentMetrics",
+    descriptionKey: "agentMetricsDescription",
   },
 ];
 
 // Only show Organizations for superadmins
-const SUPER_ADMIN_MENU_ITEMS: MenuItem[] = [
+const SUPER_ADMIN_MENU_ITEMS: MenuItemDef[] = [
   {
     href: "/admin/agent-config",
     icon: BotIcon,
-    title: "Agent Configuration",
-    description: "Manage agent access per organization",
+    titleKey: "agentConfiguration",
+    descriptionKey: "agentConfigurationDescription",
   },
   {
     href: "/admin/organizations",
     icon: Building2Icon,
-    title: "Organizations",
-    description: "View and edit organizations",
+    titleKey: "organizations",
+    descriptionKey: "organizationsDescription",
   },
 ];
 
-const INACTIVE_MENU_ITEMS: MenuItem[] = [
+const INACTIVE_MENU_ITEMS: MenuItemDef[] = [
   {
     href: "#",
     icon: SettingsIcon,
-    title: "System Settings",
-    description: "Configure preferences",
+    titleKey: "systemSettings",
+    descriptionKey: "systemSettingsDescription",
     disabled: true,
-    badge: "Soon",
+    badgeKey: "soonBadge",
   },
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const t = useTranslations("adminSidebar");
   const hasSuperAdminPermission = authClient.organization.checkRolePermission({
     permissions: Permissions.superadmin.all,
     role: "superadmin",
@@ -91,17 +102,26 @@ export function AdminSidebar() {
     return pathname.startsWith(href);
   };
 
-  const menuItems: MenuItem[] = [
+  const menuItemDefs: MenuItemDef[] = [
     ...BASE_ADMIN_MENU_ITEMS,
     ...(hasSuperAdminPermission ? SUPER_ADMIN_MENU_ITEMS : []),
     ...INACTIVE_MENU_ITEMS,
   ];
 
+  const menuItems: MenuItem[] = menuItemDefs.map((item) => ({
+    href: item.href,
+    icon: item.icon,
+    title: t(item.titleKey),
+    description: t(item.descriptionKey),
+    disabled: item.disabled,
+    badge: item.badgeKey ? t(item.badgeKey) : undefined,
+  }));
+
   return (
     <aside className="sticky top-0 h-screen w-72 border-r bg-card/50 p-6 flex-shrink-0 overflow-y-auto">
       <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-1">Admin</h2>
-        <p className="text-sm text-muted-foreground">Manage your system</p>
+        <h2 className="text-lg font-semibold mb-1">{t("heading")}</h2>
+        <p className="text-sm text-muted-foreground">{t("description")}</p>
       </div>
 
       <nav className="space-y-1">
@@ -174,4 +194,3 @@ export function AdminSidebar() {
     </aside>
   );
 }
-

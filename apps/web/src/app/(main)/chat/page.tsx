@@ -9,10 +9,12 @@ import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
 import { getCachedAgentConfig } from "@/server/cache/organization.cache";
 import { getCachedUserProjects } from "@/server/cache/project.cache";
 import { AlertCircle } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
 async function ChatPageContent() {
   // Get session with roles
+  const t = await getTranslations("chat");
   const sessionResult = await getBetterAuthSession();
 
   if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
@@ -51,10 +53,9 @@ async function ChatPageContent() {
               <AlertCircle className="h-8 w-8 text-destructive" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold">No Projects Available</h2>
+              <h2 className="text-xl font-semibold">{t("noProjectsTitle")}</h2>
               <p className="text-muted-foreground">
-                You don't have access to any projects yet. Please create a
-                project or contact your organization administrator for access.
+                {t("noProjectsDescription")}
               </p>
             </div>
           </div>

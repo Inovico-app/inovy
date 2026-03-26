@@ -16,6 +16,7 @@ import { EditSummaryDialog } from "./edit-summary-dialog";
 import { SummaryVersionHistoryDialog } from "./summary-version-history-dialog";
 import { TimestampButton } from "./timestamp-button";
 import { UserNotesEditor } from "./user-notes-editor";
+import { useTranslations } from "next-intl";
 
 interface EnhancedSummarySectionProps {
   recordingId: string;
@@ -28,6 +29,7 @@ export function EnhancedSummarySection({
   summary,
   transcriptionStatus,
 }: EnhancedSummarySectionProps) {
+  const t = useTranslations("recordings");
   const [overviewOpen, setOverviewOpen] = useState(true);
   const [topicsOpen, setTopicsOpen] = useState(true);
   const [decisionsOpen, setDecisionsOpen] = useState(true);
@@ -40,21 +42,17 @@ export function EnhancedSummarySection({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>AI-Generated Summary</CardTitle>
+          <CardTitle>{t("summary.aiGeneratedSummary")}</CardTitle>
         </CardHeader>
         <CardContent>
           {transcriptionStatus === "completed" ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p className="mb-4">
-                No summary available yet. Generate one now to get insights.
-              </p>
-              <p className="text-sm">
-                Use the reprocess button above to generate a summary.
-              </p>
+              <p className="mb-4">{t("summary.noSummaryAvailable")}</p>
+              <p className="text-sm">{t("summary.useReprocessHint")}</p>
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              <p>Summary will be generated after transcription is complete.</p>
+              <p>{t("summary.summaryAfterTranscription")}</p>
             </div>
           )}
         </CardContent>
@@ -67,9 +65,9 @@ export function EnhancedSummarySection({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CardTitle>AI-Generated Summary</CardTitle>
+            <CardTitle>{t("summary.aiGeneratedSummary")}</CardTitle>
             {summary.isManuallyEdited && (
-              <Badge variant="secondary">Edited</Badge>
+              <Badge variant="secondary">{t("summary.edited")}</Badge>
             )}
           </div>
           <div className="flex items-center gap-2 print:hidden">
@@ -86,7 +84,9 @@ export function EnhancedSummarySection({
         {summary.content.overview && (
           <Collapsible open={overviewOpen} onOpenChange={setOverviewOpen}>
             <CollapsibleTrigger className="flex items-center justify-between w-full group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
-              <h3 className="font-semibold text-base">Overview</h3>
+              <h3 className="font-semibold text-base">
+                {t("summary.overview")}
+              </h3>
               <ChevronDown
                 className={`h-4 w-4 transition-transform print:hidden ${
                   overviewOpen ? "rotate-180" : ""
@@ -246,7 +246,9 @@ export function EnhancedSummarySection({
         {/* User Notes Section */}
         <Collapsible open={notesOpen} onOpenChange={setNotesOpen}>
           <CollapsibleTrigger className="flex items-center justify-between w-full group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
-            <h3 className="font-semibold text-base">User Notes</h3>
+            <h3 className="font-semibold text-base">
+              {t("summary.userNotes")}
+            </h3>
             <ChevronDown
               className={`h-4 w-4 transition-transform print:hidden ${
                 notesOpen ? "rotate-180" : ""
@@ -275,7 +277,7 @@ export function EnhancedSummarySection({
         {summary.confidence && (
           <div className="pt-4 border-t">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>AI Confidence:</span>
+              <span>{t("summary.aiConfidence")}</span>
               <Badge variant="outline">
                 {(summary.confidence * 100).toFixed(0)}%
               </Badge>
@@ -286,4 +288,3 @@ export function EnhancedSummarySection({
     </Card>
   );
 }
-

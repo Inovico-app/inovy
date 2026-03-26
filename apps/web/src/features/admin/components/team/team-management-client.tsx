@@ -28,6 +28,7 @@ import { Edit, Plus, Search, Trash2, Users, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createTeam, deleteTeam, updateTeam } from "../../actions/teams";
 
@@ -41,6 +42,7 @@ export function TeamManagementClient({
   teams,
   canEdit,
 }: TeamManagementClientProps) {
+  const t = useTranslations("admin.teams");
   const router = useRouter();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<TeamWithMemberCount | null>(
@@ -62,7 +64,7 @@ export function TeamManagementClient({
       });
       if (result?.data) {
         setIsCreateOpen(false);
-        toast.success("Team created successfully");
+        toast.success(t("teamCreated"));
         router.refresh();
       } else if (result?.serverError) {
         toast.error(result.serverError);
@@ -84,7 +86,7 @@ export function TeamManagementClient({
       });
       if (result?.data) {
         setEditingTeam(null);
-        toast.success("Team updated successfully");
+        toast.success(t("teamUpdated"));
         router.refresh();
       } else if (result?.serverError) {
         toast.error(result.serverError);
@@ -100,7 +102,7 @@ export function TeamManagementClient({
     try {
       const result = await deleteTeam({ id: deletingTeam.id });
       if (result?.data) {
-        toast.success(`Team "${deletingTeam.name}" deleted`);
+        toast.success(t("teamDeleted", { name: deletingTeam.name }));
         setDeletingTeam(null);
         router.refresh();
       } else if (result?.serverError) {
@@ -131,11 +133,11 @@ export function TeamManagementClient({
         />
         <Input
           type="search"
-          placeholder="Search teams..."
+          placeholder={t("searchTeams")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-10"
-          aria-label="Search teams"
+          aria-label={t("searchTeams")}
         />
       </div>
 
@@ -148,10 +150,8 @@ export function TeamManagementClient({
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create Team</DialogTitle>
-              <DialogDescription>
-                Add a new team to your organization
-              </DialogDescription>
+              <DialogTitle>{t("createTeam")}</DialogTitle>
+              <DialogDescription>{t("addTeamDescription")}</DialogDescription>
             </DialogHeader>
             <form action={handleCreate} className="space-y-4">
               <div className="space-y-2">
@@ -186,7 +186,7 @@ export function TeamManagementClient({
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Creating..." : "Create Team"}
+                  {isSubmitting ? t("creating") : t("createTeam")}
                 </Button>
               </div>
             </form>
@@ -203,8 +203,8 @@ export function TeamManagementClient({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Team</DialogTitle>
-            <DialogDescription>Update team information</DialogDescription>
+            <DialogTitle>{t("editTeam")}</DialogTitle>
+            <DialogDescription>{t("editTeamDescription")}</DialogDescription>
           </DialogHeader>
           <form action={handleUpdate} className="space-y-4">
             <div className="space-y-2">
@@ -239,7 +239,7 @@ export function TeamManagementClient({
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : "Save Changes"}
+                {isSubmitting ? t("saving") : t("saveChanges")}
               </Button>
             </div>
           </form>
@@ -253,7 +253,7 @@ export function TeamManagementClient({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Team</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteTeam")}</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete{" "}
               <strong>{deletingTeam?.name}</strong>? Team-scoped projects and
@@ -269,7 +269,7 @@ export function TeamManagementClient({
               disabled={isSubmitting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isSubmitting ? "Deleting..." : "Delete Team"}
+              {isSubmitting ? t("deleting") : t("deleteTeam")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -282,7 +282,7 @@ export function TeamManagementClient({
             className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3"
             aria-hidden="true"
           />
-          <p className="text-muted-foreground">No teams yet.</p>
+          <p className="text-muted-foreground">{t("noTeams")}</p>
           {canEdit && (
             <p className="text-sm text-muted-foreground mt-1">
               Create your first team to start organizing resources.
@@ -291,7 +291,7 @@ export function TeamManagementClient({
         </div>
       ) : filteredTeams.length === 0 ? (
         <p className="text-muted-foreground text-center py-8">
-          No teams match your search.
+          {t("noTeamsMatch")}
         </p>
       ) : (
         <div className="space-y-2" role="list" aria-label="Teams">

@@ -6,39 +6,42 @@ import { PIIRedaction } from "../pii-redaction";
 import { ProcessingError } from "../processing-error";
 import { TranscriptionEditor } from "./transcription-editor";
 import type { TranscriptionSectionProps } from "./types";
+import { useTranslations } from "next-intl";
 
 export function TranscriptionSection({
   recording,
   transcriptionInsights,
   knowledgeUsed,
 }: TranscriptionSectionProps) {
+  const t = useTranslations("recordings");
   const { transcriptionStatus, transcriptionText } = recording;
 
   if (transcriptionStatus !== "completed" || !transcriptionText) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Transcriptie</CardTitle>
+          <CardTitle>{t("transcription.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           {transcriptionStatus === "processing" ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>Transcriptie wordt verwerkt...</p>
+              <p>{t("transcription.processing")}</p>
               <p className="text-sm mt-2">
-                Dit kan enkele minuten duren, afhankelijk van de lengte van de
-                opname.
+                {t("transcription.processingTime")}
               </p>
             </div>
           ) : transcriptionStatus === "failed" ? (
             <ProcessingError
-              title="Transcriptie Mislukt"
+              title={t("transcription.failedTitle")}
               recordingTitle={recording.title}
-              message="Er is een fout opgetreden bij het transcriberen van deze opname. Dit kan te wijten zijn aan problemen met de audiokwaliteit, een niet-ondersteund audioformaat, of een tijdelijk serviceprobleem."
+              message={t("transcription.failedMessage")}
             />
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              <p>Transcriptie in behandeling</p>
-              <p className="text-sm mt-2">Verwerking begint binnenkort.</p>
+              <p>{t("transcription.pendingTitle")}</p>
+              <p className="text-sm mt-2">
+                {t("transcription.pendingMessage")}
+              </p>
             </div>
           )}
         </CardContent>
@@ -69,4 +72,3 @@ export function TranscriptionSection({
     </div>
   );
 }
-

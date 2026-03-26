@@ -1,0 +1,9 @@
+{
+  "accessDeniedTitle": "Toegang geweigerd",
+  "accessDeniedDescription": "De bron die je probeert te openen bestaat niet of je hebt geen toestemming om deze te bekijken.",
+  "accessDeniedReason1": "De bron is mogelijk verwijderd of verplaatst",
+  "accessDeniedReason2": "Je hebt mogelijk niet de vereiste rechten",
+  "accessDeniedReason3": "De bron behoort mogelijk tot een andere organisatie",
+  "contactAdmin": "Als je denkt dat dit een fout is, neem dan contact op met je organisatiebeheerder.",
+  "errorTitle": "Fout"
+}

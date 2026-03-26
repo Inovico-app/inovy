@@ -17,6 +17,7 @@ import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organizati
 import type { Utterance } from "@/server/dto/ai-insight.dto";
 import { Download } from "lucide-react";
 import { useCallback, useMemo } from "react";
+import { useTranslations } from "next-intl";
 
 interface ExportTranscriptionButtonProps {
   utterances: Utterance[];
@@ -31,11 +32,20 @@ export function ExportTranscriptionButton({
   speakerNames,
   speakerUserIds,
 }: ExportTranscriptionButtonProps) {
+  const t = useTranslations("recordings");
   const { data: users = [] } = useOrganizationUsersQuery();
 
   // Create user map for efficient lookup
   const userMap = useMemo(() => {
-    const map = new Map<string, { id: string; email: string | null; given_name: string | null; family_name: string | null }>();
+    const map = new Map<
+      string,
+      {
+        id: string;
+        email: string | null;
+        given_name: string | null;
+        family_name: string | null;
+      }
+    >();
     users.forEach((user) => {
       map.set(user.id, {
         id: user.id,
@@ -48,46 +58,68 @@ export function ExportTranscriptionButton({
   }, [users]);
 
   const handleExportText = useCallback(() => {
-    const content = exportAsText(utterances, speakerNames, speakerUserIds, userMap);
+    const content = exportAsText(
+      utterances,
+      speakerNames,
+      speakerUserIds,
+      userMap,
+    );
     downloadFile(content, `transcription-${recordingId}.txt`, "text/plain");
   }, [utterances, recordingId, speakerNames, speakerUserIds, userMap]);
 
   const handleExportSRT = useCallback(() => {
-    const content = exportAsSRT(utterances, speakerNames, speakerUserIds, userMap);
+    const content = exportAsSRT(
+      utterances,
+      speakerNames,
+      speakerUserIds,
+      userMap,
+    );
     downloadFile(
       content,
       `transcription-${recordingId}.srt`,
-      "application/x-subrip"
+      "application/x-subrip",
     );
   }, [utterances, recordingId, speakerNames, speakerUserIds, userMap]);
 
   const handleExportJSON = useCallback(() => {
-    const content = exportAsJSON(utterances, speakerNames, speakerUserIds, userMap);
+    const content = exportAsJSON(
+      utterances,
+      speakerNames,
+      speakerUserIds,
+      userMap,
+    );
     downloadFile(
       content,
       `transcription-${recordingId}.json`,
-      "application/json"
+      "application/json",
     );
   }, [utterances, recordingId, speakerNames, speakerUserIds, userMap]);
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="ghost" size="sm" title="Exporteer transcriptie" />}>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            title={t("transcription.exportTranscription")}
+          />
+        }
+      >
         <Download className="h-4 w-4 mr-1" />
-        Exporteren
+        {t("transcription.export")}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={handleExportText}>
-          Exporteer als TXT
+          {t("transcription.exportAsTxt")}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleExportSRT}>
-          Exporteer als SRT (ondertitels)
+          {t("transcription.exportAsSrt")}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleExportJSON}>
-          Exporteer als JSON
+          {t("transcription.exportAsJson")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
-

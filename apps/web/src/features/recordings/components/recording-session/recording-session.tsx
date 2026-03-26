@@ -29,6 +29,7 @@ import { MobileRecordingView } from "./mobile-recording-view";
 import { RecordingControls } from "./recording-controls";
 import { RecoveryDialog } from "./recovery-dialog";
 import { TranscriptionPanel } from "./transcription-panel";
+import { useTranslations } from "next-intl";
 
 interface RecordingSessionProps {
   config: UseRecordingSessionConfig;
@@ -45,6 +46,7 @@ export function RecordingSession({
   deviceId,
   onDiscard,
 }: RecordingSessionProps) {
+  const t = useTranslations("recordings");
   const router = useRouter();
   const session = useRecordingSession(config);
 
@@ -78,7 +80,7 @@ export function RecordingSession({
   useEffect(() => {
     if (session.status !== "complete") return;
 
-    toast.success("Opname voltooid!");
+    toast.success(t("session.recordingComplete"));
     router.push(`/projects/${config.projectId}` as Route);
     router.refresh();
   }, [session.status, config.projectId, router]);
@@ -131,28 +133,31 @@ export function RecordingSession({
       <>
         <div className="flex flex-col items-center justify-center gap-3 min-h-[calc(100vh-12rem)]">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Voorbereiden...</p>
+          <p className="text-sm text-muted-foreground">
+            {t("session.preparing")}
+          </p>
         </div>
 
         {/* Navigation guard + consent still active */}
         <AlertDialog open={navigationGuard.showDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Opname actief</AlertDialogTitle>
+              <AlertDialogTitle>
+                {t("session.navigationGuardTitle")}
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                Er is een opname bezig. Als u deze pagina verlaat, gaat de
-                huidige opname verloren. Weet u zeker dat u wilt doorgaan?
+                {t("session.navigationGuardDescription")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={navigationGuard.cancelNavigation}>
-                Blijven
+                {t("session.stayOnPage")}
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={navigationGuard.confirmNavigation}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                Pagina verlaten
+                {t("session.leavePage")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -238,12 +243,12 @@ export function RecordingSession({
                 <div className="flex items-start justify-between flex-shrink-0">
                   <div>
                     <h2 className="text-2xl font-bold tracking-tight mb-1">
-                      Live Opname
+                      {t("session.liveRecording")}
                     </h2>
                     <p className="text-sm text-muted-foreground">
                       {config.liveTranscriptionEnabled
-                        ? "Audio-opname met live transcriptie"
-                        : "Directe audio-opname vanuit uw browser"}
+                        ? t("session.withLiveTranscription")
+                        : t("session.directBrowserRecording")}
                     </p>
                   </div>
                   <RecordingStatusBadge status={session.status} />
@@ -350,10 +355,11 @@ export function RecordingSession({
       <AlertDialog open={navigationGuard.showDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Opname actief</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("session.navigationGuardTitle")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Er is een opname bezig. Als u deze pagina verlaat, gaat de huidige
-              opname verloren. Weet u zeker dat u wilt doorgaan?
+              {t("session.navigationGuardDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

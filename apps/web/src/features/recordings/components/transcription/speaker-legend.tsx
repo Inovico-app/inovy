@@ -2,6 +2,7 @@
 
 import { useSpeakerList } from "@/features/recordings/hooks/use-speaker-list";
 import { SpeakerLabel } from "./speaker-label";
+import { useTranslations } from "next-intl";
 
 interface SpeakerLegendProps {
   speakersDetected?: number;
@@ -23,6 +24,7 @@ export function SpeakerLegend({
   speakerUserIds,
   recordingId,
 }: SpeakerLegendProps) {
+  const t = useTranslations("recordings");
   const speakers = useSpeakerList({
     speakersDetected,
     utterances,
@@ -33,9 +35,11 @@ export function SpeakerLegend({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-foreground">Sprekers</span>
+        <span className="text-sm font-semibold text-foreground">
+          {t("transcription.speakers")}
+        </span>
         <span className="text-xs text-muted-foreground">
-          ({speakers.length} {speakers.length === 1 ? "spreker" : "sprekers"})
+          {t("transcription.speakersCount", { count: speakers.length })}
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2.5">

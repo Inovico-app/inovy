@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, Clock, Users } from "lucide-react";
 import { format } from "date-fns";
+import { useTranslations } from "next-intl";
 import type { Meeting } from "@/server/db/schema/meetings";
 import type { MeetingParticipant } from "@/server/db/schema/meetings";
 import {
@@ -22,6 +23,7 @@ export function MeetingHeader({
   meeting,
   showActualTime = false,
 }: MeetingHeaderProps) {
+  const t = useTranslations("meetings");
   const router = useRouter();
   const searchParams = useSearchParams();
   const participants = (meeting.participants as MeetingParticipant[]) ?? [];
@@ -44,7 +46,7 @@ export function MeetingHeader({
         className="text-muted-foreground hover:text-foreground -ml-2 gap-1.5"
       >
         <ArrowLeft className="h-4 w-4" />
-        Meetings
+        {t("header.backToMeetings")}
       </Button>
 
       <div className="space-y-2">
@@ -83,8 +85,7 @@ export function MeetingHeader({
           {participants.length > 0 && (
             <span className="inline-flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5" />
-              {participants.length} participant
-              {participants.length !== 1 ? "s" : ""}
+              {t("header.participantCount", { count: participants.length })}
             </span>
           )}
         </div>

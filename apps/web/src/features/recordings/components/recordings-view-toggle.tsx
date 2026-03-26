@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { LayoutGrid, List } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type ViewMode = "grouped" | "flat";
 
@@ -14,6 +15,7 @@ export function RecordingsViewToggle({
   viewMode,
   onViewModeChange,
 }: RecordingsViewToggleProps) {
+  const t = useTranslations("recordings");
   return (
     <div className="flex items-center gap-2">
       <Button
@@ -23,7 +25,7 @@ export function RecordingsViewToggle({
         className="gap-2"
       >
         <List className="h-4 w-4" />
-        Flat List
+        {t("filters.flatList")}
       </Button>
       <Button
         variant={viewMode === "grouped" ? "default" : "outline"}
@@ -32,9 +34,8 @@ export function RecordingsViewToggle({
         className="gap-2"
       >
         <LayoutGrid className="h-4 w-4" />
-        Grouped by Project
+        {t("filters.groupedByProject")}
       </Button>
     </div>
   );
 }
-

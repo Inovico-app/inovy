@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { OrganizationInstructionsForm } from "./organization-instructions-form";
 import {
@@ -29,6 +30,7 @@ export function OrganizationInstructionsSection({
   organizationId,
   canEdit,
 }: OrganizationInstructionsSectionProps) {
+  const t = useTranslations("settings.organization");
   const [instructions, setInstructions] = useState(() => initialInstructions);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -44,7 +46,7 @@ export function OrganizationInstructionsSection({
       if (result.data) {
         setInstructions(newInstructions);
         setIsEditing(false);
-        toast.success("Organization instructions updated successfully");
+        toast.success(t("instructionsUpdated"));
 
         // Refresh the data
         const refreshResult = await getOrganizationSettings();
@@ -52,11 +54,11 @@ export function OrganizationInstructionsSection({
           setInstructions(refreshResult.data.instructions);
         }
       } else {
-        toast.error(result.serverError || "Failed to update instructions");
+        toast.error(result.serverError || t("instructionsUpdateFailed"));
       }
     } catch (error) {
       console.error("Error updating organization instructions:", error);
-      toast.error("An unexpected error occurred");
+      toast.error(t("unexpectedError"));
     } finally {
       setIsSaving(false);
     }
@@ -75,10 +77,8 @@ export function OrganizationInstructionsSection({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>AI Instructions</CardTitle>
-            <CardDescription>
-              Organization-wide guidelines for AI behavior across all projects
-            </CardDescription>
+            <CardTitle>{t("aiInstructions")}</CardTitle>
+            <CardDescription>{t("aiInstructionsDescription")}</CardDescription>
           </div>
           {canEdit && !isEditing && (
             <button
@@ -110,11 +110,9 @@ export function OrganizationInstructionsSection({
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                <p>No organization instructions set yet.</p>
+                <p>{t("noInstructions")}</p>
                 {canEdit && (
-                  <p className="text-sm mt-2">
-                    Click "Edit" to add instructions for your organization.
-                  </p>
+                  <p className="text-sm mt-2">{t("clickEditToAdd")}</p>
                 )}
               </div>
             )}
@@ -124,4 +122,3 @@ export function OrganizationInstructionsSection({
     </Card>
   );
 }
-

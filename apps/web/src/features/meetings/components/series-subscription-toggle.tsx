@@ -13,6 +13,7 @@ import { unsubscribeFromSeriesAction } from "@/features/bot/actions/unsubscribe-
 import type { BotSeriesSubscription } from "@/server/db/schema/bot-series-subscriptions";
 import type { ProviderType } from "@/server/services/calendar/calendar-provider-factory";
 import { Loader2, RefreshCwOff, Repeat2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 interface SeriesSubscriptionToggleProps {
@@ -36,6 +37,7 @@ export function SeriesSubscriptionToggle({
   subscriptions,
   onSubscriptionChange,
 }: SeriesSubscriptionToggleProps) {
+  const t = useTranslations("meetings");
   const activeSubscription = subscriptions.find(
     (s) => s.recurringSeriesId === recurringSeriesId && s.active,
   );
@@ -46,12 +48,12 @@ export function SeriesSubscriptionToggle({
     {
       onSuccess: ({ data }) => {
         toast.success(
-          `Subscribed! ${data?.sessionsCreated ?? 0} recording sessions scheduled.`,
+          t("toast.seriesSubscribed", { count: data?.sessionsCreated ?? 0 }),
         );
         onSubscriptionChange?.();
       },
       onError: ({ error }) => {
-        toast.error(error.serverError || "Failed to subscribe to series");
+        toast.error(error.serverError || t("toast.seriesSubscribeFailed"));
       },
     },
   );
@@ -61,12 +63,14 @@ export function SeriesSubscriptionToggle({
     {
       onSuccess: ({ data }) => {
         toast.success(
-          `Unsubscribed. ${data?.cancelledSessions ?? 0} pending sessions cancelled.`,
+          t("toast.seriesUnsubscribed", {
+            count: data?.cancelledSessions ?? 0,
+          }),
         );
         onSubscriptionChange?.();
       },
       onError: ({ error }) => {
-        toast.error(error.serverError || "Failed to unsubscribe from series");
+        toast.error(error.serverError || t("toast.seriesUnsubscribeFailed"));
       },
     },
   );
@@ -96,8 +100,8 @@ export function SeriesSubscriptionToggle({
               disabled={isLoading}
               aria-label={
                 isSubscribed
-                  ? "Stop recording this series"
-                  : "Record all occurrences"
+                  ? t("bot.stopRecordingSeries")
+                  : t("bot.recordAllOccurrences")
               }
               className="shrink-0"
             />
@@ -111,13 +115,13 @@ export function SeriesSubscriptionToggle({
             <Repeat2 className="h-3.5 w-3.5" />
           )}
           <span className="ml-1.5 hidden sm:inline">
-            {isSubscribed ? "Stop series" : "Record series"}
+            {isSubscribed ? t("bot.stopSeries") : t("bot.recordSeries")}
           </span>
         </TooltipTrigger>
         <TooltipContent>
           {isSubscribed
-            ? "Stop recording this series"
-            : "Record all occurrences of this series"}
+            ? t("bot.stopRecordingSeries")
+            : t("bot.recordAllOccurrencesTooltip")}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

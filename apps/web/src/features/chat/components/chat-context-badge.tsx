@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Building2, FolderOpen } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface ChatContextBadgeProps {
   context: "organization" | "project";
@@ -10,11 +11,12 @@ export function ChatContextBadge({
   context,
   projectName,
 }: ChatContextBadgeProps) {
+  const t = useTranslations("chat");
   if (context === "organization") {
     return (
       <Badge variant="secondary" className="gap-1">
         <Building2 className="h-3 w-3" />
-        Organization
+        {t("organization")}
       </Badge>
     );
   }
@@ -22,8 +24,7 @@ export function ChatContextBadge({
   return (
     <Badge variant="secondary" className="gap-1">
       <FolderOpen className="h-3 w-3" />
-      {projectName ?? "Project"}
+      {projectName ?? t("project")}
     </Badge>
   );
 }
-

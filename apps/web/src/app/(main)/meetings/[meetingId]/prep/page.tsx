@@ -8,6 +8,7 @@ export async function generateMetadata({
   const { meetingId } = await params;
   return { title: `Meeting Prep ${meetingId}` };
 }
+import { getTranslations } from "next-intl/server";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
@@ -63,6 +64,7 @@ async function MeetingPrepLoader({ meetingId }: { meetingId: string }) {
 
 export default async function MeetingPrepPage(props: PageProps) {
   const params = await props.params;
+  const t = await getTranslations("meetings");
 
   return (
     <div className="mx-auto w-full max-w-3xl py-10 px-4 sm:px-6">
@@ -71,7 +73,7 @@ export default async function MeetingPrepPage(props: PageProps) {
           <div
             className="animate-pulse space-y-6"
             aria-busy="true"
-            aria-label="Loading meeting prep"
+            aria-label={t("page.loadingPrep")}
             role="status"
           >
             <div className="space-y-3">

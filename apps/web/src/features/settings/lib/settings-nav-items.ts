@@ -15,41 +15,59 @@ export interface SettingsNavItem {
   description?: string;
 }
 
-export const SETTINGS_NAV_ITEMS = [
+interface SettingsNavItemDef {
+  href: string;
+  icon: LucideIcon;
+  labelKey: string;
+  descriptionKey?: string;
+}
+
+const SETTINGS_NAV_ITEM_DEFS: readonly SettingsNavItemDef[] = [
   {
     href: "/settings",
     icon: LayoutDashboardIcon,
-    label: "Overview",
-    description: "Settings overview and status",
+    labelKey: "overview",
+    descriptionKey: "overviewDescription",
   },
   {
     href: "/settings/profile",
     icon: UserIcon,
-    label: "Profile",
-    description: "Manage your personal account",
+    labelKey: "profile",
+    descriptionKey: "profileDescription",
   },
   {
     href: "/settings/organization",
     icon: Building2Icon,
-    label: "Organization",
-    description: "View organization information",
+    labelKey: "organization",
+    descriptionKey: "organizationDescription",
   },
   {
     href: "/settings/agent",
     icon: BotIcon,
-    label: "Agent",
-    description: "Browse knowledge base documents",
+    labelKey: "agent",
+    descriptionKey: "agentDescription",
   },
   {
     href: "/settings/bot",
     icon: VideoIcon,
-    label: "Notetaker",
-    description: "Configure notetaker assistant preferences",
+    labelKey: "notetaker",
+    descriptionKey: "notetakerDescription",
   },
   {
     href: "/settings/integrations",
     icon: SettingsIcon,
-    label: "Integrations",
-    description: "Manage third-party connections",
+    labelKey: "integrations",
+    descriptionKey: "integrationsDescription",
   },
-] as const satisfies readonly SettingsNavItem[];
+] as const;
+
+export function getSettingsNavItems(
+  t: (key: string) => string,
+): SettingsNavItem[] {
+  return SETTINGS_NAV_ITEM_DEFS.map((item) => ({
+    href: item.href,
+    icon: item.icon,
+    label: t(item.labelKey),
+    description: item.descriptionKey ? t(item.descriptionKey) : undefined,
+  }));
+}

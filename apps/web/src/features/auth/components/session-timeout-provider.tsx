@@ -12,6 +12,7 @@ import {
 import { useSessionTimeout } from "@/features/auth/hooks/use-session-timeout";
 import { authClient } from "@/lib/auth-client";
 import { logger } from "@/lib/logger";
+import { useTranslations } from "next-intl";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useCallback, type ReactNode } from "react";
@@ -30,6 +31,7 @@ interface SessionTimeoutProviderProps {
 export function SessionTimeoutProvider({
   children,
 }: SessionTimeoutProviderProps) {
+  const t = useTranslations("auth");
   const router = useRouter();
 
   const handleTimeout = useCallback(async () => {
@@ -78,18 +80,16 @@ export function SessionTimeoutProvider({
       <AlertDialog open={isWarningVisible}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Session Expiring Soon</AlertDialogTitle>
+            <AlertDialogTitle>{t("sessionExpiringTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Your session will expire in{" "}
-              <span className="font-semibold tabular-nums">
-                {formatTime(remainingSeconds)}
-              </span>{" "}
-              due to inactivity. Click below to extend your session.
+              {t("sessionExpiringDescription", {
+                time: formatTime(remainingSeconds),
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={extendSession}>
-              Extend Session
+              {t("sessionExtend")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

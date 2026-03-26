@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Building2, FolderOpen } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 
 interface Project {
@@ -33,11 +34,14 @@ export function ChatContextSelector({
   projects,
   onContextChange,
 }: ChatContextSelectorProps) {
+  const t = useTranslations("chat");
+
   const contextItems = useMemo(
     () => ({
-      organization: "Organization-Wide",
+      organization: t("organizationWide"),
       ...Object.fromEntries(projects.map((p) => [`project-${p.id}`, p.name])),
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [projects],
   );
 
@@ -62,7 +66,7 @@ export function ChatContextSelector({
       items={contextItems}
     >
       <SelectTrigger className="w-[280px]">
-        <SelectValue placeholder="Select context..." />
+        <SelectValue placeholder={t("selectContext")} />
       </SelectTrigger>
       <SelectContent>
         {isAdmin && (
@@ -70,12 +74,12 @@ export function ChatContextSelector({
             <SelectItem value="organization">
               <div className="flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
-                <span>Organization-Wide</span>
+                <span>{t("organizationWide")}</span>
               </div>
             </SelectItem>
             {projects.length > 0 && (
               <div className="px-2 py-1.5 text-xs text-muted-foreground border-t my-1">
-                Projects
+                {t("project")}
               </div>
             )}
           </>

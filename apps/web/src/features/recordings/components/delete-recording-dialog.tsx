@@ -18,6 +18,7 @@ import {
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { deleteRecordingAction } from "../actions/delete-recording";
+import { useTranslations } from "next-intl";
 
 interface DeleteRecordingDialogProps {
   recordingId: string;
@@ -34,6 +35,7 @@ export function DeleteRecordingDialog({
   variant = "destructive",
   onOpenChange,
 }: DeleteRecordingDialogProps) {
+  const t = useTranslations("recordings");
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,9 +44,7 @@ export function DeleteRecordingDialog({
 
   const handleDelete = async () => {
     if (confirmationText !== "DELETE" && confirmationText !== recordingTitle) {
-      setError(
-        'Please type "DELETE" or the exact recording title to confirm deletion',
-      );
+      setError(t("actions.deleteConfirmError"));
       return;
     }
 
@@ -68,17 +68,17 @@ export function DeleteRecordingDialog({
         const firstError = Array.isArray(firstFieldErrors)
           ? firstFieldErrors[0]
           : firstFieldErrors?._errors?.[0];
-        setError(firstError ?? "Validation failed");
+        setError(firstError ?? t("actions.validationFailed"));
         toast.error(firstError ?? "Validation failed");
         return;
       }
 
-      toast.success(`Recording "${recordingTitle}" deleted successfully`);
+      toast.success(t("actions.deleteSuccess", { title: recordingTitle }));
       router.refresh();
       router.push(`/projects/${projectId}` as Route);
     } catch (error) {
       console.error("Error deleting recording:", error);
-      const errorMessage = "Failed to delete recording";
+      const errorMessage = t("actions.deleteFailed");
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -99,12 +99,12 @@ export function DeleteRecordingDialog({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger render={<Button variant={variant} size="sm" />}>
         <Trash2Icon className="h-4 w-4 mr-2" />
-        Delete
+        {t("actions.deleteRecording")}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="text-destructive">
-            Delete Recording Permanently?
+            {t("actions.deleteTitle")}
           </DialogTitle>
           <DialogDescription className="space-y-2">
             <p className="font-medium">
@@ -112,10 +112,10 @@ export function DeleteRecordingDialog({
               permanently delete:
             </p>
             <ul className="list-disc list-inside pl-2 space-y-1">
-              <li>The recording file from storage</li>
-              <li>All transcriptions</li>
-              <li>All AI-generated summaries</li>
-              <li>All extracted action items and tasks</li>
+              <li>{t("actions.deleteItem1")}</li>
+              <li>{t("actions.deleteItem2")}</li>
+              <li>{t("actions.deleteItem3")}</li>
+              <li>{t("actions.deleteItem4")}</li>
             </ul>
           </DialogDescription>
         </DialogHeader>
@@ -133,7 +133,9 @@ export function DeleteRecordingDialog({
                 setConfirmationText(e.target.value);
                 setError(null);
               }}
-              placeholder={`Type "DELETE" or "${recordingTitle}"`}
+              placeholder={t("actions.deleteConfirmPlaceholder", {
+                title: recordingTitle,
+              })}
               disabled={isLoading}
               className={error ? "border-destructive" : ""}
             />
@@ -142,7 +144,7 @@ export function DeleteRecordingDialog({
 
           <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
             <p className="text-sm text-destructive font-medium">
-              ⚠️ Recording to be deleted:
+              ⚠️ {t("actions.recordingToDelete")}
             </p>
             <p className="text-sm mt-1 font-mono break-all">{recordingTitle}</p>
           </div>
@@ -166,7 +168,7 @@ export function DeleteRecordingDialog({
             variant="destructive"
           >
             {isLoading && <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />}
-            Delete Permanently
+            {t("actions.deletePermanently")}
           </Button>
         </DialogFooter>
       </DialogContent>

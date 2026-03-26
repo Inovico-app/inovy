@@ -2,20 +2,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TaskCard } from "@/features/tasks/components/task-card-with-edit";
 import type { TaskDto } from "@/server/dto/task.dto";
 import type { RecordingDto } from "@/server/dto/recording.dto";
+import { getTranslations } from "next-intl/server";
 
 interface RecordingActionItemsCardProps {
   recording: RecordingDto;
   tasks: TaskDto[];
 }
 
-export function RecordingActionItemsCard({
+export async function RecordingActionItemsCard({
   recording,
   tasks,
 }: RecordingActionItemsCardProps) {
+  const t = await getTranslations("recordings");
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Extracted Action Items</CardTitle>
+        <CardTitle>{t("detail.extractedActionItems")}</CardTitle>
       </CardHeader>
       <CardContent>
         {tasks.length > 0 ? (
@@ -26,18 +28,18 @@ export function RecordingActionItemsCard({
           </div>
         ) : recording.transcriptionStatus === "completed" ? (
           <div className="text-center py-8 text-muted-foreground">
-            <p>No action items extracted yet</p>
-            <p className="text-sm mt-2">Task extraction may still be in progress</p>
+            <p>{t("detail.noActionItems")}</p>
+            <p className="text-sm mt-2">
+              {t("detail.taskExtractionInProgress")}
+            </p>
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            <p>Action items will be extracted after transcription completes</p>
-            <p className="text-sm mt-2">Please wait for the transcription to finish</p>
+            <p>{t("detail.actionItemsAfterTranscription")}</p>
+            <p className="text-sm mt-2">{t("detail.waitForTranscription")}</p>
           </div>
         )}
       </CardContent>
     </Card>
   );
 }
-
-

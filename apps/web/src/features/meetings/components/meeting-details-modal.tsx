@@ -13,6 +13,7 @@ import { BotStatusBadge } from "@/features/bot/components/bot-status-badge";
 import { isValidMeetingUrl } from "@/lib/meeting-url";
 import { useUserProjects } from "@/features/projects/hooks/use-user-projects";
 import { ClipboardList, Loader2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAddBotToMeeting } from "../hooks/use-add-bot-to-meeting";
@@ -47,6 +48,7 @@ export function MeetingDetailsModal({
   onOpenChange,
   onSuccess,
 }: MeetingDetailsModalProps) {
+  const t = useTranslations("meetings");
   const [botMeetingUrl, setBotMeetingUrl] = useState("");
   const [isConsentDialogOpen, setIsConsentDialogOpen] = useState(false);
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
@@ -138,13 +140,11 @@ export function MeetingDetailsModal({
         trimmed.startsWith("http") ? trimmed : `https://${trimmed}`,
       );
       if (!isValidMeetingUrl(url.href)) {
-        toast.error(
-          "Meeting URL must be a Google Meet or Microsoft Teams link",
-        );
+        toast.error(t("details.meetingUrlInvalid"));
         return;
       }
     } catch {
-      toast.error("Invalid meeting URL");
+      toast.error(t("details.meetingUrlInvalidGeneric"));
       return;
     }
 
@@ -203,8 +203,10 @@ export function MeetingDetailsModal({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Meeting Details</DialogTitle>
-            <DialogDescription>No meeting selected</DialogDescription>
+            <DialogTitle>{t("details.meetingDetails")}</DialogTitle>
+            <DialogDescription>
+              {t("details.noMeetingSelected")}
+            </DialogDescription>
           </DialogHeader>
         </DialogContent>
       </Dialog>
@@ -241,7 +243,7 @@ export function MeetingDetailsModal({
         >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {meeting.title || "Untitled Meeting"}
+              {meeting.title || t("details.untitledMeeting")}
               {botSession && (
                 <BotStatusBadge
                   status={botSession.botStatus}
@@ -250,7 +252,7 @@ export function MeetingDetailsModal({
               )}
             </DialogTitle>
             <DialogDescription id="meeting-details-description">
-              View and edit meeting details
+              {t("details.viewAndEdit")}
             </DialogDescription>
           </DialogHeader>
 
@@ -262,7 +264,7 @@ export function MeetingDetailsModal({
               onClick={() =>
                 navigateToMeeting({
                   calendarEventId: meeting.id,
-                  title: meeting.title || "Untitled Meeting",
+                  title: meeting.title || t("details.untitledMeeting"),
                   scheduledStartAt: new Date(meeting.start).toISOString(),
                   scheduledEndAt: new Date(meeting.end).toISOString(),
                   meetingUrl: meeting.meetingUrl || undefined,
@@ -280,7 +282,9 @@ export function MeetingDetailsModal({
               ) : (
                 <ClipboardList className="h-4 w-4 mr-2" />
               )}
-              {isNavigating ? "Opening..." : "Prepare Meeting"}
+              {isNavigating
+                ? t("details.opening")
+                : t("details.prepareMeeting")}
             </Button>
 
             <Separator />

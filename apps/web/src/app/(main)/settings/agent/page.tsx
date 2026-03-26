@@ -7,9 +7,11 @@ import { checkPermission } from "@/lib/rbac/permissions-server";
 import { getCachedAgentConfig } from "@/server/cache/organization.cache";
 import { getCachedUserProjects } from "@/server/cache/project.cache";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Activity, Suspense } from "react";
 
 async function AgentContent() {
+  const t = await getTranslations("settings.agent");
   const authResult = await getBetterAuthSession();
 
   if (authResult.isErr() || !authResult.value.organization) {
@@ -42,10 +44,7 @@ async function AgentContent() {
 
   return (
     <>
-      <PageHeader
-        title="Knowledge Base Browser"
-        description="Browse and manage indexed documents in your knowledge base"
-      />
+      <PageHeader title={t("title")} description={t("description")} />
 
       {/* Agent Disabled Banner */}
       <Activity mode={!agentEnabled ? "visible" : "hidden"}>

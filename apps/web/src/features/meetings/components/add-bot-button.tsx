@@ -10,6 +10,7 @@ import {
 import type { MeetingWithSession } from "@/features/meetings/lib/calendar-utils";
 import { useUserProjects } from "@/features/projects/hooks/use-user-projects";
 import { Loader2, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { isValidMeetingUrl } from "@/lib/meeting-url";
 import { useAddBotToMeeting } from "../hooks/use-add-bot-to-meeting";
@@ -30,6 +31,7 @@ export function AddBotButton({
   variant = "button",
   onSuccess,
 }: AddBotButtonProps) {
+  const t = useTranslations("meetings");
   const [isConsentDialogOpen, setIsConsentDialogOpen] = useState(false);
   const [pendingMeeting, setPendingMeeting] =
     useState<MeetingWithSession | null>(null);
@@ -114,7 +116,7 @@ export function AddBotButton({
                   handleAddBot();
                 }}
                 disabled={isExecuting}
-                aria-label="Add notetaker to meeting"
+                aria-label={t("bot.addNotetakerAriaLabel")}
               />
             }
           >
@@ -124,7 +126,7 @@ export function AddBotButton({
               <Plus className="h-3.5 w-3.5" />
             )}
           </TooltipTrigger>
-          <TooltipContent>Add notetaker to meeting</TooltipContent>
+          <TooltipContent>{t("bot.addNotetakerAriaLabel")}</TooltipContent>
         </Tooltip>
       </TooltipProvider>
     );
@@ -142,10 +144,10 @@ export function AddBotButton({
         {isExecuting ? (
           <>
             <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-            Adding...
+            {t("bot.adding")}
           </>
         ) : (
-          "Add Notetaker"
+          t("bot.addNotetaker")
         )}
       </Button>
     </>

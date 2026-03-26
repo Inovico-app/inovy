@@ -1,23 +1,29 @@
 "use client";
 
 import { Building, User } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Controller, useFormContext } from "react-hook-form";
 import type { OnboardingFormValues } from "../../schemas/onboarding-form.schema";
 
 export function StepAccountType() {
+  const t = useTranslations("onboarding");
   const { control, watch } = useFormContext<OnboardingFormValues>();
   const name = watch("name");
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-2xl font-semibold">Hallo {name || "there"}!</h2>
-        <p className="text-muted-foreground">
-          Gebruik je Inovy als individu of namens een organisatie?
-        </p>
+        <h2 className="text-2xl font-semibold">
+          {name
+            ? t("stepAccountTypeGreeting", { name })
+            : t("stepAccountTypeGreetingDefault")}
+        </h2>
+        <p className="text-muted-foreground">{t("stepAccountTypeSubtitle")}</p>
       </div>
       <fieldset className="space-y-4">
-        <legend className="text-sm font-medium">Account type</legend>
+        <legend className="text-sm font-medium">
+          {t("stepAccountTypeLegend")}
+        </legend>
         <Controller
           name="signupType"
           control={control}
@@ -37,9 +43,11 @@ export function StepAccountType() {
                 >
                   <div className="space-y-2">
                     <User className="size-8 text-primary" />
-                    <h3 className="font-semibold">Individueel</h3>
+                    <h3 className="font-semibold">
+                      {t("stepAccountTypeIndividual")}
+                    </h3>
                     <p className="text-sm text-muted-foreground">
-                      Voor persoonlijk gebruik
+                      {t("stepAccountTypeIndividualDescription")}
                     </p>
                   </div>
                 </button>
@@ -56,9 +64,11 @@ export function StepAccountType() {
                 >
                   <div className="space-y-2">
                     <Building className="size-8 text-primary" />
-                    <h3 className="font-semibold">Organisatie</h3>
+                    <h3 className="font-semibold">
+                      {t("stepAccountTypeOrganization")}
+                    </h3>
                     <p className="text-sm text-muted-foreground">
-                      Voor teams en organisaties
+                      {t("stepAccountTypeOrganizationDescription")}
                     </p>
                   </div>
                 </button>
@@ -75,4 +85,3 @@ export function StepAccountType() {
     </div>
   );
 }
-

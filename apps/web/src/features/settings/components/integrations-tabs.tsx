@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -57,6 +58,7 @@ export function IntegrationsTabs({
   googleContent,
   microsoftContent,
 }: IntegrationsTabsProps) {
+  const t = useTranslations("settings.integrations");
   const searchParams = useSearchParams();
   const isMicrosoftReturn = searchParams.get("microsoft_success") === "true";
   const defaultTab = isMicrosoftReturn ? 1 : 0;
@@ -66,13 +68,13 @@ export function IntegrationsTabs({
       <TabsList className="w-full h-11">
         <TabsTrigger value={0} className="gap-2">
           <GoogleIcon className="h-4 w-4 shrink-0" />
-          <span className="hidden sm:inline">Google Workspace</span>
-          <span className="sm:hidden">Google</span>
+          <span className="hidden sm:inline">{t("googleWorkspace")}</span>
+          <span className="sm:hidden">{t("google")}</span>
         </TabsTrigger>
         <TabsTrigger value={1} className="gap-2">
           <MicrosoftIcon className="h-4 w-4 shrink-0" />
-          <span className="hidden sm:inline">Microsoft 365</span>
-          <span className="sm:hidden">Microsoft</span>
+          <span className="hidden sm:inline">{t("microsoft365")}</span>
+          <span className="sm:hidden">{t("microsoft")}</span>
         </TabsTrigger>
       </TabsList>
       <TabsContent value={0}>

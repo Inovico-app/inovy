@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import type { RecordingStatus } from "@/features/recordings/core/recording-session.types";
+import { useTranslations } from "next-intl";
 
 interface RecordingStatusBadgeProps {
   status: RecordingStatus;
@@ -50,13 +51,25 @@ export function RecordingStatusBadge({
   status,
   className,
 }: RecordingStatusBadgeProps) {
+  const t = useTranslations("recordings");
+  const STATUS_LABELS: Record<RecordingStatus, string> = {
+    idle: t("status.idle"),
+    initializing: t("status.initializing"),
+    recording: t("status.recording"),
+    paused: t("status.paused"),
+    stopping: t("status.stopping"),
+    finalizing: t("status.finalizing"),
+    complete: t("status.complete"),
+    error: t("status.errorStatus"),
+  };
   const config = STATUS_CONFIG[status];
+  const label = STATUS_LABELS[status];
 
   return (
     <Badge
       variant="outline"
       className={`border-transparent ${config.className} ${className ?? ""}`}
-      aria-label={`Status: ${config.label}`}
+      aria-label={`Status: ${label}`}
     >
       {status === "recording" && (
         <span className="mr-1 inline-block size-1.5 rounded-full bg-red-500 shadow-sm shadow-red-500/50" />

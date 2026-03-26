@@ -1,6 +1,7 @@
 import { getCachedProjectByIdWithCreator } from "@/server/cache/project.cache";
 import type { Route } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 interface RecordingDetailBreadcrumbProps {
   projectId: string;
@@ -13,9 +14,10 @@ export async function RecordingDetailBreadcrumb({
   organizationId,
   recordingTitle,
 }: RecordingDetailBreadcrumbProps) {
+  const t = await getTranslations("recordings");
   const project = await getCachedProjectByIdWithCreator(
     projectId,
-    organizationId
+    organizationId,
   );
 
   return (
@@ -24,21 +26,21 @@ export async function RecordingDetailBreadcrumb({
         href="/projects"
         className="hover:text-foreground transition-colors"
       >
-        Projects
+        {t("detail.projects")}
       </Link>
       <span>/</span>
       <Link
         href={`/projects/${projectId}` as Route}
         className="hover:text-foreground transition-colors"
       >
-        {project?.name ?? "Project"}
+        {project?.name ?? t("detail.project")}
       </Link>
       <span>/</span>
       <Link
         href={`/projects/${projectId}` as Route}
         className="hover:text-foreground transition-colors"
       >
-        Recordings
+        {t("detail.recordingsLink")}
       </Link>
       <span>/</span>
       <span className="text-foreground font-medium truncate">

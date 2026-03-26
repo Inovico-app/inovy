@@ -10,6 +10,7 @@ import type { AuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import type { ProjectWithCreatorDto } from "@/server/dto/project.dto";
 import { ProjectService } from "@/server/services/project.service";
+import { getTranslations } from "next-intl/server";
 
 export const metadata: Metadata = { title: "Record" };
 
@@ -22,11 +23,12 @@ async function RecordPageContent({
 }: RecordPageContentProps) {
   const { projectId: projectIdParam } = await searchParamsPromise;
   const authResult = await getBetterAuthSession();
+  const t = await getTranslations("recordings");
 
   if (authResult.isErr() || !authResult.value.isAuthenticated) {
     return (
       <div className="text-center">
-        <p className="text-red-500">Authentication required</p>
+        <p className="text-red-500">{t("page.authRequired")}</p>
       </div>
     );
   }
@@ -36,7 +38,7 @@ async function RecordPageContent({
   if (!user || !organization) {
     return (
       <div className="text-center">
-        <p className="text-red-500">User or organization not found</p>
+        <p className="text-red-500">{t("page.userOrOrgNotFound")}</p>
       </div>
     );
   }
@@ -44,7 +46,7 @@ async function RecordPageContent({
   if (!organization.id) {
     return (
       <div className="text-center">
-        <p className="text-red-500">Organization code not found</p>
+        <p className="text-red-500">{t("page.orgCodeNotFound")}</p>
       </div>
     );
   }
@@ -64,7 +66,7 @@ async function RecordPageContent({
   if (projectsResult.isErr()) {
     return (
       <div className="text-center">
-        <p className="text-red-500">Failed to load projects</p>
+        <p className="text-red-500">{t("page.failedToLoadProjects")}</p>
       </div>
     );
   }
@@ -80,25 +82,22 @@ async function RecordPageContent({
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Record Meeting</h1>
+          <h1 className="text-3xl font-bold">{t("page.recordMeeting")}</h1>
           <p className="text-muted-foreground">
-            Record audio directly from your browser with live transcription
+            {t("page.recordMeetingDescription")}
           </p>
         </div>
 
         <Alert>
           <InfoIcon className="h-4 w-4" />
           <AlertDescription>
-            <p className="font-semibold mb-2">No projects found</p>
-            <p className="text-sm">
-              You need to create a project first before you can record. Projects
-              help organize your recordings.
-            </p>
+            <p className="font-semibold mb-2">{t("page.noProjectsFound")}</p>
+            <p className="text-sm">{t("page.noProjectsDescription")}</p>
             <Link
               href="/projects/create"
               className="text-sm font-medium text-primary hover:underline mt-2 inline-block"
             >
-              Create your first project →
+              {t("page.createFirstProject")} →
             </Link>
           </AlertDescription>
         </Alert>

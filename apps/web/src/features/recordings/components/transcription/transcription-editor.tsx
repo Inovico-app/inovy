@@ -6,11 +6,13 @@ import { useState } from "react";
 import { TranscriptionEditView } from "./transcription-edit-view";
 import { TranscriptionTabs } from "./transcription-tabs";
 import type { TranscriptionEditorProps } from "./types";
+import { useTranslations } from "next-intl";
 
 export function TranscriptionEditor({
   recording,
   transcriptionInsights,
 }: TranscriptionEditorProps) {
+  const t = useTranslations("recordings");
   const [isEditing, setIsEditing] = useState(false);
 
   if (!transcriptionInsights) {
@@ -38,7 +40,7 @@ export function TranscriptionEditor({
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
-          Geen transcriptie beschikbaar
+          {t("transcription.noTranscription")}
         </CardContent>
       </Card>
     );
@@ -81,4 +83,3 @@ export function TranscriptionEditor({
     />
   );
 }
-

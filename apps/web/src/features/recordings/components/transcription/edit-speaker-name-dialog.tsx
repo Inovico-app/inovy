@@ -22,6 +22,7 @@ import { updateSpeakerNames } from "@/features/recordings/actions/update-speaker
 import { useOrganizationMembers } from "@/features/tasks/hooks/use-organization-members";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface EditSpeakerNameDialogProps {
   isOpen: boolean;
@@ -40,6 +41,8 @@ export function EditSpeakerNameDialog({
   currentUserId,
   recordingId,
 }: EditSpeakerNameDialogProps) {
+  const t = useTranslations("recordings");
+  const tc = useTranslations("common");
   const [name, setName] = useState(currentName || "");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(
     currentUserId || null,
@@ -50,7 +53,7 @@ export function EditSpeakerNameDialog({
 
   const userItems = useMemo(
     () => ({
-      __none__: "Geen gebruiker (externe spreker)",
+      __none__: t("transcription.noUser"),
       ...Object.fromEntries(
         users.map((user) => {
           const fullName = [user.given_name, user.family_name]
@@ -83,16 +86,14 @@ export function EditSpeakerNameDialog({
 
   const handleSave = async () => {
     if (!name.trim()) {
-      toast.error("Sprekernaam mag niet leeg zijn");
+      toast.error(t("transcription.speakerNameEmpty"));
       return;
     }
 
     // Validate allowed characters (alphanumeric, spaces, hyphens, periods)
     const validNamePattern = /^[a-zA-Z0-9\s\-.]+$/;
     if (!validNamePattern.test(name.trim())) {
-      toast.error(
-        "Naam mag alleen letters, cijfers, spaties, streepjes en punten bevatten",
-      );
+      toast.error(t("transcription.speakerNameInvalid"));
       return;
     }
 
@@ -106,15 +107,17 @@ export function EditSpeakerNameDialog({
       });
 
       if (result.data?.success) {
-        toast.success("Speaker name updated");
+        toast.success(t("transcription.speakerNameUpdated"));
         onOpenChange(false);
         setName("");
       } else {
-        toast.error(result.data?.error || "Failed to update speaker name");
+        toast.error(
+          result.data?.error || t("transcription.speakerNameUpdateFailed"),
+        );
       }
     } catch (error) {
       console.error("Error updating speaker name:", error);
-      toast.error("Failed to update speaker name");
+      toast.error(t("transcription.speakerNameUpdateFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -130,15 +133,17 @@ export function EditSpeakerNameDialog({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Spreker naam wijzigen</DialogTitle>
+          <DialogTitle>{t("transcription.editSpeakerName")}</DialogTitle>
           <DialogDescription>
-            Wijzig de naam voor Spreker {speakerNumber + 1}
+            {t("transcription.editSpeakerDescription", {
+              number: speakerNumber + 1,
+            })}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="speaker-user" className="col-span-4 sm:col-span-1">
-              Gebruiker
+              {t("transcription.user")}
             </Label>
             <Select
               value={selectedUserId ?? "__none__"}
@@ -150,11 +155,13 @@ export function EditSpeakerNameDialog({
                 id="speaker-user"
                 className="col-span-4 sm:col-span-3"
               >
-                <SelectValue placeholder="Selecteer gebruiker (optioneel)" />
+                <SelectValue
+                  placeholder={t("transcription.selectUserOptional")}
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">
-                  Geen gebruiker (externe spreker)
+                  {t("transcription.noUser")}
                 </SelectItem>
                 {users.map((user) => {
                   const fullName = [user.given_name, user.family_name]
@@ -172,7 +179,7 @@ export function EditSpeakerNameDialog({
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="speaker-name" className="col-span-4 sm:col-span-1">
-              Naam
+              {t("transcription.name")}
             </Label>
             <Input
               id="speaker-name"
@@ -180,8 +187,8 @@ export function EditSpeakerNameDialog({
               onChange={(e) => setName(e.target.value)}
               placeholder={
                 selectedUserId
-                  ? "Naam wordt automatisch ingevuld"
-                  : "Voer spreker naam in (bijv. externe spreker)"
+                  ? t("transcription.nameAutoFilled")
+                  : t("transcription.enterSpeakerName")
               }
               className="col-span-4 sm:col-span-3"
               maxLength={50}
@@ -207,7 +214,7 @@ export function EditSpeakerNameDialog({
             Annuleren
           </Button>
           <Button onClick={handleSave} disabled={isSaving || !name.trim()}>
-            {isSaving ? "Opslaan..." : "Opslaan"}
+            {isSaving ? t("transcription.saving") : tc("save")}
           </Button>
         </DialogFooter>
       </DialogContent>

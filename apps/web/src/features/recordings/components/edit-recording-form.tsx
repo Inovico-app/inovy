@@ -10,6 +10,7 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { updateRecordingAction } from "../actions/edit-recording";
+import { useTranslations } from "next-intl";
 
 const formSchema = z.object({
   title: z
@@ -40,6 +41,8 @@ export function EditRecordingForm({
   initialData,
   onSuccess,
 }: EditRecordingFormProps) {
+  const t = useTranslations("recordings");
+  const tc = useTranslations("common");
   const router = useRouter();
 
   // Format date for input (YYYY-MM-DD)
@@ -82,16 +85,16 @@ export function EditRecordingForm({
         const firstError = Array.isArray(firstFieldErrors)
           ? firstFieldErrors[0]
           : firstFieldErrors?._errors?.[0];
-        toast.error(firstError ?? "Validation failed");
+        toast.error(firstError ?? t("actions.validationFailed"));
         return;
       }
 
-      toast.success("Recording updated successfully");
+      toast.success(t("actions.editSuccess"));
       router.refresh();
       onSuccess?.();
     } catch (error) {
       console.error("Error updating recording:", error);
-      toast.error("Failed to update recording");
+      toast.error(t("actions.editFailed"));
     }
   };
 
@@ -99,11 +102,11 @@ export function EditRecordingForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="title">
-          Recording Title <span className="text-red-500">*</span>
+          {t("actions.recordingTitle")} <span className="text-red-500">*</span>
         </Label>
         <Input
           id="title"
-          placeholder="Enter recording title"
+          placeholder={t("actions.recordingTitlePlaceholder")}
           {...register("title")}
           aria-invalid={errors.title ? "true" : "false"}
         />
@@ -113,10 +116,10 @@ export function EditRecordingForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description">{t("actions.description")}</Label>
         <textarea
           id="description"
-          placeholder="Enter recording description (optional)"
+          placeholder={t("actions.descriptionPlaceholder")}
           className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           {...register("description")}
           aria-invalid={errors.description ? "true" : "false"}
@@ -128,7 +131,7 @@ export function EditRecordingForm({
 
       <div className="space-y-2">
         <Label htmlFor="recordingDate">
-          Recording Date <span className="text-red-500">*</span>
+          {t("actions.recordingDate")} <span className="text-red-500">*</span>
         </Label>
         <Input
           id="recordingDate"
@@ -143,16 +146,15 @@ export function EditRecordingForm({
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onSuccess}>
-          Cancel
+          {tc("cancel")}
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting && (
             <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
           )}
-          Save Changes
+          {t("actions.saveChanges")}
         </Button>
       </div>
     </form>
   );
 }
-

@@ -31,6 +31,7 @@ import { useAction } from "next-safe-action/hooks";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 interface CreateProjectFormProps {
@@ -54,6 +55,7 @@ export function CreateProjectForm({
   showCard = true,
 }: CreateProjectFormProps = {}) {
   const router = useRouter();
+  const t = useTranslations("projects");
   const { teams, isLoading: isLoadingTeams } = useProjectTeamPicker();
 
   const form = useForm<CreateProjectInput>({
@@ -71,7 +73,7 @@ export function CreateProjectForm({
     {
       onSuccess: ({ data }) => {
         if (data?.id) {
-          toast.success(`Project created successfully: ${data.name}`);
+          toast.success(t("projectCreatedSuccess", { name: data.name }));
           if (onSuccess) {
             onSuccess(data.id);
           } else {
@@ -80,7 +82,7 @@ export function CreateProjectForm({
         }
       },
       onError: (error) => {
-        toast.error("Failed to create project. Please try again.");
+        toast.error(t("createProjectError"));
         throw new Error(JSON.stringify(error.error));
       },
     },
@@ -110,11 +112,11 @@ export function CreateProjectForm({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Project Name *</FormLabel>
+              <FormLabel>{t("projectNameRequired")}</FormLabel>
               <FormControl>
                 <Input
                   type="text"
-                  placeholder="Enter project name"
+                  placeholder={t("projectNamePlaceholder")}
                   disabled={isExecuting}
                   {...field}
                 />
@@ -129,10 +131,10 @@ export function CreateProjectForm({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>{t("description")}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Enter project description (optional)"
+                  placeholder={t("descriptionPlaceholder")}
                   disabled={isExecuting}
                   rows={3}
                   maxLength={PROJECT_DESCRIPTION_MAX_LENGTH}
@@ -187,7 +189,7 @@ export function CreateProjectForm({
             disabled={isExecuting || !form.formState.isValid}
             className="flex-1"
           >
-            {isExecuting ? "Creating..." : "Create Project"}
+            {isExecuting ? t("creating") : t("createProject")}
           </Button>
 
           {showCard && (
@@ -209,10 +211,8 @@ export function CreateProjectForm({
     return (
       <Card className="w-full max-w-md mx-auto">
         <CardHeader>
-          <CardTitle>Create New Project</CardTitle>
-          <CardDescription>
-            Create a new project to organize your meeting recordings.
-          </CardDescription>
+          <CardTitle>{t("createNewProject")}</CardTitle>
+          <CardDescription>{t("createNewProjectDescription")}</CardDescription>
         </CardHeader>
         <CardContent>{formContent}</CardContent>
       </Card>

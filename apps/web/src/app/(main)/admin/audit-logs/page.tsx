@@ -12,6 +12,7 @@ import { checkPermission } from "@/lib/rbac/permissions-server";
 import type { AuditLogFilters } from "@/server/data-access/audit-logs.queries";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 interface AuditLogsPageProps {
@@ -30,6 +31,7 @@ interface AuditLogsPageProps {
 }
 
 async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
+  const t = await getTranslations("admin.auditLogs");
   const [betterAuthSession, hasAuditLogPermission] = await Promise.all([
     getBetterAuthSession(),
     checkPermission({
@@ -87,20 +89,14 @@ async function AuditLogsContent({ searchParams }: AuditLogsPageProps) {
   return (
     <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
       <div className="mb-10">
-        <h1 className="text-3xl font-bold">Audit Logs</h1>
-        <p className="text-muted-foreground mt-2">
-          Comprehensive audit trail for all system actions. Supports SOC 2
-          compliance requirements.
-        </p>
+        <h1 className="text-3xl font-bold">{t("title")}</h1>
+        <p className="text-muted-foreground mt-2">{t("description")}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Audit Log Viewer</CardTitle>
-          <CardDescription>
-            View and filter audit logs for compliance and security monitoring.
-            All logs are tamper-proof via hash chain verification.
-          </CardDescription>
+          <CardTitle>{t("viewerTitle")}</CardTitle>
+          <CardDescription>{t("viewerDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <AuditLogViewer

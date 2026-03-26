@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Loader2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface AddBotSectionProps {
   onAddBot: () => void;
@@ -9,22 +10,24 @@ interface AddBotSectionProps {
 }
 
 export function AddBotSection({ onAddBot, isAddingBot }: AddBotSectionProps) {
+  const t = useTranslations("meetings");
+
   return (
     <section aria-labelledby="add-notetaker-heading">
       <h3 id="add-notetaker-heading" className="font-semibold mb-3">
-        Add Notetaker Assistant
+        {t("bot.addNotetakerAssistant")}
       </h3>
       <p className="text-sm text-muted-foreground mb-3">
-        Add a notetaker assistant to join this meeting when it starts.
+        {t("bot.addNotetakerAssistantDescription")}
       </p>
       <Button onClick={onAddBot} disabled={isAddingBot}>
         {isAddingBot ? (
           <>
             <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
-            Adding...
+            {t("bot.adding")}
           </>
         ) : (
-          "Add Notetaker Assistant"
+          t("bot.addNotetakerAssistant")
         )}
       </Button>
     </section>

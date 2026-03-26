@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { ChatConversation } from "@/server/db/schema/chat-conversations";
 import { FileText, FileType, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface ExportDialogProps {
   open: boolean;
@@ -27,39 +28,37 @@ export function ExportDialog({
   onExport,
   isExporting = false,
 }: ExportDialogProps) {
+  const t = useTranslations("chat");
   if (!conversation) return null;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Export Conversation</DialogTitle>
-          <DialogDescription>
-            Choose a format to export this conversation.
-          </DialogDescription>
+          <DialogTitle>{t("exportConversation")}</DialogTitle>
+          <DialogDescription>{t("exportDescription")}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <h4 className="font-medium text-sm">Conversation Details</h4>
+            <h4 className="font-medium text-sm">{t("conversationDetails")}</h4>
             <div className="text-sm text-muted-foreground">
               <p>
-                <span className="font-medium">Title:</span>{" "}
-                {conversation.title || "Untitled"}
+                <span className="font-medium">{t("titleLabel")}</span>{" "}
+                {conversation.title || t("untitled")}
               </p>
               <p>
-                <span className="font-medium">Created:</span>{" "}
+                <span className="font-medium">{t("createdLabel")}</span>{" "}
                 {conversation.createdAt.toLocaleDateString()}
               </p>
               <p>
-                <span className="font-medium">Context:</span>{" "}
+                <span className="font-medium">{t("contextLabel")}</span>{" "}
                 {conversation.context}
               </p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <h4 className="font-medium text-sm">Export Format</h4>
+            <h4 className="font-medium text-sm">{t("exportFormat")}</h4>
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
@@ -72,7 +71,7 @@ export function ExportDialog({
                 ) : (
                   <FileText className="mr-2 h-4 w-4" />
                 )}
-                Plain Text
+                {t("plainText")}
               </Button>
               <Button
                 variant="outline"
@@ -92,7 +91,11 @@ export function ExportDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isExporting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isExporting}
+          >
             Cancel
           </Button>
         </DialogFooter>
@@ -100,4 +103,3 @@ export function ExportDialog({
     </Dialog>
   );
 }
-

@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Save, ListChecks, StickyNote, Zap } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { AgendaBuilder } from "./agenda-builder";
 import { MeetingHeader } from "./meeting-header";
 import { useMeetingActions } from "../hooks/use-meeting-actions";
@@ -53,6 +54,7 @@ export function MeetingPrepContent({
   preNotes,
   templates,
 }: MeetingPrepContentProps) {
+  const t = useTranslations("meetings");
   const [notes, setNotes] = useState(preNotes?.content ?? "");
   const { saveNotes, isSavingNotes } = useMeetingActions();
 
@@ -73,8 +75,8 @@ export function MeetingPrepContent({
         <SectionHeader
           step={1}
           icon={ListChecks}
-          title="Agenda"
-          description="Define the topics you want to cover in this meeting."
+          title={t("prepContent.agendaTitle")}
+          description={t("prepContent.agendaDescription")}
         />
         <Card className="border-border/60 shadow-sm">
           <CardContent className="pt-6">
@@ -92,13 +94,13 @@ export function MeetingPrepContent({
         <SectionHeader
           step={2}
           icon={StickyNote}
-          title="Pre-Meeting Notes"
-          description="Jot down questions, talking points, or context before the meeting."
+          title={t("prepContent.preMeetingNotesTitle")}
+          description={t("prepContent.preMeetingNotesDescription")}
         />
         <Card className="border-border/60 shadow-sm">
           <CardContent className="pt-6">
             <Textarea
-              placeholder="What do you want to discuss? Any questions or context to share..."
+              placeholder={t("prepContent.notesPlaceholder")}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={5}
@@ -111,7 +113,9 @@ export function MeetingPrepContent({
               disabled={isSavingNotes || notes === (preNotes?.content ?? "")}
             >
               <Save className="mr-2 h-4 w-4" />
-              {isSavingNotes ? "Saving..." : "Save Notes"}
+              {isSavingNotes
+                ? t("prepContent.savingNotes")
+                : t("prepContent.saveNotes")}
             </Button>
           </CardContent>
         </Card>
@@ -122,18 +126,17 @@ export function MeetingPrepContent({
         <SectionHeader
           step={3}
           icon={Zap}
-          title="Post-Meeting Actions"
-          description="Configure what happens automatically after the meeting ends."
+          title={t("prepContent.postActionsTitle")}
+          description={t("prepContent.postActionsDescription")}
         />
         <Card className="border-border/60 shadow-sm border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-10 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-3">
               <Zap className="h-5 w-5 text-muted-foreground" />
             </div>
-            <p className="text-sm font-medium">Coming soon</p>
+            <p className="text-sm font-medium">{t("prepContent.comingSoon")}</p>
             <p className="mt-1 text-sm text-muted-foreground max-w-sm">
-              Automated post-meeting actions like email summaries, task
-              extraction, and follow-up scheduling are on the way.
+              {t("prepContent.comingSoonDescription")}
             </p>
           </CardContent>
         </Card>

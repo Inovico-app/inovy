@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { updateAgentConfig } from "@/features/admin/actions/update-agent-config";
 import { useAction } from "next-safe-action/hooks";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 interface AgentConfigToggleProps {
@@ -28,14 +29,22 @@ export function AgentConfigToggle({
   organizationName,
   enabled,
 }: AgentConfigToggleProps) {
+  const t = useTranslations("admin.agentConfig");
   const [isOpen, setIsOpen] = useState(false);
   const [pendingEnabled, setPendingEnabled] = useState(() => enabled);
 
   const { execute, status } = useAction(updateAgentConfig, {
     onSuccess: ({ data }) => {
-      if (data && typeof data === "object" && "success" in data && data.success) {
+      if (
+        data &&
+        typeof data === "object" &&
+        "success" in data &&
+        data.success
+      ) {
         toast.success(
-          `Agent ${pendingEnabled ? "enabled" : "disabled"} for ${organizationName}`
+          pendingEnabled
+            ? t("agentEnabled", { name: organizationName })
+            : t("agentDisabled", { name: organizationName }),
         );
         setIsOpen(false);
       }
@@ -43,7 +52,7 @@ export function AgentConfigToggle({
     onError: ({ error }) => {
       toast.error(
         error.serverError ||
-          `Failed to ${pendingEnabled ? "enable" : "disable"} agent`
+          (pendingEnabled ? t("enableFailed") : t("disableFailed")),
       );
     },
   });
@@ -75,17 +84,26 @@ export function AgentConfigToggle({
           disabled={isLoading}
         />
         {!enabled && (
-          <AlertDialogTrigger render={<button className="text-xs text-muted-foreground hover:text-foreground" disabled={isLoading} />}>
+          <AlertDialogTrigger
+            render={
+              <button
+                className="text-xs text-muted-foreground hover:text-foreground"
+                disabled={isLoading}
+              />
+            }
+          >
             Confirm
           </AlertDialogTrigger>
         )}
       </div>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Disable Agent for {organizationName}?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {t("disableTitle", { name: organizationName })}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            This will disable the AI agent for this organization. Users will
-            see warning messages when trying to use chat functionality and other
+            This will disable the AI agent for this organization. Users will see
+            warning messages when trying to use chat functionality and other
             agent features. Organization admins and owners will be notified via
             email.
           </AlertDialogDescription>
@@ -97,11 +115,10 @@ export function AgentConfigToggle({
             disabled={isLoading}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {isLoading ? "Disabling..." : "Disable Agent"}
+            {isLoading ? t("disabling") : t("disableAgent")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
 }
-

@@ -9,6 +9,7 @@ import {
 import { TabsContent } from "@/components/ui/tabs";
 import { Bar, BarChart, Pie, PieChart, XAxis, YAxis } from "recharts";
 
+import { useTranslations } from "next-intl";
 import { chartConfig } from "./user-analytics-types";
 
 interface UserAnalyticsSourcesProps {
@@ -28,6 +29,7 @@ export function UserAnalyticsSources({
   sourcePreference,
   filesUsedInResponses,
 }: UserAnalyticsSourcesProps) {
+  const t = useTranslations("admin.analytics");
   // Format content types for display
   const formattedFilesUsed = filesUsedInResponses.map((item) => ({
     ...item,
@@ -43,7 +45,7 @@ export function UserAnalyticsSources({
     <TabsContent value="sources" className="space-y-6 mt-6">
       <Card>
         <CardHeader>
-          <CardTitle>Source Preference</CardTitle>
+          <CardTitle>{t("sourcePreference")}</CardTitle>
           <p className="text-sm text-muted-foreground">
             {sourcePreference.knowledgeBasePercentage}% of responses use
             Knowledge Base
@@ -102,31 +104,31 @@ export function UserAnalyticsSources({
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Knowledge Base</span>
+                      <span className="text-sm">{t("knowledgeBase")}</span>
                       <span className="text-sm font-semibold">
                         {sourcePreference.knowledgeBaseUsage}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Recordings</span>
+                      <span className="text-sm">{t("recordings")}</span>
                       <span className="text-sm font-semibold">
                         {sourcePreference.recordingUsage}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Tasks</span>
+                      <span className="text-sm">{t("tasks")}</span>
                       <span className="text-sm font-semibold">
                         {sourcePreference.taskUsage}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Transcriptions</span>
+                      <span className="text-sm">{t("transcriptions")}</span>
                       <span className="text-sm font-semibold">
                         {sourcePreference.transcriptionUsage}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Summaries</span>
+                      <span className="text-sm">{t("summaries")}</span>
                       <span className="text-sm font-semibold">
                         {sourcePreference.summaryUsage}
                       </span>
@@ -157,7 +159,7 @@ export function UserAnalyticsSources({
       {formattedFilesUsed.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Files Used in Responses</CardTitle>
+            <CardTitle>{t("filesUsedInResponses")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-6 md:grid-cols-2">

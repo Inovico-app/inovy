@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { signInEmailSchema } from "@/features/auth/validation/auth.schema";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
@@ -44,6 +45,7 @@ export function EmailSignInForm({
   passwordResetError,
   onPasswordReset,
 }: EmailSignInFormProps) {
+  const t = useTranslations("auth");
   const emailForm = useForm<EmailSignInFormValues>({
     resolver: standardSchemaResolver(emailSignInFormSchema),
     defaultValues: {
@@ -61,7 +63,7 @@ export function EmailSignInForm({
     e.preventDefault();
     const email = emailForm.getValues("email");
     if (!email) {
-      toast.error("Voer eerst je e-mailadres in");
+      toast.error(t("enterEmailFirst"));
       return;
     }
     onPasswordReset(email);
@@ -70,19 +72,14 @@ export function EmailSignInForm({
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
       <Form {...emailForm}>
-        <form
-          onSubmit={emailForm.handleSubmit(onSubmit)}
-          className="space-y-4"
-        >
+        <form onSubmit={emailForm.handleSubmit(onSubmit)} className="space-y-4">
           <fieldset className="space-y-4" disabled={isLoading}>
-            <legend className="sr-only">
-              Sign in with email and password
-            </legend>
+            <legend className="sr-only">{t("emailSignInLegend")}</legend>
 
             {signInError && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Foutmelding</AlertTitle>
+                <AlertTitle>{t("errorTitle")}</AlertTitle>
                 <AlertDescription>{signInError}</AlertDescription>
               </Alert>
             )}
@@ -90,7 +87,7 @@ export function EmailSignInForm({
             {passwordResetError && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Foutmelding</AlertTitle>
+                <AlertTitle>{t("errorTitle")}</AlertTitle>
                 <AlertDescription>{passwordResetError}</AlertDescription>
               </Alert>
             )}
@@ -100,11 +97,11 @@ export function EmailSignInForm({
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{t("emailLabel")}</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="je@voorbeeld.nl"
+                      placeholder={t("emailPlaceholder")}
                       autoComplete="email"
                       disabled={isLoading}
                       autoFocus
@@ -122,14 +119,14 @@ export function EmailSignInForm({
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center justify-between">
-                    <FormLabel>Wachtwoord</FormLabel>
+                    <FormLabel>{t("passwordLabel")}</FormLabel>
                     <button
                       type="button"
                       onClick={handlePasswordReset}
                       className="text-xs text-primary hover:underline"
                       disabled={isLoading}
                     >
-                      Wachtwoord vergeten?
+                      {t("forgotPassword")}
                     </button>
                   </div>
                   <FormControl>
@@ -154,14 +151,14 @@ export function EmailSignInForm({
                 disabled={isLoading}
                 className="flex-1"
               >
-                Annuleren
+                {t("cancel")}
               </Button>
               <Button
                 type="submit"
                 className="flex-1"
                 disabled={isLoading || isSigningIn}
               >
-                Inloggen
+                {t("signIn")}
               </Button>
             </div>
           </fieldset>

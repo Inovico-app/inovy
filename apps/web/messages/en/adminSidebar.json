@@ -1,0 +1,19 @@
+{
+  "heading": "Admin",
+  "description": "Manage your system",
+  "userManagement": "User Management",
+  "userManagementDescription": "Manage roles and permissions",
+  "auditLogs": "Audit Logs",
+  "auditLogsDescription": "Track system events",
+  "userAnalytics": "User Analytics",
+  "userAnalyticsDescription": "User engagement and feedback metrics",
+  "agentMetrics": "Agent Metrics",
+  "agentMetricsDescription": "System-wide metrics and detailed records",
+  "agentConfiguration": "Agent Configuration",
+  "agentConfigurationDescription": "Manage agent access per organization",
+  "organizations": "Organizations",
+  "organizationsDescription": "View and edit organizations",
+  "systemSettings": "System Settings",
+  "systemSettingsDescription": "Configure preferences",
+  "soonBadge": "Soon"
+}

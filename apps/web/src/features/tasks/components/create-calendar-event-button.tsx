@@ -14,6 +14,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Calendar, Loader2, ExternalLink } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createCalendarEvent } from "../actions/create-calendar-event";
 
@@ -32,6 +33,8 @@ export function CreateCalendarEventButton({
   size = "sm",
   showLabel = true,
 }: CreateCalendarEventButtonProps) {
+  const t = useTranslations("tasks");
+  const tc = useTranslations("common");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [duration, setDuration] = useState(30);
@@ -46,10 +49,10 @@ export function CreateCalendarEventButton({
     });
 
     if (result.data) {
-      toast.success("Calendar event created successfully!");
+      toast.success(t("eventCreatedSuccess"));
       setEventUrl(result.data.eventUrl);
     } else {
-      toast.error(result.serverError || "Failed to create calendar event");
+      toast.error(result.serverError || t("eventCreatedError"));
     }
 
     setLoading(false);
@@ -65,13 +68,13 @@ export function CreateCalendarEventButton({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant={variant} size={size} />}>
         <Calendar className="h-4 w-4" />
-        {showLabel && <span className="ml-2">Add to Calendar</span>}
+        {showLabel && <span className="ml-2">{t("addToCalendar")}</span>}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create Calendar Event</DialogTitle>
+          <DialogTitle>{t("createCalendarEvent")}</DialogTitle>
           <DialogDescription>
-            Create a Google Calendar event for this task
+            {t("createCalendarEventDescription")}
           </DialogDescription>
         </DialogHeader>
 
@@ -79,14 +82,14 @@ export function CreateCalendarEventButton({
           <>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Task</Label>
+                <Label>{t("taskLabel")}</Label>
                 <div className="text-sm text-muted-foreground font-medium">
                   {taskTitle}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="duration">Event Duration (minutes)</Label>
+                <Label htmlFor="duration">{t("eventDuration")}</Label>
                 <Input
                   id="duration"
                   type="number"
@@ -98,18 +101,22 @@ export function CreateCalendarEventButton({
                   disabled={loading}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Default: 30 minutes (15 min to 8 hours)
+                  {t("eventDurationDefault")}
                 </p>
               </div>
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={handleClose} disabled={loading}>
-                Cancel
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                disabled={loading}
+              >
+                {tc("cancel")}
               </Button>
               <Button onClick={handleCreate} disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Event
+                {t("createEvent")}
               </Button>
             </DialogFooter>
           </>
@@ -122,27 +129,33 @@ export function CreateCalendarEventButton({
                 </div>
                 <div>
                   <p className="font-medium text-green-900 dark:text-green-100">
-                    Event Created Successfully!
+                    {t("eventCreatedTitle")}
                   </p>
                   <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                    The calendar event has been added to your Google Calendar
+                    {t("eventCreatedMessage")}
                   </p>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  render={<a href={eventUrl} target="_blank" rel="noopener noreferrer" />}
+                  render={
+                    <a
+                      href={eventUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    />
+                  }
                   nativeButton={false}
                   className="gap-2"
                 >
-                  Open in Google Calendar
+                  {t("openInGoogleCalendar")}
                   <ExternalLink className="h-3 w-3" />
                 </Button>
               </div>
             </div>
 
             <DialogFooter>
-              <Button onClick={handleClose}>Close</Button>
+              <Button onClick={handleClose}>{tc("close")}</Button>
             </DialogFooter>
           </>
         )}
@@ -150,4 +163,3 @@ export function CreateCalendarEventButton({
     </Dialog>
   );
 }
-

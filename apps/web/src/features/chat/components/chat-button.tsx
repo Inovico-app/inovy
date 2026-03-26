@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { Route } from "next";
 import Link from "next/link";
 
@@ -17,12 +18,18 @@ interface ChatButtonProps {
  * @returns A button component that navigates to the chat interface.
  */
 export function ChatButton({ projectId }: ChatButtonProps) {
+  const t = useTranslations("chat");
   const href: Route = `/chat?context=project&projectId=${projectId}`;
 
   return (
-    <Button render={<Link href={href} />} className="gap-2" variant="default" nativeButton={false}>
+    <Button
+      render={<Link href={href} />}
+      className="gap-2"
+      variant="default"
+      nativeButton={false}
+    >
       <MessageSquare className="h-4 w-4" />
-      Ask AI
+      {t("askAi")}
     </Button>
   );
 }

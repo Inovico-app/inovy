@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChatButton } from "@/features/chat/components/chat-button";
+import { useTranslations } from "next-intl";
 import { RecordingActionsDropdown } from "@/features/recordings/components/recording-actions-dropdown";
 import {
   ArchiveIcon,
@@ -52,6 +53,7 @@ export function ProjectActions({
   isArchived,
   recordingCount,
 }: ProjectActionsProps) {
+  const t = useTranslations("projects");
   const [showEditModal, setShowEditModal] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -67,25 +69,31 @@ export function ProjectActions({
 
         {/* More Actions Dropdown */}
         <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="outline" size="icon" />}>
+          <DropdownMenuTrigger
+            render={<Button variant="outline" size="icon" />}
+          >
             <MoreVerticalIcon className="h-4 w-4" />
-            <span className="sr-only">More actions</span>
+            <span className="sr-only">{t("moreActions")}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             {/* Edit */}
             <DropdownMenuItem onClick={() => setShowEditModal(true)}>
               <PencilIcon className="h-4 w-4 mr-2" />
-              Edit
+              {t("editProject")}
             </DropdownMenuItem>
 
             {/* Archive/Unarchive */}
             <DropdownMenuItem onClick={() => setShowArchiveDialog(true)}>
               <ArchiveIcon className="h-4 w-4 mr-2" />
-              {isArchived ? "Unarchive" : "Archive"}
+              {isArchived ? t("unarchive") : t("archive")}
             </DropdownMenuItem>
 
             {/* Settings */}
-            <DropdownMenuItem render={<Link href={`/projects/${projectId}/settings` as Route} />}>
+            <DropdownMenuItem
+              render={
+                <Link href={`/projects/${projectId}/settings` as Route} />
+              }
+            >
               <SettingsIcon className="h-4 w-4 mr-2" />
               Settings
             </DropdownMenuItem>
@@ -97,7 +105,7 @@ export function ProjectActions({
               className="text-destructive focus:text-destructive"
             >
               <TrashIcon className="h-4 w-4 mr-2" />
-              Delete Project
+              {t("deleteProject")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -141,4 +149,3 @@ export function ProjectActions({
     </>
   );
 }
-

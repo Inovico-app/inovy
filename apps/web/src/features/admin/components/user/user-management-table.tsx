@@ -16,9 +16,11 @@ import { OrganizationService } from "@/server/services/organization.service";
 import { TeamService } from "@/server/services/team.service";
 import { InviteUserDialog } from "../organization/invite-user-dialog";
 import { UserActionsMenu } from "./user-actions-menu";
+import { getTranslations } from "next-intl/server";
 import { UserRoleBadge } from "./user-role-badge";
 
 export async function UserManagementTable() {
+  const t = await getTranslations("admin.users");
   let authResult;
   let membersResult;
   let allTeams;
@@ -36,9 +38,7 @@ export async function UserManagementTable() {
     return (
       <Card>
         <CardContent className="text-center py-8">
-          <p className="text-red-500">
-            Failed to load users. Please refresh and try again.
-          </p>
+          <p className="text-red-500">{t("failedToLoad")}</p>
         </CardContent>
       </Card>
     );
@@ -48,9 +48,7 @@ export async function UserManagementTable() {
     return (
       <Card>
         <CardContent className="text-center py-8">
-          <p className="text-muted-foreground">
-            Unable to load users. Please refresh and try again.
-          </p>
+          <p className="text-muted-foreground">{t("unableToLoadUsers")}</p>
         </CardContent>
       </Card>
     );
@@ -82,9 +80,7 @@ export async function UserManagementTable() {
     return (
       <Card>
         <CardContent className="text-center py-8">
-          <p className="text-red-500">
-            Failed to load users. Please refresh and try again.
-          </p>
+          <p className="text-red-500">{t("failedToLoad")}</p>
         </CardContent>
       </Card>
     );
@@ -112,9 +108,7 @@ export async function UserManagementTable() {
     return (
       <Card>
         <CardContent className="text-center py-8">
-          <p className="text-muted-foreground">
-            No users found in this organization.
-          </p>
+          <p className="text-muted-foreground">{t("noUsers")}</p>
         </CardContent>
       </Card>
     );
@@ -125,7 +119,7 @@ export async function UserManagementTable() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Organization Members</CardTitle>
+            <CardTitle>{t("organizationMembers")}</CardTitle>
             <CardDescription>
               {members.length} member{members.length !== 1 ? "s" : ""} in your
               organization
@@ -139,12 +133,20 @@ export async function UserManagementTable() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-muted">
-                <th className="text-left py-3 px-4 font-semibold">Name</th>
-                <th className="text-left py-3 px-4 font-semibold">Email</th>
-                <th className="text-left py-3 px-4 font-semibold">Roles</th>
-                <th className="text-left py-3 px-4 font-semibold">Teams</th>
+                <th className="text-left py-3 px-4 font-semibold">
+                  {t("name")}
+                </th>
+                <th className="text-left py-3 px-4 font-semibold">
+                  {t("email")}
+                </th>
+                <th className="text-left py-3 px-4 font-semibold">
+                  {t("roles")}
+                </th>
+                <th className="text-left py-3 px-4 font-semibold">
+                  {t("teams")}
+                </th>
                 <th className="text-right py-3 px-4 font-semibold w-[50px]">
-                  Actions
+                  {t("actions")}
                 </th>
               </tr>
             </thead>

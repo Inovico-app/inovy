@@ -1,0 +1,7 @@
+{
+  "switchError": "Failed to switch organization. Please try again.",
+  "activeOrg": "Active organization: {name}",
+  "switchOrg": "Switch organization. Current: {name}",
+  "searchPlaceholder": "Search organizations...",
+  "noOrgFound": "No organization found."
+}

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Suspense } from "react";
 import { AuthMarketingPanel } from "./auth-marketing-panel";
 
 interface AuthShellProps {
@@ -13,7 +14,7 @@ export function AuthShell({ children, className }: AuthShellProps) {
       <div
         className={cn(
           "flex w-full flex-col bg-background dark:bg-card lg:w-1/2",
-          className
+          className,
         )}
       >
         <div className="flex flex-1 flex-col justify-center px-6 py-12 sm:px-12">
@@ -22,8 +23,11 @@ export function AuthShell({ children, className }: AuthShellProps) {
       </div>
 
       {/* Right Panel - Marketing */}
-      <AuthMarketingPanel />
+      <Suspense
+        fallback={<div className="hidden lg:flex lg:w-1/2 bg-primary" />}
+      >
+        <AuthMarketingPanel />
+      </Suspense>
     </div>
   );
 }
-

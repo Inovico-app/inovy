@@ -1,12 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -25,6 +20,7 @@ import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2Icon } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useForm } from "react-hook-form";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 interface ProfileFormProps {
@@ -38,6 +34,7 @@ export function ProfileForm({
   initialFamilyName,
   email,
 }: ProfileFormProps) {
+  const t = useTranslations("settings.profile");
   const form = useForm<ProfileFormValues>({
     resolver: standardSchemaResolver(profileFormSchema),
     defaultValues: {
@@ -48,11 +45,11 @@ export function ProfileForm({
 
   const { execute, isExecuting } = useAction(updateProfile, {
     onSuccess: () => {
-      toast.success("Profile updated successfully");
+      toast.success(t("profileUpdated"));
       form.reset(form.getValues());
     },
     onError: ({ error }) => {
-      const message = error.serverError || "Failed to update profile";
+      const message = error.serverError || t("profileUpdateFailed");
       toast.error(message);
     },
   });
@@ -68,25 +65,22 @@ export function ProfileForm({
     <Card>
       <CardHeader>
         <CardTitle className="text-base font-medium">
-          Personal Information
+          {t("personalInformation")}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="givenName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>First Name</FormLabel>
+                  <FormLabel>{t("firstName")}</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
-                      placeholder="Enter your first name"
+                      placeholder={t("firstNamePlaceholder")}
                       disabled={isExecuting}
                     />
                   </FormControl>
@@ -100,11 +94,11 @@ export function ProfileForm({
               name="familyName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Last Name</FormLabel>
+                  <FormLabel>{t("lastName")}</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
-                      placeholder="Enter your last name"
+                      placeholder={t("lastNamePlaceholder")}
                       disabled={isExecuting}
                     />
                   </FormControl>
@@ -114,10 +108,10 @@ export function ProfileForm({
             />
 
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>{t("email")}</FormLabel>
               <Input value={email} disabled className="bg-muted" />
               <p className="text-xs text-muted-foreground">
-                Email cannot be changed here
+                {t("emailCannotBeChanged")}
               </p>
             </FormItem>
 

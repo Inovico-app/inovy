@@ -3,6 +3,7 @@ import { getCachedRecordingsByProjectId } from "../../../server/cache/recording.
 import { RecordingListClient } from "./recording-list-client";
 import { MicIcon } from "lucide-react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 interface RecordingListProps {
   projectId: string;
@@ -17,30 +18,34 @@ export async function RecordingList({
   searchQuery,
   isArchived = false,
 }: RecordingListProps) {
+  const t = await getTranslations("recordings");
   const recordings = await getCachedRecordingsByProjectId(
     projectId,
     organizationId,
     {
       search: searchQuery,
-    }
+    },
   );
 
   if (recordings.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground mb-4">
-          {searchQuery
-            ? "No recordings found matching your search"
-            : "No recordings yet"}
+          {searchQuery ? t("list.noRecordingsSearch") : t("list.noRecordings")}
         </p>
         {!isArchived && (
           <Button
             variant="outline"
-            render={<Link href={`/record?projectId=${encodeURIComponent(projectId)}`} className="inline-flex items-center gap-2" />}
+            render={
+              <Link
+                href={`/record?projectId=${encodeURIComponent(projectId)}`}
+                className="inline-flex items-center gap-2"
+              />
+            }
             nativeButton={false}
           >
             <MicIcon className="h-4 w-4" />
-            Start Live Recording
+            {t("actions.startLiveRecording")}
           </Button>
         )}
       </div>
@@ -49,4 +54,3 @@ export async function RecordingList({
 
   return <RecordingListClient recordings={recordings} projectId={projectId} />;
 }
-

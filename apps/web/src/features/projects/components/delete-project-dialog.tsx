@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2Icon, Trash2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -56,6 +57,7 @@ export function DeleteProjectDialog({
   onOpenChange: controlledOnOpenChange,
 }: DeleteProjectDialogProps) {
   const router = useRouter();
+  const t = useTranslations("projects");
   const [internalOpen, setInternalOpen] = useState(false);
 
   // Use controlled state if provided, otherwise use internal state
@@ -147,13 +149,13 @@ export function DeleteProjectDialog({
       ) : (
         <DialogTrigger render={<Button variant={variant} size="sm" />}>
           <Trash2Icon className="h-4 w-4 mr-2" />
-          Delete Project
+          {t("deleteProject")}
         </DialogTrigger>
       )}
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle className="text-destructive text-xl">
-            Delete Project Permanently?
+            {t("deleteTitle")}
           </DialogTitle>
           <DialogDescription className="space-y-3 pt-2">
             <p className="text-base font-medium text-foreground">
@@ -252,7 +254,7 @@ export function DeleteProjectDialog({
             {deleteState.isLoading && (
               <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
             )}
-            Delete Permanently
+            {t("deletePermanently")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -4,6 +4,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { useSignUp } from "@/features/auth/hooks/use-sign-up";
 import { ArrowLeft, Mail, Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -19,6 +20,7 @@ export default function SignUpPage() {
 }
 
 function SignUpPageContent() {
+  const t = useTranslations("auth");
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect") || undefined;
@@ -63,16 +65,14 @@ function SignUpPageContent() {
         className="mb-8 flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Terug
+        {t("back")}
       </button>
 
       {/* Title */}
       <h1 className="mb-2 text-3xl font-semibold text-foreground">
-        Account aanmaken
+        {t("createAccount")}
       </h1>
-      <p className="mb-8 text-muted-foreground">
-        Kies hoe je een account wilt aanmaken
-      </p>
+      <p className="mb-8 text-muted-foreground">{t("signUpSubtitle")}</p>
 
       {/* Social Sign Up Buttons */}
       <div className="space-y-4">
@@ -103,7 +103,7 @@ function SignUpPageContent() {
               />
             </svg>
           )}
-          Verder met Google
+          {t("continueWithGoogle")}
         </Button>
 
         <Button
@@ -122,7 +122,7 @@ function SignUpPageContent() {
               <path d="M0 0h11.377v11.372H0zm12.623 0H24v11.372H12.623zM0 12.628h11.377V24H0zm12.623 0H24V24H12.623z" />
             </svg>
           )}
-          Verder met Microsoft
+          {t("continueWithMicrosoft")}
         </Button>
 
         {/* Separator */}
@@ -131,7 +131,9 @@ function SignUpPageContent() {
             <span className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-background px-2 text-muted-foreground">Of</span>
+            <span className="bg-background px-2 text-muted-foreground">
+              {t("orSeparator")}
+            </span>
           </div>
         </div>
 
@@ -146,7 +148,7 @@ function SignUpPageContent() {
               className="w-full justify-start border-border bg-background hover:bg-accent"
             >
               <Mail className="mr-3 h-5 w-5" />
-              Verder met email
+              {t("continueWithEmail")}
             </Button>
 
             {/* Magic Link Option */}
@@ -158,7 +160,7 @@ function SignUpPageContent() {
               className="w-full justify-start border-border bg-background hover:bg-accent"
             >
               <Sparkles className="mr-3 h-5 w-5" />
-              Verder met magic link
+              {t("continueWithMagicLink")}
             </Button>
           </div>
         )}
@@ -185,22 +187,22 @@ function SignUpPageContent() {
 
         {/* Terms and Privacy Policy */}
         <p className="mt-8 text-center text-xs text-muted-foreground">
-          Door een account aan te maken ga je akkoord met onze{" "}
+          {t("termsAgreement")}{" "}
           <Link
             href="/terms-of-service"
             className="text-primary hover:underline"
           >
-            algemene voorwaarden
+            {t("termsOfService")}
           </Link>{" "}
-          en ons{" "}
+          {t("and")}{" "}
           <Link href="/privacy-policy" className="text-primary hover:underline">
-            privacy beleid
+            {t("privacyPolicy")}
           </Link>
         </p>
 
         {/* Sign In Link */}
         <p className="mt-4 text-center text-sm text-muted-foreground">
-          Heb je al een account?{" "}
+          {t("alreadyHaveAccount")}{" "}
           <Link
             href={
               redirectUrl
@@ -209,7 +211,7 @@ function SignUpPageContent() {
             }
             className="text-primary hover:underline"
           >
-            Klik hier om in te loggen
+            {t("clickToSignIn")}
           </Link>
         </p>
       </div>

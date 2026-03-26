@@ -11,6 +11,7 @@ import { TranscriptionHistoryDialog } from "../transcription-history-dialog";
 import { TranscriptionMessageView } from "./transcription-message-view";
 import { SpeakerLegend } from "./speaker-legend";
 import type { TranscriptionTabsProps } from "./types";
+import { useTranslations } from "next-intl";
 
 const getDefaultTab = (speakersDetected?: number) =>
   speakersDetected && speakersDetected > 0 ? "detailed" : "simple";
@@ -27,12 +28,13 @@ export function TranscriptionTabs({
   speakerUserIds,
   onEditStart,
 }: TranscriptionTabsProps) {
+  const t = useTranslations("recordings");
   // URL state management with nuqs
   const [activeTab, setActiveTab] = useQueryState(
     "view",
     parseAsStringLiteral(["simple", "detailed"]).withDefault(
-      getDefaultTab(speakersDetected)
-    )
+      getDefaultTab(speakersDetected),
+    ),
   );
 
   const hasUtterances = utterances && utterances.length > 0;
@@ -42,23 +44,24 @@ export function TranscriptionTabs({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <CardTitle>Transcriptie</CardTitle>
+            <CardTitle>{t("transcription.title")}</CardTitle>
             {isManuallyEdited && (
               <Badge variant="secondary" className="text-xs">
-                Handmatig bewerkt
+                {t("transcription.manuallyEdited")}
               </Badge>
             )}
           </div>
           <div className="flex items-center gap-2">
             {speakersDetected !== undefined && speakersDetected > 0 && (
               <Badge variant="outline">
-                {speakersDetected}{" "}
-                {speakersDetected === 1 ? "spreker" : "sprekers"}
+                {t("transcription.speakerCount", { count: speakersDetected })}
               </Badge>
             )}
             {confidence !== undefined && (
               <Badge variant="outline">
-                {Math.round(confidence * 100)}% vertrouwen
+                {t("transcription.confidence", {
+                  value: Math.round(confidence * 100),
+                })}
               </Badge>
             )}
 
@@ -73,7 +76,7 @@ export function TranscriptionTabs({
             <TranscriptionHistoryDialog recordingId={recordingId} />
             <Button variant="outline" size="sm" onClick={onEditStart}>
               <Edit2 className="h-4 w-4 mr-1" />
-              Bewerken
+              {t("transcription.editButton")}
             </Button>
           </div>
         </div>
@@ -106,31 +109,35 @@ export function TranscriptionTabs({
               }
             >
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="simple">Simpel</TabsTrigger>
-                <TabsTrigger value="detailed">Gedetailleerd</TabsTrigger>
+                <TabsTrigger value="simple">
+                  {t("transcription.simple")}
+                </TabsTrigger>
+                <TabsTrigger value="detailed">
+                  {t("transcription.detailed")}
+                </TabsTrigger>
               </TabsList>
 
-            <TabsContent value="simple" className="mt-4">
-              <TranscriptionMessageView
-                utterances={utterances}
-                viewMode="simple"
-                speakersDetected={speakersDetected}
-                speakerNames={speakerNames}
-                speakerUserIds={speakerUserIds}
-                recordingId={recordingId}
-              />
-            </TabsContent>
+              <TabsContent value="simple" className="mt-4">
+                <TranscriptionMessageView
+                  utterances={utterances}
+                  viewMode="simple"
+                  speakersDetected={speakersDetected}
+                  speakerNames={speakerNames}
+                  speakerUserIds={speakerUserIds}
+                  recordingId={recordingId}
+                />
+              </TabsContent>
 
-            <TabsContent value="detailed" className="mt-4">
-              <TranscriptionMessageView
-                utterances={utterances}
-                viewMode="detailed"
-                speakersDetected={speakersDetected}
-                speakerNames={speakerNames}
-                speakerUserIds={speakerUserIds}
-                recordingId={recordingId}
-              />
-            </TabsContent>
+              <TabsContent value="detailed" className="mt-4">
+                <TranscriptionMessageView
+                  utterances={utterances}
+                  viewMode="detailed"
+                  speakersDetected={speakersDetected}
+                  speakerNames={speakerNames}
+                  speakerUserIds={speakerUserIds}
+                  recordingId={recordingId}
+                />
+              </TabsContent>
             </Tabs>
           </>
         ) : (
@@ -142,4 +149,3 @@ export function TranscriptionTabs({
     </Card>
   );
 }
-

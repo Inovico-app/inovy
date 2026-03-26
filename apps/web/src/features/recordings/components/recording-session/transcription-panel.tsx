@@ -6,6 +6,7 @@ import type {
 } from "@/features/recordings/core/recording-session.types";
 import { Sparkles, WifiOff } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 
 interface TranscriptionPanelProps {
   transcription: {
@@ -47,6 +48,7 @@ const CONNECTION_STATUS_CONFIG: Record<
 };
 
 export function TranscriptionPanel({ transcription }: TranscriptionPanelProps) {
+  const t = useTranslations("recordings");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll on new segments or caption updates
@@ -68,10 +70,10 @@ export function TranscriptionPanel({ transcription }: TranscriptionPanelProps) {
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight">
-                Live Transcriptie
+                {t("transcriptionPanel.title")}
               </h2>
               <p className="text-sm text-muted-foreground">
-                Spraak-naar-tekst in real-time
+                {t("transcriptionPanel.subtitle")}
               </p>
             </div>
           </div>
@@ -97,7 +99,7 @@ export function TranscriptionPanel({ transcription }: TranscriptionPanelProps) {
         className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-muted/20 via-background to-background"
         role="log"
         aria-live="polite"
-        aria-label="Live transcriptie"
+        aria-label={t("transcriptionPanel.liveTranscriptionAriaLabel")}
       >
         {transcription.segments.length === 0 &&
         !transcription.currentCaption ? (
@@ -105,11 +107,11 @@ export function TranscriptionPanel({ transcription }: TranscriptionPanelProps) {
             <div className="space-y-1">
               <p className="text-sm font-medium text-foreground">
                 {transcription.status === "connected"
-                  ? "Begin te spreken om transcriptie te zien..."
-                  : "Start een opname om live transcriptie te zien"}
+                  ? t("transcriptionPanel.speakToSeeTranscription")
+                  : t("transcriptionPanel.startRecordingToSee")}
               </p>
               <p className="text-xs text-muted-foreground">
-                Tekst verschijnt hier zodra u spreekt
+                {t("transcriptionPanel.textAppearsHere")}
               </p>
             </div>
           </div>
@@ -126,7 +128,9 @@ export function TranscriptionPanel({ transcription }: TranscriptionPanelProps) {
                 {segment.speaker !== undefined && (
                   <div className="flex items-center gap-2 mb-2">
                     <span className="px-2 py-0.5 text-xs font-semibold rounded-md bg-primary/10 text-primary">
-                      Spreker {segment.speaker}
+                      {t("transcriptionPanel.speaker", {
+                        number: segment.speaker,
+                      })}
                     </span>
                   </div>
                 )}

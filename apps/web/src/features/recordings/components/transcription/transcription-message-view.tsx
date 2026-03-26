@@ -7,6 +7,7 @@ import { useAutoScrollPause } from "../../hooks/use-auto-scroll-pause";
 import { useGroupedUtterances } from "../../hooks/use-grouped-utterances";
 import { TranscriptionMessageBubble } from "./transcription-message-bubble";
 import type { TranscriptionMessageViewProps } from "./types";
+import { useTranslations } from "next-intl";
 
 export function TranscriptionMessageView({
   utterances,
@@ -16,6 +17,7 @@ export function TranscriptionMessageView({
   speakerUserIds,
   recordingId,
 }: TranscriptionMessageViewProps) {
+  const t = useTranslations("recordings");
   const groupedUtterances = useGroupedUtterances(utterances);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -25,7 +27,7 @@ export function TranscriptionMessageView({
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
     typeof window !== "undefined"
       ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      : false
+      : false,
   );
 
   useEffect(() => {
@@ -44,7 +46,7 @@ export function TranscriptionMessageView({
         bubbleElementsRef.current.delete(index);
       }
     },
-    []
+    [],
   );
 
   const { activeGroupIndex } = useAudioTranscriptSync(groupedUtterances);
@@ -102,7 +104,7 @@ export function TranscriptionMessageView({
       "pointerover",
       (e: PointerEvent) => {
         const bubble = (e.target as HTMLElement).closest<HTMLElement>(
-          "[data-speaker]"
+          "[data-speaker]",
         );
         if (!bubble) return;
         const speaker = bubble.dataset.speaker!;
@@ -110,7 +112,7 @@ export function TranscriptionMessageView({
         activeSpeaker = speaker;
         applyHighlight(speaker);
       },
-      { signal }
+      { signal },
     );
 
     container.addEventListener(
@@ -120,7 +122,7 @@ export function TranscriptionMessageView({
         activeSpeaker = null;
         clearHighlight();
       },
-      { signal }
+      { signal },
     );
 
     return () => controller.abort();
@@ -129,7 +131,7 @@ export function TranscriptionMessageView({
   if (groupedUtterances.length === 0) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
-        <p>Geen gedetailleerde transcriptie beschikbaar</p>
+        <p>{t("transcription.noDetailedTranscription")}</p>
       </div>
     );
   }
@@ -139,10 +141,10 @@ export function TranscriptionMessageView({
       <div
         ref={scrollRef}
         className={cn(
-          "relative h-[600px] overflow-y-auto overscroll-y-contain bg-background/50 rounded-lg"
+          "relative h-[600px] overflow-y-auto overscroll-y-contain bg-background/50 rounded-lg",
         )}
         role="log"
-        aria-label="Transcriptie"
+        aria-label={t("transcription.transcriptionAriaLabel")}
       >
         <div className="p-4 max-w-screen-lg mx-auto w-full space-y-0">
           {groupedUtterances.map((grouped, index) => (
@@ -169,15 +171,14 @@ export function TranscriptionMessageView({
               "bg-primary text-primary-foreground shadow-lg",
               "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2",
               "hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              "touch-manipulation"
+              "touch-manipulation",
             )}
-            aria-label="Hervat automatisch scrollen"
+            aria-label={t("transcriptionPanel.resumeAutoScroll")}
           >
-            Volg afspelen
+            {t("transcriptionPanel.followPlayback")}
           </button>
         )}
       </div>
     </div>
   );
 }
-

@@ -16,6 +16,7 @@ import {
 } from "../../../components/ui/dialog";
 import { archiveRecordingAction } from "../actions/archive-recording";
 import { unarchiveRecordingAction } from "../actions/unarchive-recording";
+import { useTranslations } from "next-intl";
 
 interface ArchiveRecordingDialogProps {
   recordingId: string;
@@ -32,6 +33,7 @@ export function ArchiveRecordingDialog({
   variant = "outline",
   onOpenChange,
 }: ArchiveRecordingDialogProps) {
+  const t = useTranslations("recordings");
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -45,11 +47,11 @@ export function ArchiveRecordingDialog({
         return;
       }
 
-      toast.success(`Recording "${recordingTitle}" archived successfully`);
+      toast.success(t("actions.archiveSuccess", { title: recordingTitle }));
       router.refresh();
     } catch (error) {
       console.error("Error archiving recording:", error);
-      toast.error("Failed to archive recording");
+      toast.error(t("actions.archiveFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -65,11 +67,11 @@ export function ArchiveRecordingDialog({
         return;
       }
 
-      toast.success(`Recording "${recordingTitle}" restored successfully`);
+      toast.success(t("actions.restoreSuccess", { title: recordingTitle }));
       router.refresh();
     } catch (error) {
       console.error("Error unarchiving recording:", error);
-      toast.error("Failed to restore recording");
+      toast.error(t("actions.restoreFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -81,19 +83,21 @@ export function ArchiveRecordingDialog({
         {isArchived ? (
           <>
             <ArchiveRestoreIcon className="h-4 w-4 mr-2" />
-            Restore
+            {t("actions.restore")}
           </>
         ) : (
           <>
             <ArchiveIcon className="h-4 w-4 mr-2" />
-            Archive
+            {t("actions.archive")}
           </>
         )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {isArchived ? "Restore Recording?" : "Archive Recording?"}
+            {isArchived
+              ? t("actions.restoreRecording")
+              : t("actions.archiveRecording")}
           </DialogTitle>
           <DialogDescription>
             {isArchived ? (
@@ -130,11 +134,10 @@ export function ArchiveRecordingDialog({
             variant={isArchived ? "default" : "destructive"}
           >
             {isLoading && <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />}
-            {isArchived ? "Restore" : "Archive"}
+            {isArchived ? t("actions.restore") : t("actions.archive")}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-

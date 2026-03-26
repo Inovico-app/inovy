@@ -13,31 +13,53 @@ import {
   Users2Icon,
   UsersIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
-const BASE_NAV_ITEMS = [
-  { href: "/admin/users", icon: UsersIcon, label: "Users" },
-  { href: "/admin/teams", icon: Users2Icon, label: "Teams" },
-  { href: "/admin/compliance", icon: ShieldCheckIcon, label: "Compliance" },
-  { href: "/admin/audit-logs", icon: FileTextIcon, label: "Audit Logs" },
-  { href: "/admin/agent-analytics", icon: BarChart3Icon, label: "Analytics" },
-  { href: "/admin/agent-metrics", icon: ActivityIcon, label: "Metrics" },
+interface NavItemDef {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  labelKey: string;
+}
+
+const BASE_NAV_ITEMS: NavItemDef[] = [
+  { href: "/admin/users", icon: UsersIcon, labelKey: "users" },
+  { href: "/admin/teams", icon: Users2Icon, labelKey: "teams" },
+  { href: "/admin/compliance", icon: ShieldCheckIcon, labelKey: "compliance" },
+  { href: "/admin/audit-logs", icon: FileTextIcon, labelKey: "auditLogs" },
+  {
+    href: "/admin/agent-analytics",
+    icon: BarChart3Icon,
+    labelKey: "analytics",
+  },
+  { href: "/admin/agent-metrics", icon: ActivityIcon, labelKey: "metrics" },
 ];
 
-const SUPER_ADMIN_NAV_ITEMS = [
-  { href: "/admin/agent-config", icon: BotIcon, label: "Agent Config" },
-  { href: "/admin/organizations", icon: Building2Icon, label: "Organizations" },
+const SUPER_ADMIN_NAV_ITEMS: NavItemDef[] = [
+  { href: "/admin/agent-config", icon: BotIcon, labelKey: "agentConfig" },
+  {
+    href: "/admin/organizations",
+    icon: Building2Icon,
+    labelKey: "organizations",
+  },
 ];
 
 export function AdminNav() {
+  const t = useTranslations("adminNav");
   const hasSuperAdminPermission = authClient.organization.checkRolePermission({
     permissions: Permissions.superadmin.all,
     role: "superadmin",
   });
 
-  const navItems = [
+  const navItemDefs = [
     ...BASE_NAV_ITEMS,
     ...(hasSuperAdminPermission ? SUPER_ADMIN_NAV_ITEMS : []),
   ];
 
-  return <HorizontalNav items={navItems} ariaLabel="Admin navigation" />;
+  const navItems = navItemDefs.map((item) => ({
+    href: item.href,
+    icon: item.icon,
+    label: t(item.labelKey),
+  }));
+
+  return <HorizontalNav items={navItems} ariaLabel={t("ariaLabel")} />;
 }

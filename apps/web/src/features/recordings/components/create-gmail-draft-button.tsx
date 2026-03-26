@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Mail, Loader2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { createGmailDraft } from "../actions/create-gmail-draft";
+import { useTranslations } from "next-intl";
 
 interface CreateGmailDraftButtonProps {
   recordingId: string;
@@ -33,9 +34,12 @@ export function CreateGmailDraftButton({
   size = "sm",
   showLabel = true,
 }: CreateGmailDraftButtonProps) {
+  const t = useTranslations("recordings");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [subject, setSubject] = useState(`Meeting Summary: ${recordingTitle}`);
+  const [subject, setSubject] = useState(
+    t("gmail.emailSubjectDefault", { title: recordingTitle }),
+  );
   const [additionalContent, setAdditionalContent] = useState("");
   const [draftUrl, setDraftUrl] = useState<string | null>(null);
 
@@ -49,10 +53,10 @@ export function CreateGmailDraftButton({
     });
 
     if (result.data) {
-      toast.success("Gmail draft created successfully!");
+      toast.success(t("gmail.draftCreated"));
       setDraftUrl(result.data.draftUrl);
     } else {
-      toast.error(result.serverError || "Failed to create Gmail draft");
+      toast.error(result.serverError || t("gmail.draftFailed"));
     }
 
     setLoading(false);
@@ -61,7 +65,7 @@ export function CreateGmailDraftButton({
   function handleClose() {
     setOpen(false);
     setDraftUrl(null);
-    setSubject(`Meeting Summary: ${recordingTitle}`);
+    setSubject(t("gmail.emailSubjectDefault", { title: recordingTitle }));
     setAdditionalContent("");
   }
 
@@ -69,13 +73,15 @@ export function CreateGmailDraftButton({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant={variant} size={size} />}>
         <Mail className="h-4 w-4" />
-        {showLabel && <span className="ml-2">Create Email Draft</span>}
+        {showLabel && (
+          <span className="ml-2">{t("gmail.createEmailDraft")}</span>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create Gmail Draft</DialogTitle>
+          <DialogTitle>{t("gmail.createGmailDraft")}</DialogTitle>
           <DialogDescription>
-            Create a Gmail draft with the meeting summary
+            {t("gmail.gmailDraftDescription")}
           </DialogDescription>
         </DialogHeader>
 
@@ -83,21 +89,21 @@ export function CreateGmailDraftButton({
           <>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Recording</Label>
+                <Label>{t("gmail.recordingLabel")}</Label>
                 <div className="text-sm text-muted-foreground font-medium">
                   {recordingTitle}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="subject">Email Subject</Label>
+                <Label htmlFor="subject">{t("gmail.emailSubject")}</Label>
                 <Input
                   id="subject"
                   type="text"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   disabled={loading}
-                  placeholder="Meeting Summary: ..."
+                  placeholder={t("gmail.emailSubjectDefault", { title: "..." })}
                 />
               </div>
 
@@ -111,10 +117,10 @@ export function CreateGmailDraftButton({
                   value={additionalContent}
                   onChange={(e) => setAdditionalContent(e.target.value)}
                   disabled={loading}
-                  placeholder="Add any additional notes or context..."
+                  placeholder={t("gmail.additionalContentPlaceholder")}
                 />
                 <p className="text-xs text-muted-foreground">
-                  This will be added before the meeting summary
+                  {t("gmail.additionalContentHint")}
                 </p>
               </div>
 
@@ -128,7 +134,11 @@ export function CreateGmailDraftButton({
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={handleClose} disabled={loading}>
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                disabled={loading}
+              >
                 Cancel
               </Button>
               <Button onClick={handleCreate} disabled={loading}>
@@ -146,20 +156,26 @@ export function CreateGmailDraftButton({
                 </div>
                 <div>
                   <p className="font-medium text-green-900 dark:text-green-100">
-                    Draft Created Successfully!
+                    {t("gmail.draftCreatedTitle")}
                   </p>
                   <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                    The email draft has been saved to your Gmail drafts folder
+                    {t("gmail.draftSaved")}
                   </p>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  render={<a href={draftUrl} target="_blank" rel="noopener noreferrer" />}
+                  render={
+                    <a
+                      href={draftUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    />
+                  }
                   nativeButton={false}
                   className="gap-2"
                 >
-                  Open in Gmail
+                  {t("gmail.openInGmail")}
                   <ExternalLink className="h-3 w-3" />
                 </Button>
               </div>
@@ -174,4 +190,3 @@ export function CreateGmailDraftButton({
     </Dialog>
   );
 }
-

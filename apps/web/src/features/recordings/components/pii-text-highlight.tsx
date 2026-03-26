@@ -6,6 +6,7 @@ import {
   splitTextWithDetections,
 } from "./pii-redaction-helpers";
 import type { PIIDetection } from "@/server/services/pii-detection.service";
+import { useTranslations } from "next-intl";
 
 interface PIITextHighlightProps {
   transcriptionText: string;
@@ -20,18 +21,23 @@ export function PIITextHighlight({
   isRedacted,
   onRedact,
 }: PIITextHighlightProps) {
+  const t = useTranslations("recordings");
   const parts = splitTextWithDetections(transcriptionText, detections);
 
   return (
     <div className="space-y-2">
       {parts.map((part, index) => {
         if (!part.isPII || !part.detection) {
-          return <span key={`text-${index}-${part.text.slice(0, 20)}`}>{part.text}</span>;
+          return (
+            <span key={`text-${index}-${part.text.slice(0, 20)}`}>
+              {part.text}
+            </span>
+          );
         }
 
         const redacted = isRedacted(
           part.detection.startIndex,
-          part.detection.endIndex
+          part.detection.endIndex,
         );
         const colorClass =
           PII_TYPE_COLORS[part.detection.type] ||
@@ -54,9 +60,10 @@ export function PIITextHighlight({
                 if (!redacted) onRedact(part.detection!);
               }
             }}
-            title={`${
-              PII_TYPE_LABELS[part.detection.type] || part.detection.type
-            } (${Math.round(part.detection.confidence * 100)}% vertrouwen)`}
+            title={t("pii.piiConfidence", {
+              type: PII_TYPE_LABELS[part.detection.type] || part.detection.type,
+              confidence: Math.round(part.detection.confidence * 100),
+            })}
           >
             {redacted ? "[REDACTED]" : part.text}
           </span>
@@ -65,4 +72,3 @@ export function PIITextHighlight({
     </div>
   );
 }
-

@@ -5,6 +5,7 @@ import {
   useQueryClient,
   type QueryKey,
 } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { addBotToMeeting } from "../actions/add-bot-to-meeting";
 import type { BotSession } from "@/server/db/schema/bot-sessions";
@@ -51,6 +52,7 @@ function createOptimisticSession(calendarEventId: string): BotSession {
  * Uses React Query's optimistic mutation pattern
  */
 export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
+  const t = useTranslations("meetings");
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -62,7 +64,7 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
       }
 
       if (!result?.data) {
-        throw new Error("Failed to add notetaker to meeting");
+        throw new Error(t("toast.notetakerAddFailed"));
       }
 
       return result.data;
@@ -90,8 +92,8 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
       return { previousData, calendarEventId: input.calendarEventId };
     },
     onError: (error, _input, context) => {
-      toast.error("Failed to add notetaker", {
-        description: error.message || "Please try again",
+      toast.error(t("toast.notetakerAddFailed"), {
+        description: error.message || t("toast.pleaseTryAgain"),
       });
 
       if (context?.previousData) {
@@ -102,8 +104,8 @@ export function useAddBotToMeeting(options?: UseAddBotToMeetingOptions) {
     },
     onSuccess: (data) => {
       if ("success" in data && data.success && data.sessionId) {
-        toast.success("Notetaker added to meeting", {
-          description: "The notetaker will join when the meeting starts.",
+        toast.success(t("toast.notetakerAdded"), {
+          description: t("toast.notetakerAddedDescription"),
         });
         queryClient.invalidateQueries({
           queryKey: queryKeys.botSessions.all,

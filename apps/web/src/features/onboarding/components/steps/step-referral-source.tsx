@@ -2,6 +2,7 @@
 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { useTranslations } from "next-intl";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import type { OnboardingFormValues } from "../../schemas/onboarding-form.schema";
 
@@ -9,27 +10,26 @@ interface StepReferralSourceProps {
   isLoading: boolean;
 }
 
-const referralSourceOptions = [
-  { label: "Google zoeken", value: "google" },
-  { label: "LinkedIn", value: "linkedin" },
-  { label: "Instagram", value: "instagram" },
-  { label: "Doorverwijzing", value: "referral" },
-  { label: "Advertentie", value: "advertisement" },
-  { label: "Evenement", value: "event" },
-  { label: "Anders", value: "other" },
-];
-
 export function StepReferralSource({ isLoading }: StepReferralSourceProps) {
+  const t = useTranslations("onboarding");
   const referralSource = useWatch({ name: "referralSource" });
   const { control } = useFormContext<OnboardingFormValues>();
+
+  const referralSourceOptions = [
+    { label: t("stepReferralGoogle"), value: "google" },
+    { label: t("stepReferralLinkedIn"), value: "linkedin" },
+    { label: t("stepReferralInstagram"), value: "instagram" },
+    { label: t("stepReferralReferral"), value: "referral" },
+    { label: t("stepReferralAdvertisement"), value: "advertisement" },
+    { label: t("stepReferralEvent"), value: "event" },
+    { label: t("stepReferralOther"), value: "other" },
+  ];
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-2xl font-semibold">Hoe heb je over ons gehoord?</h2>
-        <p className="text-muted-foreground">
-          Dit helpt ons om onze marketing te verbeteren.
-        </p>
+        <h2 className="text-2xl font-semibold">{t("stepReferralTitle")}</h2>
+        <p className="text-muted-foreground">{t("stepReferralSubtitle")}</p>
       </div>
       <div className="space-y-4">
         <Controller
@@ -37,9 +37,11 @@ export function StepReferralSource({ isLoading }: StepReferralSourceProps) {
           control={control}
           render={({ field, fieldState }) => (
             <fieldset className="space-y-4">
-              <legend className="text-sm font-medium">Bron (optioneel)</legend>
+              <legend className="text-sm font-medium">
+                {t("stepReferralLegend")}
+              </legend>
               <p className="text-sm text-muted-foreground">
-                Kies een bron of vul een andere bron in.
+                {t("stepReferralHint")}
               </p>
               <RadioGroup
                 name={field.name}
@@ -84,13 +86,13 @@ export function StepReferralSource({ isLoading }: StepReferralSourceProps) {
                   htmlFor="referralSourceOther"
                   className="text-sm font-medium"
                 >
-                  Vertel ons meer (optioneel)
+                  {t("stepReferralOtherLabel")}
                 </label>
                 <Textarea
                   {...field}
                   value={field.value ?? ""}
                   id="referralSourceOther"
-                  placeholder="Bijv. Via een vriend, een blogpost, een podcast..."
+                  placeholder={t("stepReferralOtherPlaceholder")}
                   disabled={isLoading}
                   rows={3}
                   aria-invalid={fieldState.invalid}
@@ -108,4 +110,3 @@ export function StepReferralSource({ isLoading }: StepReferralSourceProps) {
     </div>
   );
 }
-

@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { AudioInputDevice } from "@/features/recordings/hooks/use-audio-devices";
 import { Lock, Mic, RotateCcw, Settings2 } from "lucide-react";
 import { useId, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface DeviceSettingsPopoverProps {
   devices: AudioInputDevice[];
@@ -42,6 +43,7 @@ export function DeviceSettingsPopover({
   error,
   onRetry,
 }: DeviceSettingsPopoverProps) {
+  const t = useTranslations("recordings");
   const instanceId = useId();
   const [open, setOpen] = useState(false);
 
@@ -56,8 +58,8 @@ export function DeviceSettingsPopover({
   const displayLabel =
     selectedDeviceId && selectedDeviceId !== "default"
       ? (devices.find((d) => d.deviceId === selectedDeviceId)?.label ??
-        "Standaard microfoon")
-      : "Standaard microfoon";
+        t("session.defaultMicrophone"))
+      : t("session.defaultMicrophone");
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -70,7 +72,7 @@ export function DeviceSettingsPopover({
                   variant="ghost"
                   size="icon"
                   className="h-11 w-11 rounded-full"
-                  aria-label="Microfooninstellingen"
+                  aria-label={t("session.microphoneSettings")}
                 />
               }
             >
@@ -79,7 +81,7 @@ export function DeviceSettingsPopover({
           }
         />
         <TooltipContent side="top">
-          <p>Microfooninstellingen</p>
+          <p>{t("session.microphoneSettings")}</p>
         </TooltipContent>
       </Tooltip>
 
@@ -95,7 +97,7 @@ export function DeviceSettingsPopover({
               id={`${instanceId}-popover-heading`}
               className="text-sm font-semibold leading-none"
             >
-              Microfoon
+              {t("session.microphoneLabel")}
             </h4>
           </div>
 
@@ -107,7 +109,7 @@ export function DeviceSettingsPopover({
           ) : error ? (
             <div className="space-y-2">
               <p className="text-sm text-destructive">
-                Geen microfoons gevonden
+                {t("session.noMicrophonesFound")}
               </p>
               <Button
                 variant="outline"
@@ -116,7 +118,7 @@ export function DeviceSettingsPopover({
                 className="gap-1.5"
               >
                 <RotateCcw className="h-3 w-3" />
-                Opnieuw proberen
+                {t("session.retryMicrophones")}
               </Button>
             </div>
           ) : (
@@ -126,7 +128,7 @@ export function DeviceSettingsPopover({
                   htmlFor={`${instanceId}-mic-select`}
                   className="text-xs font-medium text-muted-foreground"
                 >
-                  Selecteer microfoon
+                  {t("session.selectMicrophone")}
                 </label>
                 <Select
                   value={selectedDeviceId ?? "default"}
@@ -148,8 +150,11 @@ export function DeviceSettingsPopover({
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="default" label="Standaard microfoon">
-                      Standaard microfoon
+                    <SelectItem
+                      value="default"
+                      label={t("session.defaultMicrophone")}
+                    >
+                      {t("session.defaultMicrophone")}
                     </SelectItem>
                     {devices.map((device) => (
                       <SelectItem
@@ -170,7 +175,7 @@ export function DeviceSettingsPopover({
                   className="flex items-center gap-1.5 text-xs text-muted-foreground"
                 >
                   <Lock className="h-3 w-3 shrink-0" />
-                  <span>Pauzeer de opname om van microfoon te wisselen</span>
+                  <span>{t("session.pauseToSwitchMic")}</span>
                 </p>
               )}
             </>

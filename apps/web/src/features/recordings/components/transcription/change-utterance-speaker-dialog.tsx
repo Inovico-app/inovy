@@ -19,6 +19,7 @@ import {
 import { useAvailableSpeakers } from "@/features/recordings/hooks/use-available-speakers";
 import { useUpdateUtteranceSpeaker } from "@/features/recordings/hooks/use-update-utterance-speaker";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface ChangeUtteranceSpeakerDialogProps {
   isOpen: boolean;
@@ -43,8 +44,11 @@ export function ChangeUtteranceSpeakerDialog({
   speakerUserIds,
   onSuccess,
 }: ChangeUtteranceSpeakerDialogProps) {
-  const [selectedSpeaker, setSelectedSpeaker] =
-    useState<number>(() => currentSpeaker);
+  const t = useTranslations("recordings");
+  const tc = useTranslations("common");
+  const [selectedSpeaker, setSelectedSpeaker] = useState<number>(
+    () => currentSpeaker,
+  );
 
   const availableSpeakers = useAvailableSpeakers({
     speakersDetected,
@@ -82,9 +86,9 @@ export function ChangeUtteranceSpeakerDialog({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Spreker wijzigen</DialogTitle>
+          <DialogTitle>{t("transcription.changeSpeaker")}</DialogTitle>
           <DialogDescription>
-            Selecteer een andere spreker voor deze zin
+            {t("transcription.changeSpeakerDescription")}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -93,18 +97,20 @@ export function ChangeUtteranceSpeakerDialog({
               htmlFor="speaker-select"
               className="col-span-4 sm:col-span-1"
             >
-              Spreker
+              {t("transcription.speakerLabel")}
             </label>
             <Select
               value={selectedSpeaker.toString()}
-              onValueChange={(value) => value && setSelectedSpeaker(parseInt(value, 10))}
+              onValueChange={(value) =>
+                value && setSelectedSpeaker(parseInt(value, 10))
+              }
               disabled={isUpdating}
             >
               <SelectTrigger
                 id="speaker-select"
                 className="col-span-4 sm:col-span-3"
               >
-                <SelectValue placeholder="Selecteer spreker" />
+                <SelectValue placeholder={t("transcription.selectSpeaker")} />
               </SelectTrigger>
               <SelectContent>
                 {availableSpeakers.map((speaker) => (
@@ -128,7 +134,7 @@ export function ChangeUtteranceSpeakerDialog({
             Annuleren
           </Button>
           <Button onClick={handleSave} disabled={isUpdating}>
-            {isUpdating ? "Opslaan..." : "Opslaan"}
+            {isUpdating ? t("transcription.saving") : tc("save")}
           </Button>
         </DialogFooter>
       </DialogContent>

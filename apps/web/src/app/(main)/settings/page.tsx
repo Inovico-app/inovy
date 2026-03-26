@@ -9,6 +9,7 @@ import { OrganizationService } from "@/server/services/organization.service";
 import { BotIcon, BookOpenIcon, LinkIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
+import { getTranslations } from "next-intl/server";
 import { Suspense, type ReactNode } from "react";
 
 function StatusDot({ status }: { status: "active" | "pending" | "inactive" }) {
@@ -26,6 +27,7 @@ function StatusDot({ status }: { status: "active" | "pending" | "inactive" }) {
 }
 
 async function OverviewContent() {
+  const t = await getTranslations("settings.overview");
   const authResult = await getBetterAuthSession();
 
   if (
@@ -35,9 +37,7 @@ async function OverviewContent() {
   ) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">
-          Failed to load settings overview
-        </p>
+        <p className="text-muted-foreground">{t("failedToLoad")}</p>
       </div>
     );
   }
@@ -72,28 +72,31 @@ async function OverviewContent() {
     href: Route;
   }> = [
     {
-      label: "Members",
-      value: `${members.length} member${members.length !== 1 ? "s" : ""}${invitations.length > 0 ? ` · ${invitations.length} pending` : ""}`,
+      label: t("members"),
+      value:
+        invitations.length > 0
+          ? `${members.length} ${members.length !== 1 ? t("members").toLowerCase() : t("members").toLowerCase()} · ${invitations.length} ${t("pending").toLowerCase()}`
+          : `${members.length} ${members.length !== 1 ? t("members").toLowerCase() : t("members").toLowerCase()}`,
       status: invitations.length > 0 ? "pending" : "active",
       icon: <UsersIcon className="h-4 w-4 text-muted-foreground" />,
       href: "/settings/organization?tab=members" as Route,
     },
     {
-      label: "Google",
-      value: googleStatus.connected ? "Connected" : "Not connected",
+      label: t("google"),
+      value: googleStatus.connected ? t("connected") : t("notConnected"),
       status: googleStatus.connected ? "active" : "inactive",
       icon: <LinkIcon className="h-4 w-4 text-muted-foreground" />,
       href: "/settings/integrations" as Route,
     },
     {
-      label: "Notetaker",
-      value: botEnabled ? "Enabled" : "Disabled",
+      label: t("notetaker"),
+      value: botEnabled ? t("enabled") : t("disabled"),
       status: botEnabled ? "active" : "inactive",
       icon: <BotIcon className="h-4 w-4 text-muted-foreground" />,
       href: "/settings/bot" as Route,
     },
     {
-      label: "Knowledge Base",
+      label: t("knowledgeBase"),
       value: `${docCount} document${docCount !== 1 ? "s" : ""}`,
       status: docCount > 0 ? "active" : "inactive",
       icon: <BookOpenIcon className="h-4 w-4 text-muted-foreground" />,
@@ -103,10 +106,7 @@ async function OverviewContent() {
 
   return (
     <>
-      <PageHeader
-        title="Settings"
-        description="Overview of your workspace configuration"
-      />
+      <PageHeader title={t("title")} description={t("description")} />
 
       <div className="grid gap-3 sm:grid-cols-2">
         {statusCards.map((card) => (

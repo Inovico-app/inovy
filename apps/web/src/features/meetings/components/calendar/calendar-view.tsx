@@ -7,6 +7,7 @@ import type {
 } from "@/features/meetings/lib/calendar-utils";
 import { getVisibleDates } from "@/features/meetings/lib/calendar-utils";
 import { useCalendarViewState } from "@/features/meetings/hooks/use-calendar-view-state";
+import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "motion/react";
 import { Suspense, useMemo, useState } from "react";
 import { MeetingDetailsModal } from "../meeting-details-modal";
@@ -37,6 +38,7 @@ function CalendarViewInner({
   initialDate = new Date(),
   selectedStatus: initialSelectedStatus = "all",
 }: CalendarViewProps) {
+  const t = useTranslations("meetings");
   const isMobile = useIsMobile();
   const [selectedMeeting, setSelectedMeeting] =
     useState<MeetingWithSession | null>(null);
@@ -86,8 +88,8 @@ function CalendarViewInner({
       aria-busy="true"
       className="rounded-lg border bg-card p-8 text-center text-muted-foreground"
     >
-      <span className="sr-only">Loading calendar…</span>
-      Loading calendar...
+      <span className="sr-only">{t("page.loadingCalendar")}</span>
+      {t("page.loadingCalendar")}
     </div>
   );
 

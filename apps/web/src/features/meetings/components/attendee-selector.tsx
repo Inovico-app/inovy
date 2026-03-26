@@ -9,6 +9,7 @@ import { X } from "lucide-react";
 import { AttendeeEmailInput } from "./attendee-email-input";
 import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
 import { getUserDisplayName } from "@/lib/formatters/display-formatters";
+import { useTranslations } from "next-intl";
 
 interface AttendeeSelectorProps {
   selectedUserIds: string[];
@@ -25,13 +26,17 @@ export function AttendeeSelector({
   onEmailsChange,
   disabled = false,
 }: AttendeeSelectorProps) {
+  const t = useTranslations("meetings");
   const { data: organizationUsers = [], isLoading: loadingUsers } =
     useOrganizationUsersQuery();
 
   // Get set of organization member emails for deduplication
   const orgMemberEmails = useMemo(
-    () => new Set(organizationUsers.map((user) => user.email).filter(Boolean) as string[]),
-    [organizationUsers]
+    () =>
+      new Set(
+        organizationUsers.map((user) => user.email).filter(Boolean) as string[],
+      ),
+    [organizationUsers],
   );
 
   const toggleUserAttendee = (userId: string) => {
@@ -57,18 +62,18 @@ export function AttendeeSelector({
 
   return (
     <div className="space-y-3">
-      <Label>Attendees</Label>
+      <Label>{t("attendees.label")}</Label>
 
       {/* Organization Users */}
       {loadingUsers ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2Icon className="h-4 w-4 animate-spin" />
-          Loading organization users...
+          {t("attendees.loadingUsers")}
         </div>
       ) : organizationUsers.length > 0 ? (
         <div className="space-y-2">
           <Label className="text-sm text-muted-foreground">
-            Organization Members
+            {t("attendees.organizationMembers")}
           </Label>
           <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-2">
             {organizationUsers.map((user) => {
@@ -107,7 +112,7 @@ export function AttendeeSelector({
       {/* Custom Email Input */}
       <div className="space-y-2">
         <Label className="text-sm text-muted-foreground">
-          Custom Email Addresses
+          {t("attendees.customEmailAddresses")}
         </Label>
         <AttendeeEmailInput
           value={emailInput}
@@ -130,7 +135,7 @@ export function AttendeeSelector({
                   type="button"
                   onClick={() => removeCustomEmail(email)}
                   className="ml-1 hover:bg-muted rounded-full p-0.5"
-                  aria-label={`Remove ${email}`}
+                  aria-label={t("attendees.removeEmail", { email })}
                   disabled={disabled}
                 >
                   <X className="h-3 w-3" />

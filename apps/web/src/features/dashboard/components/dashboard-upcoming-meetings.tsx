@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 interface DashboardUpcomingMeetingsProps {
   meetings: CalendarEvent[];
@@ -21,27 +22,34 @@ interface DashboardUpcomingMeetingsProps {
   now: number;
 }
 
-function formatRelativeTime(date: Date): string {
+function formatRelativeTime(
+  date: Date,
+  t: (key: string, values?: Record<string, string | number | Date>) => string,
+): string {
   const now = new Date();
   const diffMs = date.getTime() - now.getTime();
   const diffMin = Math.round(diffMs / 60_000);
 
-  if (diffMin < 0) return "Started";
-  if (diffMin === 0) return "Now";
-  if (diffMin < 60) return `in ${diffMin}m`;
+  if (diffMin < 0) return t("started");
+  if (diffMin === 0) return t("now");
+  if (diffMin < 60) return t("inMinutes", { count: diffMin });
   const diffHours = Math.floor(diffMin / 60);
   const remainMin = diffMin % 60;
-  if (remainMin === 0) return `in ${diffHours}h`;
-  return `in ${diffHours}h ${remainMin}m`;
+  if (remainMin === 0) return t("inHours", { count: diffHours });
+  return t("inHoursMinutes", { hours: diffHours, minutes: remainMin });
 }
 
-function formatDuration(start: Date, end: Date): string {
+function formatDuration(
+  start: Date,
+  end: Date,
+  t: (key: string, values?: Record<string, string | number | Date>) => string,
+): string {
   const diffMin = Math.round((end.getTime() - start.getTime()) / 60_000);
-  if (diffMin < 60) return `${diffMin}min`;
+  if (diffMin < 60) return t("durationMinutes", { count: diffMin });
   const hours = Math.floor(diffMin / 60);
   const mins = diffMin % 60;
-  if (mins === 0) return `${hours}h`;
-  return `${hours}h ${mins}m`;
+  if (mins === 0) return t("durationHours", { count: hours });
+  return t("durationHoursMinutes", { hours, minutes: mins });
 }
 
 function formatTime(date: Date): string {
@@ -61,10 +69,12 @@ function MeetingCard({
   meeting,
   botSession,
   isNext,
+  t,
 }: {
   meeting: CalendarEvent;
   botSession?: BotSession;
   isNext: boolean;
+  t: (key: string, values?: Record<string, string | number | Date>) => string;
 }) {
   const router = useRouter();
   const attendeeCount = meeting.attendees?.length ?? 0;
@@ -86,7 +96,7 @@ function MeetingCard({
     >
       {soon && (
         <span className="absolute -top-2 right-3 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
-          Starting soon
+          {t("startingSoon")}
         </span>
       )}
       <div className="flex items-start justify-between gap-3">
@@ -100,10 +110,10 @@ function MeetingCard({
             <span className="flex items-center gap-1">
               <ClockIcon className="h-3 w-3" />
               {formatTime(startDate)} &middot;{" "}
-              {formatDuration(startDate, endDate)}
+              {formatDuration(startDate, endDate, t)}
             </span>
             <span className="font-medium text-foreground/70">
-              {formatRelativeTime(startDate)}
+              {formatRelativeTime(startDate, t)}
             </span>
             {attendeeCount > 0 && (
               <span className="flex items-center gap-1">
@@ -131,7 +141,7 @@ function MeetingCard({
                   href={meeting.meetingUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={`Join ${meeting.title}`}
+                  aria-label={`${t("join")} ${meeting.title}`}
                 />
               }
               nativeButton={false}
@@ -139,11 +149,11 @@ function MeetingCard({
               {isNext ? (
                 <>
                   <VideoIcon className="mr-1.5 h-4 w-4" />
-                  Join Meeting
+                  {t("joinMeeting")}
                 </>
               ) : (
                 <>
-                  Join
+                  {t("join")}
                   <ExternalLinkIcon className="ml-1 h-3 w-3" />
                 </>
               )}
@@ -156,22 +166,26 @@ function MeetingCard({
 }
 
 function EmptyState() {
+  const t = useTranslations("dashboard");
+
   return (
     <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-10 text-center">
       <div className="flex h-11 w-11 items-center justify-center rounded-full bg-muted">
         <CalendarIcon className="h-5 w-5 text-muted-foreground" />
       </div>
       <div className="space-y-1">
-        <p className="text-sm font-medium">No upcoming meetings today</p>
+        <p className="text-sm font-medium">{t("noUpcomingMeetings")}</p>
         <p className="text-xs text-muted-foreground">
-          Connect a calendar in{" "}
-          <Link
-            href="/settings"
-            className="text-primary underline underline-offset-2"
-          >
-            Settings
-          </Link>{" "}
-          to see your schedule.
+          {t.rich("connectCalendar", {
+            settingsLink: (chunks) => (
+              <Link
+                href="/settings"
+                className="text-primary underline underline-offset-2"
+              >
+                {chunks}
+              </Link>
+            ),
+          })}
         </p>
       </div>
     </div>
@@ -183,23 +197,26 @@ export function DashboardUpcomingMeetings({
   botSessionsMap,
   now,
 }: DashboardUpcomingMeetingsProps) {
+  const t = useTranslations("dashboard");
+  const tCommon = useTranslations("common");
+
   const sorted = [...meetings]
     .filter((m) => new Date(m.end).getTime() >= now)
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
     .slice(0, 3);
 
   return (
-    <section aria-label="Upcoming meetings">
+    <section aria-label={t("upcomingMeetingsAriaLabel")}>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold tracking-tight">
-          Today&apos;s Meetings
+          {t("todaysMeetings")}
         </h2>
         {sorted.length > 0 && (
           <Link
             href="/meetings"
             className="text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
-            View all
+            {tCommon("viewAll")}
           </Link>
         )}
       </div>
@@ -213,6 +230,7 @@ export function DashboardUpcomingMeetings({
               meeting={meeting}
               botSession={botSessionsMap[meeting.id]}
               isNext={i === 0}
+              t={t}
             />
           ))}
         </div>

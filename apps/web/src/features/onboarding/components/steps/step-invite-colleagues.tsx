@@ -3,6 +3,7 @@
 import { EmailChipInput } from "@/components/email-chip-input";
 import { useEmailChipInput } from "@/hooks/use-email-chip-input";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
+import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import type { OnboardingFormValues } from "../../schemas/onboarding-form.schema";
@@ -12,6 +13,7 @@ interface StepInviteColleaguesProps {
 }
 
 export function StepInviteColleagues({ isLoading }: StepInviteColleaguesProps) {
+  const t = useTranslations("onboarding");
   const { setValue } = useFormContext<OnboardingFormValues>();
 
   const {
@@ -36,17 +38,14 @@ export function StepInviteColleagues({ isLoading }: StepInviteColleaguesProps) {
     <div className="space-y-6">
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold text-pretty">
-          Nodig je team uit
+          {t("stepInviteTitle")}
         </h2>
-        <p className="text-muted-foreground">
-          Voeg e-mailadressen toe van collega&apos;s die je wilt uitnodigen. Zij
-          ontvangen een uitnodiging per mail.
-        </p>
+        <p className="text-muted-foreground">{t("stepInviteSubtitle")}</p>
       </div>
 
       <fieldset className="space-y-3" disabled={isLoading}>
         <label htmlFor="invite-email-input" className="text-sm font-medium">
-          E-mailadressen
+          {t("stepInviteLabel")}
         </label>
 
         <EmailChipInput
@@ -54,13 +53,11 @@ export function StepInviteColleagues({ isLoading }: StepInviteColleaguesProps) {
           inputValue={inputValue}
           error={error}
           disabled={isLoading}
-          placeholder="collega@voorbeeld.nl"
-          placeholderMore="Nog iemand toevoegen&hellip;"
-          removeLabel={(email) => `${email} verwijderen`}
-          hintEmpty="Druk op Enter om toe te voegen. Je kunt ook meerdere adressen plakken."
-          hintCount={(count) =>
-            `${count} ${count === 1 ? "collega" : "collega's"} ${count === 1 ? "wordt" : "worden"} uitgenodigd`
-          }
+          placeholder={t("stepInvitePlaceholder")}
+          placeholderMore={t("stepInvitePlaceholderMore")}
+          removeLabel={(email) => t("stepInviteRemoveLabel", { email })}
+          hintEmpty={t("stepInviteHintEmpty")}
+          hintCount={(count) => t("stepInviteHintCount", { count })}
           onInputChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
@@ -70,22 +67,21 @@ export function StepInviteColleagues({ isLoading }: StepInviteColleaguesProps) {
 
       {/* Friendly skip nudge */}
       <LazyMotion features={domAnimation}>
-      <AnimatePresence>
-        {emails.length === 0 && (
-          <m.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ delay: 0.2 }}
-            className="rounded-lg border border-dashed border-border/60 bg-muted/30 p-4"
-          >
-            <p className="text-sm text-muted-foreground text-center">
-              Je kunt deze stap ook overslaan en later collega&apos;s uitnodigen
-              via de instellingen.
-            </p>
-          </m.div>
-        )}
-      </AnimatePresence>
+        <AnimatePresence>
+          {emails.length === 0 && (
+            <m.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ delay: 0.2 }}
+              className="rounded-lg border border-dashed border-border/60 bg-muted/30 p-4"
+            >
+              <p className="text-sm text-muted-foreground text-center">
+                {t("stepInviteSkipHint")}
+              </p>
+            </m.div>
+          )}
+        </AnimatePresence>
       </LazyMotion>
     </div>
   );

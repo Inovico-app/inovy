@@ -24,6 +24,7 @@ import {
 import { useEffect, useRef } from "react";
 import { AudioSourceIndicator } from "./audio-source-indicator";
 import { ChunkUploadStatus } from "./chunk-upload-status";
+import { useTranslations } from "next-intl";
 
 interface MobileRecordingViewProps {
   status: RecordingStatus;
@@ -68,6 +69,7 @@ export function MobileRecordingView({
   onSavePartial,
   onReset,
 }: MobileRecordingViewProps) {
+  const t = useTranslations("recordings");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const isRecording = status === "recording";
@@ -119,12 +121,12 @@ export function MobileRecordingView({
               {isPaused ? (
                 <>
                   <Pause className="w-3.5 h-3.5" />
-                  <span>Gepauzeerd</span>
+                  <span>{t("session.recordingPaused")}</span>
                 </>
               ) : (
                 <>
                   <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-lg shadow-red-500/50" />
-                  <span>Opnemen...</span>
+                  <span>{t("session.recordingActive")}</span>
                 </>
               )}
             </p>
@@ -159,7 +161,7 @@ export function MobileRecordingView({
             <div className="flex items-center gap-2.5 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin" />
               <span className="text-sm font-medium">
-                Opname wordt verwerkt...
+                {t("session.processingRecording")}
               </span>
             </div>
           </div>
@@ -198,7 +200,9 @@ export function MobileRecordingView({
                     >
                       {segment.speaker !== undefined && (
                         <span className="text-[10px] font-semibold text-primary uppercase tracking-wide">
-                          Spreker {segment.speaker}
+                          {t("transcriptionPanel.speaker", {
+                            number: segment.speaker,
+                          })}
                         </span>
                       )}
                       <p className="text-sm leading-relaxed text-foreground">
@@ -216,8 +220,8 @@ export function MobileRecordingView({
               ) : (
                 <p className="text-xs text-muted-foreground py-1">
                   {transcription.status === "connected"
-                    ? "Luisteren..."
-                    : "Verbinden..."}
+                    ? t("transcriptionPanel.listening")
+                    : t("transcriptionPanel.connecting")}
                 </p>
               )}
             </div>
@@ -235,7 +239,7 @@ export function MobileRecordingView({
                 size="lg"
                 variant="outline"
                 className="rounded-full w-14 h-14 border-2 border-border/50 bg-background/50 hover:bg-muted transition-all duration-200 active:scale-95"
-                aria-label="Pauzeren"
+                aria-label={t("session.pause")}
               >
                 <Pause className="w-6 h-6" />
               </Button>
@@ -245,7 +249,7 @@ export function MobileRecordingView({
                 size="lg"
                 variant="outline"
                 className="rounded-full w-14 h-14 border-2 border-border/50 bg-background/50 hover:bg-muted transition-all duration-200 active:scale-95"
-                aria-label="Hervatten"
+                aria-label={t("session.resume")}
               >
                 <Play className="w-6 h-6" />
               </Button>
@@ -255,7 +259,7 @@ export function MobileRecordingView({
               size="lg"
               variant="destructive"
               className="rounded-full w-14 h-14 shadow-lg shadow-destructive/30 transition-all duration-200 active:scale-95"
-              aria-label="Stoppen"
+              aria-label={t("session.stop")}
             >
               <Square className="w-5 h-5" />
             </Button>
@@ -272,7 +276,7 @@ export function MobileRecordingView({
                   className="gap-2"
                 >
                   <Save className="w-4 h-4" />
-                  Opslaan
+                  {t("session.savePartial")}
                 </Button>
                 <Button
                   onClick={onReset}
@@ -280,13 +284,13 @@ export function MobileRecordingView({
                   className="gap-2"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Verwijderen
+                  {t("session.discard")}
                 </Button>
               </>
             ) : (
               <Button onClick={onReset} variant="outline" className="gap-2">
                 <RotateCcw className="w-4 h-4" />
-                Opnieuw
+                {t("session.tryAgain")}
               </Button>
             )}
           </div>
@@ -295,7 +299,7 @@ export function MobileRecordingView({
         {isProcessing && (
           <div className="flex items-center justify-center">
             <p className="text-xs text-muted-foreground">
-              Even geduld alstublieft...
+              {t("session.pleaseWait")}
             </p>
           </div>
         )}

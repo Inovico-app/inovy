@@ -10,6 +10,7 @@ import { checkPermission } from "@/lib/rbac/permissions-server";
 import { AgentAnalyticsService } from "@/server/services/agent-analytics.service";
 import { AgentMetricsService } from "@/server/services/agent-metrics.service";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 export const metadata = {
@@ -47,6 +48,8 @@ async function AgentMetricsContent({ searchParams }: AgentMetricsContentProps) {
   if (!hasAdminPermission) {
     redirect("/");
   }
+
+  const t = await getTranslations("admin.metrics");
 
   // Parse search params
   const params = await searchParams;
@@ -118,9 +121,9 @@ async function AgentMetricsContent({ searchParams }: AgentMetricsContentProps) {
     <div className="container mx-auto max-w-[1600px] py-6 px-4 lg:px-6">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold lg:text-3xl">Agent Metrics</h1>
+          <h1 className="text-2xl font-bold lg:text-3xl">{t("title")}</h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            View detailed agent metrics and performance data
+            {t("description")}
           </p>
         </div>
         <AgentMetricsExport filters={filters} />
@@ -155,7 +158,7 @@ async function AgentMetricsContent({ searchParams }: AgentMetricsContentProps) {
         {/* Sidebar Filters - Sticky Position */}
         <aside className="sticky top-6 h-fit w-full self-start lg:w-64">
           <div className="rounded-lg border bg-card p-4 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold">Filters</h2>
+            <h2 className="mb-4 text-sm font-semibold">{t("filters")}</h2>
             <AgentMetricsFilters
               initialStartDate={startDate}
               initialEndDate={endDate}

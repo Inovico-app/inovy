@@ -21,6 +21,7 @@ import {
 import type { BotSeriesSubscription } from "@/server/db/schema/bot-series-subscriptions";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
+import { useTranslations } from "next-intl";
 import {
   CalendarIcon,
   ClockIcon,
@@ -42,6 +43,7 @@ export function MeetingsListItem({
   subscriptions,
   onSubscriptionChange,
 }: MeetingsListItemProps) {
+  const t = useTranslations("meetings");
   const botStatus = getMeetingBotStatus(meeting, meeting.botSession);
   const isPast = meeting.end < new Date();
   const isUpcoming = meeting.start > new Date();
@@ -53,7 +55,7 @@ export function MeetingsListItem({
       {/* Title */}
       <div className="flex items-start gap-2">
         <h3 className="font-semibold text-base leading-tight">
-          {meeting.title || "Untitled Meeting"}
+          {meeting.title || t("list.untitledMeeting")}
         </h3>
         {meeting.isOrganizer === false && (
           <TooltipProvider>
@@ -61,9 +63,9 @@ export function MeetingsListItem({
               <TooltipTrigger
                 render={<Badge variant="secondary" className="shrink-0" />}
               >
-                Invited
+                {t("list.invited")}
               </TooltipTrigger>
-              <TooltipContent>You were invited to this meeting</TooltipContent>
+              <TooltipContent>{t("list.invitedTooltip")}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         )}
@@ -111,7 +113,9 @@ export function MeetingsListItem({
             <button
               type="button"
               className="flex-1 space-y-2 text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded"
-              aria-label={`View details for ${meeting.title || "Untitled Meeting"}`}
+              aria-label={t("list.viewDetailsAriaLabel", {
+                title: meeting.title || t("list.untitledMeeting"),
+              })}
               onClick={() => onMeetingClick(meeting)}
             >
               {titleDateContent}
@@ -123,7 +127,7 @@ export function MeetingsListItem({
           {/* Bot Status Badge or Add Bot */}
           <div
             role="group"
-            aria-label="Meeting actions"
+            aria-label={t("list.meetingActionsAriaLabel")}
             className="flex min-h-[44px] items-center gap-2 sm:items-center"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
@@ -135,7 +139,7 @@ export function MeetingsListItem({
                 <AddBotButton meeting={meeting} variant="button" />
               ) : (
                 <span className="text-xs text-muted-foreground">
-                  No notetaker
+                  {t("list.noNotetaker")}
                 </span>
               )
             ) : (
@@ -149,10 +153,10 @@ export function MeetingsListItem({
                   <Link
                     href={`/projects/${botSession!.projectId}/recordings/${botSession!.recordingId}`}
                     className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-primary transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    aria-label="View recording"
+                    aria-label={t("list.viewRecordingAriaLabel")}
                   >
                     <FileVideoIcon className="h-4 w-4" />
-                    <span>View Recording</span>
+                    <span>{t("list.viewRecording")}</span>
                   </Link>
                 )}
               </>

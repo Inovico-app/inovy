@@ -2,6 +2,7 @@
 
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   updateMeeting,
@@ -10,17 +11,18 @@ import {
 } from "../actions/meeting-actions";
 
 export function useMeetingActions() {
+  const t = useTranslations("meetings");
   const router = useRouter();
 
   const { execute: executeUpdateMeeting, isExecuting: isUpdatingMeeting } =
     useAction(updateMeeting, {
       onSuccess: () => {
-        toast.success("Meeting updated");
+        toast.success(t("toast.meetingUpdated"));
         router.refresh();
       },
       onError: ({ error }) => {
-        toast.error("Failed to update meeting", {
-          description: error.serverError || "Please try again",
+        toast.error(t("toast.meetingUpdateFailed"), {
+          description: error.serverError || t("toast.pleaseTryAgain"),
         });
       },
     });
@@ -29,15 +31,15 @@ export function useMeetingActions() {
     saveMeetingNotes,
     {
       onSuccess: () => {
-        toast.success("Notes saved");
+        toast.success(t("toast.notesSaved"));
         router.refresh();
       },
       onError: ({ error }) => {
-        toast.error("Failed to save notes", {
-          description: error.serverError || "Please try again",
+        toast.error(t("toast.notesSaveFailed"), {
+          description: error.serverError || t("toast.pleaseTryAgain"),
         });
       },
-    }
+    },
   );
 
   const {
@@ -45,12 +47,12 @@ export function useMeetingActions() {
     isExecuting: isConfiguringPostActions,
   } = useAction(configurePostActions, {
     onSuccess: () => {
-      toast.success("Post-meeting actions configured");
+      toast.success(t("toast.postActionsConfigured"));
       router.refresh();
     },
     onError: ({ error }) => {
-      toast.error("Failed to configure post-meeting actions", {
-        description: error.serverError || "Please try again",
+      toast.error(t("toast.postActionsConfigureFailed"), {
+        description: error.serverError || t("toast.pleaseTryAgain"),
       });
     },
   });

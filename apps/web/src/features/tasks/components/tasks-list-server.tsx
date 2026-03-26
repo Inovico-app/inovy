@@ -1,6 +1,7 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { getCachedUserProjects } from "@/server/cache/project.cache";
 import { getCachedAllTasksWithContext } from "@/server/cache/task.cache";
+import { getTranslations } from "next-intl/server";
 import { GlobalTaskListClient } from "./global-task-list-client";
 
 /**
@@ -8,12 +9,13 @@ import { GlobalTaskListClient } from "./global-task-list-client";
  * Fetches all org tasks (team-scoped) so users can see and help with team tasks
  */
 export async function TasksListServer() {
+  const t = await getTranslations("tasks");
   const authResult = await getBetterAuthSession();
 
   if (authResult.isErr() || !authResult.value.isAuthenticated) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-500">Authentication required</p>
+        <p className="text-red-500">{t("authRequired")}</p>
       </div>
     );
   }
@@ -23,7 +25,7 @@ export async function TasksListServer() {
   if (!user || !organization) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-500">User or organization not found</p>
+        <p className="text-red-500">{t("userOrOrgNotFound")}</p>
       </div>
     );
   }

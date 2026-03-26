@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Edit2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -37,6 +38,8 @@ interface EditTaskDialogProps {
 
 export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("tasks");
+  const tc = useTranslations("common");
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
   const [priority, setPriority] = useState<TaskPriority>(task.priority);
@@ -122,10 +125,9 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
           <DialogHeader>
             <div className="flex items-center justify-between">
               <div>
-                <DialogTitle>Edit Task</DialogTitle>
+                <DialogTitle>{t("editTask")}</DialogTitle>
                 <DialogDescription>
-                  Update the task details. Changes will be tracked in version
-                  history.
+                  {t("editTaskDescription")}
                 </DialogDescription>
               </div>
               <TaskVersionHistoryDialog taskId={task.id} />
@@ -136,13 +138,13 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
             {/* Title */}
             <div className="space-y-2">
               <Label htmlFor="title">
-                Title <span className="text-destructive">*</span>
+                {t("titleLabel")} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter task title"
+                placeholder={t("taskTitlePlaceholder")}
                 required
                 maxLength={500}
               />
@@ -150,11 +152,11 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
 
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">{"descriptionLabel"}</Label>
               <TaskDescriptionEditor
                 value={description}
                 onChange={setDescription}
-                placeholder="Add a description..."
+                placeholder={t("descriptionPlaceholder")}
                 maxLength={2000}
               />
             </div>
@@ -164,7 +166,8 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
               {/* Priority */}
               <div className="space-y-2">
                 <Label htmlFor="priority">
-                  Priority <span className="text-destructive">*</span>
+                  {t("priorityLabel")}{" "}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={priority}
@@ -193,7 +196,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
               {/* Status */}
               <div className="space-y-2">
                 <Label htmlFor="status">
-                  Status <span className="text-destructive">*</span>
+                  {t("statusLabel")} <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={status}
@@ -222,7 +225,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
 
             {/* Assignee */}
             <div className="space-y-2">
-              <Label htmlFor="assignee">Assignee</Label>
+              <Label htmlFor="assignee">{t("assigneeLabel")}</Label>
               <Select
                 value={assigneeId ?? "unassigned"}
                 onValueChange={(value) =>
@@ -249,7 +252,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
 
             {/* Due Date */}
             <div className="space-y-2">
-              <Label htmlFor="dueDate">Due Date</Label>
+              <Label htmlFor="dueDate">{t("dueDateLabel")}</Label>
               <Input
                 id="dueDate"
                 type="datetime-local"
@@ -280,7 +283,7 @@ export function EditTaskDialog({ task, onSuccess }: EditTaskDialogProps) {
               type="submit"
               disabled={mutation.isPending || !title.trim() || membersLoading}
             >
-              {mutation.isPending ? "Saving..." : "Save Changes"}
+              {mutation.isPending ? t("saving") : tc("save")}
             </Button>
           </DialogFooter>
         </form>

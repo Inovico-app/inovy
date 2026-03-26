@@ -11,9 +11,11 @@ import type { AuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 
 import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
+import { getTranslations } from "next-intl/server";
 import { TeamManagementClient } from "./team-management-client";
 
 export async function TeamManagement() {
+  const t = await getTranslations("admin.teams");
   const authResult = await getBetterAuthSession();
 
   if (authResult.isErr() || !authResult.value.organization) {
@@ -21,7 +23,8 @@ export async function TeamManagement() {
       <Card>
         <CardContent className="text-center py-8">
           <p className="text-muted-foreground">
-            Unable to load teams. Please refresh and try again.
+            {t("unableToLoad") ||
+              "Unable to load teams. Please refresh and try again."}
           </p>
         </CardContent>
       </Card>
@@ -47,10 +50,8 @@ export async function TeamManagement() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Teams</CardTitle>
-        <CardDescription>
-          Manage teams and assign users to teams
-        </CardDescription>
+        <CardTitle>{t("teamsCardTitle")}</CardTitle>
+        <CardDescription>{t("teamsCardDescription")}</CardDescription>
       </CardHeader>
       <CardContent>
         <TeamManagementClient

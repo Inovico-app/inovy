@@ -4,36 +4,44 @@ import { formatDuration } from "@/lib/formatters/duration-formatters";
 import { formatFileSize } from "@/lib/formatters/file-size-formatters";
 import type { RecordingDto } from "@/server/dto/recording.dto";
 import { CalendarIcon, ClockIcon, FileIcon } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 interface RecordingInfoCardProps {
   recording: RecordingDto;
 }
 
-export function RecordingInfoCard({ recording }: RecordingInfoCardProps) {
+export async function RecordingInfoCard({ recording }: RecordingInfoCardProps) {
+  const t = await getTranslations("recordings");
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recording Information</CardTitle>
+        <CardTitle>{t("detail.recordingInformation")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Date:</span>
+            <span className="text-sm text-muted-foreground">
+              {t("detail.dateLabel")}
+            </span>
             <span className="text-sm">
               {formatDateLong(recording.recordingDate)}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <ClockIcon className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Duration:</span>
+            <span className="text-sm text-muted-foreground">
+              {t("detail.durationLabel")}
+            </span>
             <span className="text-sm">
               {formatDuration(recording.duration)}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <FileIcon className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">File size:</span>
+            <span className="text-sm text-muted-foreground">
+              {t("detail.fileSizeLabel")}
+            </span>
             <span className="text-sm">
               {recording.fileSize != null
                 ? formatFileSize(recording.fileSize)
@@ -42,7 +50,9 @@ export function RecordingInfoCard({ recording }: RecordingInfoCardProps) {
           </div>
           <div className="flex items-center gap-2">
             <FileIcon className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Format:</span>
+            <span className="text-sm text-muted-foreground">
+              {t("detail.formatLabel")}
+            </span>
             <span className="text-sm">
               {recording.fileMimeType != null
                 ? (recording.fileMimeType.split("/").pop()?.toUpperCase() ??

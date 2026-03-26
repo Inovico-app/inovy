@@ -1,0 +1,11 @@
+{
+  "unavailable": "Auth unavailable",
+  "defaultUserName": "User",
+  "roleSuperadmin": "Superadmin",
+  "roleAdmin": "Admin",
+  "adminPanel": "Admin Panel",
+  "profile": "Profile",
+  "settings": "Settings",
+  "logOut": "Log out",
+  "login": "Login"
+}
