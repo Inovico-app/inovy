@@ -34,6 +34,18 @@ export class RecordingsQueries {
     return recording ?? null;
   }
 
+  static async selectRecordingByMeetingId(
+    meetingId: string,
+  ): Promise<Recording | null> {
+    const [recording] = await db
+      .select()
+      .from(recordings)
+      .where(eq(recordings.meetingId, meetingId))
+      .orderBy(desc(recordings.createdAt))
+      .limit(1);
+    return recording ?? null;
+  }
+
   static async selectRecordingsByProjectId(
     projectId: string,
     organizationId: string,
