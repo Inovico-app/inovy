@@ -1,8 +1,11 @@
 import path from "path";
 
 import { withWorkflow } from "workflow/next";
+import createNextIntlPlugin from "next-intl/plugin";
 
 import type { NextConfig } from "next";
+
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const isDockerBuild = process.env.DOCKER_BUILD === "true";
 
@@ -159,4 +162,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withWorkflow(nextConfig);
+export default withNextIntl(withWorkflow(nextConfig));
