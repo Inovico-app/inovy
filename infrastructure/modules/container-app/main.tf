@@ -198,7 +198,7 @@ resource "azurerm_container_app" "inovy" {
 
       # Optional when using hybrid: Better Auth may still need a secret while Graph uses federated assertion.
       dynamic "env" {
-        for_each = var.microsoft_client_secret != "" ? [1] : []
+        for_each = var.microsoft_client_secret != "" ? { microsoft_client_secret = true } : {}
         content {
           name  = "MICROSOFT_CLIENT_SECRET"
           value = var.microsoft_client_secret
