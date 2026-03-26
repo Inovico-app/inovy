@@ -13,6 +13,7 @@ import {
 } from "../../../components/ui/dialog";
 import type { RecordingDto } from "../../../server/dto/recording.dto";
 import { EditRecordingForm } from "./edit-recording-form";
+import { useTranslations } from "next-intl";
 
 interface EditRecordingModalProps {
   recording: RecordingDto;
@@ -27,24 +28,26 @@ export function EditRecordingModal({
   triggerContent,
   onOpenChange,
 }: EditRecordingModalProps) {
-  const triggerElement = isValidElement(triggerContent) ? triggerContent : undefined;
+  const t = useTranslations("recordings");
+  const triggerElement = isValidElement(triggerContent)
+    ? triggerContent
+    : undefined;
   return (
     <Dialog open>
-      <DialogTrigger render={triggerElement ?? <Button variant={variant} size="sm" />}>
+      <DialogTrigger
+        render={triggerElement ?? <Button variant={variant} size="sm" />}
+      >
         {!triggerElement && (
           <>
             <PencilIcon className="h-4 w-4 mr-2" />
-            Edit
+            {t("actions.edit")}
           </>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Edit Recording</DialogTitle>
-          <DialogDescription>
-            Update your recording information. Changes will be reflected
-            immediately.
-          </DialogDescription>
+          <DialogTitle>{t("actions.editRecording")}</DialogTitle>
+          <DialogDescription>{t("actions.editDescription")}</DialogDescription>
         </DialogHeader>
         <EditRecordingForm
           recordingId={recording.id}
@@ -59,4 +62,3 @@ export function EditRecordingModal({
     </Dialog>
   );
 }
-

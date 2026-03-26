@@ -8,6 +8,7 @@ import { Loader2, RefreshCw } from "lucide-react";
 import { useGenerateSummaryMutation } from "../hooks/use-generate-summary-mutation";
 import { useJumpToTimestamp } from "../hooks/use-jump-to-timestamp";
 import { TimestampButton } from "./timestamp-button";
+import { useTranslations } from "next-intl";
 
 interface RecordingSummaryProps {
   recordingId: string;
@@ -24,6 +25,7 @@ export function RecordingSummary({
   summary,
   onRegenerate,
 }: RecordingSummaryProps) {
+  const t = useTranslations("recordings");
   const {
     generateSummary,
     isGenerating,
@@ -45,12 +47,10 @@ export function RecordingSummary({
     return (
       <Card>
         <CardContent className="py-8 text-center">
-          <p className="text-muted-foreground mb-4">
-            Geen samenvatting beschikbaar
-          </p>
+          <p className="text-muted-foreground mb-4">{t("summary.noSummary")}</p>
           <Button onClick={handleGenerate} disabled={isGenerating}>
             {isGenerating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Samenvatting genereren
+            {t("summary.generateSummary")}
           </Button>
         </CardContent>
       </Card>
@@ -63,10 +63,12 @@ export function RecordingSummary({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Vergadersamenvatting</CardTitle>
+          <CardTitle>{t("summary.meetingSummary")}</CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant="outline">
-              {Math.round(localSummary.confidence * 100)}% vertrouwen
+              {t("summary.confidence", {
+                value: Math.round(localSummary.confidence * 100),
+              })}
             </Badge>
             <Button
               variant="outline"
@@ -87,7 +89,9 @@ export function RecordingSummary({
         {/* Overview */}
         {content.overview && (
           <div>
-            <h3 className="text-sm font-semibold mb-2">Overview</h3>
+            <h3 className="text-sm font-semibold mb-2">
+              {t("summary.overview")}
+            </h3>
             <p className="text-sm">{content.overview}</p>
           </div>
         )}
@@ -95,10 +99,15 @@ export function RecordingSummary({
         {/* Main Topics */}
         {content.topics && content.topics.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold mb-2">Key Topics</h3>
+            <h3 className="text-sm font-semibold mb-2">
+              {t("summary.keyTopics")}
+            </h3>
             <ul className="space-y-1">
               {content.topics.map((topic, index) => (
-                <li key={`topic-${index}-${String(topic).slice(0, 20)}`} className="text-sm flex items-start">
+                <li
+                  key={`topic-${index}-${String(topic).slice(0, 20)}`}
+                  className="text-sm flex items-start"
+                >
                   <span className="text-primary mr-2">•</span>
                   {topic}
                 </li>
@@ -110,10 +119,15 @@ export function RecordingSummary({
         {/* Decisions */}
         {content.decisions && content.decisions.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold mb-2">Decisions</h3>
+            <h3 className="text-sm font-semibold mb-2">
+              {t("summary.decisions")}
+            </h3>
             <ul className="space-y-1">
               {content.decisions.map((decision, index) => (
-                <li key={`decision-${index}-${String(decision).slice(0, 20)}`} className="text-sm flex items-start">
+                <li
+                  key={`decision-${index}-${String(decision).slice(0, 20)}`}
+                  className="text-sm flex items-start"
+                >
                   <span className="text-primary mr-2">•</span>
                   {decision}
                 </li>
@@ -122,7 +136,7 @@ export function RecordingSummary({
           </div>
         )}
 
-        {/* Speaker Contributions */}
+        {/* {t("summary.speakerContributions")} */}
         {content.speakerContributions &&
           content.speakerContributions.length > 0 && (
             <div>
@@ -131,13 +145,19 @@ export function RecordingSummary({
               </h3>
               <div className="space-y-3">
                 {content.speakerContributions.map((speaker, index) => (
-                  <div key={`speaker-${index}-${speaker.speaker}`} className="p-3 rounded-lg bg-muted/50">
+                  <div
+                    key={`speaker-${index}-${speaker.speaker}`}
+                    className="p-3 rounded-lg bg-muted/50"
+                  >
                     <Badge variant="secondary" className="mb-2">
                       {speaker.speaker}
                     </Badge>
                     <ul className="space-y-1">
                       {speaker.contributions.map((contribution, cIndex) => (
-                        <li key={`contribution-${cIndex}-${String(contribution).slice(0, 20)}`} className="text-sm flex items-start">
+                        <li
+                          key={`contribution-${cIndex}-${String(contribution).slice(0, 20)}`}
+                          className="text-sm flex items-start"
+                        >
                           <span className="text-muted-foreground mr-2">-</span>
                           {contribution}
                         </li>
@@ -152,7 +172,9 @@ export function RecordingSummary({
         {/* Important Quotes */}
         {content.importantQuotes && content.importantQuotes.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold mb-2">Important Quotes</h3>
+            <h3 className="text-sm font-semibold mb-2">
+              {t("summary.importantQuotes")}
+            </h3>
             <div className="space-y-2">
               {content.importantQuotes.map((quote, index) => (
                 <div
@@ -182,4 +204,3 @@ export function RecordingSummary({
     </Card>
   );
 }
-

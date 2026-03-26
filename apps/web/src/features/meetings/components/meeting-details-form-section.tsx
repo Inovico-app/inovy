@@ -14,6 +14,7 @@ import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { format } from "date-fns";
 import { ExternalLinkIcon, Loader2Icon } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { z } from "zod";
 import type { MeetingWithSession } from "../lib/calendar-utils";
@@ -80,12 +81,8 @@ function DurationAndAttendeesDisplay({
   const attendeeCount = getAttendeesCount(meeting);
   return (
     <>
-      Duration: {duration}
-      {attendeeCount > 0 && (
-        <span className="ml-2">
-          • {attendeeCount} attendee{attendeeCount !== 1 ? "s" : ""}
-        </span>
-      )}
+      {duration}
+      {attendeeCount > 0 && <span className="ml-2">• {attendeeCount}</span>}
     </>
   );
 }
@@ -101,6 +98,7 @@ export function MeetingDetailsFormSection({
   onSubmit,
   isUpdating,
 }: MeetingDetailsFormSectionProps) {
+  const t = useTranslations("meetings");
   const {
     register,
     handleSubmit,
@@ -128,7 +126,7 @@ export function MeetingDetailsFormSection({
     );
 
     if (durationMinutes < 15) {
-      toast.error("Duration must be at least 15 minutes");
+      toast.error(t("details.durationMinimum"));
       return;
     }
 
@@ -138,15 +136,15 @@ export function MeetingDetailsFormSection({
   return (
     <section aria-labelledby="meeting-details-heading">
       <h3 id="meeting-details-heading" className="font-semibold mb-3">
-        Meeting Details
+        {t("details.meetingDetailsHeading")}
       </h3>
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="meeting-title">Title</Label>
+          <Label htmlFor="meeting-title">{t("details.titleLabel")}</Label>
           <Input
             id="meeting-title"
             {...register("title")}
-            placeholder="Meeting title"
+            placeholder={t("details.titlePlaceholder")}
             aria-invalid={errors.title ? "true" : "false"}
           />
           {errors.title && (
@@ -156,7 +154,7 @@ export function MeetingDetailsFormSection({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="start-date">Start Date</Label>
+            <Label htmlFor="start-date">{t("details.startDate")}</Label>
             <Input
               id="start-date"
               type="date"
@@ -170,14 +168,14 @@ export function MeetingDetailsFormSection({
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="start-time">Start Time</Label>
+            <Label htmlFor="start-time">{t("details.startTime")}</Label>
             <Select
               value={watch("startTime")}
               onValueChange={(v) => setValue("startTime", v ?? "")}
               items={TIME_ITEMS}
             >
               <SelectTrigger id="start-time">
-                <SelectValue placeholder="Select time" />
+                <SelectValue placeholder={t("details.selectTime")} />
               </SelectTrigger>
               <SelectContent>
                 {TIME_OPTIONS.map((opt) => (
@@ -197,7 +195,7 @@ export function MeetingDetailsFormSection({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="end-date">End Date</Label>
+            <Label htmlFor="end-date">{t("details.endDate")}</Label>
             <Input
               id="end-date"
               type="date"
@@ -212,14 +210,14 @@ export function MeetingDetailsFormSection({
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="end-time">End Time</Label>
+            <Label htmlFor="end-time">{t("details.endTime")}</Label>
             <Select
               value={watch("endTime")}
               onValueChange={(v) => setValue("endTime", v ?? "")}
               items={TIME_ITEMS}
             >
               <SelectTrigger id="end-time">
-                <SelectValue placeholder="Select time" />
+                <SelectValue placeholder={t("details.selectTime")} />
               </SelectTrigger>
               <SelectContent>
                 {TIME_OPTIONS.map((opt) => (
@@ -249,7 +247,7 @@ export function MeetingDetailsFormSection({
 
         {meeting.meetingUrl && (
           <div className="space-y-2">
-            <Label>Meeting URL</Label>
+            <Label>{t("details.meetingUrlLabel")}</Label>
             <a
               href={
                 meeting.meetingUrl.startsWith("http")
@@ -270,10 +268,10 @@ export function MeetingDetailsFormSection({
           {isUpdating ? (
             <>
               <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
-              Saving...
+              {t("details.saving")}
             </>
           ) : (
-            "Save Meeting Details"
+            t("details.saveMeetingDetails")
           )}
         </Button>
       </form>

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useRecordingStatus } from "../../../hooks/use-recording-status";
 import type { RecordingStatus } from "../../../server/db/schema/recordings";
 import { StatusBadge } from "./status-badge";
+import { useTranslations } from "next-intl";
 
 interface RecordingDetailStatusProps {
   recordingId: string;
@@ -16,6 +17,7 @@ export function RecordingDetailStatus({
   recordingId,
   initialStatus,
 }: RecordingDetailStatusProps) {
+  const t = useTranslations("recordings");
   const router = useRouter();
   const previousStatusRef = useRef(initialStatus);
 
@@ -28,8 +30,8 @@ export function RecordingDetailStatus({
         newStatus === "completed" &&
         previousStatusRef.current !== "completed"
       ) {
-        toast.success("Transcription completed", {
-          description: "The recording has been successfully processed",
+        toast.success(t("toast.transcriptionCompleted"), {
+          description: t("toast.transcriptionCompletedDescription"),
         });
         // Refresh the page to show the transcription
         router.refresh();
@@ -37,8 +39,8 @@ export function RecordingDetailStatus({
         newStatus === "failed" &&
         previousStatusRef.current !== "failed"
       ) {
-        toast.error("Transcription failed", {
-          description: "There was an error processing this recording",
+        toast.error(t("toast.transcriptionFailed"), {
+          description: t("toast.transcriptionFailedDescription"),
         });
         router.refresh();
       }
@@ -55,10 +57,9 @@ export function RecordingDetailStatus({
       <StatusBadge status={status} />
       {isPolling && (
         <span className="text-xs text-muted-foreground">
-          Checking status...
+          {t("status.checkingStatus")}
         </span>
       )}
     </div>
   );
 }
-

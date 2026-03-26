@@ -4,6 +4,7 @@ import { formatFileSizePrecise } from "@/lib/formatters/file-size-formatters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DataExport } from "@/server/db/schema/data-exports";
+import { useTranslations } from "next-intl";
 import { format } from "date-fns";
 import { Calendar, Download, Loader2 } from "lucide-react";
 
@@ -66,9 +67,10 @@ export function DataExportHistory({
   isLoadingHistory,
   onDownload,
 }: DataExportHistoryProps) {
+  const t = useTranslations("settings.profile");
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold">Export History</h3>
+      <h3 className="text-sm font-semibold">{t("exportHistory")}</h3>
 
       {isLoadingHistory ? (
         <div className="flex items-center justify-center py-8">
@@ -76,7 +78,7 @@ export function DataExportHistory({
         </div>
       ) : exports.length === 0 ? (
         <p className="text-sm text-muted-foreground py-4">
-          No exports yet. Request your first export above.
+          {t("noExportsYet")}
         </p>
       ) : (
         <div className="space-y-3">
@@ -103,7 +105,7 @@ export function DataExportHistory({
                       <Calendar className="h-3 w-3" />
                       {format(
                         new Date(export_.createdAt),
-                        "MMM d, yyyy 'at' h:mm a"
+                        "MMM d, yyyy 'at' h:mm a",
                       )}
                     </span>
                     {export_.fileSize && (
@@ -111,9 +113,8 @@ export function DataExportHistory({
                     )}
                   </div>
                   <div className="text-xs">
-                    {export_.recordingsCount} recordings,{" "}
-                    {export_.tasksCount} tasks, {export_.conversationsCount}{" "}
-                    conversations
+                    {export_.recordingsCount} recordings, {export_.tasksCount}{" "}
+                    tasks, {export_.conversationsCount} conversations
                   </div>
                   {export_.errorMessage && (
                     <p className="text-xs text-red-600">

@@ -9,6 +9,7 @@ import { OrganizationForm } from "@/features/admin/components/organization/organ
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 export const metadata = {
@@ -18,28 +19,26 @@ export const metadata = {
 
 async function CreateOrganizationContent() {
   const hasCreateOrganizationPermission = await checkPermission(
-    Permissions.organization.create
+    Permissions.organization.create,
   );
 
   if (!hasCreateOrganizationPermission) {
     redirect("/");
   }
 
+  const t = await getTranslations("admin.organizations");
+
   return (
     <div className="container mx-auto max-w-2xl py-8 px-4">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Create Organization</h1>
-        <p className="text-muted-foreground">
-          Create a new organization for users to join
-        </p>
+        <h1 className="text-3xl font-bold">{t("createTitle")}</h1>
+        <p className="text-muted-foreground">{t("createDescription")}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Organization Details</CardTitle>
-          <CardDescription>
-            Enter the details for the new organization
-          </CardDescription>
+          <CardTitle>{t("organizationDetails")}</CardTitle>
+          <CardDescription>{t("enterDetails")}</CardDescription>
         </CardHeader>
         <CardContent>
           <OrganizationForm />
@@ -78,4 +77,3 @@ export default function CreateOrganizationPage() {
     </Suspense>
   );
 }
-

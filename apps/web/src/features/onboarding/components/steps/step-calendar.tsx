@@ -1,6 +1,9 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { PermissionExplanationDialog } from "@/features/integrations/google/components/permission-explanation-dialog";
 import { Calendar, CheckCircle2, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface StepCalendarProps {
   googleConnected: boolean;
@@ -17,6 +20,8 @@ export function StepCalendar({
   showPermissionDialog,
   onPermissionDialogChange,
 }: StepCalendarProps) {
+  const t = useTranslations("onboarding");
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -25,9 +30,11 @@ export function StepCalendar({
             <Calendar className="h-8 w-8 text-primary" />
           </div>
         </div>
-        <h2 className="text-2xl font-semibold text-center">Koppel je agenda</h2>
+        <h2 className="text-2xl font-semibold text-center">
+          {t("stepCalendarTitle")}
+        </h2>
         <p className="text-muted-foreground text-center">
-          Synchroniseer gesprekken automatisch met je agenda
+          {t("stepCalendarSubtitle")}
         </p>
       </div>
       <div className="space-y-4">
@@ -39,7 +46,7 @@ export function StepCalendar({
           <div className="flex items-center justify-center gap-2 p-4 rounded-lg border bg-primary/5 border-primary/20">
             <CheckCircle2 className="h-5 w-5 text-primary" />
             <span className="text-sm font-medium">
-              Google Agenda is gekoppeld
+              {t("stepCalendarConnected")}
             </span>
           </div>
         ) : (
@@ -74,7 +81,7 @@ export function StepCalendar({
                 />
               </svg>
             </div>
-            <span className="font-medium">Google Agenda</span>
+            <span className="font-medium">{t("stepCalendarGoogleButton")}</span>
           </Button>
         )}
       </div>
@@ -88,4 +95,3 @@ export function StepCalendar({
     </div>
   );
 }
-

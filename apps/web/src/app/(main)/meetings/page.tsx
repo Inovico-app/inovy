@@ -7,6 +7,7 @@ export const metadata: Metadata = { title: "Meetings" };
 import { CalendarConnectionPrompt } from "@/features/meetings/components/calendar-connection-prompt";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { getConnectedProviders } from "@/server/services/calendar/calendar-provider-factory";
+import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -32,6 +33,8 @@ async function MeetingsContent({
     redirect("/sign-in");
   }
 
+  const t = await getTranslations("meetings");
+
   // Check if any calendar provider (Google or Microsoft) is connected
   const connectedProviders = await getConnectedProviders(user.id);
   const hasCalendarConnection = connectedProviders.length > 0;
@@ -40,10 +43,10 @@ async function MeetingsContent({
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Meetings</h1>
-          <p className="text-muted-foreground mt-2">
-            View your calendar meetings and manage notetaker assistants
-          </p>
+          <h1 className="text-3xl font-bold text-foreground">
+            {t("page.heading")}
+          </h1>
+          <p className="text-muted-foreground mt-2">{t("page.description")}</p>
         </div>
 
         <NotetakerGuidanceBanner />
@@ -62,7 +65,7 @@ async function MeetingsContent({
   );
 }
 
-export default function MeetingsPage({
+export default async function MeetingsPage({
   searchParams,
 }: {
   searchParams: Promise<{
@@ -72,13 +75,15 @@ export default function MeetingsPage({
     botStatus?: string;
   }>;
 }) {
+  const t = await getTranslations("meetings");
+
   return (
     <Suspense
       fallback={
         <div
           className="container mx-auto py-8 px-4"
           aria-busy="true"
-          aria-label="Loading meetings"
+          aria-label={t("page.loadingMeetings")}
           role="status"
         >
           <div className="max-w-7xl mx-auto space-y-6">

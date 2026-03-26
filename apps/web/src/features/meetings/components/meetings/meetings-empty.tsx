@@ -1,25 +1,28 @@
+"use client";
+
 import { CalendarIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 interface MeetingsEmptyProps {
   variant: "no-meetings" | "no-results";
   onClearFilters?: () => void;
 }
 
-export function MeetingsEmpty({
-  variant,
-  onClearFilters,
-}: MeetingsEmptyProps) {
+export function MeetingsEmpty({ variant, onClearFilters }: MeetingsEmptyProps) {
+  const t = useTranslations("meetings");
+
   if (variant === "no-meetings") {
     return (
       <Card>
         <CardContent className="py-12 text-center">
           <CalendarIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No meetings found</h3>
+          <h3 className="text-lg font-semibold mb-2">
+            {t("list.noMeetingsTitle")}
+          </h3>
           <p className="text-muted-foreground">
-            You don't have any upcoming meetings. Meetings will appear here once
-            they are scheduled in your Google Calendar.
+            {t("list.noMeetingsDescription")}
           </p>
         </CardContent>
       </Card>
@@ -30,13 +33,15 @@ export function MeetingsEmpty({
     <Card>
       <CardContent className="py-12 text-center">
         <CalendarIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No meetings match your filters</h3>
+        <h3 className="text-lg font-semibold mb-2">
+          {t("list.noResultsTitle")}
+        </h3>
         <p className="text-muted-foreground mb-4">
-          Try adjusting your filters to see more meetings.
+          {t("list.noResultsDescription")}
         </p>
         {onClearFilters && (
           <Button variant="outline" onClick={onClearFilters}>
-            Clear filters
+            {t("filter.clearFilters")}
           </Button>
         )}
       </CardContent>

@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslations } from "next-intl";
 import { useArrayToggle } from "@/hooks/use-array-toggle";
 import { X } from "lucide-react";
 
@@ -165,6 +166,7 @@ export function AuditLogFilters({
   onEndDateChange,
   onClearFilters,
 }: AuditLogFiltersProps) {
+  const t = useTranslations("admin.auditLogs");
   const toggleEventType = useArrayToggle(eventTypes, onEventTypesChange);
   const toggleResourceType = useArrayToggle(
     resourceTypes,
@@ -185,7 +187,7 @@ export function AuditLogFilters({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">Filters</CardTitle>
+          <CardTitle className="text-base">{t("filters")}</CardTitle>
           {hasActiveFilters && (
             <Button
               variant="ghost"
@@ -201,7 +203,7 @@ export function AuditLogFilters({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label>Category</Label>
+          <Label>{t("category")}</Label>
           <div className="flex rounded-md border border-input overflow-hidden">
             {CATEGORY_OPTIONS.map((option) => (
               <button
@@ -221,7 +223,7 @@ export function AuditLogFilters({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="event-type">Event Type</Label>
+          <Label htmlFor="event-type">{t("eventType")}</Label>
           <Select
             value={eventTypes[0] ?? ""}
             onValueChange={(value) => {
@@ -262,7 +264,7 @@ export function AuditLogFilters({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="resource-type">Resource Type</Label>
+          <Label htmlFor="resource-type">{t("resourceType")}</Label>
           <Select
             value={resourceTypes[0] ?? ""}
             onValueChange={(value) => {
@@ -303,7 +305,7 @@ export function AuditLogFilters({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="action">Action</Label>
+          <Label htmlFor="action">{t("action")}</Label>
           <Select
             value={actions[0] ?? ""}
             onValueChange={(value) => {
@@ -344,29 +346,29 @@ export function AuditLogFilters({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="user-id">User ID</Label>
+          <Label htmlFor="user-id">{t("userId")}</Label>
           <Input
             id="user-id"
             value={userId ?? ""}
             onChange={(e) => onUserIdChange(e.target.value)}
-            placeholder="Filter by user ID"
+            placeholder={t("filterByUserId")}
             className="w-full"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="resource-id">Resource ID</Label>
+          <Label htmlFor="resource-id">{t("resourceId")}</Label>
           <Input
             id="resource-id"
             value={resourceId ?? ""}
             onChange={(e) => onResourceIdChange(e.target.value)}
-            placeholder="Filter by resource ID"
+            placeholder={t("filterByResourceId")}
             className="w-full"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="start-date">Start Date</Label>
+          <Label htmlFor="start-date">{t("startDate")}</Label>
           <Input
             id="start-date"
             type="datetime-local"
@@ -377,7 +379,7 @@ export function AuditLogFilters({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="end-date">End Date</Label>
+          <Label htmlFor="end-date">{t("endDate")}</Label>
           <Input
             id="end-date"
             type="datetime-local"

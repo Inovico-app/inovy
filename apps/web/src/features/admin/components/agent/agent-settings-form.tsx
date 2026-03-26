@@ -32,6 +32,7 @@ import type { AgentSettings } from "@/server/db/schema/agent-settings";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { useTranslations } from "next-intl";
 import { z } from "zod";
 
 interface AgentSettingsFormProps {
@@ -78,6 +79,7 @@ const agentSettingsSchema = z.object({
 type AgentSettingsFormValues = z.infer<typeof agentSettingsSchema>;
 
 export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
+  const t = useTranslations("admin.agentConfig");
   const { updateAgentSettings, isPending } = useAgentSettings();
 
   const form = useForm<AgentSettingsFormValues>({
@@ -104,11 +106,8 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Agent Settings</CardTitle>
-        <CardDescription>
-          Configure global agent parameters like model, max tokens, temperature,
-          and more
-        </CardDescription>
+        <CardTitle>{t("agentSettings")}</CardTitle>
+        <CardDescription>{t("agentSettingsDescription")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -119,7 +118,7 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
               name="model"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Model</FormLabel>
+                  <FormLabel>{t("model")}</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
@@ -166,7 +165,7 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
               name="maxTokens"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Max Tokens</FormLabel>
+                  <FormLabel>{t("maxTokens")}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -194,7 +193,7 @@ export function AgentSettingsForm({ initialSettings }: AgentSettingsFormProps) {
               name="maxContextTokens"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Max Context Tokens</FormLabel>
+                  <FormLabel>{t("maxContextTokens")}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"

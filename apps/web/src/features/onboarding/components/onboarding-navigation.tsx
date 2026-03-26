@@ -1,5 +1,8 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Activity } from "react";
 import type { Step } from "../hooks/use-onboarding-steps";
 
@@ -28,6 +31,8 @@ export function OnboardingNavigation({
   showSkip = false,
   showInvite = false,
 }: OnboardingNavigationProps) {
+  const t = useTranslations("onboarding");
+
   return (
     <div className="flex items-center justify-between pt-6">
       <Activity mode={currentStep > 1 ? "visible" : "hidden"}>
@@ -39,7 +44,7 @@ export function OnboardingNavigation({
           className="w-full sm:w-auto"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Terug
+          {t("backButton")}
         </Button>
       </Activity>
 
@@ -56,7 +61,7 @@ export function OnboardingNavigation({
             disabled={isLoading}
             className="w-full sm:w-auto"
           >
-            Overslaan
+            {t("skipButton")}
           </Button>
         </Activity>
 
@@ -70,11 +75,11 @@ export function OnboardingNavigation({
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Verzenden...
+                {t("sendingInvites")}
               </>
             ) : (
               <>
-                Uitnodigingen versturen
+                {t("sendInvites")}
                 <svg
                   className="ml-2 h-4 w-4"
                   fill="none"
@@ -107,11 +112,11 @@ export function OnboardingNavigation({
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Opslaan...
+                {t("saving")}
               </>
             ) : (
               <>
-                Verder
+                {t("nextButton")}
                 <svg
                   className="ml-2 h-4 w-4"
                   fill="none"
@@ -139,11 +144,11 @@ export function OnboardingNavigation({
             {isCompleting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Starten...
+                {t("starting")}
               </>
             ) : (
               <>
-                Start met Inovy
+                {t("startWithInovy")}
                 <CheckCircle2 className="ml-2 h-4 w-4" />
               </>
             )}
@@ -153,4 +158,3 @@ export function OnboardingNavigation({
     </div>
   );
 }
-

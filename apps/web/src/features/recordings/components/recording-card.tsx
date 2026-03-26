@@ -33,6 +33,7 @@ import {
 } from "../../../components/ui/dropdown-menu";
 import { EditRecordingModal } from "./edit-recording-modal";
 import { MoveRecordingDialog } from "./move-recording-dialog";
+import { useTranslations } from "next-intl";
 
 interface RecordingCardProps {
   recording: RecordingDto;
@@ -42,21 +43,21 @@ interface RecordingCardProps {
 
 const STATUS_CONFIG = {
   pending: {
-    label: "Pending",
+    labelKey: "status.pending" as const,
     className:
       "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
   },
   processing: {
-    label: "Processing",
+    labelKey: "status.processing" as const,
     className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   },
   completed: {
-    label: "Completed",
+    labelKey: "status.completed" as const,
     className:
       "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   },
   failed: {
-    label: "Failed",
+    labelKey: "status.failed" as const,
     className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
   },
 } as const;
@@ -66,6 +67,7 @@ export function RecordingCard({
   projectId,
   projectName,
 }: RecordingCardProps) {
+  const t = useTranslations("recordings");
   const [showEditModal, setShowEditModal] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const statusConfig = STATUS_CONFIG[recording.transcriptionStatus];
@@ -99,7 +101,7 @@ export function RecordingCard({
             </div>
             <div className="flex items-center gap-2">
               <Badge className={statusConfig.className}>
-                {statusConfig.label}
+                {t(statusConfig.labelKey)}
               </Badge>
               <DropdownMenu>
                 <DropdownMenuTrigger
@@ -110,18 +112,18 @@ export function RecordingCard({
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => setShowEditModal(true)}>
                     <EditIcon className="h-4 w-4 mr-2" />
-                    Edit
+                    {t("actions.edit")}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowMoveDialog(true)}>
                     <ArrowRightIcon className="h-4 w-4 mr-2" />
-                    Move to Project
+                    {t("actions.moveToProject")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem disabled>
-                    Archive (Coming Soon)
+                    {t("actions.archiveComingSoon")}
                   </DropdownMenuItem>
                   <DropdownMenuItem disabled className="text-destructive">
-                    Delete (Coming Soon)
+                    {t("actions.deleteComingSoon")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -149,7 +151,9 @@ export function RecordingCard({
               </div>
             )}
             <div className="flex items-center gap-2 text-muted-foreground text-xs">
-              Uploaded {formatDateShort(recording.createdAt)}
+              {t("actions.uploaded", {
+                date: formatDateShort(recording.createdAt),
+              })}
             </div>
           </div>
         </CardContent>

@@ -16,6 +16,7 @@ import {
 import type { Task } from "@/server/db/schema/tasks";
 import type { TaskWithContextDto } from "@/server/dto/task.dto";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { TaskEditDialog } from "./task-edit-dialog";
 
 interface TaskCardProps {
@@ -31,19 +32,7 @@ const priorityColors = {
   urgent: "bg-red-100 text-red-700 border-red-300",
 };
 
-const priorityLabels = {
-  low: "Laag",
-  medium: "Normaal",
-  high: "Hoog",
-  urgent: "Urgent",
-};
-
-const statusLabels = {
-  pending: "Te doen",
-  in_progress: "Bezig",
-  completed: "Voltooid",
-  cancelled: "Geannuleerd",
-};
+// Priority and status labels are now resolved via useTranslations
 
 // Helper function to format timestamp in MM:SS format
 function formatTimestamp(seconds: number | null): string {
@@ -53,7 +42,26 @@ function formatTimestamp(seconds: number | null): string {
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 }
 
-export function TaskCard({ task, onStatusChange, showContext = false }: TaskCardProps) {
+export function TaskCard({
+  task,
+  onStatusChange,
+  showContext = false,
+}: TaskCardProps) {
+  const t = useTranslations("tasks");
+
+  const priorityLabels = {
+    low: t("priorityLow"),
+    medium: t("priorityMedium"),
+    high: t("priorityHigh"),
+    urgent: t("priorityUrgent"),
+  };
+
+  const statusLabels = {
+    pending: t("statusPending"),
+    in_progress: t("statusInProgress"),
+    completed: t("statusCompleted"),
+    cancelled: t("statusCancelled"),
+  };
   const handleStatusToggle = () => {
     if (!onStatusChange) return;
 
@@ -96,7 +104,7 @@ export function TaskCard({ task, onStatusChange, showContext = false }: TaskCard
                 </h3>
                 {task.isManuallyEdited === "true" && (
                   <Badge variant="secondary" className="text-xs">
-                    Bewerkt
+                    {t("edited")}
                   </Badge>
                 )}
               </div>
@@ -107,17 +115,22 @@ export function TaskCard({ task, onStatusChange, showContext = false }: TaskCard
                 >
                   {priorityLabels[task.priority]}
                 </Badge>
-                <TaskEditDialog task={task} trigger={
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                    <Edit className="h-3.5 w-3.5" />
-                  </Button>
-                } />
+                <TaskEditDialog
+                  task={task}
+                  trigger={
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                      <Edit className="h-3.5 w-3.5" />
+                    </Button>
+                  }
+                />
               </div>
             </div>
 
             {/* Description */}
             {task.description && (
-              <p className="text-sm text-muted-foreground">{task.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {task.description}
+              </p>
             )}
 
             {/* Context info (project and recording) */}
@@ -191,7 +204,9 @@ export function TaskCard({ task, onStatusChange, showContext = false }: TaskCard
               {task.confidenceScore !== null && (
                 <div className="flex items-center gap-1">
                   <span>
-                    {Math.round(task.confidenceScore * 100)}% vertrouwen
+                    {t("confidence", {
+                      score: Math.round(task.confidenceScore * 100),
+                    })}
                   </span>
                 </div>
               )}
@@ -202,4 +217,3 @@ export function TaskCard({ task, onStatusChange, showContext = false }: TaskCard
     </Card>
   );
 }
-

@@ -2,6 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 interface TaskSearchProps {
@@ -10,11 +11,10 @@ interface TaskSearchProps {
   placeholder?: string;
 }
 
-export function TaskSearch({
-  value,
-  onChange,
-  placeholder = "Search tasks...",
-}: TaskSearchProps) {
+export function TaskSearch({ value, onChange, placeholder }: TaskSearchProps) {
+  const t = useTranslations("tasks");
+  const resolvedPlaceholder = placeholder ?? t("searchTasksPlaceholder");
+
   const handleClear = () => {
     onChange("");
   };
@@ -24,7 +24,7 @@ export function TaskSearch({
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         type="text"
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="pl-9 pr-9"
@@ -42,4 +42,3 @@ export function TaskSearch({
     </div>
   );
 }
-

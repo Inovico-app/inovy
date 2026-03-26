@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { RecoveredSession } from "@/features/recordings/core/recording-session.types";
 import { AlertTriangle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface RecoveryDialogProps {
   orphanedSession: RecoveredSession | null;
@@ -26,14 +27,14 @@ function formatAge(startedAt: number): string {
   const hours = Math.floor(minutes / 60);
 
   if (hours > 0) {
-    return `${hours} uur en ${minutes % 60} minuten`;
+    return `${hours} ${hours === 1 ? "hour" : "hours"} and ${minutes % 60} ${minutes % 60 === 1 ? "minute" : "minutes"}`;
   }
 
   if (minutes > 0) {
-    return `${minutes} ${minutes === 1 ? "minuut" : "minuten"}`;
+    return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
   }
 
-  return "minder dan een minuut";
+  return "< 1 min";
 }
 
 export function RecoveryDialog({
@@ -41,6 +42,7 @@ export function RecoveryDialog({
   onRecover,
   onDiscard,
 }: RecoveryDialogProps) {
+  const t = useTranslations("recordings");
   if (!orphanedSession) return null;
 
   const age = formatAge(orphanedSession.manifest.startedAt);
@@ -53,16 +55,23 @@ export function RecoveryDialog({
           <AlertDialogMedia className="bg-amber-500/10 text-amber-600 dark:text-amber-400">
             <AlertTriangle className="w-5 h-5" />
           </AlertDialogMedia>
-          <AlertDialogTitle>Onvoltooide opname gevonden</AlertDialogTitle>
+          <AlertDialogTitle>{t("recovery.title")}</AlertDialogTitle>
           <AlertDialogDescription>
-            Er is een opname gevonden die {age} geleden is gestart met{" "}
-            {chunkCount} {chunkCount === 1 ? "fragment" : "fragmenten"}. Wilt u
-            deze herstellen of verwijderen?
+            {t("recovery.description", {
+              age,
+              chunks: chunkCount,
+              chunkLabel:
+                chunkCount === 1 ? t("recovery.chunk") : t("recovery.chunks"),
+            })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onDiscard}>Verwijderen</AlertDialogCancel>
-          <AlertDialogAction onClick={onRecover}>Herstellen</AlertDialogAction>
+          <AlertDialogCancel onClick={onDiscard}>
+            {t("recovery.discardRecovery")}
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={onRecover}>
+            {t("recovery.recover")}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

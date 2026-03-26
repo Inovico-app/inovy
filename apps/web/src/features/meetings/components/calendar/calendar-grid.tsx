@@ -9,6 +9,7 @@ import {
 } from "@/features/meetings/lib/calendar-utils";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { useTranslations } from "next-intl";
 
 interface CalendarGridProps {
   currentDate: Date;
@@ -25,6 +26,7 @@ export function CalendarGrid({
   onDayClick,
   onMeetingClick,
 }: CalendarGridProps) {
+  const t = useTranslations("meetings");
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const days = getCalendarDays(year, month, 0); // 0 = Sunday
@@ -40,7 +42,7 @@ export function CalendarGrid({
     <div
       className="rounded-lg border bg-card"
       role="grid"
-      aria-label="Calendar"
+      aria-label={t("calendar.ariaLabel")}
     >
       {/* Days of week header */}
       <div className="grid grid-cols-7 border-b" role="row">
@@ -102,7 +104,7 @@ export function CalendarGrid({
               <div className="space-y-1 group">
                 {dayMeetings.length === 0 ? (
                   <div className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100">
-                    No meetings
+                    {t("calendar.noMeetings")}
                   </div>
                 ) : (
                   dayMeetings
@@ -118,7 +120,7 @@ export function CalendarGrid({
                 )}
                 {dayMeetings.length > 3 && (
                   <div className="text-xs text-muted-foreground">
-                    +{dayMeetings.length - 3} more
+                    {t("calendar.moreCount", { count: dayMeetings.length - 3 })}
                   </div>
                 )}
               </div>

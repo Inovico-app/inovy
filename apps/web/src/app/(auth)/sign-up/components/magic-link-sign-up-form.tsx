@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { magicLinkSchema } from "@/features/auth/validation/auth.schema";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 
@@ -35,6 +36,7 @@ export function MagicLinkSignUpForm({
   isSendingMagicLink: _isSendingMagicLink,
   magicLinkError,
 }: MagicLinkSignUpFormProps) {
+  const t = useTranslations("auth");
   const magicLinkForm = useForm<MagicLinkValues>({
     resolver: standardSchemaResolver(magicLinkSchema),
     defaultValues: {
@@ -60,12 +62,12 @@ export function MagicLinkSignUpForm({
           className="space-y-4"
         >
           <fieldset className="space-y-4" disabled={isLoading}>
-            <legend className="sr-only">Sign up with magic link</legend>
+            <legend className="sr-only">{t("magicLinkSignUpLegend")}</legend>
 
             {magicLinkError && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Foutmelding</AlertTitle>
+                <AlertTitle>{t("errorTitle")}</AlertTitle>
                 <AlertDescription>{magicLinkError}</AlertDescription>
               </Alert>
             )}
@@ -75,18 +77,17 @@ export function MagicLinkSignUpForm({
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{t("emailLabel")}</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="je@voorbeeld.nl"
+                      placeholder={t("emailPlaceholder")}
                       autoFocus
                       {...field}
                     />
                   </FormControl>
                   <FormDescription className="text-xs">
-                    We sturen je een link om je account aan te maken zonder
-                    wachtwoord
+                    {t("magicLinkSignUpHint")}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -101,10 +102,10 @@ export function MagicLinkSignUpForm({
                 disabled={isLoading}
                 className="flex-1"
               >
-                Annuleren
+                {t("cancel")}
               </Button>
               <Button type="submit" className="flex-1" disabled={isLoading}>
-                Versturen
+                {t("send")}
               </Button>
             </div>
           </fieldset>

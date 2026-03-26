@@ -21,6 +21,7 @@ import {
   Trash2,
   Undo2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useConversationActions } from "../hooks/use-conversation-actions";
 import { useConversationExport } from "../hooks/use-conversation-export";
@@ -37,6 +38,8 @@ export function ConversationActionsMenu({
   conversation,
   trigger,
 }: ConversationActionsMenuProps) {
+  const t = useTranslations("chat");
+  const tc = useTranslations("common");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -80,26 +83,26 @@ export function ConversationActionsMenu({
               {isArchived ? (
                 <DropdownMenuItem onClick={handleUnarchive}>
                   <ArchiveRestore className="mr-2 h-4 w-4" />
-                  Unarchive
+                  {t("unarchive")}
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem onClick={handleArchive}>
                   <Archive className="mr-2 h-4 w-4" />
-                  Archive
+                  {t("archived")}
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <Download className="mr-2 h-4 w-4" />
-                  Export
+                  {t("export")}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                   <DropdownMenuItem
                     onClick={() => exportConversation(conversation.id, "text")}
                   >
                     <FileText className="mr-2 h-4 w-4" />
-                    Plain Text
+                    {t("plainText")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => exportConversation(conversation.id, "pdf")}
@@ -115,14 +118,14 @@ export function ConversationActionsMenu({
                 className="text-destructive focus:text-destructive"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Delete
+                {tc("delete")}
               </DropdownMenuItem>
             </>
           )}
           {isDeleted && (
             <DropdownMenuItem onClick={() => setShowRestoreDialog(true)}>
               <Undo2 className="mr-2 h-4 w-4" />
-              Restore
+              {t("restoreConversationTitle").replace("?", "")}
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>
@@ -152,4 +155,3 @@ export function ConversationActionsMenu({
     </>
   );
 }
-

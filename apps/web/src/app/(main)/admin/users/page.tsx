@@ -11,15 +11,15 @@ import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
 import { OrganizationService } from "@/server/services/organization.service";
 import { TeamService } from "@/server/services/team.service";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
-function AdminUsersHeader() {
+async function AdminUsersHeader() {
+  const t = await getTranslations("admin.users");
   return (
     <div className="mb-10">
-      <h1 className="text-3xl font-bold text-foreground">User Management</h1>
-      <p className="text-muted-foreground mt-2">
-        View and manage all organization members
-      </p>
+      <h1 className="text-3xl font-bold text-foreground">{t("title")}</h1>
+      <p className="text-muted-foreground mt-2">{t("description")}</p>
     </div>
   );
 }
@@ -36,9 +36,7 @@ async function TeamAssignmentTab() {
   ) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">
-          Unable to load team assignments. Please refresh and try again.
-        </p>
+        <p className="text-muted-foreground">{t("unableToLoad")}</p>
       </div>
     );
   }
@@ -104,8 +102,10 @@ async function AdminUsersContainer() {
 
       <Tabs defaultValue="users" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="team-assignments">Team Assignments</TabsTrigger>
+          <TabsTrigger value="users">{t("usersTab")}</TabsTrigger>
+          <TabsTrigger value="team-assignments">
+            {t("teamAssignmentsTab")}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="users">

@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { ConsentManager } from "@/features/recordings/components/consent-manager";
 
-export async function generateMetadata({ params }: RecordingDetailPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: RecordingDetailPageProps): Promise<Metadata> {
   const { recordingId } = await params;
   return { title: `Recording ${recordingId}` };
 }
@@ -22,6 +24,7 @@ import { getRecordingDetailPageData } from "@/features/recordings/server/get-rec
 import type { AIInsightDto } from "@/server/dto/ai-insight.dto";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
@@ -50,6 +53,7 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
     notFound();
   }
 
+  const t = await getTranslations("projects");
   const knowledgeUsed = extractUsedKnowledge(transcriptionInsights);
 
   return (
@@ -128,9 +132,13 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
 
         {/* Navigation */}
         <div className="flex justify-between">
-          <Button variant="outline" render={<Link href={`/projects/${projectId}`} />} nativeButton={false}>
+          <Button
+            variant="outline"
+            render={<Link href={`/projects/${projectId}`} />}
+            nativeButton={false}
+          >
             <ArrowLeftIcon className="h-4 w-4 mr-2" />
-            Back to Project
+            {t("backToProject")}
           </Button>
         </div>
       </div>
@@ -164,4 +172,3 @@ export default async function RecordingDetailPage({
     </Suspense>
   );
 }
-

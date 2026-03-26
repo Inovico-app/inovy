@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { exportAgentAnalytics } from "../../actions/export-agent-analytics";
 
@@ -14,9 +15,8 @@ interface AgentAnalyticsExportProps {
   };
 }
 
-export function AgentAnalyticsExport({
-  filters,
-}: AgentAnalyticsExportProps) {
+export function AgentAnalyticsExport({ filters }: AgentAnalyticsExportProps) {
+  const t = useTranslations("admin.analytics");
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async () => {
@@ -58,8 +58,7 @@ export function AgentAnalyticsExport({
   return (
     <Button onClick={handleExport} disabled={isExporting} variant="outline">
       <Download className="mr-2 h-4 w-4" />
-      {isExporting ? "Exporting..." : "Export CSV"}
+      {isExporting ? t("exporting") : t("exportCsv")}
     </Button>
   );
 }
-

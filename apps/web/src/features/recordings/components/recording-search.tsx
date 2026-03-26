@@ -5,8 +5,10 @@ import { useQueryState } from "nuqs";
 import { useRef, useState } from "react";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
+import { useTranslations } from "next-intl";
 
 export function RecordingSearch() {
+  const t = useTranslations("recordings");
   const [search, setSearch] = useQueryState("search", {
     defaultValue: "",
     shallow: false,
@@ -36,7 +38,7 @@ export function RecordingSearch() {
         <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="Search recordings..."
+          placeholder={t("filters.searchRecordings")}
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
           className="pl-9 w-64"
@@ -59,4 +61,3 @@ export function RecordingSearch() {
     </form>
   );
 }
-

@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
 import { OnboardingService } from "@/server/services/onboarding.service";
 import type { Route } from "next";
+import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -13,6 +14,7 @@ async function OnboardingContent({
 }: {
   searchParams: Promise<{ google_connected?: string }>;
 }) {
+  const t = await getTranslations("onboarding");
   const sessionResult = await getBetterAuthSession();
 
   if (sessionResult.isErr() || !sessionResult.value.user) {
@@ -23,7 +25,7 @@ async function OnboardingContent({
 
   // Get or create onboarding record
   const onboardingResult = await OnboardingService.ensureOnboardingRecordExists(
-    user.id
+    user.id,
   );
 
   if (onboardingResult.isErr()) {
@@ -54,7 +56,7 @@ async function OnboardingContent({
     logger.error(
       "Failed to fetch organization name",
       { error: error as Error },
-      error as Error
+      error as Error,
     );
   }
 
@@ -63,7 +65,7 @@ async function OnboardingContent({
   if (params.google_connected === "true") {
     // Refresh onboarding data to get updated Google connection status
     const updatedResult = await OnboardingService.getOnboardingByUserId(
-      user.id
+      user.id,
     );
     if (updatedResult.isOk() && updatedResult.value) {
       onboarding.googleConnectedDuringOnboarding =
@@ -98,10 +100,9 @@ async function OnboardingContent({
       {/* Right Panel - Benefits */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-center bg-primary px-12 py-12 text-primary-foreground">
         <div className="mx-auto w-full max-w-md">
-          <h2 className="mb-4 text-3xl font-semibold">Klaar om te beginnen?</h2>
+          <h2 className="mb-4 text-3xl font-semibold">{t("readyToStart")}</h2>
           <p className="mb-12 text-primary-foreground/90">
-            In een paar stappen stel je Inovy in zodat het perfect aansluit bij
-            jouw werkwijze.
+            {t("readyToStartSubtitle")}
           </p>
 
           <div className="space-y-8">
@@ -123,9 +124,11 @@ async function OnboardingContent({
                 </svg>
               </div>
               <div>
-                <h3 className="mb-1 font-semibold">Snel aan de slag</h3>
+                <h3 className="mb-1 font-semibold">
+                  {t("featureQuickStartTitle")}
+                </h3>
                 <p className="text-sm text-primary-foreground/80">
-                  Start een opname, en Inovy doet de rest
+                  {t("featureQuickStartDescription")}
                 </p>
               </div>
             </div>
@@ -148,10 +151,11 @@ async function OnboardingContent({
                 </svg>
               </div>
               <div>
-                <h3 className="mb-1 font-semibold">Privacy voorop</h3>
+                <h3 className="mb-1 font-semibold">
+                  {t("featurePrivacyTitle")}
+                </h3>
                 <p className="text-sm text-primary-foreground/80">
-                  Jouw gespreksdata wordt versleuteld opgeslagen en nooit
-                  gedeeld met derden
+                  {t("featurePrivacyDescription")}
                 </p>
               </div>
             </div>
@@ -174,9 +178,11 @@ async function OnboardingContent({
                 </svg>
               </div>
               <div>
-                <h3 className="mb-1 font-semibold">Direct bruikbaar</h3>
+                <h3 className="mb-1 font-semibold">
+                  {t("featureReadyToUseTitle")}
+                </h3>
                 <p className="text-sm text-primary-foreground/80">
-                  Automatische transcriptie en samenvatting van je gesprekken
+                  {t("featureReadyToUseDescription")}
                 </p>
               </div>
             </div>
@@ -209,4 +215,3 @@ export default async function OnboardingPage({
     </Suspense>
   );
 }
-

@@ -17,6 +17,7 @@ import {
   ChevronRightIcon,
   SearchIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { AgentConfigToggle } from "./agent-config-toggle";
 
@@ -29,6 +30,7 @@ const ITEMS_PER_PAGE = 10;
 export function AgentConfigListClient({
   organizations,
 }: AgentConfigListClientProps) {
+  const t = useTranslations("admin.agentConfig");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -64,10 +66,8 @@ export function AgentConfigListClient({
     return (
       <div className="text-center py-12">
         <Building2Icon className="mx-auto h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-lg font-semibold">No organizations yet</h3>
-        <p className="text-sm text-muted-foreground mt-2">
-          Organizations will appear here once they are created
-        </p>
+        <h3 className="mt-4 text-lg font-semibold">{t("noOrganizations")}</h3>
+        <p className="text-sm text-muted-foreground mt-2">{t("willAppear")}</p>
       </div>
     );
   }
@@ -79,7 +79,7 @@ export function AgentConfigListClient({
         <div className="relative flex-1">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name or slug..."
+            placeholder={t("searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9"
@@ -102,11 +102,13 @@ export function AgentConfigListClient({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Organization</TableHead>
-                  <TableHead>Slug</TableHead>
-                  <TableHead className="text-center">Members</TableHead>
-                  <TableHead className="text-center">Agent Status</TableHead>
-                  <TableHead className="w-[120px]">Action</TableHead>
+                  <TableHead>{t("organization")}</TableHead>
+                  <TableHead>{t("slug")}</TableHead>
+                  <TableHead className="text-center">{t("members")}</TableHead>
+                  <TableHead className="text-center">
+                    {t("agentStatus")}
+                  </TableHead>
+                  <TableHead className="w-[120px]">{t("action")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -141,7 +143,7 @@ export function AgentConfigListClient({
                       <Badge
                         variant={org.agentEnabled ? "default" : "destructive"}
                       >
-                        {org.agentEnabled ? "Enabled" : "Disabled"}
+                        {org.agentEnabled ? t("enabled") : t("disabled")}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -195,7 +197,7 @@ export function AgentConfigListClient({
         </>
       ) : (
         <div className="text-center py-8">
-          <p className="text-muted-foreground">No organizations found</p>
+          <p className="text-muted-foreground">{t("noOrganizationsFound")}</p>
           <p className="text-sm text-muted-foreground mt-1">
             Try adjusting your search
           </p>

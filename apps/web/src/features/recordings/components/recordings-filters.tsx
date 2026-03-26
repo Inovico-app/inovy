@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useArrayToggle } from "@/hooks/use-array-toggle";
 import { ChevronDown, Search, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface RecordingsFiltersProps {
   searchQuery: string;
@@ -31,6 +32,7 @@ export function RecordingsFilters({
   projects,
   onClearFilters,
 }: RecordingsFiltersProps) {
+  const t = useTranslations("recordings");
   const toggleProject = useArrayToggle(selectedProjectIds, onProjectIdsChange);
 
   const hasActiveFilters =
@@ -38,16 +40,16 @@ export function RecordingsFilters({
 
   const buttonText =
     selectedProjectIds.length === 0
-      ? "All Projects"
+      ? t("filters.allProjects")
       : selectedProjectIds.length === 1
-      ? projects.find((p) => p.id === selectedProjectIds[0])?.name ??
-        "1 project"
-      : `${selectedProjectIds.length} projects`;
+        ? (projects.find((p) => p.id === selectedProjectIds[0])?.name ??
+          t("filters.oneProject"))
+        : t("filters.projectCount", { count: selectedProjectIds.length });
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">Filters</CardTitle>
+          <CardTitle className="text-base">{t("filters.title")}</CardTitle>
           {hasActiveFilters && (
             <Button
               variant="ghost"
@@ -64,12 +66,14 @@ export function RecordingsFilters({
       <CardContent className="space-y-4">
         {/* Search */}
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">Search</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">
+            {t("filters.search")}
+          </h3>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search by title..."
+              placeholder={t("filters.searchByTitle")}
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               className="pl-9 pr-9"
@@ -82,7 +86,7 @@ export function RecordingsFilters({
                 onClick={() => onSearchChange("")}
               >
                 <X className="h-4 w-4" />
-                <span className="sr-only">Clear search</span>
+                <span className="sr-only">{t("filters.clearSearch")}</span>
               </Button>
             )}
           </div>
@@ -92,15 +96,24 @@ export function RecordingsFilters({
         {projects.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-muted-foreground">
-              Projects
+              {t("filters.projects")}
             </h3>
             <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="outline" className="w-full justify-between" />}>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between"
+                  />
+                }
+              >
                 <span className="text-sm">{buttonText}</span>
                 <ChevronDown className="h-4 w-4 opacity-50" />
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="start">
-                <DropdownMenuLabel>Select Projects</DropdownMenuLabel>
+                <DropdownMenuLabel>
+                  {t("filters.selectProjects")}
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {projects.map((project) => (
                   <DropdownMenuCheckboxItem
@@ -119,4 +132,3 @@ export function RecordingsFilters({
     </Card>
   );
 }
-

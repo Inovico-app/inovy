@@ -9,9 +9,11 @@ import {
 } from "@/components/ui/card";
 import { useDataExport } from "../hooks/use-data-export";
 import { DataExportForm } from "./data-export-form";
+import { useTranslations } from "next-intl";
 import { DataExportHistory } from "./data-export-history";
 
 export function DataExport() {
+  const t = useTranslations("settings.profile");
   const {
     isRequesting,
     isLoadingHistory,
@@ -30,11 +32,8 @@ export function DataExport() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Data Export</CardTitle>
-        <CardDescription>
-          Export all your personal data in compliance with GDPR. Your export
-          will be available for 7 days.
-        </CardDescription>
+        <CardTitle>{t("dataExport")}</CardTitle>
+        <CardDescription>{t("dataExportDescription")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <DataExportForm

@@ -1,6 +1,7 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getCachedInvitationDetails } from "@/server/cache/invitations.cache";
 import { AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { AcceptInvitationClient } from "./accept-invitation-client";
 
 interface AcceptInvitationProps {
@@ -14,6 +15,7 @@ interface AcceptInvitationProps {
 export async function AcceptInvitation({
   invitationId,
 }: AcceptInvitationProps) {
+  const t = await getTranslations("auth");
   // Fetch invitation details
   const invitation = await getCachedInvitationDetails(invitationId);
 
@@ -23,10 +25,9 @@ export async function AcceptInvitation({
       <div className="container mx-auto max-w-2xl px-4 py-12">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Invitation Not Found</AlertTitle>
+          <AlertTitle>{t("invitationNotFoundTitle")}</AlertTitle>
           <AlertDescription>
-            This invitation link is invalid or has been removed. Please contact
-            the person who invited you for a new invitation.
+            {t("invitationNotFoundDescription")}
           </AlertDescription>
         </Alert>
       </div>
@@ -39,14 +40,12 @@ export async function AcceptInvitation({
       <div className="container mx-auto max-w-2xl px-4 py-12">
         <Alert variant="destructive">
           <Clock className="h-4 w-4" />
-          <AlertTitle>Invitation Expired</AlertTitle>
+          <AlertTitle>{t("invitationExpiredTitle")}</AlertTitle>
           <AlertDescription>
-            This invitation has expired. Please contact{" "}
-            <strong>
-              {invitation.inviter.name || invitation.inviter.email}
-            </strong>{" "}
-            for a new invitation to join{" "}
-            <strong>{invitation.organization.name}</strong>.
+            {t("invitationExpiredDescription", {
+              inviter: invitation.inviter.name || invitation.inviter.email,
+              organization: invitation.organization.name,
+            })}
           </AlertDescription>
         </Alert>
       </div>
@@ -59,15 +58,15 @@ export async function AcceptInvitation({
       <div className="container mx-auto max-w-2xl px-4 py-12">
         <Alert>
           <CheckCircle2 className="h-4 w-4" />
-          <AlertTitle>Invitation Already Processed</AlertTitle>
+          <AlertTitle>{t("invitationAlreadyProcessedTitle")}</AlertTitle>
           <AlertDescription>
-            This invitation has already been{" "}
-            {invitation.status === "accepted" ? "accepted" : "processed"}. If
-            you believe this is an error, please contact{" "}
-            <strong>
-              {invitation.inviter.name || invitation.inviter.email}
-            </strong>
-            .
+            {t("invitationAlreadyProcessedDescription", {
+              status:
+                invitation.status === "accepted"
+                  ? t("invitationAccepted")
+                  : t("invitationProcessed"),
+              inviter: invitation.inviter.name || invitation.inviter.email,
+            })}
           </AlertDescription>
         </Alert>
       </div>
@@ -88,4 +87,3 @@ export async function AcceptInvitation({
     />
   );
 }
-

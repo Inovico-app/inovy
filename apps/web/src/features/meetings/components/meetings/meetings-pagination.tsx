@@ -8,6 +8,7 @@ import {
   ChevronsRight,
   Loader2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const PAGE_SIZE = 20;
 
@@ -45,12 +46,16 @@ function LoadMorePagination({
   onLoadMore,
   isLoading,
 }: LoadMorePaginationProps) {
+  const t = useTranslations("meetings");
   if (total === 0) return null;
 
   return (
     <div className="flex flex-col items-center gap-3 border-t pt-4">
       <p className="text-sm text-muted-foreground">
-        Showing {Math.min(visibleCount, total)} of {total} meetings
+        {t("pagination.showingOfTotal", {
+          visible: Math.min(visibleCount, total),
+          total,
+        })}
       </p>
       {hasMore && (
         <Button
@@ -63,7 +68,7 @@ function LoadMorePagination({
           <span className="inline-flex h-4 w-4 items-center justify-center mr-2">
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           </span>
-          Load More
+          {t("pagination.loadMore")}
         </Button>
       )}
     </div>
@@ -77,6 +82,7 @@ function PagesPagination({
   pageSize = PAGE_SIZE,
   onPageChange,
 }: PagesPaginationProps) {
+  const t = useTranslations("meetings");
   if (totalPages <= 1) {
     return null;
   }
@@ -87,7 +93,11 @@ function PagesPagination({
   return (
     <div className="flex items-center justify-between border-t pt-4">
       <div className="text-sm text-muted-foreground">
-        Showing {startItem} to {endItem} of {total} meetings
+        {t("pagination.showingRange", {
+          start: startItem,
+          end: endItem,
+          total,
+        })}
       </div>
       <div className="flex items-center gap-2">
         <Button
@@ -95,7 +105,7 @@ function PagesPagination({
           size="sm"
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
-          aria-label="First page"
+          aria-label={t("pagination.firstPage")}
         >
           <ChevronsLeft className="h-4 w-4" />
         </Button>
@@ -104,19 +114,19 @@ function PagesPagination({
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          aria-label="Previous page"
+          aria-label={t("pagination.previousPage")}
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <div className="text-sm font-medium">
-          Page {currentPage} of {totalPages}
+          {t("pagination.pageOf", { current: currentPage, total: totalPages })}
         </div>
         <Button
           variant="outline"
           size="sm"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          aria-label="Next page"
+          aria-label={t("pagination.nextPage")}
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
@@ -125,7 +135,7 @@ function PagesPagination({
           size="sm"
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage >= totalPages}
-          aria-label="Last page"
+          aria-label={t("pagination.lastPage")}
         >
           <ChevronsRight className="h-4 w-4" />
         </Button>
@@ -133,4 +143,3 @@ function PagesPagination({
     </div>
   );
 }
-

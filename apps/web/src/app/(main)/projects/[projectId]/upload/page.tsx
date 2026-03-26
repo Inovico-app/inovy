@@ -11,6 +11,7 @@ export async function generateMetadata({
 import { resolveAuthContext } from "@/lib/auth-context";
 import { ProjectService } from "@/server/services/project.service";
 import { ArrowLeftIcon } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -39,7 +40,7 @@ async function UploadRecordingContent({ params }: UploadRecordingPageProps) {
   }
 
   const project = projectResult.value;
-
+  const t = await getTranslations("projects");
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -53,27 +54,27 @@ async function UploadRecordingContent({ params }: UploadRecordingPageProps) {
             nativeButton={false}
           >
             <ArrowLeftIcon className="h-4 w-4 mr-2" />
-            Back to Project
+            {t("backToProject")}
           </Button>
 
-          <h1 className="text-3xl font-bold">Opname toevoegen</h1>
+          <h1 className="text-3xl font-bold">{t("uploadRecording")}</h1>
           <p className="text-muted-foreground mt-2">
-            Upload een bestand of neem live op voor {project.name}
+            {t("uploadSubtitle", { name: project.name })}
           </p>
         </div>
 
         {/* Help Text */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Ondersteunde formaten</CardTitle>
+            <CardTitle className="text-base">{t("supportedFormats")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              <li>MP3 audio bestanden (.mp3)</li>
-              <li>MP4 audio/video bestanden (.mp4)</li>
-              <li>WAV audio bestanden (.wav)</li>
-              <li>M4A audio bestanden (.m4a)</li>
-              <li>Maximale bestandsgrootte: 100MB</li>
+              <li>{t("formatMp3")}</li>
+              <li>{t("formatMp4")}</li>
+              <li>{t("formatWav")}</li>
+              <li>{t("formatM4a")}</li>
+              <li>{t("maxFileSize")}</li>
             </ul>
             <p className="text-xs text-muted-foreground mt-4">
               Na het uploaden wordt je opname automatisch getranscribeerd met

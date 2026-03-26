@@ -18,6 +18,7 @@ import {
 } from "@/server/cache/knowledge-base.cache";
 import { ProjectService } from "@/server/services/project.service";
 import { ArrowLeftIcon } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -53,7 +54,7 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
   }
 
   const project = projectResult.value;
-
+  const t = await getTranslations("projects");
   // Check if user can edit (project manager or admin)
   const canEdit = await isProjectManager(authResult.value.user, projectId);
 
@@ -78,12 +79,12 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
             nativeButton={false}
           >
             <ArrowLeftIcon className="h-4 w-4" />
-            Back to Project
+            {t("backToProject")}
           </Button>
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h1 className="text-3xl font-bold text-foreground">
-                {project.name} - Settings
+                {project.name} - {t("settingsTitle")}
               </h1>
             </div>
           </div>
@@ -95,7 +96,7 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
           {canEdit && (
             <Card>
               <CardHeader>
-                <CardTitle>Project Details</CardTitle>
+                <CardTitle>{t("projectDetails")}</CardTitle>
                 <CardDescription>
                   Update your project name, description, and team assignment.
                   Changing the team controls who can access this project and its
@@ -118,7 +119,7 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
           {/* Project Templates Section */}
           <Card>
             <CardHeader>
-              <CardTitle>Project Templates</CardTitle>
+              <CardTitle>{t("projectTemplates")}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">

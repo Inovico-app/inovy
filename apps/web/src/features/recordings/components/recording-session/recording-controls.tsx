@@ -13,6 +13,7 @@ import {
   Square,
   Trash2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface RecordingControlsProps {
   status: RecordingStatus;
@@ -39,13 +40,14 @@ export function RecordingControls({
   onSavePartial,
   onReset,
 }: RecordingControlsProps) {
+  const t = useTranslations("recordings");
   // --- Idle + autoStarting: show initializing spinner (autoStart hasn't fired yet) ---
   if (status === "idle" && autoStarting) {
     return (
       <div className="flex flex-col items-center gap-4">
         <div className="flex items-center gap-2.5 text-muted-foreground">
           <Loader2 className="w-5 h-5 animate-spin" />
-          <span className="text-sm font-medium">Voorbereiden...</span>
+          <span className="text-sm font-medium">{t("session.preparing")}</span>
         </div>
       </div>
     );
@@ -59,12 +61,12 @@ export function RecordingControls({
           onClick={onStart}
           size="lg"
           className="rounded-full w-20 h-20 shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300 hover:scale-105"
-          aria-label="Opname starten"
+          aria-label={t("session.startRecordingAriaLabel")}
         >
           <Mic className="w-8 h-8" />
         </Button>
         <span className="text-sm font-medium text-muted-foreground">
-          Opname starten
+          {t("session.startRecording")}
         </span>
       </div>
     );
@@ -76,7 +78,7 @@ export function RecordingControls({
       <div className="flex flex-col items-center gap-4">
         <div className="flex items-center gap-2.5 text-muted-foreground">
           <Loader2 className="w-5 h-5 animate-spin" />
-          <span className="text-sm font-medium">Voorbereiden...</span>
+          <span className="text-sm font-medium">{t("session.preparing")}</span>
         </div>
       </div>
     );
@@ -96,12 +98,12 @@ export function RecordingControls({
             {status === "paused" ? (
               <>
                 <Pause className="w-3 h-3" />
-                <span>Gepauzeerd</span>
+                <span>{t("session.recordingPaused")}</span>
               </>
             ) : (
               <>
                 <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-lg shadow-red-500/50" />
-                <span>Opnemen...</span>
+                <span>{t("session.recordingActive")}</span>
               </>
             )}
           </p>
@@ -115,7 +117,7 @@ export function RecordingControls({
               size="lg"
               variant="outline"
               className="rounded-full w-16 h-16 border-2 hover:bg-muted transition-all duration-200"
-              aria-label="Pauzeren"
+              aria-label={t("session.pause")}
             >
               <Pause className="w-6 h-6" />
             </Button>
@@ -125,7 +127,7 @@ export function RecordingControls({
               size="lg"
               variant="outline"
               className="rounded-full w-16 h-16 border-2 hover:bg-muted transition-all duration-200"
-              aria-label="Hervatten"
+              aria-label={t("session.resume")}
             >
               <Play className="w-6 h-6" />
             </Button>
@@ -136,7 +138,7 @@ export function RecordingControls({
             size="lg"
             variant="destructive"
             className="rounded-full w-16 h-16 shadow-lg shadow-destructive/30 hover:shadow-xl hover:shadow-destructive/40 transition-all duration-200 hover:scale-105"
-            aria-label="Stoppen"
+            aria-label={t("session.stop")}
           >
             <Square className="w-5 h-5" />
           </Button>
@@ -155,7 +157,9 @@ export function RecordingControls({
         />
         <div className="flex items-center gap-2.5 text-muted-foreground">
           <Loader2 className="w-5 h-5 animate-spin" />
-          <span className="text-sm font-medium">Opname wordt verwerkt...</span>
+          <span className="text-sm font-medium">
+            {t("session.processingRecording")}
+          </span>
         </div>
       </div>
     );
@@ -169,17 +173,17 @@ export function RecordingControls({
           <div className="flex items-center gap-3">
             <Button onClick={onSavePartial} variant="outline" className="gap-2">
               <Save className="w-4 h-4" />
-              Opslaan wat we hebben
+              {t("session.savePartial")}
             </Button>
             <Button onClick={onReset} variant="destructive" className="gap-2">
               <Trash2 className="w-4 h-4" />
-              Verwijderen
+              {t("session.discard")}
             </Button>
           </div>
         ) : (
           <Button onClick={onReset} variant="outline" className="gap-2">
             <RotateCcw className="w-4 h-4" />
-            Opnieuw
+            {t("session.tryAgain")}
           </Button>
         )}
       </div>

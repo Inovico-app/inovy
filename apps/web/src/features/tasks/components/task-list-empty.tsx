@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { useTranslations } from "next-intl";
 
 interface TaskListEmptyProps {
   variant: "no-tasks" | "no-results";
@@ -6,14 +7,12 @@ interface TaskListEmptyProps {
 }
 
 export function TaskListEmpty({ variant, onClearFilters }: TaskListEmptyProps) {
+  const t = useTranslations("tasks");
   if (variant === "no-tasks") {
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <p className="text-muted-foreground">
-            No tasks assigned to you yet. Tasks will appear here once they are
-            extracted from your recordings.
-          </p>
+          <p className="text-muted-foreground">{t("noTasksYet")}</p>
         </CardContent>
       </Card>
     );
@@ -21,16 +20,15 @@ export function TaskListEmpty({ variant, onClearFilters }: TaskListEmptyProps) {
 
   return (
     <div className="py-8 text-center text-muted-foreground">
-      <p>No tasks match the selected filters.</p>
+      <p>{t("noTasksMatch")}</p>
       {onClearFilters && (
         <button
           onClick={onClearFilters}
           className="text-primary hover:underline mt-2"
         >
-          Clear filters
+          {t("clearFilters")}
         </button>
       )}
     </div>
   );
 }
-

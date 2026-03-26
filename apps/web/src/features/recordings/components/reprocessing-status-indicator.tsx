@@ -4,6 +4,7 @@ import { RefreshCwIcon, AlertCircleIcon, CheckCircle2Icon } from "lucide-react";
 import { Badge } from "../../../components/ui/badge";
 import { useReprocessingStatus } from "../hooks/use-reprocessing-status";
 import type { WorkflowStatus } from "@/server/db/schema/recordings";
+import { useTranslations } from "next-intl";
 
 interface ReprocessingStatusIndicatorProps {
   recordingId: string;
@@ -16,17 +17,22 @@ export function ReprocessingStatusIndicator({
   initialWorkflowStatus,
   className = "",
 }: ReprocessingStatusIndicatorProps) {
+  const t = useTranslations("recordings");
   const { reprocessingStatus, isPolling } = useReprocessingStatus({
     recordingId,
     enabled: initialWorkflowStatus !== "completed",
   });
 
   // Determine the current status to display
-  const workflowStatus = reprocessingStatus?.workflowStatus ?? initialWorkflowStatus;
+  const workflowStatus =
+    reprocessingStatus?.workflowStatus ?? initialWorkflowStatus;
   const isReprocessing = reprocessingStatus?.isReprocessing ?? false;
 
   // Don't show indicator if workflow is idle or completed (and not reprocessing)
-  if (workflowStatus === "idle" || (workflowStatus === "completed" && !isReprocessing)) {
+  if (
+    workflowStatus === "idle" ||
+    (workflowStatus === "completed" && !isReprocessing)
+  ) {
     return null;
   }
 
@@ -36,11 +42,15 @@ export function ReprocessingStatusIndicator({
       <div className={`flex items-center gap-2 ${className}`}>
         <Badge variant="secondary" className="flex items-center gap-2">
           <RefreshCwIcon className="h-3 w-3 animate-spin" />
-          <span>{isReprocessing ? "Reprocessing..." : "Processing..."}</span>
+          <span>
+            {isReprocessing
+              ? t("status.reprocessing")
+              : t("status.processingGeneric")}
+          </span>
         </Badge>
         {isPolling && (
           <span className="text-xs text-muted-foreground">
-            Updates automatically
+            {t("status.updatesAutomatically")}
           </span>
         )}
       </div>
@@ -52,13 +62,13 @@ export function ReprocessingStatusIndicator({
     const errorMessage =
       reprocessingStatus?.errorMessage ??
       reprocessingStatus?.workflowError ??
-      "Processing failed";
+      t("status.processingFailed");
 
     return (
       <div className={`flex items-center gap-2 ${className}`}>
         <Badge variant="destructive" className="flex items-center gap-2">
           <AlertCircleIcon className="h-3 w-3" />
-          <span>Failed</span>
+          <span>{t("status.failed")}</span>
         </Badge>
         <span className="text-xs text-destructive" title={errorMessage}>
           {errorMessage}
@@ -71,9 +81,12 @@ export function ReprocessingStatusIndicator({
   if (workflowStatus === "completed" && reprocessingStatus?.lastReprocessedAt) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
-        <Badge variant="default" className="flex items-center gap-2 bg-green-600">
+        <Badge
+          variant="default"
+          className="flex items-center gap-2 bg-green-600"
+        >
           <CheckCircle2Icon className="h-3 w-3" />
-          <span>Reprocessing Complete</span>
+          <span>{t("status.reprocessingComplete")}</span>
         </Badge>
       </div>
     );
@@ -81,4 +94,3 @@ export function ReprocessingStatusIndicator({
 
   return null;
 }
-

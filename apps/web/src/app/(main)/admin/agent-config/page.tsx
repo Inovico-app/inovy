@@ -6,6 +6,7 @@ import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 export const metadata = {
@@ -28,26 +29,28 @@ async function AgentConfigContent() {
 
   // Check if user has superadmin permissions
   const hasSuperAdminPermission = await checkPermission(
-    Permissions.superadmin.all
+    Permissions.superadmin.all,
   );
 
   if (!hasSuperAdminPermission) {
     redirect("/");
   }
 
+  const t = await getTranslations("admin.agentConfig");
+
   return (
     <div className="container mx-auto max-w-6xl py-6 px-4 md:py-12 md:px-6">
       <div className="mb-10">
-        <h1 className="text-3xl font-bold">Agent Configuration</h1>
-        <p className="text-muted-foreground mt-2">
-          Configure agent settings and manage agent access for organizations
-        </p>
+        <h1 className="text-3xl font-bold">{t("title")}</h1>
+        <p className="text-muted-foreground mt-2">{t("description")}</p>
       </div>
 
       <Tabs defaultValue="organizations" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="organizations">Organizations</TabsTrigger>
-          <TabsTrigger value="settings">Agent Settings</TabsTrigger>
+          <TabsTrigger value="organizations">
+            {t("organizationsTab")}
+          </TabsTrigger>
+          <TabsTrigger value="settings">{t("settingsTab")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="organizations" className="space-y-4">
@@ -101,4 +104,3 @@ export default function AgentConfigPage() {
     </Suspense>
   );
 }
-

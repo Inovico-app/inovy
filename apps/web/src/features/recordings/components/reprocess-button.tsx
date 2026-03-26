@@ -16,6 +16,7 @@ import {
 } from "../../../components/ui/dialog";
 import { reprocessRecordingAction } from "../actions/reprocess-recording";
 import type { WorkflowStatus } from "@/server/db/schema/recordings";
+import { useTranslations } from "next-intl";
 
 interface ReprocessButtonProps {
   recordingId: string;
@@ -32,6 +33,7 @@ export function ReprocessButton({
   isArchived = false,
   variant = "outline",
 }: ReprocessButtonProps) {
+  const t = useTranslations("recordings");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,9 +41,9 @@ export function ReprocessButton({
   // Determine if reprocessing is allowed
   const isDisabled = isArchived || workflowStatus === "running";
   const disabledReason = isArchived
-    ? "Cannot reprocess archived recordings"
+    ? t("actions.cannotReprocessArchived")
     : workflowStatus === "running"
-      ? "Recording is currently being processed"
+      ? t("actions.currentlyProcessing")
       : null;
 
   const handleReprocess = async () => {
@@ -55,15 +57,14 @@ export function ReprocessButton({
       }
 
       if (result?.data) {
-        toast.success("Reprocessing started successfully", {
-          description:
-            "AI insights are being regenerated. You'll receive a notification when complete.",
+        toast.success(t("actions.reprocessSuccess"), {
+          description: t("actions.reprocessSuccessDescription"),
         });
         router.refresh();
       }
     } catch (error) {
       console.error("Error reprocessing recording:", error);
-      toast.error("Failed to start reprocessing");
+      toast.error(t("actions.reprocessFailed"));
     } finally {
       setIsLoading(false);
       setOpen(false);
@@ -72,32 +73,39 @@ export function ReprocessButton({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant={variant} size="sm" disabled={isDisabled} title={disabledReason ?? undefined} />}>
+      <DialogTrigger
+        render={
+          <Button
+            variant={variant}
+            size="sm"
+            disabled={isDisabled}
+            title={disabledReason ?? undefined}
+          />
+        }
+      >
         <RefreshCwIcon className="h-4 w-4 mr-2" />
-        Reprocess
+        {t("actions.reprocess")}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Reprocess AI Insights?</DialogTitle>
+          <DialogTitle>{t("actions.reprocessTitle")}</DialogTitle>
           <DialogDescription>
-            This will regenerate the transcription, summary, and tasks for "
-            {recordingTitle}". Your existing insights will be backed up before
-            reprocessing.
+            {t("actions.reprocessDescription", { title: recordingTitle })}
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-2">
           <p className="text-sm text-muted-foreground">
-            <strong>What will happen:</strong>
+            <strong>{t("actions.reprocessWhatHappens")}</strong>
           </p>
           <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-            <li>Current insights will be safely backed up</li>
-            <li>AI will re-analyze the recording with latest models</li>
-            <li>Summary and tasks will be regenerated</li>
-            <li>You'll receive a notification when complete</li>
+            <li>{t("actions.reprocessItem1")}</li>
+            <li>{t("actions.reprocessItem2")}</li>
+            <li>{t("actions.reprocessItem3")}</li>
+            <li>{t("actions.reprocessItem4")}</li>
           </ul>
           <p className="text-sm text-muted-foreground mt-4">
-            <strong>Note:</strong> This process may take a few minutes depending
-            on the recording length.
+            <strong>{t("actions.reprocessNote")}</strong>{" "}
+            {t("actions.reprocessNoteText")}
           </p>
         </div>
         <DialogFooter>
@@ -110,11 +118,12 @@ export function ReprocessButton({
           </Button>
           <Button onClick={handleReprocess} disabled={isLoading}>
             {isLoading && <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />}
-            {isLoading ? "Starting..." : "Reprocess"}
+            {isLoading
+              ? t("actions.reprocessStarting")
+              : t("actions.reprocess")}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-

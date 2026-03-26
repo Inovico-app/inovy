@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { BotStatusBadge } from "@/features/bot/components/bot-status-badge";
 import { Loader2Icon, Trash2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import type { MeetingWithSession } from "../lib/calendar-utils";
 
@@ -44,6 +45,7 @@ export function BotDetailsSection({
   onRemoveBot,
   isRemovingBot,
 }: BotDetailsSectionProps) {
+  const t = useTranslations("meetings");
   const projectItems = useMemo(
     () => Object.fromEntries(projects.map((p) => [p.id, p.name])),
     [projects],
@@ -52,11 +54,13 @@ export function BotDetailsSection({
   return (
     <section aria-labelledby="notetaker-details-heading">
       <h3 id="notetaker-details-heading" className="font-semibold mb-3">
-        Notetaker Details
+        {t("bot.notetakerDetails")}
       </h3>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Status:</span>
+          <span className="text-sm text-muted-foreground">
+            {t("bot.status")}
+          </span>
           <BotStatusBadge
             status={botSession.botStatus}
             error={botSession.error}
@@ -66,11 +70,11 @@ export function BotDetailsSection({
         {canEditBot && (
           <>
             <form onSubmit={onBotMeetingUrlSubmit} className="space-y-2">
-              <Label htmlFor="bot-meeting-url">Meeting URL</Label>
+              <Label htmlFor="bot-meeting-url">{t("bot.meetingUrl")}</Label>
               <Input
                 id="bot-meeting-url"
                 type="url"
-                placeholder="Meeting URL (Google Meet or Teams)"
+                placeholder={t("bot.meetingUrlPlaceholder")}
                 value={botMeetingUrl}
                 onChange={(e) => onBotMeetingUrlChange(e.target.value)}
                 className="font-mono text-sm"
@@ -88,13 +92,13 @@ export function BotDetailsSection({
                 {isUpdatingUrl ? (
                   <Loader2Icon className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  "Update URL"
+                  t("bot.updateUrl")
                 )}
               </Button>
             </form>
 
             <div className="space-y-2">
-              <Label htmlFor="bot-project">Project</Label>
+              <Label htmlFor="bot-project">{t("bot.project")}</Label>
               <Select
                 value={botSession.projectId ?? ""}
                 onValueChange={(projectId) =>
@@ -104,7 +108,7 @@ export function BotDetailsSection({
                 items={projectItems}
               >
                 <SelectTrigger id="bot-project">
-                  <SelectValue placeholder="Select project" />
+                  <SelectValue placeholder={t("bot.selectProject")} />
                 </SelectTrigger>
                 <SelectContent>
                   {projects.map((p) => (
@@ -129,7 +133,7 @@ export function BotDetailsSection({
           ) : (
             <Trash2Icon className="h-4 w-4 mr-2" />
           )}
-          Remove Notetaker
+          {t("bot.removeNotetaker")}
         </Button>
       </div>
     </section>

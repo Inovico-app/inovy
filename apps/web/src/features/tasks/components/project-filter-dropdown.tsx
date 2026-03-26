@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface ProjectFilterDropdownProps {
   projects: Array<{ id: string; name: string; taskCount: number }>;
@@ -21,23 +22,30 @@ export function ProjectFilterDropdown({
   selectedProjectIds,
   onToggle,
 }: ProjectFilterDropdownProps) {
+  const t = useTranslations("tasks");
   const buttonText =
     selectedProjectIds.length === 0
-      ? "All Projects"
+      ? t("allProjectsFilter")
       : selectedProjectIds.length === 1
-      ? projects.find((p) => p.id === selectedProjectIds[0])?.name
-      : `${selectedProjectIds.length} projects`;
+        ? projects.find((p) => p.id === selectedProjectIds[0])?.name
+        : t("projectsSelected", { count: selectedProjectIds.length });
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-medium text-muted-foreground">Projects</h3>
+      <h3 className="text-sm font-medium text-muted-foreground">
+        {t("projects")}
+      </h3>
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="outline" className="w-full justify-between" />}>
+        <DropdownMenuTrigger
+          render={
+            <Button variant="outline" className="w-full justify-between" />
+          }
+        >
           <span className="text-sm">{buttonText}</span>
           <ChevronDown className="h-4 w-4 opacity-50" />
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="start">
-          <DropdownMenuLabel>Select Projects</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("selectProjects")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {projects.map((project) => (
             <DropdownMenuCheckboxItem
@@ -58,4 +66,3 @@ export function ProjectFilterDropdown({
     </div>
   );
 }
-

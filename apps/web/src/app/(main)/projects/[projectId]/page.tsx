@@ -23,6 +23,7 @@ import {
   UserIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
@@ -45,6 +46,8 @@ interface ProjectDetailPageProps {
 async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
   const { projectId } = await params;
   const { search } = await searchParams;
+
+  const t = await getTranslations("projects");
 
   const authResult = await resolveAuthContext("ProjectDetail");
   if (authResult.isErr()) {
@@ -76,17 +79,19 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
   };
 
   const formatRelativeTime = (date: Date | null) => {
-    if (!date) return "Never";
+    if (!date) return t("never");
 
     const now = new Date();
     const diffInDays = differenceInCalendarDays(now, date);
 
-    if (diffInDays === 0) return "Today";
-    if (diffInDays === 1) return "Yesterday";
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
-    return `${Math.floor(diffInDays / 365)} years ago`;
+    if (diffInDays === 0) return t("today");
+    if (diffInDays === 1) return t("yesterday");
+    if (diffInDays < 7) return t("daysAgo", { count: diffInDays });
+    if (diffInDays < 30)
+      return t("weeksAgo", { count: Math.floor(diffInDays / 7) });
+    if (diffInDays < 365)
+      return t("monthsAgo", { count: Math.floor(diffInDays / 30) });
+    return t("yearsAgo", { count: Math.floor(diffInDays / 365) });
   };
 
   const getCreatorName = () => {
@@ -127,25 +132,29 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
         {/* Project Info */}
         <Card>
           <CardHeader>
-            <CardTitle>Project Information</CardTitle>
+            <CardTitle>{t("projectInformation")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center space-x-2">
                 <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Created:</span>
+                <span className="text-sm text-muted-foreground">
+                  {t("created")}
+                </span>
                 <span className="text-sm">{formatDate(project.createdAt)}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <UserIcon className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  Created by:
+                  {t("createdByLabel")}
                 </span>
                 <span className="text-sm">{getCreatorName()}</span>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-muted-foreground">Status:</span>
+              <span className="text-sm text-muted-foreground">
+                {t("statusLabel")}
+              </span>
               <span
                 className={`text-sm px-2 py-1 rounded-full capitalize ${
                   project.status === "active"
@@ -162,7 +171,7 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
         {/* Project Statistics */}
         <Card>
           <CardHeader>
-            <CardTitle>Project Statistics</CardTitle>
+            <CardTitle>{t("projectStatistics")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -172,7 +181,7 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    Total Recordings
+                    {t("totalRecordings")}
                   </p>
                   <p className="text-2xl font-bold">{statistics.totalCount}</p>
                 </div>
@@ -183,10 +192,12 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    Recent Activity
+                    {t("recentActivity")}
                   </p>
                   <p className="text-2xl font-bold">{statistics.recentCount}</p>
-                  <p className="text-xs text-muted-foreground">Last 7 days</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("lastSevenDays")}
+                  </p>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
@@ -195,7 +206,7 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    Last Recording
+                    {t("lastRecording")}
                   </p>
                   <p className="text-2xl font-bold">
                     {formatRelativeTime(statistics.lastRecordingDate)}
@@ -214,7 +225,7 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
         {/* Recordings Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Recordings</CardTitle>
+            <CardTitle>{t("recordings")}</CardTitle>
           </CardHeader>
           <CardContent>
             <Suspense

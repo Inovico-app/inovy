@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useInvitationSignOut } from "@/features/auth/hooks/use-invitation-sign-out";
 import { AlertCircle, LogOut } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface InvitationEmailMismatchProps {
   userEmail: string;
@@ -21,6 +22,7 @@ export function InvitationEmailMismatch({
   invitationId,
   invitationEmail,
 }: InvitationEmailMismatchProps) {
+  const t = useTranslations("auth");
   const { handleSignOut, isSigningOut } = useInvitationSignOut(invitationId);
 
   return (
@@ -28,12 +30,12 @@ export function InvitationEmailMismatch({
       <div className="space-y-6">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>E-mail komt niet overeen</AlertTitle>
+          <AlertTitle>{t("invitationEmailMismatchTitle")}</AlertTitle>
           <AlertDescription>
-            Je bent ingelogd met <strong>{userEmail}</strong>, maar deze
-            uitnodiging is bedoeld voor <strong>{invitationEmail}</strong>. Log
-            uit en log in met het juiste e-mailadres om de uitnodiging te
-            accepteren.
+            {t("invitationEmailMismatchDescription", {
+              userEmail,
+              invitationEmail,
+            })}
           </AlertDescription>
         </Alert>
 
@@ -44,7 +46,7 @@ export function InvitationEmailMismatch({
           disabled={isSigningOut}
         >
           <LogOut className="h-4 w-4" />
-          Uitloggen en opnieuw proberen
+          {t("invitationSignOutAndRetry")}
         </Button>
       </div>
     </AuthShell>

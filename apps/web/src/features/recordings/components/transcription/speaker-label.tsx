@@ -8,6 +8,7 @@ import { EditSpeakerNameDialog } from "./edit-speaker-name-dialog";
 import { getSpeakerInfo, getUserInitials } from "./speaker-helpers";
 import { getSpeakerColors } from "@/features/recordings/lib/speaker-colors";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 interface SpeakerLabelProps {
   speakerNumber: number;
@@ -28,6 +29,7 @@ export function SpeakerLabel({
   speakerNames,
   speakerUserIds,
 }: SpeakerLabelProps) {
+  const t = useTranslations("recordings");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { members: users = [] } = useOrganizationMembers();
 
@@ -72,8 +74,8 @@ export function SpeakerLabel({
           "hover:shadow-md hover:scale-[1.02]",
           "active:scale-[0.98]",
         )}
-        title="Klik om spreker te bewerken"
-        aria-label={`Bewerk spreker ${displayName}`}
+        title={t("transcription.clickToEditSpeaker")}
+        aria-label={t("transcription.editSpeaker", { name: displayName })}
       >
         {effectiveUserId && (
           <Avatar className="flex-shrink-0 w-7 h-7 ring-2 ring-background/50">

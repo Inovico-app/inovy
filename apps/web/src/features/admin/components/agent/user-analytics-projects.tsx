@@ -9,6 +9,7 @@ import {
 import { TabsContent } from "@/components/ui/tabs";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
 
+import { useTranslations } from "next-intl";
 import { chartConfig } from "./user-analytics-types";
 
 interface UserAnalyticsProjectsProps {
@@ -25,13 +26,14 @@ export function UserAnalyticsProjects({
   projectEngagement,
   uniqueProjectsCount,
 }: UserAnalyticsProjectsProps) {
+  const t = useTranslations("admin.analytics");
   return (
     <TabsContent value="projects" className="space-y-6 mt-6">
       {projectEngagement.length > 0 ? (
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Project Engagement</CardTitle>
+              <CardTitle>{t("projectEngagement")}</CardTitle>
               <p className="text-sm text-muted-foreground">
                 {uniqueProjectsCount} unique project
                 {uniqueProjectsCount !== 1 ? "s" : ""} accessed
@@ -58,7 +60,7 @@ export function UserAnalyticsProjects({
                 </ChartContainer>
 
                 <div className="space-y-2">
-                  <h4 className="text-sm font-semibold">Top Projects</h4>
+                  <h4 className="text-sm font-semibold">{t("topProjects")}</h4>
                   <div className="space-y-2">
                     {projectEngagement.slice(0, 5).map((project) => (
                       <div
@@ -87,7 +89,7 @@ export function UserAnalyticsProjects({
       ) : (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
-            No project engagement data available
+            {t("noProjectData")}
           </CardContent>
         </Card>
       )}

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BotIcon, CheckCircle2Icon, LinkIcon, MailIcon } from "lucide-react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import type { Route } from "next";
 
 interface ActionItem {
@@ -21,11 +22,12 @@ interface OverviewActionItemsProps {
   botEnabled: boolean;
 }
 
-export function OverviewActionItems({
+export async function OverviewActionItems({
   pendingInvitations,
   googleConnected,
   botEnabled,
 }: OverviewActionItemsProps) {
+  const t = await getTranslations("settings.overview");
   const actionItems: ActionItem[] = [];
 
   if (pendingInvitations.length > 0) {
@@ -40,16 +42,15 @@ export function OverviewActionItems({
         )}${pendingInvitations.length > 3 ? ` +${pendingInvitations.length - 3} more` : ""}`,
       href: "/settings/organization?tab=members" as Route,
       icon: <MailIcon className="h-4 w-4 text-amber-500" />,
-      badge: "Pending",
+      badge: t("pending"),
     });
   }
 
   if (!googleConnected) {
     actionItems.push({
       id: "connect-google",
-      label: "Connect Google Workspace",
-      description:
-        "Enable calendar sync, email integration, and Drive monitoring",
+      label: t("connectGoogle"),
+      description: t("connectGoogleDescription"),
       href: "/settings/integrations" as Route,
       icon: <LinkIcon className="h-4 w-4 text-muted-foreground" />,
     });
@@ -58,8 +59,8 @@ export function OverviewActionItems({
   if (!botEnabled) {
     actionItems.push({
       id: "enable-bot",
-      label: "Configure notetaker assistant",
-      description: "Set up automatic meeting recording and transcription",
+      label: t("configureNotetaker"),
+      description: t("configureNotetakerDescription"),
       href: "/settings/bot" as Route,
       icon: <BotIcon className="h-4 w-4 text-muted-foreground" />,
     });
@@ -70,9 +71,7 @@ export function OverviewActionItems({
       <Card>
         <CardContent className="flex items-center gap-3 py-6">
           <CheckCircle2Icon className="h-5 w-5 text-green-500" />
-          <p className="text-sm text-muted-foreground">
-            You&apos;re all set — nothing needs your attention right now.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("allSet")}</p>
         </CardContent>
       </Card>
     );
@@ -81,7 +80,9 @@ export function OverviewActionItems({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base font-medium">Needs attention</CardTitle>
+        <CardTitle className="text-base font-medium">
+          {t("needsAttention")}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
         {actionItems.map((item) => (

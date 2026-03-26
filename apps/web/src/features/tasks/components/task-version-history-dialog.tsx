@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { History, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useTaskHistory } from "../hooks/use-task-history";
 import { format } from "date-fns";
@@ -36,7 +37,7 @@ function formatValue(value: unknown): string {
   if (value === null || value === undefined) {
     return "None";
   }
-  
+
   if (typeof value === "string") {
     // Try to parse as date
     const date = new Date(value);
@@ -45,11 +46,11 @@ function formatValue(value: unknown): string {
     }
     return value;
   }
-  
+
   if (typeof value === "object") {
     return JSON.stringify(value);
   }
-  
+
   return String(value);
 }
 
@@ -57,18 +58,23 @@ export function TaskVersionHistoryDialog({
   taskId,
 }: TaskVersionHistoryDialogProps) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("tasks");
   const { data: history, isLoading, error } = useTaskHistory(taskId);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="ghost" size="sm" title="View version history" />}>
+      <DialogTrigger
+        render={
+          <Button variant="ghost" size="sm" title={t("viewVersionHistory")} />
+        }
+      >
         <History className="h-4 w-4" />
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Task Version History</DialogTitle>
+          <DialogTitle>{t("versionHistory")}</DialogTitle>
           <DialogDescription>
-            Track all changes made to this task over time.
+            {t("versionHistoryDescription")}
           </DialogDescription>
         </DialogHeader>
 
@@ -77,7 +83,7 @@ export function TaskVersionHistoryDialog({
             <div className="text-center py-8">
               <Loader2 className="h-8 w-8 mx-auto mb-3 animate-spin text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                Loading version history...
+                {t("loadingVersionHistory")}
               </p>
             </div>
           )}
@@ -85,7 +91,7 @@ export function TaskVersionHistoryDialog({
           {error && (
             <div className="text-center py-8 text-destructive">
               <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Failed to load version history</p>
+              <p className="text-sm">{t("failedToLoadHistory")}</p>
               <p className="text-xs mt-2">
                 {error instanceof Error ? error.message : "Unknown error"}
               </p>
@@ -95,10 +101,8 @@ export function TaskVersionHistoryDialog({
           {!isLoading && !error && history && history.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">No changes recorded yet</p>
-              <p className="text-xs mt-2">
-                Future edits will be recorded here.
-              </p>
+              <p className="text-sm">{t("noChangesRecorded")}</p>
+              <p className="text-xs mt-2">{t("futureEditsRecorded")}</p>
             </div>
           )}
 
@@ -132,7 +136,9 @@ export function TaskVersionHistoryDialog({
                       <Badge variant="default" className="text-xs">
                         To
                       </Badge>
-                      <span className="flex-1">{formatValue(entry.newValue)}</span>
+                      <span className="flex-1">
+                        {formatValue(entry.newValue)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -144,4 +150,3 @@ export function TaskVersionHistoryDialog({
     </Dialog>
   );
 }
-

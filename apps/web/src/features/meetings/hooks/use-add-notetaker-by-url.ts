@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useAction } from "next-safe-action/hooks";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { addNotetakerByUrl } from "../actions/add-notetaker-by-url";
 import { queryKeys } from "@/lib/query-keys";
@@ -11,14 +12,14 @@ interface UseAddNotetakerByUrlOptions {
 }
 
 export function useAddNotetakerByUrl(options?: UseAddNotetakerByUrlOptions) {
+  const t = useTranslations("meetings");
   const queryClient = useQueryClient();
 
   const { execute, isExecuting } = useAction(addNotetakerByUrl, {
     onSuccess: ({ data }) => {
       if (data?.success) {
-        toast.success("Notetaker added", {
-          description:
-            "The notetaker will join the meeting and start recording.",
+        toast.success(t("toast.notetakerAddedByUrl"), {
+          description: t("toast.notetakerAddedByUrlDescription"),
         });
         queryClient.invalidateQueries({
           queryKey: queryKeys.botSessions.all,
@@ -27,8 +28,9 @@ export function useAddNotetakerByUrl(options?: UseAddNotetakerByUrlOptions) {
       }
     },
     onError: ({ error }) => {
-      toast.error("Failed to add notetaker", {
-        description: error.serverError || "Please check the URL and try again",
+      toast.error(t("toast.notetakerAddByUrlFailed"), {
+        description:
+          error.serverError || t("toast.notetakerAddByUrlFailedDescription"),
       });
     },
   });

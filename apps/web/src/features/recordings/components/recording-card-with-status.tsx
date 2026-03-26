@@ -18,6 +18,7 @@ import { Checkbox } from "../../../components/ui/checkbox";
 import type { RecordingDto } from "../../../server/dto/recording.dto";
 import { useRecordingStatus } from "../hooks/use-recording-status-query";
 import { StatusBadge } from "./status-badge";
+import { useTranslations } from "next-intl";
 
 interface RecordingCardWithStatusProps {
   recording: RecordingDto;
@@ -32,6 +33,7 @@ export function RecordingCardWithStatus({
   isSelected = false,
   onSelectionChange,
 }: RecordingCardWithStatusProps) {
+  const t = useTranslations("recordings");
   const previousStatusRef = useRef(recording.transcriptionStatus);
 
   const { status } = useRecordingStatus({
@@ -45,15 +47,19 @@ export function RecordingCardWithStatus({
         newStatus === "completed" &&
         previousStatusRef.current !== "completed"
       ) {
-        toast.success("Transcription completed", {
-          description: `Recording "${recording.title}" has been processed`,
+        toast.success(t("toast.transcriptionCompleted"), {
+          description: t("toast.recordingProcessed", {
+            title: recording.title,
+          }),
         });
       } else if (
         newStatus === "failed" &&
         previousStatusRef.current !== "failed"
       ) {
-        toast.error("Transcription failed", {
-          description: `Failed to process "${recording.title}"`,
+        toast.error(t("toast.transcriptionFailed"), {
+          description: t("toast.recordingProcessFailed", {
+            title: recording.title,
+          }),
         });
       }
       previousStatusRef.current = newStatus;

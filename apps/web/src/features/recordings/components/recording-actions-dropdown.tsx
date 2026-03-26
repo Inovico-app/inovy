@@ -11,6 +11,7 @@ import { MicIcon, PlusIcon, UploadIcon } from "lucide-react";
 import Link from "next/link";
 import { Activity, useState } from "react";
 import { UploadRecordingModal } from "./upload-recording-modal";
+import { useTranslations } from "next-intl";
 
 interface RecordingActionsDropdownProps {
   projectId: string;
@@ -19,7 +20,7 @@ interface RecordingActionsDropdownProps {
 /**
  * Renders a dropdown with actions to create a new recording or open the upload modal.
  *
- * The dropdown trigger is a "New Recording" button. Its menu contains a "Live" item
+ * The dropdown trigger is a "{t("actions.newRecording")}" button. Its menu contains a "Live" item
  * that navigates to /record and an "Upload" item that opens an UploadRecordingModal
  * controlled by local state. The modal receives the provided projectId and can
  * close itself via the onOpenChange callback.
@@ -30,6 +31,7 @@ interface RecordingActionsDropdownProps {
 export function RecordingActionsDropdown({
   projectId,
 }: RecordingActionsDropdownProps) {
+  const t = useTranslations("recordings");
   const [showUploadModal, setShowUploadModal] = useState(false);
 
   return (
@@ -41,15 +43,21 @@ export function RecordingActionsDropdown({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           {/* Live Recording */}
-          <DropdownMenuItem render={<Link href={`/record?projectId=${encodeURIComponent(projectId)}`} />}>
+          <DropdownMenuItem
+            render={
+              <Link
+                href={`/record?projectId=${encodeURIComponent(projectId)}`}
+              />
+            }
+          >
             <MicIcon className="h-4 w-4 mr-2" />
-            Live
+            {t("actions.live")}
           </DropdownMenuItem>
 
           {/* Upload Recording */}
           <DropdownMenuItem onClick={() => setShowUploadModal(true)}>
             <UploadIcon className="h-4 w-4 mr-2" />
-            Upload
+            {t("upload")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -68,4 +76,3 @@ export function RecordingActionsDropdown({
     </>
   );
 }
-

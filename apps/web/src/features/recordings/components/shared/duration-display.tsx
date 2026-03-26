@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 interface DurationDisplayProps {
   seconds: number;
   className?: string;
@@ -18,13 +20,16 @@ function formatDuration(totalSeconds: number): string {
 }
 
 export function DurationDisplay({ seconds, className }: DurationDisplayProps) {
+  const t = useTranslations("recordings");
   return (
     <time
       className={`font-mono tabular-nums tracking-tight ${className ?? ""}`}
       dateTime={`PT${Math.floor(seconds)}S`}
       role="timer"
       aria-live="polite"
-      aria-label={`Duur: ${formatDuration(seconds)}`}
+      aria-label={t("transcription.durationAriaLabel", {
+        duration: formatDuration(seconds),
+      })}
     >
       {formatDuration(seconds)}
     </time>

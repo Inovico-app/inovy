@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
 import { useAudioPlaybackContext } from "../context/audio-playback-context";
+import { useTranslations } from "next-intl";
 
 interface RecordingPlayerWrapperProps {
   fileUrl: string;
@@ -32,6 +33,7 @@ function RecordingPlayerWrapperInner({
   recordingId,
   isEncrypted = false,
 }: RecordingPlayerWrapperProps) {
+  const t = useTranslations("recordings");
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const searchParams = useSearchParams();
@@ -92,7 +94,7 @@ function RecordingPlayerWrapperInner({
         controlsList="nodownload"
       >
         <source src={playbackUrl} type={fileMimeType} />
-        Your browser does not support the video player.
+        {t("player.videoNotSupported")}
       </video>
     );
   }
@@ -107,7 +109,7 @@ function RecordingPlayerWrapperInner({
         controlsList="nodownload"
       >
         <source src={playbackUrl} type={fileMimeType} />
-        Your browser does not support the audio player.
+        {t("player.audioNotSupported")}
       </audio>
     );
   }
@@ -119,16 +121,15 @@ function RecordingPlayerWrapperInner({
 
   return (
     <div className="text-center py-8 text-muted-foreground">
-      <p>Playback not supported for this file type</p>
+      <p>{t("player.playbackNotSupported")}</p>
       <Button
         variant="outline"
         className="mt-4"
         render={<a href={downloadUrl} download={fileName} />}
         nativeButton={false}
       >
-        Download File
+        {t("player.downloadFile")}
       </Button>
     </div>
   );
 }
-

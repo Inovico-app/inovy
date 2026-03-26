@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useConsentBanner } from "../hooks/use-consent-banner";
+import { useTranslations } from "next-intl";
 
 interface ConsentBannerProps {
   isOpen: boolean;
@@ -23,16 +24,13 @@ export function ConsentBanner({
   onConsentGranted,
   onConsentDenied,
 }: ConsentBannerProps) {
-  const {
-    hasRead,
-    setHasRead,
-    handleOpenChange,
-    handleConsentGranted,
-  } = useConsentBanner({
-    isOpen,
-    onConsentGranted,
-    onConsentDenied,
-  });
+  const t = useTranslations("recordings");
+  const { hasRead, setHasRead, handleOpenChange, handleConsentGranted } =
+    useConsentBanner({
+      isOpen,
+      onConsentGranted,
+      onConsentDenied,
+    });
 
   // Handle consent granted - close dialog immediately
   const handleConsentGrantedClick = () => {
@@ -48,24 +46,22 @@ export function ConsentBanner({
         <DialogHeader>
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
-            <DialogTitle>Recording Consent Required</DialogTitle>
+            <DialogTitle>{t("consent.consentRequired")}</DialogTitle>
           </div>
           <DialogDescription className="pt-2">
-            Before starting the recording, you must obtain consent from all
-            participants. This is required for compliance with GDPR and HIPAA
-            regulations.
+            {t("consent.consentDescription")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="rounded-lg border bg-muted/50 p-4">
-            <h4 className="font-medium mb-2">Consent Requirements:</h4>
+            <h4 className="font-medium mb-2">
+              {t("consent.consentRequirements")}
+            </h4>
             <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              <li>
-                All participants must explicitly consent to being recorded
-              </li>
-              <li>Consent can be revoked at any time</li>
-              <li>Consent status will be tracked and audited</li>
+              <li>{t("consent.consentReq1")}</li>
+              <li>{t("consent.consentReq2")}</li>
+              <li>{t("consent.consentReq3")}</li>
             </ul>
           </div>
 
@@ -81,8 +77,7 @@ export function ConsentBanner({
               htmlFor="consent-read"
               className="text-sm text-muted-foreground cursor-pointer"
             >
-              I confirm that I have obtained explicit consent from all
-              participants before starting this recording.
+              {t("consent.consentConfirm")}
             </label>
           </div>
         </div>
@@ -96,11 +91,11 @@ export function ConsentBanner({
             disabled={!hasRead}
             className="gap-2"
           >
-            <CheckCircle2 className="h-4 w-4" />I Have Consent
+            <CheckCircle2 className="h-4 w-4" />
+            {t("consent.iHaveConsent")}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-

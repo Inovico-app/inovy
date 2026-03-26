@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, History } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { TimePeriod } from "@/features/meetings/lib/calendar-utils";
 
 interface MeetingsTimePeriodToggleProps {
@@ -13,8 +14,14 @@ export function MeetingsTimePeriodToggle({
   value,
   onChange,
 }: MeetingsTimePeriodToggleProps) {
+  const t = useTranslations("meetings");
+
   return (
-    <div className="flex items-center gap-1" role="group" aria-label="Time period">
+    <div
+      className="flex items-center gap-1"
+      role="group"
+      aria-label={t("timePeriod.ariaLabel")}
+    >
       <Button
         variant={value === "upcoming" ? "default" : "outline"}
         size="sm"
@@ -23,7 +30,7 @@ export function MeetingsTimePeriodToggle({
         aria-pressed={value === "upcoming"}
       >
         <ArrowUpRight className="h-3.5 w-3.5" />
-        Upcoming
+        {t("timePeriod.upcoming")}
       </Button>
       <Button
         variant={value === "past" ? "default" : "outline"}
@@ -33,7 +40,7 @@ export function MeetingsTimePeriodToggle({
         aria-pressed={value === "past"}
       >
         <History className="h-3.5 w-3.5" />
-        Past
+        {t("timePeriod.past")}
       </Button>
     </div>
   );

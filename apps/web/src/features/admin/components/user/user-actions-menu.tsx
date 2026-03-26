@@ -33,6 +33,7 @@ import {
   TrashIcon,
 } from "lucide-react";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   removeMember,
@@ -52,6 +53,7 @@ export function UserActionsMenu({
   memberName,
   currentRole = "member",
 }: UserActionsMenuProps) {
+  const t = useTranslations("admin.users");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -64,7 +66,7 @@ export function UserActionsMenu({
       const result = await removeMember({ memberIdOrEmail: memberEmail });
 
       if (result?.data) {
-        toast.success(`${memberName} has been removed from the organization`);
+        toast.success(t("removeMemberSuccess", { name: memberName }));
         setShowDeleteDialog(false);
       } else if (result?.validationErrors) {
         toast.error(JSON.stringify(result.validationErrors));
@@ -72,7 +74,7 @@ export function UserActionsMenu({
         toast.error(result.serverError);
       }
     } catch (error) {
-      toast.error("Failed to remove member");
+      toast.error(t("removeMemberFailed"));
       console.error(error);
     } finally {
       setIsDeleting(false);
@@ -94,7 +96,7 @@ export function UserActionsMenu({
 
       if (result?.data) {
         toast.success(
-          `${memberName}'s role has been updated to ${selectedRole}`,
+          t("roleUpdated", { name: memberName, role: selectedRole }),
         );
         setShowRoleDialog(false);
       } else if (result?.validationErrors) {
@@ -103,7 +105,7 @@ export function UserActionsMenu({
         toast.error(result.serverError);
       }
     } catch (error) {
-      toast.error("Failed to update role");
+      toast.error(t("roleUpdateFailed"));
       console.error(error);
     } finally {
       setIsUpdatingRole(false);
@@ -115,10 +117,10 @@ export function UserActionsMenu({
       <DropdownMenu>
         <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
           <MoreVerticalIcon className="h-4 w-4" />
-          <span className="sr-only">Open menu</span>
+          <span className="sr-only">{t("openMenu")}</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setShowRoleDialog(true)}>
             <ShieldIcon className="mr-2 h-4 w-4" />
@@ -139,7 +141,7 @@ export function UserActionsMenu({
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Member</AlertDialogTitle>
+            <AlertDialogTitle>{t("removeMember")}</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to remove <strong>{memberName}</strong> from
               the organization? This action cannot be undone.
@@ -165,7 +167,7 @@ export function UserActionsMenu({
       <AlertDialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Update Member Role</AlertDialogTitle>
+            <AlertDialogTitle>{t("updateMemberRole")}</AlertDialogTitle>
             <AlertDialogDescription>
               Change the role for <strong>{memberName}</strong> in the
               organization.

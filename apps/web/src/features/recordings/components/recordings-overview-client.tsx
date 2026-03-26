@@ -9,6 +9,7 @@ import { RecordingsFilters } from "./recordings-filters";
 import { RecordingsViewToggle } from "./recordings-view-toggle";
 import { useFilteredRecordings } from "../hooks/use-filtered-recordings";
 import { useRecordingsFilters } from "../hooks/use-recordings-filters";
+import { useTranslations } from "next-intl";
 
 interface RecordingsOverviewClientProps {
   recordings: Array<RecordingDto & { projectName: string }>;
@@ -19,6 +20,7 @@ export function RecordingsOverviewClient({
   recordings,
   projects,
 }: RecordingsOverviewClientProps) {
+  const t = useTranslations("recordings");
   const {
     statusFilter,
     searchQuery,
@@ -91,13 +93,13 @@ export function RecordingsOverviewClient({
             >
               <TabsList>
                 <TabsTrigger value="active">
-                  Active
+                  {t("filters.active")}
                   <Badge variant="secondary" className="ml-2">
                     {recordings.filter((r) => r.status === "active").length}
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="archived">
-                  Archived
+                  {t("filters.archived")}
                   <Badge variant="secondary" className="ml-2">
                     {recordings.filter((r) => r.status === "archived").length}
                   </Badge>
@@ -117,10 +119,10 @@ export function RecordingsOverviewClient({
               <CardContent className="py-12 text-center">
                 <p className="text-muted-foreground">
                   {searchQuery || selectedProjectIds.length > 0
-                    ? "No recordings found matching your filters"
+                    ? t("filters.noRecordingsMatchingFilters")
                     : statusFilter === "active"
-                      ? "No active recordings yet"
-                      : "No archived recordings"}
+                      ? t("filters.noActiveRecordings")
+                      : t("filters.noArchivedRecordings")}
                 </p>
               </CardContent>
             </Card>

@@ -1,12 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { RecordingDto } from "@/server/dto/recording.dto";
 import { RecordingPlayerWrapper } from "../recording-player-wrapper";
+import { getTranslations } from "next-intl/server";
 
 interface RecordingMediaPlayerProps {
   recording: RecordingDto;
 }
 
-export function RecordingMediaPlayer({ recording }: RecordingMediaPlayerProps) {
+export async function RecordingMediaPlayer({
+  recording,
+}: RecordingMediaPlayerProps) {
+  const t = await getTranslations("recordings");
   // Early return if storage not complete
   if (
     recording.storageStatus !== "completed" ||
@@ -17,14 +21,14 @@ export function RecordingMediaPlayer({ recording }: RecordingMediaPlayerProps) {
     return (
       <Card id="player">
         <CardHeader>
-          <CardTitle>Playback</CardTitle>
+          <CardTitle>{t("player.playback")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-48 rounded-lg border bg-muted">
             <p className="text-muted-foreground text-sm">
               {recording.storageStatus === "failed"
-                ? "Recording storage failed"
-                : "Recording is being uploaded..."}
+                ? t("player.storageFailed")
+                : t("player.uploading")}
             </p>
           </div>
         </CardContent>
@@ -38,7 +42,7 @@ export function RecordingMediaPlayer({ recording }: RecordingMediaPlayerProps) {
   return (
     <Card id="player">
       <CardHeader>
-        <CardTitle>Playback</CardTitle>
+        <CardTitle>{t("player.playback")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="w-full">

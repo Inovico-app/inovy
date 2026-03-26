@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Task } from "@/server/db/schema/tasks";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useExtractTasksMutation } from "../hooks/use-extract-tasks-mutation";
 import { useTaskOperations } from "../hooks/use-task-operations";
@@ -17,6 +18,7 @@ interface TaskListProps {
 }
 
 export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
+  const t = useTranslations("tasks");
   const [localTasks, setLocalTasks] = useState(tasks ?? []);
 
   const { extractTasks, isExtracting } = useExtractTasksMutation({
@@ -32,11 +34,11 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
 
   const handleTaskStatusChange = async (
     taskId: string,
-    newStatus: Task["status"]
+    newStatus: Task["status"],
   ) => {
     // Optimistically update UI
     setLocalTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),
     );
 
     // Use the server action via useTaskOperations hook
@@ -47,12 +49,10 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
     return (
       <Card>
         <CardContent className="py-8 text-center">
-          <p className="text-muted-foreground mb-4">
-            Geen actiepunten beschikbaar
-          </p>
+          <p className="text-muted-foreground mb-4">{t("noActionItems")}</p>
           <Button onClick={handleGenerate} disabled={isExtracting}>
             {isExtracting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Actiepunten extraheren
+            {t("extractActionItems")}
           </Button>
         </CardContent>
       </Card>
@@ -72,7 +72,7 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CardTitle>Actiepunten</CardTitle>
+            <CardTitle>{t("actionItems")}</CardTitle>
             <Badge variant="outline">{localTasks.length}</Badge>
           </div>
           <Button
@@ -84,7 +84,7 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
             {isExtracting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              "Opnieuw extraheren"
+              t("reExtract")
             )}
           </Button>
         </div>
@@ -93,7 +93,9 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
         {/* Urgent tasks */}
         {tasksByPriority.urgent.length > 0 && (
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-red-700">Urgent</h3>
+            <h3 className="text-sm font-semibold text-red-700">
+              {t("priorityUrgent")}
+            </h3>
             <div className="space-y-2">
               {tasksByPriority.urgent.map((task) => (
                 <TaskCard
@@ -109,7 +111,9 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
         {/* High priority tasks */}
         {tasksByPriority.high.length > 0 && (
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-orange-700">Hoog</h3>
+            <h3 className="text-sm font-semibold text-orange-700">
+              {t("priorityHigh")}
+            </h3>
             <div className="space-y-2">
               {tasksByPriority.high.map((task) => (
                 <TaskCard
@@ -125,7 +129,9 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
         {/* Medium priority tasks */}
         {tasksByPriority.medium.length > 0 && (
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-blue-700">Normaal</h3>
+            <h3 className="text-sm font-semibold text-blue-700">
+              {t("priorityMedium")}
+            </h3>
             <div className="space-y-2">
               {tasksByPriority.medium.map((task) => (
                 <TaskCard
@@ -141,7 +147,9 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
         {/* Low priority tasks */}
         {tasksByPriority.low.length > 0 && (
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-slate-700">Laag</h3>
+            <h3 className="text-sm font-semibold text-slate-700">
+              {t("priorityLow")}
+            </h3>
             <div className="space-y-2">
               {tasksByPriority.low.map((task) => (
                 <TaskCard
@@ -157,4 +165,3 @@ export function TaskList({ recordingId, tasks, onRegenerate }: TaskListProps) {
     </Card>
   );
 }
-

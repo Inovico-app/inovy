@@ -3,7 +3,11 @@
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -13,6 +17,7 @@ import {
 } from "@/components/ui/command";
 import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
 import { getUserDisplayName } from "@/lib/formatters/display-formatters";
+import { useTranslations } from "next-intl";
 
 interface AttendeeEmailInputProps {
   value: string;
@@ -27,6 +32,7 @@ export function AttendeeEmailInput({
   onAdd,
   disabled = false,
 }: AttendeeEmailInputProps) {
+  const t = useTranslations("meetings");
   const [emailSuggestionsOpen, setEmailSuggestionsOpen] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const { data: organizationUsers = [] } = useOrganizationUsersQuery();
@@ -59,7 +65,7 @@ export function AttendeeEmailInput({
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setEmailError("Please enter a valid email address");
+      setEmailError(t("attendees.invalidEmail"));
       return;
     }
 
@@ -74,10 +80,13 @@ export function AttendeeEmailInput({
       onOpenChange={setEmailSuggestionsOpen}
     >
       <div className="flex gap-2">
-        <PopoverTrigger render={<div className="flex-1 relative" />} nativeButton={false}>
+        <PopoverTrigger
+          render={<div className="flex-1 relative" />}
+          nativeButton={false}
+        >
           <Input
             type="email"
-            placeholder="Enter email address"
+            placeholder={t("attendees.emailPlaceholder")}
             value={value}
             onChange={(e) => {
               onChange(e.target.value);
@@ -120,8 +129,8 @@ export function AttendeeEmailInput({
         >
           <Command>
             <CommandList>
-              <CommandEmpty>No matching users found.</CommandEmpty>
-              <CommandGroup heading="Organization Members">
+              <CommandEmpty>{t("attendees.noMatchingUsers")}</CommandEmpty>
+              <CommandGroup heading={t("attendees.organizationMembers")}>
                 {emailSuggestions.map((user) => (
                   <CommandItem
                     key={user.id}
@@ -137,7 +146,7 @@ export function AttendeeEmailInput({
                       e.preventDefault();
                     }}
                     className="cursor-pointer"
-                    >
+                  >
                     <div className="flex flex-col">
                       <span className="text-sm">
                         {getUserDisplayName({
@@ -164,7 +173,7 @@ export function AttendeeEmailInput({
           onClick={handleAdd}
           disabled={!value.trim() || disabled}
         >
-          Add
+          {t("attendees.add")}
         </Button>
       </div>
     </Popover>

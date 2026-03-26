@@ -12,6 +12,7 @@ import { useUpdateTranscriptionMutation } from "../../hooks/use-update-transcrip
 import { ExportTranscriptionButton } from "./export-transcription-button";
 import { TranscriptionHistoryDialog } from "../transcription-history-dialog";
 import type { TranscriptionEditViewProps } from "./types";
+import { useTranslations } from "next-intl";
 
 export function TranscriptionEditView({
   recordingId,
@@ -26,6 +27,8 @@ export function TranscriptionEditView({
   onCancel,
   onSuccess,
 }: TranscriptionEditViewProps) {
+  const t = useTranslations("recordings");
+  const tc = useTranslations("common");
   const {
     state,
     setEditedText,
@@ -63,23 +66,26 @@ export function TranscriptionEditView({
       {/* Header with metadata */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h3 className="text-sm font-medium">Bewerk transcriptie</h3>
+          <h3 className="text-sm font-medium">
+            {t("transcription.editTranscription")}
+          </h3>
           {isManuallyEdited && (
             <Badge variant="secondary" className="text-xs">
-              Handmatig bewerkt
+              {t("transcription.manuallyEdited")}
             </Badge>
           )}
         </div>
         <div className="flex items-center gap-2">
           {speakersDetected !== undefined && speakersDetected > 0 && (
             <Badge variant="outline">
-              {speakersDetected}{" "}
-              {speakersDetected === 1 ? "spreker" : "sprekers"}
+              {t("transcription.speakerCount", { count: speakersDetected })}
             </Badge>
           )}
           {confidence !== undefined && (
             <Badge variant="outline">
-              {Math.round(confidence * 100)}% vertrouwen
+              {t("transcription.confidence", {
+                value: Math.round(confidence * 100),
+              })}
             </Badge>
           )}
         </div>
@@ -97,13 +103,9 @@ export function TranscriptionEditView({
 
       {/* Search and Replace */}
       <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={toggleSearchReplace}
-        >
+        <Button variant="outline" size="sm" onClick={toggleSearchReplace}>
           <Search className="h-4 w-4 mr-1" />
-          Zoek & Vervang
+          {t("transcription.searchAndReplace")}
         </Button>
       </div>
 
@@ -111,30 +113,30 @@ export function TranscriptionEditView({
         <Card className="p-4 bg-muted/50">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="search-term">Zoeken naar</Label>
+              <Label htmlFor="search-term">
+                {t("transcription.searchFor")}
+              </Label>
               <Input
                 id="search-term"
                 value={state.searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Zoekterm..."
+                placeholder={t("transcription.searchPlaceholder")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="replace-term">Vervangen door</Label>
+              <Label htmlFor="replace-term">
+                {t("transcription.replaceWith")}
+              </Label>
               <Input
                 id="replace-term"
                 value={state.replaceTerm}
                 onChange={(e) => setReplaceTerm(e.target.value)}
-                placeholder="Vervangende tekst..."
+                placeholder={t("transcription.replacePlaceholder")}
               />
             </div>
           </div>
           <div className="mt-4 flex justify-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={closeSearchReplace}
-            >
+            <Button variant="outline" size="sm" onClick={closeSearchReplace}>
               Annuleren
             </Button>
             <Button
@@ -142,7 +144,7 @@ export function TranscriptionEditView({
               onClick={executeReplace}
               disabled={!state.searchTerm}
             >
-              Vervang Alle
+              {t("transcription.replaceAll")}
             </Button>
           </div>
         </Card>
@@ -151,29 +153,33 @@ export function TranscriptionEditView({
       {/* Change Description */}
       <div className="space-y-2">
         <Label htmlFor="change-description">
-          Beschrijving van wijzigingen (optioneel)
+          {t("transcription.changeDescriptionLabel")}
         </Label>
         <Input
           id="change-description"
           value={state.changeDescription}
           onChange={(e) => setChangeDescription(e.target.value)}
-          placeholder="Bijv. Correctie van namen, spelling..."
+          placeholder={t("transcription.changeDescriptionPlaceholder")}
           maxLength={500}
         />
       </div>
 
       {/* Editor */}
       <div className="space-y-2">
-        <Label htmlFor="transcription-text">Transcriptie tekst</Label>
+        <Label htmlFor="transcription-text">
+          {t("transcription.transcriptionText")}
+        </Label>
         <Textarea
           id="transcription-text"
           value={state.editedText}
           onChange={(e) => setEditedText(e.target.value)}
           className="min-h-[400px] font-mono text-sm"
-          placeholder="Transcriptie tekst..."
+          placeholder={t("transcription.transcriptionPlaceholder")}
         />
         <p className="text-xs text-muted-foreground">
-          {state.editedText.length} karakters
+          {t("transcription.characterCount", {
+            count: state.editedText.length,
+          })}
         </p>
       </div>
 
@@ -193,7 +199,7 @@ export function TranscriptionEditView({
           <TranscriptionHistoryDialog recordingId={recordingId} />
           <Button variant="outline" onClick={handleCancel}>
             <X className="h-4 w-4 mr-1" />
-            Annuleren
+            {tc("cancel")}
           </Button>
           <Button
             onClick={handleSave}
@@ -202,11 +208,10 @@ export function TranscriptionEditView({
             }
           >
             <Save className="h-4 w-4 mr-1" />
-            {updateMutation.isPending ? "Opslaan..." : "Opslaan"}
+            {updateMutation.isPending ? t("transcription.saving") : tc("save")}
           </Button>
         </div>
       </div>
     </div>
   );
 }
-

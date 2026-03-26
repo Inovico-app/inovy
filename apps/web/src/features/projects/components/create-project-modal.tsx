@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PlusIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -18,7 +19,7 @@ import { CreateProjectForm } from "./create-project-form";
 interface CreateProjectModalProps {
   /**
    * Optional custom trigger element to open the modal.
-   * If omitted, a default "Create New Project" button with a plus icon is used.
+   * If omitted, a default "{t("createNewProject")}" button with a plus icon is used.
    */
   trigger?: React.ReactElement;
   /**
@@ -49,6 +50,7 @@ export function CreateProjectModal({
   onOpenChange: controlledOnOpenChange,
 }: CreateProjectModalProps) {
   const router = useRouter();
+  const t = useTranslations("projects");
   const [internalOpen, setInternalOpen] = useState(false);
 
   // Use controlled state if provided, otherwise use internal state
@@ -75,14 +77,14 @@ export function CreateProjectModal({
       ) : (
         <DialogTrigger render={<Button />}>
           <PlusIcon className="h-4 w-4 mr-2" />
-          Create New Project
+          {t("createNewProject")}
         </DialogTrigger>
       )}
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Create New Project</DialogTitle>
+          <DialogTitle>{t("createNewProject")}</DialogTitle>
           <DialogDescription>
-            Create a new project to organize your meeting recordings.
+            {t("createNewProjectDescription")}
           </DialogDescription>
         </DialogHeader>
         <CreateProjectForm onSuccess={handleSuccess} showCard={false} />

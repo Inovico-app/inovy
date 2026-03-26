@@ -32,6 +32,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
 import { parseAsInteger, useQueryState } from "nuqs";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 interface AgentMetricsTableProps {
@@ -246,6 +247,7 @@ export function AgentMetricsTable({
   limit,
   currentPage,
 }: AgentMetricsTableProps) {
+  const t = useTranslations("admin.metrics");
   const router = useRouter();
   const [_page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
 
@@ -261,7 +263,7 @@ export function AgentMetricsTable({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Agent Metrics</CardTitle>
+        <CardTitle>{t("agentMetrics")}</CardTitle>
       </CardHeader>
       <CardContent>
         {metrics.length > 0 ? (
@@ -270,15 +272,19 @@ export function AgentMetricsTable({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Created At</TableHead>
-                    <TableHead>Request Type</TableHead>
-                    <TableHead>User ID</TableHead>
-                    <TableHead>Organization ID</TableHead>
-                    <TableHead className="text-right">Latency (ms)</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-right">Token Count</TableHead>
-                    <TableHead>Query</TableHead>
-                    <TableHead className="w-12">Details</TableHead>
+                    <TableHead>{t("createdAt")}</TableHead>
+                    <TableHead>{t("requestType")}</TableHead>
+                    <TableHead>{t("userId")}</TableHead>
+                    <TableHead>{t("organizationId")}</TableHead>
+                    <TableHead className="text-right">
+                      {t("latencyMs")}
+                    </TableHead>
+                    <TableHead className="text-center">{t("status")}</TableHead>
+                    <TableHead className="text-right">
+                      {t("tokenCount")}
+                    </TableHead>
+                    <TableHead>{t("queryColumn")}</TableHead>
+                    <TableHead className="w-12">{t("details")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -329,7 +335,7 @@ export function AgentMetricsTable({
           </div>
         ) : (
           <div className="py-8 text-center text-muted-foreground">
-            No metrics found matching your filters.
+            {t("noMetrics")}
           </div>
         )}
       </CardContent>

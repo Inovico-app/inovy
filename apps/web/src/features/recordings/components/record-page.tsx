@@ -34,6 +34,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface RecordPageProps {
   projects: ProjectWithCreatorDto[];
@@ -44,29 +45,29 @@ interface RecordPageProps {
 
 const AUDIO_SOURCE_OPTIONS: Array<{
   value: AudioSource;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   icon: typeof Mic;
   requiresSystem: boolean;
 }> = [
   {
     value: "microphone",
-    label: "Microfoon",
-    description: "Alleen microfoonaudio",
+    labelKey: "session.microphone",
+    descriptionKey: "session.microphoneOnly",
     icon: Mic,
     requiresSystem: false,
   },
   {
     value: "system",
-    label: "Systeemaudio",
-    description: "Alleen computersgeluid",
+    labelKey: "session.systemAudio",
+    descriptionKey: "session.systemAudioOnly",
     icon: Monitor,
     requiresSystem: true,
   },
   {
     value: "combined",
-    label: "Beide",
-    description: "Microfoon + systeemaudio",
+    labelKey: "session.combined",
+    descriptionKey: "session.combinedDescription",
     icon: Combine,
     requiresSystem: true,
   },
@@ -78,6 +79,7 @@ export function RecordPage({
   userId,
   projectIdFromParams,
 }: RecordPageProps) {
+  const t = useTranslations("recordings");
   const capabilities = useAudioCapabilities();
   const { devices: audioDevices } = useAudioDevices();
 
@@ -152,15 +154,16 @@ export function RecordPage({
     ],
   );
 
-  const selectedAudioLabel =
-    AUDIO_SOURCE_OPTIONS.find((o) => o.value === audioSource)?.label ??
-    "Microfoon";
+  const selectedAudioLabelKey =
+    AUDIO_SOURCE_OPTIONS.find((o) => o.value === audioSource)?.labelKey ??
+    "session.microphone";
+  const selectedAudioLabel = t(selectedAudioLabelKey);
 
   if (!hasProjects) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16">
         <p className="text-muted-foreground">
-          Maak eerst een project aan om een opname te starten.
+          {t("session.createProjectFirst")}
         </p>
       </div>
     );
@@ -211,12 +214,12 @@ export function RecordPage({
               <SelectTrigger
                 id="project-select-new"
                 className="w-[200px] sm:w-[240px]"
-                aria-label="Selecteer een project voor deze opname"
+                aria-label={t("session.selectProjectLabel")}
               >
                 <SelectValue placeholder="Selecteer een project">
                   {(value: string | null) => {
                     const project = projects.find((p) => p.id === value);
-                    return project?.name ?? "Selecteer een project";
+                    return project?.name ?? t("session.selectProject");
                   }}
                 </SelectValue>
               </SelectTrigger>
@@ -241,11 +244,11 @@ export function RecordPage({
         <DropdownMenu>
           <DropdownMenuTrigger className="inline-flex items-center justify-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
             <Settings2 className="w-4 h-4" />
-            <span className="hidden sm:inline">Instellingen</span>
+            <span className="hidden sm:inline">{t("session.settings")}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-72 p-2">
             <DropdownMenuLabel className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-              Audiobron
+              {t("session.audioSource")}
             </DropdownMenuLabel>
             <DropdownMenuRadioGroup
               value={audioSource}
@@ -264,10 +267,10 @@ export function RecordPage({
                     </div>
                     <div className="flex flex-col gap-0.5 min-w-0">
                       <span className="text-sm font-medium leading-tight">
-                        {opt.label}
+                        {t(opt.labelKey)}
                       </span>
                       <span className="text-[11px] leading-tight text-muted-foreground">
-                        {opt.description}
+                        {t(opt.descriptionKey)}
                       </span>
                     </div>
                   </DropdownMenuRadioItem>
@@ -276,7 +279,7 @@ export function RecordPage({
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator className="my-2" />
             <DropdownMenuLabel className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-              Microfoon
+              {t("session.microphoneLabel")}
             </DropdownMenuLabel>
             <div className="px-2 py-1.5 space-y-1.5">
               <Select
@@ -287,19 +290,22 @@ export function RecordPage({
               >
                 <SelectTrigger
                   className="w-full"
-                  aria-label="Selecteer microfoon"
+                  aria-label={t("session.selectMicrophone")}
                 >
-                  <SelectValue placeholder="Standaard microfoon">
+                  <SelectValue placeholder={t("session.defaultMicrophone")}>
                     {selectedDeviceId === "default"
-                      ? "Standaard microfoon"
+                      ? t("session.defaultMicrophone")
                       : (audioDevices.find(
                           (d) => d.deviceId === selectedDeviceId,
-                        )?.label ?? "Standaard microfoon")}
+                        )?.label ?? t("session.defaultMicrophone"))}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="default" label="Standaard microfoon">
-                    Standaard microfoon
+                  <SelectItem
+                    value="default"
+                    label={t("session.defaultMicrophone")}
+                  >
+                    {t("session.defaultMicrophone")}
                   </SelectItem>
                   {audioDevices.map((device) => (
                     <SelectItem
@@ -313,12 +319,12 @@ export function RecordPage({
                 </SelectContent>
               </Select>
               <p className="text-[11px] text-muted-foreground/70">
-                Kan niet worden gewijzigd tijdens de opname
+                {t("session.cannotChangeDuringRecording")}
               </p>
             </div>
             <DropdownMenuSeparator className="my-2" />
             <DropdownMenuLabel className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-              Transcriptie
+              {t("session.transcription")}
             </DropdownMenuLabel>
             <DropdownMenuCheckboxItem
               checked={liveTranscriptionEnabled}
@@ -330,10 +336,10 @@ export function RecordPage({
               </div>
               <div className="flex flex-col gap-0.5 min-w-0">
                 <span className="text-sm font-medium leading-tight">
-                  Live transcriptie
+                  {t("session.liveTranscription")}
                 </span>
                 <span className="text-[11px] leading-tight text-muted-foreground">
-                  Real-time spraak naar tekst
+                  {t("session.realTimeSpeechToText")}
                 </span>
               </div>
             </DropdownMenuCheckboxItem>
@@ -355,7 +361,7 @@ export function RecordPage({
                 type="button"
                 onClick={handleRequestConsent}
                 className="relative z-10 flex items-center justify-center size-28 sm:size-32 rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 transition-all duration-200 hover:shadow-2xl hover:shadow-primary/40 hover:scale-105 active:scale-95 focus-visible:ring-4 focus-visible:ring-ring"
-                aria-label="Start opname"
+                aria-label={t("session.startRecordingAriaLabel")}
               >
                 <Mic className="size-10 sm:size-12" strokeWidth={1.5} />
               </button>
@@ -364,13 +370,14 @@ export function RecordPage({
             {/* Label */}
             <div className="text-center space-y-2">
               <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">
-                Tik om op te nemen
+                {t("session.tapToRecord")}
               </h1>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto">
                 {selectedAudioLabel}
                 {selectedDeviceId !== "default" &&
                   ` \u00B7 ${audioDevices.find((d) => d.deviceId === selectedDeviceId)?.label ?? ""}`}
-                {liveTranscriptionEnabled && " \u00B7 Live transcriptie"}
+                {liveTranscriptionEnabled &&
+                  ` \u00B7 ${t("session.liveTranscription")}`}
               </p>
             </div>
           </>
@@ -381,9 +388,11 @@ export function RecordPage({
               <Mic className="size-8 text-muted-foreground/50" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-medium">Geen project geselecteerd</p>
+              <p className="text-sm font-medium">
+                {t("session.noProjectSelected")}
+              </p>
               <p className="text-sm text-muted-foreground">
-                Selecteer een project om te beginnen met opnemen
+                {t("session.selectProjectToStart")}
               </p>
             </div>
           </div>

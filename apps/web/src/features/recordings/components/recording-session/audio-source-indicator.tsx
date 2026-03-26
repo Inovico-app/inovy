@@ -5,6 +5,7 @@ import type {
   RecordingStatus,
 } from "@/features/recordings/core/recording-session.types";
 import { Mic, Monitor } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface AudioSourceIndicatorProps {
   audioSource: AudioSource;
@@ -26,13 +27,20 @@ export function AudioSourceIndicator({
   status,
   className,
 }: AudioSourceIndicatorProps) {
+  const t = useTranslations("recordings");
+  const SOURCE_LABELS: Record<AudioSource, string> = {
+    microphone: t("audioSourceIndicator.microphone"),
+    system: t("audioSourceIndicator.systemAudio"),
+    combined: t("audioSourceIndicator.microphoneAndSystem"),
+  };
   const config = SOURCE_CONFIG[audioSource];
+  const label = SOURCE_LABELS[audioSource];
   const isActive = status === "recording";
 
   return (
     <div
       className={`flex items-center gap-2 text-xs text-muted-foreground ${className ?? ""}`}
-      aria-label={`Audiobron: ${config.label}`}
+      aria-label={t("audioSourceIndicator.audioSource", { label })}
     >
       <div className="flex items-center gap-1">
         {config.icons.map((Icon, index) => (
@@ -49,7 +57,7 @@ export function AudioSourceIndicator({
           </span>
         ))}
       </div>
-      <span className="font-medium">{config.label}</span>
+      <span className="font-medium">{label}</span>
     </div>
   );
 }

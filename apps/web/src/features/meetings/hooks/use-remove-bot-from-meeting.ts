@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useAction } from "next-safe-action/hooks";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { removeBotFromMeeting } from "../actions/remove-bot-from-meeting";
 import { queryKeys } from "@/lib/query-keys";
@@ -21,13 +22,14 @@ interface UseRemoveBotFromMeetingOptions {
 export function useRemoveBotFromMeeting(
   options?: UseRemoveBotFromMeetingOptions,
 ) {
+  const t = useTranslations("meetings");
   const queryClient = useQueryClient();
 
   const { execute, isExecuting } = useAction(removeBotFromMeeting, {
     onSuccess: ({ data }) => {
       if (data?.success) {
-        toast.success("Notetaker removed from meeting", {
-          description: "The notetaker will not join this meeting.",
+        toast.success(t("toast.notetakerRemoved"), {
+          description: t("toast.notetakerRemovedDescription"),
         });
         queryClient.invalidateQueries({
           queryKey: queryKeys.botSessions.all,
@@ -39,8 +41,8 @@ export function useRemoveBotFromMeeting(
       }
     },
     onError: ({ error }) => {
-      toast.error("Failed to remove notetaker", {
-        description: error.serverError || "Please try again",
+      toast.error(t("toast.notetakerRemoveFailed"), {
+        description: error.serverError || t("toast.pleaseTryAgain"),
       });
     },
   });

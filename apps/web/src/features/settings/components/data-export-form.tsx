@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertCircle, FileDown, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 
 interface DataExportFormProps {
@@ -36,6 +37,7 @@ export function DataExportForm({
   isRequesting,
   onRequestExport,
 }: DataExportFormProps) {
+  const t = useTranslations("settings.profile");
   const projectItems = useMemo(
     () => ({
       all: "All projects",
@@ -46,11 +48,11 @@ export function DataExportForm({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold">Request New Export</h3>
+      <h3 className="text-sm font-semibold">{t("requestNewExport")}</h3>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="startDate">Start Date (Optional)</Label>
+          <Label htmlFor="startDate">{t("startDate")}</Label>
           <Input
             id="startDate"
             type="date"
@@ -60,7 +62,7 @@ export function DataExportForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="endDate">End Date (Optional)</Label>
+          <Label htmlFor="endDate">{t("endDate")}</Label>
           <Input
             id="endDate"
             type="date"
@@ -73,7 +75,7 @@ export function DataExportForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="project">Project (Optional)</Label>
+        <Label htmlFor="project">{t("project")}</Label>
         <Select
           value={selectedProjectId}
           onValueChange={(value) => setSelectedProjectId(value ?? "")}
@@ -103,12 +105,12 @@ export function DataExportForm({
         {isRequesting ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Creating Export...
+            {t("creatingExport")}
           </>
         ) : (
           <>
             <FileDown className="mr-2 h-4 w-4" />
-            Request Data Export
+            {t("requestDataExport")}
           </>
         )}
       </Button>
@@ -116,7 +118,7 @@ export function DataExportForm({
       {(startDate && !endDate) || (!startDate && endDate) ? (
         <p className="text-sm text-muted-foreground flex items-center gap-2">
           <AlertCircle className="h-4 w-4" />
-          Please provide both start and end dates, or leave both empty.
+          {t("bothDatesRequired")}
         </p>
       ) : null}
     </div>

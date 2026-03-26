@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, CheckCircle2, Circle, SkipForward } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { MeetingHeader } from "./meeting-header";
 import {
   postActionStatusColors,
@@ -40,6 +41,7 @@ export function MeetingDetailContent({
   notes,
   postActions,
 }: MeetingDetailContentProps) {
+  const t = useTranslations("meetings");
   const participants = (meeting.participants as MeetingParticipant[]) ?? [];
   const coveredCount = agendaItems.filter((i) => i.status === "covered").length;
   const postNotes = notes.find((n) => n.type === "post_meeting");
@@ -54,9 +56,12 @@ export function MeetingDetailContent({
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center justify-between">
-              <span>Agenda Coverage</span>
+              <span>{t("detailContent.agendaCoverage")}</span>
               <span className="text-sm font-normal text-muted-foreground">
-                {coveredCount}/{agendaItems.length} covered
+                {t("detailContent.coveredCount", {
+                  covered: coveredCount,
+                  total: agendaItems.length,
+                })}
               </span>
             </CardTitle>
           </CardHeader>
@@ -116,7 +121,9 @@ export function MeetingDetailContent({
       {(preNotes || postNotes) && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Notes</CardTitle>
+            <CardTitle className="text-lg">
+              {t("detailContent.notes")}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {preNotes && (
@@ -129,7 +136,7 @@ export function MeetingDetailContent({
                     />
                   }
                 >
-                  Pre-Meeting Notes
+                  {t("detailContent.preMeetingNotes")}
                   <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent>
@@ -141,7 +148,9 @@ export function MeetingDetailContent({
             )}
             {postNotes && (
               <div>
-                <h4 className="font-medium text-sm mb-2">Post-Meeting Notes</h4>
+                <h4 className="font-medium text-sm mb-2">
+                  {t("detailContent.postMeetingNotes")}
+                </h4>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                   {postNotes.content}
                 </p>
@@ -155,7 +164,9 @@ export function MeetingDetailContent({
       {postActions.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Post-Meeting Actions</CardTitle>
+            <CardTitle className="text-lg">
+              {t("detailContent.postMeetingActions")}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {postActions.map((action) => (
@@ -182,7 +193,7 @@ export function MeetingDetailContent({
       {participants.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Participants</CardTitle>
+            <CardTitle className="text-lg">{t("participants")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface TranscriptionSearchProps {
   onSearchChange: (query: string, currentMatch: number) => void;
@@ -17,6 +18,7 @@ export function TranscriptionSearch({
   totalMatches,
   currentMatchIndex,
 }: TranscriptionSearchProps) {
+  const t = useTranslations("recordings");
   const [searchQuery, setSearchQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
@@ -62,7 +64,7 @@ export function TranscriptionSearch({
         onClick={() => setIsOpen(true)}
         className="mb-4"
       >
-        Zoeken in transcriptie
+        {t("transcription.searchInTranscription")}
       </Button>
     );
   }
@@ -71,7 +73,7 @@ export function TranscriptionSearch({
     <div className="flex items-center gap-2 mb-4 p-2 border rounded-lg bg-muted/50">
       <Input
         type="text"
-        placeholder="Zoeken in transcriptie..."
+        placeholder={t("transcription.searchTranscriptionPlaceholder")}
         value={searchQuery}
         onChange={(e) => handleSearch(e.target.value)}
         className="flex-1 h-8"
@@ -80,8 +82,11 @@ export function TranscriptionSearch({
       {searchQuery && (
         <div className="text-sm text-muted-foreground whitespace-nowrap">
           {totalMatches > 0
-            ? `${currentMatchIndex + 1} van ${totalMatches}`
-            : "Geen resultaten"}
+            ? t("transcription.matchCount", {
+                current: currentMatchIndex + 1,
+                total: totalMatches,
+              })
+            : t("transcription.noResults")}
         </div>
       )}
       <Button
@@ -89,7 +94,7 @@ export function TranscriptionSearch({
         size="sm"
         onClick={handlePrevMatch}
         disabled={totalMatches === 0}
-        title="Vorige match"
+        title={t("transcription.previousMatch")}
       >
         <ChevronUp className="h-4 w-4" />
       </Button>
@@ -98,14 +103,18 @@ export function TranscriptionSearch({
         size="sm"
         onClick={handleNextMatch}
         disabled={totalMatches === 0}
-        title="Volgende match"
+        title={t("transcription.nextMatch")}
       >
         <ChevronDown className="h-4 w-4" />
       </Button>
-      <Button variant="ghost" size="sm" onClick={handleClear} title="Sluiten">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleClear}
+        title={t("transcription.closeSearch")}
+      >
         <X className="h-4 w-4" />
       </Button>
     </div>
   );
 }
-

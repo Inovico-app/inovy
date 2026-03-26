@@ -1,6 +1,7 @@
 "use client";
 
 import { PencilIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "../../../components/ui/button";
 import {
@@ -37,7 +38,7 @@ interface EditProjectModalProps {
  * @param variant - Button variant for the trigger; defaults to `"default"`
  * @param open - Optional controlled open state for the dialog
  * @param onOpenChange - Optional callback invoked with the new open state when the dialog is toggled
- * @returns A JSX element rendering the Edit Project modal
+ * @returns A JSX element rendering the {t("editProjectTitle")} modal
  */
 export function EditProjectModal({
   projectId,
@@ -47,7 +48,7 @@ export function EditProjectModal({
   onOpenChange: controlledOnOpenChange,
 }: EditProjectModalProps) {
   const [internalOpen, setInternalOpen] = useState(false);
-
+  const t = useTranslations("projects");
   // Use controlled state if provided, otherwise use internal state
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = controlledOnOpenChange || setInternalOpen;
@@ -60,15 +61,12 @@ export function EditProjectModal({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant={variant} size="sm" />}>
         <PencilIcon className="h-4 w-4 mr-2" />
-        Edit Project
+        {t("editProjectTitle")}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Edit Project</DialogTitle>
-          <DialogDescription>
-            Update your project information. Changes will be reflected
-            immediately.
-          </DialogDescription>
+          <DialogTitle>{t("editProjectTitle")}</DialogTitle>
+          <DialogDescription>{t("editProjectDescription")}</DialogDescription>
         </DialogHeader>
         <EditProjectForm
           projectId={projectId}

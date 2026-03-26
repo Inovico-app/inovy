@@ -1,6 +1,7 @@
 "use client";
 
 import { ArchiveIcon, ArchiveRestoreIcon, Loader2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -47,6 +48,8 @@ export function ArchiveProjectDialog({
   onOpenChange: controlledOnOpenChange,
 }: ArchiveProjectDialogProps) {
   const router = useRouter();
+  const t = useTranslations("projects");
+  const tc = useTranslations("common");
   const [internalOpen, setInternalOpen] = useState(false);
 
   // Use controlled state if provided, otherwise use internal state
@@ -65,12 +68,12 @@ export function ArchiveProjectDialog({
         return;
       }
 
-      toast.success(`Project "${projectName}" archived successfully`);
+      toast.success(t("archiveSuccess", { name: projectName }));
       router.refresh();
       router.push("/projects" as Route);
     } catch (error) {
       console.error("Error archiving project:", error);
-      toast.error("Failed to archive project");
+      toast.error(t("archiveError"));
     } finally {
       setIsLoading(false);
       setOpen(false);
@@ -87,11 +90,11 @@ export function ArchiveProjectDialog({
         return;
       }
 
-      toast.success(`Project "${projectName}" restored successfully`);
+      toast.success(t("unarchiveSuccess", { name: projectName }));
       router.refresh();
     } catch (error) {
       console.error("Error unarchiving project:", error);
-      toast.error("Failed to restore project");
+      toast.error(t("unarchiveError"));
     } finally {
       setIsLoading(false);
       setOpen(false);
@@ -107,12 +110,12 @@ export function ArchiveProjectDialog({
           {isArchived ? (
             <>
               <ArchiveRestoreIcon className="h-4 w-4 mr-2" />
-              Restore Project
+              {t("restoreProject")}
             </>
           ) : (
             <>
               <ArchiveIcon className="h-4 w-4 mr-2" />
-              Archive Project
+              {t("archiveProject")}
             </>
           )}
         </DialogTrigger>
@@ -120,7 +123,7 @@ export function ArchiveProjectDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {isArchived ? "Restore Project?" : "Archive Project?"}
+            {isArchived ? t("unarchiveTitle") : t("archiveTitle")}
           </DialogTitle>
           <DialogDescription>
             {isArchived ? (
@@ -144,7 +147,7 @@ export function ArchiveProjectDialog({
             onClick={() => setOpen(false)}
             disabled={isLoading}
           >
-            Cancel
+            {tc("cancel")}
           </Button>
           <Button
             onClick={() => {
@@ -158,7 +161,7 @@ export function ArchiveProjectDialog({
             variant={isArchived ? "default" : "destructive"}
           >
             {isLoading && <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />}
-            {isArchived ? "Restore" : "Archive"}
+            {isArchived ? t("restore") : t("archive")}
           </Button>
         </DialogFooter>
       </DialogContent>

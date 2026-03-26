@@ -11,6 +11,7 @@ import type { MeetingBotStatusFilter } from "@/features/meetings/lib/calendar-ut
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 
 interface MeetingsFilterProps {
@@ -22,15 +23,15 @@ interface MeetingsFilterProps {
   onClear?: () => void;
 }
 
-const STATUS_OPTIONS: Array<{
+const STATUS_OPTION_KEYS: Array<{
   value: MeetingBotStatusFilter;
-  label: string;
+  labelKey: string;
 }> = [
-  { value: "all", label: "All Meetings" },
-  { value: "with_bot", label: "With Bot" },
-  { value: "without_bot", label: "Without Bot" },
-  { value: "active", label: "Active" },
-  { value: "failed", label: "Failed" },
+  { value: "all", labelKey: "filter.allMeetings" },
+  { value: "with_bot", labelKey: "filter.withBot" },
+  { value: "without_bot", labelKey: "filter.withoutBot" },
+  { value: "active", labelKey: "filter.active" },
+  { value: "failed", labelKey: "filter.failed" },
 ];
 
 export function MeetingsFilter({
@@ -41,9 +42,20 @@ export function MeetingsFilter({
   totalCount,
   onClear,
 }: MeetingsFilterProps) {
+  const t = useTranslations("meetings");
+
+  const statusOptions = useMemo(
+    () =>
+      STATUS_OPTION_KEYS.map((o) => ({
+        value: o.value,
+        label: t(o.labelKey as Parameters<typeof t>[0]),
+      })),
+    [t],
+  );
+
   const statusItems = useMemo(
-    () => Object.fromEntries(STATUS_OPTIONS.map((o) => [o.value, o.label])),
-    [],
+    () => Object.fromEntries(statusOptions.map((o) => [o.value, o.label])),
+    [statusOptions],
   );
 
   const isFiltered = selectedStatus !== "all";
@@ -56,7 +68,7 @@ export function MeetingsFilter({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <label htmlFor="bot-status-filter" className="text-sm font-medium">
-        Filter by status:
+        {t("filter.label")}
       </label>
       <Select
         value={selectedStatus}
@@ -69,7 +81,7 @@ export function MeetingsFilter({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {STATUS_OPTIONS.map((option) => {
+          {statusOptions.map((option) => {
             const count = statusCounts?.[option.value];
             return (
               <SelectItem key={option.value} value={option.value}>
@@ -91,7 +103,7 @@ export function MeetingsFilter({
           variant="ghost"
           size="sm"
           onClick={onClear}
-          aria-label="Clear filter"
+          aria-label={t("filter.clearFilter")}
           className="h-8 px-2"
         >
           <X className="h-4 w-4" />
@@ -103,7 +115,10 @@ export function MeetingsFilter({
           aria-live="polite"
           aria-atomic="true"
         >
-          Showing {filteredCount} of {totalCount} meetings
+          {t("filter.showingOf", {
+            filtered: filteredCount,
+            total: totalCount,
+          })}
         </span>
       )}
     </div>

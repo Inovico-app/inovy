@@ -1,6 +1,9 @@
+"use client";
+
 import { useAction } from "next-safe-action/hooks";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { getOrCreateMeeting } from "../actions/meeting-actions";
 
@@ -9,6 +12,7 @@ interface UseNavigateToMeetingOptions {
 }
 
 export function useNavigateToMeeting(options?: UseNavigateToMeetingOptions) {
+  const t = useTranslations("meetings");
   const router = useRouter();
 
   const { execute, isExecuting, reset } = useAction(getOrCreateMeeting, {
@@ -27,7 +31,7 @@ export function useNavigateToMeeting(options?: UseNavigateToMeetingOptions) {
       reset();
     },
     onError: ({ error }) => {
-      toast.error(error.serverError || "Failed to open meeting");
+      toast.error(error.serverError || t("toast.openMeetingFailed"));
     },
   });
 

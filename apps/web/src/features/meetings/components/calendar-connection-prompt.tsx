@@ -11,10 +11,12 @@ import {
 import { PermissionExplanationDialog } from "@/features/integrations/google/components/permission-explanation-dialog";
 import { MsIncrementalPermissionDialog } from "@/features/integrations/microsoft/components/incremental-permission-dialog";
 import { Calendar } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useState } from "react";
 
 export function CalendarConnectionPrompt() {
+  const t = useTranslations("meetings");
   const [showGoogleDialog, setShowGoogleDialog] = useState(false);
   const [showMicrosoftDialog, setShowMicrosoftDialog] = useState(false);
 
@@ -27,19 +29,20 @@ export function CalendarConnectionPrompt() {
               <Calendar className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Connect Your Calendar</CardTitle>
+          <CardTitle className="text-2xl">
+            {t("calendarConnection.title")}
+          </CardTitle>
           <CardDescription className="text-base">
-            To view your calendar meetings, connect your Google or Microsoft
-            calendar account.
+            {t("calendarConnection.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2 text-sm text-muted-foreground">
-            <p>Once connected, you&apos;ll be able to:</p>
+            <p>{t("calendarConnection.onceConnected")}</p>
             <ul className="list-disc list-inside space-y-1 ml-4">
-              <li>View all your calendar meetings</li>
-              <li>See bot session status for each meeting</li>
-              <li>Navigate through your calendar months</li>
+              <li>{t("calendarConnection.benefit1")}</li>
+              <li>{t("calendarConnection.benefit2")}</li>
+              <li>{t("calendarConnection.benefit3")}</li>
             </ul>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 pt-4">
@@ -47,14 +50,14 @@ export function CalendarConnectionPrompt() {
               className="flex-1"
               onClick={() => setShowGoogleDialog(true)}
             >
-              Connect Google Calendar
+              {t("calendarConnection.connectGoogle")}
             </Button>
             <Button
               className="flex-1"
               variant="outline"
               onClick={() => setShowMicrosoftDialog(true)}
             >
-              Connect Microsoft Calendar
+              {t("calendarConnection.connectMicrosoft")}
             </Button>
           </div>
           <div className="flex justify-center pt-2">
@@ -63,7 +66,7 @@ export function CalendarConnectionPrompt() {
               render={<Link href="/settings/integrations" />}
               nativeButton={false}
             >
-              Manage Integrations
+              {t("calendarConnection.manageIntegrations")}
             </Button>
           </div>
         </CardContent>

@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Loader2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { updateProjectAction } from "../actions/update-project";
 
 interface EditProjectFormProps {
@@ -42,6 +43,8 @@ export function EditProjectForm({
   onSuccess,
 }: EditProjectFormProps) {
   const router = useRouter();
+  const t = useTranslations("projects");
+  const tc = useTranslations("common");
   const { teams, isLoading: isLoadingTeams } = useProjectTeamPicker();
 
   const form = useForm<UpdateProjectInput>({
@@ -57,12 +60,12 @@ export function EditProjectForm({
 
   const { execute, isExecuting } = useAction(updateProjectAction, {
     onSuccess: () => {
-      toast.success("Project updated successfully");
+      toast.success(t("projectUpdatedSuccess"));
       router.refresh();
       onSuccess?.();
     },
     onError: ({ error }) => {
-      toast.error(error.serverError ?? "Failed to update project");
+      toast.error(error.serverError ?? t("updateProjectError"));
     },
   });
 
@@ -94,11 +97,11 @@ export function EditProjectForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Project Name <span className="text-red-500">*</span>
+                {t("projectName")} <span className="text-red-500">*</span>
               </FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Enter project name"
+                  placeholder={t("projectNamePlaceholder")}
                   disabled={isExecuting}
                   {...field}
                 />
@@ -113,10 +116,10 @@ export function EditProjectForm({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>{t("description")}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Enter project description (optional)"
+                  placeholder={t("descriptionPlaceholder")}
                   disabled={isExecuting}
                   rows={3}
                   maxLength={PROJECT_DESCRIPTION_MAX_LENGTH}
@@ -158,7 +161,7 @@ export function EditProjectForm({
             onClick={onSuccess}
             disabled={isExecuting}
           >
-            Cancel
+            {tc("cancel")}
           </Button>
           <Button
             type="submit"
@@ -167,7 +170,7 @@ export function EditProjectForm({
             {isExecuting && (
               <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
             )}
-            Save Changes
+            {t("saveChanges")}
           </Button>
         </div>
       </form>

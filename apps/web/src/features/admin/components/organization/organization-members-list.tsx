@@ -12,6 +12,7 @@ import { getUserDisplayName } from "@/lib/formatters/display-formatters";
 import type { TeamWithMemberCount } from "@/server/cache/team.cache";
 import type { OrganizationMemberDto } from "@/server/services/organization.service";
 import { MailIcon, ShieldCheckIcon, UserIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { InviteMemberToOrganizationDialog } from "./invite-member-to-organization-dialog";
 
 interface OrganizationMembersListProps {
@@ -27,16 +28,15 @@ export function OrganizationMembersList({
   organizationName,
   teams,
 }: OrganizationMembersListProps) {
+  const t = useTranslations("admin.organizations");
   if (members.length === 0) {
     return (
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Organization Members</CardTitle>
-              <CardDescription>
-                No members in this organization yet
-              </CardDescription>
+              <CardTitle>{t("organizationMembers")}</CardTitle>
+              <CardDescription>{t("noMembersYet")}</CardDescription>
             </div>
             <InviteMemberToOrganizationDialog
               organizationId={organizationId}
@@ -54,7 +54,7 @@ export function OrganizationMembersList({
               No members to display
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Invite members to get started
+              {t("inviteMembersStart")}
             </p>
           </div>
         </CardContent>
@@ -69,7 +69,7 @@ export function OrganizationMembersList({
           <div>
             <CardTitle className="flex items-center gap-2">
               <UserIcon className="h-5 w-5" />
-              Organization Members
+              {t("organizationMembers")}
             </CardTitle>
             <CardDescription>
               {members.length} member{members.length === 1 ? "" : "s"} in this
@@ -136,4 +136,3 @@ export function OrganizationMembersList({
     </Card>
   );
 }
-

@@ -21,6 +21,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { TeamPicker } from "@/features/teams/components/team-picker";
 import { Loader2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { useCreateEventForm } from "../hooks/use-create-event-form";
 import { TIME_OPTIONS } from "../lib/create-event-schema";
@@ -32,15 +33,12 @@ interface CreateEventDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const PROVIDER_LABELS: Record<"google" | "microsoft", string> = {
-  google: "Google Calendar",
-  microsoft: "Outlook Calendar",
-};
-
 export function CreateEventDialog({
   open,
   onOpenChange,
 }: CreateEventDialogProps) {
+  const t = useTranslations("meetings");
+  const tc = useTranslations("common");
   const {
     form,
     addBot,
@@ -80,30 +78,39 @@ export function CreateEventDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Event</DialogTitle>
+          <DialogTitle>{t("createEvent.title")}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="space-y-4">
           {/* Provider selector — only shown when the user has both providers connected */}
           {!isLoadingProviders && providers.length > 1 && (
             <div className="space-y-2">
-              <Label htmlFor="provider">Calendar Provider</Label>
+              <Label htmlFor="provider">
+                {t("createEvent.calendarProvider")}
+              </Label>
               <Select
                 value={selectedProvider ?? ""}
                 onValueChange={(value) =>
                   setSelectedProvider(value as "google" | "microsoft")
                 }
                 items={Object.fromEntries(
-                  providers.map((p) => [p, PROVIDER_LABELS[p]]),
+                  providers.map((p) => [
+                    p,
+                    p === "google"
+                      ? t("createEvent.googleCalendar")
+                      : t("createEvent.outlookCalendar"),
+                  ]),
                 )}
               >
                 <SelectTrigger id="provider" className="w-full">
-                  <SelectValue placeholder="Select calendar provider" />
+                  <SelectValue placeholder={t("createEvent.selectProvider")} />
                 </SelectTrigger>
                 <SelectContent>
                   {providers.map((p) => (
                     <SelectItem key={p} value={p}>
-                      {PROVIDER_LABELS[p]}
+                      {p === "google"
+                        ? t("createEvent.googleCalendar")
+                        : t("createEvent.outlookCalendar")}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -113,12 +120,13 @@ export function CreateEventDialog({
 
           <div className="space-y-2">
             <Label htmlFor="title">
-              Title <span className="text-destructive">*</span>
+              {t("createEvent.titleLabel")}{" "}
+              <span className="text-destructive">*</span>
             </Label>
             <Input
               id="title"
               {...register("title")}
-              placeholder="Meeting title"
+              placeholder={t("createEvent.titlePlaceholder")}
               aria-invalid={errors.title ? "true" : "false"}
             />
             {errors.title && (
@@ -127,11 +135,13 @@ export function CreateEventDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">
+              {t("createEvent.descriptionLabel")}
+            </Label>
             <Textarea
               id="description"
               {...register("description")}
-              placeholder="Event description"
+              placeholder={t("createEvent.descriptionPlaceholder")}
               rows={3}
             />
           </div>
@@ -140,7 +150,8 @@ export function CreateEventDialog({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="startDate">
-                  Start Date <span className="text-destructive">*</span>
+                  {t("createEvent.startDate")}{" "}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="startDate"
@@ -157,7 +168,7 @@ export function CreateEventDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="startTime">
-                  Start Time{" "}
+                  {t("createEvent.startTime")}{" "}
                   {!allDay && <span className="text-destructive">*</span>}
                 </Label>
                 <Select
@@ -168,7 +179,11 @@ export function CreateEventDialog({
                 >
                   <SelectTrigger id="startTime" className="w-full">
                     <SelectValue
-                      placeholder={allDay ? "All day" : "Select time"}
+                      placeholder={
+                        allDay
+                          ? t("createEvent.allDay")
+                          : t("createEvent.selectTime")
+                      }
                     />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px]">
@@ -190,7 +205,8 @@ export function CreateEventDialog({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="endDate">
-                  End Date <span className="text-destructive">*</span>
+                  {t("createEvent.endDate")}{" "}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="endDate"
@@ -208,7 +224,7 @@ export function CreateEventDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="endTime">
-                  End Time{" "}
+                  {t("createEvent.endTime")}{" "}
                   {!allDay && <span className="text-destructive">*</span>}
                 </Label>
                 <Select
@@ -219,7 +235,11 @@ export function CreateEventDialog({
                 >
                   <SelectTrigger id="endTime" className="w-full">
                     <SelectValue
-                      placeholder={allDay ? "All day" : "Select time"}
+                      placeholder={
+                        allDay
+                          ? t("createEvent.allDay")
+                          : t("createEvent.selectTime")
+                      }
                     />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px]">
@@ -250,17 +270,17 @@ export function CreateEventDialog({
                 htmlFor="allDay"
                 className="text-sm font-normal cursor-pointer"
               >
-                All day
+                {t("createEvent.allDay")}
               </Label>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="location">Location</Label>
+            <Label htmlFor="location">{t("createEvent.locationLabel")}</Label>
             <Input
               id="location"
               {...register("location")}
-              placeholder="Event location"
+              placeholder={t("createEvent.locationPlaceholder")}
             />
           </div>
 
@@ -291,7 +311,7 @@ export function CreateEventDialog({
               htmlFor="addBot"
               className="text-sm font-normal cursor-pointer"
             >
-              Add notetaker to this meeting
+              {t("createEvent.addNotetakerCheckbox")}
             </Label>
           </div>
 
@@ -310,16 +330,18 @@ export function CreateEventDialog({
               onClick={handleCancel}
               disabled={isBusy}
             >
-              Cancel
+              {tc("cancel")}
             </Button>
             <Button type="submit" disabled={isBusy}>
               {isBusy ? (
                 <>
                   <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
-                  {isNavigating ? "Opening prep..." : "Creating..."}
+                  {isNavigating
+                    ? t("createEvent.openingPrep")
+                    : t("createEvent.creating")}
                 </>
               ) : (
-                "Save"
+                tc("save")
               )}
             </Button>
           </DialogFooter>

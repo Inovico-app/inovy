@@ -18,22 +18,24 @@ import { UserService } from "@/server/services/user.service";
 import { Building2Icon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 async function ProfileContent() {
+  const t = await getTranslations("settings.profile");
   const authResult = await getBetterAuthSession();
 
   if (authResult.isErr() || !authResult.value.user) {
     return (
       <div className="text-center py-12">
-        <p className="text-destructive">Failed to load profile information</p>
+        <p className="text-destructive">{t("failedToLoad")}</p>
       </div>
     );
   }
 
   const { user, organization, userTeamIds } = authResult.value;
   const organizationId = organization?.id;
-  const orgName = organization?.name ?? "Personal Organization";
+  const orgName = organization?.name ?? t("personalOrganization");
 
   const auth: AuthContext | undefined =
     user && organizationId
@@ -69,10 +71,7 @@ async function ProfileContent() {
 
   return (
     <>
-      <PageHeader
-        title="Profile"
-        description="Manage your personal account information"
-      />
+      <PageHeader title={t("title")} description={t("description")} />
 
       <ProfileForm
         initialGivenName={givenName}
@@ -83,7 +82,9 @@ async function ProfileContent() {
       {/* Organization (display-only) */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">Organization</CardTitle>
+          <CardTitle className="text-base font-medium">
+            {t("organization")}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-3">
@@ -126,7 +127,7 @@ async function ProfileContent() {
             href={"/settings/organization" as Route}
             className="text-xs text-primary hover:underline"
           >
-            Manage organization settings
+            {t("manageOrganization")}
           </Link>
         </CardContent>
       </Card>

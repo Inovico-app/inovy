@@ -21,6 +21,7 @@ import {
   SearchIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 interface OrganizationListClientProps {
@@ -32,6 +33,7 @@ const ITEMS_PER_PAGE = 10;
 export function OrganizationListClient({
   organizations,
 }: OrganizationListClientProps) {
+  const t = useTranslations("admin.organizations");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -66,10 +68,10 @@ export function OrganizationListClient({
     return (
       <div className="text-center py-12">
         <Building2Icon className="mx-auto h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-lg font-semibold">No organizations yet</h3>
-        <p className="text-sm text-muted-foreground mt-2">
-          Create your first organization to get started
-        </p>
+        <h3 className="mt-4 text-lg font-semibold">
+          {t("noOrganizationsYet")}
+        </h3>
+        <p className="text-sm text-muted-foreground mt-2">{t("createFirst")}</p>
       </div>
     );
   }
@@ -81,7 +83,7 @@ export function OrganizationListClient({
         <div className="relative flex-1">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name or slug..."
+            placeholder={t("searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9"
@@ -104,10 +106,10 @@ export function OrganizationListClient({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Organization</TableHead>
-                  <TableHead>Slug</TableHead>
-                  <TableHead className="text-center">Members</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>{t("organization")}</TableHead>
+                  <TableHead>{t("slug")}</TableHead>
+                  <TableHead className="text-center">{t("members")}</TableHead>
+                  <TableHead>{t("created")}</TableHead>
                   <TableHead className="w-[100px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -203,9 +205,9 @@ export function OrganizationListClient({
         </>
       ) : (
         <div className="text-center py-8">
-          <p className="text-muted-foreground">No organizations found</p>
+          <p className="text-muted-foreground">{t("noOrganizationsFound")}</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Try adjusting your search
+            {t("adjustSearch")}
           </p>
         </div>
       )}

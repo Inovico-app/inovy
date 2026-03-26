@@ -23,6 +23,7 @@ import { ArchiveRecordingDialog } from "./archive-recording-dialog";
 import { DeleteRecordingDialog } from "./delete-recording-dialog";
 import { EditRecordingModal } from "./edit-recording-modal";
 import { MoveRecordingDialog } from "./move-recording-dialog";
+import { useTranslations } from "next-intl";
 
 interface RecordingDetailActionsDropdownProps {
   recording: RecordingDto;
@@ -38,6 +39,7 @@ export function RecordingDetailActionsDropdown({
   recording,
   projectId,
 }: RecordingDetailActionsDropdownProps) {
+  const t = useTranslations("recordings");
   const [showEditModal, setShowEditModal] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
@@ -49,7 +51,7 @@ export function RecordingDetailActionsDropdown({
   // Manager, Admin, and SuperAdmin roles have recordings:update permission
   const canMoveRecording =
     userRole?.roles?.some((role) =>
-      ["manager", "admin", "superadmin"].includes(role.toLowerCase())
+      ["manager", "admin", "superadmin"].includes(role.toLowerCase()),
     ) ?? false;
 
   const isArchived = recording.status === "archived";
@@ -59,20 +61,20 @@ export function RecordingDetailActionsDropdown({
       <DropdownMenu>
         <DropdownMenuTrigger render={<Button variant="outline" size="icon" />}>
           <MoreVerticalIcon className="h-4 w-4" />
-          <span className="sr-only">Open actions menu</span>
+          <span className="sr-only">{t("actions.openActionsMenu")}</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           {/* Edit Recording */}
           <DropdownMenuItem onClick={() => setShowEditModal(true)}>
             <EditIcon className="h-4 w-4 mr-2" />
-            Edit
+            {t("actions.edit")}
           </DropdownMenuItem>
 
           {/* Move to Project - Only for Manager+ roles */}
           {canMoveRecording && (
             <DropdownMenuItem onClick={() => setShowMoveDialog(true)}>
               <ArrowRightIcon className="h-4 w-4 mr-2" />
-              Move to Project
+              {t("actions.moveToProject")}
             </DropdownMenuItem>
           )}
 
@@ -83,12 +85,12 @@ export function RecordingDetailActionsDropdown({
             {isArchived ? (
               <>
                 <ArchiveRestoreIcon className="h-4 w-4 mr-2" />
-                Unarchive
+                {t("actions.unarchive")}
               </>
             ) : (
               <>
                 <ArchiveIcon className="h-4 w-4 mr-2" />
-                Archive
+                {t("actions.archive")}
               </>
             )}
           </DropdownMenuItem>
@@ -99,7 +101,7 @@ export function RecordingDetailActionsDropdown({
             className="text-destructive focus:text-destructive"
           >
             <Trash2Icon className="h-4 w-4 mr-2" />
-            Delete
+            {t("actions.deleteRecording")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -152,4 +154,3 @@ export function RecordingDetailActionsDropdown({
     </>
   );
 }
-

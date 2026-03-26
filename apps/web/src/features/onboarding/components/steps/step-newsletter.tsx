@@ -2,6 +2,7 @@
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Mail } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Controller, useFormContext } from "react-hook-form";
 import type { OnboardingFormValues } from "../../schemas/onboarding-form.schema";
 
@@ -10,6 +11,7 @@ interface StepNewsletterProps {
 }
 
 export function StepNewsletter({ isLoading }: StepNewsletterProps) {
+  const t = useTranslations("onboarding");
   const { control } = useFormContext<OnboardingFormValues>();
 
   return (
@@ -20,9 +22,11 @@ export function StepNewsletter({ isLoading }: StepNewsletterProps) {
             <Mail className="h-8 w-8 text-primary" />
           </div>
         </div>
-        <h2 className="text-2xl font-semibold text-center">Bijna klaar!</h2>
+        <h2 className="text-2xl font-semibold text-center">
+          {t("stepNewsletterTitle")}
+        </h2>
         <p className="text-muted-foreground text-center">
-          Blijf op de hoogte van nieuwe functies en tips
+          {t("stepNewsletterSubtitle")}
         </p>
       </div>
       <fieldset className="space-y-4">
@@ -41,8 +45,7 @@ export function StepNewsletter({ isLoading }: StepNewsletterProps) {
                 htmlFor="newsletterOptIn"
                 className="text-sm font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Ja, houd me op de hoogte van nieuwe functies, tips en updates
-                via de nieuwsbrief
+                {t("stepNewsletterLabel")}
               </label>
               {fieldState.invalid && fieldState.error && (
                 <p className="text-sm text-destructive">
@@ -56,4 +59,3 @@ export function StepNewsletter({ isLoading }: StepNewsletterProps) {
     </div>
   );
 }
-

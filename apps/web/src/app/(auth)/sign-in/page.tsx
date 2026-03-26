@@ -4,6 +4,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { useSignIn } from "@/features/auth/hooks/use-sign-in";
 import { Mail, Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -19,6 +20,7 @@ export default function SignInPage() {
 }
 
 function SignInPageContent() {
+  const t = useTranslations("auth");
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect") || undefined;
 
@@ -60,9 +62,9 @@ function SignInPageContent() {
     <AuthShell>
       {/* Title */}
       <h1 className="mb-2 text-3xl font-semibold text-foreground">
-        Welkom terug
+        {t("welcomeBack")}
       </h1>
-      <p className="mb-8 text-muted-foreground">Log in met je account</p>
+      <p className="mb-8 text-muted-foreground">{t("signInSubtitle")}</p>
 
       {/* Social Sign In Buttons */}
       <div className="space-y-4">
@@ -93,7 +95,7 @@ function SignInPageContent() {
               />
             </svg>
           )}
-          Inloggen met Google
+          {t("signInWithGoogle")}
         </Button>
 
         <Button
@@ -112,7 +114,7 @@ function SignInPageContent() {
               <path d="M0 0h11.377v11.372H0zm12.623 0H24v11.372H12.623zM0 12.628h11.377V24H0zm12.623 0H24V24H12.623z" />
             </svg>
           )}
-          Inloggen met Microsoft
+          {t("signInWithMicrosoft")}
         </Button>
 
         {/* Separator */}
@@ -121,7 +123,9 @@ function SignInPageContent() {
             <span className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-background px-2 text-muted-foreground">Of</span>
+            <span className="bg-background px-2 text-muted-foreground">
+              {t("orSeparator")}
+            </span>
           </div>
         </div>
 
@@ -136,7 +140,7 @@ function SignInPageContent() {
               className="w-full justify-start border-border bg-background hover:bg-accent"
             >
               <Mail className="mr-3 h-5 w-5" />
-              Inloggen met email
+              {t("signInWithEmail")}
             </Button>
 
             <Button
@@ -147,7 +151,7 @@ function SignInPageContent() {
               className="w-full justify-start border-border bg-background hover:bg-accent"
             >
               <Sparkles className="mr-3 h-5 w-5" />
-              Inloggen met magic link
+              {t("signInWithMagicLink")}
             </Button>
           </div>
         )}
@@ -178,7 +182,7 @@ function SignInPageContent() {
 
         {/* Registration Link */}
         <p className="mt-8 text-center text-sm text-muted-foreground">
-          Nog geen account?{" "}
+          {t("noAccount")}{" "}
           <Link
             href={
               redirectUrl
@@ -187,7 +191,7 @@ function SignInPageContent() {
             }
             className="text-primary hover:underline font-medium"
           >
-            Registreer je hier
+            {t("registerHere")}
           </Link>
         </p>
       </div>

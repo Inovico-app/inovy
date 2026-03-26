@@ -28,6 +28,7 @@ import {
 import { toast } from "sonner";
 import type { ConsentParticipant } from "@/server/db/schema/consent";
 import { Plus, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface ConsentManagerProps {
   recordingId: string;
@@ -40,6 +41,7 @@ export function ConsentManager({
   initialParticipants = [],
   organizerEmail: _organizerEmail,
 }: ConsentManagerProps) {
+  const t = useTranslations("recordings");
   const [participants, setParticipants] = useState<ConsentParticipant[]>(
     () => initialParticipants,
   );
@@ -59,7 +61,7 @@ export function ConsentManager({
         });
 
         if (result?.serverError) {
-          toast.error("Failed to grant consent", {
+          toast.error(t("consent.grantConsentFailed"), {
             description: result.serverError,
           });
           return;
@@ -99,8 +101,8 @@ export function ConsentManager({
           ]);
         }
 
-        toast.success("Consent granted", {
-          description: `Consent granted for ${email}`,
+        toast.success(t("consent.grantConsentSuccess"), {
+          description: t("consent.grantConsentSuccessDescription", { email }),
         });
 
         setIsAddDialogOpen(false);
@@ -123,7 +125,7 @@ export function ConsentManager({
         });
 
         if (result?.serverError) {
-          toast.error("Failed to revoke consent", {
+          toast.error(t("consent.revokeConsentFailed"), {
             description: result.serverError,
           });
           return;
@@ -141,8 +143,8 @@ export function ConsentManager({
         );
         setParticipants(updated);
 
-        toast.success("Consent revoked", {
-          description: `Consent revoked for ${email}`,
+        toast.success(t("consent.revokeConsentSuccess"), {
+          description: t("consent.revokeConsentSuccessDescription", { email }),
         });
       } catch (error) {
         toast.error("Failed to revoke consent", {
@@ -154,7 +156,7 @@ export function ConsentManager({
 
   const handleAddParticipant = () => {
     if (!newParticipantEmail.trim()) {
-      toast.error("Email is required");
+      toast.error(t("consent.emailRequired"));
       return;
     }
 
@@ -176,9 +178,9 @@ export function ConsentManager({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Consent Management</CardTitle>
+            <CardTitle>{t("consent.consentManagement")}</CardTitle>
             <CardDescription>
-              Track and manage participant consent for this recording
+              {t("consent.consentManagementDescription")}
             </CardDescription>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -186,32 +188,32 @@ export function ConsentManager({
               render={<Button size="sm" variant="outline" className="gap-2" />}
             >
               <Plus className="h-4 w-4" />
-              Add Participant
+              {t("consent.addParticipant")}
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add Participant Consent</DialogTitle>
+                <DialogTitle>{t("consent.addParticipantConsent")}</DialogTitle>
                 <DialogDescription>
-                  Add a participant and grant consent for this recording
+                  {t("consent.addParticipantDescription")}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address *</Label>
+                  <Label htmlFor="email">{t("consent.emailAddress")}</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="participant@example.com"
+                    placeholder={t("consent.emailPlaceholder")}
                     value={newParticipantEmail}
                     onChange={(e) => setNewParticipantEmail(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="name">Name (Optional)</Label>
+                  <Label htmlFor="name">{t("consent.nameOptional")}</Label>
                   <Input
                     id="name"
                     type="text"
-                    placeholder="John Doe"
+                    placeholder={t("consent.namePlaceholder")}
                     value={newParticipantName}
                     onChange={(e) => setNewParticipantName(e.target.value)}
                   />
@@ -225,7 +227,7 @@ export function ConsentManager({
                   Cancel
                 </Button>
                 <Button onClick={handleAddParticipant} disabled={isPending}>
-                  Grant Consent
+                  {t("consent.grantConsent")}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -236,11 +238,15 @@ export function ConsentManager({
         {/* Statistics */}
         <div className="grid grid-cols-2 gap-4">
           <div className="rounded-lg border p-3">
-            <div className="text-sm text-muted-foreground">Total</div>
+            <div className="text-sm text-muted-foreground">
+              {t("consent.total")}
+            </div>
             <div className="text-2xl font-bold">{stats.total}</div>
           </div>
           <div className="rounded-lg border p-3">
-            <div className="text-sm text-muted-foreground">Granted</div>
+            <div className="text-sm text-muted-foreground">
+              {t("consent.granted")}
+            </div>
             <div className="text-2xl font-bold text-green-600">
               {stats.granted}
             </div>
@@ -250,7 +256,7 @@ export function ConsentManager({
         {/* Participants List */}
         {participants.length > 0 ? (
           <div className="space-y-2">
-            <h4 className="font-medium text-sm">Participants</h4>
+            <h4 className="font-medium text-sm">{t("consent.participants")}</h4>
             <div className="space-y-2">
               {participants.map((participant) => (
                 <div
@@ -269,7 +275,7 @@ export function ConsentManager({
                     )}
                     {participant.consentGivenAt && (
                       <div className="text-xs text-muted-foreground mt-1">
-                        Granted:{" "}
+                        {t("consent.consentGrantedAt")}{" "}
                         {new Date(participant.consentGivenAt).toLocaleString()}
                       </div>
                     )}
@@ -295,10 +301,8 @@ export function ConsentManager({
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            <p>No participants added yet</p>
-            <p className="text-sm mt-2">
-              Add participants to track their consent status
-            </p>
+            <p>{t("consent.noParticipants")}</p>
+            <p className="text-sm mt-2">{t("consent.addParticipantsHint")}</p>
           </div>
         )}
       </CardContent>

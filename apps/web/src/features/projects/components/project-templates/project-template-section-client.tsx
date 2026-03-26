@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import type { ProjectTemplateDto } from "@/server/dto/project-template.dto";
 import { Loader2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -33,23 +34,18 @@ export function ProjectTemplateSectionClient({
   projectId,
   initialTemplate,
 }: ProjectTemplateSectionClientProps) {
+  const t = useTranslations("projects");
   const [template, setTemplate] = useState<ProjectTemplateDto | null>(
-    () => initialTemplate
+    () => initialTemplate,
   );
   const [isEditing, setIsEditing] = useState(false);
 
-  const {
-    executeAsync: executeCreate,
-    isExecuting: isCreating,
-  } = useCreateProjectTemplate();
-  const {
-    executeAsync: executeUpdate,
-    isExecuting: isUpdating,
-  } = useUpdateProjectTemplate();
-  const {
-    executeAsync: executeDelete,
-    isExecuting: isDeleting,
-  } = useDeleteProjectTemplate();
+  const { executeAsync: executeCreate, isExecuting: isCreating } =
+    useCreateProjectTemplate();
+  const { executeAsync: executeUpdate, isExecuting: isUpdating } =
+    useUpdateProjectTemplate();
+  const { executeAsync: executeDelete, isExecuting: isDeleting } =
+    useDeleteProjectTemplate();
 
   const handleSave = useCallback(
     async (instructions: string) => {
@@ -63,7 +59,7 @@ export function ProjectTemplateSectionClient({
           return;
         }
         setTemplate(result.data);
-        toast.success("Template updated successfully");
+        toast.success(t("templateUpdatedSuccess"));
         setIsEditing(false);
       } else {
         // Create new template
@@ -75,11 +71,11 @@ export function ProjectTemplateSectionClient({
           return;
         }
         setTemplate(result.data);
-        toast.success("Template created successfully");
+        toast.success(t("templateCreatedSuccess"));
         setIsEditing(false);
       }
     },
-    [template, projectId, executeCreate, executeUpdate]
+    [template, projectId, executeCreate, executeUpdate],
   );
 
   const handleDelete = useCallback(async () => {
@@ -90,7 +86,7 @@ export function ProjectTemplateSectionClient({
       return;
     }
     setTemplate(null);
-    toast.success("Template deleted successfully");
+    toast.success(t("templateDeletedSuccess"));
     setIsEditing(false);
   }, [template, executeDelete]);
 
@@ -113,7 +109,7 @@ export function ProjectTemplateSectionClient({
                   onClick={() => setIsEditing(true)}
                   disabled={isProcessing}
                 >
-                  Edit Template
+                  {t("editTemplate")}
                 </Button>
                 <Button
                   variant="destructive"
@@ -123,20 +119,20 @@ export function ProjectTemplateSectionClient({
                   {isDeleting && (
                     <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
                   )}
-                  Delete Template
+                  {t("deleteTemplate")}
                 </Button>
               </div>
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              <p>No template defined yet</p>
+              <p>{t("noTemplateDefined")}</p>
               <Button
                 variant="default"
                 onClick={() => setIsEditing(true)}
                 className="mt-4"
                 disabled={isProcessing}
               >
-                Create Template
+                {t("createTemplate")}
               </Button>
             </div>
           )}

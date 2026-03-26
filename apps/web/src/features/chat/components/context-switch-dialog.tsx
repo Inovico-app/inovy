@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTranslations } from "next-intl";
 
 interface ContextSwitchDialogProps {
   open: boolean;
@@ -24,11 +25,13 @@ export function ContextSwitchDialog({
   onConfirm,
   targetContextName,
 }: ContextSwitchDialogProps) {
+  const t = useTranslations("chat");
+  const tc = useTranslations("common");
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Switch Context?</AlertDialogTitle>
+          <AlertDialogTitle>{t("switchContextTitle")}</AlertDialogTitle>
           <AlertDialogDescription>
             Switching to <strong>{targetContextName}</strong> will start a new
             conversation. Your current conversation will be saved and you can
@@ -36,11 +39,12 @@ export function ContextSwitchDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>Continue</AlertDialogAction>
+          <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>
+            {t("continue")}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
 }
-

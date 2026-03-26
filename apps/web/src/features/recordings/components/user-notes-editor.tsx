@@ -7,6 +7,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { Bold, Italic, List, ListOrdered, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useUpdateUserNotesMutation } from "../hooks/use-update-user-notes-mutation";
+import { useTranslations } from "next-intl";
 
 interface UserNotesEditorProps {
   recordingId: string;
@@ -21,6 +22,7 @@ export function UserNotesEditor({
   readOnly = false,
   maxLength = 5000,
 }: UserNotesEditorProps) {
+  const t = useTranslations("recordings");
   const [isSaving, setIsSaving] = useState(false);
   const mutation = useUpdateUserNotesMutation({
     onSuccess: () => {
@@ -41,7 +43,7 @@ export function UserNotesEditor({
         setIsSaving(false);
       }
     },
-    [recordingId, mutation]
+    [recordingId, mutation],
   );
 
   const debouncedSave = useCallback(
@@ -55,7 +57,7 @@ export function UserNotesEditor({
         saveNotes(content);
       }, 3000);
     },
-    [saveNotes]
+    [saveNotes],
   );
 
   const editor = useEditor({
@@ -66,7 +68,7 @@ export function UserNotesEditor({
         horizontalRule: false,
       }),
       Placeholder.configure({
-        placeholder: "Add your notes here... You can use markdown formatting.",
+        placeholder: t("userNotes.placeholder"),
       }),
     ],
     immediatelyRender: false,
@@ -157,11 +159,13 @@ export function UserNotesEditor({
             {isSaving && (
               <>
                 <Loader2 className="h-3 w-3 animate-spin" />
-                <span>Saving...</span>
+                <span>{t("userNotes.saving")}</span>
               </>
             )}
             {!isSaving && mutation.isSuccess && (
-              <span className="text-green-600 dark:text-green-400">Saved</span>
+              <span className="text-green-600 dark:text-green-400">
+                {t("userNotes.saved")}
+              </span>
             )}
           </div>
         </div>
@@ -172,20 +176,19 @@ export function UserNotesEditor({
       </div>
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>Markdown formatting supported</span>
+        <span>{t("userNotes.markdownSupported")}</span>
         <span
           className={
             isOverLimit
               ? "text-destructive"
               : isNearLimit
-              ? "text-yellow-600"
-              : ""
+                ? "text-yellow-600"
+                : ""
           }
         >
-          {charCount} / {maxLength} characters
+          {t("userNotes.charCount", { count: charCount, max: maxLength })}
         </span>
       </div>
     </div>
   );
 }
-

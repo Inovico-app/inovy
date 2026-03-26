@@ -6,6 +6,7 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
+import { useTranslations } from "next-intl";
 import type { ChatStatus } from "ai";
 
 interface ChatInputProps {
@@ -25,6 +26,7 @@ export function ChatInput({
   agentEnabled,
   onSendMessage,
 }: ChatInputProps) {
+  const t = useTranslations("chat");
   const isDisabled =
     status === "streaming" ||
     status === "submitted" ||
@@ -45,8 +47,12 @@ export function ChatInput({
           <PromptInputTextarea
             placeholder={
               context === "organization"
-                ? "Ask about anything across all your projects..."
-                : `Ask about ${currentProjectName ?? "this project"}...`
+                ? t("askAcrossOrg")
+                : currentProjectName
+                  ? t("askAboutProjectPlaceholder", {
+                      name: currentProjectName,
+                    })
+                  : t("askAboutThisProjectPlaceholder")
             }
             disabled={isDisabled}
           />
@@ -54,7 +60,7 @@ export function ChatInput({
         <PromptInputFooter>
           <PromptInputTools>
             <span className="text-xs text-muted-foreground">
-              Press Enter to send, Shift+Enter for new line
+              {t("enterToSend")}
             </span>
           </PromptInputTools>
           <PromptInputSubmit disabled={isDisabled} status={status} />

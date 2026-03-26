@@ -11,9 +11,11 @@ import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 async function IntegrationsContent() {
+  const t = await getTranslations("settings.integrations");
   const authResult = await getBetterAuthSession();
   if (authResult.isErr() || !authResult.value.organization) {
     redirect("/settings");
@@ -26,10 +28,7 @@ async function IntegrationsContent() {
 
   return (
     <>
-      <PageHeader
-        title="Integrations"
-        description="Connect and manage your third-party integrations"
-      />
+      <PageHeader title={t("title")} description={t("description")} />
       <IntegrationsTabs
         googleContent={
           <>

@@ -5,6 +5,7 @@ import { formatFileSizePrecise } from "@/lib/formatters/file-size-formatters";
 import { MAX_FILE_SIZE } from "@/server/validation/recordings/upload-recording";
 import { UploadIcon, XIcon } from "lucide-react";
 import type { ChangeEvent, DragEvent } from "react";
+import { useTranslations } from "next-intl";
 
 interface FileDropZoneProps {
   file: File | null;
@@ -31,6 +32,7 @@ export function FileDropZone({
   onFileInputChange,
   onRemoveFile,
 }: FileDropZoneProps) {
+  const t = useTranslations("recordings");
   return (
     <div
       className={`
@@ -56,7 +58,7 @@ export function FileDropZone({
           if (!file && !isUploading) fileInputRef.current?.click();
         }
       }}
-      aria-label="Upload recording file"
+      aria-label={t("upload.uploadAriaLabel")}
     >
       <input
         ref={fileInputRef}
@@ -72,12 +74,11 @@ export function FileDropZone({
         <div className="space-y-2">
           <UploadIcon className="h-12 w-12 mx-auto text-muted-foreground" />
           <div>
-            <p className="text-sm font-medium">
-              Drop your recording here or click to browse
-            </p>
+            <p className="text-sm font-medium">{t("upload.dropOrBrowse")}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Supports MP3, MP4, WAV, M4A (max {MAX_FILE_SIZE / 1024 / 1024}
-              MB)
+              {t("upload.supportedFormats", {
+                size: MAX_FILE_SIZE / 1024 / 1024,
+              })}
             </p>
           </div>
         </div>

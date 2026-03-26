@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { logger } from "@/lib/logger";
+import { useTranslations } from "next-intl";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
@@ -24,6 +25,7 @@ import { toast } from "sonner";
  * Accepts a TOTP code or backup code to complete authentication.
  */
 export function MfaVerify() {
+  const t = useTranslations("auth");
   const router = useRouter();
   const [code, setCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
@@ -38,12 +40,12 @@ export function MfaVerify() {
       });
 
       if (result.error) {
-        toast.error(result.error.message ?? "Invalid verification code");
+        toast.error(result.error.message ?? t("mfaInvalidCode"));
         setIsVerifying(false);
         return;
       }
 
-      toast.success("Signed in successfully");
+      toast.success(t("mfaSignedIn"));
       router.push("/" as Route);
     } catch (error) {
       logger.error("MFA TOTP verify error", {
@@ -51,10 +53,10 @@ export function MfaVerify() {
         component: "MfaVerify",
         action: "handleVerifyTotp",
       });
-      toast.error("An unexpected error occurred");
+      toast.error(t("mfaUnexpectedError"));
       setIsVerifying(false);
     }
-  }, [code, router]);
+  }, [code, router, t]);
 
   const handleVerifyBackupCode = useCallback(async () => {
     if (!code) return;
@@ -65,12 +67,12 @@ export function MfaVerify() {
       });
 
       if (result.error) {
-        toast.error(result.error.message ?? "Invalid backup code");
+        toast.error(result.error.message ?? t("mfaInvalidBackupCode"));
         setIsVerifying(false);
         return;
       }
 
-      toast.success("Signed in successfully");
+      toast.success(t("mfaSignedIn"));
       router.push("/" as Route);
     } catch (error) {
       logger.error("MFA backup code verify error", {
@@ -78,10 +80,10 @@ export function MfaVerify() {
         component: "MfaVerify",
         action: "handleVerifyBackupCode",
       });
-      toast.error("An unexpected error occurred");
+      toast.error(t("mfaUnexpectedError"));
       setIsVerifying(false);
     }
-  }, [code, router]);
+  }, [code, router, t]);
 
   const handleSubmit = useCallback(() => {
     if (useBackupCode) {
@@ -94,24 +96,24 @@ export function MfaVerify() {
   return (
     <Card className="mx-auto w-full max-w-md">
       <CardHeader>
-        <CardTitle>Two-Factor Authentication</CardTitle>
+        <CardTitle>{t("mfaTitle")}</CardTitle>
         <CardDescription>
-          {useBackupCode
-            ? "Enter one of your backup codes to sign in."
-            : "Enter the 6-digit code from your authenticator app to complete sign-in."}
+          {useBackupCode ? t("mfaBackupDescription") : t("mfaDescription")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="mfa-code">
-            {useBackupCode ? "Backup code" : "Authentication code"}
+            {useBackupCode ? t("mfaBackupCodeLabel") : t("mfaCodeLabel")}
           </Label>
           <Input
             id="mfa-code"
             type="text"
             inputMode={useBackupCode ? "text" : "numeric"}
             placeholder={
-              useBackupCode ? "Enter backup code" : "Enter 6-digit code"
+              useBackupCode
+                ? t("mfaBackupCodePlaceholder")
+                : t("mfaCodePlaceholder")
             }
             value={code}
             onChange={(e) => setCode(e.target.value)}
@@ -131,7 +133,7 @@ export function MfaVerify() {
             isVerifying || !code || (!useBackupCode && code.length !== 6)
           }
         >
-          {isVerifying ? "Verifying..." : "Verify"}
+          {isVerifying ? t("mfaVerifying") : t("mfaVerify")}
         </Button>
 
         <div className="text-center">
@@ -143,9 +145,7 @@ export function MfaVerify() {
               setCode("");
             }}
           >
-            {useBackupCode
-              ? "Use authenticator app instead"
-              : "Use a backup code instead"}
+            {useBackupCode ? t("mfaUseAuthenticator") : t("mfaUseBackupCode")}
           </button>
         </div>
       </CardContent>

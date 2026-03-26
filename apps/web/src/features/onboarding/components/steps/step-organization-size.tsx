@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Controller, useFormContext } from "react-hook-form";
 import type { OnboardingFormValues } from "../../schemas/onboarding-form.schema";
 
@@ -7,30 +8,33 @@ interface StepOrganizationSizeProps {
   isLoading: boolean;
 }
 
-export function StepOrganizationSize({
-  isLoading,
-}: StepOrganizationSizeProps) {
+export function StepOrganizationSize({ isLoading }: StepOrganizationSizeProps) {
+  const t = useTranslations("onboarding");
   const { control, watch } = useFormContext<OnboardingFormValues>();
   const organizationName = watch("organizationName");
 
   const options = [
-    { label: "1-10 medewerkers", value: 5 },
-    { label: "11-50 medewerkers", value: 30 },
-    { label: "51-200 medewerkers", value: 125 },
-    { label: "201-500 medewerkers", value: 350 },
-    { label: "500+ medewerkers", value: 500 },
+    { label: t("stepOrgSizeOption1"), value: 5 },
+    { label: t("stepOrgSizeOption2"), value: 30 },
+    { label: t("stepOrgSizeOption3"), value: 125 },
+    { label: t("stepOrgSizeOption4"), value: 350 },
+    { label: t("stepOrgSizeOption5"), value: 500 },
   ];
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-2xl font-semibold">Organisatie grootte</h2>
+        <h2 className="text-2xl font-semibold">{t("stepOrgSizeTitle")}</h2>
         <p className="text-muted-foreground">
-          Hoeveel medewerkers heeft {organizationName || "je organisatie"}?
+          {organizationName
+            ? t("stepOrgSizeSubtitle", { organizationName })
+            : t("stepOrgSizeSubtitleDefault")}
         </p>
       </div>
       <fieldset className="space-y-4">
-        <legend className="text-sm font-medium">Organisatie grootte</legend>
+        <legend className="text-sm font-medium">
+          {t("stepOrgSizeLegend")}
+        </legend>
         <Controller
           name="orgSize"
           control={control}
@@ -65,4 +69,3 @@ export function StepOrganizationSize({
     </div>
   );
 }
-

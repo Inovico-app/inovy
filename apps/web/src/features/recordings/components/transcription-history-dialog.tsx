@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranscriptionHistory } from "../hooks/use-transcription-history";
 import { useRestoreTranscriptionMutation } from "../hooks/use-restore-transcription-mutation";
+import { useTranslations } from "next-intl";
 
 interface TranscriptionHistoryDialogProps {
   recordingId: string;
@@ -24,6 +25,7 @@ interface TranscriptionHistoryDialogProps {
 export function TranscriptionHistoryDialog({
   recordingId,
 }: TranscriptionHistoryDialogProps) {
+  const t = useTranslations("recordings");
   const [open, setOpen] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
 
@@ -38,7 +40,7 @@ export function TranscriptionHistoryDialog({
   const handleRestore = (versionNumber: number) => {
     if (
       confirm(
-        `Weet je zeker dat je wilt terugkeren naar versie ${versionNumber}? Dit creëert een nieuwe versie.`
+        t("transcriptionHistory.restoreConfirm", { number: versionNumber }),
       )
     ) {
       restoreMutation.mutate({ recordingId, versionNumber });
@@ -47,14 +49,22 @@ export function TranscriptionHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="ghost" size="sm" title="Bekijk geschiedenis" />}>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            title={t("transcriptionHistory.viewHistory")}
+          />
+        }
+      >
         <History className="h-4 w-4" />
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Transcriptie Geschiedenis</DialogTitle>
+          <DialogTitle>{t("transcriptionHistory.title")}</DialogTitle>
           <DialogDescription>
-            Bekijk vorige versies van de transcriptie en herstel indien nodig
+            {t("transcriptionHistory.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -67,7 +77,7 @@ export function TranscriptionHistoryDialog({
             </>
           ) : !history || history.length === 0 ? (
             <Card className="p-8 text-center text-muted-foreground">
-              Geen bewerkingsgeschiedenis beschikbaar
+              {t("transcriptionHistory.noHistory")}
             </Card>
           ) : (
             <>
@@ -76,7 +86,9 @@ export function TranscriptionHistoryDialog({
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary">
-                        Versie {version.versionNumber}
+                        {t("transcriptionHistory.version", {
+                          number: version.versionNumber,
+                        })}
                       </Badge>
                       <span className="text-sm text-muted-foreground">
                         {new Date(version.editedAt).toLocaleString("nl-NL", {
@@ -93,14 +105,14 @@ export function TranscriptionHistoryDialog({
                           setSelectedVersion(
                             selectedVersion === version.versionNumber
                               ? null
-                              : version.versionNumber
+                              : version.versionNumber,
                           )
                         }
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         {selectedVersion === version.versionNumber
-                          ? "Verberg"
-                          : "Bekijk"}
+                          ? t("transcriptionHistory.hide")
+                          : t("transcriptionHistory.view")}
                       </Button>
                       <Button
                         variant="outline"
@@ -109,7 +121,7 @@ export function TranscriptionHistoryDialog({
                         disabled={restoreMutation.isPending}
                       >
                         <RotateCcw className="h-4 w-4 mr-1" />
-                        Herstel
+                        {t("transcriptionHistory.restoreButton")}
                       </Button>
                     </div>
                   </div>
@@ -136,4 +148,3 @@ export function TranscriptionHistoryDialog({
     </Dialog>
   );
 }
-

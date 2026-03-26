@@ -24,6 +24,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useMoveRecordingMutation } from "../hooks/use-move-recording-mutation";
 import { useProjectsForMove } from "../hooks/use-projects-for-move";
+import { useTranslations } from "next-intl";
 
 interface MoveRecordingDialogProps {
   recording: RecordingDto;
@@ -40,6 +41,7 @@ export function MoveRecordingDialog({
   triggerContent,
   onOpenChange,
 }: MoveRecordingDialogProps) {
+  const t = useTranslations("recordings");
   const [targetProjectId, setTargetProjectId] = useState<string>("");
 
   // Fetch projects when dialog opens
@@ -59,7 +61,7 @@ export function MoveRecordingDialog({
 
   // Show error toast if projects fail to load
   if (projectsError) {
-    toast.error("Failed to load projects");
+    toast.error(t("actions.failedToLoadProjects"));
   }
 
   // Move recording mutation
@@ -72,7 +74,7 @@ export function MoveRecordingDialog({
 
   const handleMove = () => {
     if (!targetProjectId) {
-      toast.error("Please select a target project");
+      toast.error(t("actions.selectTargetError"));
       return;
     }
 
@@ -95,16 +97,15 @@ export function MoveRecordingDialog({
         {!triggerElement && (
           <>
             <ArrowRightIcon className="h-4 w-4 mr-2" />
-            Move
+            {t("actions.move")}
           </>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Move Recording</DialogTitle>
+          <DialogTitle>{t("actions.moveRecording")}</DialogTitle>
           <DialogDescription>
-            Move "{recording.title}" to another project. This will update all
-            related data including embeddings.
+            {t("actions.moveDescription", { title: recording.title })}
           </DialogDescription>
         </DialogHeader>
 
@@ -114,7 +115,7 @@ export function MoveRecordingDialog({
               htmlFor="move-target-project"
               className="text-sm font-medium"
             >
-              Select Target Project
+              {t("actions.selectTargetProject")}
             </label>
             <Select
               value={targetProjectId}
@@ -126,15 +127,15 @@ export function MoveRecordingDialog({
                 <SelectValue
                   placeholder={
                     isLoadingProjects
-                      ? "Loading projects..."
-                      : "Select a project"
+                      ? t("actions.loadingProjects")
+                      : t("actions.selectProject")
                   }
                 />
               </SelectTrigger>
               <SelectContent>
                 {projects?.length === 0 && !isLoadingProjects ? (
                   <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                    No other projects available
+                    {t("actions.noOtherProjects")}
                   </div>
                 ) : (
                   projects?.map((project) => (
@@ -175,7 +176,7 @@ export function MoveRecordingDialog({
             onClick={handleMove}
             disabled={!targetProjectId || isMoving || isLoadingProjects}
           >
-            {isMoving ? "Moving..." : "Move Recording"}
+            {isMoving ? t("actions.moving") : t("actions.moveRecordingButton")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -7,6 +7,7 @@ import { checkPermission } from "@/lib/rbac/permissions-server";
 import { AgentAnalyticsService } from "@/server/services/agent-analytics.service";
 import { ok } from "neverthrow";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 export const metadata = {
@@ -44,6 +45,8 @@ async function UserAnalyticsContent({
   if (!hasAdminPermission) {
     redirect("/");
   }
+
+  const t = await getTranslations("admin.analytics");
 
   // Parse search params
   const params = await searchParams;
@@ -118,10 +121,8 @@ async function UserAnalyticsContent({
   return (
     <div className="container mx-auto max-w-[1600px] py-6 px-4 lg:px-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold lg:text-3xl">User Analytics</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          View user-specific agent engagement, file usage, and feedback metrics
-        </p>
+        <h1 className="text-2xl font-bold lg:text-3xl">{t("title")}</h1>
+        <p className="text-muted-foreground mt-1 text-sm">{t("description")}</p>
       </div>
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
@@ -138,7 +139,7 @@ async function UserAnalyticsContent({
         {hasSuperAdminPermission && (
           <aside className="sticky top-6 h-fit w-full self-start lg:w-64">
             <div className="rounded-lg border bg-card p-4 shadow-sm">
-              <h2 className="mb-4 text-sm font-semibold">Filters</h2>
+              <h2 className="mb-4 text-sm font-semibold">{t("filters")}</h2>
               <UserAnalyticsFilters
                 initialStartDate={startDate}
                 initialEndDate={endDate}

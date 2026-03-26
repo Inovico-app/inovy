@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 interface OrganizationInstructionsFormProps {
@@ -26,6 +27,7 @@ export function OrganizationInstructionsForm({
   isLoading = false,
   canEdit,
 }: OrganizationInstructionsFormProps) {
+  const t = useTranslations("settings.organization");
   const [instructions, setInstructions] = useState(() => initialValue);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -56,7 +58,7 @@ export function OrganizationInstructionsForm({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label htmlFor="org-ai-instructions" className="text-sm font-medium">
-            Organization AI Instructions
+            {t("orgAiInstructions")}
           </label>
           {!canEdit && (
             <span className="text-xs text-muted-foreground">
@@ -68,8 +70,8 @@ export function OrganizationInstructionsForm({
           id="org-ai-instructions"
           placeholder={
             canEdit
-              ? "Enter organization-wide guidelines and instructions for the AI. These will be included in all chat responses across all projects to help guide AI behavior for your organization."
-              : "No organization instructions set yet."
+              ? t("instructionsPlaceholder")
+              : t("noInstructionsPlaceholder")
           }
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
@@ -84,7 +86,9 @@ export function OrganizationInstructionsForm({
             {instructions.length.toLocaleString()} / 100,000 characters
           </span>
           {instructions.length > 100000 && (
-            <span className="text-destructive">Character limit exceeded</span>
+            <span className="text-destructive">
+              {t("characterLimitExceeded")}
+            </span>
           )}
         </div>
       </div>

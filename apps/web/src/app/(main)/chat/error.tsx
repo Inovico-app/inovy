@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 import { AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 
 interface ChatErrorProps {
@@ -11,6 +12,8 @@ interface ChatErrorProps {
 }
 
 export default function ChatError({ error, reset }: ChatErrorProps) {
+  const t = useTranslations("chat");
+
   useEffect(() => {
     logger.error("Chat page error occurred", {
       component: "ChatError",
@@ -27,11 +30,10 @@ export default function ChatError({ error, reset }: ChatErrorProps) {
             <AlertCircle className="h-8 w-8 text-destructive" />
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-destructive">Chat Error</h2>
-        <p className="text-muted-foreground">
-          The chat interface encountered an error. Your conversation data is
-          safe. Please try refreshing or starting a new conversation.
-        </p>
+        <h2 className="text-2xl font-bold text-destructive">
+          {t("errorTitle")}
+        </h2>
+        <p className="text-muted-foreground">{t("errorDescription")}</p>
         {process.env.NODE_ENV === "development" && error.message && (
           <p className="text-xs text-muted-foreground font-mono bg-muted p-2 rounded">
             {error.message}
@@ -39,12 +41,13 @@ export default function ChatError({ error, reset }: ChatErrorProps) {
         )}
         <div className="flex gap-2 justify-center">
           <Button variant="outline" onClick={reset}>
-            Try Again
+            {t("tryAgain")}
           </Button>
-          <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+          <Button onClick={() => window.location.reload()}>
+            {t("refreshPage")}
+          </Button>
         </div>
       </div>
     </div>
   );
 }
-

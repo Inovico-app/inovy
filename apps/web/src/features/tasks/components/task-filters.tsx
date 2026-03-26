@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import type { TaskPriority, TaskStatus } from "@/server/db/schema/tasks";
 import { User, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useArrayToggle } from "../../../hooks/use-array-toggle";
 import { FilterCheckboxGroup } from "./filter-checkbox-group";
 import { ProjectFilterDropdown } from "./project-filter-dropdown";
@@ -79,6 +80,7 @@ export function TaskFilters({
   projects,
   onClearFilters,
 }: TaskFiltersProps) {
+  const t = useTranslations("tasks");
   const togglePriority = useArrayToggle(selectedPriorities, onPrioritiesChange);
   const toggleStatus = useArrayToggle(selectedStatuses, onStatusesChange);
   const toggleProject = useArrayToggle(selectedProjectIds, onProjectIdsChange);
@@ -93,7 +95,7 @@ export function TaskFilters({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">Filters</CardTitle>
+          <CardTitle className="text-base">{t("filters")}</CardTitle>
           {hasActiveFilters && onClearFilters && (
             <Button
               variant="ghost"
@@ -111,7 +113,7 @@ export function TaskFilters({
         {/* Assignee Filter */}
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-muted-foreground">
-            Assignee
+            {t("assignee")}
           </h4>
           <Label
             htmlFor="assigned-to-me"
@@ -125,7 +127,7 @@ export function TaskFilters({
               }
             />
             <User className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-sm">Assigned to me</span>
+            <span className="text-sm">{t("assignedToMe")}</span>
           </Label>
         </div>
 

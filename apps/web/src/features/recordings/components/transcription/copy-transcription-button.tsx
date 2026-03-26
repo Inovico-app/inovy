@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
 import { useCallback } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface CopyTranscriptionButtonProps {
   transcriptionText: string;
@@ -12,28 +13,34 @@ interface CopyTranscriptionButtonProps {
 
 export function CopyTranscriptionButton({
   transcriptionText,
-  label = "Kopiëren",
+  label,
 }: CopyTranscriptionButtonProps) {
+  const t = useTranslations("recordings");
+  const effectiveLabel = label ?? t("transcription.copy");
   const handleCopy = useCallback(async () => {
     if (!navigator.clipboard) {
-      toast.error("Kopiëren wordt niet ondersteund in deze browser");
+      toast.error(t("transcription.copyNotSupported"));
       return;
     }
 
     try {
       await navigator.clipboard.writeText(transcriptionText);
-      toast.success("Transcriptie gekopieerd naar klembord");
+      toast.success(t("transcription.transcriptionCopied"));
     } catch (error) {
       console.error("Failed to copy transcription:", error);
-      toast.error("Fout bij kopiëren naar klembord");
+      toast.error(t("transcription.copyFailed"));
     }
   }, [transcriptionText]);
 
   return (
-    <Button variant="ghost" size="sm" onClick={handleCopy} title={label}>
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={handleCopy}
+      title={effectiveLabel}
+    >
       <Copy className="h-4 w-4 mr-1" />
-      {label}
+      {effectiveLabel}
     </Button>
   );
 }
-

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ChatConversation } from "@/server/db/schema/chat-conversations";
 import { Building2, FolderOpen, MoreVertical } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { differenceInCalendarDays } from "date-fns";
 import { ConversationActionsMenu } from "./conversation-actions-menu";
 
@@ -19,6 +20,7 @@ export function ConversationListItem({
   isActive = false,
   onClick,
 }: ConversationListItemProps) {
+  const t = useTranslations("chat");
   const isDeleted = conversation.deletedAt !== null;
   const isArchived = conversation.archivedAt !== null && !isDeleted;
 
@@ -29,16 +31,16 @@ export function ConversationListItem({
 
     // For recent times (< 24 hours), use time-based display
     if (diffInHours < 1) {
-      return "Just now";
+      return t("justNow");
     } else if (diffInHours < 24) {
-      return `${Math.floor(diffInHours)}h ago`;
+      return t("hoursAgo", { count: Math.floor(diffInHours) });
     }
 
     // For older dates, use calendar days
     const diffInDays = differenceInCalendarDays(now, date);
 
     if (diffInDays < 7) {
-      return `${diffInDays}d ago`;
+      return t("daysAgo", { count: diffInDays });
     } else {
       return date.toLocaleDateString();
     }
@@ -52,7 +54,7 @@ export function ConversationListItem({
         "group relative flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-accent cursor-pointer",
         isActive && "bg-accent border-primary",
         isDeleted && "opacity-60",
-        isArchived && "opacity-75"
+        isArchived && "opacity-75",
       )}
       onClick={onClick}
       onKeyDown={(e) => {
@@ -61,12 +63,12 @@ export function ConversationListItem({
           onClick?.();
         }
       }}
-      aria-label={`Conversation: ${conversation.title || "Untitled Conversation"}`}
+      aria-label={`Conversation: ${conversation.title || t("untitledConversation")}`}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <h4 className="text-sm font-medium truncate">
-            {conversation.title || "Untitled Conversation"}
+            {conversation.title || t("untitledConversation")}
           </h4>
           {conversation.context === "organization" ? (
             <Building2 className="h-3 w-3 text-muted-foreground flex-shrink-0" />
@@ -107,11 +109,10 @@ export function ConversationListItem({
             onClick={(e) => e.stopPropagation()}
           >
             <MoreVertical className="h-4 w-4" />
-            <span className="sr-only">More actions</span>
+            <span className="sr-only">{t("moreActions")}</span>
           </Button>
         }
       />
     </div>
   );
 }
-

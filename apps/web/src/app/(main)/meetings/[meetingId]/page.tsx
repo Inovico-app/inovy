@@ -13,6 +13,7 @@ import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-i
 import { MeetingNotesQueries } from "@/server/data-access/meeting-notes.queries";
 import { MeetingPostActionsQueries } from "@/server/data-access/meeting-post-actions.queries";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
+import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -61,6 +62,7 @@ async function MeetingDetailLoader({ meetingId }: { meetingId: string }) {
 
 export default async function MeetingDetailPage(props: PageProps) {
   const params = await props.params;
+  const t = await getTranslations("meetings");
 
   return (
     <div className="mx-auto w-full max-w-3xl py-10 px-4 sm:px-6">
@@ -69,7 +71,7 @@ export default async function MeetingDetailPage(props: PageProps) {
           <div
             className="animate-pulse space-y-4"
             aria-busy="true"
-            aria-label="Loading meeting details"
+            aria-label={t("page.loadingDetails")}
             role="status"
           >
             <div className="h-8 bg-muted rounded w-1/3" />

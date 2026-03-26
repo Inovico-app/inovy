@@ -1,13 +1,9 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  CheckCircle2,
-  Clock,
-  XCircle,
-  AlertCircle,
-} from "lucide-react";
+import { CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
 import type { ConsentStatus as ConsentStatusType } from "@/server/db/schema/consent";
+import { useTranslations } from "next-intl";
 
 interface ConsentStatusProps {
   status: ConsentStatusType;
@@ -20,40 +16,41 @@ export function ConsentStatus({
   count,
   className,
 }: ConsentStatusProps) {
+  const t = useTranslations("recordings");
   const getStatusConfig = () => {
     switch (status) {
       case "granted":
         return {
           icon: CheckCircle2,
-          label: "Consent Granted",
+          label: t("consent.consentGranted"),
           variant: "default" as const,
           className: "bg-green-500/10 text-green-700 dark:text-green-400",
         };
       case "pending":
         return {
           icon: Clock,
-          label: "Consent Pending",
+          label: t("consent.consentPending"),
           variant: "outline" as const,
           className: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
         };
       case "revoked":
         return {
           icon: XCircle,
-          label: "Consent Revoked",
+          label: t("consent.consentRevoked"),
           variant: "destructive" as const,
           className: "bg-red-500/10 text-red-700 dark:text-red-400",
         };
       case "expired":
         return {
           icon: AlertCircle,
-          label: "Consent Expired",
+          label: t("consent.consentExpired"),
           variant: "outline" as const,
           className: "bg-gray-500/10 text-gray-700 dark:text-gray-400",
         };
       default:
         return {
           icon: AlertCircle,
-          label: "Unknown Status",
+          label: t("consent.unknownStatus"),
           variant: "outline" as const,
           className: "bg-gray-500/10 text-gray-700 dark:text-gray-400",
         };
@@ -64,7 +61,10 @@ export function ConsentStatus({
   const Icon = config.icon;
 
   return (
-    <Badge variant={config.variant} className={`gap-1 ${config.className} ${className ?? ""}`}>
+    <Badge
+      variant={config.variant}
+      className={`gap-1 ${config.className} ${className ?? ""}`}
+    >
       <Icon className="h-3 w-3" />
       {config.label}
       {count !== undefined && count > 0 && (
@@ -73,4 +73,3 @@ export function ConsentStatus({
     </Badge>
   );
 }
-

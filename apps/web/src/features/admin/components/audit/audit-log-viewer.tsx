@@ -12,6 +12,7 @@ import type { AuditLog } from "@/server/db/schema/audit-logs";
 import { Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { exportAuditLogs } from "../../actions/export-audit-logs";
 import { useAuditLogFilters } from "../../hooks/use-audit-log-filters";
@@ -38,6 +39,7 @@ export function AuditLogViewer({
   initialData,
   initialFilters,
 }: AuditLogViewerProps) {
+  const t = useTranslations("admin.auditLogs");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -129,9 +131,9 @@ export function AuditLogViewer({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success(`Audit logs exported as ${format.toUpperCase()}`);
+      toast.success(t("exported", { format: format.toUpperCase() }));
     } catch (error) {
-      toast.error("Failed to export audit logs");
+      toast.error(t("exportFailed"));
       console.error(error);
     }
   };
@@ -146,7 +148,7 @@ export function AuditLogViewer({
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Audit Logs</CardTitle>
+                <CardTitle>{t("auditLogs")}</CardTitle>
                 <CardDescription>
                   {isPending
                     ? "Loading..."
@@ -176,9 +178,7 @@ export function AuditLogViewer({
           <CardContent>
             {logs.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">
-                  No audit logs found matching your filters.
-                </p>
+                <p className="text-muted-foreground">{t("noLogsFound")}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">

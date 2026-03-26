@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { magicLinkSchema } from "@/features/auth/validation/auth.schema";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 
@@ -34,6 +35,7 @@ export function MagicLinkSignInForm({
   isSendingMagicLink: _isSendingMagicLink,
   magicLinkError,
 }: MagicLinkSignInFormProps) {
+  const t = useTranslations("auth");
   const magicLinkForm = useForm<MagicLinkFormValues>({
     resolver: standardSchemaResolver(magicLinkSchema),
     defaultValues: {
@@ -59,12 +61,12 @@ export function MagicLinkSignInForm({
           className="space-y-4"
         >
           <fieldset className="space-y-4" disabled={isLoading}>
-            <legend className="sr-only">Sign in with magic link</legend>
+            <legend className="sr-only">{t("magicLinkLegend")}</legend>
 
             {magicLinkError && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Foutmelding</AlertTitle>
+                <AlertTitle>{t("errorTitle")}</AlertTitle>
                 <AlertDescription>{magicLinkError}</AlertDescription>
               </Alert>
             )}
@@ -74,18 +76,18 @@ export function MagicLinkSignInForm({
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{t("emailLabel")}</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="je@voorbeeld.nl"
+                      placeholder={t("emailPlaceholder")}
                       disabled={isLoading}
                       autoFocus
                       {...field}
                     />
                   </FormControl>
                   <p className="text-xs text-muted-foreground">
-                    We sturen je een link om in te loggen zonder wachtwoord
+                    {t("magicLinkHint")}
                   </p>
                   <FormMessage />
                 </FormItem>
@@ -100,10 +102,10 @@ export function MagicLinkSignInForm({
                 disabled={isLoading}
                 className="flex-1"
               >
-                Annuleren
+                {t("cancel")}
               </Button>
               <Button type="submit" className="flex-1" disabled={isLoading}>
-                Versturen
+                {t("send")}
               </Button>
             </div>
           </fieldset>

@@ -7,6 +7,7 @@ import { UserAnalyticsPerformance } from "./user-analytics-performance";
 import { UserAnalyticsProjects } from "./user-analytics-projects";
 import { UserAnalyticsQuality } from "./user-analytics-quality";
 import { UserAnalyticsSources } from "./user-analytics-sources";
+import { useTranslations } from "next-intl";
 import type { UserAnalyticsChartsProps } from "./user-analytics-types";
 
 export function UserAnalyticsCharts({
@@ -14,6 +15,7 @@ export function UserAnalyticsCharts({
   startDate: _startDate,
   endDate: _endDate,
 }: UserAnalyticsChartsProps) {
+  const t = useTranslations("admin.analytics");
   const {
     totalConversations,
     totalMessages,
@@ -33,7 +35,7 @@ export function UserAnalyticsCharts({
       {/* Overview - Always visible */}
       <Card>
         <CardHeader>
-          <CardTitle>Overview</CardTitle>
+          <CardTitle>{t("overview")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -70,10 +72,10 @@ export function UserAnalyticsCharts({
       {/* Tabbed Sections */}
       <Tabs defaultValue="projects" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="projects">Projects</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="sources">Sources</TabsTrigger>
-          <TabsTrigger value="quality">Quality</TabsTrigger>
+          <TabsTrigger value="projects">{t("projects")}</TabsTrigger>
+          <TabsTrigger value="performance">{t("performance")}</TabsTrigger>
+          <TabsTrigger value="sources">{t("sources")}</TabsTrigger>
+          <TabsTrigger value="quality">{t("quality")}</TabsTrigger>
         </TabsList>
 
         <UserAnalyticsProjects

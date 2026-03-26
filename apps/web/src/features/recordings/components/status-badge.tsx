@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Badge } from "../../../components/ui/badge";
 import type { RecordingStatus } from "../../../server/db/schema/recordings";
+import { useTranslations } from "next-intl";
 
 interface StatusBadgeProps {
   status: RecordingStatus;
@@ -15,6 +16,7 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
+  const t = useTranslations("recordings");
   const statusConfig: Record<
     RecordingStatus,
     {
@@ -25,26 +27,26 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     }
   > = {
     pending: {
-      label: "Pending",
+      label: t("status.pending"),
       variant: "outline",
       icon: <ClockIcon className="h-3 w-3" />,
       className: "text-muted-foreground border-muted-foreground/30",
     },
     processing: {
-      label: "Processing",
+      label: t("status.processing"),
       variant: "default",
       icon: <LoaderIcon className="h-3 w-3 animate-spin" />,
       className: "bg-blue-500 text-white border-blue-500",
     },
     completed: {
-      label: "Completed",
+      label: t("status.completed"),
       variant: "secondary",
       icon: <CheckCircleIcon className="h-3 w-3" />,
       className:
         "bg-green-500/10 text-green-700 border-green-500/30 dark:text-green-400",
     },
     failed: {
-      label: "Failed",
+      label: t("status.failed"),
       variant: "destructive",
       icon: <AlertCircleIcon className="h-3 w-3" />,
     },
@@ -62,4 +64,3 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     </Badge>
   );
 }
-

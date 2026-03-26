@@ -7,6 +7,7 @@ import { useTaskFilters } from "../hooks/use-task-filters";
 import { useTaskOperations } from "../hooks/use-task-operations";
 import { TaskFilters } from "./task-filters";
 import { TaskListContent } from "./task-list-content";
+import { useTranslations } from "next-intl";
 import { TaskListEmpty } from "./task-list-empty";
 
 interface GlobalTaskListClientProps {
@@ -21,6 +22,7 @@ export function GlobalTaskListClient({
   currentUserId,
 }: GlobalTaskListClientProps) {
   const allTasks = initialTasks;
+  const t = useTranslations("tasks");
   const projects = initialProjects;
 
   // Manage URL-based filters
@@ -98,7 +100,7 @@ export function GlobalTaskListClient({
           onSearchChange={handleSearchChange}
           onClearFilters={handleClearFilters}
           onStatusChange={handleStatusChange}
-          title={assignedToMe ? "My Tasks" : "All Tasks"}
+          title={assignedToMe ? t("myTasks") : t("allTasks")}
         />
       </div>
     </div>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 import { AlertCircle } from "lucide-react";
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 
 interface RecordErrorProps {
   error: Error & { digest?: string };
@@ -11,6 +12,7 @@ interface RecordErrorProps {
 }
 
 export default function RecordError({ error, reset }: RecordErrorProps) {
+  const t = useTranslations("recordings");
   useEffect(() => {
     logger.error("Record page error occurred", {
       component: "RecordError",
@@ -27,10 +29,11 @@ export default function RecordError({ error, reset }: RecordErrorProps) {
             <AlertCircle className="h-8 w-8 text-destructive" />
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-destructive">Recording Error</h2>
+        <h2 className="text-2xl font-bold text-destructive">
+          {t("error.recordingError")}
+        </h2>
         <p className="text-muted-foreground">
-          The recording interface encountered an error. Please check your
-          microphone permissions and try again.
+          {t("error.recordingErrorDescription")}
         </p>
         {process.env.NODE_ENV === "development" && error.message && (
           <p className="text-xs text-muted-foreground font-mono bg-muted p-2 rounded">
@@ -39,14 +42,13 @@ export default function RecordError({ error, reset }: RecordErrorProps) {
         )}
         <div className="flex gap-2 justify-center">
           <Button variant="outline" onClick={reset}>
-            Try Again
+            {t("error.tryAgain")}
           </Button>
           <Button onClick={() => window.location.reload()}>
-            Refresh Page
+            {t("error.refreshPage")}
           </Button>
         </div>
       </div>
     </div>
   );
 }
-

@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from "../../../components/ui/dialog";
 import { UploadRecordingForm } from "./upload-recording-form";
+import { useTranslations } from "next-intl";
 
 interface UploadRecordingModalProps {
   projectId: string;
@@ -24,7 +25,7 @@ interface UploadRecordingModalProps {
  * Renders a modal dialog that lets the user upload an audio or video recording for a project.
  *
  * @param projectId - The project identifier to associate the uploaded recording with.
- * @param trigger - Optional custom trigger element to open the modal. If omitted, a default outlined "New Recording" button with a plus icon is used.
+ * @param trigger - Optional custom trigger element to open the modal. If omitted, a default outlined "{t("actions.newRecording")}" button with a plus icon is used.
  * @param open - Optional controlled open state; when provided, the modal's visibility is driven by this value.
  * @param onOpenChange - Optional controlled state updater called with the new open state when the modal requests to open or close.
  * @returns The modal element containing the upload form and its trigger.
@@ -35,6 +36,7 @@ export function UploadRecordingModal({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
 }: UploadRecordingModalProps) {
+  const t = useTranslations("recordings");
   const [internalOpen, setInternalOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
 
@@ -62,7 +64,11 @@ export function UploadRecordingModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={React.isValidElement(trigger) ? trigger : <Button variant="outline" />}>
+      <DialogTrigger
+        render={
+          React.isValidElement(trigger) ? trigger : <Button variant="outline" />
+        }
+      >
         {React.isValidElement(trigger) ? null : (
           <>
             <PlusIcon className="size-4 mr-2" />
@@ -72,10 +78,8 @@ export function UploadRecordingModal({
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden min-w-0">
         <DialogHeader>
-          <DialogTitle>Upload Recording</DialogTitle>
-          <DialogDescription>
-            Upload an audio or video recording to process with AI
-          </DialogDescription>
+          <DialogTitle>{t("upload.title")}</DialogTitle>
+          <DialogDescription>{t("upload.uploadDescription")}</DialogDescription>
         </DialogHeader>
         <UploadRecordingForm
           key={formKey}

@@ -37,6 +37,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   disconnectGoogleAccount,
@@ -51,6 +52,7 @@ const FEATURE_TIERS: { tier: ScopeTier; icon: typeof Calendar }[] = [
 ];
 
 export function GoogleConnection() {
+  const t = useTranslations("settings.integrations");
   const [status, setStatus] = useState<{
     connected: boolean;
     email?: string;
@@ -63,7 +65,7 @@ export function GoogleConnection() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [showConnectDialog, setShowConnectDialog] = useState(false);
   const [incrementalTier, setIncrementalTier] = useState<ScopeTier | null>(
-    null
+    null,
   );
 
   async function loadStatus() {
@@ -107,10 +109,10 @@ export function GoogleConnection() {
     const result = await disconnectGoogleAccount();
 
     if (result.data) {
-      toast.success("Google account disconnected successfully");
+      toast.success(t("disconnected"));
       setStatus({ connected: false, loading: false });
     } else {
-      toast.error(result.serverError || "Failed to disconnect account");
+      toast.error(result.serverError || t("disconnectFailed"));
     }
 
     setDisconnecting(false);
@@ -120,10 +122,8 @@ export function GoogleConnection() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Google Workspace Integration</CardTitle>
-          <CardDescription>
-            Connect your Google account to enable calendar and email features
-          </CardDescription>
+          <CardTitle>{t("googleIntegration")}</CardTitle>
+          <CardDescription>{t("googleIntegrationDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
@@ -139,15 +139,13 @@ export function GoogleConnection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Google Workspace Integration</CardTitle>
-        <CardDescription>
-          Connect your Google account to enable calendar and email features
-        </CardDescription>
+        <CardTitle>{t("googleIntegration")}</CardTitle>
+        <CardDescription>{t("googleIntegrationDescription")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Connection Status */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Status:</span>
+          <span className="text-sm font-medium">{t("status")}</span>
           {status.connected ? (
             <Badge variant="default" className="gap-1">
               <CheckCircle2 className="h-3 w-3" />
@@ -164,7 +162,7 @@ export function GoogleConnection() {
         {/* Connected Account Info */}
         {status.connected && status.email && (
           <div className="text-sm">
-            <span className="font-medium">Account:</span>{" "}
+            <span className="font-medium">{t("account")}</span>{" "}
             <span className="text-muted-foreground">{status.email}</span>
           </div>
         )}
@@ -172,7 +170,7 @@ export function GoogleConnection() {
         {/* Granular permissions display */}
         {status.connected && (
           <div className="space-y-2">
-            <span className="text-sm font-medium">Permissions:</span>
+            <span className="text-sm font-medium">{t("permissions")}</span>
             <div className="grid gap-2">
               {FEATURE_TIERS.map(({ tier, icon: Icon }) => {
                 const granted = hasRequiredScopes(userScopes, tier);
@@ -217,7 +215,11 @@ export function GoogleConnection() {
         <div className="flex gap-2">
           {status.connected ? (
             <AlertDialog>
-              <AlertDialogTrigger render={<Button variant="destructive" disabled={disconnecting} />}>
+              <AlertDialogTrigger
+                render={
+                  <Button variant="destructive" disabled={disconnecting} />
+                }
+              >
                 {disconnecting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
@@ -225,13 +227,9 @@ export function GoogleConnection() {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    Disconnect Google Account?
-                  </AlertDialogTitle>
+                  <AlertDialogTitle>{t("disconnectTitle")}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will revoke Inovy&apos;s access to your Google account.
-                    Automatic calendar events and email drafts will be disabled.
-                    Your existing recordings and tasks will not be affected.
+                    {t("disconnectDescription")}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -254,7 +252,7 @@ export function GoogleConnection() {
 
         {/* Features List */}
         <div className="mt-4 rounded-lg border bg-muted/50 p-4">
-          <h4 className="text-sm font-medium mb-2">Available Features:</h4>
+          <h4 className="text-sm font-medium mb-2">{t("availableFeatures")}</h4>
           <ul className="space-y-1 text-sm text-muted-foreground">
             <li>
               &bull; Automatically create calendar events from extracted tasks
@@ -288,4 +286,3 @@ export function GoogleConnection() {
     </Card>
   );
 }
-

@@ -1,7 +1,8 @@
 "use client";
 
-import { Controller, useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
+import { useTranslations } from "next-intl";
+import { Controller, useFormContext } from "react-hook-form";
 import type { OnboardingFormValues } from "../../schemas/onboarding-form.schema";
 
 interface StepNameProps {
@@ -9,17 +10,16 @@ interface StepNameProps {
 }
 
 export function StepName({ isLoading }: StepNameProps) {
+  const t = useTranslations("onboarding");
   const { control } = useFormContext<OnboardingFormValues>();
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold text-foreground">
-          Welkom bij Inovy!
+          {t("stepNameTitle")}
         </h1>
-        <p className="text-muted-foreground">
-          Laten we beginnen met kennismaken. Hoe mogen we je noemen?
-        </p>
+        <p className="text-muted-foreground">{t("stepNameSubtitle")}</p>
       </div>
       <fieldset className="space-y-4">
         <Controller
@@ -28,13 +28,13 @@ export function StepName({ isLoading }: StepNameProps) {
           render={({ field, fieldState }) => (
             <div className="space-y-2">
               <label htmlFor="name" className="text-sm font-medium">
-                Je naam
+                {t("stepNameLabel")}
               </label>
               <Input
                 {...field}
                 id="name"
                 type="text"
-                placeholder="Bijv. Jan Jansen"
+                placeholder={t("stepNamePlaceholder")}
                 disabled={isLoading}
                 aria-invalid={fieldState.invalid}
               />
@@ -50,4 +50,3 @@ export function StepName({ isLoading }: StepNameProps) {
     </div>
   );
 }
-

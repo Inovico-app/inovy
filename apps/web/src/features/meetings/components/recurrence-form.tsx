@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import {
   RECURRENCE_PRESETS,
@@ -61,6 +62,7 @@ export function RecurrenceForm({
   eventStartDate,
   disabled,
 }: RecurrenceFormProps) {
+  const t = useTranslations("meetings");
   const presetItems = useMemo(
     () =>
       Object.fromEntries(
@@ -135,7 +137,7 @@ export function RecurrenceForm({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="recurrence-preset">Repeat</Label>
+        <Label htmlFor="recurrence-preset">{t("recurrence.repeat")}</Label>
         <Select
           value={value.preset}
           onValueChange={(val) =>
@@ -161,7 +163,9 @@ export function RecurrenceForm({
         <div className="space-y-4 p-4 border rounded-md bg-muted/30">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="custom-interval">Repeat every</Label>
+              <Label htmlFor="custom-interval">
+                {t("recurrence.repeatEvery")}
+              </Label>
               <Input
                 id="custom-interval"
                 type="number"
@@ -173,7 +177,9 @@ export function RecurrenceForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="custom-frequency">Frequency</Label>
+              <Label htmlFor="custom-frequency">
+                {t("recurrence.frequency")}
+              </Label>
               <Select
                 value={value.customFrequency || "WEEKLY"}
                 onValueChange={(freq) =>
@@ -200,7 +206,7 @@ export function RecurrenceForm({
 
           {showWeekDays && (
             <div className="space-y-2">
-              <Label>Repeat on</Label>
+              <Label>{t("recurrence.repeatOn")}</Label>
               <div className="flex gap-2">
                 {WEEK_DAYS.map((day) => {
                   const isSelected =
@@ -234,7 +240,7 @@ export function RecurrenceForm({
 
           {showMonthlyOptions && (
             <div className="space-y-2">
-              <Label>Monthly repeat type</Label>
+              <Label>{t("recurrence.monthlyRepeatType")}</Label>
               <RadioGroup
                 value={value.monthlyType || "day-of-month"}
                 onValueChange={(val) =>
@@ -251,7 +257,7 @@ export function RecurrenceForm({
                     htmlFor="day-of-month"
                     className="font-normal cursor-pointer"
                   >
-                    Same day of month (e.g., 15th)
+                    {t("recurrence.sameDayOfMonth")}
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -260,7 +266,7 @@ export function RecurrenceForm({
                     htmlFor="day-of-week"
                     className="font-normal cursor-pointer"
                   >
-                    Same weekday (e.g., 2nd Tuesday)
+                    {t("recurrence.sameWeekday")}
                   </Label>
                 </div>
               </RadioGroup>
@@ -271,7 +277,7 @@ export function RecurrenceForm({
 
       {value.preset !== "none" && (
         <div className="space-y-4 p-4 border rounded-md bg-muted/30">
-          <Label>Ends</Label>
+          <Label>{t("recurrence.ends")}</Label>
           <RadioGroup
             value={value.endType}
             onValueChange={(val) =>
@@ -282,14 +288,14 @@ export function RecurrenceForm({
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="never" id="end-never" />
               <Label htmlFor="end-never" className="font-normal cursor-pointer">
-                Never
+                {t("recurrence.never")}
               </Label>
             </div>
 
             <div className="flex items-center space-x-2 gap-2">
               <RadioGroupItem value="on" id="end-on" />
               <Label htmlFor="end-on" className="font-normal cursor-pointer">
-                On
+                {t("recurrence.on")}
               </Label>
               <Input
                 type="date"
@@ -304,7 +310,7 @@ export function RecurrenceForm({
             <div className="flex items-center space-x-2 gap-2">
               <RadioGroupItem value="after" id="end-after" />
               <Label htmlFor="end-after" className="font-normal cursor-pointer">
-                After
+                {t("recurrence.after")}
               </Label>
               <Input
                 type="number"
@@ -315,7 +321,9 @@ export function RecurrenceForm({
                 disabled={disabled || value.endType !== "after"}
                 className="w-24"
               />
-              <span className="text-sm text-muted-foreground">occurrences</span>
+              <span className="text-sm text-muted-foreground">
+                {t("recurrence.occurrences")}
+              </span>
             </div>
           </RadioGroup>
         </div>

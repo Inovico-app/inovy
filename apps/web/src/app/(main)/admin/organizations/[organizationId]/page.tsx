@@ -16,6 +16,7 @@ import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 interface OrganizationPageProps {
@@ -44,7 +45,7 @@ async function OrganizationContent({
     return (
       <Card>
         <CardContent className="text-center py-8">
-          <p className="text-muted-foreground">Organization not found</p>
+          <p className="text-muted-foreground">{t("organizationNotFound")}</p>
         </CardContent>
       </Card>
     );
@@ -89,16 +90,15 @@ async function OrganizationPageContent({ params }: OrganizationPageProps) {
     redirect("/");
   }
 
+  const t = await getTranslations("admin.organizations");
   const { organizationId } = await params;
 
   return (
     <div className="container mx-auto max-w-5xl py-8 px-4">
       <div className="mb-8 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Organization Details</h1>
-          <p className="text-muted-foreground">
-            View and manage organization settings
-          </p>
+          <h1 className="text-3xl font-bold">{t("detailTitle")}</h1>
+          <p className="text-muted-foreground">{t("detailDescription")}</p>
         </div>
         <Button
           variant="ghost"

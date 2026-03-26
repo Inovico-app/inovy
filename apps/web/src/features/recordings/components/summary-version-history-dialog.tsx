@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { History, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useSummaryHistory } from "../hooks/use-summary-history";
+import { useTranslations } from "next-intl";
 
 interface SummaryVersionHistoryDialogProps {
   recordingId: string;
@@ -22,20 +23,29 @@ interface SummaryVersionHistoryDialogProps {
 export function SummaryVersionHistoryDialog({
   recordingId,
 }: SummaryVersionHistoryDialogProps) {
+  const t = useTranslations("recordings");
   const [open, setOpen] = useState(false);
   const { data: history, isLoading, error } = useSummaryHistory(recordingId);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="ghost" size="sm" title="View version history" />}>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            title={t("summaryHistory.viewHistory")}
+          />
+        }
+      >
         <History className="h-4 w-4 mr-2" />
-        History
+        {t("summaryHistory.history")}
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Summary Version History</DialogTitle>
+          <DialogTitle>{t("summaryHistory.title")}</DialogTitle>
           <DialogDescription>
-            Track all changes made to this summary over time.
+            {t("summaryHistory.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -44,7 +54,7 @@ export function SummaryVersionHistoryDialog({
             <div className="text-center py-8">
               <Loader2 className="h-8 w-8 mx-auto mb-3 animate-spin text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                Loading version history...
+                {t("summaryHistory.loadingHistory")}
               </p>
             </div>
           )}
@@ -52,7 +62,7 @@ export function SummaryVersionHistoryDialog({
           {error && (
             <div className="text-center py-8 text-destructive">
               <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Failed to load version history</p>
+              <p className="text-sm">{t("summaryHistory.failedToLoad")}</p>
               <p className="text-xs mt-2">
                 {error instanceof Error ? error.message : "Unknown error"}
               </p>
@@ -62,10 +72,8 @@ export function SummaryVersionHistoryDialog({
           {!isLoading && !error && history && history.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">No edits recorded yet</p>
-              <p className="text-xs mt-2">
-                Future edits will be recorded here.
-              </p>
+              <p className="text-sm">{t("summaryHistory.noEdits")}</p>
+              <p className="text-xs mt-2">{t("summaryHistory.futureEdits")}</p>
             </div>
           )}
 
@@ -157,4 +165,3 @@ export function SummaryVersionHistoryDialog({
     </Dialog>
   );
 }
-

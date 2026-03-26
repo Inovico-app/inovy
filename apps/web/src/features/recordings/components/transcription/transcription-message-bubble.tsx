@@ -22,6 +22,7 @@ import {
   formatTimestampRange,
   getUtteranceCountLabel,
 } from "./utterance-helpers";
+import { useTranslations } from "next-intl";
 
 function getSpeakerColor(speakerIndex: number): {
   text: string;
@@ -97,6 +98,7 @@ export const TranscriptionMessageBubble = forwardRef<
   },
   ref,
 ) {
+  const t = useTranslations("recordings");
   const speakerColor = getSpeakerColor(groupedUtterance.speaker);
   const isLeftAligned =
     groupedUtterance.speaker % 2 === 0 && viewMode === "detailed";
@@ -128,10 +130,10 @@ export const TranscriptionMessageBubble = forwardRef<
     const text = formatCopyText(groupedUtterance, speakerInfo.name);
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Utterance gekopieerd naar klembord");
+      toast.success(t("transcription.copiedToClipboard"));
     } catch (error) {
       console.error("Failed to copy utterance:", error);
-      toast.error("Fout bij kopiëren naar klembord");
+      toast.error(t("transcription.copyFailed"));
     }
   };
 
@@ -174,7 +176,7 @@ export const TranscriptionMessageBubble = forwardRef<
               <Badge
                 variant="outline"
                 className="text-xs"
-                aria-label={`${utteranceCountLabel} gecombineerd`}
+                aria-label={`${utteranceCountLabel}`}
               >
                 {utteranceCountLabel}
               </Badge>
@@ -190,7 +192,7 @@ export const TranscriptionMessageBubble = forwardRef<
           <button
             onClick={handleJumpToTimestamp}
             className="hover:underline cursor-pointer"
-            title="Ga naar dit moment in de opname"
+            title={t("transcription.jumpToTimestamp")}
             aria-label={
               hasMultipleUtterances
                 ? `Ga naar tijdsbereik ${timestampRange}`
@@ -221,8 +223,8 @@ export const TranscriptionMessageBubble = forwardRef<
             size="sm"
             onClick={handleCopyUtterance}
             className="h-6 px-1"
-            title="Kopieer utterance"
-            aria-label="Kopieer utterance"
+            title={t("transcription.copyUtterance")}
+            aria-label={t("transcription.copyUtterance")}
           >
             <Copy className="h-3 w-3" />
           </Button>
@@ -231,8 +233,8 @@ export const TranscriptionMessageBubble = forwardRef<
             size="sm"
             onClick={() => setIsDialogOpen(true)}
             className="ml-auto h-6 px-1"
-            title="Wijzig spreker"
-            aria-label="Wijzig spreker voor deze zin"
+            title={t("transcription.changeSpeaker")}
+            aria-label={t("transcription.changeSpeakerForUtterance")}
           >
             <UserCog className="h-3 w-3" />
           </Button>

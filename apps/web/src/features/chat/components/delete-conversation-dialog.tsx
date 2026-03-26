@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTranslations } from "next-intl";
 
 interface DeleteConversationDialogProps {
   open: boolean;
@@ -24,18 +25,22 @@ export function DeleteConversationDialog({
   onConfirm,
   isDeleting = false,
 }: DeleteConversationDialogProps) {
+  const t = useTranslations("chat");
+  const tc = useTranslations("common");
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Conversation?</AlertDialogTitle>
+          <AlertDialogTitle>{t("deleteConversationTitle")}</AlertDialogTitle>
           <AlertDialogDescription>
             This conversation will be moved to deleted items. You can restore it
             within 30 days. After 30 days, it will be permanently deleted.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isDeleting}>
+            {tc("cancel")}
+          </AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
@@ -43,11 +48,10 @@ export function DeleteConversationDialog({
             }}
             disabled={isDeleting}
           >
-            {isDeleting ? "Deleting..." : "Delete"}
+            {isDeleting ? t("deleting") : tc("delete")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
 }
-

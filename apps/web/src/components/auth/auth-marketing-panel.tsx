@@ -1,14 +1,15 @@
 import { Lock, Mic, Shield } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
-export function AuthMarketingPanel() {
+export async function AuthMarketingPanel() {
+  const t = await getTranslations("auth");
+
   return (
     <div className="hidden lg:flex lg:w-1/2 flex-col justify-center bg-primary px-12 py-12 text-primary-foreground">
       <div className="mx-auto w-full max-w-md">
-        <h2 className="mb-4 text-3xl font-semibold">Welkom bij Inovy</h2>
+        <h2 className="mb-4 text-3xl font-semibold">{t("marketingTitle")}</h2>
         <p className="mb-12 text-primary-foreground/90">
-          Begin met het opnemen en transcriberen van gesprekken. Automatische
-          transcriptie, thema-detectie en professionele rapporten — allemaal met
-          jouw privacy voorop.
+          {t("marketingSubtitle")}
         </p>
 
         <div className="space-y-8">
@@ -17,10 +18,11 @@ export function AuthMarketingPanel() {
               <Shield className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <h3 className="mb-1 font-semibold">Privacybewust ontworpen</h3>
+              <h3 className="mb-1 font-semibold">
+                {t("marketingFeature1Title")}
+              </h3>
               <p className="text-sm text-primary-foreground/80">
-                Jouw gespreksdata wordt versleuteld opgeslagen en nooit gedeeld
-                met derden
+                {t("marketingFeature1Description")}
               </p>
             </div>
           </div>
@@ -30,10 +32,11 @@ export function AuthMarketingPanel() {
               <Mic className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <h3 className="mb-1 font-semibold">Gebouwd voor onderzoekers</h3>
+              <h3 className="mb-1 font-semibold">
+                {t("marketingFeature2Title")}
+              </h3>
               <p className="text-sm text-primary-foreground/80">
-                Van transcriptie tot thema-analyse — alles wat je nodig hebt op
-                een plek
+                {t("marketingFeature2Description")}
               </p>
             </div>
           </div>
@@ -43,10 +46,11 @@ export function AuthMarketingPanel() {
               <Lock className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <h3 className="mb-1 font-semibold">Veilig & privé</h3>
+              <h3 className="mb-1 font-semibold">
+                {t("marketingFeature3Title")}
+              </h3>
               <p className="text-sm text-primary-foreground/80">
-                Versleutelde verbindingen en strenge toegangscontrole als
-                standaard
+                {t("marketingFeature3Description")}
               </p>
             </div>
           </div>
@@ -55,4 +59,3 @@ export function AuthMarketingPanel() {
     </div>
   );
 }
-

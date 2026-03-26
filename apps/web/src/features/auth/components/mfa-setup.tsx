@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMfaSetup } from "@/features/auth/hooks/use-mfa-setup";
+import { useTranslations } from "next-intl";
 import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useState } from "react";
 
@@ -21,6 +22,7 @@ import { useCallback, useState } from "react";
  * Displays QR code for authenticator app enrollment and backup codes.
  */
 export function MfaSetup() {
+  const t = useTranslations("auth");
   const {
     totpURI,
     backupCodes,
@@ -69,21 +71,16 @@ export function MfaSetup() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Multi-Factor Authentication</CardTitle>
-          <CardDescription>
-            Add an extra layer of security to your account by enabling
-            TOTP-based multi-factor authentication with an authenticator app.
-          </CardDescription>
+          <CardTitle>{t("mfaSetupTitle")}</CardTitle>
+          <CardDescription>{t("mfaSetupDescription")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="mfa-password">
-              Enter your password to enable MFA
-            </Label>
+            <Label htmlFor="mfa-password">{t("mfaEnterPassword")}</Label>
             <Input
               id="mfa-password"
               type="password"
-              placeholder="Your account password"
+              placeholder={t("mfaPasswordPlaceholder")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => {
@@ -96,7 +93,7 @@ export function MfaSetup() {
             onClick={() => void handleEnable()}
             disabled={isEnabling || !password}
           >
-            {isEnabling ? "Setting up..." : "Enable MFA"}
+            {isEnabling ? t("mfaSettingUp") : t("mfaEnableMfa")}
           </Button>
         </CardContent>
       </Card>
@@ -108,12 +105,8 @@ export function MfaSetup() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Scan QR Code</CardTitle>
-          <CardDescription>
-            Scan this QR code with your authenticator app (e.g., Google
-            Authenticator, Authy, or 1Password), then enter the verification
-            code below.
-          </CardDescription>
+          <CardTitle>{t("mfaScanQrTitle")}</CardTitle>
+          <CardDescription>{t("mfaScanQrDescription")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex justify-center rounded-lg bg-white p-4">
@@ -122,7 +115,7 @@ export function MfaSetup() {
 
           <div className="space-y-2">
             <Label htmlFor="totp-uri" className="text-xs text-muted-foreground">
-              Manual entry URI
+              {t("mfaManualEntryUri")}
             </Label>
             <Input
               id="totp-uri"
@@ -133,12 +126,12 @@ export function MfaSetup() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="mfa-verify-code">Verification code</Label>
+            <Label htmlFor="mfa-verify-code">{t("mfaVerificationCode")}</Label>
             <Input
               id="mfa-verify-code"
               type="text"
               inputMode="numeric"
-              placeholder="Enter 6-digit code"
+              placeholder={t("mfaEnterSixDigit")}
               value={verificationCode}
               onChange={(e) => setVerificationCode(e.target.value)}
               onKeyDown={(e) => {
@@ -152,7 +145,7 @@ export function MfaSetup() {
             onClick={() => void handleVerify()}
             disabled={isVerifying || verificationCode.length !== 6}
           >
-            {isVerifying ? "Verifying..." : "Verify and Activate"}
+            {isVerifying ? t("mfaVerifying") : t("mfaVerifyAndActivate")}
           </Button>
         </CardContent>
       </Card>
@@ -163,20 +156,18 @@ export function MfaSetup() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Multi-Factor Authentication</CardTitle>
-        <CardDescription>
-          MFA is enabled on your account. Your account is protected with
-          TOTP-based two-factor authentication.
-        </CardDescription>
+        <CardTitle>{t("mfaSetupTitle")}</CardTitle>
+        <CardDescription>{t("mfaEnabledDescription")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {showBackupCodes && backupCodes.length > 0 && (
           <div className="space-y-3">
             <div className="rounded-lg border bg-muted/50 p-4">
-              <p className="mb-2 text-sm font-medium">Save your backup codes</p>
+              <p className="mb-2 text-sm font-medium">
+                {t("mfaSaveBackupCodes")}
+              </p>
               <p className="mb-3 text-xs text-muted-foreground">
-                Store these codes in a safe place. Each code can only be used
-                once if you lose access to your authenticator app.
+                {t("mfaBackupCodesHint")}
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {backupCodes.map((code) => (
@@ -194,26 +185,27 @@ export function MfaSetup() {
               size="sm"
               onClick={() => setShowBackupCodes(false)}
             >
-              I have saved my backup codes
+              {t("mfaBackupCodesSaved")}
             </Button>
           </div>
         )}
 
         <div className="space-y-2 border-t pt-4">
-          <p className="text-sm font-medium text-destructive">Disable MFA</p>
+          <p className="text-sm font-medium text-destructive">
+            {t("mfaDisableMfa")}
+          </p>
           <p className="text-xs text-muted-foreground">
-            Disabling MFA will remove the extra layer of security from your
-            account.
+            {t("mfaDisableWarning")}
           </p>
           <div className="flex items-end gap-2">
             <div className="flex-1 space-y-2">
               <Label htmlFor="mfa-disable-password">
-                Enter password to disable
+                {t("mfaEnterPasswordToDisable")}
               </Label>
               <Input
                 id="mfa-disable-password"
                 type="password"
-                placeholder="Your account password"
+                placeholder={t("mfaPasswordPlaceholder")}
                 value={disablePassword}
                 onChange={(e) => setDisablePassword(e.target.value)}
                 onKeyDown={(e) => {
@@ -227,7 +219,7 @@ export function MfaSetup() {
               onClick={() => void handleDisable()}
               disabled={isDisabling || !disablePassword}
             >
-              {isDisabling ? "Disabling..." : "Disable MFA"}
+              {isDisabling ? t("mfaDisabling") : t("mfaDisableMfa")}
             </Button>
           </div>
         </div>
