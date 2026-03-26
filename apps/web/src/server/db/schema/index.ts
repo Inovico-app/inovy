@@ -39,6 +39,8 @@ export * from "./transcript-chunks";
 export * from "./transcription-history";
 export * from "./user-deletion-requests";
 
+export * from "./works-council-approvals";
+
 export * from "./meetings";
 export * from "./meeting-agenda-items";
 export * from "./meeting-notes";

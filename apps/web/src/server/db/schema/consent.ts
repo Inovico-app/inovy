@@ -51,11 +51,10 @@ export const consentParticipants = pgTable(
     // Ensure one consent record per participant per recording
     uniqueParticipantPerRecording: unique().on(
       table.recordingId,
-      table.participantEmail
+      table.participantEmail,
     ),
-  })
+  }),
 );
 
 export type ConsentParticipant = typeof consentParticipants.$inferSelect;
 export type NewConsentParticipant = typeof consentParticipants.$inferInsert;
-
