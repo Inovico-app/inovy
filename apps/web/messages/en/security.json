@@ -1,0 +1,120 @@
+{
+  "metadata": {
+    "title": "Trust & Security | inovy",
+    "description": "Learn how Inovy protects your data with EU-only infrastructure, AES-256 encryption, GDPR compliance, and enterprise-grade security measures."
+  },
+  "hero": {
+    "title": "Trusted by Dutch Organizations",
+    "subtitle": "Enterprise-grade security and privacy for your meeting intelligence",
+    "description": "Inovy is built from the ground up with Dutch and European compliance requirements in mind. Your data stays in the EU, protected by industry-leading security measures."
+  },
+  "dataResidency": {
+    "title": "EU-Only Data Residency",
+    "description": "All your data is processed and stored exclusively within European Union data centers. No exceptions.",
+    "items": {
+      "database": {
+        "label": "Database",
+        "provider": "Neon (PostgreSQL)",
+        "location": "EU (Frankfurt)"
+      },
+      "vectorSearch": {
+        "label": "Vector Search",
+        "provider": "Qdrant",
+        "location": "EU (AWS Frankfurt)"
+      },
+      "storage": {
+        "label": "File Storage",
+        "provider": "Azure Blob Storage",
+        "location": "EU West"
+      },
+      "meetingBot": {
+        "label": "Meeting Bot",
+        "provider": "Recall.ai",
+        "location": "EU Central"
+      }
+    }
+  },
+  "encryption": {
+    "title": "Encryption",
+    "description": "Your data is protected with military-grade encryption at every stage of its lifecycle.",
+    "atRest": {
+      "title": "At Rest",
+      "description": "All stored data is encrypted using AES-256, the same standard used by governments and financial institutions worldwide."
+    },
+    "inTransit": {
+      "title": "In Transit",
+      "description": "All network communication is secured with TLS 1.3, ensuring the highest level of transport security."
+    }
+  },
+  "avgCompliance": {
+    "title": "GDPR Compliance",
+    "description": "Inovy is designed for full compliance with the General Data Protection Regulation (GDPR/AVG).",
+    "items": {
+      "consent": {
+        "title": "Consent Tracking",
+        "description": "Granular consent management for recording and data processing, with full audit trails."
+      },
+      "piiRedaction": {
+        "title": "PII Redaction",
+        "description": "Automatic detection and redaction of personally identifiable information from transcripts and summaries."
+      },
+      "auditLogging": {
+        "title": "Audit Logging",
+        "description": "Tamper-proof audit logs with cryptographic hash chains, ensuring complete traceability of all data operations."
+      },
+      "dataRetention": {
+        "title": "Data Retention",
+        "description": "Configurable retention policies with automatic cleanup, so data is never kept longer than necessary."
+      }
+    }
+  },
+  "subProcessors": {
+    "title": "Sub-Processors",
+    "description": "Full transparency about every third party that processes data on our behalf.",
+    "columns": {
+      "name": "Provider",
+      "purpose": "Purpose",
+      "location": "Data Location",
+      "status": "Verified"
+    },
+    "verified": "Verified",
+    "pending": "Pending verification"
+  },
+  "certifications": {
+    "title": "Certifications",
+    "description": "We are committed to meeting the highest industry standards for security and compliance.",
+    "soc2": {
+      "title": "SOC 2 Type II",
+      "status": "In Progress",
+      "description": "Independent audit of our security, availability, and confidentiality controls. Target completion: Q4 2026."
+    }
+  },
+  "piiHandling": {
+    "title": "PII Handling",
+    "description": "Intelligent protection for sensitive personal data across all meeting content.",
+    "detection": {
+      "title": "Automatic Detection",
+      "description": "Our AI automatically identifies personally identifiable information — names, phone numbers, BSN numbers, email addresses, and more — in transcripts and summaries."
+    },
+    "redaction": {
+      "title": "Smart Redaction",
+      "description": "Detected PII can be automatically redacted or masked based on your organization's policies, while preserving the usefulness of the content."
+    }
+  },
+  "incidentResponse": {
+    "title": "Incident Response",
+    "description": "Transparent and swift action when security matters most.",
+    "commitment": "48-Hour Breach Notification",
+    "commitmentDescription": "In the unlikely event of a data breach, we commit to notifying all affected organizations within 48 hours — well within the GDPR's 72-hour requirement. Our incident response plan includes immediate containment, thorough investigation, and clear communication.",
+    "contactLabel": "Security contact",
+    "contactEmail": "security@inovico.nl"
+  },
+  "download": {
+    "title": "Documentation",
+    "description": "Access our complete security and compliance documentation.",
+    "dpaButton": "Download Data Processing Agreement",
+    "dpaDescription": "Our DPA covers all aspects of data processing, sub-processors, security measures, and your rights as a data controller.",
+    "loginRequired": "Sign in required to access the DPA portal."
+  },
+  "backToHome": "Back to home"
+}

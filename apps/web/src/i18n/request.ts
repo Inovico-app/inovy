@@ -30,6 +30,7 @@ const NAMESPACES = [
   "teams",
   "notifications",
   "admin",
+  "security",
 ] as const;
 
 export default getRequestConfig(async () => {
