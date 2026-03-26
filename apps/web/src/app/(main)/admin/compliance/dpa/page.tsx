@@ -4,6 +4,7 @@ import {
   buildDpaContext,
   DPA_CONTACT_EMAIL,
 } from "@/features/admin/components/compliance/dpa/dpa-data";
+import { OrganizationQueries } from "@/server/data-access/organization.queries";
 import { DpaPreview } from "@/features/admin/components/compliance/dpa/dpa-preview";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -20,8 +21,9 @@ async function DpaContent() {
     redirect("/");
   }
 
-  const { organization } = authResult.value;
-  const orgName = organization.name ?? "Organisatie";
+  const { organizationId } = authResult.value;
+  const org = await OrganizationQueries.findByIdDirect(organizationId);
+  const orgName = org?.name ?? "Organisatie";
   const context = buildDpaContext(orgName, DPA_CONTACT_EMAIL);
 
   return <DpaPreview context={context} />;

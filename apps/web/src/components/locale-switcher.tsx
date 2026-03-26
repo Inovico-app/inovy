@@ -22,7 +22,8 @@ export function LocaleSwitcher() {
   const locale = useLocale();
   const router = useRouter();
 
-  async function handleChange(value: string) {
+  async function handleChange(value: string | null) {
+    if (!value) return;
     await setLocale(value);
     router.refresh();
   }
