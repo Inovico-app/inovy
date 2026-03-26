@@ -209,6 +209,18 @@ variable "microsoft_tenant_id" {
   default     = "common"
 }
 
+variable "microsoft_use_federated_credential" {
+  description = "When true, app uses managed identity client assertion for Microsoft Graph OAuth token exchange (requires Entra federated credential)"
+  type        = bool
+  default     = false
+}
+
+variable "microsoft_assertion_identity_client_id" {
+  description = "User-assigned managed identity client ID for MICROSOFT_ASSERTION_IDENTITY_CLIENT_ID (Azure only)"
+  type        = string
+  default     = ""
+}
+
 variable "next_public_webhook_url" {
   description = "Public webhook URL for Google Drive (optional; derived from app URL if empty)"
   type        = string

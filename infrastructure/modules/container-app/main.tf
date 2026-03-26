@@ -1,8 +1,8 @@
 # Container App for Inovy application
 # Uses shared Container App Environment (from container-app-environment) and managed identity (from container-app-identity)
 locals {
-  app_url = var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${var.container_app_environment_default_domain}" : "http://inovy-app-${var.environment}.${var.container_app_environment_default_domain}"
-  google_redirect_uri = var.google_redirect_uri != "" ? var.google_redirect_uri : "${local.app_url}/api/integrations/google/callback"
+  app_url                 = var.container_app_external_ingress ? "https://inovy-app-${var.environment}.${var.container_app_environment_default_domain}" : "http://inovy-app-${var.environment}.${var.container_app_environment_default_domain}"
+  google_redirect_uri     = var.google_redirect_uri != "" ? var.google_redirect_uri : "${local.app_url}/api/integrations/google/callback"
   next_public_webhook_url = var.next_public_webhook_url != "" ? var.next_public_webhook_url : "${local.app_url}/api/webhooks/google-drive"
 }
 
@@ -196,14 +196,28 @@ resource "azurerm_container_app" "inovy" {
         value = var.microsoft_client_id
       }
 
-      env {
-        name  = "MICROSOFT_CLIENT_SECRET"
-        value = var.microsoft_client_secret
+      # Optional when using hybrid: Better Auth may still need a secret while Graph uses federated assertion.
+      dynamic "env" {
+        for_each = var.microsoft_client_secret != "" ? [1] : []
+        content {
+          name  = "MICROSOFT_CLIENT_SECRET"
+          value = var.microsoft_client_secret
+        }
       }
 
       env {
         name  = "MICROSOFT_TENANT_ID"
         value = var.microsoft_tenant_id
+      }
+
+      env {
+        name  = "MICROSOFT_USE_FEDERATED_CREDENTIAL"
+        value = var.microsoft_use_federated_credential ? "true" : "false"
+      }
+
+      env {
+        name  = "MICROSOFT_ASSERTION_IDENTITY_CLIENT_ID"
+        value = var.microsoft_assertion_identity_client_id
       }
 
       env {

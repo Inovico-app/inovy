@@ -129,6 +129,9 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
       prompt: "select_account consent",
     },
+    // Azure: Microsoft Graph integration uses federated UAMI client_assertion (see microsoft-oauth.ts).
+    // Better Auth's built-in Microsoft provider still expects clientSecret here — keep MICROSOFT_CLIENT_SECRET
+    // for sign-in until a generic OAuth + assertion path is adopted (hybrid).
     microsoft: {
       clientId: process.env.MICROSOFT_CLIENT_ID ?? "",
       clientSecret: process.env.MICROSOFT_CLIENT_SECRET ?? "",

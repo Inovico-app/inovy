@@ -413,6 +413,12 @@ variable "microsoft_tenant_id" {
   default     = "common"
 }
 
+variable "microsoft_use_federated_credential" {
+  description = "When true (Azure + non-empty microsoft_client_id), create Entra federated identity credential so the Container App UAMI can use client assertions for Microsoft token exchange. Better Auth sign-in may still use MICROSOFT_CLIENT_SECRET (hybrid) until full secretless sign-in."
+  type        = bool
+  default     = true
+}
+
 variable "next_public_webhook_url" {
   description = "Public webhook URL for Google Drive (optional; derived from app URL if empty)"
   type        = string

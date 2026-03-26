@@ -88,8 +88,11 @@ Configure these in the GitHub repository's `prd` environment:
 #### Microsoft
 
 - `MICROSOFT_CLIENT_ID` - Microsoft OAuth client ID (Azure App Registration)
-- `MICROSOFT_CLIENT_SECRET` - Microsoft OAuth client secret (Azure App Registration)
+- `MICROSOFT_CLIENT_SECRET` - Microsoft OAuth client secret (Azure App Registration); may be empty when omitting the env var on the Container App (federated Graph-only); hybrid Better Auth still needs a secret in practice
 - `MICROSOFT_TENANT_ID` - (optional) Microsoft tenant ID (defaults to `common`; use `organizations` for work accounts only, or a specific tenant GUID)
+- `microsoft_use_federated_credential` - (in `terraform.tfvars` / root module) When `true` with Azure platform and non-empty `microsoft_client_id`, Terraform creates an Entra federated identity credential and sets UAMI-based Graph assertion env vars on the Container App
+
+For production Azure (`prd`), use the **`app-inovy-azure-prd`** registration and redirect URIs documented in [docs/MICROSOFT_ENTRA_APP_REGISTRATION.md](../docs/MICROSOFT_ENTRA_APP_REGISTRATION.md). Vercel uses a separate registration (`app-inovy-vercel`).
 
 ### Container App (additional)
 

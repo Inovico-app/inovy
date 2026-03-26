@@ -53,6 +53,13 @@ locals {
       timeout_in_seconds = 300
     }
   }
+
+  # Entra federated identity credential (see azuread-microsoft-oauth.tf)
+  microsoft_federated_credential_enabled = (
+    var.microsoft_use_federated_credential &&
+    var.microsoft_client_id != "" &&
+    var.next_public_platform == "azure"
+  )
 }
 
 terraform {
@@ -61,7 +68,15 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
     }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 3.0"
+    }
   }
+}
+
+provider "azuread" {
+  use_oidc = true
 }
 
 data "azurerm_client_config" "current" {}
@@ -424,6 +439,8 @@ module "container_app" {
   microsoft_client_id                          = var.microsoft_client_id
   microsoft_client_secret                      = var.microsoft_client_secret
   microsoft_tenant_id                          = var.microsoft_tenant_id
+  microsoft_use_federated_credential           = local.microsoft_federated_credential_enabled
+  microsoft_assertion_identity_client_id       = local.microsoft_federated_credential_enabled ? module.container_app_identity.managed_identity_client_id : ""
   next_public_webhook_url                      = var.next_public_webhook_url
   next_public_kvk_number                       = var.next_public_kvk_number
 

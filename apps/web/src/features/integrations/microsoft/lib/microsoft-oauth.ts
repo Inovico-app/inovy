@@ -1,3 +1,6 @@
+import "server-only";
+
+import { getMicrosoftClientAssertionToken } from "@/server/services/microsoft-federated-assertion";
 import { OAuthBaseService } from "@/server/services/oauth/oauth-base.service";
 import { MS_SCOPE_TIERS, type MsScopeTier } from "./scope-constants";
 import { mergeWithExistingScopes, normalizeMsScopes } from "./scope-utils";
@@ -14,12 +17,48 @@ const MICROSOFT_TENANT_ID = process.env.MICROSOFT_TENANT_ID ?? "common";
 const MICROSOFT_AUTH_BASE = `https://login.microsoftonline.com/${MICROSOFT_TENANT_ID}/oauth2/v2.0`;
 const MS_GRAPH_ME_URL = "https://graph.microsoft.com/v1.0/me";
 
-function validateEnvironment(): void {
-  if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET) {
+const CLIENT_ASSERTION_TYPE_JWT_BEARER =
+  "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
+
+/**
+ * Azure Container Apps: use Entra federated identity (UAMI) + client_assertion for Graph
+ * token/refresh. Better Auth sign-in may still use MICROSOFT_CLIENT_SECRET (hybrid).
+ */
+function isFederatedGraphClientAssertionEnabled(): boolean {
+  return (
+    process.env.MICROSOFT_USE_FEDERATED_CREDENTIAL === "true" &&
+    Boolean(process.env.MICROSOFT_ASSERTION_IDENTITY_CLIENT_ID?.trim())
+  );
+}
+
+function validateMicrosoftClientId(): void {
+  if (!MICROSOFT_CLIENT_ID) {
     throw new Error(
-      "Missing required Microsoft OAuth environment variables: MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET",
+      "Missing required Microsoft OAuth environment variable: MICROSOFT_CLIENT_ID",
     );
   }
+}
+
+function validateTokenEndpointClientAuth(): void {
+  validateMicrosoftClientId();
+  if (isFederatedGraphClientAssertionEnabled()) {
+    return;
+  }
+  if (!MICROSOFT_CLIENT_SECRET) {
+    throw new Error(
+      "Missing required Microsoft OAuth environment variables: MICROSOFT_CLIENT_SECRET (or enable federated credential + MICROSOFT_ASSERTION_IDENTITY_CLIENT_ID on Azure)",
+    );
+  }
+}
+
+async function applyClientAuthentication(body: URLSearchParams): Promise<void> {
+  if (isFederatedGraphClientAssertionEnabled()) {
+    const assertion = await getMicrosoftClientAssertionToken();
+    body.set("client_assertion", assertion);
+    body.set("client_assertion_type", CLIENT_ASSERTION_TYPE_JWT_BEARER);
+    return;
+  }
+  body.set("client_secret", MICROSOFT_CLIENT_SECRET!);
 }
 
 /**
@@ -57,7 +96,7 @@ export function getAuthorizationUrl({
   state?: string;
   redirectUri?: string;
 }): string {
-  validateEnvironment();
+  validateMicrosoftClientId();
 
   const resolvedRedirectUri = redirectUri ?? getMicrosoftRedirectUri();
 
@@ -104,17 +143,18 @@ export async function exchangeCodeForTokens(
   expiresAt: Date;
   scopes: string[];
 }> {
-  validateEnvironment();
+  validateTokenEndpointClientAuth();
 
   const resolvedRedirectUri = redirectUri ?? getMicrosoftRedirectUri();
 
   const body = new URLSearchParams({
     client_id: MICROSOFT_CLIENT_ID!,
-    client_secret: MICROSOFT_CLIENT_SECRET!,
     grant_type: "authorization_code",
     code,
     redirect_uri: resolvedRedirectUri,
   });
+
+  await applyClientAuthentication(body);
 
   const response = await fetch(`${MICROSOFT_AUTH_BASE}/token`, {
     method: "POST",
@@ -167,15 +207,16 @@ export async function refreshAccessToken(
   refreshToken?: string;
   expiresAt: Date;
 }> {
-  validateEnvironment();
+  validateTokenEndpointClientAuth();
 
   const body = new URLSearchParams({
     client_id: MICROSOFT_CLIENT_ID!,
-    client_secret: MICROSOFT_CLIENT_SECRET!,
     grant_type: "refresh_token",
     refresh_token: refreshToken,
     scope: existingScopes.join(" "),
   });
+
+  await applyClientAuthentication(body);
 
   const response = await fetch(`${MICROSOFT_AUTH_BASE}/token`, {
     method: "POST",

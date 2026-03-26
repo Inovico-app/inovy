@@ -60,8 +60,10 @@ Create `apps/web/.env.local` with the following variables.
 | `GOOGLE_CLIENT_SECRET`              | Google OAuth client secret                                                                                     |
 | `GOOGLE_REDIRECT_URI`               | Google OAuth redirect URI (defaults to `{APP_URL}/api/integrations/google/callback`)                           |
 | `MICROSOFT_CLIENT_ID`               | Microsoft OAuth client ID (Azure App Registration)                                                             |
-| `MICROSOFT_CLIENT_SECRET`           | Microsoft OAuth client secret (Azure App Registration)                                                         |
+| `MICROSOFT_CLIENT_SECRET`           | Microsoft OAuth client secret (Better Auth / non-federated Graph; omit on Azure when using federated Graph-only if sign-in uses another path) |
 | `MICROSOFT_TENANT_ID`               | Microsoft tenant ID (default: `common`; use `organizations` for work accounts only, or a specific tenant GUID) |
+| `MICROSOFT_USE_FEDERATED_CREDENTIAL` | `true` on Azure Container Apps when Entra trusts the UAMI for Graph token `client_assertion` (set by Terraform) |
+| `MICROSOFT_ASSERTION_IDENTITY_CLIENT_ID` | User-assigned managed identity **client** ID for `@azure/identity` (set by Terraform on Azure)                |
 | `MICROSOFT_REDIRECT_URI`            | Microsoft OAuth redirect URI (defaults to `{APP_URL}/api/integrations/microsoft/callback`)                     |
 | `OAUTH_ENCRYPTION_KEY`              | OAuth token encryption key (32 bytes hex)                                                                      |
 | `STRIPE_SECRET_KEY`                 | Stripe secret key                                                                                              |
@@ -145,6 +147,12 @@ Environment variables are set by Terraform from GitHub secrets and variables. Se
 | `NEXT_PUBLIC_APP_URL`               | Derived from Container App URL                                                                            |
 | `BETTER_AUTH_URL`                   | Same as app URL                                                                                           |
 | `NODE_ENV`                          | `production` for prd                                                                                      |
+
+### Microsoft OAuth (Azure Container Apps production)
+
+For **`prd`** Azure infrastructure, set GitHub Actions secret `MICROSOFT_CLIENT_ID` to the Entra application **`app-inovy-azure-prd`** (see [MICROSOFT_ENTRA_APP_REGISTRATION.md](./MICROSOFT_ENTRA_APP_REGISTRATION.md)). Set `MICROSOFT_CLIENT_SECRET` for **hybrid** Better Auth + federated Graph (recommended until secretless Microsoft sign-in). If the secret GitHub Actions variable is unset, Terraform passes an empty value and the Container App omits `MICROSOFT_CLIENT_SECRET` (federated Graph only). Vercel production continues to use **`app-inovy-vercel`** credentials in the Vercel project settings.
+
+After rotating secrets or switching registrations, run the **Azure Infrastructure Inovy** workflow (plan, then apply) so Terraform updates the Container App environment.
 
 ### From GitHub Secrets
 
