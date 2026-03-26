@@ -32,7 +32,7 @@ async function AdminDashboard() {
 
   // Check if user has superadmin permissions to show Organizations
   const hasSuperAdminPermission = await checkPermission(
-    Permissions.superadmin.all
+    Permissions.superadmin.all,
   );
 
   const baseQuickLinks = [
@@ -40,6 +40,11 @@ async function AdminDashboard() {
       title: "User Management",
       description: "View and manage organization members",
       href: "/admin/users",
+    },
+    {
+      title: "AVG Compliance",
+      description: "Toestemmingspercentages, redacties en privacyverzoeken",
+      href: "/admin/compliance",
     },
   ];
 
@@ -159,4 +164,3 @@ export default function AdminPage() {
     </Suspense>
   );
 }
-
