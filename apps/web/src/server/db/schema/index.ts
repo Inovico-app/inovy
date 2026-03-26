@@ -35,6 +35,7 @@ export * from "./summary-history";
 export * from "./task-history";
 export * from "./task-tags";
 export * from "./tasks";
+export * from "./transcript-chunks";
 export * from "./transcription-history";
 export * from "./user-deletion-requests";
 
