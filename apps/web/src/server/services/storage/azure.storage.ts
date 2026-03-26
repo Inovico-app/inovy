@@ -8,6 +8,7 @@ import {
 } from "@azure/storage-blob";
 import { randomUUID } from "crypto";
 import path from "path";
+import { Readable } from "stream";
 import type {
   BlobProperties,
   ClientUploadOptions,
@@ -226,21 +227,61 @@ export class AzureStorageProvider implements StorageProvider {
 
     const blobUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${encodeBlobPathForUrl(destinationPath)}`;
 
-    // Generate SAS with write permissions for the destination blob
-    const sasUrl = generateBlobSasUrl(blobUrl, "cw", 60); // 60 min for large copies
-    const blobClient = new BlobClient(sasUrl);
+    let nodeStream: Readable | undefined;
+    let contentLength: string | null = null;
+    let contentType = "application/octet-stream";
 
-    // Start server-side copy — Azure fetches from sourceUrl directly
-    const poller = await blobClient.beginCopyFromURL(sourceUrl);
-    const copyResult = await poller.pollUntilDone();
+    // Stream the file from the source (Recall.ai/S3) through to Azure Blob Storage.
+    // We use streaming download→upload instead of beginCopyFromURL because Azure's
+    // async server-side copy fails with cross-cloud pre-signed S3 URLs (signature
+    // invalidation, IP restrictions, redirect issues).
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 600_000); // 10 min total
 
-    if (copyResult.copyStatus !== "success") {
-      throw new Error(
-        `Azure copy failed with status: ${copyResult.copyStatus ?? "unknown"}`,
+    try {
+      const response = await fetch(sourceUrl, {
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to download from source: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!response.body) {
+        throw new Error("Source response has no body");
+      }
+
+      contentType =
+        response.headers.get("content-type") ?? "application/octet-stream";
+      contentLength = response.headers.get("content-length");
+
+      // Convert web ReadableStream to Node.js Readable for Azure SDK
+      nodeStream = Readable.fromWeb(
+        response.body as Parameters<typeof Readable.fromWeb>[0],
       );
+
+      // Use connection-string-based client for upload (avoids SAS URL issues)
+      const client = getClient();
+      const containerClient = client.getContainerClient(containerName);
+      const blockBlobClient =
+        containerClient.getBlockBlobClient(destinationPath);
+
+      await blockBlobClient.uploadStream(nodeStream, 4 * 1024 * 1024, 4, {
+        blobHTTPHeaders: {
+          blobContentType: contentType,
+        },
+        abortSignal: controller.signal,
+      });
+    } catch (error) {
+      nodeStream?.destroy();
+      throw error;
+    } finally {
+      clearTimeout(timeout);
     }
 
-    // Get blob properties for contentLength and contentType
+    // Get final blob properties
     const props = await this.getBlobProperties(blobUrl, {
       pathname: destinationPath,
     });
@@ -248,8 +289,9 @@ export class AzureStorageProvider implements StorageProvider {
     return {
       url: blobUrl,
       pathname: destinationPath,
-      contentLength: props.contentLength ?? null,
-      contentType: props.contentType ?? null,
+      contentLength:
+        props.contentLength ?? (contentLength ? Number(contentLength) : null),
+      contentType: props.contentType ?? contentType,
     };
   }
 }

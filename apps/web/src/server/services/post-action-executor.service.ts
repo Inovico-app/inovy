@@ -356,17 +356,19 @@ export class PostActionExecutorService {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
     const shareUrl = `${appUrl}/meetings/${meeting.id}?token=${rawToken}`;
 
-    // Notify the meeting creator
-    await NotificationService.createNotification({
-      userId: meeting.createdById,
-      organizationId: meeting.organizationId,
-      projectId: meeting.projectId ?? undefined,
-      recordingId: recording?.id ?? null,
-      type: "recording_processed",
-      title: "Opname beschikbaar",
-      message: `De opname van "${meeting.title}" is klaar en kan gedeeld worden.`,
-      metadata: { shareUrl },
-    });
+    // Notify the meeting creator (only if meeting has a project)
+    if (meeting.projectId) {
+      await NotificationService.createNotification({
+        userId: meeting.createdById,
+        organizationId: meeting.organizationId,
+        projectId: meeting.projectId,
+        recordingId: recording?.id ?? null,
+        type: "recording_processed",
+        title: "Opname beschikbaar",
+        message: `De opname van "${meeting.title}" is klaar en kan gedeeld worden.`,
+        metadata: { shareUrl },
+      });
+    }
 
     logger.info("Recording share token created and notification sent", {
       component: "PostActionExecutorService",

@@ -76,8 +76,8 @@ export interface StorageProvider {
   ): Promise<string>;
 
   /**
-   * Copy a blob from an external URL using server-side copy.
-   * The data flows directly from source to Azure — it never passes through the calling process.
+   * Copy a blob from an external URL via streaming download→upload.
+   * The data streams through the Node.js process with bounded memory (~16MB).
    */
   copyFromURL?(
     sourceUrl: string,
