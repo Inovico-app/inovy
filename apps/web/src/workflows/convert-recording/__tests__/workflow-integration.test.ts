@@ -100,6 +100,10 @@ describe("Pipeline integration: all 3 post-actions execute for a single meeting"
     process.env.NEXT_PUBLIC_APP_URL = "https://app.inovy.nl";
   });
 
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+  });
+
   it("executes send_summary_email, create_tasks, and share_recording in sequence", async () => {
     const pendingActions: MeetingPostAction[] = [
       {
@@ -421,5 +425,19 @@ describe("Pipeline integration: step-post-actions wiring", () => {
 
     // Should NOT attempt to find a meeting or execute post-actions
     expect(MeetingsQueries.findById).not.toHaveBeenCalled();
+  });
+
+  it("swallows errors to avoid failing the workflow", async () => {
+    vi.mocked(RecordingsQueries.selectRecordingById).mockRejectedValue(
+      new Error("DB connection lost"),
+    );
+
+    const { executePostActionsStep } =
+      await import("../steps/step-post-actions");
+
+    // Should not throw — the try/catch in step-post-actions swallows errors
+    await expect(
+      executePostActionsStep("rec-1", "org-1"),
+    ).resolves.toBeUndefined();
   });
 });
