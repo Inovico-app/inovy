@@ -10,6 +10,7 @@ import { convertRecordingIntoAiInsights } from "../../workflows/convert-recordin
 import { storeRecordingFromRecall } from "../../workflows/store-recording";
 import { BotSessionsQueries } from "../data-access/bot-sessions.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
+import { TranscriptChunksQueries } from "../data-access/transcript-chunks.queries";
 import { type BotStatus } from "../db/schema/bot-sessions";
 import type {
   BotStatusChangeEvent,
@@ -17,6 +18,7 @@ import type {
   RecallWebhookEvent,
   SvixBotStatusEvent,
   SvixRecordingEvent,
+  TranscriptDataEvent,
 } from "../validation/bot/recall-webhook.schema";
 import {
   mapRecallEventToBotStatus,
@@ -459,6 +461,81 @@ export class BotWebhookService {
   }
 
   /**
+   * Process transcript.data - real-time transcription from Recall.ai
+   * Stores transcript chunks for interim display before Deepgram processing
+   */
+  static async processTranscriptData(
+    event: TranscriptDataEvent,
+  ): Promise<ActionResult<void>> {
+    try {
+      const botId = event.data.bot?.id;
+
+      if (!botId) {
+        logger.warn("Transcript event missing bot ID", {
+          component: "BotWebhookService.processTranscriptData",
+        });
+        return ok(undefined);
+      }
+
+      const session = await BotSessionsQueries.findByRecallBotIdOnly(botId);
+
+      if (!session) {
+        logger.warn("No bot session found for transcript event", {
+          component: "BotWebhookService.processTranscriptData",
+          botId,
+        });
+        return ok(undefined);
+      }
+
+      const { words, participant } = event.data.data;
+
+      if (!words || words.length === 0) {
+        return ok(undefined);
+      }
+
+      // Combine words into a single chunk per utterance
+      const text = words.map((w) => w.text).join(" ");
+      const startTime = words[0].start_timestamp.relative;
+      const endTime =
+        words[words.length - 1].end_timestamp?.relative ??
+        words[words.length - 1].start_timestamp.relative;
+
+      await TranscriptChunksQueries.insertChunk({
+        botSessionId: session.id,
+        recordingId: session.recordingId ?? undefined,
+        speakerId: participant.name ?? `Speaker ${participant.id}`,
+        text,
+        startTime,
+        endTime,
+        isFinal: true,
+        language: null,
+      });
+
+      logger.debug("Transcript chunk stored", {
+        component: "BotWebhookService.processTranscriptData",
+        botId,
+        sessionId: session.id,
+        speaker: participant.name ?? participant.id,
+        wordCount: words.length,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Failed to process transcript data event", {
+        component: "BotWebhookService.processTranscriptData",
+        error: serializeError(error),
+      });
+      return err(
+        ActionErrors.internal(
+          "Failed to process transcript data",
+          error as Error,
+          "BotWebhookService.processTranscriptData",
+        ),
+      );
+    }
+  }
+
+  /**
    * Process recording.done (Svix format) - no URL in payload, fetch via API
    */
   static async processRecordingDone(
@@ -558,6 +635,13 @@ export class BotWebhookService {
         organizationId,
         finalRecordingId,
         "done",
+      );
+
+      // Link real-time transcript chunks to the recording BEFORE triggering
+      // workflows, so assembleInterimTranscript can find them immediately
+      await TranscriptChunksQueries.linkToRecording(
+        session.id,
+        finalRecordingId,
       );
 
       // Kick off transcription + storage workflows in parallel.

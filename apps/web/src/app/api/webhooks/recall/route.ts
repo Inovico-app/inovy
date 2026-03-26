@@ -1,7 +1,10 @@
 import { logger, serializeError } from "@/lib/logger";
 import type { ActionResult } from "@/lib/server-action-client/action-errors";
 import { verifyRequestFromRecall } from "@/server/lib/verify-recall-webhook";
-import { BotWebhookService, getBotId } from "@/server/services/bot-webhook.service";
+import {
+  BotWebhookService,
+  getBotId,
+} from "@/server/services/bot-webhook.service";
 import {
   recallWebhookEventSchema,
   type BotStatusChangeEvent,
@@ -9,6 +12,7 @@ import {
   type RecallWebhookEvent,
   type SvixBotStatusEvent,
   type SvixRecordingEvent,
+  type TranscriptDataEvent,
 } from "@/server/validation/bot/recall-webhook.schema";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -95,6 +99,8 @@ export async function POST(request: NextRequest) {
     > = {
       "participant_events.chat_message": (p) =>
         BotWebhookService.processChatMessage(p as ParticipantEventChatMessage),
+      "transcript.data": (p) =>
+        BotWebhookService.processTranscriptData(p as TranscriptDataEvent),
       "recording.done": (p) =>
         BotWebhookService.processRecordingDone(p as SvixRecordingEvent),
       "recording.failed": (p) =>
@@ -118,7 +124,7 @@ export async function POST(request: NextRequest) {
       result = await handler(payload);
     } else if (eventType.startsWith("bot.")) {
       result = await BotWebhookService.processStatusChange(
-        payload as SvixBotStatusEvent | BotStatusChangeEvent
+        payload as SvixBotStatusEvent | BotStatusChangeEvent,
       );
     } else {
       logger.warn("Unknown webhook event type", {
