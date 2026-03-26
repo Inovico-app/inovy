@@ -27,7 +27,7 @@ export function DpaDownloadButton() {
       link.href = url;
       link.download = filename;
       link.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
 
       toast.success("Verwerkersovereenkomst gedownload");
     } catch (error) {

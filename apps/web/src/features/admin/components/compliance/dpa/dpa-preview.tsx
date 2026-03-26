@@ -7,9 +7,17 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDateNL } from "@/lib/formatters/date-formatters";
+import { StatCard } from "@/features/admin/components/compliance/stat-card";
 import { MetricRow } from "@/features/admin/components/compliance/metric-row";
 import type { DpaContext } from "./dpa-data";
-import { FileDownIcon, ShieldCheckIcon, AlertTriangleIcon } from "lucide-react";
+import {
+  Building2Icon,
+  CalendarIcon,
+  FileDownIcon,
+  GlobeIcon,
+  ShieldCheckIcon,
+  AlertTriangleIcon,
+} from "lucide-react";
 import { DpaDownloadButton } from "./dpa-download-button";
 
 interface DpaPreviewProps {
@@ -32,36 +40,24 @@ export function DpaPreview({ context }: DpaPreviewProps) {
       </div>
 
       <div className="grid gap-6 md:grid-cols-3 mb-8">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Organisatie</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold">{context.organizationName}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Gegevenslocatie
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold">{context.dataResidency}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Gegenereerd op
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold">
-              {formatDateNL(context.generatedAt)}
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Organisatie"
+          value={context.organizationName}
+          description="Verwerkingsverantwoordelijke"
+          icon={Building2Icon}
+        />
+        <StatCard
+          title="Gegevenslocatie"
+          value={context.dataResidency}
+          description="Primaire opslaglocatie"
+          icon={GlobeIcon}
+        />
+        <StatCard
+          title="Gegenereerd op"
+          value={formatDateNL(context.generatedAt)}
+          description="Versiedatum document"
+          icon={CalendarIcon}
+        />
       </div>
 
       {unverifiedProcessors.length > 0 && (

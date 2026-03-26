@@ -12,7 +12,12 @@ import {
   FileTextIcon,
   DatabaseIcon,
   ActivityIcon,
+  ArrowRightIcon,
+  Users2Icon,
+  FileDownIcon,
 } from "lucide-react";
+import Link from "next/link";
+import type { Route } from "next";
 import { StatCard } from "./stat-card";
 import { ConsentBar } from "./consent-bar";
 import { MetricRow } from "./metric-row";
@@ -207,6 +212,45 @@ export function ComplianceDashboard({ data }: ComplianceDashboardProps) {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Quick links to sub-pages */}
+      <div className="grid gap-4 md:grid-cols-2 mt-8">
+        <Link
+          href={"/admin/compliance/works-council" as Route}
+          className="group"
+        >
+          <Card className="transition-all hover:shadow-md hover:border-primary/50">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between text-lg">
+                <span className="flex items-center gap-2">
+                  <Users2Icon className="h-5 w-5" />
+                  Ondernemingsraad
+                </span>
+                <ArrowRightIcon className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+              </CardTitle>
+              <CardDescription>
+                OR-goedkeuring voor vergaderopnames
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+        <Link href={"/admin/compliance/dpa" as Route} className="group">
+          <Card className="transition-all hover:shadow-md hover:border-primary/50">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between text-lg">
+                <span className="flex items-center gap-2">
+                  <FileDownIcon className="h-5 w-5" />
+                  Verwerkersovereenkomst
+                </span>
+                <ArrowRightIcon className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+              </CardTitle>
+              <CardDescription>
+                Download uw verwerkersovereenkomst (DPA) als PDF
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
     </>
   );

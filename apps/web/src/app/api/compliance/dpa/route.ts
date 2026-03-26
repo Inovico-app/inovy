@@ -2,7 +2,10 @@ import { resolveAuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
-import { buildDpaContext } from "@/features/admin/components/compliance/dpa/dpa-data";
+import {
+  buildDpaContext,
+  DPA_CONTACT_EMAIL,
+} from "@/features/admin/components/compliance/dpa/dpa-data";
 import { DpaPdfDocument } from "@/features/admin/components/compliance/dpa/dpa-pdf-document";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { renderToBuffer } from "@react-pdf/renderer";
@@ -21,9 +24,7 @@ export async function GET() {
 
   const { userId, organizationId, organization } = authResult.value;
   const orgName = organization.name ?? "Organisatie";
-  const contactEmail = "privacy@inovico.nl";
-
-  const context = buildDpaContext(orgName, contactEmail);
+  const context = buildDpaContext(orgName, DPA_CONTACT_EMAIL);
 
   try {
     const buffer = await renderToBuffer(DpaPdfDocument({ context }));

@@ -71,6 +71,8 @@ export const SECURITY_MEASURES = [
   "Gegevensretentiebeleid met automatische opschoning",
 ];
 
+export const DPA_CONTACT_EMAIL = "privacy@inovico.nl";
+
 export function buildDpaContext(
   organizationName: string,
   contactEmail: string,

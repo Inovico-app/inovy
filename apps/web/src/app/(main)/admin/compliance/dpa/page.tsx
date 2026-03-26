@@ -1,6 +1,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { resolveAuthContext } from "@/lib/auth-context";
-import { buildDpaContext } from "@/features/admin/components/compliance/dpa/dpa-data";
+import {
+  buildDpaContext,
+  DPA_CONTACT_EMAIL,
+} from "@/features/admin/components/compliance/dpa/dpa-data";
 import { DpaPreview } from "@/features/admin/components/compliance/dpa/dpa-preview";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -19,7 +22,7 @@ async function DpaContent() {
 
   const { organization } = authResult.value;
   const orgName = organization.name ?? "Organisatie";
-  const context = buildDpaContext(orgName, "privacy@inovico.nl");
+  const context = buildDpaContext(orgName, DPA_CONTACT_EMAIL);
 
   return <DpaPreview context={context} />;
 }
