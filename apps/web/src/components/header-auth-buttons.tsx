@@ -3,7 +3,7 @@
 import { useActiveMemberRole } from "@/hooks/use-active-member-role";
 import { signOut, useSession } from "@/lib/auth-client";
 import { logger } from "@/lib/logger";
-import { GlobeIcon, Settings, Shield, User } from "lucide-react";
+import { Settings, Shield, User } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -158,12 +158,9 @@ export function HeaderAuthButtons() {
             <span>{t("settings")}</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuLabel className="font-normal">
-            <div className="flex items-center gap-2">
-              <GlobeIcon className="h-4 w-4 text-muted-foreground" />
-              <LocaleSwitcher />
-            </div>
-          </DropdownMenuLabel>
+          <div className="px-1 py-1">
+            <LocaleSwitcher />
+          </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={handleLogoutClick}
