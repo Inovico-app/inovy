@@ -5,6 +5,7 @@ import {
 } from "@/lib/server-action-client/action-errors";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
+import { parseAIJson } from "@/server/ai/parse-ai-json";
 import { createClient } from "@deepgram/sdk";
 import { generateText } from "ai";
 import { err, ok } from "neverthrow";
@@ -481,7 +482,7 @@ export class TranscriptionService {
         }>;
       };
       try {
-        correctionData = JSON.parse(responseContent);
+        correctionData = parseAIJson(responseContent);
       } catch (parseError) {
         logger.error("Failed to parse LLM response JSON", {
           component: "TranscriptionService.correctTranscriptionWithKnowledge",

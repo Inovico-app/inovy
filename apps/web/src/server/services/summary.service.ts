@@ -7,6 +7,7 @@ import {
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import type { Utterance } from "@/server/dto/ai-insight.dto";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
+import { parseAIJson } from "@/server/ai/parse-ai-json";
 import { connectionPool } from "@/server/services/connection-pool.service";
 import { PromptBuilder } from "@/server/services/prompt-builder.service";
 import { generateText } from "ai";
@@ -166,10 +167,10 @@ export class SummaryService {
         );
       }
 
-      // Parse JSON response
+      // Parse JSON response (strip markdown code fences if present)
       let summaryContent: SummaryContent;
       try {
-        summaryContent = JSON.parse(responseContent);
+        summaryContent = parseAIJson(responseContent);
       } catch (parseError) {
         logger.error("Failed to parse AI model response", {
           component: "SummaryService.generateSummary",
