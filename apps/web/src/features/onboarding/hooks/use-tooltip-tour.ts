@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useState } from "react";
 
 const TOUR_STORAGE_KEY = "inovy-onboarding-tour-completed";
@@ -16,7 +14,7 @@ const TOUR_STEPS: TourStep[] = [
   { id: "new-recording", targetSelector: '[data-tour="new-recording"]' },
 ];
 
-function completeTour() {
+function completeTour(): void {
   localStorage.setItem(TOUR_STORAGE_KEY, "true");
 }
 
@@ -26,13 +24,13 @@ export function useTooltipTour() {
 
   useEffect(() => {
     const tourCompleted = localStorage.getItem(TOUR_STORAGE_KEY);
-    if (!tourCompleted) {
-      // Small delay to let the page render before showing the tour
-      const timer = setTimeout(() => {
-        setIsActive(true);
-      }, 800);
-      return () => clearTimeout(timer);
-    }
+    if (tourCompleted) return;
+
+    const timer = setTimeout(() => {
+      setIsActive(true);
+    }, 800);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const currentStep = TOUR_STEPS[currentStepIndex];
@@ -40,7 +38,7 @@ export function useTooltipTour() {
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === totalSteps - 1;
 
-  const handleFinish = useCallback(() => {
+  const handleDismiss = useCallback(() => {
     completeTour();
     setIsActive(false);
     setCurrentStepIndex(0);
@@ -48,24 +46,16 @@ export function useTooltipTour() {
 
   const handleNext = useCallback(() => {
     if (isLastStep) {
-      handleFinish();
+      handleDismiss();
       return;
     }
     setCurrentStepIndex((prev) => prev + 1);
-  }, [isLastStep, handleFinish]);
+  }, [isLastStep, handleDismiss]);
 
   const handlePrevious = useCallback(() => {
-    if (isFirstStep) {
-      return;
-    }
+    if (isFirstStep) return;
     setCurrentStepIndex((prev) => prev - 1);
   }, [isFirstStep]);
-
-  const handleDismiss = useCallback(() => {
-    completeTour();
-    setIsActive(false);
-    setCurrentStepIndex(0);
-  }, []);
 
   return {
     isActive,
@@ -76,7 +66,6 @@ export function useTooltipTour() {
     isLastStep,
     handleNext,
     handlePrevious,
-    handleFinish,
     handleDismiss,
   };
 }

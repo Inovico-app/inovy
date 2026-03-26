@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { Clock, Loader2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { UpcomingMeeting } from "../hooks/use-upcoming-meetings";
 
 interface UpcomingMeetingsListProps {
@@ -15,9 +15,12 @@ interface UpcomingMeetingsListProps {
   onToggleAll: (enabled: boolean) => void;
 }
 
-function formatTime(isoString: string): string {
+function formatTime(isoString: string, locale: string): string {
   const date = new Date(isoString);
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString(locale, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export function UpcomingMeetingsList({
@@ -25,8 +28,9 @@ export function UpcomingMeetingsList({
   isLoading,
   onToggleRecording,
   onToggleAll,
-}: UpcomingMeetingsListProps) {
+}: UpcomingMeetingsListProps): React.ReactNode {
   const t = useTranslations("onboarding");
+  const locale = useLocale();
 
   if (isLoading) {
     return (
@@ -106,8 +110,8 @@ export function UpcomingMeetingsList({
                       : t("stepCalendarMeetingTomorrow")}
                   </Badge>
                   <span>
-                    {formatTime(meeting.startTime)} -{" "}
-                    {formatTime(meeting.endTime)}
+                    {formatTime(meeting.startTime, locale)} -{" "}
+                    {formatTime(meeting.endTime, locale)}
                   </span>
                 </div>
               </div>

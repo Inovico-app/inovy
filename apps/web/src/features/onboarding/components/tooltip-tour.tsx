@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTooltipTour } from "../hooks/use-tooltip-tour";
 
@@ -25,7 +25,7 @@ const STEP_TRANSLATION_KEYS = [
   "tourStepNewRecording",
 ] as const;
 
-export function TooltipTour() {
+export function TooltipTour(): React.ReactNode {
   const t = useTranslations("onboarding");
   const {
     isActive,
@@ -43,7 +43,6 @@ export function TooltipTour() {
     null,
   );
   const [isMounted, setIsMounted] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -55,7 +54,7 @@ export function TooltipTour() {
       return;
     }
 
-    const updatePosition = () => {
+    function updatePosition(): void {
       const target = document.querySelector(currentStep.targetSelector);
       if (!target) {
         setTargetPosition(null);
@@ -69,7 +68,7 @@ export function TooltipTour() {
         width: rect.width,
         height: rect.height,
       });
-    };
+    }
 
     updatePosition();
 
@@ -89,20 +88,17 @@ export function TooltipTour() {
   const translationKey = STEP_TRANSLATION_KEYS[currentStepIndex];
   const tooltipContent = translationKey ? t(translationKey) : "";
 
-  // Calculate tooltip position: prefer below the target, offset slightly
   const tooltipTop = targetPosition.top + targetPosition.height + 12;
   const tooltipLeft = targetPosition.left;
 
   return createPortal(
     <>
-      {/* Backdrop overlay */}
       <div
         className="fixed inset-0 z-[99] bg-black/40 transition-opacity"
         onClick={handleDismiss}
         role="presentation"
       />
 
-      {/* Highlight cutout around target */}
       <div
         className="fixed z-[100] rounded-lg ring-2 ring-primary ring-offset-2 ring-offset-background pointer-events-none"
         style={{
@@ -113,7 +109,6 @@ export function TooltipTour() {
         }}
       />
 
-      {/* Tooltip card */}
       <AnimatePresence mode="wait">
         <motion.div
           key={currentStep.id}
@@ -127,7 +122,7 @@ export function TooltipTour() {
             left: Math.max(16, Math.min(tooltipLeft, window.innerWidth - 336)),
           }}
         >
-          <Card ref={cardRef} className="shadow-lg">
+          <Card className="shadow-lg">
             <CardContent className="space-y-3 pt-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="space-y-1">
@@ -181,7 +176,6 @@ export function TooltipTour() {
                 </div>
               </div>
 
-              {/* Step dots */}
               <div
                 className="flex items-center justify-center gap-1.5"
                 role="tablist"

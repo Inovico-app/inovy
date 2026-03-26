@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useState } from "react";
 
 export interface UpcomingMeeting {
@@ -17,6 +15,16 @@ interface UseUpcomingMeetingsResult {
   isLoading: boolean;
   toggleMeetingRecording: (meetingId: string) => void;
   toggleAllRecordings: (enabled: boolean) => void;
+}
+
+function createMeetingTime(
+  baseDate: Date,
+  hours: number,
+  minutes: number,
+): string {
+  const date = new Date(baseDate);
+  date.setHours(hours, minutes, 0, 0);
+  return date.toISOString();
 }
 
 /**
@@ -40,8 +48,7 @@ export function useUpcomingMeetings(
     setIsLoading(true);
 
     // Simulate fetching calendar events after OAuth connection.
-    // In production this would be replaced with a server action call
-    // to fetch real Google Calendar events.
+    // Replace with a server action call to fetch real Google Calendar events.
     const timer = setTimeout(() => {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -52,20 +59,8 @@ export function useUpcomingMeetings(
         {
           id: "onboarding-demo-1",
           title: "Team Standup",
-          startTime: new Date(
-            today.getFullYear(),
-            today.getMonth(),
-            today.getDate(),
-            9,
-            0,
-          ).toISOString(),
-          endTime: new Date(
-            today.getFullYear(),
-            today.getMonth(),
-            today.getDate(),
-            9,
-            15,
-          ).toISOString(),
+          startTime: createMeetingTime(today, 9, 0),
+          endTime: createMeetingTime(today, 9, 15),
           isToday: true,
           isTomorrow: false,
           recordingEnabled: true,
@@ -73,20 +68,8 @@ export function useUpcomingMeetings(
         {
           id: "onboarding-demo-2",
           title: "Product Review",
-          startTime: new Date(
-            today.getFullYear(),
-            today.getMonth(),
-            today.getDate(),
-            14,
-            0,
-          ).toISOString(),
-          endTime: new Date(
-            today.getFullYear(),
-            today.getMonth(),
-            today.getDate(),
-            15,
-            0,
-          ).toISOString(),
+          startTime: createMeetingTime(today, 14, 0),
+          endTime: createMeetingTime(today, 15, 0),
           isToday: true,
           isTomorrow: false,
           recordingEnabled: true,
@@ -94,20 +77,8 @@ export function useUpcomingMeetings(
         {
           id: "onboarding-demo-3",
           title: "Client Check-in",
-          startTime: new Date(
-            tomorrow.getFullYear(),
-            tomorrow.getMonth(),
-            tomorrow.getDate(),
-            10,
-            30,
-          ).toISOString(),
-          endTime: new Date(
-            tomorrow.getFullYear(),
-            tomorrow.getMonth(),
-            tomorrow.getDate(),
-            11,
-            0,
-          ).toISOString(),
+          startTime: createMeetingTime(tomorrow, 10, 30),
+          endTime: createMeetingTime(tomorrow, 11, 0),
           isToday: false,
           isTomorrow: true,
           recordingEnabled: true,

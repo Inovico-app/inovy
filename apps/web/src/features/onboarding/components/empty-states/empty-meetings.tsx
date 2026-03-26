@@ -1,7 +1,6 @@
-import { Button } from "@/components/ui/button";
-import { buttonVariants } from "@/components/ui/button";
 import { Calendar, CalendarDays } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import { EmptyStateAction } from "./empty-state-layout";
 import { EmptyStateLayout } from "./empty-state-layout";
 
 interface EmptyMeetingsProps {
@@ -10,7 +9,7 @@ interface EmptyMeetingsProps {
 
 export async function EmptyMeetings({
   connectCalendarHref,
-}: EmptyMeetingsProps) {
+}: EmptyMeetingsProps): Promise<React.ReactNode> {
   const t = await getTranslations("onboarding");
 
   const features = [
@@ -26,20 +25,10 @@ export async function EmptyMeetings({
       description={t("emptyMeetingsDescription")}
       features={features}
     >
-      {connectCalendarHref ? (
-        <a
-          href={connectCalendarHref}
-          className={buttonVariants({ variant: "default" })}
-        >
-          <Calendar className="mr-2 h-4 w-4" />
-          {t("emptyMeetingsCta")}
-        </a>
-      ) : (
-        <Button>
-          <Calendar className="mr-2 h-4 w-4" />
-          {t("emptyMeetingsCta")}
-        </Button>
-      )}
+      <EmptyStateAction href={connectCalendarHref}>
+        <Calendar className="mr-2 h-4 w-4" />
+        {t("emptyMeetingsCta")}
+      </EmptyStateAction>
     </EmptyStateLayout>
   );
 }

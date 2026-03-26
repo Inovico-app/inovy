@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,6 +9,29 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+
+interface EmptyStateActionProps {
+  href?: string;
+  variant?: "default" | "outline";
+  children: React.ReactNode;
+}
+
+export function EmptyStateAction({
+  href,
+  variant = "default",
+  children,
+}: EmptyStateActionProps): React.ReactNode {
+  if (href) {
+    return (
+      <Link href={href} className={buttonVariants({ variant })}>
+        {children}
+      </Link>
+    );
+  }
+
+  return <Button variant={variant}>{children}</Button>;
+}
 
 interface EmptyStateLayoutProps {
   icon: React.ReactNode;
@@ -24,7 +49,7 @@ export function EmptyStateLayout({
   features,
   children,
   className,
-}: EmptyStateLayoutProps) {
+}: EmptyStateLayoutProps): React.ReactNode {
   return (
     <Card
       className={cn(

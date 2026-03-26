@@ -1,7 +1,6 @@
-import { Button } from "@/components/ui/button";
-import { buttonVariants } from "@/components/ui/button";
 import { Calendar, FileAudio, Mic } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import { EmptyStateAction } from "./empty-state-layout";
 import { EmptyStateLayout } from "./empty-state-layout";
 
 interface EmptyRecordingsProps {
@@ -12,7 +11,7 @@ interface EmptyRecordingsProps {
 export async function EmptyRecordings({
   recordHref,
   connectCalendarHref,
-}: EmptyRecordingsProps) {
+}: EmptyRecordingsProps): Promise<React.ReactNode> {
   const t = await getTranslations("onboarding");
 
   const features = [
@@ -28,31 +27,14 @@ export async function EmptyRecordings({
       description={t("emptyRecordingsDescription")}
       features={features}
     >
-      {recordHref ? (
-        <a href={recordHref} className={buttonVariants({ variant: "default" })}>
-          <Mic className="mr-2 h-4 w-4" />
-          {t("emptyRecordingsCta")}
-        </a>
-      ) : (
-        <Button>
-          <Mic className="mr-2 h-4 w-4" />
-          {t("emptyRecordingsCta")}
-        </Button>
-      )}
-      {connectCalendarHref ? (
-        <a
-          href={connectCalendarHref}
-          className={buttonVariants({ variant: "outline" })}
-        >
-          <Calendar className="mr-2 h-4 w-4" />
-          {t("emptyRecordingsConnectCalendar")}
-        </a>
-      ) : (
-        <Button variant="outline">
-          <Calendar className="mr-2 h-4 w-4" />
-          {t("emptyRecordingsConnectCalendar")}
-        </Button>
-      )}
+      <EmptyStateAction href={recordHref}>
+        <Mic className="mr-2 h-4 w-4" />
+        {t("emptyRecordingsCta")}
+      </EmptyStateAction>
+      <EmptyStateAction href={connectCalendarHref} variant="outline">
+        <Calendar className="mr-2 h-4 w-4" />
+        {t("emptyRecordingsConnectCalendar")}
+      </EmptyStateAction>
     </EmptyStateLayout>
   );
 }

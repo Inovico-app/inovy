@@ -1,14 +1,15 @@
-import { Button } from "@/components/ui/button";
-import { buttonVariants } from "@/components/ui/button";
 import { BarChart3, Mic } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import { EmptyStateAction } from "./empty-state-layout";
 import { EmptyStateLayout } from "./empty-state-layout";
 
 interface EmptyDashboardProps {
   recordHref?: string;
 }
 
-export async function EmptyDashboard({ recordHref }: EmptyDashboardProps) {
+export async function EmptyDashboard({
+  recordHref,
+}: EmptyDashboardProps): Promise<React.ReactNode> {
   const t = await getTranslations("onboarding");
 
   const features = [
@@ -24,17 +25,10 @@ export async function EmptyDashboard({ recordHref }: EmptyDashboardProps) {
       description={t("emptyDashboardDescription")}
       features={features}
     >
-      {recordHref ? (
-        <a href={recordHref} className={buttonVariants({ variant: "default" })}>
-          <Mic className="mr-2 h-4 w-4" />
-          {t("emptyDashboardCta")}
-        </a>
-      ) : (
-        <Button>
-          <Mic className="mr-2 h-4 w-4" />
-          {t("emptyDashboardCta")}
-        </Button>
-      )}
+      <EmptyStateAction href={recordHref}>
+        <Mic className="mr-2 h-4 w-4" />
+        {t("emptyDashboardCta")}
+      </EmptyStateAction>
     </EmptyStateLayout>
   );
 }
