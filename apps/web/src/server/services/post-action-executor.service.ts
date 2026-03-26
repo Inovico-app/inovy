@@ -11,6 +11,7 @@ import { MeetingPostActionsQueries } from "@/server/data-access/meeting-post-act
 import { MeetingShareTokensQueries } from "@/server/data-access/meeting-share-tokens.queries";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
+import { TasksQueries } from "@/server/data-access/tasks.queries";
 import { type MeetingPostAction } from "@/server/db/schema/meeting-post-actions";
 import { type Meeting } from "@/server/db/schema/meetings";
 import SummaryEmail from "@/emails/templates/summary-email";
@@ -238,13 +239,91 @@ export class PostActionExecutorService {
     meeting: Meeting,
     _action: MeetingPostAction,
   ): Promise<void> {
-    // TODO: Implement
-    // 1. Get AI-extracted tasks from recording workflow
-    // 2. Fuzzy match assignees to participants
-    // 3. Create tasks linked to meeting's project
-    logger.info("Create tasks - not yet implemented", {
+    const recording = await RecordingsQueries.selectRecordingByMeetingId(
+      meeting.id,
+    );
+    if (!recording) {
+      logger.warn("No recording found for meeting, skipping task creation", {
+        component: "PostActionExecutorService",
+        meetingId: meeting.id,
+      });
+      return;
+    }
+
+    if (!meeting.projectId) {
+      logger.warn("Meeting has no project, skipping task creation", {
+        component: "PostActionExecutorService",
+        meetingId: meeting.id,
+      });
+      return;
+    }
+
+    const actionItemsInsight = await AIInsightsQueries.getInsightByType(
+      recording.id,
+      "action_items",
+    );
+
+    if (!actionItemsInsight?.content) {
+      logger.info("No action items found, skipping task creation", {
+        component: "PostActionExecutorService",
+        meetingId: meeting.id,
+      });
+      return;
+    }
+
+    const items = (actionItemsInsight.content as { items?: unknown[] })?.items;
+    if (!Array.isArray(items) || items.length === 0) {
+      return;
+    }
+
+    const participants = meeting.participants ?? [];
+    let created = 0;
+
+    for (const item of items) {
+      const typed = item as {
+        text?: string;
+        assignee?: string;
+        priority?: string;
+        confidence?: number;
+      };
+      if (!typed.text) continue;
+
+      // Match assignee name to participant
+      let assigneeName = typed.assignee ?? null;
+      if (assigneeName && participants.length > 0) {
+        const lowerAssignee = assigneeName.toLowerCase();
+        const matched = participants.find(
+          (p) =>
+            p.name?.toLowerCase().includes(lowerAssignee) ||
+            lowerAssignee.includes(p.name?.toLowerCase() ?? ""),
+        );
+        if (matched?.name) {
+          assigneeName = matched.name;
+        }
+      }
+
+      await TasksQueries.createTask({
+        recordingId: recording.id,
+        projectId: meeting.projectId,
+        organizationId: meeting.organizationId,
+        createdById: meeting.createdById,
+        title: typed.text,
+        assigneeName,
+        priority:
+          typed.priority === "high" || typed.priority === "urgent"
+            ? typed.priority
+            : "medium",
+        confidenceScore: typed.confidence ?? null,
+        status: "pending",
+      });
+      created++;
+    }
+
+    logger.info("Tasks created from AI action items", {
       component: "PostActionExecutorService",
       meetingId: meeting.id,
+      recordingId: recording.id,
+      tasksCreated: created,
     });
   }
 
