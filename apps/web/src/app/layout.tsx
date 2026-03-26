@@ -9,6 +9,8 @@ import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Geist } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import "../index.css";
 import { cn } from "@/lib/utils";
 
@@ -32,14 +34,17 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
     <html
-      lang="nl"
+      lang={locale}
       suppressHydrationWarning
       className={cn("font-sans", geist.variable)}
     >
@@ -50,19 +55,21 @@ export default function RootLayout({
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:text-sm focus:font-medium focus:shadow-lg"
         >
-          Ga naar hoofdinhoud
+          {locale === "nl" ? "Ga naar hoofdinhoud" : "Skip to main content"}
         </a>
         <AriaLiveRegion />
         <BetterAuthProvider>
           <QueryProvider>
             <NuqsAdapter>
-              <ThemeProvider>
-                <VercelAnalytics />
-                <VercelSpeedInsights />
-                {children}
-                <CookieConsent />
-                <Toaster richColors />
-              </ThemeProvider>
+              <NextIntlClientProvider locale={locale} messages={messages}>
+                <ThemeProvider>
+                  <VercelAnalytics />
+                  <VercelSpeedInsights />
+                  {children}
+                  <CookieConsent />
+                  <Toaster richColors />
+                </ThemeProvider>
+              </NextIntlClientProvider>
             </NuqsAdapter>
           </QueryProvider>
         </BetterAuthProvider>

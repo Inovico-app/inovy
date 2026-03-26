@@ -1,11 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-
-const SUPPORTED_LOCALES = ["nl", "en"] as const;
-type Locale = (typeof SUPPORTED_LOCALES)[number];
-
-const DEFAULT_LOCALE: Locale = "nl";
+import { SUPPORTED_LOCALES, DEFAULT_LOCALE, type Locale } from "./config";
 
 export async function setLocale(locale: string): Promise<void> {
   const validated = SUPPORTED_LOCALES.includes(locale as Locale)

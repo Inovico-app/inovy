@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { setLocale } from "@/i18n/locale";
+import type { Locale } from "@/i18n/config";
+import { SUPPORTED_LOCALES } from "@/i18n/config";
 import {
   Select,
   SelectContent,
@@ -11,10 +13,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const LOCALES = [
-  { value: "nl", label: "Nederlands" },
-  { value: "en", label: "English" },
-] as const;
+const LOCALE_LABELS: Record<Locale, string> = {
+  nl: "Nederlands",
+  en: "English",
+};
 
 export function LocaleSwitcher() {
   const locale = useLocale();
@@ -31,9 +33,9 @@ export function LocaleSwitcher() {
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {LOCALES.map((l) => (
-          <SelectItem key={l.value} value={l.value}>
-            {l.label}
+        {SUPPORTED_LOCALES.map((l) => (
+          <SelectItem key={l} value={l}>
+            {LOCALE_LABELS[l]}
           </SelectItem>
         ))}
       </SelectContent>

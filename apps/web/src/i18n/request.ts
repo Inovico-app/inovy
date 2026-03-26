@@ -1,14 +1,8 @@
-import { cookies } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
+import { getLocale } from "./locale";
 
-/**
- * next-intl request configuration.
- * Uses cookie-based locale detection without URL prefixes.
- * Default: Dutch (nl) for Dutch government/business target market.
- */
 export default getRequestConfig(async () => {
-  const store = await cookies();
-  const locale = store.get("locale")?.value ?? "nl";
+  const locale = await getLocale();
 
   return {
     locale,
