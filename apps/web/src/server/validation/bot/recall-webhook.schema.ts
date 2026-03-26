@@ -148,6 +148,61 @@ export const botRecordingReadyEventSchema = z.object({
 });
 
 /**
+ * Real-time transcript event: transcript.data
+ * Per https://docs.recall.ai/docs/bot-real-time-transcription
+ * Sent via recording_config.realtime_endpoints with event "transcript.data"
+ */
+export const transcriptDataEventSchema = z.object({
+  event: z.literal("transcript.data"),
+  data: z.object({
+    data: z.object({
+      words: z.array(
+        z.object({
+          text: z.string(),
+          start_timestamp: z.object({ relative: z.number() }),
+          end_timestamp: z
+            .object({ relative: z.number() })
+            .nullable()
+            .optional(),
+        }),
+      ),
+      participant: z.object({
+        id: z.number(),
+        name: z.string().nullable(),
+        is_host: z.boolean(),
+        platform: z.string().nullable().optional(),
+        extra_data: z.record(z.string(), z.unknown()).optional(),
+        email: z.string().nullable().optional(),
+      }),
+    }),
+    realtime_endpoint: z
+      .object({
+        id: z.string(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
+      })
+      .optional(),
+    transcript: z
+      .object({
+        id: z.string(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
+      })
+      .optional(),
+    recording: z
+      .object({
+        id: z.string(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
+      })
+      .optional(),
+    bot: z
+      .object({
+        id: z.string(),
+        metadata: metadataSchema,
+      })
+      .optional(),
+  }),
+});
+
+/**
  * Union for all webhook event formats.
  * z.union evaluates members in order:
  * - participantEventChatMessageSchema first (literal "participant_events.chat_message" discriminant)
@@ -156,6 +211,7 @@ export const botRecordingReadyEventSchema = z.object({
  */
 export const recallWebhookEventSchema = z.union([
   participantEventChatMessageSchema,
+  transcriptDataEventSchema,
   svixBotStatusEventSchema,
   svixRecordingEventSchema,
   botStatusChangeEventSchema,
@@ -171,5 +227,5 @@ export type BotStatusChangeEvent = z.infer<typeof botStatusChangeEventSchema>;
 export type BotRecordingReadyEvent = z.infer<
   typeof botRecordingReadyEventSchema
 >;
+export type TranscriptDataEvent = z.infer<typeof transcriptDataEventSchema>;
 export type RecallWebhookEvent = z.infer<typeof recallWebhookEventSchema>;
-
