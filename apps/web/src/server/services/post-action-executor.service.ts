@@ -182,6 +182,19 @@ export class PostActionExecutorService {
       }
     }
 
+    // Check participants before creating share token to avoid orphaned tokens
+    const participantEmails = (meeting.participants ?? [])
+      .map((p) => p.email)
+      .filter(Boolean);
+
+    if (participantEmails.length === 0) {
+      logger.warn("No participant emails found, skipping summary email", {
+        component: "PostActionExecutorService",
+        meetingId: meeting.id,
+      });
+      return;
+    }
+
     // Generate share token for secure recording link
     const rawToken = randomBytes(32).toString("hex");
     const tokenHash = createHash("sha256").update(rawToken).digest("hex");
@@ -198,19 +211,6 @@ export class PostActionExecutorService {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
     const recordingUrl = `${appUrl}/meetings/${meeting.id}?token=${rawToken}`;
-
-    // Get participant emails
-    const participantEmails = (meeting.participants ?? [])
-      .map((p) => p.email)
-      .filter(Boolean);
-
-    if (participantEmails.length === 0) {
-      logger.warn("No participant emails found, skipping summary email", {
-        component: "PostActionExecutorService",
-        meetingId: meeting.id,
-      });
-      return;
-    }
 
     const result = await sendEmailFromTemplate({
       to: participantEmails,
@@ -293,11 +293,14 @@ export class PostActionExecutorService {
       let assigneeName = typed.assignee ?? null;
       if (assigneeName && participants.length > 0) {
         const lowerAssignee = assigneeName.toLowerCase();
-        const matched = participants.find(
-          (p) =>
-            p.name?.toLowerCase().includes(lowerAssignee) ||
-            lowerAssignee.includes(p.name?.toLowerCase() ?? ""),
-        );
+        const matched = participants.find((p) => {
+          if (!p.name) return false;
+          const lowerName = p.name.toLowerCase();
+          return (
+            lowerName.includes(lowerAssignee) ||
+            lowerAssignee.includes(lowerName)
+          );
+        });
         if (matched?.name) {
           assigneeName = matched.name;
         }
