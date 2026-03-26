@@ -9,6 +9,7 @@ import {
   BotIcon,
   Building2Icon,
   FileTextIcon,
+  ShieldCheckIcon,
   Users2Icon,
   UsersIcon,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import {
 const BASE_NAV_ITEMS = [
   { href: "/admin/users", icon: UsersIcon, label: "Users" },
   { href: "/admin/teams", icon: Users2Icon, label: "Teams" },
+  { href: "/admin/compliance", icon: ShieldCheckIcon, label: "Compliance" },
   { href: "/admin/audit-logs", icon: FileTextIcon, label: "Audit Logs" },
   { href: "/admin/agent-analytics", icon: BarChart3Icon, label: "Analytics" },
   { href: "/admin/agent-metrics", icon: ActivityIcon, label: "Metrics" },
