@@ -1,13 +1,19 @@
+import { randomBytes, createHash } from "node:crypto";
 import { err, ok } from "neverthrow";
 import { logger } from "@/lib/logger";
 import {
   ActionErrors,
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
+import { sendEmailFromTemplate } from "@/emails/client";
+import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { MeetingPostActionsQueries } from "@/server/data-access/meeting-post-actions.queries";
+import { MeetingShareTokensQueries } from "@/server/data-access/meeting-share-tokens.queries";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
+import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { type MeetingPostAction } from "@/server/db/schema/meeting-post-actions";
 import { type Meeting } from "@/server/db/schema/meetings";
+import SummaryEmail from "@/emails/templates/summary-email";
 
 export class PostActionExecutorService {
   /**
@@ -15,13 +21,10 @@ export class PostActionExecutorService {
    */
   static async executePostActions(
     meetingId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<{ executed: number; failed: number }>> {
     try {
-      const meeting = await MeetingsQueries.findById(
-        meetingId,
-        organizationId
-      );
+      const meeting = await MeetingsQueries.findById(meetingId, organizationId);
       if (!meeting) {
         return err(ActionErrors.notFound("Meeting"));
       }
@@ -55,17 +58,17 @@ export class PostActionExecutorService {
           component: "PostActionExecutorService",
           meetingId,
         },
-        error as Error
+        error as Error,
       );
       return err(
-        ActionErrors.internal("Failed to execute post-actions", error)
+        ActionErrors.internal("Failed to execute post-actions", error),
       );
     }
   }
 
   private static async executeAction(
     action: MeetingPostAction,
-    meeting: Meeting
+    meeting: Meeting,
   ): Promise<ActionResult<void>> {
     await MeetingPostActionsQueries.update(action.id, { status: "running" });
 
@@ -102,7 +105,7 @@ export class PostActionExecutorService {
           actionId: action.id,
           actionType: action.type,
         },
-        error as Error
+        error as Error,
       );
 
       await MeetingPostActionsQueries.update(action.id, {
@@ -113,7 +116,7 @@ export class PostActionExecutorService {
       });
 
       return err(
-        ActionErrors.internal(`Post-action ${action.type} failed`, error)
+        ActionErrors.internal(`Post-action ${action.type} failed`, error),
       );
     }
   }
@@ -122,22 +125,118 @@ export class PostActionExecutorService {
 
   private static async executeSendSummaryEmail(
     meeting: Meeting,
-    _action: MeetingPostAction
+    _action: MeetingPostAction,
   ): Promise<void> {
-    // TODO: Implement
-    // 1. Get recording + AI summary for this meeting
-    // 2. Generate share token
-    // 3. Build email with summary, key decisions, action items, secure link
-    // 4. Send via Resend to participants who are org members
-    logger.info("Send summary email - not yet implemented", {
+    const recording = await RecordingsQueries.selectRecordingByMeetingId(
+      meeting.id,
+    );
+    if (!recording) {
+      logger.warn("No recording found for meeting, skipping summary email", {
+        component: "PostActionExecutorService",
+        meetingId: meeting.id,
+      });
+      return;
+    }
+
+    const [summaryInsight, actionItemsInsight, decisionsInsight] =
+      await Promise.all([
+        AIInsightsQueries.getInsightByType(recording.id, "summary"),
+        AIInsightsQueries.getInsightByType(recording.id, "action_items"),
+        AIInsightsQueries.getInsightByType(recording.id, "decisions"),
+      ]);
+
+    const summary =
+      (summaryInsight?.content as { text?: string })?.text ??
+      "Geen samenvatting beschikbaar.";
+
+    const actionItems: { text: string; assignee?: string }[] = [];
+    if (actionItemsInsight?.content) {
+      const items = (actionItemsInsight.content as { items?: unknown[] })
+        ?.items;
+      if (Array.isArray(items)) {
+        for (const item of items) {
+          const typed = item as { text?: string; assignee?: string };
+          if (typed.text) {
+            actionItems.push({
+              text: typed.text,
+              assignee: typed.assignee,
+            });
+          }
+        }
+      }
+    }
+
+    const decisions: string[] = [];
+    if (decisionsInsight?.content) {
+      const items = (decisionsInsight.content as { items?: unknown[] })?.items;
+      if (Array.isArray(items)) {
+        for (const item of items) {
+          const text =
+            typeof item === "string" ? item : (item as { text?: string })?.text;
+          if (text) {
+            decisions.push(text);
+          }
+        }
+      }
+    }
+
+    // Generate share token for secure recording link
+    const rawToken = randomBytes(32).toString("hex");
+    const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+    await MeetingShareTokensQueries.insert({
+      meetingId: meeting.id,
+      createdById: meeting.createdById,
+      tokenHash,
+      expiresAt,
+      requiresAuth: true,
+      requiresOrgMembership: true,
+    });
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const recordingUrl = `${appUrl}/meetings/${meeting.id}?token=${rawToken}`;
+
+    // Get participant emails
+    const participantEmails = (meeting.participants ?? [])
+      .map((p) => p.email)
+      .filter(Boolean);
+
+    if (participantEmails.length === 0) {
+      logger.warn("No participant emails found, skipping summary email", {
+        component: "PostActionExecutorService",
+        meetingId: meeting.id,
+      });
+      return;
+    }
+
+    const result = await sendEmailFromTemplate({
+      to: participantEmails,
+      subject: `Samenvatting: ${meeting.title}`,
+      react: SummaryEmail({
+        meetingTitle: meeting.title,
+        summary,
+        actionItems,
+        decisions,
+        recordingUrl,
+      }),
+    });
+
+    if (!result.success) {
+      throw new Error(`Failed to send summary email: ${result.error}`);
+    }
+
+    logger.info("Summary email sent", {
       component: "PostActionExecutorService",
       meetingId: meeting.id,
+      recipients: participantEmails.length,
+      messageId: result.messageId,
     });
   }
 
   private static async executeCreateTasks(
     meeting: Meeting,
-    _action: MeetingPostAction
+    _action: MeetingPostAction,
   ): Promise<void> {
     // TODO: Implement
     // 1. Get AI-extracted tasks from recording workflow
@@ -151,7 +250,7 @@ export class PostActionExecutorService {
 
   private static async executeShareRecording(
     meeting: Meeting,
-    _action: MeetingPostAction
+    _action: MeetingPostAction,
   ): Promise<void> {
     // TODO: Implement
     // 1. Generate meeting_share_token (requiresAuth, requiresOrgMembership, 30 day expiry)
@@ -164,7 +263,7 @@ export class PostActionExecutorService {
 
   private static async executeGenerateFollowup(
     meeting: Meeting,
-    _action: MeetingPostAction
+    _action: MeetingPostAction,
   ): Promise<void> {
     // TODO: Implement
     // 1. Get transcript + uncovered agenda items + action items
@@ -179,7 +278,7 @@ export class PostActionExecutorService {
 
   private static async executePushExternal(
     meeting: Meeting,
-    _action: MeetingPostAction
+    _action: MeetingPostAction,
   ): Promise<void> {
     // TODO: Implement
     // 1. Read config for provider (slack / google_docs)
