@@ -108,21 +108,16 @@ export class TranscriptionService {
       // Call Deepgram API with keywords
       const deepgram = this.getDeepgramClient();
       const recordingLanguage = existingRecording.language ?? "nl";
-      const deepgramOptions: {
-        model: string;
-        language: string;
-        smart_format: boolean;
-        diarize: boolean;
-        punctuate: boolean;
-        utterances: boolean;
-        keywords?: string[];
-      } = {
+      const deepgramOptions: Record<string, unknown> = {
         model: "nova-3",
         language: recordingLanguage,
         smart_format: true,
         diarize: true,
         punctuate: true,
         utterances: true,
+        paragraphs: true,
+        numerals: true,
+        detect_language: true,
       };
 
       // Add keywords if available

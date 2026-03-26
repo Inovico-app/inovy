@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         {
           status: 426,
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -60,15 +60,16 @@ export async function GET(request: NextRequest) {
       component: "LiveTranscriptionRoute",
     });
 
-    // Create Deepgram live connection
+    // Create Deepgram live connection — optimized for Dutch accuracy
     const connection = deepgram.listen.live({
       model: "nova-3",
-      language: "nl",
+      language: "multi",
       smart_format: true,
       diarize: true,
       punctuate: true,
       utterances: true,
       interim_results: true,
+      numerals: true,
     });
 
     // Handle Deepgram connection events
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest) {
       {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (error) {
     logger.error("Error in live transcription endpoint", {
@@ -120,4 +121,3 @@ export async function GET(request: NextRequest) {
 
 // Export POST for compatibility
 export { GET as POST };
-

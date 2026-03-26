@@ -176,7 +176,7 @@ export class RecordingSession {
       console.log("[RecordingSession] start: connecting to Deepgram...");
       const transcriptionResult = await this.deps.liveTranscription.connect({
         model: "nova-3",
-        language: this.config.language,
+        language: "multi",
         enableDiarization: true,
         interimResults: true,
       });

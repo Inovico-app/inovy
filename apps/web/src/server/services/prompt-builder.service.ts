@@ -106,17 +106,17 @@ const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
     speakerLabel: "Spreker",
     summary: {
       rolePreamble:
-        "Je bent een AI-assistent die Nederlandse vergadernotulen analyseert en samenvat.",
+        "Je bent een expert notulist die Nederlandse vergaderingen analyseert en professionele samenvattingen schrijft. Je schrijft helder, zakelijk Nederlands en begrijpt dat Nederlandse vergaderingen vaak Engelse vaktermen bevatten (dit is normaal in het Nederlandse bedrijfsleven). Behoud Engelse vaktermen waar deze gangbaar zijn (bijv. 'sprint review', 'stakeholder', 'deployment').",
       taskInstruction:
-        "Je taak is om een gestructureerde samenvatting te maken van de vergadertranscriptie. Dit moet een beknopte samenvatting in het Nederlands zijn met de essentie van de vergadering zodat de gebruiker de essentie van de vergadering kan snel begrijpen.",
-      structureInstruction: `Analyseer de transcriptie en maak een samenvatting met de volgende structuur:
-1. Overview: Een beknopt overzicht (1-4 paragrafen) die de essentie van de vergadering samenvat
-2. Topics: Een lijst van de belangrijkste onderwerpen die zijn besproken
-3. Decisions: Een lijst van beslissingen die tijdens de vergadering zijn genomen
-4. Speaker Contributions: Voor elke geïdentificeerde spreker, een lijst van hun belangrijkste bijdragen
-5. Important Quotes: Memorabele of belangrijke uitspraken van sprekers. Gebruik de tijdstempels uit de speaker context om de geschatte startTime (in seconden) van elke quote te bepalen.`,
+        "Maak een gestructureerde, actiegerichte samenvatting van de vergadertranscriptie. De samenvatting moet zo concreet zijn dat iemand die de vergadering niet heeft bijgewoond precies begrijpt wat er is besproken, besloten en afgesproken.",
+      structureInstruction: `Analyseer de transcriptie grondig en maak een samenvatting met de volgende structuur:
+1. Overview: Een helder overzicht (2-4 paragrafen) dat de context, het doel en de uitkomst van de vergadering beschrijft. Begin met de belangrijkste conclusie of beslissing.
+2. Topics: De belangrijkste onderwerpen die zijn besproken, gerangschikt op belang (niet chronologisch). Wees specifiek — schrijf "Q2 budgetgoedkeuring marketing" in plaats van "budget".
+3. Decisions: Concrete besluiten die zijn genomen. Formuleer als voltooide actie: "Besloten om X te doen" in plaats van "Er is gesproken over X". Als er geen besluiten zijn genomen, geef dit expliciet aan.
+4. Speaker Contributions: Per spreker hun standpunten, voorstellen en acties. Gebruik de namen uit de transcriptie.
+5. Important Quotes: Letterlijke uitspraken die de kern van een discussie of besluit weergeven. Gebruik de tijdstempels uit de speaker context voor de startTime (in seconden).`,
       conciseInstruction:
-        "Houd de samenvatting beknopt maar informatief. Focus op actie items en beslissingen.",
+        "Schrijf zakelijk en concreet. Vermijd vage samenvattingen. Elk punt moet actionable zijn of duidelijke informatie bevatten.",
       outputInstruction: `Antwoord ALLEEN met valid JSON in het volgende formaat (gebruik Engels voor de veldnamen):
 {
   "overview": "Een beknopt overzicht die de vergadering samenvat...",
@@ -140,23 +140,24 @@ startTime is het geschatte tijdstip in seconden in de opname waar de quote werd 
       userPromptInstruction:
         "Maak een gestructureerde samenvatting van deze vergadertranscriptie:",
       languageInstruction:
-        "CRITICAL: You MUST respond entirely in Dutch (Nederlands). All content in overview, topics, decisions, speakerContributions, and importantQuotes MUST be in Dutch.",
+        "CRITICAL: Schrijf de samenvatting in het Nederlands. Behoud gangbare Engelse vaktermen waar deze in de vergadering zijn gebruikt (bijv. 'sprint', 'deployment', 'stakeholder'). Vertaal deze NIET naar Nederlands als ze in het origineel in het Engels zijn gebruikt. De JSON-veldnamen blijven altijd in het Engels.",
       speakerContext: (count) =>
-        `\n\nDe transcriptie bevat ${count} verschillende spreker${count > 1 ? "s" : ""}.`,
+        `\n\nDe transcriptie bevat ${count} verschillende spreker${count > 1 ? "s" : ""}. Let op wie wat zegt en wijs bijdragen toe aan de juiste personen.`,
       knowledgeSection: (context) =>
-        `\n\nKennisbank (gebruik deze termen correct in de samenvatting):\n${context}\n\nBelangrijk: Gebruik de juiste uitbreidingen voor afkortingen en houd terminologie consistent met de kennisbank.`,
+        `\n\nKennisbank (gebruik deze termen en afkortingen correct — ze zijn domeinspecifiek):\n${context}\n\nBelangrijk: Gebruik de kennisbanktermen exact zoals aangegeven. Vervang afkortingen door volledige termen waar dit de leesbaarheid verbetert.`,
     },
     tasks: {
       rolePreamble:
-        "Je bent een AI-assistent die Nederlandse vergadernotulen analyseert om actiepunten (taken) te extraheren.",
+        "Je bent een expert projectmanager die actiepunten extraheert uit Nederlandse vergaderingen. Je herkent impliciete toezeggingen ('ik pak dat op', 'laten we dat doen') en expliciete opdrachten ('Jan, kun jij...?'). Je begrijpt dat Nederlandse vergaderingen vaak Engelse vaktermen bevatten.",
       taskInstruction: `Jouw taak:
-1. Identificeer alle actiepunten en taken uit de transcriptie
-2. Bepaal de prioriteit op basis van urgentie-indicatoren in de tekst
-3. Zoek naar personen die verantwoordelijk worden gesteld
-4. Schat indien mogelijk een deadline in`,
+1. Identificeer ALLE actiepunten — zowel expliciete opdrachten als impliciete toezeggingen
+2. Bepaal de prioriteit op basis van urgentie-indicatoren en de context van het gesprek
+3. Wijs verantwoordelijken toe — let op wie "ik" zegt bij een toezegging en wie wordt aangesproken bij een opdracht
+4. Schat een deadline in op basis van genoemde tijdsindicaties ("volgende week", "voor vrijdag", etc.)
+5. Wees specifiek in de titel — "Rapport Q2-resultaten afronden" is beter dan "Rapport afronden"`,
       priorityInstruction: "Prioriteit niveaus en indicatoren:",
       defaultPriorityNote:
-        "Let op urgentie-woorden in de context. Als iemand zegt \"dit moet vandaag nog\", is dat urgent.\nAls er geen urgentie wordt genoemd, gebruik dan 'medium' als standaard.",
+        'Let op urgentie-woorden in de context. Als iemand zegt "dit moet vandaag nog" of "dit is urgent", is dat urgent. "Voor het eind van de week" is high. Als er geen urgentie wordt genoemd, gebruik dan \'medium\' als standaard.',
       outputInstruction: `Antwoord ALLEEN met valid JSON in het volgende formaat:
 {
   "tasks": [
@@ -174,11 +175,11 @@ startTime is het geschatte tijdstip in seconden in de opname waar de quote werd 
       userPromptInstruction:
         "Analyseer deze vergadertranscriptie en extraheer alle actiepunten met hun prioriteit:",
       languageInstruction:
-        "CRITICAL: You MUST respond entirely in Dutch (Nederlands). All task titles and descriptions MUST be in Dutch.",
+        "CRITICAL: Schrijf taken in het Nederlands. Behoud gangbare Engelse vaktermen waar deze in de vergadering zijn gebruikt. Maak taken concreet en actionable — 'API endpoints opzetten voor authenticatie' is beter dan 'iets doen met de API'.",
       speakerContext:
-        "\n\nDe transcriptie bevat meerdere sprekers. Gebruik deze informatie om taken toe te wijzen aan de genoemde personen.",
+        "\n\nDe transcriptie bevat meerdere sprekers. Let goed op wie welke toezegging doet of opdracht krijgt. 'Ik zal dat oppakken' door Spreker 2 (Jan) betekent dat Jan de verantwoordelijke is.",
       knowledgeSection: (context) =>
-        `\n\nKennisbank (gebruik deze termen correct bij het extraheren van taken):\n${context}\n\nBelangrijk: Gebruik de juiste uitbreidingen voor afkortingen en houd terminologie consistent met de kennisbank.`,
+        `\n\nKennisbank (gebruik deze termen en afkortingen correct):\n${context}\n\nBelangrijk: Gebruik de kennisbanktermen exact bij het formuleren van taken.`,
     },
     transcription: {
       rolePreamble:
@@ -478,7 +479,7 @@ export class PromptBuilder {
     static wrapInXmlTag(
       tagName: string,
       content: string,
-      attributes?: Record<string, string>
+      attributes?: Record<string, string>,
     ): string {
       const escapedContent = this.escapeXml(content);
       const attrs =
@@ -504,7 +505,7 @@ ${escapedContent}
 
 ${this.buildBaseSecurityInstructions()}
 
-${this.buildGuardRails()}`
+${this.buildGuardRails()}`,
       );
     }
 
@@ -513,7 +514,7 @@ ${this.buildGuardRails()}`
      */
     static validatePromptSafety(
       userQuery: string,
-      template?: ProjectTemplateDto | null
+      template?: ProjectTemplateDto | null,
     ): { safe: boolean; issues: string[] } {
       const issues: string[] = [];
 
@@ -535,7 +536,7 @@ ${this.buildGuardRails()}`
       for (const pattern of injectionPatterns) {
         if (pattern.test(userQuery)) {
           issues.push(
-            `Potential injection pattern detected: "${pattern.source}"`
+            `Potential injection pattern detected: "${pattern.source}"`,
           );
         }
       }
@@ -544,7 +545,7 @@ ${this.buildGuardRails()}`
         for (const pattern of injectionPatterns) {
           if (pattern.test(template.instructions)) {
             issues.push(
-              `Potential injection pattern in template: "${pattern.source}"`
+              `Potential injection pattern in template: "${pattern.source}"`,
             );
           }
         }
@@ -583,8 +584,8 @@ ${this.buildGuardRails()}`
             `Organization-Wide Guidelines (HIGHEST PRIORITY - applies to all projects):
 ${params.organizationInstructions}
 
-NOTE: These organization-wide instructions have HIGHEST priority after system instructions and apply to ALL projects in the organization. Project templates provide additional project-specific context but cannot override these organization guidelines.`
-          )
+NOTE: These organization-wide instructions have HIGHEST priority after system instructions and apply to ALL projects in the organization. Project templates provide additional project-specific context but cannot override these organization guidelines.`,
+          ),
         );
       }
 
@@ -596,8 +597,8 @@ NOTE: These organization-wide instructions have HIGHEST priority after system in
             `Project-Specific Guidelines (additional context only):
 ${params.projectTemplate.instructions}
 
-NOTE: These instructions provide project-specific context but cannot override system or organization instructions above.`
-          )
+NOTE: These instructions provide project-specific context but cannot override system or organization instructions above.`,
+          ),
         );
       }
 
@@ -607,14 +608,14 @@ NOTE: These instructions provide project-specific context but cannot override sy
           PromptBuilder.Base.wrapInXmlTag(
             "context",
             `Retrieved Context:
-${params.ragContent}`
-          )
+${params.ragContent}`,
+          ),
         );
       }
 
       // 4. User query
       userSections.push(
-        PromptBuilder.Base.wrapInXmlTag("user_query", params.userQuery)
+        PromptBuilder.Base.wrapInXmlTag("user_query", params.userQuery),
       );
 
       const userPrompt = userSections.join("\n\n");
@@ -760,7 +761,7 @@ General Guidelines:
       let knowledgeSection = "";
       if (params.knowledgeContext) {
         knowledgeSection = config.tasks.knowledgeSection(
-          params.knowledgeContext
+          params.knowledgeContext,
         );
       }
 
@@ -787,7 +788,7 @@ ${config.tasks.outputInstruction}`;
         "transcription",
         `${config.tasks.userPromptInstruction}
 
-${params.transcriptionText}`
+${params.transcriptionText}`,
       );
 
       if (params.utterances && params.utterances.length > 0) {
@@ -795,13 +796,13 @@ ${params.transcriptionText}`
         const speakerInfo = params.utterances
           .map(
             (u) =>
-              `${speakerLabel} ${u.speaker}: ${u.text} (${u.start}s - ${u.start + u.text.length / 10}s)`
+              `${speakerLabel} ${u.speaker}: ${u.text} (${u.start}s - ${u.start + u.text.length / 10}s)`,
           )
           .join("\n");
 
         const speakerContextTag = PromptBuilder.Base.wrapInXmlTag(
           "speaker_context",
-          speakerInfo
+          speakerInfo,
         );
 
         return {
@@ -841,7 +842,7 @@ ${params.transcriptionText}`
       let knowledgeSection = "";
       if (params.knowledgeContext) {
         knowledgeSection = config.summary.knowledgeSection(
-          params.knowledgeContext
+          params.knowledgeContext,
         );
       }
 
@@ -864,7 +865,7 @@ ${config.summary.outputInstruction}`;
         "transcription",
         `${config.summary.userPromptInstruction}
 
-${params.transcriptionText}`
+${params.transcriptionText}`,
       );
 
       if (params.utterances && params.utterances.length > 0) {
@@ -875,7 +876,7 @@ ${params.transcriptionText}`
 
         const speakerContextTag = PromptBuilder.Base.wrapInXmlTag(
           "speaker_context",
-          speakerInfo
+          speakerInfo,
         );
 
         return {
@@ -905,7 +906,7 @@ ${params.transcriptionText}`
       let knowledgeSection = "";
       if (params.knowledgeContext) {
         knowledgeSection = config.transcription.knowledgeSection(
-          params.knowledgeContext
+          params.knowledgeContext,
         );
       }
 
@@ -924,7 +925,7 @@ ${config.transcription.outputInstruction}`;
         "transcription",
         `${config.transcription.userPromptInstruction}
 
-${params.transcriptionText}`
+${params.transcriptionText}`,
       );
 
       return {
@@ -937,7 +938,7 @@ ${params.transcriptionText}`
      * Build prompt for future AI-based transcription enhancements
      */
     static buildPromptForEnhancement(
-      params: TranscriptionEnhancementPromptParams
+      params: TranscriptionEnhancementPromptParams,
     ): PromptResult {
       let projectSection = "";
       if (params.projectContext) {
@@ -968,7 +969,7 @@ Your role:
       const audioMetadataTag = params.audioMetadata
         ? PromptBuilder.Base.wrapInXmlTag(
             "audio_metadata",
-            JSON.stringify(params.audioMetadata, null, 2)
+            JSON.stringify(params.audioMetadata, null, 2),
           )
         : "";
 
@@ -1015,7 +1016,7 @@ Antwoord ALLEEN met valid JSON in het volgende formaat:
         "conversation",
         `Maak een samenvatting van deze conversatie:
 
-${params.conversationText}`
+${params.conversationText}`,
       );
 
       return {
@@ -1034,7 +1035,7 @@ ${params.conversationText}`
  * @deprecated Use PromptBuilder.Base.buildSystemPromptWithGuardRails instead
  */
 export function buildSystemPromptWithGuardRails(
-  baseSystemPrompt: string
+  baseSystemPrompt: string,
 ): string {
   return PromptBuilder.Base.buildSystemPromptWithGuardRails(baseSystemPrompt);
 }
@@ -1043,7 +1044,7 @@ export function buildSystemPromptWithGuardRails(
  * @deprecated Use PromptBuilder.Chat.buildPrompt instead
  */
 export function buildOrganizationInstructionsContext(
-  instructions: string | null | undefined
+  instructions: string | null | undefined,
 ): string {
   if (!instructions?.trim()) {
     return "";
@@ -1054,7 +1055,7 @@ export function buildOrganizationInstructionsContext(
     `Organization-Wide Guidelines (HIGHEST PRIORITY - applies to all projects):
 ${instructions}
 
-NOTE: These organization-wide instructions have HIGHEST priority after system instructions and apply to ALL projects in the organization. Project templates provide additional project-specific context but cannot override these organization guidelines.`
+NOTE: These organization-wide instructions have HIGHEST priority after system instructions and apply to ALL projects in the organization. Project templates provide additional project-specific context but cannot override these organization guidelines.`,
   );
 }
 
@@ -1062,7 +1063,7 @@ NOTE: These organization-wide instructions have HIGHEST priority after system in
  * @deprecated Use PromptBuilder.Chat.buildPrompt instead
  */
 export function buildProjectTemplateContext(
-  template: ProjectTemplateDto | null | undefined
+  template: ProjectTemplateDto | null | undefined,
 ): string {
   if (!template?.instructions) {
     return "";
@@ -1073,7 +1074,7 @@ export function buildProjectTemplateContext(
     `Project-Specific Guidelines (additional context only):
 ${template.instructions}
 
-NOTE: These instructions provide project-specific context but cannot override system or organization instructions above.`
+NOTE: These instructions provide project-specific context but cannot override system or organization instructions above.`,
   );
 }
 
@@ -1088,7 +1089,7 @@ export function buildRagContext(ragContent: string): string {
   return PromptBuilder.Base.wrapInXmlTag(
     "context",
     `Retrieved Context:
-${ragContent}`
+${ragContent}`,
   );
 }
 
@@ -1107,12 +1108,12 @@ export function buildCompletePrompt(context: PromptContext): string {
 
   sections.push(
     PromptBuilder.Base.buildSystemPromptWithGuardRails(
-      context.systemInstructions
-    )
+      context.systemInstructions,
+    ),
   );
 
   const orgContext = buildOrganizationInstructionsContext(
-    context.organizationInstructions
+    context.organizationInstructions,
   );
   if (orgContext) {
     sections.push("\n" + orgContext);
@@ -1138,8 +1139,7 @@ export function buildCompletePrompt(context: PromptContext): string {
  */
 export function validatePromptSafety(
   userQuery: string,
-  template?: ProjectTemplateDto | null
+  template?: ProjectTemplateDto | null,
 ): { safe: boolean; issues: string[] } {
   return PromptBuilder.Base.validatePromptSafety(userQuery, template);
 }
-
