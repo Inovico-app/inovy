@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { PermissionExplanationDialog } from "@/features/integrations/google/components/permission-explanation-dialog";
 import { Calendar, CheckCircle2, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useUpcomingMeetings } from "../../hooks/use-upcoming-meetings";
+import { UpcomingMeetingsList } from "../upcoming-meetings-list";
 
 interface StepCalendarProps {
   googleConnected: boolean;
@@ -21,6 +23,12 @@ export function StepCalendar({
   onPermissionDialogChange,
 }: StepCalendarProps) {
   const t = useTranslations("onboarding");
+  const {
+    meetings,
+    isLoading: isLoadingMeetings,
+    toggleMeetingRecording,
+    toggleAllRecordings,
+  } = useUpcomingMeetings(googleConnected);
 
   return (
     <div className="space-y-6">
@@ -43,12 +51,22 @@ export function StepCalendar({
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : googleConnected ? (
-          <div className="flex items-center justify-center gap-2 p-4 rounded-lg border bg-primary/5 border-primary/20">
-            <CheckCircle2 className="h-5 w-5 text-primary" />
-            <span className="text-sm font-medium">
-              {t("stepCalendarConnected")}
-            </span>
-          </div>
+          <>
+            <div className="flex items-center justify-center gap-2 p-4 rounded-lg border bg-primary/5 border-primary/20">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              <span className="text-sm font-medium">
+                {t("stepCalendarConnected")}
+              </span>
+            </div>
+
+            {/* Upcoming meetings with per-meeting recording toggle */}
+            <UpcomingMeetingsList
+              meetings={meetings}
+              isLoading={isLoadingMeetings}
+              onToggleRecording={toggleMeetingRecording}
+              onToggleAll={toggleAllRecordings}
+            />
+          </>
         ) : (
           <Button
             type="button"
