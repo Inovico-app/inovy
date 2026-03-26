@@ -22,6 +22,7 @@ resource "azurerm_container_app_job" "cron" {
   location                     = var.location
   resource_group_name          = var.resource_group_name
   container_app_environment_id = var.container_app_environment_id
+  workload_profile_name        = "Consumption"
 
   replica_timeout_in_seconds = each.value.timeout_in_seconds
   replica_retry_limit        = 1
