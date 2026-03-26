@@ -108,21 +108,19 @@ export class TranscriptionService {
       // Call Deepgram API with keywords
       const deepgram = this.getDeepgramClient();
       const recordingLanguage = existingRecording.language ?? "nl";
-      const deepgramOptions: {
-        model: string;
-        language: string;
-        smart_format: boolean;
-        diarize: boolean;
-        punctuate: boolean;
-        utterances: boolean;
-        keywords?: string[];
-      } = {
+      const deepgramOptions: Record<string, unknown> = {
         model: "nova-3",
         language: recordingLanguage,
         smart_format: true,
         diarize: true,
         punctuate: true,
         utterances: true,
+        paragraphs: true,
+        numerals: true,
+        // Redact payment card numbers at the transcription level — they never
+        // reach the database. Full PII detection (BSN, email, phone, etc.) is
+        // handled post-transcription by RedactionService with reviewable results.
+        redact: ["pci"],
       };
 
       // Add keywords if available
