@@ -8,7 +8,6 @@ import {
   createErrorForNextSafeAction,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { isValidMeetingUrl } from "@/lib/meeting-url";
 import { getCachedBotSettings } from "@/server/cache/bot-settings.cache";
 import { BotSessionsQueries } from "@/server/data-access/bot-sessions.queries";
@@ -230,9 +229,6 @@ export const addBotToMeeting = authorizedActionClient
         meetingId: meetingResult.value.id,
       });
     }
-
-    // Invalidate bot sessions cache
-    CacheInvalidation.invalidateBotSessions(organizationId);
 
     logger.info("Successfully added bot to meeting", {
       userId: user.id,

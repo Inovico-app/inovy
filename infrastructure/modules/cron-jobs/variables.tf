@@ -18,15 +18,44 @@ variable "container_app_environment_id" {
   type        = string
 }
 
-variable "app_url" {
-  description = "Base URL of the Inovy application (e.g., https://inovy-app-prd.example.com)"
+variable "target" {
+  description = "Target platform identifier used to prefix resource names (e.g., 'azure', 'vercel')"
   type        = string
+}
+
+variable "app_url" {
+  description = "Base URL of the target application (e.g., https://inovy.vercel.app or https://inovy-app-prd.example.com)"
+  type        = string
+}
+
+variable "jobs" {
+  description = <<-EOT
+    Map of cron job definitions. Each entry defines path, schedule, timeout, and short_name.
+    short_name is used for Azure Container App Job resource names and must keep the full name
+    cron-{target}-{short_name}-{environment} at or below 32 characters (Azure limit).
+  EOT
+  type = map(object({
+    short_name         = string
+    path               = string
+    cron_expression    = string
+    timeout_in_seconds = number
+  }))
 }
 
 variable "cron_secret" {
   description = "Shared secret for authenticating cron job requests"
   type        = string
   sensitive   = true
+}
+
+variable "acr_login_server" {
+  description = "ACR login server (e.g. inovyacrprd.azurecr.io). Cron jobs pull curl from this registry instead of Docker Hub."
+  type        = string
+}
+
+variable "managed_identity_id" {
+  description = "User-assigned managed identity resource ID for AcrPull (same identity as the main Container App; must have AcrPull on the ACR)."
+  type        = string
 }
 
 variable "tags" {

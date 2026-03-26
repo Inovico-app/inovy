@@ -7,16 +7,14 @@ export const metadata: Metadata = { title: "Projects" };
 import { ProjectSearch } from "@/features/projects/components/project-search";
 import { ProjectTeamFilter } from "@/features/projects/components/project-team-filter";
 import { ProjectTabs } from "@/features/projects/components/project-tabs";
-import { formatDateShort } from "@/lib/formatters/date-formatters";
 import { getCreatorDisplayName } from "@/lib/formatters/display-formatters";
 import { filterProjectsBySearch } from "@/lib/filters/project-filters";
 import type { AllowedStatus } from "@/server/data-access/projects.queries";
 import type { ProjectWithRecordingCountDto } from "@/server/dto/project.dto";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { ProjectService } from "@/server/services/project.service";
 import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
 import {
-  CalendarIcon,
   FileTextIcon,
   FolderIcon,
   GlobeIcon,
@@ -37,8 +35,22 @@ async function ProjectsList({
   status = "active",
   teamFilter,
 }: ProjectsListProps) {
+  const authResult = await resolveAuthContext("ProjectsList");
+  if (authResult.isErr()) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="text-center">
+          <p className="text-red-500">Authentication required</p>
+        </div>
+      </div>
+    );
+  }
+
   const projectsResult =
-    await ProjectService.getProjectsByOrganizationWithRecordingCount(status);
+    await ProjectService.getProjectsByOrganizationWithRecordingCount(
+      authResult.value,
+      status,
+    );
 
   if (projectsResult.isErr()) {
     return (
@@ -64,9 +76,10 @@ async function ProjectsList({
   }
 
   // Resolve team names
-  const authResult = await getBetterAuthSession();
-  const orgId = authResult.isOk() ? authResult.value.organization?.id : null;
-  const teamsData = orgId ? await getCachedTeamsWithMemberCounts(orgId) : [];
+  const teamsData = await getCachedTeamsWithMemberCounts(
+    authResult.value.organizationId,
+    authResult.value,
+  );
   const teamNameMap = new Map(teamsData.map((t) => [t.id, t.name]));
 
   // Creator details are already included via JOIN, no need to fetch separately
@@ -183,10 +196,15 @@ async function ProjectsPageContent({
   ) as AllowedStatus;
 
   // Fetch teams for the filter dropdown
-  const authResult = await getBetterAuthSession();
-  const orgId = authResult.isOk() ? authResult.value.organization?.id : null;
-  const teamsData = orgId ? await getCachedTeamsWithMemberCounts(orgId) : [];
-  const filterTeams = teamsData.map((t) => ({ id: t.id, name: t.name }));
+  const pageAuthResult = await resolveAuthContext("ProjectsPage");
+  const filterTeams = pageAuthResult.isOk()
+    ? (
+        await getCachedTeamsWithMemberCounts(
+          pageAuthResult.value.organizationId,
+          pageAuthResult.value,
+        )
+      ).map((t) => ({ id: t.id, name: t.name }))
+    : [];
 
   return (
     <div className="container mx-auto py-8 px-4">

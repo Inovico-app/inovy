@@ -5,7 +5,10 @@ import type { ResultAsync } from "neverthrow";
 import type { CaptureError } from "../../recording-session.errors";
 import type { AudioChunk, Unsubscribe } from "../../recording-session.types";
 import { TypedEventEmitter } from "../../utils/event-emitter";
-import type { AudioCaptureService } from "./audio-capture.interface";
+import type {
+  AudioCaptureService,
+  AudioCaptureInitConfig,
+} from "./audio-capture.interface";
 
 interface FakeAudioCaptureEvents {
   chunk: [AudioChunk];
@@ -16,6 +19,7 @@ export class FakeAudioCaptureService implements AudioCaptureService {
   private emitter = new TypedEventEmitter<FakeAudioCaptureEvents>();
   private active = false;
   private stream: MediaStream | null = null;
+  private lastInitConfig: AudioCaptureInitConfig | undefined = undefined;
 
   // --- Test controls ---
   shouldFailInitialize = false;
@@ -23,12 +27,17 @@ export class FakeAudioCaptureService implements AudioCaptureService {
   shouldFailStop = false;
   stopError: CaptureError | null = null;
 
-  initialize(): ResultAsync<void, CaptureError> {
+  initialize(config?: AudioCaptureInitConfig): ResultAsync<void, CaptureError> {
+    this.lastInitConfig = config;
     if (this.shouldFailInitialize && this.initializeError) {
       return errAsync(this.initializeError);
     }
     this.active = true;
     return okAsync(undefined);
+  }
+
+  getLastInitConfig(): AudioCaptureInitConfig | undefined {
+    return this.lastInitConfig;
   }
 
   start(_timeslice: number): void {

@@ -1,4 +1,4 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import type { TaskTag } from "../db/schema/task-tags";
 import { TaskService } from "../services/task.service";
@@ -14,7 +14,7 @@ import { TaskService } from "../services/task.service";
  */
 export async function getCachedTaskTags(taskId: string): Promise<TaskTag[]> {
   "use cache";
-  cacheTag(CacheTags.taskTagsForTask(taskId));
+  cacheTag(...tagsFor("taskTags", { taskId }));
   const result = await TaskService.getTaskTags(taskId);
   return result.isOk() ? result.value : [];
 }
@@ -24,11 +24,10 @@ export async function getCachedTaskTags(taskId: string): Promise<TaskTag[]> {
  * Calls TaskService which includes business logic and auth checks
  */
 export async function getCachedTagsByOrganization(
-  organizationId: string
+  organizationId: string,
 ): Promise<TaskTag[]> {
   "use cache";
-  cacheTag(CacheTags.taskTags(organizationId));
+  cacheTag(...tagsFor("taskTags", { organizationId }));
   const result = await TaskService.getTagsByOrganization(organizationId);
   return result.isOk() ? result.value : [];
 }
-

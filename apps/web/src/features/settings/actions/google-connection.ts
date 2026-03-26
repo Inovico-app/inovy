@@ -1,6 +1,5 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
@@ -87,8 +86,6 @@ export const disconnectGoogleAccount = authorizedActionClient
       userId: user.id,
     });
 
-    // Invalidate cached Google connection status and revalidate settings page
-    CacheInvalidation.invalidateGoogleConnection(user.id);
     revalidatePath("/settings");
 
     return { success: true };

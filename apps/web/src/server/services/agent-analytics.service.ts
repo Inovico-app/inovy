@@ -1,4 +1,4 @@
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import type { AuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
@@ -24,7 +24,7 @@ export class AgentAnalyticsService {
   private static async checkAdminPermission(): Promise<Result<void, Error>> {
     const hasAdminPermission = await checkPermission(Permissions.admin.all);
     const hasSuperAdminPermission = await checkPermission(
-      Permissions.superadmin.all
+      Permissions.superadmin.all,
     );
 
     if (!hasAdminPermission && !hasSuperAdminPermission) {
@@ -38,7 +38,7 @@ export class AgentAnalyticsService {
    * Get request count over time
    */
   static async getRequestCountOverTime(
-    filters: AnalyticsFilters
+    filters: AnalyticsFilters,
   ): Promise<Result<TimeSeriesDataPoint[], Error>> {
     const permissionResult = await this.checkAdminPermission();
     if (permissionResult.isErr()) {
@@ -50,7 +50,7 @@ export class AgentAnalyticsService {
         filters.startDate,
         filters.endDate,
         filters.organizationId,
-        filters.userId
+        filters.userId,
       );
 
       return ok(data);
@@ -62,7 +62,7 @@ export class AgentAnalyticsService {
       return err(
         error instanceof Error
           ? error
-          : new Error("Failed to get request count over time")
+          : new Error("Failed to get request count over time"),
       );
     }
   }
@@ -71,7 +71,7 @@ export class AgentAnalyticsService {
    * Get average latency over time
    */
   static async getAverageLatency(
-    filters: AnalyticsFilters
+    filters: AnalyticsFilters,
   ): Promise<Result<TimeSeriesDataPoint[], Error>> {
     const permissionResult = await this.checkAdminPermission();
     if (permissionResult.isErr()) {
@@ -83,7 +83,7 @@ export class AgentAnalyticsService {
         filters.startDate,
         filters.endDate,
         filters.organizationId,
-        filters.userId
+        filters.userId,
       );
 
       return ok(data);
@@ -95,7 +95,7 @@ export class AgentAnalyticsService {
       return err(
         error instanceof Error
           ? error
-          : new Error("Failed to get average latency")
+          : new Error("Failed to get average latency"),
       );
     }
   }
@@ -104,7 +104,7 @@ export class AgentAnalyticsService {
    * Get error rate over time
    */
   static async getErrorRate(
-    filters: AnalyticsFilters
+    filters: AnalyticsFilters,
   ): Promise<Result<TimeSeriesDataPoint[], Error>> {
     const permissionResult = await this.checkAdminPermission();
     if (permissionResult.isErr()) {
@@ -116,7 +116,7 @@ export class AgentAnalyticsService {
         filters.startDate,
         filters.endDate,
         filters.organizationId,
-        filters.userId
+        filters.userId,
       );
 
       return ok(data);
@@ -126,7 +126,7 @@ export class AgentAnalyticsService {
         filters,
       });
       return err(
-        error instanceof Error ? error : new Error("Failed to get error rate")
+        error instanceof Error ? error : new Error("Failed to get error rate"),
       );
     }
   }
@@ -135,7 +135,7 @@ export class AgentAnalyticsService {
    * Get token usage over time
    */
   static async getTokenUsage(
-    filters: AnalyticsFilters
+    filters: AnalyticsFilters,
   ): Promise<Result<TimeSeriesDataPoint[], Error>> {
     const permissionResult = await this.checkAdminPermission();
     if (permissionResult.isErr()) {
@@ -147,7 +147,7 @@ export class AgentAnalyticsService {
         filters.startDate,
         filters.endDate,
         filters.organizationId,
-        filters.userId
+        filters.userId,
       );
 
       return ok(data);
@@ -157,7 +157,7 @@ export class AgentAnalyticsService {
         filters,
       });
       return err(
-        error instanceof Error ? error : new Error("Failed to get token usage")
+        error instanceof Error ? error : new Error("Failed to get token usage"),
       );
     }
   }
@@ -166,7 +166,7 @@ export class AgentAnalyticsService {
    * Get tool usage statistics
    */
   static async getToolUsageStats(
-    filters: AnalyticsFilters
+    filters: AnalyticsFilters,
   ): Promise<Result<ToolUsageStat[], Error>> {
     const permissionResult = await this.checkAdminPermission();
     if (permissionResult.isErr()) {
@@ -178,7 +178,7 @@ export class AgentAnalyticsService {
         filters.startDate,
         filters.endDate,
         filters.organizationId,
-        filters.userId
+        filters.userId,
       );
 
       return ok(data);
@@ -190,7 +190,7 @@ export class AgentAnalyticsService {
       return err(
         error instanceof Error
           ? error
-          : new Error("Failed to get tool usage stats")
+          : new Error("Failed to get tool usage stats"),
       );
     }
   }
@@ -200,7 +200,7 @@ export class AgentAnalyticsService {
    */
   static async getTopQueries(
     filters: AnalyticsFilters,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<Result<TopQuery[], Error>> {
     const permissionResult = await this.checkAdminPermission();
     if (permissionResult.isErr()) {
@@ -213,7 +213,7 @@ export class AgentAnalyticsService {
         filters.endDate,
         filters.organizationId,
         filters.userId,
-        limit
+        limit,
       );
 
       return ok(data);
@@ -223,7 +223,7 @@ export class AgentAnalyticsService {
         filters,
       });
       return err(
-        error instanceof Error ? error : new Error("Failed to get top queries")
+        error instanceof Error ? error : new Error("Failed to get top queries"),
       );
     }
   }
@@ -232,9 +232,9 @@ export class AgentAnalyticsService {
    * Get organizations list for filters
    * For non-superadmins, only returns their organization
    */
-  static async getOrganizationsList(): Promise<
-    Result<Array<{ id: string; name: string }>, Error>
-  > {
+  static async getOrganizationsList(
+    auth: AuthContext,
+  ): Promise<Result<Array<{ id: string; name: string }>, Error>> {
     const permissionResult = await this.checkAdminPermission();
     if (permissionResult.isErr()) {
       return err(permissionResult.error);
@@ -242,21 +242,18 @@ export class AgentAnalyticsService {
 
     try {
       const hasSuperAdminPermission = await checkPermission(
-        Permissions.superadmin.all
+        Permissions.superadmin.all,
       );
+
+      // Fetch all organizations from the database
+      const data = await AgentAnalyticsQueries.getOrganizationsList();
 
       // For non-superadmins, only return their organization
       if (!hasSuperAdminPermission) {
-        const authResult = await getBetterAuthSession();
-        if (authResult.isErr() || !authResult.value.organization) {
-          return ok([]);
-        }
-        const org = authResult.value.organization;
-        return ok([{ id: org.id, name: org.name }]);
+        return ok(data.filter((org) => org.id === auth.organizationId));
       }
 
       // For superadmins, return all organizations
-      const data = await AgentAnalyticsQueries.getOrganizationsList();
       return ok(data);
     } catch (error) {
       logger.error("Failed to get organizations list", {
@@ -265,7 +262,7 @@ export class AgentAnalyticsService {
       return err(
         error instanceof Error
           ? error
-          : new Error("Failed to get organizations list")
+          : new Error("Failed to get organizations list"),
       );
     }
   }
@@ -275,7 +272,8 @@ export class AgentAnalyticsService {
    * For non-superadmins, only returns users from their organization
    */
   static async getUsersList(
-    organizationId?: string
+    auth: AuthContext,
+    organizationId?: string,
   ): Promise<
     Result<Array<{ id: string; email: string; name: string | null }>, Error>
   > {
@@ -286,22 +284,12 @@ export class AgentAnalyticsService {
 
     try {
       const hasSuperAdminPermission = await checkPermission(
-        Permissions.superadmin.all
+        Permissions.superadmin.all,
       );
 
       // For non-superadmins, enforce organization scope
       if (!hasSuperAdminPermission) {
-        const authResult = await getBetterAuthSession();
-        if (authResult.isErr() || !authResult.value.organization) {
-          logger.error("Failed to get user organization for access control", {
-            error: authResult.isErr()
-              ? authResult.error
-              : "No organization found",
-          });
-          return err(new Error("Unauthorized: Organization access required"));
-        }
-
-        const userOrganizationId = authResult.value.organization.id;
+        const userOrganizationId = auth.organizationId;
 
         // If organizationId was provided and doesn't match user's organization, deny access
         if (organizationId && organizationId !== userOrganizationId) {
@@ -310,7 +298,7 @@ export class AgentAnalyticsService {
             userOrganizationId,
           });
           return err(
-            new Error("Unauthorized: Cannot access other organization's users")
+            new Error("Unauthorized: Cannot access other organization's users"),
           );
         }
 
@@ -326,7 +314,7 @@ export class AgentAnalyticsService {
         organizationId,
       });
       return err(
-        error instanceof Error ? error : new Error("Failed to get users list")
+        error instanceof Error ? error : new Error("Failed to get users list"),
       );
     }
   }
@@ -346,7 +334,7 @@ export class AgentAnalyticsService {
    */
   private static async wrapQuery<T>(
     queryPromise: Promise<T>,
-    errorMessage: string
+    errorMessage: string,
   ): Promise<Result<T, Error>> {
     try {
       const data = await queryPromise;
@@ -363,7 +351,7 @@ export class AgentAnalyticsService {
    * Export analytics data as CSV
    */
   static async exportAnalyticsAsCSV(
-    filters: AnalyticsFilters
+    filters: AnalyticsFilters,
   ): Promise<Result<string, Error>> {
     const permissionResult = await this.checkAdminPermission();
     if (permissionResult.isErr()) {
@@ -385,45 +373,45 @@ export class AgentAnalyticsService {
             filters.startDate,
             filters.endDate,
             filters.organizationId,
-            filters.userId
+            filters.userId,
           ),
-          "Failed to get request count over time"
+          "Failed to get request count over time",
         ),
         this.wrapQuery(
           AgentAnalyticsQueries.getAverageLatency(
             filters.startDate,
             filters.endDate,
             filters.organizationId,
-            filters.userId
+            filters.userId,
           ),
-          "Failed to get average latency"
+          "Failed to get average latency",
         ),
         this.wrapQuery(
           AgentAnalyticsQueries.getErrorRate(
             filters.startDate,
             filters.endDate,
             filters.organizationId,
-            filters.userId
+            filters.userId,
           ),
-          "Failed to get error rate"
+          "Failed to get error rate",
         ),
         this.wrapQuery(
           AgentAnalyticsQueries.getTokenUsage(
             filters.startDate,
             filters.endDate,
             filters.organizationId,
-            filters.userId
+            filters.userId,
           ),
-          "Failed to get token usage"
+          "Failed to get token usage",
         ),
         this.wrapQuery(
           AgentAnalyticsQueries.getToolUsageStats(
             filters.startDate,
             filters.endDate,
             filters.organizationId,
-            filters.userId
+            filters.userId,
           ),
-          "Failed to get tool usage stats"
+          "Failed to get tool usage stats",
         ),
         this.wrapQuery(
           AgentAnalyticsQueries.getTopQueries(
@@ -431,9 +419,9 @@ export class AgentAnalyticsService {
             filters.endDate,
             filters.organizationId,
             filters.userId,
-            100
+            100,
           ),
-          "Failed to get top queries"
+          "Failed to get top queries",
         ),
       ]);
 
@@ -449,7 +437,7 @@ export class AgentAnalyticsService {
         }
       } else {
         csvLines.push(
-          `${this.escapeCsvField("ERROR")},${this.escapeCsvField(requestCountResult.error.message)}`
+          `${this.escapeCsvField("ERROR")},${this.escapeCsvField(requestCountResult.error.message)}`,
         );
       }
       csvLines.push("");
@@ -463,7 +451,7 @@ export class AgentAnalyticsService {
         }
       } else {
         csvLines.push(
-          `${this.escapeCsvField("ERROR")},${this.escapeCsvField(latencyResult.error.message)}`
+          `${this.escapeCsvField("ERROR")},${this.escapeCsvField(latencyResult.error.message)}`,
         );
       }
       csvLines.push("");
@@ -477,7 +465,7 @@ export class AgentAnalyticsService {
         }
       } else {
         csvLines.push(
-          `${this.escapeCsvField("ERROR")},${this.escapeCsvField(errorRateResult.error.message)}`
+          `${this.escapeCsvField("ERROR")},${this.escapeCsvField(errorRateResult.error.message)}`,
         );
       }
       csvLines.push("");
@@ -491,7 +479,7 @@ export class AgentAnalyticsService {
         }
       } else {
         csvLines.push(
-          `${this.escapeCsvField("ERROR")},${this.escapeCsvField(tokenUsageResult.error.message)}`
+          `${this.escapeCsvField("ERROR")},${this.escapeCsvField(tokenUsageResult.error.message)}`,
         );
       }
       csvLines.push("");
@@ -505,7 +493,7 @@ export class AgentAnalyticsService {
         }
       } else {
         csvLines.push(
-          `${this.escapeCsvField("ERROR")},${this.escapeCsvField(toolUsageResult.error.message)}`
+          `${this.escapeCsvField("ERROR")},${this.escapeCsvField(toolUsageResult.error.message)}`,
         );
       }
       csvLines.push("");
@@ -516,12 +504,12 @@ export class AgentAnalyticsService {
       if (topQueriesResult.isOk()) {
         for (const query of topQueriesResult.value) {
           csvLines.push(
-            `${this.escapeCsvField(query.query)},${query.count},${this.escapeCsvField(query.lastUsed)}`
+            `${this.escapeCsvField(query.query)},${query.count},${this.escapeCsvField(query.lastUsed)}`,
           );
         }
       } else {
         csvLines.push(
-          `${this.escapeCsvField("ERROR")},${this.escapeCsvField("ERROR")},${this.escapeCsvField(topQueriesResult.error.message)}`
+          `${this.escapeCsvField("ERROR")},${this.escapeCsvField("ERROR")},${this.escapeCsvField(topQueriesResult.error.message)}`,
         );
       }
 
@@ -534,7 +522,7 @@ export class AgentAnalyticsService {
       return err(
         error instanceof Error
           ? error
-          : new Error("Failed to export analytics as CSV")
+          : new Error("Failed to export analytics as CSV"),
       );
     }
   }
@@ -546,7 +534,7 @@ export class AgentAnalyticsService {
     userId: string,
     organizationId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<
     Result<
       {
@@ -614,49 +602,49 @@ export class AgentAnalyticsService {
           userId,
           organizationId,
           startDate,
-          endDate
+          endDate,
         ),
         AgentAnalyticsQueries.getFilesUsedInResponses(
           userId,
           organizationId,
           startDate,
-          endDate
+          endDate,
         ),
         AgentAnalyticsQueries.getUserProjectEngagement(
           userId,
           organizationId,
           startDate,
-          endDate
+          endDate,
         ),
         AgentAnalyticsQueries.getUserUniqueProjectsCount(
           userId,
           organizationId,
           startDate,
-          endDate
+          endDate,
         ),
         AgentAnalyticsQueries.getUserQueryComplexity(
           userId,
           organizationId,
           startDate,
-          endDate
+          endDate,
         ),
         AgentAnalyticsQueries.getUserSourcePreference(
           userId,
           organizationId,
           startDate,
-          endDate
+          endDate,
         ),
         AgentAnalyticsQueries.getUserConversationPatterns(
           userId,
           organizationId,
           startDate,
-          endDate
+          endDate,
         ),
         AgentAnalyticsQueries.getUserQualityIndicators(
           userId,
           organizationId,
           startDate,
-          endDate
+          endDate,
         ),
       ]);
 
@@ -679,9 +667,8 @@ export class AgentAnalyticsService {
       return err(
         error instanceof Error
           ? error
-          : new Error("Failed to get user engagement metrics")
+          : new Error("Failed to get user engagement metrics"),
       );
     }
   }
 }
-

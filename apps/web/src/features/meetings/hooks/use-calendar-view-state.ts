@@ -170,7 +170,10 @@ export function useCalendarViewState({
     },
   );
 
-  const meetings = meetingsData?.events ?? [];
+  const meetings = useMemo(
+    () => meetingsData?.events ?? [],
+    [meetingsData?.events],
+  );
   const calendarProvider = meetingsData?.calendarProvider;
 
   // Filter meetings to visible range

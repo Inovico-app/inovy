@@ -46,17 +46,17 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Azure Login
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: "1.6.0"
 
@@ -76,6 +76,34 @@ jobs:
           # Decode base64-encoded TF_VARS and write to terraform.tfvars file
           echo "$TF_VARS_B64" | base64 -d > terraform.tfvars
           echo "Created terraform.tfvars from decoded TF_VARS environment variable"
+
+      - name: Import cron curl image to ACR
+        working-directory: infrastructure
+        run: |
+          set -euo pipefail
+          ACR_NAME=""
+          if [ -f terraform.tfvars ]; then
+            ACR_NAME=$(grep -E '^[[:space:]]*acr_name[[:space:]]*=' terraform.tfvars 2>/dev/null | sed -E 's/.*=[[:space:]]*"([^"]*)".*/\1/' | head -1 || true)
+          fi
+          if [ -z "${ACR_NAME// }" ]; then
+            ACR_NAME="inovyacr$(echo '${{ inputs.environment }}' | tr -d '-')"
+          fi
+          echo "Importing curlimages/curl:8.5.0 into ACR: $ACR_NAME"
+          set +e
+          IMPORT_OUT=$(az acr import \
+            --name "$ACR_NAME" \
+            --source docker.io/curlimages/curl:8.5.0 \
+            --image curlimages/curl:8.5.0 2>&1)
+          IMPORT_RC=$?
+          set -e
+          if [ "$IMPORT_RC" -ne 0 ]; then
+            if echo "$IMPORT_OUT" | grep -q 'already exists in target registry'; then
+              echo "curl image tag already present in ACR; continuing"
+            else
+              echo "$IMPORT_OUT"
+              exit 1
+            fi
+          fi
 
       - name: Terraform Force Unlock
         if: ${{ inputs.terraform_unlock != '' }}
@@ -146,19 +174,55 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Azure Login
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: "1.6.0"
+
+      - name: Create terraform.tfvars from TF_VARS
+        working-directory: infrastructure
+        env:
+          TF_VARS_B64: ${{ vars.TF_VARS }}
+        run: |
+          echo "$TF_VARS_B64" | base64 -d > terraform.tfvars
+          echo "Created terraform.tfvars from decoded TF_VARS environment variable"
+
+      - name: Import cron curl image to ACR
+        working-directory: infrastructure
+        run: |
+          set -euo pipefail
+          ACR_NAME=""
+          if [ -f terraform.tfvars ]; then
+            ACR_NAME=$(grep -E '^[[:space:]]*acr_name[[:space:]]*=' terraform.tfvars 2>/dev/null | sed -E 's/.*=[[:space:]]*"([^"]*)".*/\1/' | head -1 || true)
+          fi
+          if [ -z "${ACR_NAME// }" ]; then
+            ACR_NAME="inovyacr$(echo '${{ inputs.environment }}' | tr -d '-')"
+          fi
+          echo "Importing curlimages/curl:8.5.0 into ACR: $ACR_NAME"
+          set +e
+          IMPORT_OUT=$(az acr import \
+            --name "$ACR_NAME" \
+            --source docker.io/curlimages/curl:8.5.0 \
+            --image curlimages/curl:8.5.0 2>&1)
+          IMPORT_RC=$?
+          set -e
+          if [ "$IMPORT_RC" -ne 0 ]; then
+            if echo "$IMPORT_OUT" | grep -q 'already exists in target registry'; then
+              echo "curl image tag already present in ACR; continuing"
+            else
+              echo "$IMPORT_OUT"
+              exit 1
+            fi
+          fi
 
       - name: Terraform Init
         working-directory: infrastructure

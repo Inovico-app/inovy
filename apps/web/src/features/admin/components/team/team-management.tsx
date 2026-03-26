@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import type { AuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 
 import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
@@ -35,7 +36,13 @@ export async function TeamManagement() {
   const canEdit = member
     ? ["owner", "admin", "superadmin"].includes(member.role)
     : false;
-  const teams = await getCachedTeamsWithMemberCounts(organizationId);
+
+  const auth: AuthContext = {
+    user: authResult.value.user!,
+    organizationId,
+    userTeamIds: authResult.value.userTeamIds ?? [],
+  };
+  const teams = await getCachedTeamsWithMemberCounts(organizationId, auth);
 
   return (
     <Card>

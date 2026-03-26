@@ -1,6 +1,6 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
+import type { AuthContext } from "@/lib/auth-context";
 import { Permissions } from "@/lib/rbac/permissions";
 import {
   authorizedActionClient,
@@ -8,7 +8,7 @@ import {
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { KnowledgeBaseService } from "@/server/services/knowledge-base.service";
+import { KnowledgeModule } from "@/server/services/knowledge";
 import { updateKnowledgeEntrySchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -42,33 +42,20 @@ export const updateKnowledgeEntryAction = authorizedActionClient
       );
     }
 
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Update entry
-    const result = await KnowledgeBaseService.updateEntry(
-      id,
-      updateData,
-      user.id,
-    );
+    const result = await KnowledgeModule.updateEntry(id, updateData, auth);
 
     if (result.isErr()) {
       throw createErrorForNextSafeAction(result.error);
     }
 
     const entry = result.value;
-
-    // Invalidate cache
-    CacheInvalidation.invalidateKnowledge(entry.scope, entry.scopeId);
-    if (entry.scope === "project" && entry.scopeId && organizationId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(
-        entry.scopeId,
-        organizationId,
-      );
-    } else if (entry.scope === "team" && entry.scopeId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, entry.scopeId);
-    } else if (entry.scope === "organization" && entry.scopeId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, entry.scopeId);
-    } else if (entry.scope === "global") {
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, null);
-    }
 
     // Revalidate relevant pages
     if (entry.scope === "project" && entry.scopeId) {

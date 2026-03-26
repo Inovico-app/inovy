@@ -1,6 +1,7 @@
 import { CacheTags } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { cacheTag } from "next/cache";
+import { KnowledgeBaseDocumentsQueries } from "../data-access/knowledge-base-documents.queries";
 import { KnowledgeBaseEntriesQueries } from "../data-access/knowledge-base-entries.queries";
 import type { KnowledgeBaseScope } from "../db/schema/knowledge-base-entries";
 import type {
@@ -8,7 +9,6 @@ import type {
   KnowledgeDocumentDto,
   KnowledgeEntryDto,
 } from "../dto/knowledge-base.dto";
-import { KnowledgeBaseService } from "../services/knowledge-base.service";
 
 /**
  * Cached knowledge base queries
@@ -20,14 +20,14 @@ import { KnowledgeBaseService } from "../services/knowledge-base.service";
  */
 export async function getCachedKnowledgeEntries(
   scope: KnowledgeBaseScope,
-  scopeId: string | null
+  scopeId: string | null,
 ): Promise<KnowledgeEntryDto[]> {
   "use cache";
 
   // Validate scopeId for non-global scopes
   if (scope !== "global" && !scopeId) {
     throw new Error(
-      `scopeId is required for ${scope} scope in getCachedKnowledgeEntries`
+      `scopeId is required for ${scope} scope in getCachedKnowledgeEntries`,
     );
   }
 
@@ -43,10 +43,17 @@ export async function getCachedKnowledgeEntries(
   }
 
   cacheTag(tag);
-  const result = await KnowledgeBaseService.getEntriesByScope(scope, scopeId, {
-    allowUnauthenticated: true,
-  });
-  return result.isErr() ? [] : result.value;
+
+  try {
+    return await KnowledgeBaseEntriesQueries.getEntriesByScope(scope, scopeId);
+  } catch (error) {
+    logger.error(
+      "Failed to get knowledge entries by scope",
+      { scope, scopeId },
+      error as Error,
+    );
+    return [];
+  }
 }
 
 /**
@@ -54,14 +61,14 @@ export async function getCachedKnowledgeEntries(
  */
 export async function getCachedKnowledgeDocuments(
   scope: KnowledgeBaseScope,
-  scopeId: string | null
+  scopeId: string | null,
 ): Promise<KnowledgeDocumentDto[]> {
   "use cache";
 
   // Validate scopeId for non-global scopes
   if (scope !== "global" && !scopeId) {
     throw new Error(
-      `scopeId is required for ${scope} scope in getCachedKnowledgeDocuments`
+      `scopeId is required for ${scope} scope in getCachedKnowledgeDocuments`,
     );
   }
 
@@ -77,10 +84,20 @@ export async function getCachedKnowledgeDocuments(
   }
 
   cacheTag(tag);
-  const result = await KnowledgeBaseService.getDocumentsByScope(scope, scopeId, {
-    allowUnauthenticated: true,
-  });
-  return result.isErr() ? [] : result.value;
+
+  try {
+    return await KnowledgeBaseDocumentsQueries.getDocumentsByScope(
+      scope,
+      scopeId,
+    );
+  } catch (error) {
+    logger.error(
+      "Failed to get knowledge documents by scope",
+      { scope, scopeId },
+      error as Error,
+    );
+    return [];
+  }
 }
 
 /**
@@ -89,7 +106,7 @@ export async function getCachedKnowledgeDocuments(
  */
 export async function getCachedHierarchicalKnowledge(
   projectId: string | null,
-  organizationId: string | null
+  organizationId: string | null,
 ): Promise<HierarchicalKnowledgeEntryDto[]> {
   "use cache";
 
@@ -106,7 +123,7 @@ export async function getCachedHierarchicalKnowledge(
     cacheTag(
       CacheTags.knowledgeEntries("project", projectId),
       CacheTags.knowledgeEntries("org", organizationId),
-      CacheTags.knowledgeEntries("global")
+      CacheTags.knowledgeEntries("global"),
     );
   } else {
     // Tag with hierarchical cache tag
@@ -114,23 +131,22 @@ export async function getCachedHierarchicalKnowledge(
       hierarchyTag,
       CacheTags.knowledgeEntries("project", projectId),
       CacheTags.knowledgeEntries("org", organizationId),
-      CacheTags.knowledgeEntries("global")
+      CacheTags.knowledgeEntries("global"),
     );
   }
 
   try {
     const entries = await KnowledgeBaseEntriesQueries.getHierarchicalEntries(
       projectId,
-      organizationId
+      organizationId,
     );
     return entries;
   } catch (error) {
     logger.error(
       "Failed to get hierarchical knowledge entries",
       { projectId, organizationId },
-      error as Error
+      error as Error,
     );
     return [];
   }
 }
-

@@ -3,7 +3,7 @@
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { ChatService } from "@/server/services/chat.service";
+import { ConversationService } from "@/server/services/chat";
 import {
   conversationIdSchema,
   listConversationsSchema,
@@ -31,7 +31,7 @@ export const listConversationsAction = authorizedActionClient
         throw new Error("User not authenticated");
       }
 
-      const result = await ChatService.listConversations({
+      const result = await ConversationService.listConversations({
         userId: user.id,
         organizationId,
         projectId,
@@ -69,7 +69,7 @@ export const searchConversationsAction = authorizedActionClient
         throw new Error("User not authenticated");
       }
 
-      const result = await ChatService.searchConversations({
+      const result = await ConversationService.searchConversations({
         userId: user.id,
         query,
         organizationId,
@@ -110,7 +110,7 @@ export const softDeleteConversationAction = authorizedActionClient
         throw new Error("Organization context required");
       }
 
-      const result = await ChatService.softDeleteConversation(
+      const result = await ConversationService.softDeleteConversation(
         conversationId,
         user.id,
         organizationId,
@@ -149,7 +149,7 @@ export const restoreConversationAction = authorizedActionClient
         throw new Error("Organization context required");
       }
 
-      const result = await ChatService.restoreConversation(
+      const result = await ConversationService.restoreConversation(
         conversationId,
         user.id,
         organizationId,
@@ -194,7 +194,7 @@ export const archiveConversationAction = authorizedActionClient
         throw new Error("Organization context required");
       }
 
-      const result = await ChatService.archiveConversation(
+      const result = await ConversationService.archiveConversation(
         conversationId,
         user.id,
         organizationId,
@@ -233,7 +233,7 @@ export const unarchiveConversationAction = authorizedActionClient
         throw new Error("Organization context required");
       }
 
-      const result = await ChatService.unarchiveConversation(
+      const result = await ConversationService.unarchiveConversation(
         conversationId,
         user.id,
         organizationId,
@@ -275,7 +275,7 @@ export const getConversationStatsAction = authorizedActionClient
       });
     }
 
-    const result = await ChatService.getConversationStats(
+    const result = await ConversationService.getConversationStats(
       user.id,
       organizationId,
     );
@@ -298,16 +298,25 @@ export const getConversationMessagesAction = authorizedActionClient
     },
   })
   .schema(conversationIdSchema)
-  .action(async ({ parsedInput: { conversationId }, ctx: { user } }) => {
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
+  .action(
+    async ({
+      parsedInput: { conversationId },
+      ctx: { user, organizationId },
+    }) => {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
 
-    const result = await ChatService.getConversationHistory(conversationId);
+      const result = await ConversationService.getConversationHistory(
+        conversationId,
+        user.id,
+        organizationId,
+      );
 
-    if (result.isErr()) {
-      throw result.error;
-    }
+      if (result.isErr()) {
+        throw result.error;
+      }
 
-    return result.value;
-  });
+      return result.value;
+    },
+  );

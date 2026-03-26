@@ -1,6 +1,6 @@
 "use client";
 
-import { getUserProjects } from "@/features/projects/actions/get-user-projects";
+import { getUserProjectsAction } from "@/features/projects/actions/get-user-projects";
 import type { DataExport } from "@/server/db/schema/data-exports";
 import { useEffect, useReducer } from "react";
 import { toast } from "sonner";
@@ -51,7 +51,7 @@ function createInitialState(): DataExportState {
 
 function dataExportReducer(
   state: DataExportState,
-  action: DataExportAction
+  action: DataExportAction,
 ): DataExportState {
   switch (action.type) {
     case "SET_LOADING_HISTORY":
@@ -108,7 +108,11 @@ interface UseDataExportReturn {
 }
 
 export function useDataExport(): UseDataExportReturn {
-  const [state, dispatch] = useReducer(dataExportReducer, undefined, createInitialState);
+  const [state, dispatch] = useReducer(
+    dataExportReducer,
+    undefined,
+    createInitialState,
+  );
 
   useEffect(() => {
     loadHistory();
@@ -133,8 +137,8 @@ export function useDataExport(): UseDataExportReturn {
 
   async function loadProjects() {
     try {
-      const result = await getUserProjects();
-      if (result.success && result.data) {
+      const result = await getUserProjectsAction();
+      if (!result?.serverError && result?.data) {
         dispatch({ type: "SET_PROJECTS", payload: result.data });
       }
     } catch {
@@ -162,12 +166,12 @@ export function useDataExport(): UseDataExportReturn {
       }
 
       const result = await requestDataExport(
-        Object.keys(filters).length > 0 ? filters : {}
+        Object.keys(filters).length > 0 ? filters : {},
       );
 
       if (result.data?.success) {
         toast.success(
-          "Export request created. Your export will be ready shortly."
+          "Export request created. Your export will be ready shortly.",
         );
         // Reset form
         dispatch({ type: "RESET_FORM" });
@@ -225,11 +229,14 @@ export function useDataExport(): UseDataExportReturn {
     exports: state.exports,
     projects: state.projects,
     startDate: state.startDate,
-    setStartDate: (value: string) => dispatch({ type: "SET_START_DATE", payload: value }),
+    setStartDate: (value: string) =>
+      dispatch({ type: "SET_START_DATE", payload: value }),
     endDate: state.endDate,
-    setEndDate: (value: string) => dispatch({ type: "SET_END_DATE", payload: value }),
+    setEndDate: (value: string) =>
+      dispatch({ type: "SET_END_DATE", payload: value }),
     selectedProjectId: state.selectedProjectId,
-    setSelectedProjectId: (value: string) => dispatch({ type: "SET_PROJECT_ID", payload: value }),
+    setSelectedProjectId: (value: string) =>
+      dispatch({ type: "SET_PROJECT_ID", payload: value }),
     handleRequestExport,
     handleDownload,
   };

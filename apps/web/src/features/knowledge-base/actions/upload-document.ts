@@ -1,13 +1,13 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
+import type { AuthContext } from "@/lib/auth-context";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { DocumentProcessingService } from "@/server/services/document-processing.service";
+import { KnowledgeModule } from "@/server/services/knowledge";
 import {
   uploadKnowledgeDocumentSchema,
   uploadKnowledgeDocumentsBatchSchema,
@@ -44,29 +44,22 @@ export const uploadKnowledgeDocumentAction = authorizedActionClient
       );
     }
 
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Upload document
-    const result = await DocumentProcessingService.uploadDocument(
+    const result = await KnowledgeModule.uploadDocument(
       file,
-      scope,
-      scopeId,
+      { scope, scopeId },
       { title, description },
-      user.id,
+      auth,
     );
 
     if (result.isErr()) {
       throw result.error;
-    }
-
-    // Invalidate cache
-    CacheInvalidation.invalidateKnowledge(scope, scopeId);
-    if (scope === "project" && scopeId && organizationId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(scopeId, organizationId);
-    } else if (scope === "team" && scopeId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
-    } else if (scope === "organization" && scopeId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
-    } else if (scope === "global") {
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, null);
     }
 
     // Revalidate relevant pages
@@ -182,28 +175,21 @@ export const uploadKnowledgeDocumentsBatchAction = authorizedActionClient
         metadataArray[index]?.description ?? sharedDescription ?? null,
     }));
 
+    const auth2: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Upload documents batch
-    const result = await DocumentProcessingService.uploadDocumentsBatch(
+    const result = await KnowledgeModule.uploadDocumentsBatch(
       filesWithMetadata,
-      scope,
-      scopeId,
-      user.id,
+      { scope, scopeId },
+      auth2,
     );
 
     if (result.isErr()) {
       throw result.error;
-    }
-
-    // Invalidate cache
-    CacheInvalidation.invalidateKnowledge(scope, scopeId);
-    if (scope === "project" && scopeId && organizationId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(scopeId, organizationId);
-    } else if (scope === "team" && scopeId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
-    } else if (scope === "organization" && scopeId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
-    } else if (scope === "global") {
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, null);
     }
 
     // Revalidate relevant pages

@@ -3,7 +3,7 @@
 import { queryKeys } from "@/lib/query-keys";
 import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getUserProjects } from "../actions/get-user-projects";
+import { getUserProjectsAction } from "../actions/get-user-projects";
 
 const LAST_USED_PROJECT_KEY = "inovy:last-used-project-id";
 
@@ -17,8 +17,8 @@ export function useUserProjects({
   const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
     queryKey: queryKeys.projects.userProjects(),
     queryFn: async () => {
-      const result = await getUserProjects();
-      if (!result.success || !result.data) return [];
+      const result = await getUserProjectsAction();
+      if (result?.serverError || !result?.data) return [];
       return result.data;
     },
     enabled,

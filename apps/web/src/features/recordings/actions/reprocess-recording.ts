@@ -1,5 +1,6 @@
 "use server";
 
+import type { AuthContext } from "@/lib/auth-context";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
@@ -42,9 +43,17 @@ export const reprocessRecordingAction = authorizedActionClient
       throw ActionErrors.forbidden("Organization context required");
     }
 
+    const auth: AuthContext = {
+      user,
+      organizationId,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Get recording to verify ownership and get project ID
-    const recordingResult =
-      await RecordingService.getRecordingById(recordingId);
+    const recordingResult = await RecordingService.getRecordingById(
+      recordingId,
+      auth,
+    );
     const recording = resultToActionResponse(recordingResult);
 
     if (!recording) {
@@ -58,7 +67,7 @@ export const reprocessRecordingAction = authorizedActionClient
         organizationId,
         "reprocessRecordingAction",
       );
-    } catch (error) {
+    } catch (_error) {
       throw ActionErrors.notFound("Recording");
     }
 
@@ -104,15 +113,27 @@ export const getReprocessingStatusAction = authorizedActionClient
   .schema(getReprocessingStatusSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId } = parsedInput;
-    const { organizationId } = ctx;
+    const { user, organizationId } = ctx;
+
+    if (!user) {
+      throw ActionErrors.unauthenticated("User not found");
+    }
 
     if (!organizationId) {
       throw ActionErrors.forbidden("Organization context required");
     }
 
+    const auth2: AuthContext = {
+      user,
+      organizationId,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Get recording to verify ownership
-    const recordingResult =
-      await RecordingService.getRecordingById(recordingId);
+    const recordingResult = await RecordingService.getRecordingById(
+      recordingId,
+      auth2,
+    );
     const recording = resultToActionResponse(recordingResult);
 
     if (!recording) {
@@ -126,7 +147,7 @@ export const getReprocessingStatusAction = authorizedActionClient
         organizationId,
         "getReprocessingStatusAction",
       );
-    } catch (error) {
+    } catch (_error) {
       throw ActionErrors.notFound("Recording");
     }
 

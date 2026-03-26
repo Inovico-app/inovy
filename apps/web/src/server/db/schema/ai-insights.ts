@@ -29,12 +29,6 @@ export const insightProcessingStatusEnum = [
 export type InsightProcessingStatus =
   (typeof insightProcessingStatusEnum)[number];
 
-interface Speaker {
-  id: number;
-  name?: string;
-  utterances: number;
-}
-
 interface Utterance {
   speaker: number;
   text: string;

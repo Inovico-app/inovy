@@ -81,7 +81,7 @@ export const updateOrganizationSettings = authorizedActionClient
         organizationId,
         "updateOrganizationSettings",
       );
-    } catch (error) {
+    } catch (_error) {
       throw ActionErrors.forbidden("Organization ID mismatch");
     }
 

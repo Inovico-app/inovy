@@ -32,7 +32,7 @@ export function HeaderNavigation() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const { data: userRoleData } = useUserRole();
-  const { isAdmin, isSuperAdmin, roles } = userRoleData ?? {};
+  const { isAdmin, isSuperAdmin, roles: _roles } = userRoleData ?? {};
 
   // Prevent hydration mismatch — intentional synchronous setState in mount effect
   useEffect(() => {
@@ -63,7 +63,7 @@ export function HeaderNavigation() {
     <nav className="flex gap-4 items-center">
       {navLinks
         .filter(({ requiresAdmin }) =>
-          requiresAdmin ? Boolean(isAdmin || isSuperAdmin) : true
+          requiresAdmin ? Boolean(isAdmin || isSuperAdmin) : true,
         )
         .map(({ to, label }) => {
           const active = isActive(pathname, to);
@@ -85,4 +85,3 @@ export function HeaderNavigation() {
     </nav>
   );
 }
-

@@ -1,31 +1,24 @@
 # Cron Jobs for Inovy application
 # Uses Azure Container App Jobs with schedule triggers to call the app's cron API endpoints.
 # Each job runs a lightweight Alpine/curl container that hits the endpoint with the CRON_SECRET.
+# The module is target-agnostic: pass any app_url (Azure Container App, Vercel, etc.)
+# and a target prefix to avoid name collisions when calling the module multiple times.
+#
+# Azure Container App Job names must be <= 32 characters. We use each job's short_name (not the
+# map key) in the resource name: cron-{target}-{short_name}-{environment}.
 
 locals {
-  cron_jobs = {
-    renew-drive-watches = {
-      path                = "/api/cron/renew-drive-watches"
-      cron_expression     = "0 0 * * *" # Daily at midnight UTC
-      timeout_in_seconds  = 300
-    }
-    monitor-calendar = {
-      path                = "/api/cron/monitor-calendar"
-      cron_expression     = "*/5 * * * *" # Every 5 minutes
-      timeout_in_seconds  = 120
-    }
-    poll-bot-status = {
-      path                = "/api/cron/poll-bot-status"
-      cron_expression     = "*/1 * * * *" # Every 1 minute
-      timeout_in_seconds  = 60
-    }
+  cron_job_resource_name = {
+    for k, j in var.jobs : k => "cron-${var.target}-${j.short_name}-${var.environment}"
   }
+  # Mirrored into ACR via CI (az acr import) — see .github/workflows/azure-infra.yml
+  cron_curl_image = "${var.acr_login_server}/curlimages/curl:8.5.0"
 }
 
 resource "azurerm_container_app_job" "cron" {
-  for_each = local.cron_jobs
+  for_each = var.jobs
 
-  name                         = "cron-${each.key}-${var.environment}"
+  name                         = local.cron_job_resource_name[each.key]
   location                     = var.location
   resource_group_name          = var.resource_group_name
   container_app_environment_id = var.container_app_environment_id
@@ -39,21 +32,37 @@ resource "azurerm_container_app_job" "cron" {
     replica_completion_count = 1
   }
 
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [var.managed_identity_id]
+  }
+
+  dynamic "registry" {
+    for_each = var.acr_login_server != "" ? [1] : []
+    content {
+      server   = var.acr_login_server
+      identity = var.managed_identity_id
+    }
+  }
+
   template {
     container {
-      name   = "cron-${each.key}"
-      image  = "curlimages/curl:8.5.0"
+      name   = "cron-${each.value.short_name}"
+      image  = local.cron_curl_image
       cpu    = 0.25
       memory = "0.5Gi"
 
+      # Use double quotes so sh expands CRON_SECRET and APP_URL. Single quotes would send the
+      # literal "${CRON_SECRET}" in the Authorization header (401 Unauthorized).
+      # FULL_URL is echoed to console logs so Log Analytics shows the resolved request URL.
       command = [
         "/bin/sh", "-c",
-        "curl -sf -H 'Authorization: Bearer $${CRON_SECRET}' $${APP_URL}${each.value.path}"
+        "FULL_URL=\"$${APP_URL}${each.value.path}\"; echo \"Cron target URL: $FULL_URL\"; curl -sS -H \"Authorization: Bearer $${CRON_SECRET}\" \"$FULL_URL\""
       ]
 
       env {
-        name        = "APP_URL"
-        value       = var.app_url
+        name  = "APP_URL"
+        value = var.app_url
       }
 
       env {
@@ -69,6 +78,13 @@ resource "azurerm_container_app_job" "cron" {
   }
 
   tags = merge(var.tags, {
-    Component = "cron-${each.key}"
+    Component = "cron-${var.target}-${each.key}"
   })
+
+  lifecycle {
+    precondition {
+      condition = length(local.cron_job_resource_name[each.key]) <= 32
+      error_message = "Container App Job name must be <= 32 characters (Azure limit). Actual length ${length(local.cron_job_resource_name[each.key])}: ${local.cron_job_resource_name[each.key]}"
+    }
+  }
 }

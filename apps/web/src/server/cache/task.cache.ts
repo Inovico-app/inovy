@@ -1,4 +1,5 @@
 import type { BetterAuthUser } from "@/lib/auth";
+import { tagsFor } from "@/lib/cache";
 import { CacheTags } from "@/lib/cache-utils";
 import { cacheTag } from "next/cache";
 import { TasksQueries } from "../data-access/tasks.queries";
@@ -24,10 +25,7 @@ export async function getCachedTasksByUser(
   filters?: Omit<TaskFiltersDto, "assigneeId" | "organizationId">,
 ) {
   "use cache";
-  cacheTag(
-    CacheTags.tasksByUser(userId, orgCode),
-    CacheTags.tasksByOrg(orgCode),
-  );
+  cacheTag(...tagsFor("task", { userId, organizationId: orgCode }));
 
   const tasks = await TasksQueries.getTasksByOrganization(orgCode, {
     ...filters,
@@ -45,11 +43,7 @@ export async function getCachedTaskStats(
   orgCode: string,
 ): Promise<TaskStatsDto> {
   "use cache";
-  cacheTag(
-    CacheTags.tasksByUser(userId, orgCode),
-    CacheTags.tasksByOrg(orgCode),
-    CacheTags.taskStats(userId, orgCode),
-  );
+  cacheTag(...tagsFor("task", { userId, organizationId: orgCode }));
 
   return await TasksQueries.getTaskStats(orgCode, userId);
 }
@@ -66,10 +60,7 @@ export async function getCachedTasksWithContext(
   teamContext?: { user: BetterAuthUser; userTeamIds: string[] },
 ) {
   "use cache";
-  cacheTag(
-    CacheTags.tasksByUser(userId, orgCode),
-    CacheTags.tasksByOrg(orgCode),
-  );
+  cacheTag(...tagsFor("task", { userId, organizationId: orgCode }));
 
   const tasks = await TasksQueries.getTasksWithContext(orgCode, {
     ...filters,
@@ -91,7 +82,7 @@ export async function getCachedAllTasksWithContext(
   teamContext?: { user: BetterAuthUser; userTeamIds: string[] },
 ) {
   "use cache";
-  cacheTag(CacheTags.tasksByOrg(orgCode));
+  cacheTag(...tagsFor("task", { organizationId: orgCode }));
 
   const tasks = await TasksQueries.getTasksWithContext(orgCode, {
     user: teamContext?.user,
@@ -115,7 +106,7 @@ export async function getCachedTasksByRecordingId(
   if (orgId) {
     cacheTag(
       CacheTags.tasksByRecording(recordingId),
-      CacheTags.tasksByOrg(orgId),
+      ...tagsFor("task", { organizationId: orgId }),
     );
   } else {
     cacheTag(CacheTags.tasksByRecording(recordingId));

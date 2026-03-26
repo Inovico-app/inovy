@@ -1,6 +1,5 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
@@ -86,8 +85,6 @@ export const updateMeetingDetails = authorizedActionClient
       });
       throw createErrorForNextSafeAction(result.error);
     }
-
-    CacheInvalidation.invalidateCalendarMeetings(user.id, organizationId);
 
     logger.info("Successfully updated meeting details", {
       userId: user.id,

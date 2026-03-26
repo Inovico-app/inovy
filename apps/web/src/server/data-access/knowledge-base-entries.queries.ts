@@ -2,7 +2,6 @@ import { and, eq, ilike, isNull, or } from "drizzle-orm";
 import { db } from "../db";
 import {
   knowledgeBaseEntries,
-  type KnowledgeBaseEntry,
   type KnowledgeBaseScope,
 } from "../db/schema/knowledge-base-entries";
 import type {

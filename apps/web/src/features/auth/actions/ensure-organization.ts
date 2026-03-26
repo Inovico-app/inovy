@@ -1,112 +1,70 @@
 "use server";
 
-import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
-import { AuditLogService } from "@/server/services/audit-log.service";
+import {
+  authorizedActionClient,
+  resultToActionResponse,
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { OrganizationAssignmentService } from "@/server/services/organization-assignment.service";
 
 /**
- * Server action to ensure user has an organization assigned
- * Called on initial login or whenever organization is missing
+ * Server action to ensure user has an organization assigned.
+ * Called on initial login or whenever organization is missing.
+ *
+ * Uses empty permissions so middleware authenticates the user
+ * but does NOT require an existing organization (needed for onboarding).
  */
-export async function ensureUserOrganization(): Promise<{
-  success: boolean;
-  organizationCode?: string;
-  error?: string;
-}> {
-  try {
-    // Get current auth session
-    const authResult = await getBetterAuthSession();
+export const ensureUserOrganizationAction = authorizedActionClient
+  .metadata({
+    name: "ensure-user-organization",
+    permissions: {},
+    audit: {
+      resourceType: "organization",
+      action: "ensure-organization",
+      category: "mutation",
+    },
+  })
+  .action(async ({ ctx }) => {
+    const { user, organizationId } = ctx;
 
-    if (authResult.isErr()) {
-      logger.error("Failed to get auth session in ensureUserOrganization", {
-        error: authResult.error,
-      });
-
-      return {
-        success: false,
-        error: "Failed to authenticate",
-      };
+    if (!user) {
+      throw ActionErrors.unauthenticated(
+        "User not found",
+        "ensure-user-organization",
+      );
     }
 
-    const { isAuthenticated, user, organization } = authResult.value;
-
-    if (!isAuthenticated || !user) {
-      logger.warn("User not authenticated in ensureUserOrganization");
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
-    }
-
-    // Check if user already has an organization
-    if (organization) {
+    // User already has an organization — return it
+    if (organizationId) {
       logger.info("User already has organization", {
+        component: "ensureUserOrganizationAction",
         userId: user.id,
-        organizationId: organization.id,
+        organizationId,
       });
 
-      return {
-        success: true,
-        organizationCode: organization.id,
-      };
+      return { organizationCode: organizationId };
     }
 
-    // User doesn't have organization, ensure one is assigned
+    // User is missing an organization — ensure one is assigned
     logger.info("User missing organization, ensuring assignment", {
+      component: "ensureUserOrganizationAction",
       userId: user.id,
     });
 
     const assignmentResult =
       await OrganizationAssignmentService.ensureUserOrganization(user);
 
-    if (assignmentResult.isErr()) {
-      logger.error("Failed to ensure user organization", {
-        userId: user.id,
-        error: assignmentResult.error.message,
-      });
-
-      return {
-        success: false,
-        error:
-          assignmentResult.error.message || "Failed to assign organization",
-      };
-    }
-
-    const assignedOrganization = assignmentResult.value;
+    const assignedOrganization = resultToActionResponse(assignmentResult);
 
     logger.info("Successfully ensured user organization", {
+      component: "ensureUserOrganizationAction",
       userId: user.id,
       organizationId: assignedOrganization.id,
     });
 
-    if (user.id) {
-      void AuditLogService.createAuditLog({
-        eventType: "organization_create",
-        resourceType: "organization",
-        resourceId: assignedOrganization.id,
-        userId: user.id,
-        organizationId: assignedOrganization.id,
-        action: "create",
-        category: "mutation",
-        metadata: { actionName: "ensureUserOrganization" },
-      });
-    }
+    // Set audit resource ID for the middleware
+    ctx.audit?.setResourceId(assignedOrganization.id);
 
-    return {
-      success: true,
-      organizationCode: assignedOrganization.id, // organizationCode is the Better Auth organization ID
-    };
-  } catch (error) {
-    logger.error(
-      "Unexpected error in ensureUserOrganization",
-      {},
-      error as Error,
-    );
-
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    return { organizationCode: assignedOrganization.id };
+  });

@@ -1,4 +1,4 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import { DriveWatchesService } from "../services/drive-watches.service";
 import type { DriveWatchListItemDto } from "../dto/drive-watch.dto";
@@ -14,11 +14,11 @@ import type { DriveWatchListItemDto } from "../dto/drive-watch.dto";
  * Note: Auth should be checked before calling this function
  */
 export async function getCachedDriveWatches(
-  userId: string
+  userId: string,
 ): Promise<DriveWatchListItemDto[]> {
   "use cache";
 
-  cacheTag(CacheTags.driveWatches(userId));
+  cacheTag(...tagsFor("driveWatch", { userId }));
 
   const result = await DriveWatchesService.listWatches(userId);
 

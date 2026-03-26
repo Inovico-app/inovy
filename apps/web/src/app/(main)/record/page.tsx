@@ -6,6 +6,7 @@ import { InfoIcon } from "lucide-react";
 import { ProtectedPage } from "@/components/protected-page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RecordPage as NewRecordPage } from "@/features/recordings/components/record-page";
+import type { AuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import type { ProjectWithCreatorDto } from "@/server/dto/project.dto";
 import { ProjectService } from "@/server/services/project.service";
@@ -48,8 +49,14 @@ async function RecordPageContent({
     );
   }
 
+  const auth: AuthContext = {
+    user,
+    organizationId: organization.id,
+    userTeamIds: authResult.value.userTeamIds ?? [],
+  };
+
   // Fetch active projects for this organization
-  const projectsResult = await ProjectService.getProjectsByOrganization({
+  const projectsResult = await ProjectService.getProjectsByOrganization(auth, {
     organizationId: organization.id,
     status: "active",
   });

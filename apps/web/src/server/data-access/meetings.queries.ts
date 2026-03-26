@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray } from "drizzle-orm";
 import type { BetterAuthUser } from "@/lib/auth";
 import { buildTeamFilter } from "@/lib/rbac/team-isolation";
 import { db } from "../db";

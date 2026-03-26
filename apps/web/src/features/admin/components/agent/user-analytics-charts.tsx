@@ -11,8 +11,8 @@ import type { UserAnalyticsChartsProps } from "./user-analytics-types";
 
 export function UserAnalyticsCharts({
   engagementMetrics,
-  startDate,
-  endDate,
+  startDate: _startDate,
+  endDate: _endDate,
 }: UserAnalyticsChartsProps) {
   const {
     totalConversations,

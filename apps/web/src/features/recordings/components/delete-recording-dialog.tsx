@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2Icon, Trash2Icon } from "lucide-react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -34,6 +35,7 @@ export function DeleteRecordingDialog({
   onOpenChange,
 }: DeleteRecordingDialogProps) {
   const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +43,7 @@ export function DeleteRecordingDialog({
   const handleDelete = async () => {
     if (confirmationText !== "DELETE" && confirmationText !== recordingTitle) {
       setError(
-        'Please type "DELETE" or the exact recording title to confirm deletion'
+        'Please type "DELETE" or the exact recording title to confirm deletion',
       );
       return;
     }
@@ -73,7 +75,7 @@ export function DeleteRecordingDialog({
 
       toast.success(`Recording "${recordingTitle}" deleted successfully`);
       router.refresh();
-      router.push(`/projects/${projectId}`);
+      router.push(`/projects/${projectId}` as Route);
     } catch (error) {
       console.error("Error deleting recording:", error);
       const errorMessage = "Failed to delete recording";
@@ -89,11 +91,12 @@ export function DeleteRecordingDialog({
       setConfirmationText("");
       setError(null);
     }
+    setIsOpen(newOpen);
     onOpenChange?.(newOpen);
   };
 
   return (
-    <Dialog open>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger render={<Button variant={variant} size="sm" />}>
         <Trash2Icon className="h-4 w-4 mr-2" />
         Delete
@@ -170,4 +173,3 @@ export function DeleteRecordingDialog({
     </Dialog>
   );
 }
-

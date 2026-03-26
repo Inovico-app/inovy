@@ -1,5 +1,5 @@
 import { err, ok } from "neverthrow";
-import { CacheInvalidation } from "../../lib/cache-utils";
+import { invalidateFor } from "../../lib/cache";
 import { logger, serializeError } from "../../lib/logger";
 import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
 import { assertTeamAccess } from "../../lib/rbac/team-isolation";
@@ -7,11 +7,15 @@ import {
   ActionErrors,
   type ActionResult,
 } from "../../lib/server-action-client/action-errors";
+import type { AuthContext } from "../../lib/auth-context";
 import type { BetterAuthUser } from "../../lib/auth";
-import { getBetterAuthSession } from "../../lib/better-auth-session";
 import { ProjectQueries } from "../data-access/projects.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
-import { type NewRecording, type Recording } from "../db/schema/recordings";
+import {
+  type NewRecording,
+  type Recording,
+  type RecordingStatus,
+} from "../db/schema/recordings";
 import { type RecordingDto } from "../dto/recording.dto";
 import { RAGService } from "./rag/rag.service";
 
@@ -92,10 +96,10 @@ export class RecordingService {
 
       // Invalidate recordings cache for this project
       if (invalidateCache) {
-        CacheInvalidation.invalidateProjectRecordings(
-          recording.projectId,
-          recording.organizationId,
-        );
+        invalidateFor("recording", "upload", {
+          organizationId: recording.organizationId,
+          input: { projectId: recording.projectId },
+        });
       }
 
       logger.info("Successfully created recording", {
@@ -123,10 +127,12 @@ export class RecordingService {
   }
 
   /**
-   * Get a recording by ID
+   * Get a recording by ID (authenticated)
+   * Always enforces organization and team-level access isolation.
    */
   static async getRecordingById(
     id: string,
+    auth: AuthContext,
   ): Promise<ActionResult<RecordingDto | null>> {
     logger.info("Fetching recording by ID", {
       component: "RecordingService.getRecordingById",
@@ -144,22 +150,15 @@ export class RecordingService {
         return ok(null);
       }
 
-      // Enforce team-level access isolation via the recording's project.
-      // Fail-closed: if the recording belongs to a project and we cannot verify
-      // team access (session failure or project not found), deny access rather
-      // than silently returning the recording.
+      // Always enforce organization-level access isolation
+      assertOrganizationAccess(
+        recording.organizationId,
+        auth.organizationId,
+        "RecordingService.getRecordingById",
+      );
+
+      // Enforce team-level access isolation via the recording's project
       if (recording.projectId) {
-        const sessionResult = await getBetterAuthSession();
-        if (sessionResult.isErr() || !sessionResult.value.user) {
-          return err(
-            ActionErrors.forbidden(
-              "Unable to verify access",
-              undefined,
-              "RecordingService.getRecordingById",
-            ),
-          );
-        }
-        const { user: sessionUser, userTeamIds } = sessionResult.value;
         const project = await ProjectQueries.findById(
           recording.projectId,
           recording.organizationId,
@@ -174,8 +173,8 @@ export class RecordingService {
         }
         assertTeamAccess(
           project.teamId,
-          userTeamIds,
-          sessionUser,
+          auth.userTeamIds,
+          auth.user,
           "RecordingService.getRecordingById",
         );
       }
@@ -193,6 +192,48 @@ export class RecordingService {
           "Failed to fetch recording",
           error as Error,
           "RecordingService.getRecordingById",
+        ),
+      );
+    }
+  }
+
+  /**
+   * Get a recording by ID without auth checks.
+   * Only for internal system/workflow callers (e.g. background jobs, workflow steps).
+   * User-facing code must use getRecordingById(id, auth) instead.
+   */
+  static async getRecordingByIdInternal(
+    id: string,
+  ): Promise<ActionResult<RecordingDto | null>> {
+    logger.info("Fetching recording by ID (internal)", {
+      component: "RecordingService.getRecordingByIdInternal",
+      recordingId: id,
+    });
+
+    try {
+      const recording = await RecordingsQueries.selectRecordingById(id);
+
+      if (!recording) {
+        logger.warn("Recording not found", {
+          component: "RecordingService.getRecordingByIdInternal",
+          recordingId: id,
+        });
+        return ok(null);
+      }
+
+      return ok(this.toDto(recording));
+    } catch (error) {
+      logger.error("Failed to fetch recording from database", {
+        component: "RecordingService.getRecordingByIdInternal",
+        error: serializeError(error),
+        recordingId: id,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to fetch recording",
+          error as Error,
+          "RecordingService.getRecordingByIdInternal",
         ),
       );
     }
@@ -357,7 +398,7 @@ export class RecordingService {
           organizationId,
           "RecordingService.updateRecordingMetadata",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -382,11 +423,10 @@ export class RecordingService {
       }
 
       // Invalidate cache for this recording
-      CacheInvalidation.invalidateRecording(
-        id,
-        updatedRecording.projectId,
+      invalidateFor("recording", "update", {
         organizationId,
-      );
+        input: { recordingId: id, projectId: updatedRecording.projectId },
+      });
 
       logger.info("Successfully updated recording metadata", {
         component: "RecordingService.updateRecordingMetadata",
@@ -478,11 +518,10 @@ export class RecordingService {
 
       if (result) {
         // Invalidate cache for this recording
-        CacheInvalidation.invalidateRecording(
-          recordingId,
-          recording.projectId,
-          orgCode,
-        );
+        invalidateFor("recording", "archive", {
+          organizationId: orgCode,
+          input: { recordingId, projectId: recording.projectId },
+        });
 
         logger.info("Successfully archived recording", {
           component: "RecordingService.archiveRecording",
@@ -539,11 +578,10 @@ export class RecordingService {
 
       if (result) {
         // Invalidate cache for this recording
-        CacheInvalidation.invalidateRecording(
-          recordingId,
-          recording.projectId,
-          orgCode,
-        );
+        invalidateFor("recording", "restore", {
+          organizationId: orgCode,
+          input: { recordingId, projectId: recording.projectId },
+        });
 
         logger.info("Successfully unarchived recording", {
           component: "RecordingService.unarchiveRecording",
@@ -600,7 +638,7 @@ export class RecordingService {
           orgCode,
           "RecordingService.deleteRecording",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -625,11 +663,10 @@ export class RecordingService {
       }
 
       // Invalidate cache for this recording
-      CacheInvalidation.invalidateRecording(
-        recordingId,
-        recording.projectId,
-        orgCode,
-      );
+      invalidateFor("recording", "delete", {
+        organizationId: orgCode,
+        input: { recordingId, projectId: recording.projectId },
+      });
 
       logger.info("Successfully deleted recording", {
         component: "RecordingService.deleteRecording",
@@ -692,7 +729,7 @@ export class RecordingService {
           organizationId,
           "RecordingService.moveRecording",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
@@ -776,19 +813,14 @@ export class RecordingService {
       }
 
       // Invalidate cache for both source and target projects
-      CacheInvalidation.invalidateProjectRecordings(
-        sourceProjectId,
+      invalidateFor("recording", "move", {
         organizationId,
-      );
-      CacheInvalidation.invalidateProjectRecordings(
-        targetProjectId,
-        organizationId,
-      );
-      CacheInvalidation.invalidateRecording(
-        recordingId,
-        targetProjectId,
-        organizationId,
-      );
+        input: {
+          recordingId,
+          oldProjectId: sourceProjectId,
+          newProjectId: targetProjectId,
+        },
+      });
 
       logger.info("Successfully moved recording", {
         component: "RecordingService.moveRecording",
@@ -818,6 +850,58 @@ export class RecordingService {
   }
 
   /**
+   * Update recording storage fields (fileUrl, fileName, fileSize, fileMimeType, storageStatus)
+   * Used by the bot-webhook workflow after the recording file has been downloaded and stored.
+   */
+  static async updateRecordingStorage(
+    recordingId: string,
+    data: {
+      fileUrl?: string | null;
+      fileName?: string | null;
+      fileSize?: number | null;
+      fileMimeType?: string | null;
+      storageStatus?: RecordingStatus;
+    },
+  ): Promise<ActionResult<void>> {
+    logger.info("Updating recording storage", {
+      component: "RecordingService.updateRecordingStorage",
+      recordingId,
+    });
+
+    try {
+      const updated = await RecordingsQueries.updateRecording(
+        recordingId,
+        data,
+      );
+
+      if (!updated) {
+        return err(
+          ActionErrors.notFound(
+            "Recording",
+            "RecordingService.updateRecordingStorage",
+          ),
+        );
+      }
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error("Failed to update recording storage", {
+        component: "RecordingService.updateRecordingStorage",
+        error: serializeError(error),
+        recordingId,
+      });
+
+      return err(
+        ActionErrors.internal(
+          "Failed to update recording storage",
+          error as Error,
+          "RecordingService.updateRecordingStorage",
+        ),
+      );
+    }
+  }
+
+  /**
    * Convert database recording to DTO
    */
   static toDto(recording: Recording): RecordingDto {
@@ -826,10 +910,12 @@ export class RecordingService {
       projectId: recording.projectId,
       title: recording.title,
       description: recording.description,
-      fileUrl: recording.fileUrl,
-      fileName: recording.fileName,
-      fileSize: recording.fileSize,
-      fileMimeType: recording.fileMimeType,
+      fileUrl: recording.fileUrl ?? null,
+      fileName: recording.fileName ?? null,
+      fileSize: recording.fileSize ?? null,
+      fileMimeType: recording.fileMimeType ?? null,
+      storageStatus: recording.storageStatus,
+      recallBotId: recording.recallBotId ?? null,
       duration: recording.duration,
       recordingDate: recording.recordingDate,
       recordingMode: recording.recordingMode,

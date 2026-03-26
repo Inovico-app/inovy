@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2Icon, Trash2Icon } from "lucide-react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDeleteProjectState } from "../hooks/use-delete-project-state";
@@ -56,11 +57,11 @@ export function DeleteProjectDialog({
 }: DeleteProjectDialogProps) {
   const router = useRouter();
   const [internalOpen, setInternalOpen] = useState(false);
-  
+
   // Use controlled state if provided, otherwise use internal state
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = controlledOnOpenChange || setInternalOpen;
-  
+
   const {
     state: deleteState,
     setConfirmationText,
@@ -78,9 +79,12 @@ export function DeleteProjectDialog({
   }, [open, resetDeleteState]);
 
   const handleDelete = async () => {
-    if (deleteState.confirmationText !== "DELETE" && deleteState.confirmationText !== projectName) {
+    if (
+      deleteState.confirmationText !== "DELETE" &&
+      deleteState.confirmationText !== projectName
+    ) {
       setError(
-        'Please type "DELETE" or the exact project name to confirm deletion'
+        'Please type "DELETE" or the exact project name to confirm deletion',
       );
       return;
     }
@@ -118,7 +122,7 @@ export function DeleteProjectDialog({
 
       toast.success(`Project "${projectName}" deleted successfully`);
       setOpen(false);
-      router.push("/projects");
+      router.push("/projects" as Route);
       router.refresh();
     } catch (error) {
       console.error("Error deleting project:", error);
@@ -133,7 +137,8 @@ export function DeleteProjectDialog({
   const isDeleteDisabled =
     deleteState.isLoading ||
     !deleteState.confirmCheckbox ||
-    (deleteState.confirmationText !== "DELETE" && deleteState.confirmationText !== projectName);
+    (deleteState.confirmationText !== "DELETE" &&
+      deleteState.confirmationText !== projectName);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -152,8 +157,8 @@ export function DeleteProjectDialog({
           </DialogTitle>
           <DialogDescription className="space-y-3 pt-2">
             <p className="text-base font-medium text-foreground">
-              This action <strong className="text-destructive">CANNOT</strong> be
-              undone. This will permanently delete:
+              This action <strong className="text-destructive">CANNOT</strong>{" "}
+              be undone. This will permanently delete:
             </p>
             <ul className="list-disc list-inside pl-2 space-y-2 text-sm">
               <li>
@@ -207,7 +212,9 @@ export function DeleteProjectDialog({
           </div>
 
           {deleteState.error && (
-            <p className="text-sm text-destructive font-medium">{deleteState.error}</p>
+            <p className="text-sm text-destructive font-medium">
+              {deleteState.error}
+            </p>
           )}
 
           {/* Warning Box */}
@@ -242,7 +249,9 @@ export function DeleteProjectDialog({
             variant="destructive"
             className="min-w-[160px]"
           >
-            {deleteState.isLoading && <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />}
+            {deleteState.isLoading && (
+              <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+            )}
             Delete Permanently
           </Button>
         </DialogFooter>

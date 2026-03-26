@@ -1,5 +1,6 @@
 "use server";
 
+import type { AuthContext } from "@/lib/auth-context";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
@@ -23,7 +24,7 @@ export const archiveProjectAction = authorizedActionClient
     const { projectId } = parsedInput;
     const { organizationId } = ctx;
 
-    if (!organizationId) {
+    if (!organizationId || !ctx.user) {
       throw ActionErrors.forbidden(
         "Organization context required",
         undefined,
@@ -31,11 +32,14 @@ export const archiveProjectAction = authorizedActionClient
       );
     }
 
-    // Archive project
-    const result = await ProjectService.archiveProject(
-      projectId,
+    const auth: AuthContext = {
+      user: ctx.user,
       organizationId,
-    );
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
+    // Archive project
+    const result = await ProjectService.archiveProject(projectId, auth);
 
     if (result.isErr()) {
       throw ActionErrors.internal(

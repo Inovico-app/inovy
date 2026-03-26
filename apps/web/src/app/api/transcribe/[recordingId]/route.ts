@@ -12,7 +12,7 @@ import { type NextRequest, NextResponse } from "next/server";
 export const POST = withRateLimit(
   async (
     request: NextRequest,
-    props: { params: Promise<{ recordingId: string }> }
+    props: { params: Promise<{ recordingId: string }> },
   ) => {
     try {
       const { recordingId } = await props.params;
@@ -27,7 +27,7 @@ export const POST = withRateLimit(
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      const user = authResult.value.user;
+      const _user = authResult.value.user;
 
       // Verify RBAC permission (viewers cannot trigger transcription)
       const hasPermission = await checkPermission(Permissions.recording.update);
@@ -37,7 +37,7 @@ export const POST = withRateLimit(
 
       // Get recording
       const recordingResult =
-        await RecordingService.getRecordingById(recordingId);
+        await RecordingService.getRecordingByIdInternal(recordingId);
 
       if (recordingResult.isErr()) {
         logger.error("Recording not found", {
@@ -46,7 +46,7 @@ export const POST = withRateLimit(
         });
         return NextResponse.json(
           { error: recordingResult.error?.message ?? "Unknown error" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -59,7 +59,7 @@ export const POST = withRateLimit(
         });
         return NextResponse.json(
           { error: "Recording not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -70,11 +70,30 @@ export const POST = withRateLimit(
         assertOrganizationAccess(
           recording.organizationId,
           organization?.id,
-          "api/transcribe/[recordingId]"
+          "api/transcribe/[recordingId]",
         );
-      } catch (error) {
+      } catch (_error) {
         // Return 404 to prevent information leakage
         return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+
+      if (!recording.fileUrl || recording.storageStatus !== "completed") {
+        if (
+          recording.storageStatus === "pending" ||
+          recording.storageStatus === "processing"
+        ) {
+          return NextResponse.json(
+            {
+              error: "Recording file not yet available",
+              storageStatus: recording.storageStatus,
+            },
+            { status: 202, headers: { "Retry-After": "10" } },
+          );
+        }
+        return NextResponse.json(
+          { error: "Recording has no file URL" },
+          { status: 422 },
+        );
       }
 
       logger.info("Starting transcription", {
@@ -86,7 +105,7 @@ export const POST = withRateLimit(
       // Start transcription (this will run in background)
       const result = await TranscriptionService.transcribeUploadedFile(
         recordingId,
-        recording.fileUrl
+        recording.fileUrl,
       );
 
       if (result.isErr()) {
@@ -98,7 +117,7 @@ export const POST = withRateLimit(
 
         return NextResponse.json(
           { error: result.error.message },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -114,7 +133,7 @@ export const POST = withRateLimit(
 
       return NextResponse.json(
         { error: "Internal server error" },
-        { status: 500 }
+        { status: 500 },
       );
     }
   },
@@ -132,6 +151,5 @@ export const POST = withRateLimit(
       return authResult.value.user?.id ?? null;
     }
     return null;
-  }
+  },
 );
-

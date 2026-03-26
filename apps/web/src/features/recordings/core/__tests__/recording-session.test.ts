@@ -65,6 +65,26 @@ describe("RecordingSession FSM", () => {
       expect(session.getState().status).toBe("recording");
     });
 
+    it("passes deviceId through to audio capture on start", async () => {
+      const { session, audioCapture } = createSession();
+
+      await session.start("test-device-123");
+
+      expect(audioCapture.getLastInitConfig()).toEqual({
+        deviceId: "test-device-123",
+      });
+    });
+
+    it("passes undefined deviceId when no device specified", async () => {
+      const { session, audioCapture } = createSession();
+
+      await session.start();
+
+      expect(audioCapture.getLastInitConfig()).toEqual({
+        deviceId: undefined,
+      });
+    });
+
     it("transitions recording -> paused on pause", async () => {
       const { session } = createSession();
       await session.start();

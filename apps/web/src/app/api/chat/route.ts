@@ -9,7 +9,8 @@ import { AgentConfigService } from "@/server/services/agent-config.service";
 import { AgentKillSwitchService } from "@/server/services/agent-kill-switch.service";
 import { AgentTokenBudgetService } from "@/server/services/agent-token-budget.service";
 import { ChatAuditService } from "@/server/services/chat-audit.service";
-import { ChatService } from "@/server/services/chat.service";
+import { ChatPipeline } from "@/server/services/chat";
+import type { ChatScope } from "@/server/services/chat";
 import { ProjectService } from "@/server/services/project.service";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -21,7 +22,7 @@ const userMessageSchema = z.object({
       type: z.enum(["text", "image"]),
       text: z.string().optional(),
       image: z.string().optional(),
-    })
+    }),
   ),
   id: z.string(),
 });
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
           error: "Agent is temporarily unavailable",
           code: "AGENT_KILLED",
         },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
           error: "Agent is disabled for this organization",
           code: "AGENT_DISABLED",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -121,9 +122,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check per-organization daily token budget
-    const budgetResult = await AgentTokenBudgetService.getRemainingBudget(
-      organizationId
-    );
+    const budgetResult =
+      await AgentTokenBudgetService.getRemainingBudget(organizationId);
 
     if (!budgetResult.allowed) {
       return NextResponse.json(
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
           limit: budgetResult.limit,
           remaining: budgetResult.remaining,
         },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
     if (!validationResult.success) {
       return NextResponse.json(
         { error: "Invalid request", details: validationResult.error },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
     if (!lastUserMessage) {
       return NextResponse.json(
         { error: "No user message found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
               "Organization-level chat requires administrator privileges",
             requiredRole: "admin",
           },
-          { status: 403 }
+          { status: 403 },
         );
       }
 
@@ -243,42 +243,24 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Create or get conversation
-      let activeConversationId = conversationId;
-
-      if (context === "organization" && !activeConversationId) {
-        const conversationResult =
-          await ChatService.createOrganizationConversation(
-            user.id,
-            organizationId
-          );
-
-        if (conversationResult.isErr()) {
-          logger.error("Failed to create organization conversation", {
-            error: conversationResult.error,
-          });
-          return NextResponse.json(
-            { error: "Failed to create conversation" },
-            { status: 500 }
-          );
-        }
-
-        activeConversationId = conversationResult.value.conversationId;
-      }
-
-      if (!activeConversationId) {
-        return NextResponse.json(
-          { error: "Conversation ID required" },
-          { status: 400 }
-        );
-      }
-
-      // Stream the response
-      const streamResult = await ChatService.streamOrganizationResponse(
-        activeConversationId,
-        lastUserMessage,
+      // Stream the response via ChatPipeline
+      const orgScope: ChatScope = {
+        kind: "organization",
         organizationId,
-        userRole
+      };
+
+      const streamResult = await ChatPipeline.sendMessage(
+        {
+          user,
+          userId: user.id,
+          organizationId,
+          userRole,
+        },
+        {
+          message: lastUserMessage,
+          conversationId,
+          scope: orgScope,
+        },
       );
 
       if (streamResult.isErr()) {
@@ -307,24 +289,23 @@ export async function POST(request: NextRequest) {
         });
         return NextResponse.json(
           { error: "Failed to generate response" },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
       // Return the streaming response with conversation ID in header
-      const response = streamResult.value.stream;
+      const response = streamResult.value.response;
 
-      // Clone the response to add custom headers
       const headers = new Headers(response.headers);
-      headers.set("X-Conversation-Id", activeConversationId);
+      headers.set("X-Conversation-Id", streamResult.value.conversationId);
       headers.set("X-RateLimit-Limit", rateLimitResult.limit.toString());
       headers.set(
         "X-RateLimit-Remaining",
-        rateLimitResult.remaining.toString()
+        rateLimitResult.remaining.toString(),
       );
       headers.set(
         "X-RateLimit-Reset",
-        new Date(rateLimitResult.resetAt).toISOString()
+        new Date(rateLimitResult.resetAt).toISOString(),
       );
 
       return new Response(response.body, {
@@ -337,16 +318,24 @@ export async function POST(request: NextRequest) {
       if (!projectId) {
         return NextResponse.json(
           { error: "Project ID is required for project context" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       // Verify user has access to the project
-      const projectResult = await ProjectService.getProjectById(projectId);
-      if (projectResult.isErr()) {
+      const chatAuth = {
+        user,
+        organizationId,
+        userTeamIds: session.userTeamIds ?? [],
+      };
+      const projectResult = await ProjectService.getProjectById(
+        projectId,
+        chatAuth,
+      );
+      if (projectResult.isErr() || !projectResult.value) {
         return NextResponse.json(
           { error: "Project not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -356,47 +345,36 @@ export async function POST(request: NextRequest) {
         assertOrganizationAccess(
           project.organizationId,
           organizationId,
-          "api/chat/POST"
+          "api/chat/POST",
         );
-      } catch (error) {
+      } catch (_error) {
         // Return 404 to prevent information leakage
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
 
-      // Create or get conversation
-      let activeConversationId = conversationId;
-
-      if (!activeConversationId) {
-        const conversationResult = await ChatService.createConversation(
-          projectId,
-          user.id,
-          organizationId
-        );
-
-        if (conversationResult.isErr()) {
-          logger.error("Failed to create conversation", {
-            error: conversationResult.error,
-          });
-          return NextResponse.json(
-            { error: "Failed to create conversation" },
-            { status: 500 }
-          );
-        }
-
-        activeConversationId = conversationResult.value.conversationId;
-      }
-
-      // Stream the response
-      const streamResult = await ChatService.streamResponse(
-        activeConversationId,
-        lastUserMessage,
-        projectId,
+      // Stream the response via ChatPipeline
+      const projectScope: ChatScope = {
+        kind: "project",
+        projectId: projectId!,
         organizationId,
-        userRole
+      };
+
+      const projectStreamResult = await ChatPipeline.sendMessage(
+        {
+          user,
+          userId: user.id,
+          organizationId,
+          userRole,
+        },
+        {
+          message: lastUserMessage,
+          conversationId,
+          scope: projectScope,
+        },
       );
 
-      if (streamResult.isErr()) {
-        const err = streamResult.error;
+      if (projectStreamResult.isErr()) {
+        const err = projectStreamResult.error;
         if (err instanceof GuardrailError) {
           const categories = (err.violation.details?.categories ??
             []) as string[];
@@ -422,30 +400,32 @@ export async function POST(request: NextRequest) {
         });
         return NextResponse.json(
           { error: "Failed to generate response" },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
       // Return the streaming response with conversation ID in header
-      const response = streamResult.value.stream;
+      const projectResponse = projectStreamResult.value.response;
 
-      // Clone the response to add custom headers
-      const headers = new Headers(response.headers);
-      headers.set("X-Conversation-Id", activeConversationId);
-      headers.set("X-RateLimit-Limit", rateLimitResult.limit.toString());
-      headers.set(
+      const projectHeaders = new Headers(projectResponse.headers);
+      projectHeaders.set(
+        "X-Conversation-Id",
+        projectStreamResult.value.conversationId,
+      );
+      projectHeaders.set("X-RateLimit-Limit", rateLimitResult.limit.toString());
+      projectHeaders.set(
         "X-RateLimit-Remaining",
-        rateLimitResult.remaining.toString()
+        rateLimitResult.remaining.toString(),
       );
-      headers.set(
+      projectHeaders.set(
         "X-RateLimit-Reset",
-        new Date(rateLimitResult.resetAt).toISOString()
+        new Date(rateLimitResult.resetAt).toISOString(),
       );
 
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers,
+      return new Response(projectResponse.body, {
+        status: projectResponse.status,
+        statusText: projectResponse.statusText,
+        headers: projectHeaders,
       });
     }
   } catch (error) {
@@ -454,8 +434,7 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

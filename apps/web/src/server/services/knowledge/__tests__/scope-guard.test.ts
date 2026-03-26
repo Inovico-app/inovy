@@ -1,0 +1,365 @@
+import type { AuthContext } from "@/lib/auth-context";
+import { ScopeGuard } from "../scope-guard";
+
+// ============================================================================
+// Mock functions
+// ============================================================================
+
+const mockFindById = vi.fn();
+const mockSelectTeamById = vi.fn();
+const mockSelectUserTeam = vi.fn();
+const mockCheckPermission = vi.fn();
+
+vi.mock("@/server/data-access/projects.queries", () => ({
+  ProjectQueries: {
+    findById: (...args: unknown[]) => mockFindById(...args),
+  },
+}));
+
+vi.mock("@/server/data-access/teams.queries", () => ({
+  TeamQueries: {
+    selectTeamById: (...args: unknown[]) => mockSelectTeamById(...args),
+  },
+  UserTeamQueries: {
+    selectUserTeam: (...args: unknown[]) => mockSelectUserTeam(...args),
+  },
+}));
+
+vi.mock("@/lib/rbac/permissions-server", () => ({
+  checkPermission: (...args: unknown[]) => mockCheckPermission(...args),
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+// ============================================================================
+// Test AuthContext
+// ============================================================================
+
+const mockAuth: AuthContext = {
+  user: {
+    id: "user-1",
+    name: "Test User",
+    email: "test@test.com",
+    image: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    emailVerified: true,
+    twoFactorEnabled: false,
+    role: "user",
+    onboardingCompleted: true,
+  },
+  organizationId: "org-1",
+  userTeamIds: ["team-1"],
+};
+
+// ============================================================================
+// Tests: ScopeGuard.validate()
+// ============================================================================
+
+describe("ScopeGuard.validate", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // --------------------------------------------------------------------------
+  // Project scope
+  // --------------------------------------------------------------------------
+
+  it("project scope — valid project returns ok()", async () => {
+    mockFindById.mockResolvedValue({ id: "proj-1", organizationId: "org-1" });
+
+    const result = await ScopeGuard.validate(
+      "project",
+      "proj-1",
+      "user-1",
+      "read",
+      mockAuth,
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(mockFindById).toHaveBeenCalledWith("proj-1", "org-1");
+  });
+
+  it("project scope — null scopeId returns err with BAD_REQUEST", async () => {
+    const result = await ScopeGuard.validate(
+      "project",
+      null,
+      "user-1",
+      "read",
+      mockAuth,
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.code).toBe("BAD_REQUEST");
+      expect(result.error.message).toContain("Project scope requires scopeId");
+    }
+  });
+
+  it("project scope — non-existent project returns err with NOT_FOUND", async () => {
+    mockFindById.mockResolvedValue(null);
+
+    const result = await ScopeGuard.validate(
+      "project",
+      "proj-nonexistent",
+      "user-1",
+      "read",
+      mockAuth,
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.code).toBe("NOT_FOUND");
+      expect(result.error.message).toContain("Project not found");
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // Team scope
+  // --------------------------------------------------------------------------
+
+  it("team scope — write without membership returns err with FORBIDDEN", async () => {
+    mockSelectTeamById.mockResolvedValue({ id: "team-1" });
+    mockSelectUserTeam.mockResolvedValue(null);
+
+    const result = await ScopeGuard.validate(
+      "team",
+      "team-1",
+      "user-1",
+      "write",
+      mockAuth,
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.code).toBe("FORBIDDEN");
+      expect(result.error.message).toContain("not a member of this team");
+    }
+  });
+
+  it("team scope — write with membership returns ok()", async () => {
+    mockSelectTeamById.mockResolvedValue({ id: "team-1" });
+    mockSelectUserTeam.mockResolvedValue({
+      userId: "user-1",
+      teamId: "team-1",
+    });
+
+    const result = await ScopeGuard.validate(
+      "team",
+      "team-1",
+      "user-1",
+      "write",
+      mockAuth,
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(mockSelectTeamById).toHaveBeenCalledWith("team-1", "org-1");
+    expect(mockSelectUserTeam).toHaveBeenCalledWith("user-1", "team-1");
+  });
+
+  // --------------------------------------------------------------------------
+  // Organization scope
+  // --------------------------------------------------------------------------
+
+  it("organization scope — write without permission returns err with FORBIDDEN", async () => {
+    mockCheckPermission.mockResolvedValue(false);
+
+    const result = await ScopeGuard.validate(
+      "organization",
+      "org-1",
+      "user-1",
+      "write",
+      mockAuth,
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.code).toBe("FORBIDDEN");
+      expect(result.error.message).toContain("admin or manager permissions");
+    }
+  });
+
+  it("organization scope — mismatched org returns err with FORBIDDEN", async () => {
+    const result = await ScopeGuard.validate(
+      "organization",
+      "org-other",
+      "user-1",
+      "read",
+      mockAuth,
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.code).toBe("FORBIDDEN");
+      expect(result.error.message).toContain(
+        "Cannot access other organization",
+      );
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // Global scope
+  // --------------------------------------------------------------------------
+
+  it("global scope — non-null scopeId returns err with BAD_REQUEST", async () => {
+    const result = await ScopeGuard.validate(
+      "global",
+      "some-id",
+      "user-1",
+      "read",
+      mockAuth,
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.code).toBe("BAD_REQUEST");
+      expect(result.error.message).toContain(
+        "Global scope must have null scopeId",
+      );
+    }
+  });
+
+  it("global scope — write without admin returns err with FORBIDDEN", async () => {
+    mockCheckPermission.mockResolvedValue(false);
+
+    const result = await ScopeGuard.validate(
+      "global",
+      null,
+      "user-1",
+      "write",
+      mockAuth,
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.code).toBe("FORBIDDEN");
+      expect(result.error.message).toContain("super admin permissions");
+    }
+  });
+
+  it("global scope — read returns ok()", async () => {
+    const result = await ScopeGuard.validate(
+      "global",
+      null,
+      "user-1",
+      "read",
+      mockAuth,
+    );
+
+    expect(result.isOk()).toBe(true);
+  });
+});
+
+// ============================================================================
+// validateDocumentAccess
+// ============================================================================
+
+describe("ScopeGuard.validateDocumentAccess", () => {
+  const baseDoc = {
+    id: "doc-1",
+    title: "Test",
+    description: null,
+    fileUrl: "https://blob/test.pdf",
+    fileName: "test.pdf",
+    fileSize: 1000,
+    fileType: "application/pdf",
+    extractedText: null,
+    processingStatus: "completed" as const,
+    processingError: null,
+    createdById: "user-1",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  it("project scope — valid project allows access", async () => {
+    mockFindById.mockResolvedValue({ id: "proj-1" });
+
+    const result = await ScopeGuard.validateDocumentAccess(
+      { ...baseDoc, scope: "project" as const, scopeId: "proj-1" },
+      mockAuth,
+    );
+
+    expect(result.isOk()).toBe(true);
+  });
+
+  it("project scope — missing project denies access", async () => {
+    mockFindById.mockResolvedValue(null);
+
+    const result = await ScopeGuard.validateDocumentAccess(
+      { ...baseDoc, scope: "project" as const, scopeId: "proj-999" },
+      mockAuth,
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.code).toBe("NOT_FOUND");
+    }
+  });
+
+  it("team scope — member allows access", async () => {
+    mockSelectTeamById.mockResolvedValue({ id: "team-1" });
+    mockSelectUserTeam.mockResolvedValue({
+      userId: "user-1",
+      teamId: "team-1",
+    });
+
+    const result = await ScopeGuard.validateDocumentAccess(
+      { ...baseDoc, scope: "team" as const, scopeId: "team-1" },
+      mockAuth,
+    );
+
+    expect(result.isOk()).toBe(true);
+  });
+
+  it("team scope — non-member denies access", async () => {
+    mockSelectTeamById.mockResolvedValue({ id: "team-1" });
+    mockSelectUserTeam.mockResolvedValue(null);
+
+    const result = await ScopeGuard.validateDocumentAccess(
+      { ...baseDoc, scope: "team" as const, scopeId: "team-1" },
+      mockAuth,
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.code).toBe("NOT_FOUND");
+    }
+  });
+
+  it("organization scope — matching org allows access", async () => {
+    const result = await ScopeGuard.validateDocumentAccess(
+      { ...baseDoc, scope: "organization" as const, scopeId: "org-1" },
+      mockAuth,
+    );
+
+    expect(result.isOk()).toBe(true);
+  });
+
+  it("organization scope — mismatched org denies access", async () => {
+    const result = await ScopeGuard.validateDocumentAccess(
+      { ...baseDoc, scope: "organization" as const, scopeId: "org-other" },
+      mockAuth,
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.code).toBe("NOT_FOUND");
+    }
+  });
+
+  it("global scope — allows access", async () => {
+    const result = await ScopeGuard.validateDocumentAccess(
+      { ...baseDoc, scope: "global" as const, scopeId: null },
+      mockAuth,
+    );
+
+    expect(result.isOk()).toBe(true);
+  });
+});

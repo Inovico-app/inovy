@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { useEffect, useRef } from "react";
 
 interface StepTransitionProps {
@@ -14,7 +14,7 @@ export function StepTransition({ children }: StepTransitionProps) {
     // Focus the first interactive element when the step mounts/transitions in
     const timer = setTimeout(() => {
       const element = ref.current?.querySelector(
-        'input, select, textarea, button[type="submit"]'
+        'input, select, textarea, button[type="submit"]',
       );
       if (element instanceof HTMLElement) {
         element.focus();
@@ -36,4 +36,3 @@ export function StepTransition({ children }: StepTransitionProps) {
     </motion.div>
   );
 }
-

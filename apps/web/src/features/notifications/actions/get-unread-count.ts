@@ -1,63 +1,39 @@
 "use server";
 
-import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { logger } from "@/lib/logger";
-import { AuditLogService } from "@/server/services/audit-log.service";
+import type { AuthContext } from "@/lib/auth-context";
+import {
+  authorizedActionClient,
+  resultToActionResponse,
+} from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { NotificationService } from "@/server/services/notification.service";
 
-export async function getUnreadCount(): Promise<{
-  success: boolean;
-  data?: { count: number };
-  error?: string;
-}> {
-  try {
-    // Verify authentication at action boundary
-    const authResult = await getBetterAuthSession();
-    if (authResult.isErr() || !authResult.value.isAuthenticated) {
-      return { success: false, error: "Unauthorized" };
+export const getUnreadCountAction = authorizedActionClient
+  .metadata({
+    permissions: {},
+    audit: {
+      resourceType: "notification",
+      action: "get",
+      category: "read",
+    },
+  })
+  .action(async ({ ctx }) => {
+    const { user, organizationId, userTeamIds } = ctx;
+
+    if (!user || !organizationId) {
+      throw ActionErrors.unauthenticated(
+        "User not found",
+        "getUnreadCountAction",
+      );
     }
 
-    const result = await NotificationService.getUnreadCount();
-
-    if (result.isErr()) {
-      logger.error("Failed to get unread count", {
-        component: "getUnreadCount",
-        error: result.error.message,
-      });
-
-      return {
-        success: false,
-        error: result.error.message,
-      };
-    }
-
-    const { user, organization } = authResult.value;
-    if (user?.id && organization?.id) {
-      void AuditLogService.createAuditLog({
-        eventType: "notification_get",
-        resourceType: "notification",
-        resourceId: null,
-        userId: user.id,
-        organizationId: organization.id,
-        action: "get",
-        category: "read",
-        metadata: { actionName: "getUnreadCount" },
-      });
-    }
-
-    return {
-      success: true,
-      data: { count: result.value },
+    const auth: AuthContext = {
+      user,
+      organizationId,
+      userTeamIds: userTeamIds ?? [],
     };
-  } catch (error) {
-    logger.error("Unexpected error getting unread count", {
-      component: "getUnreadCount",
-      error,
-    });
 
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+    const result = await NotificationService.getUnreadCount(auth);
+    const count = resultToActionResponse(result);
+    return { count };
+  });

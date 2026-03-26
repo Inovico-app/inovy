@@ -1,5 +1,5 @@
 {
-  "id": "538232c6-e492-4727-a816-aa1e5b2f9381",
+  "id": "a51515db-889c-4217-98e2-feac2e5648e5",
   "prevId": "95296afe-4dde-446e-a07d-42c2e9e88569",
   "version": "7",
   "dialect": "postgresql",
@@ -370,7 +370,7 @@
           "tableTo": "recordings",
           "columnsFrom": ["recording_id"],
           "columnsTo": ["id"],
-          "onDelete": "cascade",
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -4683,25 +4683,38 @@
           "name": "file_url",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "file_name": {
           "name": "file_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "file_size": {
           "name": "file_size",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "file_mime_type": {
           "name": "file_mime_type",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "storage_status": {
+          "name": "storage_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'completed'"
+        },
+        "recall_bot_id": {
+          "name": "recall_bot_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "duration": {
           "name": "duration",

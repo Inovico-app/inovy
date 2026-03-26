@@ -7,8 +7,7 @@ import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
-import { CacheInvalidation } from "@/lib/cache-utils";
-import { openai } from "@ai-sdk/openai";
+import { connectionPool } from "@/server/services/connection-pool.service";
 import { generateObject } from "ai";
 
 const generateAgendaSchema = z.object({
@@ -55,10 +54,13 @@ export const generateAgendaFromAI = authorizedActionClient
       "generateAgendaFromAI",
     );
 
-    const { object } = await generateObject({
-      model: openai("gpt-4o-mini"),
-      schema: aiAgendaResultSchema,
-      prompt: `Generate a structured meeting agenda based on this description:
+    const { object } = await connectionPool.executeWithRetry(
+      () =>
+        connectionPool.withAnthropicAISdkClient(async (anthropic) =>
+          generateObject({
+            model: anthropic("claude-sonnet-4-6"),
+            schema: aiAgendaResultSchema,
+            prompt: `Generate a structured meeting agenda based on this description:
 
 "${parsedInput.prompt}"
 
@@ -67,7 +69,10 @@ Create 3-7 focused agenda items. Each item should have:
 - description: 1-2 sentence description of what to cover
 
 Keep items focused and time-appropriate for a typical meeting.`,
-    });
+          }),
+        ),
+      "anthropic",
+    );
 
     const items = await MeetingAgendaItemsQueries.insertMany(
       object.items.map((item, index) => ({
@@ -78,6 +83,5 @@ Keep items focused and time-appropriate for a typical meeting.`,
       })),
     );
 
-    CacheInvalidation.invalidateMeetingAgendaItems(parsedInput.meetingId);
     return { success: true, items };
   });

@@ -162,6 +162,11 @@ export class RecordingsQueries {
         | "transcriptionStatus"
         | "transcriptionText"
         | "redactedTranscriptionText"
+        | "fileUrl"
+        | "fileName"
+        | "fileSize"
+        | "fileMimeType"
+        | "storageStatus"
       >
     >,
   ): Promise<Recording | undefined> {
@@ -412,6 +417,8 @@ export class RecordingsQueries {
         fileName: recordings.fileName,
         fileSize: recordings.fileSize,
         fileMimeType: recordings.fileMimeType,
+        storageStatus: recordings.storageStatus,
+        recallBotId: recordings.recallBotId,
         duration: recordings.duration,
         recordingDate: recordings.recordingDate,
         transcriptionStatus: recordings.transcriptionStatus,

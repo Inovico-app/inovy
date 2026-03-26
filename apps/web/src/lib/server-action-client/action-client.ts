@@ -14,6 +14,8 @@ import { z } from "zod";
 
 import type { BetterAuthUser } from "../auth";
 import { getBetterAuthSession } from "../better-auth-session";
+import { cacheInvalidationMiddleware } from "../cache/cache-invalidation-middleware";
+import type { CachePolicy } from "../cache/types";
 import { generateApplicationErrorMessage } from "../error-messages";
 import { logger } from "../logger";
 import { checkPermission } from "../rbac/permissions-server";
@@ -40,6 +42,7 @@ const schemaMetadata = z.object({
       category: z.enum(["mutation", "read"]),
     })
     .optional(),
+  invalidate: z.custom<CachePolicy | false>().optional(),
 });
 
 export type Metadata = z.infer<typeof schemaMetadata>;
@@ -70,7 +73,8 @@ export const authorizedActionClient = createSafeActionClient({
 })
   .use(actionLoggerMiddleware)
   .use(authenticationMiddleware)
-  .use(auditLoggingMiddleware);
+  .use(auditLoggingMiddleware)
+  .use(cacheInvalidationMiddleware);
 
 /**
  * Creates a public action client without authentication

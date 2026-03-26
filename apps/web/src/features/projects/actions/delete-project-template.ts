@@ -1,6 +1,5 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { getUserOrganizationId } from "@/lib/server-action-client/action-helpers";
 import {
@@ -41,18 +40,13 @@ export const deleteProjectTemplateAction = authorizedActionClient
     const orgCode = getUserOrganizationId(user, organizationId);
 
     // Get template to find project ID before deletion
-    const template = await ProjectTemplateQueries.findById(id, orgCode);
+    const _template = await ProjectTemplateQueries.findById(id, orgCode);
 
     // Delete template using service
     const result = await ProjectTemplateService.deleteProjectTemplate(
       id,
       orgCode,
     );
-
-    // Revalidate project page if template existed
-    if (result.isOk() && template) {
-      CacheInvalidation.invalidateProject(template.projectId, orgCode);
-    }
 
     return resultToActionResponse(result);
   });

@@ -4,7 +4,7 @@ import {
   ActionErrors,
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
-import { CacheInvalidation } from "@/lib/cache-utils";
+import { invalidateFor } from "@/lib/cache";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { type NewMeeting, type Meeting } from "@/server/db/schema/meetings";
 import { NotificationService } from "./notification.service";
@@ -13,13 +13,14 @@ export class MeetingService {
   /**
    * Create a meeting and optionally notify the creator
    */
-  static async createMeeting(
-    data: NewMeeting
-  ): Promise<ActionResult<Meeting>> {
+  static async createMeeting(data: NewMeeting): Promise<ActionResult<Meeting>> {
     try {
       const meeting = await MeetingsQueries.insert(data);
 
-      CacheInvalidation.invalidateMeetings(data.organizationId);
+      invalidateFor("meeting", "create", {
+        userId: data.createdById,
+        organizationId: data.organizationId,
+      });
 
       // Send prep notification (only if projectId exists — notifications require it)
       if (data.projectId) {
@@ -55,7 +56,7 @@ export class MeetingService {
       logger.error(
         "Failed to create meeting",
         { component: "MeetingService" },
-        error as Error
+        error as Error,
       );
       return err(ActionErrors.internal("Failed to create meeting", error));
     }
@@ -67,12 +68,12 @@ export class MeetingService {
   static async findOrCreateForCalendarEvent(
     calendarEventId: string,
     organizationId: string,
-    meetingData: NewMeeting
+    meetingData: NewMeeting,
   ): Promise<ActionResult<Meeting>> {
     try {
       const existing = await MeetingsQueries.findByCalendarEventId(
         calendarEventId,
-        organizationId
+        organizationId,
       );
 
       if (existing) {
@@ -87,10 +88,10 @@ export class MeetingService {
           component: "MeetingService",
           calendarEventId,
         },
-        error as Error
+        error as Error,
       );
       return err(
-        ActionErrors.internal("Failed to find or create meeting", error)
+        ActionErrors.internal("Failed to find or create meeting", error),
       );
     }
   }
@@ -102,7 +103,7 @@ export class MeetingService {
     meetingId: string,
     organizationId: string,
     status: Meeting["status"],
-    additionalData?: Partial<Meeting>
+    additionalData?: Partial<Meeting>,
   ): Promise<ActionResult<Meeting>> {
     try {
       const meeting = await MeetingsQueries.update(meetingId, organizationId, {
@@ -114,8 +115,11 @@ export class MeetingService {
         return err(ActionErrors.notFound("Meeting"));
       }
 
-      CacheInvalidation.invalidateMeeting(meetingId);
-      CacheInvalidation.invalidateMeetings(organizationId);
+      invalidateFor("meeting", "update", {
+        userId: meeting.createdById ?? "",
+        organizationId,
+        input: { meetingId },
+      });
 
       return ok(meeting);
     } catch (error) {
@@ -126,10 +130,10 @@ export class MeetingService {
           meetingId,
           status,
         },
-        error as Error
+        error as Error,
       );
       return err(
-        ActionErrors.internal("Failed to update meeting status", error)
+        ActionErrors.internal("Failed to update meeting status", error),
       );
     }
   }

@@ -2,6 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TeamMemberAssignment } from "@/features/admin/components/team/team-member-assignment";
 import { UserManagementTable } from "@/features/admin/components/user/user-management-table";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
@@ -24,12 +25,14 @@ function AdminUsersHeader() {
 }
 
 async function TeamAssignmentTab() {
-  const authResult = await getBetterAuthSession();
+  const authCtxResult = await resolveAuthContext("TeamAssignmentTab");
+  const sessionResult = await getBetterAuthSession();
 
   if (
-    authResult.isErr() ||
-    !authResult.value.isAuthenticated ||
-    !authResult.value.organization
+    authCtxResult.isErr() ||
+    sessionResult.isErr() ||
+    !sessionResult.value.isAuthenticated ||
+    !sessionResult.value.organization
   ) {
     return (
       <div className="text-center py-8">
@@ -40,20 +43,21 @@ async function TeamAssignmentTab() {
     );
   }
 
-  const { organization, user } = authResult.value;
+  const auth = authCtxResult.value;
+  const { organization, user } = sessionResult.value;
   const canEdit = user ? isOrganizationAdmin(user) : false;
 
   // Fetch members and teams
   const membersResult = await OrganizationService.getOrganizationMembers(
-    organization.id
+    organization.id,
   );
-  const teams = await getCachedTeamsWithMemberCounts(organization.id);
+  const teams = await getCachedTeamsWithMemberCounts(organization.id, auth);
 
   // Fetch team memberships for all users
   const members = membersResult.isOk() ? membersResult.value : [];
   const membersWithTeams = await Promise.all(
     members.map(async (member) => {
-      const userTeamsResult = await TeamService.getUserTeams(member.id);
+      const userTeamsResult = await TeamService.getUserTeams(member.id, auth);
       const userTeams = userTeamsResult.isOk() ? userTeamsResult.value : [];
 
       return {
@@ -67,7 +71,7 @@ async function TeamAssignmentTab() {
           };
         }),
       };
-    })
+    }),
   );
 
   return (
@@ -157,4 +161,3 @@ export default function AdminUsersPage() {
     </Suspense>
   );
 }
-

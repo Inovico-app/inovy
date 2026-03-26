@@ -1,13 +1,13 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
+import type { AuthContext } from "@/lib/auth-context";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { DocumentProcessingService } from "@/server/services/document-processing.service";
+import { KnowledgeModule } from "@/server/services/knowledge";
 import { deleteKnowledgeDocumentSchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 
@@ -36,36 +36,32 @@ export const deleteKnowledgeDocumentAction = authorizedActionClient
       );
     }
 
+    if (!organizationId) {
+      throw ActionErrors.forbidden(
+        "Organization context required",
+        undefined,
+        "delete-knowledge-document",
+      );
+    }
+
     // Get document first to know its scope for cache invalidation
     const { KnowledgeBaseDocumentsQueries } =
       await import("../../../server/data-access/knowledge-base-documents.queries");
     const document = await KnowledgeBaseDocumentsQueries.getDocumentById(id);
 
+    const auth: AuthContext = {
+      user,
+      organizationId,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Delete document
-    const result = await DocumentProcessingService.deleteDocument(id, user.id);
+    const result = await KnowledgeModule.deleteDocument(id, auth);
 
     if (result.isErr()) {
       throw result.error;
     }
 
-    // Invalidate cache based on document scope
-    if (document) {
-      CacheInvalidation.invalidateKnowledge(document.scope, document.scopeId);
-      if (document.scope === "project" && document.scopeId && organizationId) {
-        CacheInvalidation.invalidateKnowledgeHierarchy(
-          document.scopeId,
-          organizationId,
-        );
-      } else if (document.scope === "team" && document.scopeId) {
-        CacheInvalidation.invalidateKnowledgeHierarchy(null, document.scopeId);
-      } else if (document.scope === "organization" && document.scopeId) {
-        CacheInvalidation.invalidateKnowledgeHierarchy(null, document.scopeId);
-      } else if (document.scope === "global") {
-        CacheInvalidation.invalidateKnowledgeHierarchy(null, null);
-      }
-    } else {
-      // Document not found - cache invalidation handled by service error
-    }
     // Revalidate relevant pages
     if (document?.scope === "project" && document.scopeId) {
       revalidatePath(`/projects/${document.scopeId}/settings`);

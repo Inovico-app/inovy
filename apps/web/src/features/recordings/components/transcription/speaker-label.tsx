@@ -6,10 +6,7 @@ import { Edit2 } from "lucide-react";
 import { useState } from "react";
 import { EditSpeakerNameDialog } from "./edit-speaker-name-dialog";
 import { getSpeakerInfo, getUserInitials } from "./speaker-helpers";
-import {
-  getSpeakerColors,
-  isValidSpeakerTextColor,
-} from "@/features/recordings/lib/speaker-colors";
+import { getSpeakerColors } from "@/features/recordings/lib/speaker-colors";
 import { cn } from "@/lib/utils";
 
 interface SpeakerLabelProps {
@@ -26,7 +23,7 @@ export function SpeakerLabel({
   speakerNumber,
   customName,
   currentUserId,
-  textColor,
+  textColor: _textColor,
   recordingId,
   speakerNames,
   speakerUserIds,
@@ -39,7 +36,7 @@ export function SpeakerLabel({
     speakerNumber,
     speakerNames,
     speakerUserIds,
-    users
+    users,
   );
 
   // Use customName prop if provided (for backward compatibility), otherwise use speakerInfo.name
@@ -51,14 +48,15 @@ export function SpeakerLabel({
 
   // Get speaker colors for consistent styling
   const speakerColors = getSpeakerColors(speakerNumber);
-  
+
   // Use currentUserId from props if provided, otherwise use speakerInfo.userId
   // This allows overriding the userId for specific use cases
   const effectiveUserId = currentUserId ?? speakerInfo.userId;
-  
+
   // Use customName prop if provided, otherwise use speakerNames from the recording
   // This ensures the dialog shows the correct current name
-  const effectiveCustomName = customName ?? speakerNames?.[speakerNumber.toString()];
+  const effectiveCustomName =
+    customName ?? speakerNames?.[speakerNumber.toString()];
 
   return (
     <>
@@ -72,7 +70,7 @@ export function SpeakerLabel({
           speakerColors.badgeBg,
           "border-border/40 hover:border-border/60",
           "hover:shadow-md hover:scale-[1.02]",
-          "active:scale-[0.98]"
+          "active:scale-[0.98]",
         )}
         title="Klik om spreker te bewerken"
         aria-label={`Bewerk spreker ${displayName}`}
@@ -80,10 +78,7 @@ export function SpeakerLabel({
         {effectiveUserId && (
           <Avatar className="flex-shrink-0 w-7 h-7 ring-2 ring-background/50">
             <AvatarFallback
-              className={cn(
-                "text-xs font-semibold",
-                speakerColors.avatar
-              )}
+              className={cn("text-xs font-semibold", speakerColors.avatar)}
             >
               {userInitials}
             </AvatarFallback>
@@ -94,7 +89,7 @@ export function SpeakerLabel({
             className={cn(
               "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center",
               "text-xs font-semibold ring-2 ring-background/50",
-              speakerColors.avatar
+              speakerColors.avatar,
             )}
           >
             {speakerNumber + 1}
@@ -104,7 +99,7 @@ export function SpeakerLabel({
           className={cn(
             "text-sm font-semibold",
             speakerColors.text,
-            "group-hover:opacity-90 transition-opacity"
+            "group-hover:opacity-90 transition-opacity",
           )}
         >
           {displayName}
@@ -122,4 +117,3 @@ export function SpeakerLabel({
     </>
   );
 }
-

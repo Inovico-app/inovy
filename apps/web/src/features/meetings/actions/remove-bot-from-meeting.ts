@@ -1,6 +1,5 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { logger, serializeError } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
@@ -162,11 +161,6 @@ export const removeBotFromMeeting = authorizedActionClient
         error: serializeError(error),
       });
     }
-
-    // Invalidate caches
-    CacheInvalidation.invalidateBotSessions(organizationId);
-    CacheInvalidation.invalidateBotSession(session.id, organizationId);
-    CacheInvalidation.invalidateNotifications(user.id, organizationId);
 
     logger.info("Successfully removed bot from meeting", {
       userId: user.id,

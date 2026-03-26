@@ -53,7 +53,11 @@ export function usePasskeySignIn() {
 
       // Handle case where no callback was triggered
       if (result.error) {
-        toast.error(result.error.message ?? "Failed to sign in with passkey");
+        toast.error(
+          typeof result.error.message === "string"
+            ? result.error.message
+            : "Failed to sign in with passkey",
+        );
         setIsPasskeyLoading(false);
       }
     } catch (error) {

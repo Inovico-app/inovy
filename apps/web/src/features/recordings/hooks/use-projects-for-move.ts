@@ -1,4 +1,4 @@
-import { getUserProjects } from "@/features/projects/actions/get-user-projects";
+import { getUserProjectsAction } from "@/features/projects/actions/get-user-projects";
 import { useQuery } from "@tanstack/react-query";
 
 interface UseProjectsForMoveOptions {
@@ -17,10 +17,10 @@ export function useProjectsForMove({
   return useQuery({
     queryKey: ["projects-for-move", currentProjectId],
     queryFn: async () => {
-      const result = await getUserProjects();
+      const result = await getUserProjectsAction();
 
-      if (!result.success || !result.data) {
-        throw new Error(result.error || "Failed to load projects");
+      if (result?.serverError || !result?.data) {
+        throw new Error(result?.serverError || "Failed to load projects");
       }
 
       // Filter out current project
@@ -32,4 +32,3 @@ export function useProjectsForMove({
     retry: 1,
   });
 }
-

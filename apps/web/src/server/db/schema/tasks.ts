@@ -5,7 +5,6 @@ import {
   uuid,
   real,
   integer,
-  boolean,
 } from "drizzle-orm/pg-core";
 import { recordings } from "./recordings";
 import { projects } from "./projects";

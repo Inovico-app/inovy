@@ -6,12 +6,13 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
+import type { ChatStatus } from "ai";
 
 interface ChatInputProps {
   context: "organization" | "project";
   projectId: string | null;
   currentProjectName: string | undefined;
-  status: "streaming" | "submitted" | "idle" | "error" | "ready";
+  status: ChatStatus;
   agentEnabled: boolean;
   onSendMessage: (text: string) => void;
 }
@@ -31,7 +32,7 @@ export function ChatInput({
     !agentEnabled;
 
   return (
-    <div className="border-t p-4 bg-background">
+    <div className="mx-auto w-full max-w-4xl px-4 pb-4 pt-4">
       <PromptInput
         onSubmit={(message, e) => {
           e.preventDefault();
@@ -56,17 +57,9 @@ export function ChatInput({
               Press Enter to send, Shift+Enter for new line
             </span>
           </PromptInputTools>
-          <PromptInputSubmit
-            disabled={isDisabled}
-            status={
-              status === "streaming" || status === "submitted"
-                ? "streaming"
-                : undefined
-            }
-          />
+          <PromptInputSubmit disabled={isDisabled} status={status} />
         </PromptInputFooter>
       </PromptInput>
     </div>
   );
 }
-

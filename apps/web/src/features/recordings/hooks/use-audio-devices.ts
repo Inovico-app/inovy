@@ -28,10 +28,7 @@ const CACHE_DURATION_MS = 5000; // 5 seconds cache
  */
 async function enumerateAudioDevices(): Promise<AudioInputDevice[]> {
   // Check cache first
-  if (
-    deviceCache &&
-    Date.now() - deviceCache.timestamp < CACHE_DURATION_MS
-  ) {
+  if (deviceCache && Date.now() - deviceCache.timestamp < CACHE_DURATION_MS) {
     return deviceCache.devices;
   }
 
@@ -42,7 +39,7 @@ async function enumerateAudioDevices(): Promise<AudioInputDevice[]> {
     !navigator.mediaDevices.enumerateDevices
   ) {
     console.warn(
-      "navigator.mediaDevices.enumerateDevices is not available in this context"
+      "navigator.mediaDevices.enumerateDevices is not available in this context",
     );
     return [];
   }
@@ -50,7 +47,14 @@ async function enumerateAudioDevices(): Promise<AudioInputDevice[]> {
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const audioInputDevices: AudioInputDevice[] = devices
-      .filter((device) => device.kind === "audioinput")
+      .filter(
+        (device) =>
+          device.kind === "audioinput" &&
+          // Filter out the browser's "default" pseudo-device — we provide our
+          // own "Standaard microfoon" option in the UI that maps to the system
+          // default. Keeping both would show a confusing duplicate.
+          device.deviceId !== "default",
+      )
       .map((device) => ({
         deviceId: device.deviceId,
         label: device.label || `Microphone ${device.deviceId.slice(0, 8)}`,
@@ -129,7 +133,7 @@ export function useAudioDevices() {
       ) {
         navigator.mediaDevices.removeEventListener(
           "devicechange",
-          handleDeviceChange
+          handleDeviceChange,
         );
       }
     };

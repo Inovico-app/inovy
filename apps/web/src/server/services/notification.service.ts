@@ -1,7 +1,6 @@
 import { err, ok } from "neverthrow";
-import { revalidateTag } from "next/cache";
-import { getBetterAuthSession } from "../../lib/better-auth-session";
-import { CacheInvalidation, CacheTags } from "../../lib/cache-utils";
+import type { AuthContext } from "../../lib/auth-context";
+import { invalidateFor } from "../../lib/cache";
 import { logger } from "../../lib/logger";
 import {
   ActionErrors,
@@ -29,20 +28,16 @@ export class NotificationService {
    * Used by AI processing services to notify users
    */
   static async createNotification(
-    data: Omit<NewNotification, "id" | "createdAt">
+    data: Omit<NewNotification, "id" | "createdAt">,
   ): Promise<ActionResult<NotificationDto>> {
     try {
       const notification = await NotificationsQueries.createNotification(data);
 
       // Invalidate cache for this user
-      revalidateTag(
-        CacheTags.notifications(data.userId, data.organizationId),
-        "max"
-      );
-      revalidateTag(
-        CacheTags.notificationUnreadCount(data.userId, data.organizationId),
-        "max"
-      );
+      invalidateFor("notification", "update", {
+        userId: data.userId,
+        organizationId: data.organizationId,
+      });
 
       return ok(this.toDto(notification));
     } catch (error) {
@@ -51,8 +46,8 @@ export class NotificationService {
         ActionErrors.internal(
           "Failed to create notification",
           error as Error,
-          "NotificationService.createNotification"
-        )
+          "NotificationService.createNotification",
+        ),
       );
     }
   }
@@ -61,41 +56,19 @@ export class NotificationService {
    * Get notifications for the authenticated user with caching
    */
   static async getNotifications(
-    filters?: NotificationFiltersDto
+    auth: AuthContext,
+    filters?: NotificationFiltersDto,
   ): Promise<ActionResult<NotificationListDto>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "NotificationService.getNotifications"
-          )
-        );
-      }
-
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser || !organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "NotificationService.getNotifications"
-          )
-        );
-      }
-
       const notifications = await getCachedNotifications(
-        authUser.id,
-        organization.id,
-        filters
+        auth.user.id,
+        auth.organizationId,
+        filters,
       );
 
       const unreadCount = await getCachedUnreadCount(
-        authUser.id,
-        organization.id
+        auth.user.id,
+        auth.organizationId,
       );
 
       return ok({
@@ -109,8 +82,8 @@ export class NotificationService {
         ActionErrors.internal(
           "Failed to get notifications",
           error as Error,
-          "NotificationService.getNotifications"
-        )
+          "NotificationService.getNotifications",
+        ),
       );
     }
   }
@@ -118,32 +91,14 @@ export class NotificationService {
   /**
    * Get unread notification count for the authenticated user
    */
-  static async getUnreadCount(): Promise<ActionResult<number>> {
+  static async getUnreadCount(
+    auth: AuthContext,
+  ): Promise<ActionResult<number>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "NotificationService.getUnreadCount"
-          )
-        );
-      }
-
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser || !organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "NotificationService.getUnreadCount"
-          )
-        );
-      }
-
-      const count = await getCachedUnreadCount(authUser.id, organization.id);
+      const count = await getCachedUnreadCount(
+        auth.user.id,
+        auth.organizationId,
+      );
 
       return ok(count);
     } catch (error) {
@@ -152,8 +107,8 @@ export class NotificationService {
         ActionErrors.internal(
           "Failed to get unread count",
           error as Error,
-          "NotificationService.getUnreadCount"
-        )
+          "NotificationService.getUnreadCount",
+        ),
       );
     }
   }
@@ -162,32 +117,10 @@ export class NotificationService {
    * Mark a notification as read with authorization check
    */
   static async markAsRead(
-    notificationId: string
+    notificationId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<NotificationDto>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "NotificationService.markAsRead"
-          )
-        );
-      }
-
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser || !organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "NotificationService.markAsRead"
-          )
-        );
-      }
-
       // Get notification first to verify organization ownership
       const existingNotification =
         await NotificationsQueries.getNotificationById(notificationId);
@@ -196,36 +129,36 @@ export class NotificationService {
         return err(
           ActionErrors.notFound(
             "Notification",
-            "NotificationService.markAsRead"
-          )
+            "NotificationService.markAsRead",
+          ),
         );
       }
 
       // Verify notification belongs to user's organization
-      if (existingNotification.organizationId !== organization.id) {
+      if (existingNotification.organizationId !== auth.organizationId) {
         return err(
           ActionErrors.notFound(
             "Notification not found",
-            "NotificationService.markAsRead"
-          )
+            "NotificationService.markAsRead",
+          ),
         );
       }
 
       const notification = await NotificationsQueries.markAsRead(
         notificationId,
-        authUser.id
+        auth.user.id,
       );
 
       if (!notification) {
         return err(
           ActionErrors.notFound(
             "Notification",
-            "NotificationService.markAsRead"
-          )
+            "NotificationService.markAsRead",
+          ),
         );
       }
 
-      await this.invalidateCache(authUser.id, organization.id);
+      await this.invalidateCache(auth.user.id, auth.organizationId);
 
       return ok(this.toDto(notification));
     } catch (error) {
@@ -234,8 +167,8 @@ export class NotificationService {
         ActionErrors.internal(
           "Failed to mark notification as read",
           error as Error,
-          "NotificationService.markAsRead"
-        )
+          "NotificationService.markAsRead",
+        ),
       );
     }
   }
@@ -243,51 +176,28 @@ export class NotificationService {
   /**
    * Mark all notifications as read for the authenticated user
    */
-  static async markAllAsRead(): Promise<ActionResult<number>> {
+  static async markAllAsRead(auth: AuthContext): Promise<ActionResult<number>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "NotificationService.markAllAsRead"
-          )
-        );
-      }
-
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser || !organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "NotificationService.markAllAsRead"
-          )
-        );
-      }
-
       const count = await NotificationsQueries.markAllAsRead(
-        authUser.id,
-        organization.id
+        auth.user.id,
+        auth.organizationId,
       );
 
-      await this.invalidateCache(authUser.id, organization.id);
+      await this.invalidateCache(auth.user.id, auth.organizationId);
 
       return ok(count);
     } catch (error) {
       logger.error(
         "Failed to mark all notifications as read",
         {},
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to mark all notifications as read",
           error as Error,
-          "NotificationService.markAllAsRead"
-        )
+          "NotificationService.markAllAsRead",
+        ),
       );
     }
   }
@@ -296,7 +206,10 @@ export class NotificationService {
    * Invalidate notification cache for a user
    */
   static async invalidateCache(userId: string, orgCode: string): Promise<void> {
-    CacheInvalidation.invalidateNotifications(userId, orgCode);
+    invalidateFor("notification", "update", {
+      userId,
+      organizationId: orgCode,
+    });
   }
 
   /**
@@ -332,4 +245,3 @@ export class NotificationService {
     };
   }
 }
-

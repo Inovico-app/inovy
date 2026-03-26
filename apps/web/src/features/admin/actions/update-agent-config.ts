@@ -1,6 +1,5 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -93,10 +92,6 @@ export const updateAgentConfig = authorizedActionClient
         });
       }
     }
-
-    // Invalidate cache
-    CacheInvalidation.invalidateOrganizations();
-    CacheInvalidation.invalidateOrganization(organizationId);
 
     // Revalidate Next.js route cache
     revalidatePath("/admin/agent-config");

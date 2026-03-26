@@ -1,4 +1,4 @@
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import type { AuthContext } from "@/lib/auth-context";
 import { MAX_FILE_SIZE_50MB } from "@/lib/constants/file-sizes";
 import { logger } from "@/lib/logger";
 import { getStorageProvider, resolveFetchableUrl } from "./storage";
@@ -34,15 +34,11 @@ export class DocumentProcessingService {
    */
   private static async resolveOrganizationId(
     document: KnowledgeDocumentDto,
-    authResult: Awaited<ReturnType<typeof getBetterAuthSession>>,
+    auth?: AuthContext,
   ): Promise<ActionResult<string>> {
-    // Priority 1: Use organization from auth session if available
-    if (
-      authResult.isOk() &&
-      authResult.value.organization?.id &&
-      authResult.value.isAuthenticated
-    ) {
-      return ok(authResult.value.organization.id);
+    // Priority 1: Use organization from auth context if available
+    if (auth?.organizationId) {
+      return ok(auth.organizationId);
     }
 
     // Priority 2: Use persisted document.organization/orgCode field if available
@@ -90,26 +86,9 @@ export class DocumentProcessingService {
   private static async validateDocumentAccess(
     document: KnowledgeDocumentDto,
     context: string,
+    auth: AuthContext,
   ): Promise<ActionResult<void>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr() || !authResult.value.user) {
-        return err(
-          ActionErrors.unauthenticated("Authentication required", context),
-        );
-      }
-
-      const userOrgId = authResult.value.organization?.id;
-      if (!userOrgId) {
-        return err(
-          ActionErrors.forbidden(
-            "User does not belong to an organization",
-            undefined,
-            context,
-          ),
-        );
-      }
-
       // Validate based on document scope
       if (document.scope === "project") {
         // Project scope: Verify project exists and belongs to user's organization
@@ -121,7 +100,7 @@ export class DocumentProcessingService {
 
         const project = await ProjectQueries.findById(
           document.scopeId,
-          userOrgId,
+          auth.organizationId,
         );
         if (!project) {
           return err(ActionErrors.notFound("Document", context));
@@ -137,7 +116,7 @@ export class DocumentProcessingService {
           );
         }
 
-        if (document.scopeId !== userOrgId) {
+        if (document.scopeId !== auth.organizationId) {
           return err(ActionErrors.notFound("Document", context));
         }
       } else if (document.scope === "global") {
@@ -178,29 +157,10 @@ export class DocumentProcessingService {
     scopeId: string | null,
     userId: string,
     operation: "read" | "write",
+    auth: AuthContext,
   ): Promise<ActionResult<void>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr() || !authResult.value.user) {
-        return err(
-          ActionErrors.unauthenticated(
-            "Authentication required",
-            "DocumentProcessingService.validateScopePermissions",
-          ),
-        );
-      }
-
-      const userOrgId = authResult.value.organization?.id;
-
-      if (!userOrgId) {
-        return err(
-          ActionErrors.forbidden(
-            "User does not belong to an organization",
-            undefined,
-            "DocumentProcessingService.validateScopePermissions",
-          ),
-        );
-      }
+      const userOrgId = auth.organizationId;
 
       if (scope === "project") {
         // Project scope: Check project exists and user has access
@@ -338,6 +298,7 @@ export class DocumentProcessingService {
     scope: KnowledgeBaseScope,
     scopeId: string | null,
     userId: string,
+    auth: AuthContext,
   ): Promise<
     ActionResult<
       Array<{
@@ -355,6 +316,7 @@ export class DocumentProcessingService {
         scopeId,
         userId,
         "write",
+        auth,
       );
       if (permissionResult.isErr()) {
         return err(
@@ -576,6 +538,7 @@ export class DocumentProcessingService {
       description?: string | null;
     },
     userId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<KnowledgeDocumentDto>> {
     try {
       // Validate scope-specific permissions before upload
@@ -584,6 +547,7 @@ export class DocumentProcessingService {
         scopeId,
         userId,
         "write",
+        auth,
       );
       if (permissionResult.isErr()) {
         return err(
@@ -714,12 +678,8 @@ export class DocumentProcessingService {
         );
       }
 
-      // Resolve organization ID using proper resolution flow
-      const authResult = await getBetterAuthSession();
-      const orgIdResult = await this.resolveOrganizationId(
-        document,
-        authResult,
-      );
+      // Resolve organization ID using fallback resolution flow
+      const orgIdResult = await this.resolveOrganizationId(document);
 
       if (orgIdResult.isErr()) {
         await KnowledgeBaseDocumentsQueries.updateProcessingStatus(
@@ -907,6 +867,7 @@ export class DocumentProcessingService {
    */
   static async getDocumentForView(
     documentId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<KnowledgeDocumentDto>> {
     const document =
       await KnowledgeBaseDocumentsQueries.getDocumentById(documentId);
@@ -921,6 +882,7 @@ export class DocumentProcessingService {
     const accessResult = await this.validateDocumentAccess(
       document,
       "DocumentProcessingService.getDocumentForView",
+      auth,
     );
     if (accessResult.isErr()) {
       return err(accessResult.error);
@@ -933,6 +895,7 @@ export class DocumentProcessingService {
    */
   static async getDocumentContent(
     documentId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<string>> {
     try {
       const document =
@@ -950,6 +913,7 @@ export class DocumentProcessingService {
       const accessResult = await this.validateDocumentAccess(
         document,
         "DocumentProcessingService.getDocumentContent",
+        auth,
       );
       if (accessResult.isErr()) {
         return err(accessResult.error);
@@ -987,6 +951,7 @@ export class DocumentProcessingService {
   static async deleteDocument(
     documentId: string,
     userId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<void>> {
     try {
       // Get document to get file URL
@@ -1005,6 +970,7 @@ export class DocumentProcessingService {
       const accessResult = await this.validateDocumentAccess(
         document,
         "DocumentProcessingService.deleteDocument",
+        auth,
       );
       if (accessResult.isErr()) {
         return err(accessResult.error);
@@ -1016,6 +982,7 @@ export class DocumentProcessingService {
         document.scopeId,
         userId,
         "write",
+        auth,
       );
       if (permissionResult.isErr()) {
         return err(
@@ -1031,12 +998,8 @@ export class DocumentProcessingService {
         );
       }
 
-      // Resolve organization ID for Qdrant deletion using proper resolution flow
-      const orgAuthResult = await getBetterAuthSession();
-      const orgIdResult = await this.resolveOrganizationId(
-        document,
-        orgAuthResult,
-      );
+      // Resolve organization ID for Qdrant deletion using resolution flow
+      const orgIdResult = await this.resolveOrganizationId(document, auth);
 
       if (orgIdResult.isOk()) {
         const organizationId = orgIdResult.value;
@@ -1116,9 +1079,10 @@ export class DocumentProcessingService {
    */
   static async extractTermsFromDocument(
     documentId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<string[]>> {
     try {
-      const contentResult = await this.getDocumentContent(documentId);
+      const contentResult = await this.getDocumentContent(documentId, auth);
       if (contentResult.isErr()) {
         return err(contentResult.error);
       }

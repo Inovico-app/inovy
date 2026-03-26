@@ -1,10 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { InviteUserDialog } from "@/features/admin/components/organization/invite-user-dialog";
 import { TeamManagement } from "@/features/admin/components/team/team-management";
@@ -21,16 +16,8 @@ import {
   getCachedKnowledgeDocuments,
   getCachedKnowledgeEntries,
 } from "@/server/cache/knowledge-base.cache";
-import {
-  OrganizationService,
-  type PendingInvitationDto,
-} from "@/server/services/organization.service";
-import {
-  Building2Icon,
-  ClockIcon,
-  MailIcon,
-  UsersIcon,
-} from "lucide-react";
+import { OrganizationService } from "@/server/services/organization.service";
+import { Building2Icon, ClockIcon, MailIcon, UsersIcon } from "lucide-react";
 import { Suspense } from "react";
 
 async function OrganizationContent() {
@@ -39,7 +26,9 @@ async function OrganizationContent() {
   if (authResult.isErr()) {
     return (
       <div className="text-center py-12">
-        <p className="text-destructive">Failed to load organization information</p>
+        <p className="text-destructive">
+          Failed to load organization information
+        </p>
       </div>
     );
   }
@@ -71,27 +60,33 @@ async function OrganizationContent() {
     ]),
     getOrganizationSettings(),
     Promise.all([
-      getCachedKnowledgeEntries("organization", organizationId).catch((error) => {
-        logger.error("Failed to fetch knowledge entries", {
-          component: "OrganizationPage",
-          organizationId,
-          error: error instanceof Error ? error : new Error(String(error)),
-        });
-        return [];
-      }),
-      getCachedKnowledgeDocuments("organization", organizationId).catch((error) => {
-        logger.error("Failed to fetch knowledge documents", {
-          component: "OrganizationPage",
-          organizationId,
-          error: error instanceof Error ? error : new Error(String(error)),
-        });
-        return [];
-      }),
+      getCachedKnowledgeEntries("organization", organizationId).catch(
+        (error) => {
+          logger.error("Failed to fetch knowledge entries", {
+            component: "OrganizationPage",
+            organizationId,
+            error: error instanceof Error ? error : new Error(String(error)),
+          });
+          return [];
+        },
+      ),
+      getCachedKnowledgeDocuments("organization", organizationId).catch(
+        (error) => {
+          logger.error("Failed to fetch knowledge documents", {
+            component: "OrganizationPage",
+            organizationId,
+            error: error instanceof Error ? error : new Error(String(error)),
+          });
+          return [];
+        },
+      ),
     ]),
   ]);
 
   const members = membersResult.isOk() ? membersResult.value : [];
-  const pendingInvitations = invitationsResult.isOk() ? invitationsResult.value : [];
+  const pendingInvitations = invitationsResult.isOk()
+    ? invitationsResult.value
+    : [];
   const instructions =
     settingsResult && settingsResult.data?.instructions
       ? settingsResult.data.instructions
@@ -101,7 +96,9 @@ async function OrganizationContent() {
   const generalContent = (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base font-medium">Organization Details</CardTitle>
+        <CardTitle className="text-base font-medium">
+          Organization Details
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-3">
@@ -154,7 +151,11 @@ async function OrganizationContent() {
                       {member.roles && member.roles.length > 0 && (
                         <div className="flex gap-1">
                           {member.roles.map((role) => (
-                            <Badge key={role} variant="outline" className="text-xs">
+                            <Badge
+                              key={role}
+                              variant="outline"
+                              className="text-xs"
+                            >
                               {role}
                             </Badge>
                           ))}

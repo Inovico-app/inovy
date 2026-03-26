@@ -121,7 +121,7 @@ export class GoogleCalendarService {
           organizationId,
           "GoogleCalendarService.createEventFromTask",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Task not found",
@@ -292,7 +292,7 @@ export class GoogleCalendarService {
             organizationId,
             "GoogleCalendarService.createEventsFromTasks",
           );
-        } catch (error) {
+        } catch {
           return err(
             ActionErrors.notFound(
               "One or more tasks not found",
@@ -886,7 +886,7 @@ export class GoogleCalendarService {
         error instanceof Error &&
         (error.message.includes("insufficient authentication scopes") ||
           error.message.includes("insufficientPermissions") ||
-          (error as any).code === 403);
+          (error as unknown as { code: number }).code === 403);
 
       if (isInsufficientScopes) {
         logger.error("Insufficient Google OAuth scopes for calendar list", {

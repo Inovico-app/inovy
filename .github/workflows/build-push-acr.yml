@@ -47,11 +47,11 @@ jobs:
     steps:
       - name: Checkout repository
         if: ${{ inputs.build_image }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Azure Login
         if: ${{ inputs.build_image }}
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           client-id: ${{ vars.AZURE_CLIENT_ID }}
@@ -63,7 +63,7 @@ jobs:
 
       - name: Setup Docker Buildx
         if: ${{ inputs.build_image }}
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Get App URL for build
         if: ${{ inputs.build_image }}
@@ -88,7 +88,7 @@ jobs:
 
       - name: Build and Push Docker Image
         if: ${{ inputs.build_image }}
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./apps/web/Dockerfile

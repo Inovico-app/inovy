@@ -1,4 +1,4 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { logger } from "@/lib/logger";
 import { BotSettingsQueries } from "@/server/data-access/bot-settings.queries";
 import type { BotSettings } from "@/server/db/schema/bot-settings";
@@ -20,7 +20,7 @@ async function getCachedBotSettingsInternal(
   organizationId: string,
 ): Promise<BotSettings | null> {
   "use cache";
-  cacheTag(CacheTags.botSettings(userId, organizationId));
+  cacheTag(...tagsFor("botSettings", { userId, organizationId }));
 
   logger.info("Fetching bot settings", {
     userId,

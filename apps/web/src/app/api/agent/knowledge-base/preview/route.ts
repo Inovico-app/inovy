@@ -1,6 +1,7 @@
+import type { AuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
-import { KnowledgeBaseBrowserService } from "@/server/services/knowledge-base-browser.service";
+import { KnowledgeModule } from "@/server/services/knowledge";
 import { AgentConfigService } from "@/server/services/agent-config.service";
 import type { NextRequest } from "next/server";
 
@@ -20,12 +21,21 @@ export async function GET(request: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const organizationId = authResult.value.organization.id;
+    const { user, organization } = authResult.value;
+    if (!user) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const organizationId = organization.id;
+    const auth: AuthContext = {
+      user,
+      organizationId,
+      userTeamIds: authResult.value.userTeamIds ?? [],
+    };
 
     // Check if agent is enabled for this organization
-    const agentStatusResult = await AgentConfigService.isAgentEnabled(
-      organizationId
-    );
+    const agentStatusResult =
+      await AgentConfigService.isAgentEnabled(organizationId);
 
     if (agentStatusResult.isErr() || !agentStatusResult.value) {
       return Response.json(
@@ -33,7 +43,7 @@ export async function GET(request: NextRequest) {
           error: "Agent is disabled for this organization",
           code: "AGENT_DISABLED",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -41,12 +51,12 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const documentId = searchParams.get("documentId");
     const sampleSizeParam = searchParams.get("sampleSize");
-    
+
     // Validate and parse sampleSize with safe defaults
     const DEFAULT_SAMPLE_SIZE = 5;
     const MIN_SAMPLE_SIZE = 1;
     const MAX_SAMPLE_SIZE = 100;
-    
+
     let sampleSize = DEFAULT_SAMPLE_SIZE;
     if (sampleSizeParam) {
       const parsed = parseInt(sampleSizeParam, 10);
@@ -63,15 +73,15 @@ export async function GET(request: NextRequest) {
     if (!documentId) {
       return Response.json(
         { error: "documentId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Get document preview
-    const result = await KnowledgeBaseBrowserService.getDocumentPreview(
+    const result = await KnowledgeModule.getDocumentPreview(
       documentId,
-      organizationId,
-      sampleSize
+      auth,
+      sampleSize,
     );
 
     if (result.isErr()) {
@@ -82,7 +92,7 @@ export async function GET(request: NextRequest) {
       });
       return Response.json(
         { error: result.error.message },
-        { status: result.error.code === "INTERNAL_SERVER_ERROR" ? 500 : 400 }
+        { status: result.error.code === "INTERNAL_SERVER_ERROR" ? 500 : 400 },
       );
     }
 
@@ -95,4 +105,3 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

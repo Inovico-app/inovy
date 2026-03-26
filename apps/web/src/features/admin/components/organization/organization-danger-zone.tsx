@@ -20,6 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Loader2Icon, TrashIcon } from "lucide-react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -46,7 +47,7 @@ export function OrganizationDangerZone({
 
       if (result?.data) {
         toast.success("Organization deleted successfully");
-        router.push("/admin/organizations");
+        router.push("/admin/organizations" as Route);
       } else if (result?.validationErrors) {
         const errors = Object.values(result.validationErrors)
           .flat()
@@ -77,7 +78,15 @@ export function OrganizationDangerZone({
       </CardHeader>
       <CardContent>
         <AlertDialog>
-          <AlertDialogTrigger render={<Button variant="destructive" disabled={isDeleting} className="gap-2" />}>
+          <AlertDialogTrigger
+            render={
+              <Button
+                variant="destructive"
+                disabled={isDeleting}
+                className="gap-2"
+              />
+            }
+          >
             {isDeleting ? (
               <>
                 <Loader2Icon className="h-4 w-4 animate-spin" />
@@ -118,4 +127,3 @@ export function OrganizationDangerZone({
     </Card>
   );
 }
-

@@ -22,7 +22,6 @@ import { Label } from "@/components/ui/label";
 import { ConsentStatus } from "./consent-status";
 import { useState, useTransition } from "react";
 import {
-  bulkGrantConsentAction,
   grantConsentAction,
   revokeConsentAction,
 } from "../actions/manage-consent";
@@ -39,10 +38,10 @@ interface ConsentManagerProps {
 export function ConsentManager({
   recordingId,
   initialParticipants = [],
-  organizerEmail,
+  organizerEmail: _organizerEmail,
 }: ConsentManagerProps) {
   const [participants, setParticipants] = useState<ConsentParticipant[]>(
-    () => initialParticipants
+    () => initialParticipants,
   );
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newParticipantEmail, setNewParticipantEmail] = useState("");
@@ -68,7 +67,7 @@ export function ConsentManager({
 
         // Update local state
         const existingIndex = participants.findIndex(
-          (p) => p.participantEmail === email
+          (p) => p.participantEmail === email,
         );
 
         if (existingIndex >= 0) {
@@ -138,7 +137,7 @@ export function ConsentManager({
                 consentStatus: "revoked" as const,
                 consentRevokedAt: new Date(),
               }
-            : p
+            : p,
         );
         setParticipants(updated);
 
@@ -159,7 +158,10 @@ export function ConsentManager({
       return;
     }
 
-    handleGrantConsent(newParticipantEmail.trim(), newParticipantName.trim() || undefined);
+    handleGrantConsent(
+      newParticipantEmail.trim(),
+      newParticipantName.trim() || undefined,
+    );
   };
 
   const stats = {
@@ -180,7 +182,9 @@ export function ConsentManager({
             </CardDescription>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger render={<Button size="sm" variant="outline" className="gap-2" />}>
+            <DialogTrigger
+              render={<Button size="sm" variant="outline" className="gap-2" />}
+            >
               <Plus className="h-4 w-4" />
               Add Participant
             </DialogTrigger>
@@ -255,7 +259,8 @@ export function ConsentManager({
                 >
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">
-                      {participant.participantName || participant.participantEmail}
+                      {participant.participantName ||
+                        participant.participantEmail}
                     </div>
                     {participant.participantName && (
                       <div className="text-sm text-muted-foreground truncate">
@@ -300,4 +305,3 @@ export function ConsentManager({
     </Card>
   );
 }
-

@@ -1,10 +1,9 @@
+import type { AuthContext } from "@/lib/auth-context";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { assertTeamAccess } from "@/lib/rbac/team-isolation";
 import type { ActionResult } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { err, ok } from "neverthrow";
-import { getBetterAuthSession } from "../../lib/better-auth-session";
-import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { getCachedTaskStats } from "../cache/task.cache";
 import { ProjectQueries } from "../data-access/projects.queries";
@@ -28,6 +27,10 @@ import type {
 /**
  * Business logic layer for Task operations
  * Orchestrates data access and handles business rules
+ *
+ * All methods that require auth take an AuthContext parameter — auth is
+ * resolved by the caller (action middleware, API route, or
+ * resolveAuthContext()), never fetched inside the service.
  */
 export class TaskService {
   /**
@@ -35,44 +38,21 @@ export class TaskService {
    * Automatically filters by assigneeId to ensure users only see their tasks
    */
   static async getTasksByAssignee(
+    auth: AuthContext,
     filters?: Omit<TaskFiltersDto, "assigneeId" | "organizationId">,
   ): Promise<ActionResult<TaskDto[]>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TaskService.getTasksByAssignee",
-          ),
-        );
-      }
+      const tasks = await TasksQueries.getTasksByOrganization(
+        auth.organizationId,
+        {
+          ...filters,
+          assigneeId: auth.user.id,
+          user: auth.user,
+          userTeamIds: auth.userTeamIds,
+        },
+      );
 
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser || !organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TaskService.getTasksByAssignee",
-          ),
-        );
-      }
-
-      const tasks = await this.getTasksByAssignee(filters);
-      if (tasks.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get tasks",
-            undefined,
-            "TaskService.getTasksByAssignee",
-          ),
-        );
-      }
-
-      return ok(tasks.value.map((task: Task) => this.toDto(task)));
+      return ok(tasks.map((task: Task) => this.toDto(task)));
     } catch (error) {
       logger.error("Failed to get tasks", {}, error as Error);
       return err(
@@ -87,37 +67,33 @@ export class TaskService {
 
   static async getTasksByRecordingId(
     recordingId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<TaskDto[]>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TaskService.getTasksByRecordingId",
-          ),
-        );
-      }
-
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser || !organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TaskService.getTasksByRecordingId",
-          ),
-        );
-      }
-
       const tasks = await TasksQueries.getTasksByRecordingId(recordingId);
 
       if (!tasks) {
         return err(
           ActionErrors.notFound("Tasks", "TaskService.getTasksByRecordingId"),
         );
+      }
+
+      // Verify all returned tasks belong to the user's organization
+      for (const task of tasks) {
+        try {
+          assertOrganizationAccess(
+            task.organizationId,
+            auth.organizationId,
+            "TaskService.getTasksByRecordingId",
+          );
+        } catch {
+          return err(
+            ActionErrors.notFound(
+              "Tasks not found",
+              "TaskService.getTasksByRecordingId",
+            ),
+          );
+        }
       }
 
       return ok(tasks.map((task: Task) => this.toDto(task)));
@@ -138,38 +114,19 @@ export class TaskService {
    * Includes joined data for display purposes
    */
   static async getTasksWithContext(
+    auth: AuthContext,
     filters?: Omit<TaskFiltersDto, "assigneeId" | "organizationId">,
   ): Promise<ActionResult<TaskWithContextDto[]>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TaskService.getTasksWithContext",
-          ),
-        );
-      }
-
-      const { user: authUser, organization, userTeamIds } = authResult.value;
-
-      if (!authUser || !organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TaskService.getTasksWithContext",
-          ),
-        );
-      }
-
-      const tasks = await TasksQueries.getTasksWithContext(organization.id, {
-        ...filters,
-        assigneeId: authUser.id,
-        user: authUser,
-        userTeamIds,
-      });
+      const tasks = await TasksQueries.getTasksWithContext(
+        auth.organizationId,
+        {
+          ...filters,
+          assigneeId: auth.user.id,
+          user: auth.user,
+          userTeamIds: auth.userTeamIds,
+        },
+      );
 
       return ok(tasks.map((task) => this.toContextDto(task)));
     } catch (error) {
@@ -187,32 +144,11 @@ export class TaskService {
   /**
    * Get task statistics for the authenticated user
    */
-  static async getTaskStats(): Promise<ActionResult<TaskStatsDto>> {
+  static async getTaskStats(
+    auth: AuthContext,
+  ): Promise<ActionResult<TaskStatsDto>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TaskService.getTaskStats",
-          ),
-        );
-      }
-
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser || !organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TaskService.getTaskStats",
-          ),
-        );
-      }
-
-      const stats = await getCachedTaskStats(authUser.id, organization.id);
+      const stats = await getCachedTaskStats(auth.user.id, auth.organizationId);
 
       return ok(stats);
     } catch (error) {
@@ -234,31 +170,9 @@ export class TaskService {
   static async updateTaskStatus(
     taskId: string,
     status: Task["status"],
+    auth: AuthContext,
   ): Promise<ActionResult<TaskDto>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TaskService.updateTaskStatus",
-          ),
-        );
-      }
-
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser || !organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TaskService.updateTaskStatus",
-          ),
-        );
-      }
-
       const task = await TasksQueries.getTaskById(taskId);
       if (!task) {
         return err(
@@ -270,10 +184,10 @@ export class TaskService {
       try {
         assertOrganizationAccess(
           task.organizationId,
-          organization.id,
+          auth.organizationId,
           "TaskService.updateTaskStatus",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Task not found",
@@ -286,13 +200,13 @@ export class TaskService {
       if (task.projectId) {
         const project = await ProjectQueries.findById(
           task.projectId,
-          organization.id,
+          auth.organizationId,
         );
         if (project) {
           assertTeamAccess(
             project.teamId,
-            authResult.value.userTeamIds,
-            authUser,
+            auth.userTeamIds,
+            auth.user,
             "TaskService.updateTaskStatus",
           );
         }
@@ -308,8 +222,6 @@ export class TaskService {
           ),
         );
       }
-
-      await this.invalidateCache(authUser.id, organization.id);
 
       return ok(this.toDto(updated));
     } catch (error) {
@@ -330,31 +242,9 @@ export class TaskService {
    */
   static async updateTaskMetadata(
     input: UpdateTaskMetadataDto,
+    auth: AuthContext,
   ): Promise<ActionResult<TaskDto>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TaskService.updateTaskMetadata",
-          ),
-        );
-      }
-
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser || !organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TaskService.updateTaskMetadata",
-          ),
-        );
-      }
-
       const task = await TasksQueries.getTaskById(input.taskId);
       if (!task) {
         return err(
@@ -366,10 +256,10 @@ export class TaskService {
       try {
         assertOrganizationAccess(
           task.organizationId,
-          organization.id,
+          auth.organizationId,
           "TaskService.updateTaskMetadata",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Task not found",
@@ -382,13 +272,13 @@ export class TaskService {
       if (task.projectId) {
         const project = await ProjectQueries.findById(
           task.projectId,
-          organization.id,
+          auth.organizationId,
         );
         if (project) {
           assertTeamAccess(
             project.teamId,
-            authResult.value.userTeamIds,
-            authUser,
+            auth.userTeamIds,
+            auth.user,
             "TaskService.updateTaskMetadata",
           );
         }
@@ -399,7 +289,7 @@ export class TaskService {
       const updated = await TasksQueries.updateTaskMetadata(
         taskId,
         taskUpdates,
-        authUser.id,
+        auth.user.id,
       );
 
       if (!updated) {
@@ -423,8 +313,6 @@ export class TaskService {
         }
       }
 
-      await this.invalidateCache(authUser.id, organization.id);
-
       return ok(this.toDto(updated));
     } catch (error) {
       logger.error("Failed to update task metadata", {}, error as Error);
@@ -444,31 +332,9 @@ export class TaskService {
    */
   static async getTaskHistory(
     taskId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<TaskHistoryDto[]>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TaskService.getTaskHistory",
-          ),
-        );
-      }
-
-      const { user: authUser, organization } = authResult.value;
-
-      if (!authUser || !organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TaskService.getTaskHistory",
-          ),
-        );
-      }
-
       const task = await TasksQueries.getTaskById(taskId);
       if (!task) {
         return err(ActionErrors.notFound("Task", "TaskService.getTaskHistory"));
@@ -478,10 +344,10 @@ export class TaskService {
       try {
         assertOrganizationAccess(
           task.organizationId,
-          organization.id,
+          auth.organizationId,
           "TaskService.getTaskHistory",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound("Task not found", "TaskService.getTaskHistory"),
         );
@@ -491,13 +357,13 @@ export class TaskService {
       if (task.projectId) {
         const project = await ProjectQueries.findById(
           task.projectId,
-          organization.id,
+          auth.organizationId,
         );
         if (project) {
           assertTeamAccess(
             project.teamId,
-            authResult.value.userTeamIds,
-            authUser,
+            auth.userTeamIds,
+            auth.user,
             "TaskService.getTaskHistory",
           );
         }
@@ -631,14 +497,6 @@ export class TaskService {
         ),
       );
     }
-  }
-
-  /**
-   * Invalidate task cache for a user
-   * Called after task mutations (create, update, delete)
-   */
-  static async invalidateCache(userId: string, orgCode: string): Promise<void> {
-    CacheInvalidation.invalidateTaskCache(userId, orgCode);
   }
 
   /**

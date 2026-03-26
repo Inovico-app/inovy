@@ -23,12 +23,6 @@ import {
   getUtteranceCountLabel,
 } from "./utterance-helpers";
 
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
-}
-
 function getSpeakerColor(speakerIndex: number): {
   text: string;
   bg: string;
@@ -56,7 +50,7 @@ export const TranscriptionMessage = forwardRef<
       "group flex w-full items-end py-2 gap-2 border-l-4 pl-2 motion-safe:transition-all motion-safe:duration-300",
       isLeftAligned ? "justify-start" : "justify-end flex-row-reverse",
       isActive ? "border-l-primary/70 bg-primary/5" : "border-l-transparent",
-      className
+      className,
     )}
     aria-current={isActive ? "true" : undefined}
     {...props}
@@ -80,7 +74,7 @@ export const TranscriptionMessageContent = ({
       "flex flex-col gap-2 overflow-hidden rounded-lg text-sm max-w-[80%] px-4 py-3",
       speakerColor ? speakerColor.bg : "bg-blue-100 dark:bg-blue-900",
       "text-foreground hover:shadow-md transition-shadow",
-      className
+      className,
     )}
     {...props}
   >
@@ -101,7 +95,7 @@ export const TranscriptionMessageBubble = forwardRef<
     recordingId,
     isActive = false,
   },
-  ref
+  ref,
 ) {
   const speakerColor = getSpeakerColor(groupedUtterance.speaker);
   const isLeftAligned =
@@ -114,13 +108,13 @@ export const TranscriptionMessageBubble = forwardRef<
     groupedUtterance.speaker,
     speakerNames,
     speakerUserIds,
-    users
+    users,
   );
 
   const userInitials = getUserInitials(speakerInfo, groupedUtterance.speaker);
   const timestampRange = formatTimestampRange(groupedUtterance);
   const utteranceCountLabel = getUtteranceCountLabel(
-    groupedUtterance.utterances.length
+    groupedUtterance.utterances.length,
   );
   const hasMultipleUtterances = groupedUtterance.utterances.length > 1;
 
@@ -217,7 +211,7 @@ export const TranscriptionMessageBubble = forwardRef<
             variant="outline"
             className="text-xs"
             aria-label={`Betrouwbaarheid ${Math.round(
-              groupedUtterance.confidence * 100
+              groupedUtterance.confidence * 100,
             )}%`}
           >
             {Math.round(groupedUtterance.confidence * 100)}%
@@ -258,4 +252,3 @@ export const TranscriptionMessageBubble = forwardRef<
     </TranscriptionMessage>
   );
 });
-

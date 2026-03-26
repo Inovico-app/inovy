@@ -14,7 +14,14 @@ import {
 } from "@/components/ui/sheet";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { Activity, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import {
+  Activity,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { getConversationMessagesAction } from "../actions/conversation-history";
 import { useChatContext } from "../hooks/use-chat-context";
 import { useChatSources } from "../hooks/use-chat-sources";
@@ -97,8 +104,8 @@ export function UnifiedChatInterface({
           return response;
         },
       }),
-     
-    []
+
+    [],
   );
 
   // Use unified API endpoint for both contexts
@@ -114,14 +121,14 @@ export function UnifiedChatInterface({
   // Filter out system messages for source extraction
   const filteredMessages = messages.filter(
     (msg): msg is Extract<typeof msg, { role: "user" | "assistant" }> =>
-      msg.role === "user" || msg.role === "assistant"
+      msg.role === "user" || msg.role === "assistant",
   );
-  const { messageSourcesMap, sourceRefsMap, setSourceRef } = useChatSources(
+  const { messageSourcesMap } = useChatSources(
     filteredMessages as Array<{
       id: string;
       role: "user" | "assistant";
       metadata?: unknown;
-    }>
+    }>,
   );
 
   // Reset conversation when context changes or starting new conversation
@@ -198,9 +205,9 @@ export function UnifiedChatInterface({
       chatContext.handleContextChangeWithMessages(
         newContext,
         newProjectId,
-        messages.length > 0
+        messages.length > 0,
       );
-    }
+    },
   );
 
   const handleSendMessage = useEffectEvent((text: string) => {
@@ -244,7 +251,11 @@ export function UnifiedChatInterface({
 
       {/* Mobile conversation history sheet */}
       <Sheet open={mobileHistoryOpen} onOpenChange={setMobileHistoryOpen}>
-        <SheetContent side="left" className="w-80 p-0 md:hidden" showCloseButton={false}>
+        <SheetContent
+          side="left"
+          className="w-80 p-0 md:hidden"
+          showCloseButton={false}
+        >
           <SheetHeader className="sr-only">
             <SheetTitle>Conversation History</SheetTitle>
           </SheetHeader>
@@ -261,7 +272,7 @@ export function UnifiedChatInterface({
         </SheetContent>
       </Sheet>
 
-      <div className="flex flex-col flex-1 min-w-0 h-full">
+      <div className="relative flex flex-1 min-w-0 flex-col divide-y overflow-hidden">
         <ChatHeader
           context={chatContext.context}
           projectId={chatContext.projectId}
@@ -298,10 +309,9 @@ export function UnifiedChatInterface({
                     }>
                   }
                   messageSourcesMap={messageSourcesMap}
-                  sourceRefsMap={sourceRefsMap}
                   context={chatContext.context}
                   projectId={chatContext.projectId}
-                  setSourceRef={setSourceRef}
+                  isStreaming={status === "streaming"}
                 />
                 {status === "submitted" && <ChatThinkingIndicator />}
               </>
@@ -312,19 +322,21 @@ export function UnifiedChatInterface({
 
         {/* Error Display */}
         {error && (
-          <div className="border-t p-4 bg-destructive/10 border-destructive/50">
-            <p className="text-sm text-destructive">Error: {error.message}</p>
+          <div className="p-4 bg-destructive/10 text-sm text-destructive">
+            Error: {error.message}
           </div>
         )}
 
-        <ChatInput
-          context={chatContext.context}
-          projectId={chatContext.projectId}
-          currentProjectName={chatContext.currentProjectName}
-          status={status}
-          agentEnabled={agentEnabled}
-          onSendMessage={handleSendMessage}
-        />
+        <div className="grid shrink-0">
+          <ChatInput
+            context={chatContext.context}
+            projectId={chatContext.projectId}
+            currentProjectName={chatContext.currentProjectName}
+            status={status}
+            agentEnabled={agentEnabled}
+            onSendMessage={handleSendMessage}
+          />
+        </div>
       </div>
 
       {/* Context Switch Dialog */}
@@ -337,4 +349,3 @@ export function UnifiedChatInterface({
     </div>
   );
 }
-

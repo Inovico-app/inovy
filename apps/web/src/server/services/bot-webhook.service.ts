@@ -1,6 +1,4 @@
-import { CacheInvalidation } from "@/lib/cache-utils";
-import { getStorageProvider } from "./storage";
-import { encrypt, generateEncryptionMetadata } from "@/lib/encryption";
+import { invalidateFor } from "@/lib/cache";
 import { err, ok } from "neverthrow";
 import { start } from "workflow/api";
 import { logger, serializeError } from "../../lib/logger";
@@ -9,6 +7,7 @@ import {
   type ActionResult,
 } from "../../lib/server-action-client/action-errors";
 import { convertRecordingIntoAiInsights } from "../../workflows/convert-recording";
+import { storeRecordingFromRecall } from "../../workflows/store-recording";
 import { BotSessionsQueries } from "../data-access/bot-sessions.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { type BotStatus } from "../db/schema/bot-sessions";
@@ -27,7 +26,6 @@ import { MeetingAgendaItemsQueries } from "../data-access/meeting-agenda-items.q
 import { MeetingNotesQueries } from "../data-access/meeting-notes.queries";
 import { MeetingService } from "./meeting.service";
 import { NotificationService } from "./notification.service";
-import { PostActionExecutorService } from "./post-action-executor.service";
 import { RecallApiService } from "./recall-api.service";
 import { RecordingService } from "./recording.service";
 
@@ -426,9 +424,14 @@ export class BotWebhookService {
         });
       }
 
-      CacheInvalidation.invalidateBotSessions(organizationId);
-      CacheInvalidation.invalidateBotSession(session.id, organizationId);
-      CacheInvalidation.invalidateNotifications(session.userId, organizationId);
+      invalidateFor("bot_session", "update", {
+        organizationId,
+        input: { sessionId: session.id },
+      });
+      invalidateFor("notification", "update", {
+        userId: session.userId,
+        organizationId,
+      });
 
       logger.info("Bot successfully kicked via chat command", {
         component: "BotWebhookService.processChatMessage",
@@ -509,95 +512,36 @@ export class BotWebhookService {
           await this.triggerAiWorkflow(
             existingRecording.id,
             "BotWebhookService.processRecordingDone",
+            bot.id,
+            recording.id,
           );
         }
         return ok(undefined);
       }
 
-      const urlResult = await RecallApiService.getRecordingDownloadUrl(
-        bot.id,
-        recording.id,
-      );
-
-      if (urlResult.isErr()) {
-        return err(urlResult.error);
-      }
-
-      const { url, duration } = urlResult.value;
-      const downloadResult = await this.downloadRecording(url);
-
-      if (downloadResult.isErr()) {
-        return err(downloadResult.error);
-      }
-
-      const { fileBuffer, mimeType } = downloadResult.value;
-      const fileName = `recall-${recording.id}.${this.getFileExtension(mimeType)}`;
-      const timestamp = Date.now();
-      const blobPath = `recordings/${timestamp}-${fileName}`;
-
-      const shouldEncrypt = process.env.ENABLE_ENCRYPTION_AT_REST === "true";
-      let fileToUpload: Buffer = fileBuffer;
-      let encryptionMetadata: string | null = null;
-
-      if (shouldEncrypt && !process.env.ENCRYPTION_MASTER_KEY) {
-        logger.error("Encryption enabled but master key not configured", {
-          component: "BotWebhookService.processRecordingDone",
-        });
-        return err(
-          ActionErrors.internal(
-            "Encryption configuration error",
-            undefined,
-            "BotWebhookService.processRecordingDone",
-          ),
-        );
-      }
-
-      if (shouldEncrypt) {
-        try {
-          const encryptedBase64 = encrypt(fileBuffer);
-          const encryptedBuffer = Buffer.from(encryptedBase64, "base64");
-          fileToUpload = encryptedBuffer;
-          encryptionMetadata = JSON.stringify(generateEncryptionMetadata());
-        } catch (encryptError) {
-          logger.error("Failed to encrypt recording", {
-            component: "BotWebhookService.processRecordingDone",
-            error: serializeError(encryptError),
-          });
-          return err(
-            ActionErrors.internal(
-              "Failed to encrypt recording",
-              encryptError as Error,
-              "BotWebhookService.processRecordingDone",
-            ),
-          );
-        }
-      }
-
-      const storage = await getStorageProvider();
-      const blob = await storage.put(blobPath, fileToUpload, {
-        access: shouldEncrypt ? "private" : "public",
-        contentType: mimeType,
-      });
-
+      // Create recording DB entry with null file fields — storage workflow will
+      // populate them once it has copied the file from Recall to Azure Blob Storage.
       const createResult = await RecordingService.createRecording(
         {
           projectId,
           title: session.meetingTitle ?? "Bot Recording",
           description: null,
-          fileUrl: blob.url,
-          fileName,
-          fileSize: fileBuffer.length,
-          fileMimeType: mimeType,
-          duration: duration ?? null,
+          fileUrl: null,
+          fileName: null,
+          fileSize: null,
+          fileMimeType: null,
+          duration: null,
           recordingDate: new Date(),
           recordingMode: "bot",
           transcriptionStatus: "pending",
+          storageStatus: "pending",
           transcriptionText: null,
           organizationId,
           createdById: userId,
           externalRecordingId: recording.id,
-          isEncrypted: shouldEncrypt,
-          encryptionMetadata,
+          recallBotId: bot.id,
+          isEncrypted: false, // Azure SSE handles encryption now
+          encryptionMetadata: null,
           meetingId: session.meetingId ?? null,
         },
         true,
@@ -616,29 +560,25 @@ export class BotWebhookService {
         "done",
       );
 
-      await this.triggerAiWorkflow(
-        finalRecordingId,
-        "BotWebhookService.processRecordingDone",
-      );
+      // Kick off transcription + storage workflows in parallel.
+      // Post-actions fire at the end of the transcription workflow's finalize step
+      // (step-finalize.ts), so we do NOT call PostActionExecutorService here.
+      await Promise.all([
+        this.triggerAiWorkflow(
+          finalRecordingId,
+          "BotWebhookService.processRecordingDone",
+          bot.id,
+          recording.id,
+        ),
+        this.triggerStorageWorkflow(
+          finalRecordingId,
+          bot.id,
+          recording.id,
+          "BotWebhookService.processRecordingDone",
+        ),
+      ]);
 
-      // Trigger post-meeting actions if linked to a meeting
-      if (session.meetingId) {
-        PostActionExecutorService.executePostActions(
-          session.meetingId,
-          organizationId,
-        ).catch((postActionError) => {
-          logger.error(
-            "Failed to trigger post-actions",
-            {
-              component: "BotWebhookService.processRecordingDone",
-              meetingId: session.meetingId,
-            },
-            postActionError as Error,
-          );
-        });
-      }
-
-      logger.info("Recording processed and bot session updated", {
+      logger.info("Recording created and dual workflows triggered", {
         component: "BotWebhookService.processRecordingDone",
         recordingId: finalRecordingId,
         sessionId: session.id,
@@ -812,11 +752,15 @@ export class BotWebhookService {
   private static async triggerAiWorkflow(
     recordingId: string,
     component: string,
+    recallBotId?: string,
+    externalRecordingId?: string,
   ): Promise<void> {
     try {
-      const workflowRun = await start(convertRecordingIntoAiInsights, [
-        recordingId,
-      ]);
+      const args: [string, boolean, string?, string?] = [recordingId, false];
+      if (recallBotId && externalRecordingId) {
+        args.push(recallBotId, externalRecordingId);
+      }
+      const workflowRun = await start(convertRecordingIntoAiInsights, args);
       logger.info("AI processing workflow triggered", {
         component,
         recordingId,
@@ -835,46 +779,33 @@ export class BotWebhookService {
     }
   }
 
-  private static async downloadRecording(
-    url: string,
-  ): Promise<ActionResult<{ fileBuffer: Buffer; mimeType: string }>> {
+  private static async triggerStorageWorkflow(
+    recordingId: string,
+    recallBotId: string,
+    externalRecordingId: string,
+    component: string,
+  ): Promise<void> {
     try {
-      const response = await fetch(url, {
-        signal: AbortSignal.timeout(5 * 60 * 1000),
+      const workflowRun = await start(storeRecordingFromRecall, [
+        recordingId,
+        recallBotId,
+        externalRecordingId,
+      ]);
+      logger.info("Storage workflow triggered", {
+        component,
+        recordingId,
+        run: {
+          id: workflowRun.runId,
+          name: workflowRun.workflowName,
+          status: workflowRun.status,
+        },
       });
-      if (!response.ok) {
-        return err(
-          ActionErrors.internal(
-            `Failed to download recording: ${response.statusText}`,
-            undefined,
-            "BotWebhookService.downloadRecording",
-          ),
-        );
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      const fileBuffer = Buffer.from(arrayBuffer);
-      const mimeType = response.headers.get("content-type") ?? "video/mp4";
-      return ok({ fileBuffer, mimeType });
     } catch (error) {
-      return err(
-        ActionErrors.internal(
-          "Failed to download recording file",
-          error as Error,
-          "BotWebhookService.downloadRecording",
-        ),
-      );
+      logger.error("Failed to trigger storage workflow", {
+        component,
+        recordingId,
+        error: serializeError(error),
+      });
     }
-  }
-
-  private static getFileExtension(mimeType: string): string {
-    const mimeToExt: Record<string, string> = {
-      "video/mp4": "mp4",
-      "video/webm": "webm",
-      "audio/mp3": "mp3",
-      "audio/mpeg": "mp3",
-      "audio/wav": "wav",
-      "audio/m4a": "m4a",
-    };
-    return mimeToExt[mimeType] || "mp4";
   }
 }

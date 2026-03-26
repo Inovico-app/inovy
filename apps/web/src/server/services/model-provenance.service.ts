@@ -32,74 +32,67 @@ interface ModelEntry {
  */
 const MODEL_REGISTRY: readonly ModelEntry[] = [
   {
-    modelId: "gpt-5-nano",
-    provider: "openai",
+    modelId: "claude-sonnet-4-6",
+    provider: "anthropic",
     purpose: "Primary chat agent (default, configurable)",
     configurable: true,
-    usedBy: "ChatService.streamResponse / streamOrganizationResponse",
+    usedBy: "ChatPipeline.sendMessage",
   },
   {
-    modelId: "gpt-4o",
-    provider: "openai",
+    modelId: "claude-opus-4-6",
+    provider: "anthropic",
     purpose: "Chat agent (admin-selectable alternative)",
     configurable: true,
-    usedBy: "ChatService.streamResponse / streamOrganizationResponse",
+    usedBy: "ChatPipeline.sendMessage",
   },
   {
-    modelId: "gpt-4-turbo",
-    provider: "openai",
+    modelId: "claude-haiku-4-5-20251001",
+    provider: "anthropic",
     purpose: "Chat agent (admin-selectable alternative)",
     configurable: true,
-    usedBy: "ChatService.streamResponse / streamOrganizationResponse",
+    usedBy: "ChatPipeline.sendMessage",
   },
   {
-    modelId: "gpt-4",
-    provider: "openai",
-    purpose: "Chat agent (admin-selectable alternative)",
-    configurable: true,
-    usedBy: "ChatService.streamResponse / streamOrganizationResponse",
-  },
-  {
-    modelId: "gpt-3.5-turbo",
-    provider: "openai",
-    purpose: "Chat agent (admin-selectable alternative)",
-    configurable: true,
-    usedBy: "ChatService.streamResponse / streamOrganizationResponse",
-  },
-  {
-    modelId: "gpt-5-nano",
-    provider: "openai",
+    modelId: "claude-sonnet-4-6",
+    provider: "anthropic",
     purpose: "Meeting transcription summarization",
     configurable: false,
     usedBy: "SummaryService",
   },
   {
-    modelId: "gpt-5-nano",
-    provider: "openai",
+    modelId: "claude-sonnet-4-6",
+    provider: "anthropic",
     purpose: "Conversation context compression",
     configurable: false,
     usedBy: "ConversationContextManagerService",
   },
   {
-    modelId: "gpt-5-nano",
-    provider: "openai",
+    modelId: "claude-sonnet-4-6",
+    provider: "anthropic",
     purpose: "Recording transcription",
     configurable: false,
     usedBy: "TranscriptionService",
   },
   {
-    modelId: "gpt-5-nano",
-    provider: "openai",
+    modelId: "claude-sonnet-4-6",
+    provider: "anthropic",
     purpose: "Task extraction from recordings",
     configurable: false,
     usedBy: "TaskExtractionService",
   },
   {
-    modelId: "gpt-4o-mini",
-    provider: "openai",
+    modelId: "claude-sonnet-4-6",
+    provider: "anthropic",
     purpose: "Agenda tracking during meetings",
     configurable: false,
     usedBy: "AgendaTrackerService",
+  },
+  {
+    modelId: "text-embedding-3-large",
+    provider: "openai",
+    purpose: "Embeddings for vector store (RAG)",
+    configurable: false,
+    usedBy: "EmbeddingService / DocumentService",
   },
   {
     modelId: "text-moderation-latest",
@@ -110,7 +103,7 @@ const MODEL_REGISTRY: readonly ModelEntry[] = [
   },
 ] as const;
 
-export type AIProvider = "openai";
+export type AIProvider = "openai" | "anthropic";
 
 export interface ProvenanceRecord {
   /** Model ID used for this invocation */

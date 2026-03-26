@@ -1,7 +1,6 @@
 import type { Team, TeamInput, TeamMember } from "better-auth/plugins";
 import { err, ok } from "neverthrow";
-import { getBetterAuthSession } from "../../lib/better-auth-session";
-import { CacheInvalidation } from "../../lib/cache-utils";
+import type { AuthContext } from "../../lib/auth-context";
 import { logger } from "../../lib/logger";
 import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
 import {
@@ -29,34 +28,13 @@ export class TeamService {
    */
   static async getTeamsByOrganization(
     organizationId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<Team[]>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TeamService.getTeamsByOrganization",
-          ),
-        );
-      }
-
-      const { organization } = authResult.value;
-      if (!organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TeamService.getTeamsByOrganization",
-          ),
-        );
-      }
-
       // Verify organization access
       assertOrganizationAccess(
         organizationId,
-        organization.id,
+        auth.organizationId,
         "TeamService.getTeamsByOrganization",
       );
 
@@ -78,31 +56,12 @@ export class TeamService {
   /**
    * Get a team by ID
    */
-  static async getTeamById(id: string): Promise<ActionResult<Team | null>> {
+  static async getTeamById(
+    id: string,
+    auth: AuthContext,
+  ): Promise<ActionResult<Team | null>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TeamService.getTeamById",
-          ),
-        );
-      }
-
-      const { organization } = authResult.value;
-      if (!organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TeamService.getTeamById",
-          ),
-        );
-      }
-
-      const team = await TeamQueries.selectTeamById(id, organization.id);
+      const team = await TeamQueries.selectTeamById(id, auth.organizationId);
 
       if (!team) {
         return ok(null);
@@ -111,7 +70,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         team.organizationId,
-        organization.id,
+        auth.organizationId,
         "TeamService.getTeamById",
       );
 
@@ -133,37 +92,16 @@ export class TeamService {
    */
   static async getUserTeams(
     userId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<TeamMember[]>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TeamService.getUserTeams",
-          ),
-        );
-      }
-
-      const { organization } = authResult.value;
-      if (!organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TeamService.getUserTeams",
-          ),
-        );
-      }
-
       const userTeams = await UserTeamQueries.selectTeamMembers(userId);
 
       // Filter to only teams in the user's organization
       const teamIds = userTeams.map((ut) => ut.teamId);
       const teams =
         teamIds.length > 0
-          ? await TeamQueries.selectTeamsByOrganization(organization.id)
+          ? await TeamQueries.selectTeamsByOrganization(auth.organizationId)
           : [];
 
       const validTeamIds = new Set(teams.map((t) => t.id));
@@ -190,32 +128,14 @@ export class TeamService {
    */
   static async getTeamMembers(
     teamId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<TeamMember[]>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TeamService.getTeamMembers",
-          ),
-        );
-      }
-
-      const { organization } = authResult.value;
-      if (!organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TeamService.getTeamMembers",
-          ),
-        );
-      }
-
       // Verify team exists and belongs to organization
-      const team = await TeamQueries.selectTeamById(teamId, organization.id);
+      const team = await TeamQueries.selectTeamById(
+        teamId,
+        auth.organizationId,
+      );
       if (!team) {
         return err(ActionErrors.notFound("Team", "TeamService.getTeamMembers"));
       }
@@ -223,7 +143,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         team.organizationId,
-        organization.id,
+        auth.organizationId,
         "TeamService.getTeamMembers",
       );
 
@@ -248,32 +168,14 @@ export class TeamService {
    */
   static async getTeamMembersWithUserDetails(
     teamId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<TeamMemberWithUserDto[]>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TeamService.getTeamMembersWithUserDetails",
-          ),
-        );
-      }
-
-      const { organization } = authResult.value;
-      if (!organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TeamService.getTeamMembersWithUserDetails",
-          ),
-        );
-      }
-
       // Verify team exists and belongs to organization
-      const team = await TeamQueries.selectTeamById(teamId, organization.id);
+      const team = await TeamQueries.selectTeamById(
+        teamId,
+        auth.organizationId,
+      );
       if (!team) {
         return err(
           ActionErrors.notFound(
@@ -286,7 +188,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         team.organizationId,
-        organization.id,
+        auth.organizationId,
         "TeamService.getTeamMembersWithUserDetails",
       );
 
@@ -355,34 +257,13 @@ export class TeamService {
   static async getUserTeamsByUserIds(
     userIds: string[],
     organizationId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<Map<string, UserTeamRoleDto[]>>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TeamService.getUserTeamsByUserIds",
-          ),
-        );
-      }
-
-      const { organization } = authResult.value;
-      if (!organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TeamService.getUserTeamsByUserIds",
-          ),
-        );
-      }
-
       // Verify organization access
       assertOrganizationAccess(
         organizationId,
-        organization.id,
+        auth.organizationId,
         "TeamService.getUserTeamsByUserIds",
       );
 
@@ -446,34 +327,15 @@ export class TeamService {
   /**
    * Create a new team
    */
-  static async createTeam(data: CreateTeamDto): Promise<ActionResult<TeamDto>> {
+  static async createTeam(
+    data: CreateTeamDto,
+    auth: AuthContext,
+  ): Promise<ActionResult<TeamDto>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TeamService.createTeam",
-          ),
-        );
-      }
-
-      const { organization } = authResult.value;
-      if (!organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TeamService.createTeam",
-          ),
-        );
-      }
-
       // Verify organization access
       assertOrganizationAccess(
         data.organizationId,
-        organization.id,
+        auth.organizationId,
         "TeamService.createTeam",
       );
 
@@ -484,9 +346,6 @@ export class TeamService {
       };
 
       const team = await TeamQueries.insertTeam(teamInput as TeamInput);
-
-      // Invalidate cache
-      CacheInvalidation.invalidateTeamCache(data.organizationId);
 
       const teamDto: TeamDto = {
         id: team.id,
@@ -517,31 +376,13 @@ export class TeamService {
   static async updateTeam(
     id: string,
     data: UpdateTeamDto,
+    auth: AuthContext,
   ): Promise<ActionResult<TeamDto>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TeamService.updateTeam",
-          ),
-        );
-      }
-
-      const { organization } = authResult.value;
-      if (!organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TeamService.updateTeam",
-          ),
-        );
-      }
-
-      const existing = await TeamQueries.selectTeamById(id, organization.id);
+      const existing = await TeamQueries.selectTeamById(
+        id,
+        auth.organizationId,
+      );
       if (!existing) {
         return err(ActionErrors.notFound("Team", "TeamService.updateTeam"));
       }
@@ -549,7 +390,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         existing.organizationId,
-        organization.id,
+        auth.organizationId,
         "TeamService.updateTeam",
       );
 
@@ -573,8 +414,6 @@ export class TeamService {
         data.departmentId !== undefined ? data.departmentId : null;
       const finalDescription =
         data.description !== undefined ? data.description : null;
-
-      CacheInvalidation.invalidateTeamCache(existing.organizationId, id);
 
       const teamDto: TeamDto = {
         id: team.id,
@@ -602,31 +441,15 @@ export class TeamService {
   /**
    * Delete a team
    */
-  static async deleteTeam(id: string): Promise<ActionResult<void>> {
+  static async deleteTeam(
+    id: string,
+    auth: AuthContext,
+  ): Promise<ActionResult<void>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TeamService.deleteTeam",
-          ),
-        );
-      }
-
-      const { organization } = authResult.value;
-      if (!organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TeamService.deleteTeam",
-          ),
-        );
-      }
-
-      const existing = await TeamQueries.selectTeamById(id, organization.id);
+      const existing = await TeamQueries.selectTeamById(
+        id,
+        auth.organizationId,
+      );
       if (!existing) {
         return err(ActionErrors.notFound("Team", "TeamService.deleteTeam"));
       }
@@ -634,7 +457,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         existing.organizationId,
-        organization.id,
+        auth.organizationId,
         "TeamService.deleteTeam",
       );
 
@@ -642,9 +465,6 @@ export class TeamService {
       await UserTeamQueries.deleteAllTeamMembers(id);
 
       await TeamQueries.deleteTeam(id, existing.organizationId);
-
-      // Invalidate cache
-      CacheInvalidation.invalidateTeamCache(existing.organizationId, id);
 
       return ok(undefined);
     } catch (error) {
@@ -666,31 +486,13 @@ export class TeamService {
     userId: string,
     teamId: string,
     role: UserTeamRole = "member",
+    auth: AuthContext,
   ): Promise<ActionResult<UserTeamRoleDto>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TeamService.assignUserToTeam",
-          ),
-        );
-      }
-
-      const { organization } = authResult.value;
-      if (!organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TeamService.assignUserToTeam",
-          ),
-        );
-      }
-
-      const team = await TeamQueries.selectTeamById(teamId, organization.id);
+      const team = await TeamQueries.selectTeamById(
+        teamId,
+        auth.organizationId,
+      );
       if (!team) {
         return err(
           ActionErrors.notFound("Team", "TeamService.assignUserToTeam"),
@@ -700,7 +502,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         team.organizationId,
-        organization.id,
+        auth.organizationId,
         "TeamService.assignUserToTeam",
       );
 
@@ -720,9 +522,6 @@ export class TeamService {
         teamId,
         role,
       });
-
-      // Invalidate cache
-      CacheInvalidation.invalidateTeamCache(team.organizationId);
 
       const userTeamDto: UserTeamRoleDto = {
         userId: userTeam.userId,
@@ -754,31 +553,13 @@ export class TeamService {
   static async removeUserFromTeam(
     userId: string,
     teamId: string,
+    auth: AuthContext,
   ): Promise<ActionResult<void>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TeamService.removeUserFromTeam",
-          ),
-        );
-      }
-
-      const { organization } = authResult.value;
-      if (!organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TeamService.removeUserFromTeam",
-          ),
-        );
-      }
-
-      const team = await TeamQueries.selectTeamById(teamId, organization.id);
+      const team = await TeamQueries.selectTeamById(
+        teamId,
+        auth.organizationId,
+      );
       if (!team) {
         return err(
           ActionErrors.notFound("Team", "TeamService.removeUserFromTeam"),
@@ -788,14 +569,11 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         team.organizationId,
-        organization.id,
+        auth.organizationId,
         "TeamService.removeUserFromTeam",
       );
 
       await UserTeamQueries.deleteUserTeam(userId, teamId);
-
-      // Invalidate cache
-      CacheInvalidation.invalidateTeamCache(team.organizationId);
 
       return ok(undefined);
     } catch (error) {
@@ -821,31 +599,13 @@ export class TeamService {
     userId: string,
     teamId: string,
     role: UserTeamRole,
+    auth: AuthContext,
   ): Promise<ActionResult<UserTeamRoleDto>> {
     try {
-      const authResult = await getBetterAuthSession();
-      if (authResult.isErr()) {
-        return err(
-          ActionErrors.internal(
-            "Failed to get authentication session",
-            undefined,
-            "TeamService.updateUserTeamRole",
-          ),
-        );
-      }
-
-      const { organization } = authResult.value;
-      if (!organization) {
-        return err(
-          ActionErrors.forbidden(
-            "Authentication required",
-            undefined,
-            "TeamService.updateUserTeamRole",
-          ),
-        );
-      }
-
-      const team = await TeamQueries.selectTeamById(teamId, organization.id);
+      const team = await TeamQueries.selectTeamById(
+        teamId,
+        auth.organizationId,
+      );
       if (!team) {
         return err(
           ActionErrors.notFound("Team", "TeamService.updateUserTeamRole"),
@@ -855,7 +615,7 @@ export class TeamService {
       // Verify organization access
       assertOrganizationAccess(
         team.organizationId,
-        organization.id,
+        auth.organizationId,
         "TeamService.updateUserTeamRole",
       );
 
@@ -870,9 +630,6 @@ export class TeamService {
           ActionErrors.notFound("UserTeam", "TeamService.updateUserTeamRole"),
         );
       }
-
-      // Invalidate cache
-      CacheInvalidation.invalidateTeamCache(team.organizationId);
 
       const userTeamDto: UserTeamRoleDto = {
         userId: userTeam.userId,

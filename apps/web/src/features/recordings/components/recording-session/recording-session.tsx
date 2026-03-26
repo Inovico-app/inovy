@@ -12,10 +12,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useNavigationGuard } from "@/hooks/use-navigation-guard";
 import { Loader2 } from "lucide-react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
+import { LiveWaveform } from "@/components/ui/live-waveform";
 import {
   useRecordingSession,
   type UseRecordingSessionConfig,
@@ -31,6 +33,8 @@ import { TranscriptionPanel } from "./transcription-panel";
 interface RecordingSessionProps {
   config: UseRecordingSessionConfig;
   autoStart?: boolean;
+  /** Microphone device ID selected on the pre-recording settings screen */
+  deviceId?: string;
   /** Called when the session is discarded/reset — parent should unmount this component */
   onDiscard?: () => void;
 }
@@ -38,10 +42,12 @@ interface RecordingSessionProps {
 export function RecordingSession({
   config,
   autoStart = false,
+  deviceId,
   onDiscard,
 }: RecordingSessionProps) {
   const router = useRouter();
   const session = useRecordingSession(config);
+
   // Track which warnings we've already shown
   const shownWarningsRef = useRef(new Set<string>());
 
@@ -59,7 +65,7 @@ export function RecordingSession({
     const id = requestAnimationFrame(() => {
       if (autoStartFired.current) return; // guard against double-fire
       autoStartFired.current = true;
-      session.start().catch((err) => {
+      session.start(deviceId).catch((err) => {
         console.error("[RecordingSession] Auto-start failed:", err);
       });
     });
@@ -73,7 +79,7 @@ export function RecordingSession({
     if (session.status !== "complete") return;
 
     toast.success("Opname voltooid!");
-    router.push(`/projects/${config.projectId}`);
+    router.push(`/projects/${config.projectId}` as Route);
     router.refresh();
   }, [session.status, config.projectId, router]);
 
@@ -120,7 +126,7 @@ export function RecordingSession({
     (isActiveRecording || session.transcription.segments.length > 0);
 
   // --- Loading: show only a spinner until the FSM reaches recording/paused/error ---
-  if (session.status === "idle" || session.status === "initializing") {
+  if (session.status === "initializing") {
     return (
       <>
         <div className="flex flex-col items-center justify-center gap-3 min-h-[calc(100vh-12rem)]">
@@ -157,24 +163,49 @@ export function RecordingSession({
 
   return (
     <>
-      {/* Mobile: Google Meet-style immersive overlay */}
-      <MobileRecordingView
-        status={session.status}
-        duration={session.duration}
-        transcription={session.transcription}
-        liveTranscriptionEnabled={config.liveTranscriptionEnabled}
-        audioSource={config.audioSource}
-        chunkManifest={session.chunkManifest}
-        error={session.error}
-        onPause={session.pause}
-        onResume={session.resume}
-        onStop={() => void session.stop()}
-        onSavePartial={() => void session.savePartial()}
-        onReset={() => {
-          session.reset();
-          onDiscard?.();
-        }}
-      />
+      {/* Idle state: visible on mobile only (desktop has its own idle view below) */}
+      {session.status === "idle" && (
+        <div className="flex flex-col items-center gap-6 justify-center min-h-[calc(100vh-12rem)] md:hidden">
+          <RecordingControls
+            status={session.status}
+            duration={session.duration}
+            errorIsRecoverable={session.error?.recoverable ?? false}
+            autoStarting={false}
+            onStart={() => void session.start(deviceId)}
+            onPause={session.pause}
+            onResume={session.resume}
+            onStop={() => void session.stop()}
+            onSavePartial={() => void session.savePartial()}
+            onReset={() => {
+              session.reset();
+
+              onDiscard?.();
+            }}
+          />
+        </div>
+      )}
+
+      {/* Mobile: Google Meet-style immersive overlay (not mounted in idle — idle has its own panel above) */}
+      {session.status !== "idle" && (
+        <MobileRecordingView
+          status={session.status}
+          duration={session.duration}
+          mediaStream={session.mediaStream}
+          transcription={session.transcription}
+          liveTranscriptionEnabled={config.liveTranscriptionEnabled}
+          audioSource={config.audioSource}
+          chunkManifest={session.chunkManifest}
+          error={session.error}
+          onPause={session.pause}
+          onResume={session.resume}
+          onStop={() => void session.stop()}
+          onSavePartial={() => void session.savePartial()}
+          onReset={() => {
+            session.reset();
+            onDiscard?.();
+          }}
+        />
+      )}
 
       {/* Desktop: panel layout */}
       <div className="hidden md:block">
@@ -227,6 +258,37 @@ export function RecordingSession({
                   </div>
                 )}
 
+                {/* Live waveform visualization */}
+                {session.mediaStream &&
+                  (isActiveRecording ||
+                    session.status === "stopping" ||
+                    session.status === "finalizing") && (
+                    <div className="relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-b from-muted/30 to-muted/10 p-6 flex-shrink-0">
+                      <div className="flex h-32 items-center justify-center">
+                        <LiveWaveform
+                          active={session.status === "recording"}
+                          processing={
+                            session.status === "stopping" ||
+                            session.status === "finalizing"
+                          }
+                          stream={session.mediaStream}
+                          barWidth={5}
+                          barGap={2}
+                          barRadius={8}
+                          fadeEdges
+                          fadeWidth={48}
+                          sensitivity={0.8}
+                          smoothingTimeConstant={0.85}
+                          className="w-full text-muted-foreground"
+                        />
+                      </div>
+                      {/* Subtle glow effect when recording */}
+                      {session.status === "recording" && (
+                        <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent pointer-events-none" />
+                      )}
+                    </div>
+                  )}
+
                 {/* Controls */}
                 <div className="flex flex-col items-center gap-6 flex-1 justify-center">
                   <RecordingControls
@@ -234,13 +296,14 @@ export function RecordingSession({
                     duration={session.duration}
                     errorIsRecoverable={session.error?.recoverable ?? false}
                     autoStarting={false}
-                    onStart={session.start}
+                    onStart={() => void session.start(deviceId)}
                     onPause={session.pause}
                     onResume={session.resume}
                     onStop={() => void session.stop()}
                     onSavePartial={() => void session.savePartial()}
                     onReset={() => {
                       session.reset();
+
                       onDiscard?.();
                     }}
                   />

@@ -8,7 +8,6 @@ import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { MeetingPostActionsQueries } from "@/server/data-access/meeting-post-actions.queries";
 import { MeetingNotesQueries } from "@/server/data-access/meeting-notes.queries";
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { meetingNoteTypeEnum } from "@/server/db/schema/meeting-notes";
 import { postActionTypeEnum } from "@/server/db/schema/meeting-post-actions";
 
@@ -99,8 +98,6 @@ export const updateMeeting = authorizedActionClient
     );
     if (!meeting) throw ActionErrors.notFound("Meeting not found");
 
-    CacheInvalidation.invalidateMeeting(meetingId);
-    CacheInvalidation.invalidateMeetings(organizationId);
     return { success: true, meeting };
   });
 
@@ -143,7 +140,6 @@ export const saveMeetingNotes = authorizedActionClient
       createdById: user.id,
     });
 
-    CacheInvalidation.invalidateMeetingNotes(parsedInput.meetingId);
     return { success: true, note };
   });
 

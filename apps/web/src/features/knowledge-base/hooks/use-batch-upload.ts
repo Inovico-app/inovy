@@ -22,7 +22,7 @@ interface UseBatchUploadOptions {
 }
 
 function extractFirstValidationError(
-  validationErrors: Record<string, unknown>
+  validationErrors: Record<string, unknown>,
 ): string {
   const firstFieldErrors = Object.values(validationErrors)[0];
 
@@ -69,7 +69,7 @@ export function useBatchUpload({
 
   const uploadSingleFile = async (
     fileItem: FileWithMetadata,
-    description: string
+    description: string,
   ) => {
     const result = await uploadKnowledgeDocumentAction({
       scope,
@@ -107,16 +107,17 @@ export function useBatchUpload({
     }
 
     if (result?.data) {
+      const uploadedDocument = result.data.document;
       setUploadStates((prev) => {
         const next = new Map(prev);
         next.set(fileItem.id, {
           status: "success",
-          documentId: result.data!.id,
+          documentId: uploadedDocument.id,
         });
         return next;
       });
       toast.success("Document uploaded successfully");
-      onSuccess?.(result.data);
+      onSuccess?.(uploadedDocument);
       router.refresh();
       return { success: true };
     }
@@ -126,7 +127,7 @@ export function useBatchUpload({
 
   const uploadBatchFiles = async (
     files: FileWithMetadata[],
-    description: string
+    description: string,
   ) => {
     const result = await uploadKnowledgeDocumentsBatchAction({
       scope,
@@ -204,13 +205,13 @@ export function useBatchUpload({
         toast.success(
           `Successfully uploaded ${successCount} document${
             successCount > 1 ? "s" : ""
-          }`
+          }`,
         );
       } else if (successCount > 0) {
         toast.warning(
           `Uploaded ${successCount} document${
             successCount > 1 ? "s" : ""
-          }, ${failureCount} failed`
+          }, ${failureCount} failed`,
         );
       } else {
         toast.error("Failed to upload documents");
@@ -228,7 +229,7 @@ export function useBatchUpload({
 
   const uploadFiles = async (
     files: FileWithMetadata[],
-    description?: string
+    description?: string,
   ) => {
     setIsLoading(true);
     setUploadStates(new Map(files.map((f) => [f.id, { status: "uploading" }])));
@@ -238,7 +239,7 @@ export function useBatchUpload({
       if (files.length === 1) {
         return await uploadSingleFile(
           files[0]!,
-          description ?? sharedDescription
+          description ?? sharedDescription,
         );
       } else {
         return await uploadBatchFiles(files, description ?? sharedDescription);
@@ -270,13 +271,13 @@ export function useBatchUpload({
   };
 
   const hasSuccessfulUploads = Array.from(uploadStates.values()).some(
-    (state) => state.status === "success"
+    (state) => state.status === "success",
   );
   const hasErrors = Array.from(uploadStates.values()).some(
-    (state) => state.status === "error"
+    (state) => state.status === "error",
   );
   const isUploading = Array.from(uploadStates.values()).some(
-    (state) => state.status === "uploading"
+    (state) => state.status === "uploading",
   );
 
   return {
@@ -289,4 +290,3 @@ export function useBatchUpload({
     isUploading,
   };
 }
-

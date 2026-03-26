@@ -75,7 +75,7 @@ export function PIIRedaction({
     handleCreateRedaction(
       selectedDetection.text,
       selectedDetection.startIndex,
-      selectedDetection.endIndex
+      selectedDetection.endIndex,
     );
     setIsDialogOpen(false);
     setSelectedDetection(null);
@@ -146,10 +146,10 @@ export function PIIRedaction({
           <div className="space-y-2">
             <h4 className="text-sm font-semibold">Gedetecteerde PII:</h4>
             <div className="space-y-1 max-h-40 overflow-y-auto">
-              {detections.map((detection, index) => {
+              {detections.map((detection, _index) => {
                 const redacted = isRedacted(
                   detection.startIndex,
-                  detection.endIndex
+                  detection.endIndex,
                 );
                 return (
                   <div
@@ -324,4 +324,3 @@ export function PIIRedaction({
     </Card>
   );
 }
-

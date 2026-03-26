@@ -1,6 +1,6 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
+import type { AuthContext } from "@/lib/auth-context";
 import { Permissions } from "@/lib/rbac/permissions";
 import {
   authorizedActionClient,
@@ -8,7 +8,7 @@ import {
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { KnowledgeBaseService } from "@/server/services/knowledge-base.service";
+import { KnowledgeModule } from "@/server/services/knowledge";
 import { createKnowledgeEntrySchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 
@@ -37,31 +37,21 @@ export const createKnowledgeEntryAction = authorizedActionClient
       );
     }
 
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Create entry
-    const result = await KnowledgeBaseService.createEntry(
-      scope,
-      scopeId,
+    const result = await KnowledgeModule.createEntry(
+      { scope, scopeId },
       { term, definition, context, examples },
-      user.id,
+      auth,
     );
 
     if (result.isErr()) {
       throw createErrorForNextSafeAction(result.error);
-    }
-
-    // Invalidate cache
-    CacheInvalidation.invalidateKnowledge(scope, scopeId);
-    if (scope === "project" && scopeId && organizationId) {
-      CacheInvalidation.invalidateKnowledgeHierarchy(scopeId, organizationId);
-    } else if (scope === "team" && scopeId) {
-      // Invalidate team knowledge hierarchy
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
-    } else if (scope === "organization" && scopeId) {
-      // Invalidate all project hierarchies in this org
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, scopeId);
-    } else if (scope === "global") {
-      // Invalidate all hierarchies
-      CacheInvalidation.invalidateKnowledgeHierarchy(null, null);
     }
 
     // Revalidate relevant pages

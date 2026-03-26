@@ -8,7 +8,6 @@ import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
 import { MeetingAgendaTemplatesQueries } from "@/server/data-access/meeting-agenda-templates.queries";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { agendaItemStatusEnum } from "@/server/db/schema/meeting-agenda-items";
 
 const addAgendaItemSchema = z.object({
@@ -42,7 +41,6 @@ export const addAgendaItem = authorizedActionClient
     assertTeamAccess(meeting.teamId, userTeamIds ?? [], user, "addAgendaItem");
 
     const item = await MeetingAgendaItemsQueries.insert(parsedInput);
-    CacheInvalidation.invalidateMeetingAgendaItems(parsedInput.meetingId);
     return { success: true, item };
   });
 
@@ -86,7 +84,6 @@ export const updateAgendaItem = authorizedActionClient
     const { id, meetingId, ...data } = parsedInput;
     const item = await MeetingAgendaItemsQueries.update(id, meetingId, data);
     if (!item) throw ActionErrors.notFound("Agenda item not found");
-    CacheInvalidation.invalidateMeetingAgendaItems(meetingId);
     return { success: true, item };
   });
 
@@ -128,7 +125,6 @@ export const deleteAgendaItem = authorizedActionClient
       parsedInput.meetingId,
     );
     if (!deleted) throw ActionErrors.notFound("Agenda item not found");
-    CacheInvalidation.invalidateMeetingAgendaItems(parsedInput.meetingId);
     return { success: true };
   });
 
@@ -185,6 +181,5 @@ export const applyAgendaTemplate = authorizedActionClient
       })),
     );
 
-    CacheInvalidation.invalidateMeetingAgendaItems(parsedInput.meetingId);
     return { success: true, items };
   });

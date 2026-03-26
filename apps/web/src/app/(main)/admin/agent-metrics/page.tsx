@@ -4,7 +4,7 @@ import { AgentMetricsExport } from "@/features/admin/components/agent/agent-metr
 import { AgentMetricsFilters } from "@/features/admin/components/agent/agent-metrics-filters";
 import { AgentMetricsTable } from "@/features/admin/components/agent/agent-metrics-table";
 import { TopQueriesTable } from "@/features/admin/components/agent/top-queries-table";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { resolveAuthContext } from "@/lib/auth-context";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { AgentAnalyticsService } from "@/server/services/agent-analytics.service";
@@ -27,25 +27,21 @@ interface AgentMetricsContentProps {
   }>;
 }
 
-async function AgentMetricsContent({
-  searchParams,
-}: AgentMetricsContentProps) {
-  const authResult = await getBetterAuthSession();
+async function AgentMetricsContent({ searchParams }: AgentMetricsContentProps) {
+  const authResult = await resolveAuthContext("AgentMetricsContent");
 
   if (authResult.isErr()) {
     redirect("/sign-in");
   }
 
-  const { user, organization } = authResult.value;
-
-  if (!user) {
-    redirect("/sign-in");
-  }
+  const auth = authResult.value;
+  const { user: _user } = auth;
+  const organization = { id: auth.organizationId };
 
   // Check if user has admin permissions (admin or superadmin)
   const hasAdminPermission = await checkPermission(Permissions.admin.all);
   const hasSuperAdminPermission = await checkPermission(
-    Permissions.superadmin.all
+    Permissions.superadmin.all,
   );
 
   if (!hasAdminPermission) {
@@ -75,7 +71,8 @@ async function AgentMetricsContent({
 
   // Pagination
   const parsedPage = params.page ? parseInt(params.page, 10) : 1;
-  const currentPage = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+  const currentPage =
+    Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
   const limit = 50;
   const offset = (currentPage - 1) * limit;
 
@@ -98,8 +95,8 @@ async function AgentMetricsContent({
     AgentAnalyticsService.getTokenUsage(filters),
     AgentAnalyticsService.getToolUsageStats(filters),
     AgentAnalyticsService.getTopQueries(filters, 10),
-    AgentAnalyticsService.getOrganizationsList(),
-    AgentAnalyticsService.getUsersList(organizationId),
+    AgentAnalyticsService.getOrganizationsList(auth),
+    AgentAnalyticsService.getUsersList(auth, organizationId),
   ]);
 
   const metrics = metricsResult.isOk() ? metricsResult.value.metrics : [];
@@ -206,4 +203,3 @@ export default function AgentMetricsPage({
     </Suspense>
   );
 }
-

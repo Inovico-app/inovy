@@ -39,6 +39,13 @@
       "undici": ">=6.23.0",
       "@esbuild-kit/core-utils>esbuild": ">=0.25.0",
       "lodash-es": ">=4.17.23"
+    },
+    "packageExtensions": {
+      "@hookform/resolvers": {
+        "peerDependencies": {
+          "zod": "*"
+        }
+      }
     }
   },
   "lint-staged": {

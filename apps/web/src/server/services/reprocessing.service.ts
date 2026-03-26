@@ -1,4 +1,4 @@
-import { CacheInvalidation } from "@/lib/cache-utils";
+import { invalidateFor } from "@/lib/cache";
 import { logger } from "@/lib/logger";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import {
@@ -24,7 +24,7 @@ export class ReprocessingService {
    */
   static async canReprocess(
     recordingId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<{ canReprocess: boolean; reason?: string }>> {
     try {
       // Get recording
@@ -43,9 +43,9 @@ export class ReprocessingService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "ReprocessingService.canReprocess"
+          "ReprocessingService.canReprocess",
         );
-      } catch (error) {
+      } catch {
         return ok({
           canReprocess: false,
           reason: "Recording not found",
@@ -98,8 +98,8 @@ export class ReprocessingService {
         ActionErrors.internal(
           "Failed to check reprocessing eligibility",
           error as Error,
-          "ReprocessingService.canReprocess"
-        )
+          "ReprocessingService.canReprocess",
+        ),
       );
     }
   }
@@ -109,7 +109,7 @@ export class ReprocessingService {
    */
   static async backupCurrentInsights(
     recordingId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<
     ActionResult<{
       transcription?: {
@@ -144,8 +144,8 @@ export class ReprocessingService {
         return err(
           ActionErrors.notFound(
             "Recording",
-            "ReprocessingService.backupCurrentInsights"
-          )
+            "ReprocessingService.backupCurrentInsights",
+          ),
         );
       }
 
@@ -154,14 +154,14 @@ export class ReprocessingService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "ReprocessingService.backupCurrentInsights"
+          "ReprocessingService.backupCurrentInsights",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
-            "ReprocessingService.backupCurrentInsights"
-          )
+            "ReprocessingService.backupCurrentInsights",
+          ),
         );
       }
 
@@ -194,7 +194,7 @@ export class ReprocessingService {
         if (recording.transcriptionText) {
           const transcriptionInsight = await AIInsightsQueries.getInsightByType(
             recordingId,
-            "transcription"
+            "transcription",
           );
 
           if (transcriptionInsight) {
@@ -210,7 +210,7 @@ export class ReprocessingService {
       // Backup summary
       const summaryInsight = await AIInsightsQueries.getInsightByType(
         recordingId,
-        "summary"
+        "summary",
       );
 
       if (summaryInsight) {
@@ -257,8 +257,8 @@ export class ReprocessingService {
         ActionErrors.internal(
           "Failed to backup current insights",
           error as Error,
-          "ReprocessingService.backupCurrentInsights"
-        )
+          "ReprocessingService.backupCurrentInsights",
+        ),
       );
     }
   }
@@ -269,7 +269,7 @@ export class ReprocessingService {
   static async triggerReprocessing(
     recordingId: string,
     triggeredById: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<{ reprocessingId: string }>> {
     try {
       logger.info("Starting reprocessing trigger", {
@@ -285,8 +285,8 @@ export class ReprocessingService {
         return err(
           ActionErrors.notFound(
             "Recording",
-            "ReprocessingService.triggerReprocessing"
-          )
+            "ReprocessingService.triggerReprocessing",
+          ),
         );
       }
 
@@ -294,21 +294,21 @@ export class ReprocessingService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "ReprocessingService.triggerReprocessing"
+          "ReprocessingService.triggerReprocessing",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
-            "ReprocessingService.triggerReprocessing"
-          )
+            "ReprocessingService.triggerReprocessing",
+          ),
         );
       }
 
       // Check if can reprocess
       const canReprocessResult = await this.canReprocess(
         recordingId,
-        organizationId
+        organizationId,
       );
 
       if (canReprocessResult.isErr()) {
@@ -319,15 +319,15 @@ export class ReprocessingService {
         return err(
           ActionErrors.badRequest(
             canReprocessResult.value.reason ?? "Cannot reprocess recording",
-            "ReprocessingService.triggerReprocessing"
-          )
+            "ReprocessingService.triggerReprocessing",
+          ),
         );
       }
 
       // Backup current insights
       const backupResult = await this.backupCurrentInsights(
         recordingId,
-        organizationId
+        organizationId,
       );
 
       if (backupResult.isErr()) {
@@ -355,11 +355,10 @@ export class ReprocessingService {
           transcriptionStatus: "pending",
         });
 
-        CacheInvalidation.invalidateRecording(
-          recordingId,
-          recording.projectId,
-          recording.organizationId
-        );
+        invalidateFor("recording", "reprocess", {
+          organizationId: recording.organizationId,
+          input: { recordingId, projectId: recording.projectId },
+        });
 
         const workflowRun = await start(convertRecordingIntoAiInsights, [
           recordingId,
@@ -384,7 +383,7 @@ export class ReprocessingService {
         ) {
           await ReprocessingQueries.updateReprocessingHistory(
             reprocessingHistory.id,
-            { status: "completed", completedAt: new Date() }
+            { status: "completed", completedAt: new Date() },
           );
           logger.info("Reprocessing completed successfully", {
             component: "ReprocessingService.triggerReprocessing",
@@ -394,10 +393,10 @@ export class ReprocessingService {
         } else {
           const errorMessage = workflowResult?.success
             ? (workflowResult.value.error ?? "Unknown workflow error")
-            : (workflowResult?.error || "Workflow execution failed");
+            : workflowResult?.error || "Workflow execution failed";
           await ReprocessingQueries.updateReprocessingHistory(
             reprocessingHistory.id,
-            { status: "failed", completedAt: new Date(), errorMessage }
+            { status: "failed", completedAt: new Date(), errorMessage },
           );
           logger.error("Reprocessing workflow failed", {
             component: "ReprocessingService.triggerReprocessing",
@@ -419,13 +418,12 @@ export class ReprocessingService {
           });
           await ReprocessingQueries.updateReprocessingHistory(
             reprocessingHistory.id,
-            { status: "failed", completedAt: new Date(), errorMessage }
+            { status: "failed", completedAt: new Date(), errorMessage },
           );
-          CacheInvalidation.invalidateRecording(
-            recordingId,
-            recording.projectId,
-            recording.organizationId
-          );
+          invalidateFor("recording", "reprocess", {
+            organizationId: recording.organizationId,
+            input: { recordingId, projectId: recording.projectId },
+          });
         } catch (persistError) {
           logger.error("Failed to persist reprocessing failure state", {
             component: "ReprocessingService.triggerReprocessing",
@@ -454,8 +452,8 @@ export class ReprocessingService {
         ActionErrors.internal(
           "Failed to trigger reprocessing",
           error as Error,
-          "ReprocessingService.triggerReprocessing"
-        )
+          "ReprocessingService.triggerReprocessing",
+        ),
       );
     }
   }
@@ -465,7 +463,7 @@ export class ReprocessingService {
    */
   static async getReprocessingStatus(
     recordingId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<
     ActionResult<{
       isReprocessing: boolean;
@@ -482,8 +480,8 @@ export class ReprocessingService {
         return err(
           ActionErrors.notFound(
             "Recording",
-            "ReprocessingService.getReprocessingStatus"
-          )
+            "ReprocessingService.getReprocessingStatus",
+          ),
         );
       }
 
@@ -491,14 +489,14 @@ export class ReprocessingService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "ReprocessingService.getReprocessingStatus"
+          "ReprocessingService.getReprocessingStatus",
         );
-      } catch (error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
-            "ReprocessingService.getReprocessingStatus"
-          )
+            "ReprocessingService.getReprocessingStatus",
+          ),
         );
       }
 
@@ -529,10 +527,9 @@ export class ReprocessingService {
         ActionErrors.internal(
           "Failed to get reprocessing status",
           error as Error,
-          "ReprocessingService.getReprocessingStatus"
-        )
+          "ReprocessingService.getReprocessingStatus",
+        ),
       );
     }
   }
 }
-

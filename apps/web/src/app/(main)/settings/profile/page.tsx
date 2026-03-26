@@ -8,6 +8,7 @@ import { PrivacyRights } from "@/features/settings/components/privacy-rights";
 import { ProfileForm } from "@/features/settings/components/profile-form";
 import { getDeletionStatus } from "@/features/settings/lib/get-deletion-status";
 import { getPrivacyRequests } from "@/features/settings/lib/get-privacy-requests";
+import type { AuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import {
   getCachedTeamsByOrganization,
@@ -30,9 +31,14 @@ async function ProfileContent() {
     );
   }
 
-  const { user, organization } = authResult.value;
+  const { user, organization, userTeamIds } = authResult.value;
   const organizationId = organization?.id;
   const orgName = organization?.name ?? "Personal Organization";
+
+  const auth: AuthContext | undefined =
+    user && organizationId
+      ? { user, organizationId, userTeamIds: userTeamIds ?? [] }
+      : undefined;
 
   const [
     userDetailResult,
@@ -42,11 +48,11 @@ async function ProfileContent() {
     privacyRequests,
   ] = await Promise.all([
     UserService.getUserById(user.id),
-    organizationId
-      ? getCachedUserTeams(user.id, organizationId)
+    organizationId && auth
+      ? getCachedUserTeams(user.id, organizationId, auth)
       : Promise.resolve([]),
-    organizationId
-      ? getCachedTeamsByOrganization(organizationId)
+    organizationId && auth
+      ? getCachedTeamsByOrganization(organizationId, auth)
       : Promise.resolve([]),
     getDeletionStatus(),
     getPrivacyRequests(),

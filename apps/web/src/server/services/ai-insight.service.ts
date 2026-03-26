@@ -1,5 +1,4 @@
 import { err, ok } from "neverthrow";
-import { CacheInvalidation } from "../../lib/cache-utils";
 import { logger } from "../../lib/logger";
 import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
 import {
@@ -26,7 +25,7 @@ export class AIInsightService {
    * Used by AI processing workflows to store insights
    */
   static async createAIInsight(
-    data: NewAIInsight
+    data: NewAIInsight,
   ): Promise<ActionResult<AIInsightDto>> {
     try {
       const insight = await AIInsightsQueries.createAIInsight(data);
@@ -37,8 +36,8 @@ export class AIInsightService {
         ActionErrors.internal(
           "Failed to create AI insight",
           error as Error,
-          "AIInsightService.createAIInsight"
-        )
+          "AIInsightService.createAIInsight",
+        ),
       );
     }
   }
@@ -48,7 +47,7 @@ export class AIInsightService {
    */
   static async getInsightsByRecordingId(
     recordingId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<AIInsightDto[]>> {
     try {
       // Verify recording belongs to organization
@@ -58,8 +57,8 @@ export class AIInsightService {
         return err(
           ActionErrors.notFound(
             "Recording",
-            "AIInsightService.getInsightsByRecordingId"
-          )
+            "AIInsightService.getInsightsByRecordingId",
+          ),
         );
       }
 
@@ -67,14 +66,14 @@ export class AIInsightService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "AIInsightService.getInsightsByRecordingId"
+          "AIInsightService.getInsightsByRecordingId",
         );
-      } catch (_error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
-            "AIInsightService.getInsightsByRecordingId"
-          )
+            "AIInsightService.getInsightsByRecordingId",
+          ),
         );
       }
 
@@ -88,8 +87,8 @@ export class AIInsightService {
         ActionErrors.internal(
           "Failed to get AI insights",
           error as Error,
-          "AIInsightService.getInsightsByRecordingId"
-        )
+          "AIInsightService.getInsightsByRecordingId",
+        ),
       );
     }
   }
@@ -99,7 +98,7 @@ export class AIInsightService {
    * Used by internal workflows and services
    */
   static async getInsightsByRecordingIdInternal(
-    recordingId: string
+    recordingId: string,
   ): Promise<ActionResult<AIInsightDto[]>> {
     try {
       const insights =
@@ -112,8 +111,8 @@ export class AIInsightService {
         ActionErrors.internal(
           "Failed to get AI insights",
           error as Error,
-          "AIInsightService.getInsightsByRecordingIdInternal"
-        )
+          "AIInsightService.getInsightsByRecordingIdInternal",
+        ),
       );
     }
   }
@@ -124,7 +123,7 @@ export class AIInsightService {
   static async getInsightByType(
     recordingId: string,
     insightType: InsightType,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<AIInsightDto | null>> {
     try {
       // Verify recording belongs to organization
@@ -134,8 +133,8 @@ export class AIInsightService {
         return err(
           ActionErrors.notFound(
             "Recording",
-            "AIInsightService.getInsightByType"
-          )
+            "AIInsightService.getInsightByType",
+          ),
         );
       }
 
@@ -143,20 +142,20 @@ export class AIInsightService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "AIInsightService.getInsightByType"
+          "AIInsightService.getInsightByType",
         );
-      } catch (_error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
-            "AIInsightService.getInsightByType"
-          )
+            "AIInsightService.getInsightByType",
+          ),
         );
       }
 
       const insight = await AIInsightsQueries.getInsightByType(
         recordingId,
-        insightType
+        insightType,
       );
 
       return ok(insight ? this.toDto(insight) : null);
@@ -166,8 +165,8 @@ export class AIInsightService {
         ActionErrors.internal(
           "Failed to get AI insight by type",
           error as Error,
-          "AIInsightService.getInsightByType"
-        )
+          "AIInsightService.getInsightByType",
+        ),
       );
     }
   }
@@ -178,12 +177,12 @@ export class AIInsightService {
    */
   static async getInsightByTypeInternal(
     recordingId: string,
-    insightType: InsightType
+    insightType: InsightType,
   ): Promise<ActionResult<AIInsightDto | null>> {
     try {
       const insight = await AIInsightsQueries.getInsightByType(
         recordingId,
-        insightType
+        insightType,
       );
 
       return ok(insight ? this.toDto(insight) : null);
@@ -193,8 +192,8 @@ export class AIInsightService {
         ActionErrors.internal(
           "Failed to get AI insight by type",
           error as Error,
-          "AIInsightService.getInsightByTypeInternal"
-        )
+          "AIInsightService.getInsightByTypeInternal",
+        ),
       );
     }
   }
@@ -204,30 +203,22 @@ export class AIInsightService {
    * Used by AI processing workflows to track processing status
    */
   static async updateInsightStatus(
-    input: UpdateAIInsightStatusDto
+    input: UpdateAIInsightStatusDto,
   ): Promise<ActionResult<AIInsightDto>> {
     try {
       const insight = await AIInsightsQueries.updateInsightStatus(
         input.insightId,
         input.status,
-        input.errorMessage
+        input.errorMessage,
       );
 
       if (!insight) {
         return err(
           ActionErrors.notFound(
             "AI Insight",
-            "AIInsightService.updateInsightStatus"
-          )
+            "AIInsightService.updateInsightStatus",
+          ),
         );
-      }
-
-      CacheInvalidation.invalidateAIInsightByType(
-        insight.recordingId,
-        insight.insightType
-      );
-      if (insight.insightType === "summary") {
-        CacheInvalidation.invalidateSummary(insight.recordingId);
       }
 
       return ok(this.toDto(insight));
@@ -237,8 +228,8 @@ export class AIInsightService {
         ActionErrors.internal(
           "Failed to update AI insight status",
           error as Error,
-          "AIInsightService.updateInsightStatus"
-        )
+          "AIInsightService.updateInsightStatus",
+        ),
       );
     }
   }
@@ -250,7 +241,7 @@ export class AIInsightService {
   static async updateInsightContent(
     input: Partial<Omit<NewAIInsight, "id" | "createdAt" | "updatedAt">> & {
       id: string;
-    }
+    },
   ): Promise<ActionResult<AIInsightDto>> {
     try {
       const insight = await AIInsightsQueries.updateInsightContent(input.id, {
@@ -262,17 +253,9 @@ export class AIInsightService {
         return err(
           ActionErrors.notFound(
             "AI Insight",
-            "AIInsightService.updateInsightContent"
-          )
+            "AIInsightService.updateInsightContent",
+          ),
         );
-      }
-
-      CacheInvalidation.invalidateAIInsightByType(
-        insight.recordingId,
-        insight.insightType
-      );
-      if (insight.insightType === "summary") {
-        CacheInvalidation.invalidateSummary(insight.recordingId);
       }
 
       return ok(this.toDto(insight));
@@ -282,8 +265,8 @@ export class AIInsightService {
         ActionErrors.internal(
           "Failed to update AI insight content",
           error as Error,
-          "AIInsightService.updateInsightContent"
-        )
+          "AIInsightService.updateInsightContent",
+        ),
       );
     }
   }
@@ -294,32 +277,32 @@ export class AIInsightService {
   static async updateInsightWithEdit(
     input: Omit<UpdateAIInsightWithEditDto, "userId">,
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<AIInsightDto>> {
     try {
       // Get insight first to verify it exists and get its recording
       const existingInsight = await AIInsightsQueries.getInsightById(
-        input.insightId
+        input.insightId,
       );
       if (!existingInsight) {
         return err(
           ActionErrors.notFound(
             "AI Insight",
-            "AIInsightService.updateInsightWithEdit"
-          )
+            "AIInsightService.updateInsightWithEdit",
+          ),
         );
       }
 
       // Verify recording belongs to organization
       const recording = await RecordingsQueries.selectRecordingById(
-        existingInsight.recordingId
+        existingInsight.recordingId,
       );
       if (!recording) {
         return err(
           ActionErrors.notFound(
             "Recording",
-            "AIInsightService.updateInsightWithEdit"
-          )
+            "AIInsightService.updateInsightWithEdit",
+          ),
         );
       }
 
@@ -327,38 +310,30 @@ export class AIInsightService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "AIInsightService.updateInsightWithEdit"
+          "AIInsightService.updateInsightWithEdit",
         );
-      } catch (_error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "AI Insight not found",
-            "AIInsightService.updateInsightWithEdit"
-          )
+            "AIInsightService.updateInsightWithEdit",
+          ),
         );
       }
 
       const insight = await AIInsightsQueries.updateInsightWithEdit(
         input.insightId,
         input.content,
-        userId
+        userId,
       );
 
       if (!insight) {
         return err(
           ActionErrors.notFound(
             "AI Insight",
-            "AIInsightService.updateInsightWithEdit"
-          )
+            "AIInsightService.updateInsightWithEdit",
+          ),
         );
-      }
-
-      CacheInvalidation.invalidateAIInsightByType(
-        insight.recordingId,
-        insight.insightType
-      );
-      if (insight.insightType === "summary") {
-        CacheInvalidation.invalidateSummary(insight.recordingId);
       }
 
       return ok(this.toDto(insight));
@@ -366,14 +341,14 @@ export class AIInsightService {
       logger.error(
         "Failed to update AI insight with edit tracking",
         {},
-        error as Error
+        error as Error,
       );
       return err(
         ActionErrors.internal(
           "Failed to update AI insight with edit tracking",
           error as Error,
-          "AIInsightService.updateInsightWithEdit"
-        )
+          "AIInsightService.updateInsightWithEdit",
+        ),
       );
     }
   }
@@ -386,7 +361,7 @@ export class AIInsightService {
     recordingId: string,
     speakerNames: Record<string, string>,
     organizationId: string,
-    speakerUserIds?: Record<string, string> | null
+    speakerUserIds?: Record<string, string> | null,
   ): Promise<ActionResult<AIInsightDto>> {
     try {
       // Verify recording belongs to organization
@@ -396,8 +371,8 @@ export class AIInsightService {
         return err(
           ActionErrors.notFound(
             "Recording",
-            "AIInsightService.updateSpeakerNames"
-          )
+            "AIInsightService.updateSpeakerNames",
+          ),
         );
       }
 
@@ -405,29 +380,29 @@ export class AIInsightService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "AIInsightService.updateSpeakerNames"
+          "AIInsightService.updateSpeakerNames",
         );
-      } catch (_error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "Recording not found",
-            "AIInsightService.updateSpeakerNames"
-          )
+            "AIInsightService.updateSpeakerNames",
+          ),
         );
       }
 
       // Get the transcription insight for this recording
       const insight =
         await AIInsightsQueries.getTranscriptionInsightByRecordingId(
-          recordingId
+          recordingId,
         );
 
       if (!insight) {
         return err(
           ActionErrors.notFound(
             "Transcription not found",
-            "AIInsightService.updateSpeakerNames"
-          )
+            "AIInsightService.updateSpeakerNames",
+          ),
         );
       }
 
@@ -435,22 +410,17 @@ export class AIInsightService {
       const updated = await AIInsightsQueries.updateSpeakerNames(
         insight.id,
         speakerNames,
-        speakerUserIds
+        speakerUserIds,
       );
 
       if (!updated) {
         return err(
           ActionErrors.notFound(
             "AI Insight",
-            "AIInsightService.updateSpeakerNames"
-          )
+            "AIInsightService.updateSpeakerNames",
+          ),
         );
       }
-
-      CacheInvalidation.invalidateAIInsightByType(
-        updated.recordingId,
-        updated.insightType
-      );
 
       return ok(this.toDto(updated));
     } catch (error) {
@@ -459,8 +429,8 @@ export class AIInsightService {
         ActionErrors.internal(
           "Failed to update speaker names",
           error as Error,
-          "AIInsightService.updateSpeakerNames"
-        )
+          "AIInsightService.updateSpeakerNames",
+        ),
       );
     }
   }
@@ -473,7 +443,7 @@ export class AIInsightService {
     utteranceIndex: number,
     newSpeaker: number,
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<AIInsightDto>> {
     try {
       // Verify recording belongs to organization
@@ -483,8 +453,8 @@ export class AIInsightService {
         return err(
           ActionErrors.notFound(
             "Recording",
-            "AIInsightService.updateUtteranceSpeaker"
-          )
+            "AIInsightService.updateUtteranceSpeaker",
+          ),
         );
       }
 
@@ -492,29 +462,29 @@ export class AIInsightService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "AIInsightService.updateUtteranceSpeaker"
+          "AIInsightService.updateUtteranceSpeaker",
         );
       } catch (error) {
         return err(
           ActionErrors.notFound(
             "Recording not found: " + (error as Error).message,
-            "AIInsightService.updateUtteranceSpeaker"
-          )
+            "AIInsightService.updateUtteranceSpeaker",
+          ),
         );
       }
 
       // Get the transcription insight for this recording
       const insight =
         await AIInsightsQueries.getTranscriptionInsightByRecordingId(
-          recordingId
+          recordingId,
         );
 
       if (!insight) {
         return err(
           ActionErrors.notFound(
             "Transcription not found",
-            "AIInsightService.updateUtteranceSpeaker"
-          )
+            "AIInsightService.updateUtteranceSpeaker",
+          ),
         );
       }
 
@@ -528,7 +498,7 @@ export class AIInsightService {
           ActionErrors.validation("Invalid utterance index", {
             utteranceIndex,
             utterancesLength: insight.utterances?.length ?? 0,
-          })
+          }),
         );
       }
 
@@ -537,22 +507,17 @@ export class AIInsightService {
         insight.id,
         utteranceIndex,
         newSpeaker,
-        userId
+        userId,
       );
 
       if (!updated) {
         return err(
           ActionErrors.notFound(
             "AI Insight",
-            "AIInsightService.updateUtteranceSpeaker"
-          )
+            "AIInsightService.updateUtteranceSpeaker",
+          ),
         );
       }
-
-      CacheInvalidation.invalidateAIInsightByType(
-        updated.recordingId,
-        updated.insightType
-      );
 
       return ok(this.toDto(updated));
     } catch (error) {
@@ -561,8 +526,8 @@ export class AIInsightService {
         ActionErrors.internal(
           "Failed to update utterance speaker",
           error as Error,
-          "AIInsightService.updateUtteranceSpeaker"
-        )
+          "AIInsightService.updateUtteranceSpeaker",
+        ),
       );
     }
   }
@@ -572,24 +537,24 @@ export class AIInsightService {
    */
   static async deleteInsight(
     insightId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<void>> {
     try {
       // Get insight first to verify it exists and get its recording
       const insight = await AIInsightsQueries.getInsightById(insightId);
       if (!insight) {
         return err(
-          ActionErrors.notFound("AI Insight", "AIInsightService.deleteInsight")
+          ActionErrors.notFound("AI Insight", "AIInsightService.deleteInsight"),
         );
       }
 
       // Verify recording belongs to organization
       const recording = await RecordingsQueries.selectRecordingById(
-        insight.recordingId
+        insight.recordingId,
       );
       if (!recording) {
         return err(
-          ActionErrors.notFound("Recording", "AIInsightService.deleteInsight")
+          ActionErrors.notFound("Recording", "AIInsightService.deleteInsight"),
         );
       }
 
@@ -597,26 +562,18 @@ export class AIInsightService {
         assertOrganizationAccess(
           recording.organizationId,
           organizationId,
-          "AIInsightService.deleteInsight"
+          "AIInsightService.deleteInsight",
         );
-      } catch (_error) {
+      } catch {
         return err(
           ActionErrors.notFound(
             "AI Insight not found",
-            "AIInsightService.deleteInsight"
-          )
+            "AIInsightService.deleteInsight",
+          ),
         );
       }
 
       await AIInsightsQueries.deleteInsight(insightId);
-
-      CacheInvalidation.invalidateAIInsightByType(
-        insight.recordingId,
-        insight.insightType
-      );
-      if (insight.insightType === "summary") {
-        CacheInvalidation.invalidateSummary(insight.recordingId);
-      }
 
       return ok(undefined);
     } catch (error) {
@@ -625,8 +582,8 @@ export class AIInsightService {
         ActionErrors.internal(
           "Failed to delete AI insight",
           error as Error,
-          "AIInsightService.deleteInsight"
-        )
+          "AIInsightService.deleteInsight",
+        ),
       );
     }
   }
@@ -656,4 +613,3 @@ export class AIInsightService {
     };
   }
 }
-

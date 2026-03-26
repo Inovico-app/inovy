@@ -1,4 +1,5 @@
 import { useAction } from "next-safe-action/hooks";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getOrCreateMeeting } from "../actions/meeting-actions";
@@ -7,17 +8,21 @@ interface UseNavigateToMeetingOptions {
   onBeforeNavigate?: () => void;
 }
 
-export function useNavigateToMeeting(
-  options?: UseNavigateToMeetingOptions
-) {
+export function useNavigateToMeeting(options?: UseNavigateToMeetingOptions) {
   const router = useRouter();
 
   const { execute, isExecuting, reset } = useAction(getOrCreateMeeting, {
     onSuccess: ({ data }) => {
       if (!data?.meetingId) return;
       options?.onBeforeNavigate?.();
-      // Use replace so navigating back doesn't restore stale action state
-      router.replace(`/meetings/${data.meetingId}/prep`);
+
+      // Preserve current calendar search params so the back button can restore state
+      const calendarSearch = window.location.search;
+      const returnTo = calendarSearch
+        ? `?returnTo=${encodeURIComponent(calendarSearch)}`
+        : "";
+      router.push(`/meetings/${data.meetingId}/prep${returnTo}` as Route);
+
       // Reset action state to prevent re-triggering on component remount
       reset();
     },

@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { logger } from "@/lib/logger";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
@@ -43,7 +44,7 @@ export function MfaVerify() {
       }
 
       toast.success("Signed in successfully");
-      router.push("/");
+      router.push("/" as Route);
     } catch (error) {
       logger.error("MFA TOTP verify error", {
         error,
@@ -70,7 +71,7 @@ export function MfaVerify() {
       }
 
       toast.success("Signed in successfully");
-      router.push("/");
+      router.push("/" as Route);
     } catch (error) {
       logger.error("MFA backup code verify error", {
         error,

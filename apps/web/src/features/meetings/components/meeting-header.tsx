@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import type { Route } from "next";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, Clock, Users } from "lucide-react";
@@ -22,21 +23,24 @@ export function MeetingHeader({
   showActualTime = false,
 }: MeetingHeaderProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const participants = (meeting.participants as MeetingParticipant[]) ?? [];
+
+  // Restore calendar state when navigating back
+  const returnTo = searchParams.get("returnTo");
+  const backUrl = returnTo ? `/meetings${returnTo}` : "/meetings";
 
   const startTime = showActualTime
     ? meeting.actualStartAt
     : meeting.scheduledStartAt;
-  const endTime = showActualTime
-    ? meeting.actualEndAt
-    : meeting.scheduledEndAt;
+  const endTime = showActualTime ? meeting.actualEndAt : meeting.scheduledEndAt;
 
   return (
     <header className="space-y-4">
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => router.push("/meetings")}
+        onClick={() => router.push(backUrl as unknown as Route)}
         className="text-muted-foreground hover:text-foreground -ml-2 gap-1.5"
       >
         <ArrowLeft className="h-4 w-4" />

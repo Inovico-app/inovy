@@ -1,8 +1,8 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import { cache } from "react";
+import { ProjectTemplateQueries } from "../data-access/project-templates.queries";
 import type { ProjectTemplateDto } from "../dto/project-template.dto";
-import { ProjectTemplateService } from "../services/project-template.service";
 
 /**
  * Cached functions for ProjectTemplate data fetching
@@ -15,22 +15,24 @@ import { ProjectTemplateService } from "../services/project-template.service";
  * Get project template with caching
  * Uses React cache() for request deduplication and Next.js 16 'use cache'
  * Returns serializable data (null or ProjectTemplateDto)
+ *
+ * Auth checks must be performed by the caller before invoking this function.
+ * organizationId is required to scope the query.
  */
 export const getCachedProjectTemplate = cache(
-  async (projectId: string): Promise<ProjectTemplateDto | null> => {
+  async (
+    projectId: string,
+    organizationId: string,
+  ): Promise<ProjectTemplateDto | null> => {
     "use cache";
 
-    cacheTag(CacheTags.projectTemplate(projectId));
-    // Fetch template for the project using service
-    const result =
-      await ProjectTemplateService.getProjectTemplateByProjectId(projectId);
+    cacheTag(...tagsFor("projectTemplate", { projectId }));
+    // Fetch template for the project directly from the data-access layer
+    const result = await ProjectTemplateQueries.findByProjectId(
+      projectId,
+      organizationId,
+    );
 
-    // Return null on error, or the template data if found
-    if (result.isErr()) {
-      return null;
-    }
-
-    return result.value ?? null;
-  }
+    return result ?? null;
+  },
 );
-

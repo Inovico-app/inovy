@@ -1,6 +1,5 @@
 "use server";
 
-import { CacheInvalidation } from "@/lib/cache-utils";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -45,11 +44,6 @@ export const updateProjectTemplateAction = authorizedActionClient
       { instructions },
       orgCode,
     );
-
-    // Revalidate project page if template exists
-    if (result.isOk()) {
-      CacheInvalidation.invalidateProjectTemplate(result.value.projectId);
-    }
 
     return resultToActionResponse(result);
   });

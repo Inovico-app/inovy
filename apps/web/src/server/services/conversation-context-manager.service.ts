@@ -93,7 +93,7 @@ export class ConversationContextManager {
   static pruneMessagesByTokenLimit(
     messages: ModelMessage[],
     maxTokens: number,
-    reserveTokens: number
+    reserveTokens: number,
   ): ModelMessage[] {
     const availableTokens = maxTokens - reserveTokens;
 
@@ -153,7 +153,7 @@ export class ConversationContextManager {
   static shouldSummarize(
     messages: ChatMessage[],
     tokenCount: number,
-    threshold: number
+    threshold: number,
   ): boolean {
     // Summarize if token count exceeds threshold
     if (tokenCount > threshold) {
@@ -169,7 +169,7 @@ export class ConversationContextManager {
    * Summarize a conversation using AI
    */
   static async summarizeConversation(
-    params: ConversationSummarizeParams
+    params: ConversationSummarizeParams,
   ): Promise<ActionResult<string>> {
     try {
       const { messages, conversationId } = params;
@@ -191,7 +191,7 @@ export class ConversationContextManager {
             const toolCallsText = msg.toolCalls
               .map(
                 (tc) =>
-                  `[Tool: ${tc.name}] ${JSON.stringify(tc.arguments)}${tc.result ? ` → ${typeof tc.result === "string" ? tc.result : JSON.stringify(tc.result)}` : ""}`
+                  `[Tool: ${tc.name}] ${JSON.stringify(tc.arguments)}${tc.result ? ` → ${typeof tc.result === "string" ? tc.result : JSON.stringify(tc.result)}` : ""}`,
               )
               .join("\n");
             content += `\n${toolCallsText}`;
@@ -209,23 +209,23 @@ export class ConversationContextManager {
       // Call AI SDK with guardrails and retry logic
       const completion = await connectionPool.executeWithRetry(
         async () =>
-          connectionPool.withOpenAIClient(async (openai) => {
-            const guardedModel = createGuardedModel(openai("gpt-5-nano"), {
-              requestType: "conversation-summary",
-              pii: { mode: "redact" },
-              audit: { enabled: false },
-            });
+          connectionPool.withAnthropicAISdkClient(async (anthropic) => {
+            const guardedModel = createGuardedModel(
+              anthropic("claude-sonnet-4-6"),
+              {
+                requestType: "conversation-summary",
+                pii: { mode: "redact" },
+                audit: { enabled: false },
+              },
+            );
 
             return generateText({
               model: guardedModel,
               system: promptResult.systemPrompt,
               prompt: promptResult.userPrompt,
-              providerOptions: {
-                openai: { responseFormat: { type: "json_object" } },
-              },
             });
           }),
-        "openai"
+        "anthropic",
       );
 
       const responseContent = completion.text;
@@ -234,8 +234,8 @@ export class ConversationContextManager {
           ActionErrors.internal(
             "No response content from summarization API",
             undefined,
-            "ConversationContextManager.summarizeConversation"
-          )
+            "ConversationContextManager.summarizeConversation",
+          ),
         );
       }
 
@@ -253,8 +253,8 @@ export class ConversationContextManager {
           ActionErrors.internal(
             "Invalid JSON response from summarization API",
             parseError,
-            "ConversationContextManager.summarizeConversation"
-          )
+            "ConversationContextManager.summarizeConversation",
+          ),
         );
       }
 
@@ -281,8 +281,8 @@ export class ConversationContextManager {
         ActionErrors.internal(
           "Conversation summarization failed",
           error,
-          "ConversationContextManager.summarizeConversation"
-        )
+          "ConversationContextManager.summarizeConversation",
+        ),
       );
     }
   }
@@ -292,7 +292,7 @@ export class ConversationContextManager {
    */
   static async getConversationContext(
     conversationId: string,
-    maxTokens: number = MAX_CONTEXT_TOKENS
+    maxTokens: number = MAX_CONTEXT_TOKENS,
   ): Promise<ActionResult<ConversationContext>> {
     try {
       // Load all messages
@@ -310,7 +310,7 @@ export class ConversationContextManager {
 
       // Convert to ModelMessage format
       const coreMessages = messages.map((msg) =>
-        this.chatMessageToModelMessage(msg)
+        this.chatMessageToModelMessage(msg),
       );
 
       // Count tokens
@@ -320,7 +320,7 @@ export class ConversationContextManager {
       const needsSummarization = this.shouldSummarize(
         messages,
         tokenCount,
-        SUMMARY_THRESHOLD_TOKENS
+        SUMMARY_THRESHOLD_TOKENS,
       );
 
       // Generate summary if needed and not already exists
@@ -345,7 +345,7 @@ export class ConversationContextManager {
       const prunedMessages = this.pruneMessagesByTokenLimit(
         coreMessages,
         maxTokens,
-        RESERVE_TOKENS
+        RESERVE_TOKENS,
       );
 
       return ok({
@@ -363,10 +363,9 @@ export class ConversationContextManager {
         ActionErrors.internal(
           "Failed to get conversation context",
           error,
-          "ConversationContextManager.getConversationContext"
-        )
+          "ConversationContextManager.getConversationContext",
+        ),
       );
     }
   }
 }
-

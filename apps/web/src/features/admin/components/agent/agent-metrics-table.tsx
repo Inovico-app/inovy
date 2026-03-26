@@ -23,7 +23,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { AgentMetric } from "@/server/db/schema/agent-metrics";
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronUpIcon,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
 import { parseAsInteger, useQueryState } from "nuqs";
@@ -57,7 +62,10 @@ function MetricRow({ metric }: MetricRowProps) {
     }
   };
 
-  const truncateText = (text: string | null | undefined, maxLength: number = 50): string => {
+  const truncateText = (
+    text: string | null | undefined,
+    maxLength: number = 50,
+  ): string => {
     if (!text) return "-";
     if (text.length <= maxLength) return text;
     return `${text.slice(0, maxLength)}...`;
@@ -91,7 +99,11 @@ function MetricRow({ metric }: MetricRowProps) {
           <TableCell className="font-mono text-xs">
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger render={<div className="truncate cursor-help max-w-[120px]" />}>
+                <TooltipTrigger
+                  render={
+                    <div className="truncate cursor-help max-w-[120px]" />
+                  }
+                >
                   {truncateText(metric.userId, 15)}
                 </TooltipTrigger>
                 <TooltipContent>
@@ -103,7 +115,11 @@ function MetricRow({ metric }: MetricRowProps) {
           <TableCell className="font-mono text-xs">
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger render={<div className="truncate cursor-help max-w-[120px]" />}>
+                <TooltipTrigger
+                  render={
+                    <div className="truncate cursor-help max-w-[120px]" />
+                  }
+                >
                   {truncateText(metric.organizationId, 15)}
                 </TooltipTrigger>
                 <TooltipContent>
@@ -139,7 +155,9 @@ function MetricRow({ metric }: MetricRowProps) {
             {metric.query ? (
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger render={<div className="truncate cursor-help" />}>
+                  <TooltipTrigger
+                    render={<div className="truncate cursor-help" />}
+                  >
                     {truncateText(metric.query, 40)}
                   </TooltipTrigger>
                   <TooltipContent className="max-w-md">
@@ -153,7 +171,11 @@ function MetricRow({ metric }: MetricRowProps) {
           </TableCell>
           <TableCell>
             {hasDetails ? (
-              <CollapsibleTrigger render={<Button variant="ghost" size="sm" className="h-8 w-8 p-0" />}>
+              <CollapsibleTrigger
+                render={
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" />
+                }
+              >
                 {isOpen ? (
                   <ChevronUpIcon className="h-4 w-4" />
                 ) : (
@@ -168,49 +190,49 @@ function MetricRow({ metric }: MetricRowProps) {
         {hasDetails && (
           <CollapsibleContent render={<TableRow />}>
             <TableCell colSpan={9} className="bg-muted/30">
-                <div className="space-y-3 py-3">
-                  {metric.conversationId && (
-                    <div>
-                      <span className="text-xs font-semibold text-muted-foreground">
-                        Conversation ID:
-                      </span>
-                      <p className="font-mono text-xs mt-1 break-all">
-                        {metric.conversationId}
-                      </p>
-                    </div>
-                  )}
-                  {metric.errorMessage && (
-                    <div>
-                      <span className="text-xs font-semibold text-muted-foreground">
-                        Error Message:
-                      </span>
-                      <p className="text-sm mt-1 text-destructive break-words">
-                        {metric.errorMessage}
-                      </p>
-                    </div>
-                  )}
-                  {metric.toolCalls && metric.toolCalls.length > 0 && (
-                    <div>
-                      <span className="text-xs font-semibold text-muted-foreground">
-                        Tool Calls:
-                      </span>
-                      <p className="text-sm mt-1 break-words">
-                        {formatToolCalls(metric.toolCalls)}
-                      </p>
-                    </div>
-                  )}
-                  {metric.metadata && (
-                    <div>
-                      <span className="text-xs font-semibold text-muted-foreground">
-                        Metadata:
-                      </span>
-                      <pre className="text-xs mt-1 p-2 bg-background rounded border overflow-auto max-h-48">
-                        {formatMetadata(metric.metadata)}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              </TableCell>
+              <div className="space-y-3 py-3">
+                {metric.conversationId && (
+                  <div>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      Conversation ID:
+                    </span>
+                    <p className="font-mono text-xs mt-1 break-all">
+                      {metric.conversationId}
+                    </p>
+                  </div>
+                )}
+                {metric.errorMessage && (
+                  <div>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      Error Message:
+                    </span>
+                    <p className="text-sm mt-1 text-destructive break-words">
+                      {metric.errorMessage}
+                    </p>
+                  </div>
+                )}
+                {metric.toolCalls && metric.toolCalls.length > 0 && (
+                  <div>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      Tool Calls:
+                    </span>
+                    <p className="text-sm mt-1 break-words">
+                      {formatToolCalls(metric.toolCalls)}
+                    </p>
+                  </div>
+                )}
+                {metric.metadata && (
+                  <div>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      Metadata:
+                    </span>
+                    <pre className="text-xs mt-1 p-2 bg-background rounded border overflow-auto max-h-48">
+                      {formatMetadata(metric.metadata)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </TableCell>
           </CollapsibleContent>
         )}
       </>
@@ -225,7 +247,7 @@ export function AgentMetricsTable({
   currentPage,
 }: AgentMetricsTableProps) {
   const router = useRouter();
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+  const [_page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
 
   const totalPages = Math.ceil(total / limit);
   const startIndex = (currentPage - 1) * limit;
@@ -277,7 +299,9 @@ export function AgentMetricsTable({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                    onClick={() =>
+                      handlePageChange(Math.max(1, currentPage - 1))
+                    }
                     disabled={currentPage === 1}
                   >
                     <ChevronLeftIcon className="h-4 w-4" />
@@ -312,4 +336,3 @@ export function AgentMetricsTable({
     </Card>
   );
 }
-

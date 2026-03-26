@@ -11,6 +11,7 @@ import type {
   RecordingStatus,
   TranscriptSegment,
 } from "@/features/recordings/core/recording-session.types";
+import { LiveWaveform } from "@/components/ui/live-waveform";
 import {
   Loader2,
   Pause,
@@ -27,6 +28,7 @@ import { ChunkUploadStatus } from "./chunk-upload-status";
 interface MobileRecordingViewProps {
   status: RecordingStatus;
   duration: number;
+  mediaStream: MediaStream | null;
   transcription: {
     status: ConnectionStatus;
     segments: TranscriptSegment[];
@@ -54,6 +56,7 @@ const CONNECTION_DOT_CLASS: Record<ConnectionStatus, string> = {
 export function MobileRecordingView({
   status,
   duration,
+  mediaStream,
   transcription,
   liveTranscriptionEnabled,
   audioSource,
@@ -125,6 +128,25 @@ export function MobileRecordingView({
                 </>
               )}
             </p>
+
+            {/* Live waveform */}
+            {mediaStream && (
+              <div className="mt-8 w-full max-w-sm px-4">
+                <LiveWaveform
+                  active={isRecording}
+                  stream={mediaStream}
+                  barWidth={4}
+                  barGap={2}
+                  barRadius={6}
+                  fadeEdges
+                  fadeWidth={32}
+                  height={80}
+                  sensitivity={0.8}
+                  smoothingTimeConstant={0.85}
+                  className="w-full text-muted-foreground"
+                />
+              </div>
+            )}
           </>
         )}
 

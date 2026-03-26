@@ -1,11 +1,11 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
-import { ChatService } from "@/server/services/chat.service";
+import { ConversationService } from "@/server/services/chat";
 import { NextResponse } from "next/server";
 
 export async function GET(
   request: Request,
-  props: { params: Promise<{ conversationId: string }> }
+  props: { params: Promise<{ conversationId: string }> },
 ) {
   const params = await props.params;
   try {
@@ -25,15 +25,15 @@ export async function GET(
     const format = searchParams.get("format") || "text";
 
     if (format === "pdf") {
-      const result = await ChatService.exportConversationAsPDF(
+      const result = await ConversationService.exportConversationAsPDF(
         conversationId,
-        userId
+        userId,
       );
 
       if (result.isErr()) {
         return NextResponse.json(
           { error: result.error.message },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -47,15 +47,15 @@ export async function GET(
         },
       });
     } else {
-      const result = await ChatService.exportConversationAsText(
+      const result = await ConversationService.exportConversationAsText(
         conversationId,
-        userId
+        userId,
       );
 
       if (result.isErr()) {
         return NextResponse.json(
           { error: result.error.message },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -73,8 +73,7 @@ export async function GET(
     });
     return NextResponse.json(
       { error: "Failed to export conversation" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

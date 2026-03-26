@@ -1,70 +1,40 @@
 "use server";
 
-import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { logger } from "@/lib/logger";
-import { AuditLogService } from "@/server/services/audit-log.service";
+import type { AuthContext } from "@/lib/auth-context";
+import { policyToPermissions } from "@/lib/rbac/permission-helpers";
+import {
+  authorizedActionClient,
+  resultToActionResponse,
+} from "@/lib/server-action-client/action-client";
 import { ProjectService } from "@/server/services/project.service";
 
 /**
  * Server action to get projects for the authenticated user's organization
- * Returns basic project info for filtering purposes
+ * Returns basic project info for filtering and dropdown purposes
  */
-export async function getUserProjects(): Promise<{
-  success: boolean;
-  data?: Array<{ id: string; name: string }>;
-  error?: string;
-}> {
-  try {
-    const result = await ProjectService.getProjectsByOrganization();
+export const getUserProjectsAction = authorizedActionClient
+  .metadata({
+    name: "get-user-projects",
+    permissions: policyToPermissions("projects:read"),
+    audit: {
+      resourceType: "project",
+      action: "list",
+      category: "read",
+    },
+  })
+  .action(async ({ ctx }) => {
+    const auth: AuthContext = {
+      user: ctx.user!,
+      organizationId: ctx.organizationId!,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
 
-    if (result.isErr()) {
-      logger.error("Failed to get user projects", {
-        component: "getUserProjects",
-        error: result.error.message,
-      });
-
-      return {
-        success: false,
-        error: result.error.message,
-      };
-    }
+    const result = await ProjectService.getProjectsByOrganization(auth);
+    const projects = resultToActionResponse(result);
 
     // Map to simplified format for dropdown
-    const projects = result.value.map((project) => ({
+    return projects.map((project) => ({
       id: project.id,
       name: project.name,
     }));
-
-    const authResult = await getBetterAuthSession();
-    if (authResult.isOk()) {
-      const { user, organization } = authResult.value;
-      if (user?.id && organization?.id) {
-        void AuditLogService.createAuditLog({
-          eventType: "project_list",
-          resourceType: "project",
-          resourceId: null,
-          userId: user.id,
-          organizationId: organization.id,
-          action: "list",
-          category: "read",
-          metadata: { actionName: "getUserProjects" },
-        });
-      }
-    }
-
-    return {
-      success: true,
-      data: projects,
-    };
-  } catch (error) {
-    logger.error("Unexpected error getting user projects", {
-      component: "getUserProjects",
-      error,
-    });
-
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
+  });

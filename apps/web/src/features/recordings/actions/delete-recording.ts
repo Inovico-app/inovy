@@ -1,5 +1,6 @@
 "use server";
 
+import type { AuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
@@ -24,7 +25,11 @@ export const deleteRecordingAction = authorizedActionClient
   .inputSchema(deleteRecordingSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { recordingId, confirmationText } = parsedInput;
-    const { organizationId } = ctx;
+    const { user, organizationId } = ctx;
+
+    if (!user) {
+      throw ActionErrors.unauthenticated("User not found", "delete-recording");
+    }
 
     if (!organizationId) {
       throw ActionErrors.forbidden(
@@ -34,9 +39,17 @@ export const deleteRecordingAction = authorizedActionClient
       );
     }
 
+    const auth: AuthContext = {
+      user,
+      organizationId,
+      userTeamIds: ctx.userTeamIds ?? [],
+    };
+
     // Get recording to get file URL and validate confirmation
-    const recordingResult =
-      await RecordingService.getRecordingById(recordingId);
+    const recordingResult = await RecordingService.getRecordingById(
+      recordingId,
+      auth,
+    );
     if (recordingResult.isErr() || !recordingResult.value) {
       throw ActionErrors.notFound("Recording", "delete-recording");
     }
@@ -71,12 +84,14 @@ export const deleteRecordingAction = authorizedActionClient
     // Delete file from blob storage
     try {
       const storage = await getStorageProvider();
-      await storage.del(recording.fileUrl);
-      logger.info("Successfully deleted blob file", {
-        component: "deleteRecordingAction",
-        recordingId,
-        fileUrl: recording.fileUrl,
-      });
+      if (recording.fileUrl) {
+        await storage.del(recording.fileUrl);
+        logger.info("Successfully deleted blob file", {
+          component: "deleteRecordingAction",
+          recordingId,
+          fileUrl: recording.fileUrl,
+        });
+      }
     } catch (error) {
       // Log the error but don't fail the entire operation
       // The recording is already deleted from the database

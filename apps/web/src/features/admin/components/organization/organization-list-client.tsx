@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +43,7 @@ export function OrganizationListClient({
     return organizations.filter(
       (org) =>
         org.name.toLowerCase().includes(query) ||
-        org.slug.toLowerCase().includes(query)
+        org.slug.toLowerCase().includes(query),
     );
   }, [organizations, searchQuery]);
 
@@ -52,7 +53,7 @@ export function OrganizationListClient({
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedOrganizations = filteredOrganizations.slice(
     startIndex,
-    endIndex
+    endIndex,
   );
 
   // Reset to first page when search changes
@@ -116,6 +117,7 @@ export function OrganizationListClient({
                     <TableCell>
                       <div className="flex items-center gap-3">
                         {org.logo ? (
+                          /* eslint-disable-next-line @next/next/no-img-element -- dynamic external org logo */
                           <img
                             src={org.logo}
                             alt={org.name}
@@ -141,8 +143,17 @@ export function OrganizationListClient({
                       {format(new Date(org.createdAt), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell>
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                      <Button variant="ghost" size="sm" render={<Link href={`/admin/organizations/${org.id}` as any} />} nativeButton={false}>
+                      {}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        render={
+                          <Link
+                            href={`/admin/organizations/${org.id}` as Route}
+                          />
+                        }
+                        nativeButton={false}
+                      >
                         View
                       </Button>
                     </TableCell>
@@ -201,4 +212,3 @@ export function OrganizationListClient({
     </div>
   );
 }
-

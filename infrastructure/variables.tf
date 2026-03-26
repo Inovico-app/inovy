@@ -430,3 +430,9 @@ variable "log_analytics_retention_days" {
   type        = number
   default     = 30
 }
+
+variable "vercel_url" {
+  description = "Vercel deployment URL. Used as the target for Vercel cron jobs."
+  type        = string
+  default     = "https://app.inovico.nl"
+}

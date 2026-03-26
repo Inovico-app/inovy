@@ -1,4 +1,4 @@
-import { CacheTags } from "@/lib/cache-utils";
+import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import { ProjectQueries } from "../data-access/projects.queries";
 import type { BetterAuthUser } from "@/lib/auth";
@@ -21,7 +21,7 @@ export async function getCachedProjectByIdWithCreator(
   orgCode: string,
 ) {
   "use cache";
-  cacheTag(CacheTags.project(projectId), CacheTags.projectsByOrg(orgCode));
+  cacheTag(...tagsFor("project", { projectId, organizationId: orgCode }));
   return await ProjectQueries.findByIdWithCreator(projectId, orgCode);
 }
 
@@ -36,7 +36,7 @@ export async function getCachedUserProjects(
   teamContext?: TeamContextOptions,
 ) {
   "use cache";
-  cacheTag(CacheTags.projectsByOrg(orgCode));
+  cacheTag(...tagsFor("project", { organizationId: orgCode }));
 
   const projects = await ProjectQueries.findByOrganizationWithCreator(
     {

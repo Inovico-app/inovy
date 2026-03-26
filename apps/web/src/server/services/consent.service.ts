@@ -1,5 +1,5 @@
 import { err, ok } from "neverthrow";
-import { CacheInvalidation } from "../../lib/cache-utils";
+import { invalidateFor } from "../../lib/cache";
 import { logger } from "../../lib/logger";
 import { assertOrganizationAccess } from "../../lib/rbac/organization-isolation";
 import {
@@ -31,7 +31,7 @@ export class ConsentService {
     userId: string,
     organizationId: string,
     ipAddress?: string,
-    userAgent?: string
+    userAgent?: string,
   ): Promise<ActionResult<ConsentParticipant>> {
     try {
       // Enforce explicit consent only for GDPR/HIPAA compliance
@@ -39,8 +39,8 @@ export class ConsentService {
         return err(
           ActionErrors.validation(
             "Only explicit consent is allowed for GDPR/HIPAA compliance. Implicit and bot-notification consent methods are not permitted.",
-            { consentMethod }
-          )
+            { consentMethod },
+          ),
         );
       }
 
@@ -49,20 +49,20 @@ export class ConsentService {
         await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
-          ActionErrors.notFound("Recording", "ConsentService.grantConsent")
+          ActionErrors.notFound("Recording", "ConsentService.grantConsent"),
         );
       }
 
       assertOrganizationAccess(
         recording.organizationId,
         organizationId,
-        "ConsentService.grantConsent"
+        "ConsentService.grantConsent",
       );
 
       // Check if consent already exists
       const existing = await ConsentQueries.getConsentParticipant(
         recordingId,
-        participantEmail
+        participantEmail,
       );
 
       let participant: ConsentParticipant;
@@ -72,7 +72,7 @@ export class ConsentService {
         const updated = await ConsentQueries.updateConsentStatus(
           recordingId,
           participantEmail,
-          "granted"
+          "granted",
         );
 
         if (!updated) {
@@ -80,8 +80,8 @@ export class ConsentService {
             ActionErrors.internal(
               "Failed to update consent",
               undefined,
-              "ConsentService.grantConsent"
-            )
+              "ConsentService.grantConsent",
+            ),
           );
         }
 
@@ -110,7 +110,7 @@ export class ConsentService {
           recordingId,
           true,
           userId,
-          new Date()
+          new Date(),
         );
       }
 
@@ -128,7 +128,7 @@ export class ConsentService {
             consentMethod,
             participantName,
           },
-          organizationId
+          organizationId,
         );
       } catch (auditError) {
         logger.error(
@@ -138,10 +138,16 @@ export class ConsentService {
             recordingId,
             userId,
           },
-          auditError as Error
+          auditError as Error,
         );
         // Audit failure doesn't block consent operation, but is logged for monitoring
       }
+
+      // Invalidate consent cache (needed for Route Handler callers)
+      invalidateFor("consent", "grant", {
+        organizationId,
+        input: { recordingId },
+      });
 
       // Log only participantId (UUID), never PII like email or name
       logger.info("Consent granted", {
@@ -150,11 +156,6 @@ export class ConsentService {
         participantId: participant.id,
         userId,
       });
-
-      CacheInvalidation.invalidateConsentParticipants(
-        recordingId,
-        organizationId
-      );
 
       return ok(participant);
     } catch (error) {
@@ -168,8 +169,8 @@ export class ConsentService {
         ActionErrors.internal(
           "Failed to grant consent",
           error as Error,
-          "ConsentService.grantConsent"
-        )
+          "ConsentService.grantConsent",
+        ),
       );
     }
   }
@@ -181,7 +182,7 @@ export class ConsentService {
     recordingId: string,
     participantEmail: string,
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<ConsentParticipant>> {
     try {
       // Verify recording exists and belongs to organization
@@ -189,14 +190,14 @@ export class ConsentService {
         await RecordingsQueries.selectRecordingById(recordingId);
       if (!recording) {
         return err(
-          ActionErrors.notFound("Recording", "ConsentService.revokeConsent")
+          ActionErrors.notFound("Recording", "ConsentService.revokeConsent"),
         );
       }
 
       assertOrganizationAccess(
         recording.organizationId,
         organizationId,
-        "ConsentService.revokeConsent"
+        "ConsentService.revokeConsent",
       );
 
       // Update consent status
@@ -204,15 +205,15 @@ export class ConsentService {
         recordingId,
         participantEmail,
         "revoked",
-        new Date()
+        new Date(),
       );
 
       if (!updated) {
         return err(
           ActionErrors.notFound(
             "Consent participant",
-            "ConsentService.revokeConsent"
-          )
+            "ConsentService.revokeConsent",
+          ),
         );
       }
 
@@ -227,7 +228,7 @@ export class ConsentService {
           undefined,
           undefined,
           {}, // createdAt already captures when revocation occurred
-          organizationId
+          organizationId,
         );
       } catch (auditError) {
         logger.error(
@@ -237,10 +238,16 @@ export class ConsentService {
             recordingId,
             userId,
           },
-          auditError as Error
+          auditError as Error,
         );
         // Audit failure doesn't block consent operation, but is logged for monitoring
       }
+
+      // Invalidate consent cache (needed for Route Handler callers)
+      invalidateFor("consent", "revoke", {
+        organizationId,
+        input: { recordingId },
+      });
 
       // Log only participantId (UUID), never PII like email or name
       logger.info("Consent revoked", {
@@ -249,11 +256,6 @@ export class ConsentService {
         participantId: updated.id,
         userId,
       });
-
-      CacheInvalidation.invalidateConsentParticipants(
-        recordingId,
-        organizationId
-      );
 
       return ok(updated);
     } catch (error) {
@@ -267,8 +269,8 @@ export class ConsentService {
         ActionErrors.internal(
           "Failed to revoke consent",
           error as Error,
-          "ConsentService.revokeConsent"
-        )
+          "ConsentService.revokeConsent",
+        ),
       );
     }
   }
@@ -278,7 +280,7 @@ export class ConsentService {
    */
   static async getConsentParticipants(
     recordingId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<ConsentParticipant[]>> {
     try {
       // Verify recording exists and belongs to organization
@@ -288,15 +290,15 @@ export class ConsentService {
         return err(
           ActionErrors.notFound(
             "Recording",
-            "ConsentService.getConsentParticipants"
-          )
+            "ConsentService.getConsentParticipants",
+          ),
         );
       }
 
       assertOrganizationAccess(
         recording.organizationId,
         organizationId,
-        "ConsentService.getConsentParticipants"
+        "ConsentService.getConsentParticipants",
       );
 
       const participants =
@@ -314,8 +316,8 @@ export class ConsentService {
         ActionErrors.internal(
           "Failed to get consent participants",
           error as Error,
-          "ConsentService.getConsentParticipants"
-        )
+          "ConsentService.getConsentParticipants",
+        ),
       );
     }
   }
@@ -325,7 +327,7 @@ export class ConsentService {
    */
   static async getConsentStatistics(
     recordingId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<
     ActionResult<{
       total: number;
@@ -342,15 +344,15 @@ export class ConsentService {
         return err(
           ActionErrors.notFound(
             "Recording",
-            "ConsentService.getConsentStatistics"
-          )
+            "ConsentService.getConsentStatistics",
+          ),
         );
       }
 
       assertOrganizationAccess(
         recording.organizationId,
         organizationId,
-        "ConsentService.getConsentStatistics"
+        "ConsentService.getConsentStatistics",
       );
 
       const stats = await ConsentQueries.getConsentStatistics(recordingId);
@@ -367,10 +369,9 @@ export class ConsentService {
         ActionErrors.internal(
           "Failed to get consent statistics",
           error as Error,
-          "ConsentService.getConsentStatistics"
-        )
+          "ConsentService.getConsentStatistics",
+        ),
       );
     }
   }
 }
-

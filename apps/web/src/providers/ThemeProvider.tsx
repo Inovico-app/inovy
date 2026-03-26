@@ -6,7 +6,10 @@ import * as React from "react";
 export function ThemeProvider({
   children,
   ...props
-}: React.ComponentProps<typeof NextThemesProvider>) {
+}: { children: React.ReactNode } & Omit<
+  React.ComponentProps<typeof NextThemesProvider>,
+  "children"
+>) {
   return (
     <NextThemesProvider
       attribute="class"
@@ -19,4 +22,3 @@ export function ThemeProvider({
     </NextThemesProvider>
   );
 }
-

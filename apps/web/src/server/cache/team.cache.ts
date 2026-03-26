@@ -1,4 +1,5 @@
-import { CacheTags } from "@/lib/cache-utils";
+import type { AuthContext } from "@/lib/auth-context";
+import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import type { TeamDto, UserTeamRoleDto } from "../dto/team.dto";
 import { TeamService } from "../services/team.service";
@@ -14,12 +15,13 @@ import { TeamService } from "../services/team.service";
  * Calls TeamService which includes business logic and auth checks
  */
 export async function getCachedTeamsByOrganization(
-  organizationId: string
+  organizationId: string,
+  auth: AuthContext,
 ): Promise<TeamDto[]> {
   "use cache: private";
-  cacheTag(CacheTags.teamsByOrg(organizationId));
+  cacheTag(...tagsFor("team", { organizationId }));
 
-  const teams = await TeamService.getTeamsByOrganization(organizationId);
+  const teams = await TeamService.getTeamsByOrganization(organizationId, auth);
 
   if (teams.isOk()) {
     // Map Better Auth Team[] to TeamDto[]
@@ -38,15 +40,17 @@ export async function getCachedTeamsByOrganization(
 }
 
 /**
-/**
  * Get team by ID (cached)
  * Calls TeamService which includes business logic and auth checks
  */
-export async function getCachedTeamById(id: string): Promise<TeamDto | null> {
+export async function getCachedTeamById(
+  id: string,
+  auth: AuthContext,
+): Promise<TeamDto | null> {
   "use cache: private";
-  cacheTag(CacheTags.team(id));
+  cacheTag(...tagsFor("team", { teamId: id }));
 
-  const team = await TeamService.getTeamById(id);
+  const team = await TeamService.getTeamById(id, auth);
 
   if (team.isOk() && team.value) {
     // Map Better Auth Team to TeamDto
@@ -70,12 +74,13 @@ export async function getCachedTeamById(id: string): Promise<TeamDto | null> {
  */
 export async function getCachedUserTeams(
   userId: string,
-  organizationId: string
+  organizationId: string,
+  auth: AuthContext,
 ): Promise<UserTeamRoleDto[]> {
   "use cache: private";
-  cacheTag(CacheTags.userTeams(userId, organizationId));
+  cacheTag(...tagsFor("userTeams", { userId, organizationId }));
 
-  const userTeams = await TeamService.getUserTeams(userId);
+  const userTeams = await TeamService.getUserTeams(userId, auth);
 
   if (userTeams.isOk()) {
     // Map Better Auth TeamMember[] to UserTeamRoleDto[]
@@ -102,24 +107,24 @@ export interface TeamWithMemberCount extends TeamDto {
  * Useful for displaying teams with member information
  */
 export async function getCachedTeamsWithMemberCounts(
-  organizationId: string
+  organizationId: string,
+  auth: AuthContext,
 ): Promise<TeamWithMemberCount[]> {
   "use cache: private";
-  cacheTag(CacheTags.teamsByOrg(organizationId));
+  cacheTag(...tagsFor("team", { organizationId }));
 
-  const teams = await getCachedTeamsByOrganization(organizationId);
+  const teams = await getCachedTeamsByOrganization(organizationId, auth);
 
   // Fetch member counts for all teams in parallel
   const teamsWithCounts = await Promise.all(
     teams.map(async (team) => {
-      const members = await TeamService.getTeamMembers(team.id);
+      const members = await TeamService.getTeamMembers(team.id, auth);
       return {
         ...team,
         memberCount: members.isOk() ? members.value.length : 0,
       };
-    })
+    }),
   );
 
   return teamsWithCounts;
 }
-
