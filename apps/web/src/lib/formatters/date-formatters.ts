@@ -19,9 +19,20 @@ export function formatDate(
     year: "numeric",
     month: "long",
     day: "numeric",
-  }
+  },
 ): string {
   return date.toLocaleDateString("en-US", options);
+}
+
+/**
+ * Format a date to Dutch long format (e.g., "26 maart 2026")
+ */
+export function formatDateNL(date: Date | string): string {
+  return new Date(date).toLocaleDateString("nl-NL", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
 
 /**
@@ -45,4 +56,3 @@ export function formatDateLong(date: Date): string {
     day: "numeric",
   });
 }
-

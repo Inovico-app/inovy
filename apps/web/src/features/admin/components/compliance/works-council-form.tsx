@@ -4,36 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { registerWorksCouncilApproval } from "@/features/admin/actions/works-council-actions";
-import { useAction } from "next-safe-action/hooks";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useRegisterWorksCouncilApproval } from "@/features/admin/hooks/use-register-works-council-approval";
 import { useRef } from "react";
+import { toast } from "sonner";
 
-interface WorksCouncilFormProps {
-  hasActiveApproval: boolean;
-}
-
-export function WorksCouncilForm({
-  hasActiveApproval: _hasActiveApproval,
-}: WorksCouncilFormProps) {
-  const router = useRouter();
+export function WorksCouncilForm() {
   const formRef = useRef<HTMLFormElement>(null);
 
-  const { execute: registerApproval, isExecuting: isRegistering } = useAction(
-    registerWorksCouncilApproval,
-    {
-      onSuccess: () => {
-        toast.success("OR-goedkeuring geregistreerd");
-        formRef.current?.reset();
-        router.refresh();
-      },
-      onError: ({ error }) => {
-        toast.error(
-          error.serverError || "Registratie van OR-goedkeuring mislukt",
-        );
-      },
-    },
+  const { registerApproval, isRegistering } = useRegisterWorksCouncilApproval(
+    () => formRef.current?.reset(),
   );
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

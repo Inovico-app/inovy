@@ -57,7 +57,6 @@ export const revokeWorksCouncilApproval = authorizedActionClient
     const result = await WorksCouncilService.revokeApproval(
       parsedInput.approvalId,
       ctx.userId,
-      ctx.organizationId,
     );
 
     if (result.isErr()) {
