@@ -4,9 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Cookie } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { COOKIE_CONSENT_KEY } from "@/lib/constants/cookie-consent";
 import { useEffect, useState } from "react";
-
-const CONSENT_KEY = "cookie-consent-acknowledged";
 
 /**
  * Cookie consent banner for ePrivacy Directive compliance.
@@ -20,7 +19,7 @@ export function CookieConsent() {
 
   useEffect(() => {
     try {
-      const acknowledged = localStorage.getItem(CONSENT_KEY);
+      const acknowledged = localStorage.getItem(COOKIE_CONSENT_KEY);
       if (!acknowledged) {
         setIsVisible(true);
       }
@@ -32,7 +31,7 @@ export function CookieConsent() {
 
   const handleAcknowledge = () => {
     try {
-      localStorage.setItem(CONSENT_KEY, new Date().toISOString());
+      localStorage.setItem(COOKIE_CONSENT_KEY, new Date().toISOString());
     } catch {
       console.warn("[CookieConsent] localStorage write failed");
     }

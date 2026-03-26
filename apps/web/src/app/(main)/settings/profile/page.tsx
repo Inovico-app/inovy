@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { AutoProcessToggle } from "@/features/recordings/components/auto-process-toggle";
 import { DataDeletion } from "@/features/settings/components/data-deletion";
+import { CookiePreferences } from "@/features/settings/components/cookie-preferences";
 import { DataExport } from "@/features/settings/components/data-export";
 import { PrivacyRights } from "@/features/settings/components/privacy-rights";
 import { ProfileForm } from "@/features/settings/components/profile-form";
@@ -134,6 +135,9 @@ async function ProfileContent() {
 
       {/* Preferences */}
       <AutoProcessToggle />
+
+      {/* Cookie Preferences */}
+      <CookiePreferences />
 
       {/* Data & Privacy */}
       <DataExport />
