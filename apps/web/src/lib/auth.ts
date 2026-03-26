@@ -13,7 +13,6 @@ import { db } from "@/server/db";
 import * as schema from "@/server/db/schema/auth";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { passkey } from "@better-auth/passkey";
-import { twoFactor } from "better-auth/plugins/two-factor";
 import type {
   AuthContext,
   BetterAuthOptions,
@@ -24,6 +23,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink, organization } from "better-auth/plugins";
+import { twoFactor } from "better-auth/plugins/two-factor";
 import { nanoid } from "nanoid";
 import { headers } from "next/headers";
 import { ac, roles } from "./auth/access-control";
@@ -68,7 +68,6 @@ export const auth = betterAuth({
       members: schema.members,
       invitations: schema.invitations,
       passkeys: schema.passkeys,
-      magicLinks: schema.magicLinks,
       twoFactors: schema.twoFactors,
       teams: schema.teams,
       teamMembers: schema.teamMembers,
@@ -307,6 +306,18 @@ export const auth = betterAuth({
         enabled: true,
         maximumTeams: 10,
         allowRemovingAllTeams: false,
+      },
+      schema: {
+        organization: {
+          additionalFields: {
+            agentEnabled: {
+              type: "boolean",
+              defaultValue: true,
+              required: false,
+              input: true,
+            },
+          },
+        },
       },
       organizationHooks: {
         /**

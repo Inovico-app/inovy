@@ -41,7 +41,7 @@ export const aiInsights = pgTable("ai_insights", {
   id: uuid("id").defaultRandom().primaryKey(),
   recordingId: uuid("recording_id")
     .notNull()
-    .references(() => recordings.id),
+    .references(() => recordings.id, { onDelete: "cascade" }),
   insightType: text("insight_type", { enum: insightTypeEnum }).notNull(),
   content: jsonb("content").notNull().$type<Record<string, unknown>>(),
   confidenceScore: real("confidence_score"),

@@ -1,6 +1,6 @@
 {
-  "id": "a51515db-889c-4217-98e2-feac2e5648e5",
-  "prevId": "95296afe-4dde-446e-a07d-42c2e9e88569",
+  "id": "22ba4420-725e-4969-8ad2-efc01b80bc43",
+  "prevId": "fd055b0e-b609-4e2c-af2f-d621e26a7690",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -177,7 +177,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'gpt-5-nano'"
+          "default": "'claude-sonnet-4-6'"
         },
         "max_tokens": {
           "name": "max_tokens",
@@ -370,7 +370,7 @@
           "tableTo": "recordings",
           "columnsFrom": ["recording_id"],
           "columnsTo": ["id"],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -722,87 +722,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.magic_links": {
-      "name": "magic_links",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "token": {
-          "name": "token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "magic_link_email_idx": {
-          "name": "magic_link_email_idx",
-          "columns": [
-            {
-              "expression": "email",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "magic_link_token_idx": {
-          "name": "magic_link_token_idx",
-          "columns": [
-            {
-              "expression": "token",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "magic_links_token_unique": {
-          "name": "magic_links_token_unique",
-          "nullsNotDistinct": false,
-          "columns": ["token"]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.members": {
       "name": "members",
       "schema": "",
@@ -942,22 +861,22 @@
           "name": "agent_enabled",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "default": true
         }
       },
       "indexes": {
-        "idx_organizations_agent_enabled": {
-          "name": "idx_organizations_agent_enabled",
+        "organizations_slug_uidx": {
+          "name": "organizations_slug_uidx",
           "columns": [
             {
-              "expression": "agent_enabled",
+              "expression": "slug",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
-          "isUnique": false,
+          "isUnique": true,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -1388,6 +1307,21 @@
         }
       },
       "indexes": {
+        "twoFactors_secret_idx": {
+          "name": "twoFactors_secret_idx",
+          "columns": [
+            {
+              "expression": "secret",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "twoFactors_userId_idx": {
           "name": "twoFactors_userId_idx",
           "columns": [
@@ -1470,10 +1404,16 @@
           "notNull": true,
           "default": "now()"
         },
+        "two_factor_enabled": {
+          "name": "two_factor_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
         "role": {
           "name": "role",
-          "type": "organization_member_role",
-          "typeSchema": "public",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "default": "'user'"
@@ -1662,7 +1602,7 @@
           "tableTo": "tasks",
           "columnsFrom": ["task_id"],
           "columnsTo": ["id"],
-          "onDelete": "no action",
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "auto_actions_recording_id_recordings_id_fk": {
@@ -1671,7 +1611,7 @@
           "tableTo": "recordings",
           "columnsFrom": ["recording_id"],
           "columnsTo": ["id"],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -5576,7 +5516,7 @@
           "tableTo": "recordings",
           "columnsFrom": ["recording_id"],
           "columnsTo": ["id"],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         },
         "tasks_project_id_projects_id_fk": {

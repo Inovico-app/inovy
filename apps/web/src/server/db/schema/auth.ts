@@ -1,36 +1,26 @@
 import { relations } from "drizzle-orm";
 import {
-  boolean,
-  index,
-  integer,
-  pgEnum,
   pgTable,
   text,
   timestamp,
+  boolean,
+  integer,
+  index,
+  uniqueIndex,
+  pgEnum,
 } from "drizzle-orm/pg-core";
 
-/**
- * Organization member role values
- */
-const organizationMemberRoles = [
+export const organizationMemberRoleEnum = pgEnum("organization_member_role", [
   "owner",
   "admin",
   "superadmin",
   "manager",
   "user",
   "viewer",
-] as const;
+]);
 
-export const organizationMemberRoleEnum = pgEnum(
-  "organization_member_role",
-  organizationMemberRoles,
-);
-
-/**
- * TypeScript type for organization member roles
- * Extracted from the enum values for type safety
- */
-export type OrganizationMemberRole = (typeof organizationMemberRoles)[number];
+export type OrganizationMemberRole =
+  (typeof organizationMemberRoleEnum.enumValues)[number];
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -43,7 +33,8 @@ export const users = pgTable("users", {
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
-  role: organizationMemberRoleEnum("role").default("user").notNull(),
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  role: text("role").default("user").notNull(),
   onboardingCompleted: boolean("onboarding_completed").default(false).notNull(),
 });
 
@@ -117,9 +108,9 @@ export const organizations = pgTable(
     logo: text("logo"),
     createdAt: timestamp("created_at").notNull(),
     metadata: text("metadata"),
-    agentEnabled: boolean("agent_enabled").default(true).notNull(),
+    agentEnabled: boolean("agent_enabled").default(true),
   },
-  (table) => [index("idx_organizations_agent_enabled").on(table.agentEnabled)],
+  (table) => [uniqueIndex("organizations_slug_uidx").on(table.slug)],
 );
 
 export const teams = pgTable(
@@ -231,25 +222,13 @@ export const twoFactors = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
   },
-  (table) => [index("twoFactors_userId_idx").on(table.userId)],
-);
-
-export const magicLinks = pgTable(
-  "magic_links",
-  {
-    id: text("id").primaryKey(),
-    email: text("email").notNull(),
-    token: text("token").notNull().unique(),
-    expiresAt: timestamp("expires_at").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
   (table) => [
-    index("magic_link_email_idx").on(table.email),
-    index("magic_link_token_idx").on(table.token),
+    index("twoFactors_secret_idx").on(table.secret),
+    index("twoFactors_userId_idx").on(table.userId),
   ],
 );
 
-export const userRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   accounts: many(accounts),
   teamMembers: many(teamMembers),
@@ -259,34 +238,27 @@ export const userRelations = relations(users, ({ many }) => ({
   twoFactors: many(twoFactors),
 }));
 
-export const twoFactorRelations = relations(twoFactors, ({ one }) => ({
-  users: one(users, {
-    fields: [twoFactors.userId],
-    references: [users.id],
-  }),
-}));
-
-export const sessionRelations = relations(sessions, ({ one }) => ({
+export const sessionsRelations = relations(sessions, ({ one }) => ({
   users: one(users, {
     fields: [sessions.userId],
     references: [users.id],
   }),
 }));
 
-export const accountRelations = relations(accounts, ({ one }) => ({
+export const accountsRelations = relations(accounts, ({ one }) => ({
   users: one(users, {
     fields: [accounts.userId],
     references: [users.id],
   }),
 }));
 
-export const organizationRelations = relations(organizations, ({ many }) => ({
+export const organizationsRelations = relations(organizations, ({ many }) => ({
   teams: many(teams),
   members: many(members),
   invitations: many(invitations),
 }));
 
-export const teamRelations = relations(teams, ({ one, many }) => ({
+export const teamsRelations = relations(teams, ({ one, many }) => ({
   organizations: one(organizations, {
     fields: [teams.organizationId],
     references: [organizations.id],
@@ -294,7 +266,7 @@ export const teamRelations = relations(teams, ({ one, many }) => ({
   teamMembers: many(teamMembers),
 }));
 
-export const teamMemberRelations = relations(teamMembers, ({ one }) => ({
+export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
   teams: one(teams, {
     fields: [teamMembers.teamId],
     references: [teams.id],
@@ -305,7 +277,7 @@ export const teamMemberRelations = relations(teamMembers, ({ one }) => ({
   }),
 }));
 
-export const memberRelations = relations(members, ({ one }) => ({
+export const membersRelations = relations(members, ({ one }) => ({
   organizations: one(organizations, {
     fields: [members.organizationId],
     references: [organizations.id],
@@ -316,7 +288,7 @@ export const memberRelations = relations(members, ({ one }) => ({
   }),
 }));
 
-export const invitationRelations = relations(invitations, ({ one }) => ({
+export const invitationsRelations = relations(invitations, ({ one }) => ({
   organizations: one(organizations, {
     fields: [invitations.organizationId],
     references: [organizations.id],
@@ -327,9 +299,16 @@ export const invitationRelations = relations(invitations, ({ one }) => ({
   }),
 }));
 
-export const passkeyRelations = relations(passkeys, ({ one }) => ({
+export const passkeysRelations = relations(passkeys, ({ one }) => ({
   users: one(users, {
     fields: [passkeys.userId],
+    references: [users.id],
+  }),
+}));
+
+export const twoFactorsRelations = relations(twoFactors, ({ one }) => ({
+  users: one(users, {
+    fields: [twoFactors.userId],
     references: [users.id],
   }),
 }));

@@ -1,6 +1,6 @@
 {
-  "id": "a51515db-889c-4217-98e2-feac2e5648e5",
-  "prevId": "95296afe-4dde-446e-a07d-42c2e9e88569",
+  "id": "fd055b0e-b609-4e2c-af2f-d621e26a7690",
+  "prevId": "538232c6-e492-4727-a816-aa1e5b2f9381",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -370,7 +370,7 @@
           "tableTo": "recordings",
           "columnsFrom": ["recording_id"],
           "columnsTo": ["id"],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -1662,7 +1662,7 @@
           "tableTo": "tasks",
           "columnsFrom": ["task_id"],
           "columnsTo": ["id"],
-          "onDelete": "no action",
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "auto_actions_recording_id_recordings_id_fk": {
@@ -1671,7 +1671,7 @@
           "tableTo": "recordings",
           "columnsFrom": ["recording_id"],
           "columnsTo": ["id"],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -5576,7 +5576,7 @@
           "tableTo": "recordings",
           "columnsFrom": ["recording_id"],
           "columnsTo": ["id"],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         },
         "tasks_project_id_projects_id_fk": {

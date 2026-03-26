@@ -1,13 +1,12 @@
 #!/usr/bin/env tsx
 /**
- * Post-generation script to add organization member role enum and magic link table to auth-schema.ts
+ * Post-generation script to add organization member role enum to auth schema
  *
  * This script should be run after `pnpx @better-auth/cli generate` to automatically:
  * 1. Add pgEnum import if missing
  * 2. Add organizationMemberRoleEnum definition
  * 3. Update member table to use enum instead of text
  * 4. Update invitation table to use enum instead of text
- * 5. Add magic link table (Better Auth CLI doesn't generate it)
  *
  * Usage: pnpm tsx scripts/add-role-types.ts
  */
@@ -16,7 +15,7 @@ import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 
 // Use process.cwd() which will be the project root when running from package.json scripts
-const SCHEMA_FILE = join(process.cwd(), "auth-schema.ts");
+const SCHEMA_FILE = join(process.cwd(), "src/server/db/schema/auth.ts");
 
 function addRoleTypes() {
   try {
@@ -26,18 +25,17 @@ function addRoleTypes() {
     if (!content.includes("pgEnum")) {
       content = content.replace(
         '} from "drizzle-orm/pg-core"',
-        '  pgEnum,\n} from "drizzle-orm/pg-core"'
+        '  pgEnum,\n} from "drizzle-orm/pg-core"',
       );
     }
 
-    // 2. Add enum definition after imports (Better Auth uses plural)
+    // 2. Add enum definition after all imports (handles multi-line imports)
     if (!content.includes("organizationMemberRoleEnum")) {
-      // Find the last import statement
-      const importMatches = content.matchAll(/^import .+;$/gm);
-      const allImports = Array.from(importMatches);
-      if (allImports.length > 0) {
-        const lastImport = allImports[allImports.length - 1];
-        const insertIndex = lastImport.index! + lastImport[0].length + 1; // +1 for newline
+      // Find the last import block end by matching `from "...";\n`
+      const importEndMatches = Array.from(content.matchAll(/from\s+"[^"]+";/g));
+      if (importEndMatches.length > 0) {
+        const lastImportEnd = importEndMatches[importEndMatches.length - 1];
+        const insertIndex = lastImportEnd.index! + lastImportEnd[0].length + 1; // +1 for newline
         const enumDefinition = `
 export const organizationMemberRoleEnum = pgEnum("organization_member_role", [
   "owner",
@@ -47,6 +45,9 @@ export const organizationMemberRoleEnum = pgEnum("organization_member_role", [
   "user",
   "viewer",
 ]);
+
+export type OrganizationMemberRole =
+  (typeof organizationMemberRoleEnum.enumValues)[number];
 `;
         content =
           content.slice(0, insertIndex) +
@@ -58,72 +59,19 @@ export const organizationMemberRoleEnum = pgEnum("organization_member_role", [
     // 3. Update members table to use enum (Better Auth uses plural)
     content = content.replace(
       'role: text("role").default("member").notNull()',
-      'role: organizationMemberRoleEnum("role").default("user").notNull()'
+      'role: organizationMemberRoleEnum("role").default("user").notNull()',
     );
 
     // 4. Update invitations table to use enum (Better Auth uses plural)
     // Match the invitations table role field more specifically
     content = content.replace(
       /(\n\s+email: text\("email"\)\.notNull\(\),\n\s+)role: text\("role"\)/,
-      '$1role: organizationMemberRoleEnum("role").default("user").notNull()'
+      '$1role: organizationMemberRoleEnum("role").default("user").notNull()',
     );
-
-    // 5. Add magic link table if not present
-    if (!content.includes("export const magicLink = pgTable")) {
-      const passkeysEndIndex = content.indexOf("export const userRelations");
-      if (passkeysEndIndex !== -1) {
-        const magicLinkTable = `export const magicLinks = pgTable(
-  "magic_links",
-  {
-    id: text("id").primaryKey(),
-    email: text("email").notNull(),
-    token: text("token").notNull().unique(),
-    expiresAt: timestamp("expires_at").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => [
-    index("magic_link_email_idx").on(table.email),
-    index("magic_link_token_idx").on(table.token),
-  ],
-);
-
-`;
-        content =
-          content.slice(0, passkeysEndIndex) +
-          magicLinkTable +
-          content.slice(passkeysEndIndex);
-      }
-    }
-
-    // 6. Add magic link relations if not present
-    if (!content.includes("export const magicLinkRelations")) {
-      const passkeyRelationsIndex = content.indexOf(
-        "export const passkeyRelations"
-      );
-      if (passkeyRelationsIndex !== -1) {
-        const afterPasskeyRelations = content.substring(passkeyRelationsIndex);
-        const endIndex = afterPasskeyRelations.indexOf("});") + 3;
-        if (endIndex > 2) {
-          const insertIndex = passkeyRelationsIndex + endIndex;
-          const magicLinkRelations = `
-export const magicLinkRelations = relations(magicLink, ({ one }) => ({
-  user: one(users, {
-    fields: [magicLink.email],
-    references: [users.email],
-  }),
-}));
-`;
-          content =
-            content.slice(0, insertIndex) +
-            magicLinkRelations +
-            content.slice(insertIndex);
-        }
-      }
-    }
 
     writeFileSync(SCHEMA_FILE, content, "utf-8");
     console.log(
-      "✓ Successfully added organization user role enum and magic link table to auth-schema.ts"
+      "✓ Successfully added organization member role enum to auth schema",
     );
   } catch (error) {
     console.error("✗ Error adding role types:", error);
@@ -132,4 +80,3 @@ export const magicLinkRelations = relations(magicLink, ({ one }) => ({
 }
 
 addRoleTypes();
-

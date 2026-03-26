@@ -27,7 +27,10 @@ export type NotificationType = (typeof notificationTypeEnum)[number];
 
 export const notifications = pgTable("notifications", {
   id: uuid("id").defaultRandom().primaryKey(),
-  recordingId: uuid("recording_id").references(() => recordings.id), // Nullable for bot_consent_request notifications
+  recordingId: uuid("recording_id").references(() => recordings.id, {
+    onDelete: "set null",
+    onUpdate: "no action",
+  }), // Nullable for bot_consent_request notifications; detach when recording is deleted
   projectId: uuid("project_id")
     .notNull()
     .references(() => projects.id),
@@ -46,4 +49,3 @@ export const notifications = pgTable("notifications", {
 
 export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;
-

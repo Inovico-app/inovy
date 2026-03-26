@@ -26,10 +26,12 @@ export const autoActions = pgTable("auto_actions", {
   userId: text("user_id").notNull(), // Better Auth user ID
   type: text("type", { enum: autoActionTypeEnum }).notNull(),
   provider: text("provider", { enum: autoActionProviderEnum }).notNull(),
-  taskId: uuid("task_id").references(() => tasks.id), // Optional: for calendar events from tasks
+  taskId: uuid("task_id").references(() => tasks.id, {
+    onDelete: "set null",
+  }), // Optional: for calendar events from tasks
   recordingId: uuid("recording_id")
     .notNull()
-    .references(() => recordings.id), // Required: source recording
+    .references(() => recordings.id, { onDelete: "cascade" }), // Required: source recording
   status: text("status", { enum: autoActionStatusEnum })
     .notNull()
     .default("pending"),
@@ -45,4 +47,3 @@ export const autoActions = pgTable("auto_actions", {
 
 export type AutoAction = typeof autoActions.$inferSelect;
 export type NewAutoAction = typeof autoActions.$inferInsert;
-
