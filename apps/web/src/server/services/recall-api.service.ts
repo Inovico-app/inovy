@@ -19,6 +19,13 @@ interface CreateMeetingRequest {
   recording_config?: {
     metadata?: Record<string, string>;
     participant_events?: Record<string, never>;
+    transcript?: {
+      provider: {
+        recallai_streaming: {
+          language_code?: string;
+        };
+      };
+    };
     realtime_endpoints?: Array<{
       type: "webhook";
       url: string;
@@ -63,7 +70,7 @@ export class RecallApiService {
       process.env.WEBHOOK_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL;
     if (!webhookBaseUrl) {
       throw new Error(
-        "WEBHOOK_BASE_URL or NEXT_PUBLIC_APP_URL environment variable must be set"
+        "WEBHOOK_BASE_URL or NEXT_PUBLIC_APP_URL environment variable must be set",
       );
     }
     return webhookBaseUrl;
@@ -85,7 +92,7 @@ export class RecallApiService {
       botDisplayName?: string;
       botJoinMessage?: string | null;
       inactivityTimeoutMinutes?: number;
-    }
+    },
   ): Promise<ActionResult<{ botId: string; status: string }>> {
     try {
       const apiKey = getRecallApiKey();
@@ -106,11 +113,18 @@ export class RecallApiService {
         recording_config: {
           metadata: customMetadata ?? {},
           participant_events: {},
+          transcript: {
+            provider: {
+              recallai_streaming: {
+                language_code: "auto",
+              },
+            },
+          },
           realtime_endpoints: [
             {
               type: "webhook",
               url: webhookUrl,
-              events: ["participant_events.chat_message"],
+              events: ["participant_events.chat_message", "transcript.data"],
             },
           ],
         },
@@ -157,8 +171,8 @@ export class RecallApiService {
           ActionErrors.internal(
             `Recall.ai API error: ${response.statusText}`,
             new Error(errorText),
-            "RecallApiService.createBotSession"
-          )
+            "RecallApiService.createBotSession",
+          ),
         );
       }
 
@@ -173,8 +187,8 @@ export class RecallApiService {
           ActionErrors.internal(
             "Invalid API response: missing bot ID",
             new Error("Response validation failed"),
-            "RecallApiService.createBotSession"
-          )
+            "RecallApiService.createBotSession",
+          ),
         );
       }
 
@@ -198,8 +212,8 @@ export class RecallApiService {
         ActionErrors.internal(
           "Failed to create bot session",
           error as Error,
-          "RecallApiService.createBotSession"
-        )
+          "RecallApiService.createBotSession",
+        ),
       );
     }
   }
@@ -210,7 +224,7 @@ export class RecallApiService {
    * @returns Result containing bot status
    */
   static async getBotStatus(
-    botId: string
+    botId: string,
   ): Promise<ActionResult<{ status: string }>> {
     try {
       const apiKey = getRecallApiKey();
@@ -223,7 +237,7 @@ export class RecallApiService {
             Authorization: `Token ${apiKey}`,
           },
           signal: AbortSignal.timeout(30000), // 30 second timeout
-        }
+        },
       );
 
       if (!response.ok) {
@@ -239,8 +253,8 @@ export class RecallApiService {
           ActionErrors.internal(
             `Failed to get bot status: ${response.statusText}`,
             new Error(errorText),
-            "RecallApiService.getBotStatus"
-          )
+            "RecallApiService.getBotStatus",
+          ),
         );
       }
 
@@ -260,8 +274,8 @@ export class RecallApiService {
         ActionErrors.internal(
           "Failed to get bot status",
           error as Error,
-          "RecallApiService.getBotStatus"
-        )
+          "RecallApiService.getBotStatus",
+        ),
       );
     }
   }
@@ -272,7 +286,7 @@ export class RecallApiService {
    * @returns Result containing full bot details
    */
   static async getBotDetails(
-    botId: string
+    botId: string,
   ): Promise<ActionResult<{ status: string; recordings?: unknown[] }>> {
     try {
       const apiKey = getRecallApiKey();
@@ -285,7 +299,7 @@ export class RecallApiService {
             Authorization: `Token ${apiKey}`,
           },
           signal: AbortSignal.timeout(30000), // 30 second timeout
-        }
+        },
       );
 
       if (!response.ok) {
@@ -301,8 +315,8 @@ export class RecallApiService {
           ActionErrors.internal(
             `Failed to get bot details: ${response.statusText}`,
             new Error(errorText),
-            "RecallApiService.getBotDetails"
-          )
+            "RecallApiService.getBotDetails",
+          ),
         );
       }
 
@@ -323,8 +337,8 @@ export class RecallApiService {
         ActionErrors.internal(
           "Failed to get bot details",
           error as Error,
-          "RecallApiService.getBotDetails"
-        )
+          "RecallApiService.getBotDetails",
+        ),
       );
     }
   }
@@ -337,7 +351,7 @@ export class RecallApiService {
    */
   static async getRecordingDownloadUrl(
     botId: string,
-    recordingId?: string
+    recordingId?: string,
   ): Promise<
     ActionResult<{
       url: string;
@@ -365,7 +379,7 @@ export class RecallApiService {
       ) {
         lastError = ActionErrors.notFound(
           "No recordings available yet",
-          "RecallApiService.getRecordingDownloadUrl"
+          "RecallApiService.getRecordingDownloadUrl",
         );
         continue;
       }
@@ -378,7 +392,7 @@ export class RecallApiService {
       if (!recording || typeof recording !== "object") {
         lastError = ActionErrors.notFound(
           "Recording not found",
-          "RecallApiService.getRecordingDownloadUrl"
+          "RecallApiService.getRecordingDownloadUrl",
         );
         continue;
       }
@@ -389,7 +403,7 @@ export class RecallApiService {
       if (!downloadUrl) {
         lastError = ActionErrors.notFound(
           "Recording download URL not available yet",
-          "RecallApiService.getRecordingDownloadUrl"
+          "RecallApiService.getRecordingDownloadUrl",
         );
         continue;
       }
@@ -407,7 +421,7 @@ export class RecallApiService {
       if (!resolvedRecordingId) {
         lastError = ActionErrors.notFound(
           "Missing recording ID",
-          "RecallApiService.getRecordingDownloadUrl"
+          "RecallApiService.getRecordingDownloadUrl",
         );
         continue;
       }
@@ -424,8 +438,8 @@ export class RecallApiService {
       lastError ??
         ActionErrors.notFound(
           "Recording not available",
-          "RecallApiService.getRecordingDownloadUrl"
-        )
+          "RecallApiService.getRecordingDownloadUrl",
+        ),
     );
   }
 
@@ -446,7 +460,7 @@ export class RecallApiService {
             Authorization: `Token ${apiKey}`,
           },
           signal: AbortSignal.timeout(30000),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -462,8 +476,8 @@ export class RecallApiService {
           ActionErrors.internal(
             `Failed to remove bot from call: ${response.statusText}`,
             new Error(errorText),
-            "RecallApiService.leaveCall"
-          )
+            "RecallApiService.leaveCall",
+          ),
         );
       }
 
@@ -484,8 +498,8 @@ export class RecallApiService {
         ActionErrors.internal(
           "Failed to remove bot from call",
           error as Error,
-          "RecallApiService.leaveCall"
-        )
+          "RecallApiService.leaveCall",
+        ),
       );
     }
   }
@@ -512,7 +526,7 @@ export class RecallApiService {
             "Content-Type": "application/json",
           },
           signal: AbortSignal.timeout(30000),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -527,8 +541,8 @@ export class RecallApiService {
           ActionErrors.internal(
             `Failed to get transcript: ${response.status}`,
             new Error(errorText),
-            "RecallApiService.getTranscript"
-          )
+            "RecallApiService.getTranscript",
+          ),
         );
       }
 
@@ -544,8 +558,8 @@ export class RecallApiService {
         ActionErrors.internal(
           "Failed to get transcript",
           error as Error,
-          "RecallApiService.getTranscript"
-        )
+          "RecallApiService.getTranscript",
+        ),
       );
     }
   }
@@ -555,7 +569,7 @@ export class RecallApiService {
    */
   static async sendChatMessage(
     botId: string,
-    message: string
+    message: string,
   ): Promise<ActionResult<void>> {
     try {
       const apiKey = getRecallApiKey();
@@ -569,7 +583,7 @@ export class RecallApiService {
           },
           body: JSON.stringify({ message }),
           signal: AbortSignal.timeout(30000),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -584,8 +598,8 @@ export class RecallApiService {
           ActionErrors.internal(
             `Failed to send chat message: ${response.status}`,
             new Error(errorText),
-            "RecallApiService.sendChatMessage"
-          )
+            "RecallApiService.sendChatMessage",
+          ),
         );
       }
 
@@ -600,10 +614,9 @@ export class RecallApiService {
         ActionErrors.internal(
           "Failed to send chat message",
           error as Error,
-          "RecallApiService.sendChatMessage"
-        )
+          "RecallApiService.sendChatMessage",
+        ),
       );
     }
   }
 }
-

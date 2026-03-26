@@ -637,6 +637,13 @@ export class BotWebhookService {
         "done",
       );
 
+      // Link real-time transcript chunks to the recording BEFORE triggering
+      // workflows, so assembleInterimTranscript can find them immediately
+      await TranscriptChunksQueries.linkToRecording(
+        session.id,
+        finalRecordingId,
+      );
+
       // Kick off transcription + storage workflows in parallel.
       // Post-actions fire at the end of the transcription workflow's finalize step
       // (step-finalize.ts), so we do NOT call PostActionExecutorService here.
@@ -654,12 +661,6 @@ export class BotWebhookService {
           "BotWebhookService.processRecordingDone",
         ),
       ]);
-
-      // Link any real-time transcript chunks to the new recording
-      await TranscriptChunksQueries.linkToRecording(
-        session.id,
-        finalRecordingId,
-      );
 
       logger.info("Recording created and dual workflows triggered", {
         component: "BotWebhookService.processRecordingDone",
