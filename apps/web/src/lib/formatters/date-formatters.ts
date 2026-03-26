@@ -28,7 +28,9 @@ export function formatDate(
  * Format a date to Dutch long format (e.g., "26 maart 2026")
  */
 export function formatDateNL(date: Date | string): string {
-  return new Date(date).toLocaleDateString("nl-NL", {
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toLocaleDateString("nl-NL", {
     year: "numeric",
     month: "long",
     day: "numeric",

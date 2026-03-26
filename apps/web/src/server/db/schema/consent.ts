@@ -13,7 +13,6 @@ export const consentMethodEnum = [
   "explicit",
   "implicit",
   "bot-notification",
-  "works_council_approval",
 ] as const;
 export type ConsentMethod = (typeof consentMethodEnum)[number];
 

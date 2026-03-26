@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
+import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { WorksCouncilService } from "@/server/services/works-council.service";
 
@@ -23,12 +24,15 @@ export const registerWorksCouncilApproval = authorizedActionClient
   })
   .schema(registerApprovalSchema)
   .action(async ({ parsedInput, ctx }) => {
+    const { user, organizationId } = ctx;
+    if (!user || !organizationId) throw ActionErrors.unauthenticated();
+
     const result = await WorksCouncilService.registerApproval({
-      organizationId: ctx.organizationId,
+      organizationId,
       documentUrl: parsedInput.documentUrl,
       approvalDate: new Date(parsedInput.approvalDate),
       scopeDescription: parsedInput.scopeDescription,
-      uploadedBy: ctx.userId,
+      uploadedBy: user.id,
     });
 
     if (result.isErr()) {
@@ -54,9 +58,12 @@ export const revokeWorksCouncilApproval = authorizedActionClient
   })
   .schema(revokeApprovalSchema)
   .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
+    if (!user) throw ActionErrors.unauthenticated();
+
     const result = await WorksCouncilService.revokeApproval(
       parsedInput.approvalId,
-      ctx.userId,
+      user.id,
     );
 
     if (result.isErr()) {

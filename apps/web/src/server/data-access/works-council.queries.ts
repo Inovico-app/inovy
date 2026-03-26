@@ -10,11 +10,18 @@ export class WorksCouncilQueries {
   static async create(
     data: NewWorksCouncilApproval,
   ): Promise<WorksCouncilApproval> {
-    const [approval] = await db
+    const rows = await db
       .insert(worksCouncilApprovals)
       .values(data)
       .returning();
-    return approval;
+
+    if (!rows[0]) {
+      throw new Error(
+        "Failed to create works council approval: no row returned",
+      );
+    }
+
+    return rows[0];
   }
 
   static async findActiveByOrganization(

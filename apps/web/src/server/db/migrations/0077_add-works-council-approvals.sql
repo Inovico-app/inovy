@@ -11,3 +11,5 @@ CREATE TABLE "works_council_approvals" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
+--> statement-breakpoint
+CREATE INDEX "works_council_approvals_org_id_idx" ON "works_council_approvals" USING btree ("organization_id");

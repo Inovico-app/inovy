@@ -126,9 +126,9 @@ function ApprovalHistory({ approvals }: { approvals: WorksCouncilApproval[] }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <ul className="space-y-4">
           {approvals.map((approval) => (
-            <div
+            <li
               key={approval.id}
               className="flex items-center justify-between border-b pb-3 last:border-0"
             >
@@ -147,9 +147,9 @@ function ApprovalHistory({ approvals }: { approvals: WorksCouncilApproval[] }) {
               >
                 {approval.status === "active" ? "Actief" : "Ingetrokken"}
               </Badge>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       </CardContent>
     </Card>
   );

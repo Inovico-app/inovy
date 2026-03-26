@@ -1,5 +1,5 @@
 {
-  "id": "59672da6-ea5d-40c0-8972-02cd75c2379a",
+  "id": "e5a42884-bbb6-47ea-964f-a47442de2eeb",
   "prevId": "b86c3d17-0d63-473a-b167-e8aeede14b8b",
   "version": "7",
   "dialect": "postgresql",
@@ -5905,7 +5905,23 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "works_council_approvals_org_id_idx": {
+          "name": "works_council_approvals_org_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
