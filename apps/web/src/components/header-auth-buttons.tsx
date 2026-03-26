@@ -19,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { LocaleSwitcher } from "./locale-switcher";
 
 export function HeaderAuthButtons() {
   const { data: session, isPending, error } = useSession();
@@ -156,6 +157,10 @@ export function HeaderAuthButtons() {
             <Settings className="mr-2 h-4 w-4" />
             <span>{t("settings")}</span>
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <div className="px-1 py-1">
+            <LocaleSwitcher />
+          </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={handleLogoutClick}
