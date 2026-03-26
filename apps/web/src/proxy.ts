@@ -17,6 +17,7 @@ const publicRoutes = [
   "/reset-password",
   "/verify-email",
   "/verify-email-token",
+  "/status",
 ];
 
 const isAlwaysPublic = (req: NextRequest) =>

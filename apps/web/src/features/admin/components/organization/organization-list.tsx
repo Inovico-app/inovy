@@ -37,9 +37,9 @@ export async function OrganizationList() {
                 : `${organizations.length} organization${organizations.length === 1 ? "" : "s"} in the system`}
             </CardDescription>
           </div>
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          { }
           <Button
-            render={<Link href={"/admin/organizations/create" as any} />}
+            render={<Link href="/admin/organizations/create" />}
             nativeButton={false}
           >
             <PlusIcon className="mr-2 h-4 w-4" />
