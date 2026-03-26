@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { BotMessageSquareIcon, MicIcon } from "lucide-react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 interface DashboardGreetingProps {
   userName: string;
@@ -8,58 +9,69 @@ interface DashboardGreetingProps {
   upcomingMeetingCount: number;
 }
 
-function getTimeGreeting(): string {
+function getTimeGreetingKey(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
+  if (hour < 12) return "goodMorning";
+  if (hour < 18) return "goodAfternoon";
+  return "goodEvening";
 }
 
-function buildSubtitle(pendingTasks: number, upcomingMeetings: number): string {
-  const parts: string[] = [];
-
-  if (pendingTasks > 0) {
-    parts.push(`${pendingTasks} pending task${pendingTasks !== 1 ? "s" : ""}`);
-  }
-  if (upcomingMeetings > 0) {
-    parts.push(
-      `${upcomingMeetings} upcoming meeting${upcomingMeetings !== 1 ? "s" : ""}`
-    );
-  }
-
-  if (parts.length === 0) {
-    return "You\u2019re all caught up \u2014 no pending tasks or meetings today.";
-  }
-
-  return `You have ${parts.join(" and ")}.`;
-}
-
-export function DashboardGreeting({
+export async function DashboardGreeting({
   userName,
   pendingTaskCount,
   upcomingMeetingCount,
 }: DashboardGreetingProps) {
+  const t = await getTranslations("dashboard");
+
+  function buildSubtitle(): string {
+    const hasTasks = pendingTaskCount > 0;
+    const hasMeetings = upcomingMeetingCount > 0;
+
+    if (!hasTasks && !hasMeetings) {
+      return t("subtitleNone");
+    }
+
+    const tasksPart = hasTasks
+      ? t("subtitleTasks", { count: pendingTaskCount })
+      : "";
+    const meetingsPart = hasMeetings
+      ? t("subtitleMeetings", { count: upcomingMeetingCount })
+      : "";
+
+    if (hasTasks && hasMeetings) {
+      return t("subtitleBoth", { tasks: tasksPart, meetings: meetingsPart });
+    }
+
+    return t("subtitleSingle", { items: tasksPart || meetingsPart });
+  }
+
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          {getTimeGreeting()}, {userName}
+          {t(getTimeGreetingKey())}, {userName}
         </h1>
-        <p className="text-sm text-muted-foreground">
-          {buildSubtitle(pendingTaskCount, upcomingMeetingCount)}
-        </p>
+        <p className="text-sm text-muted-foreground">{buildSubtitle()}</p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        <Button size="sm" variant="secondary" render={<Link href="/chat" />} nativeButton={false}>
+        <Button
+          size="sm"
+          variant="secondary"
+          render={<Link href="/chat" />}
+          nativeButton={false}
+        >
           <BotMessageSquareIcon className="mr-1.5 h-3.5 w-3.5" />
-          Ask AI
+          {t("askAi")}
         </Button>
-        <Button size="default" render={<Link href="/record" />} nativeButton={false}>
+        <Button
+          size="default"
+          render={<Link href="/record" />}
+          nativeButton={false}
+        >
           <MicIcon className="mr-1.5 h-4 w-4" />
-          New Recording
+          {t("newRecording")}
         </Button>
       </div>
     </div>
   );
 }
-
