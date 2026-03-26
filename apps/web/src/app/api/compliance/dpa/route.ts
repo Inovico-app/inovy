@@ -7,6 +7,7 @@ import {
   DPA_CONTACT_EMAIL,
 } from "@/features/admin/components/compliance/dpa/dpa-data";
 import { DpaPdfDocument } from "@/features/admin/components/compliance/dpa/dpa-pdf-document";
+import { OrganizationQueries } from "@/server/data-access/organization.queries";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { NextResponse } from "next/server";
@@ -22,8 +23,9 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { userId, organizationId, organization } = authResult.value;
-  const orgName = organization.name ?? "Organisatie";
+  const { user, organizationId } = authResult.value;
+  const org = await OrganizationQueries.findByIdDirect(organizationId);
+  const orgName = org?.name ?? "Organisatie";
   const context = buildDpaContext(orgName, DPA_CONTACT_EMAIL);
 
   try {
@@ -36,7 +38,7 @@ export async function GET() {
       eventType: "dpa_download",
       resourceType: "organization",
       resourceId: organizationId,
-      userId,
+      userId: user.id,
       organizationId,
       action: "export",
       category: "read",
@@ -46,10 +48,10 @@ export async function GET() {
     logger.info("DPA PDF generated and downloaded", {
       component: "DPA PDF route",
       organizationId,
-      userId,
+      userId: user.id,
     });
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${filename}"`,

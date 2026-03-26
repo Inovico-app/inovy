@@ -1,0 +1,74 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search",
+    "noResults": "No results found",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "skipToContent": "Skip to main content"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "recordings": "Recordings",
+    "meetings": "Meetings",
+    "projects": "Projects",
+    "tasks": "Tasks",
+    "chat": "Chat",
+    "settings": "Settings",
+    "admin": "Admin",
+    "notifications": "Notifications"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back",
+    "recentRecordings": "Recent recordings",
+    "upcomingMeetings": "Upcoming meetings",
+    "tasksDue": "Tasks due",
+    "noRecordings": "No recordings yet",
+    "noMeetings": "No upcoming meetings",
+    "noTasks": "No tasks due"
+  },
+  "recordings": {
+    "title": "Recordings",
+    "upload": "Upload recording",
+    "record": "Record",
+    "transcript": "Transcript",
+    "summary": "Summary",
+    "tasks": "Tasks",
+    "processing": "Processing...",
+    "duration": "Duration",
+    "date": "Date"
+  },
+  "meetings": {
+    "title": "Meetings",
+    "upcoming": "Upcoming",
+    "past": "Past",
+    "agenda": "Agenda",
+    "participants": "Participants",
+    "noAgenda": "No agenda items",
+    "prep": "Meeting preparation"
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "organization": "Organization",
+    "integrations": "Integrations",
+    "bot": "Bot settings",
+    "agent": "AI Agent"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "signOut": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?"
+  }
+}
