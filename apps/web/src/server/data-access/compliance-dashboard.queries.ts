@@ -158,7 +158,7 @@ export class ComplianceDashboardQueries {
     for (const row of result) {
       const c = Number(row.count);
       stats.total += c;
-      if (row.status === "active") stats.active = c;
+      if (row.status === "active") stats.active += c;
       else if (row.status === "resolved") stats.resolved += c;
       else if (row.status === "withdrawn") stats.withdrawn += c;
       if (row.type === "restriction") stats.byType.restriction += c;

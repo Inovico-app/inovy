@@ -43,7 +43,7 @@ async function AdminDashboard() {
     },
     {
       title: "AVG Compliance",
-      description: "Toestemmingspercentages, redacties en privacyverzoeken",
+      description: "Consent rates, PII redactions, and privacy requests",
       href: "/admin/compliance",
     },
   ];

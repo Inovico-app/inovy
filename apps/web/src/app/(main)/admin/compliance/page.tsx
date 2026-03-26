@@ -66,15 +66,15 @@ async function ComplianceDashboardContent() {
     redirect("/");
   }
 
-  const { session } = sessionResult.value;
-  const organizationId = session.session.activeOrganizationId;
+  const { organization } = sessionResult.value;
 
-  if (!organizationId) {
+  if (!organization) {
     redirect("/");
   }
 
-  const data =
-    await ComplianceDashboardQueries.getFullDashboard(organizationId);
+  const data = await ComplianceDashboardQueries.getFullDashboard(
+    organization.id,
+  );
 
   const consentRateFormatted = `${data.consent.grantedRate.toFixed(1)}%`;
   const consentBadgeVariant =
