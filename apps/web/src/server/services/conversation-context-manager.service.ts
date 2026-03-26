@@ -10,6 +10,7 @@ import {
   ActionErrors,
   type ActionResult,
 } from "@/lib/server-action-client/action-errors";
+import { parseAIJson } from "@/server/ai/parse-ai-json";
 import { ChatQueries } from "@/server/data-access/chat.queries";
 import type { ChatMessage } from "@/server/db/schema/chat-messages";
 import { generateText, type ModelMessage } from "ai";
@@ -242,7 +243,7 @@ export class ConversationContextManager {
       // Parse summary from JSON response
       let summaryData: { summary: string };
       try {
-        summaryData = JSON.parse(responseContent);
+        summaryData = parseAIJson(responseContent);
       } catch (parseError) {
         logger.error("Failed to parse summarization response", {
           component: "ConversationContextManager",

@@ -5,6 +5,7 @@ import {
 } from "@/lib/server-action-client/action-errors";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { TasksQueries } from "@/server/data-access/tasks.queries";
+import { parseAIJson } from "@/server/ai/parse-ai-json";
 import { connectionPool } from "@/server/services/connection-pool.service";
 import { PromptBuilder } from "@/server/services/prompt-builder.service";
 import { generateText } from "ai";
@@ -122,10 +123,10 @@ export class TaskExtractionService {
         );
       }
 
-      // Parse JSON response
+      // Parse JSON response (strip markdown code fences if present)
       let extractionResult: { tasks: ExtractedTask[] };
       try {
-        extractionResult = JSON.parse(responseContent);
+        extractionResult = parseAIJson(responseContent);
       } catch (parseError) {
         logger.error("Failed to parse AI model response", {
           component: "TaskExtractionService.extractTasks",
