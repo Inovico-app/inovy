@@ -78,7 +78,8 @@
       "status": "Verified"
     },
     "verified": "Verified",
-    "pending": "Pending verification"
+    "pending": "Pending verification",
+    "providerCount": "{count} providers"
   },
   "certifications": {
     "title": "Certifications",
@@ -115,6 +116,5 @@
     "dpaButton": "Download Data Processing Agreement",
     "dpaDescription": "Our DPA covers all aspects of data processing, sub-processors, security measures, and your rights as a data controller.",
     "loginRequired": "Sign in required to access the DPA portal."
-  },
-  "backToHome": "Back to home"
+  }
 }

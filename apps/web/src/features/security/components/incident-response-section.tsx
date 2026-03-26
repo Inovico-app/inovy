@@ -1,4 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { IconBadge } from "@/features/security/components/icon-badge";
+import { SectionHeading } from "@/features/security/components/section-heading";
 import { AlertTriangle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
@@ -8,27 +10,20 @@ export function IncidentResponseSection() {
 
   return (
     <section aria-labelledby="incident-response-heading">
-      <div className="mb-8">
-        <h2
-          id="incident-response-heading"
-          className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
-        >
-          {t("title")}
-        </h2>
-        <p className="mt-3 max-w-2xl text-base text-muted-foreground">
-          {t("description")}
-        </p>
-      </div>
+      <SectionHeading
+        id="incident-response-heading"
+        title={t("title")}
+        description={t("description")}
+      />
 
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 ring-1 ring-amber-500/20">
-              <AlertTriangle
-                aria-hidden="true"
-                className="size-5 text-amber-600 dark:text-amber-400"
-              />
-            </div>
+            <IconBadge
+              icon={AlertTriangle}
+              className="text-amber-600 dark:text-amber-400"
+              containerClassName="bg-amber-500/10 ring-amber-500/20"
+            />
             <CardTitle>{t("commitment")}</CardTitle>
           </div>
         </CardHeader>

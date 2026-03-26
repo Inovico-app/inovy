@@ -1,3 +1,4 @@
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -5,7 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
+import { IconBadge } from "@/features/security/components/icon-badge";
+import { SectionHeading } from "@/features/security/components/section-heading";
 import { FileText } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
@@ -15,27 +17,20 @@ export function DownloadSection() {
 
   return (
     <section aria-labelledby="download-heading">
-      <div className="mb-8">
-        <h2
-          id="download-heading"
-          className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
-        >
-          {t("title")}
-        </h2>
-        <p className="mt-3 max-w-2xl text-base text-muted-foreground">
-          {t("description")}
-        </p>
-      </div>
+      <SectionHeading
+        id="download-heading"
+        title={t("title")}
+        description={t("description")}
+      />
 
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-teal-500/10 ring-1 ring-teal-500/20">
-              <FileText
-                aria-hidden="true"
-                className="size-5 text-teal-600 dark:text-teal-400"
-              />
-            </div>
+            <IconBadge
+              icon={FileText}
+              className="text-teal-600 dark:text-teal-400"
+              containerClassName="bg-teal-500/10 ring-teal-500/20"
+            />
             <div>
               <CardTitle>{t("dpaButton")}</CardTitle>
               <CardDescription>{t("dpaDescription")}</CardDescription>

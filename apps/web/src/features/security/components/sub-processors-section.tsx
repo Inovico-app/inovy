@@ -15,6 +15,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SUB_PROCESSORS } from "@/features/admin/components/compliance/dpa/dpa-data";
+import { IconBadge } from "@/features/security/components/icon-badge";
+import { SectionHeading } from "@/features/security/components/section-heading";
 import { CheckCircle2, CircleDashed, Server } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -23,28 +25,20 @@ export function SubProcessorsSection() {
 
   return (
     <section aria-labelledby="sub-processors-heading">
-      <div className="mb-8">
-        <h2
-          id="sub-processors-heading"
-          className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
-        >
-          {t("title")}
-        </h2>
-        <p className="mt-3 max-w-2xl text-base text-muted-foreground">
-          {t("description")}
-        </p>
-      </div>
+      <SectionHeading
+        id="sub-processors-heading"
+        title={t("title")}
+        description={t("description")}
+      />
 
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/5 ring-1 ring-primary/10">
-              <Server aria-hidden="true" className="size-5 text-primary" />
-            </div>
+            <IconBadge icon={Server} />
             <div>
               <CardTitle>{t("title")}</CardTitle>
               <CardDescription>
-                {SUB_PROCESSORS.length} {t("columns.name").toLowerCase()}s
+                {t("providerCount", { count: SUB_PROCESSORS.length })}
               </CardDescription>
             </div>
           </div>

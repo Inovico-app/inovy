@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -5,7 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { IconBadge } from "@/features/security/components/icon-badge";
+import { SectionHeading } from "@/features/security/components/section-heading";
 import { Award } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -14,27 +16,20 @@ export function CertificationsSection() {
 
   return (
     <section aria-labelledby="certifications-heading">
-      <div className="mb-8">
-        <h2
-          id="certifications-heading"
-          className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
-        >
-          {t("title")}
-        </h2>
-        <p className="mt-3 max-w-2xl text-base text-muted-foreground">
-          {t("description")}
-        </p>
-      </div>
+      <SectionHeading
+        id="certifications-heading"
+        title={t("title")}
+        description={t("description")}
+      />
 
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 ring-1 ring-indigo-500/20">
-              <Award
-                aria-hidden="true"
-                className="size-5 text-indigo-600 dark:text-indigo-400"
-              />
-            </div>
+            <IconBadge
+              icon={Award}
+              className="text-indigo-600 dark:text-indigo-400"
+              containerClassName="bg-indigo-500/10 ring-indigo-500/20"
+            />
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <CardTitle>{t("soc2.title")}</CardTitle>

@@ -1,3 +1,4 @@
+import { Separator } from "@/components/ui/separator";
 import { AvgComplianceSection } from "@/features/security/components/avg-compliance-section";
 import { CertificationsSection } from "@/features/security/components/certifications-section";
 import { DataResidencySection } from "@/features/security/components/data-residency-section";
@@ -7,7 +8,6 @@ import { IncidentResponseSection } from "@/features/security/components/incident
 import { PiiHandlingSection } from "@/features/security/components/pii-handling-section";
 import { SecurityHero } from "@/features/security/components/security-hero";
 import { SubProcessorsSection } from "@/features/security/components/sub-processors-section";
-import { Separator } from "@/components/ui/separator";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function SecurityPage() {
+export default function SecurityPage() {
   return (
     <article>
       <SecurityHero />

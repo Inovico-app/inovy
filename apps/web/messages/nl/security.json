@@ -78,7 +78,8 @@
       "status": "Geverifieerd"
     },
     "verified": "Geverifieerd",
-    "pending": "Verificatie lopend"
+    "pending": "Verificatie lopend",
+    "providerCount": "{count} leveranciers"
   },
   "certifications": {
     "title": "Certificeringen",
@@ -115,6 +116,5 @@
     "dpaButton": "Verwerkersovereenkomst downloaden",
     "dpaDescription": "Onze verwerkersovereenkomst behandelt alle aspecten van gegevensverwerking, subverwerkers, beveiligingsmaatregelen en uw rechten als verwerkingsverantwoordelijke.",
     "loginRequired": "Inloggen vereist om het DPA-portaal te openen."
-  },
-  "backToHome": "Terug naar home"
+  }
 }
