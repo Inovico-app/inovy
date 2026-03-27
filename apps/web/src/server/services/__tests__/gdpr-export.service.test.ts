@@ -5,16 +5,14 @@ import { ok, err } from "neverthrow";
 // Mocks — must be hoisted before any imports that pull in the real modules
 // ---------------------------------------------------------------------------
 
-vi.mock("@azure/storage-blob", () => ({
-  BlobServiceClient: {
-    fromConnectionString: vi.fn().mockReturnValue({
-      getContainerClient: vi.fn().mockReturnValue({
-        getBlockBlobClient: vi.fn().mockReturnValue({
-          upload: vi.fn().mockResolvedValue({}),
-        }),
-      }),
-    }),
-  },
+vi.mock("@/server/services/storage", () => ({
+  getStorageProvider: vi.fn().mockResolvedValue({
+    put: vi.fn().mockResolvedValue(undefined),
+  }),
+}));
+
+vi.mock("@/emails/client", () => ({
+  sendEmailFromTemplate: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("archiver", () => {
@@ -103,6 +101,7 @@ import { TasksQueries } from "@/server/data-access/tasks.queries";
 import { ChatQueries } from "@/server/data-access/chat.queries";
 import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import { UserService } from "@/server/services/user.service";
+import { getStorageProvider } from "@/server/services/storage";
 
 // ---------------------------------------------------------------------------
 // Shared test fixtures
@@ -219,11 +218,6 @@ function makeMessage(overrides: Record<string, unknown> = {}) {
 describe("GdprExportService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Default: env var set so upload path doesn't throw early
-    process.env.AZURE_STORAGE_CONNECTION_STRING =
-      "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=dGVzdA==;EndpointSuffix=core.windows.net";
-    process.env.AZURE_STORAGE_PRIVATE_CONTAINER = "private";
 
     // Default happy-path stubs
     vi.mocked(UserService.getUserById).mockResolvedValue(ok(makeUserDto()));
@@ -762,8 +756,10 @@ describe("GdprExportService", () => {
       });
     });
 
-    it("marks export as failed when AZURE_STORAGE_CONNECTION_STRING is missing", async () => {
-      delete process.env.AZURE_STORAGE_CONNECTION_STRING;
+    it("marks export as failed when the storage provider rejects", async () => {
+      vi.mocked(getStorageProvider).mockRejectedValueOnce(
+        new Error("Storage provider unavailable"),
+      );
 
       const result = await GdprExportService.generateExport(
         USER_ID,
