@@ -590,6 +590,7 @@
     "submit": "Submit",
     "feedbackSubmitted": "Feedback submitted",
     "alreadySubmitted": "You've already rated this",
-    "submitError": "Failed to submit feedback"
+    "submitError": "Failed to submit feedback",
+    "cancel": "Cancel"
   }
 }

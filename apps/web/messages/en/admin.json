@@ -430,6 +430,9 @@
     "positive": "Positive",
     "negative": "Negative",
     "noFeedback": "No feedback yet",
-    "dashboardDescription": "View user feedback on recordings"
+    "dashboardDescription": "View user feedback on recordings",
+    "summary": "Summary",
+    "transcription": "Transcription",
+    "general": "General"
   }
 }

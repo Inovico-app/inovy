@@ -126,7 +126,6 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
         {/* AI-Generated Summary */}
         <EnhancedSummarySection
           recordingId={recordingId}
-          organizationId={recording.organizationId}
           summary={summary}
           transcriptionStatus={recording.transcriptionStatus}
           existingFeedback={existingFeedback.map((f) => ({

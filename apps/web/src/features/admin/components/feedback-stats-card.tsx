@@ -30,6 +30,9 @@ interface FeedbackStatsCardProps {
     dashboardDescription: string;
     positive: string;
     negative: string;
+    summary?: string;
+    transcription?: string;
+    general?: string;
   };
 }
 
@@ -44,9 +47,12 @@ export function FeedbackStatsCard({
     key: keyof typeof stats.byType;
     label: string;
   }> = [
-    { key: "summary", label: "Summary" },
-    { key: "transcription", label: "Transcription" },
-    { key: "general", label: "General" },
+    { key: "summary", label: translations.summary ?? "Summary" },
+    {
+      key: "transcription",
+      label: translations.transcription ?? "Transcription",
+    },
+    { key: "general", label: translations.general ?? "General" },
   ];
 
   return (

@@ -50,9 +50,9 @@ export function FeedbackTable({ feedbackItems }: FeedbackTableProps) {
 
   const typeFilters: Array<{ value: TypeFilter; label: string }> = [
     { value: "all", label: t("all") },
-    { value: "summary", label: "Summary" },
-    { value: "transcription", label: "Transcription" },
-    { value: "general", label: "General" },
+    { value: "summary", label: t("summary") },
+    { value: "transcription", label: t("transcription") },
+    { value: "general", label: t("general") },
   ];
 
   const ratingFilters: Array<{ value: RatingFilter; label: string }> = [

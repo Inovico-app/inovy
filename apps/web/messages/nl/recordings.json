@@ -590,6 +590,7 @@
     "submit": "Verstuur",
     "feedbackSubmitted": "Feedback verstuurd",
     "alreadySubmitted": "Je hebt dit al beoordeeld",
-    "submitError": "Feedback versturen mislukt"
+    "submitError": "Feedback versturen mislukt",
+    "cancel": "Annuleren"
   }
 }

@@ -125,6 +125,9 @@ async function AdminDashboard() {
             dashboardDescription: feedbackT("dashboardDescription"),
             positive: feedbackT("positive"),
             negative: feedbackT("negative"),
+            summary: feedbackT("summary"),
+            transcription: feedbackT("transcription"),
+            general: feedbackT("general"),
           }}
         />
 

@@ -9,7 +9,6 @@ import { useState } from "react";
 
 interface FeedbackWidgetProps {
   recordingId: string;
-  organizationId: string;
   existingFeedback: Array<{
     type: string;
     rating: string;
@@ -40,7 +39,6 @@ function buildInitialSubmitted(
 
 export function FeedbackWidget({
   recordingId,
-  organizationId: _organizationId,
   existingFeedback,
 }: FeedbackWidgetProps) {
   const t = useTranslations("recordings.feedback");
@@ -94,9 +92,13 @@ export function FeedbackWidget({
     setPendingRating(null);
   }
 
-  function handleThumbDirectSubmit(rating: "positive" | "negative") {
-    if (alreadySubmitted || isExecuting) return;
-    handleThumbClick(rating);
+  function getThumbColor(thumb: "positive" | "negative"): string {
+    const activeColor =
+      thumb === "positive" ? "text-emerald-500" : "text-destructive";
+    if (submittedRating === thumb || pendingRating === thumb)
+      return activeColor;
+    if (submittedRating !== null) return "text-muted-foreground/40";
+    return "text-muted-foreground";
   }
 
   return (
@@ -129,20 +131,10 @@ export function FeedbackWidget({
             size="sm"
             aria-label={t("helpful")}
             disabled={alreadySubmitted || isExecuting}
-            onClick={() => handleThumbDirectSubmit("positive")}
+            onClick={() => handleThumbClick("positive")}
             title={alreadySubmitted ? t("alreadySubmitted") : t("helpful")}
           >
-            <ThumbsUp
-              className={
-                submittedRating === "positive"
-                  ? "text-emerald-500"
-                  : pendingRating === "positive"
-                    ? "text-emerald-500"
-                    : submittedRating === "negative"
-                      ? "text-muted-foreground/40"
-                      : "text-muted-foreground"
-              }
-            />
+            <ThumbsUp className={getThumbColor("positive")} />
           </Button>
 
           <Button
@@ -150,20 +142,10 @@ export function FeedbackWidget({
             size="sm"
             aria-label={t("notHelpful")}
             disabled={alreadySubmitted || isExecuting}
-            onClick={() => handleThumbDirectSubmit("negative")}
+            onClick={() => handleThumbClick("negative")}
             title={alreadySubmitted ? t("alreadySubmitted") : t("notHelpful")}
           >
-            <ThumbsDown
-              className={
-                submittedRating === "negative"
-                  ? "text-destructive"
-                  : pendingRating === "negative"
-                    ? "text-destructive"
-                    : submittedRating === "positive"
-                      ? "text-muted-foreground/40"
-                      : "text-muted-foreground"
-              }
-            />
+            <ThumbsDown className={getThumbColor("negative")} />
           </Button>
         </div>
       </div>
@@ -190,7 +172,7 @@ export function FeedbackWidget({
               }}
               disabled={isExecuting}
             >
-              Cancel
+              {t("cancel")}
             </Button>
             <Button
               size="sm"

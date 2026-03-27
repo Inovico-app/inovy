@@ -430,6 +430,9 @@
     "positive": "Positief",
     "negative": "Negatief",
     "noFeedback": "Nog geen feedback",
-    "dashboardDescription": "Bekijk gebruikersfeedback op opnames"
+    "dashboardDescription": "Bekijk gebruikersfeedback op opnames",
+    "summary": "Samenvatting",
+    "transcription": "Transcriptie",
+    "general": "Algemeen"
   }
 }
