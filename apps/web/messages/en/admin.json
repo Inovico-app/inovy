@@ -410,5 +410,26 @@
     "latency": "Latency",
     "errorRateChart": "Error Rate",
     "tokenUsage": "Token Usage"
+  },
+  "feedback": {
+    "title": "Feedback",
+    "description": "User feedback on AI-generated content",
+    "totalFeedback": "Total Feedback",
+    "positiveRate": "Positive Rate",
+    "byType": "By Type",
+    "viewAll": "View all feedback",
+    "date": "Date",
+    "user": "User",
+    "recording": "Recording",
+    "type": "Type",
+    "rating": "Rating",
+    "comment": "Comment",
+    "filterByType": "Filter by type",
+    "filterByRating": "Filter by rating",
+    "all": "All",
+    "positive": "Positive",
+    "negative": "Negative",
+    "noFeedback": "No feedback yet",
+    "dashboardDescription": "View user feedback on recordings"
   }
 }

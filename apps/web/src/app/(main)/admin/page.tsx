@@ -6,9 +6,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FeedbackStatsCard } from "@/features/admin/components/feedback-stats-card";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
+import { FeedbackQueries } from "@/server/data-access/feedback.queries";
 import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
@@ -36,6 +38,24 @@ async function AdminDashboard() {
   const hasSuperAdminPermission = await checkPermission(
     Permissions.superadmin.all,
   );
+
+  const { organization } = sessionResult.value;
+
+  const [feedbackStats, feedbackT] = await Promise.all([
+    organization
+      ? FeedbackQueries.getAggregateStats(organization.id)
+      : Promise.resolve({
+          total: 0,
+          positiveCount: 0,
+          negativeCount: 0,
+          byType: {
+            summary: { positive: 0, negative: 0 },
+            transcription: { positive: 0, negative: 0 },
+            general: { positive: 0, negative: 0 },
+          },
+        }),
+    getTranslations("admin.feedback"),
+  ]);
 
   const baseQuickLinks = [
     {
@@ -93,6 +113,20 @@ async function AdminDashboard() {
             </Link>
           ))}
         </div>
+
+        <FeedbackStatsCard
+          stats={feedbackStats}
+          translations={{
+            title: feedbackT("title"),
+            totalFeedback: feedbackT("totalFeedback"),
+            positiveRate: feedbackT("positiveRate"),
+            byType: feedbackT("byType"),
+            viewAll: feedbackT("viewAll"),
+            dashboardDescription: feedbackT("dashboardDescription"),
+            positive: feedbackT("positive"),
+            negative: feedbackT("negative"),
+          }}
+        />
 
         <Card className="mt-6">
           <CardHeader>

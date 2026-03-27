@@ -7,5 +7,6 @@
   "metrics": "Metrics",
   "agentConfig": "Agent Config",
   "organizations": "Organizations",
-  "ariaLabel": "Admin navigation"
+  "ariaLabel": "Admin navigation",
+  "feedback": "Feedback"
 }

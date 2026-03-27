@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/collapsible";
 import { KnowledgeUsageIndicator } from "@/features/knowledge-base/components/knowledge-usage-indicator";
 import type { SummaryResult } from "@/server/cache/summary.cache";
+import { FeedbackWidget } from "./feedback-widget";
 import { CheckCircle2Icon, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { useJumpToTimestamp } from "../hooks/use-jump-to-timestamp";
@@ -20,14 +21,22 @@ import { useTranslations } from "next-intl";
 
 interface EnhancedSummarySectionProps {
   recordingId: string;
+  organizationId: string;
   summary: SummaryResult | null;
   transcriptionStatus: string;
+  existingFeedback: Array<{
+    type: string;
+    rating: string;
+    comment: string | null;
+  }>;
 }
 
 export function EnhancedSummarySection({
   recordingId,
+  organizationId,
   summary,
   transcriptionStatus,
+  existingFeedback,
 }: EnhancedSummarySectionProps) {
   const t = useTranslations("recordings");
   const [overviewOpen, setOverviewOpen] = useState(true);
@@ -284,6 +293,15 @@ export function EnhancedSummarySection({
             </div>
           </div>
         )}
+
+        {/* Feedback Widget */}
+        <div className="pt-4 border-t">
+          <FeedbackWidget
+            recordingId={recordingId}
+            organizationId={organizationId}
+            existingFeedback={existingFeedback}
+          />
+        </div>
       </CardContent>
     </Card>
   );

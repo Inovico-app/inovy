@@ -578,5 +578,18 @@
     "noteItem2": "Uploaded files are always processed automatically",
     "noteItem3": "You can always start processing manually if auto-processing is disabled",
     "savingLabel": "Saving..."
+  },
+  "feedback": {
+    "wasThisHelpful": "Was this helpful?",
+    "helpful": "Helpful",
+    "notHelpful": "Not helpful",
+    "summary": "Summary",
+    "transcription": "Transcription",
+    "general": "General",
+    "commentPlaceholder": "What could be improved? (optional)",
+    "submit": "Submit",
+    "feedbackSubmitted": "Feedback submitted",
+    "alreadySubmitted": "You've already rated this",
+    "submitError": "Failed to submit feedback"
   }
 }
