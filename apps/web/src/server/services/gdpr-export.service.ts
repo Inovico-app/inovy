@@ -1,4 +1,3 @@
-import { BlobServiceClient } from "@azure/storage-blob";
 import { logger } from "@/lib/logger";
 import {
   ActionErrors,
@@ -8,12 +7,14 @@ import {
 import * as archiver from "archiver";
 import { addDays } from "date-fns";
 import { err, ok } from "neverthrow";
+import { sendEmailFromTemplate } from "@/emails/client";
 import { AIInsightsQueries } from "../data-access/ai-insights.queries";
 import { ChatQueries } from "../data-access/chat.queries";
 import { DataExportsQueries } from "../data-access/data-exports.queries";
 import { RecordingsQueries } from "../data-access/recordings.queries";
 import { TasksQueries } from "../data-access/tasks.queries";
 import type { DataExport } from "../db/schema/data-exports";
+import { getStorageProvider } from "./storage";
 import { UserService } from "./user.service";
 
 export interface ExportFilters {
@@ -184,24 +185,12 @@ export class GdprExportService {
       // Create ZIP archive
       const zipBuffer = await this.createZipArchive(data);
 
-      // Upload to Azure Blob Storage
-      const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
-      if (!connectionString) {
-        throw new Error("AZURE_STORAGE_CONNECTION_STRING not configured");
-      }
-
-      const containerName =
-        process.env.AZURE_STORAGE_PRIVATE_CONTAINER ?? "private";
+      // Upload to storage
       const blobPath = `gdpr-exports/${organizationId}/${exportId}.zip`;
-
-      const blobServiceClient =
-        BlobServiceClient.fromConnectionString(connectionString);
-      const containerClient =
-        blobServiceClient.getContainerClient(containerName);
-      const blockBlobClient = containerClient.getBlockBlobClient(blobPath);
-
-      await blockBlobClient.upload(zipBuffer, zipBuffer.length, {
-        blobHTTPHeaders: { blobContentType: "application/zip" },
+      const storageProvider = await getStorageProvider();
+      await storageProvider.put(blobPath, zipBuffer, {
+        access: "private",
+        contentType: "application/zip",
       });
 
       // Update export record with blobPath instead of fileData
@@ -235,25 +224,17 @@ export class GdprExportService {
         const userResult = await UserService.getUserById(userId);
 
         if (userResult.isOk() && userResult.value.email && completedExport) {
-          const { Resend } = await import("resend");
-          const { render } = await import("@react-email/render");
           const { GdprExportReadyEmail } =
             await import("@/emails/templates/gdpr-export-ready");
 
-          const resend = new Resend(process.env.RESEND_API_KEY);
-          const html = await render(
-            GdprExportReadyEmail({
+          await sendEmailFromTemplate({
+            to: userResult.value.email,
+            subject: "Your data export is ready",
+            react: GdprExportReadyEmail({
               downloadUrl,
               expiresAt: completedExport.expiresAt.toLocaleDateString("nl-NL"),
               fileSize: `${Math.round(zipBuffer.length / 1024)} KB`,
             }),
-          );
-
-          await resend.emails.send({
-            from: process.env.RESEND_FROM_EMAIL ?? "noreply@inovico.nl",
-            to: userResult.value.email,
-            subject: "Your data export is ready",
-            html,
           });
         }
       } catch (emailError) {

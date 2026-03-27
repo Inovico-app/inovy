@@ -72,11 +72,6 @@ export async function GET(request: NextRequest) {
         if (result.isOk()) {
           results.succeeded++;
         } else {
-          await UserDeletionRequestsQueries.updateStatus(
-            deletionRequest.id,
-            "processing",
-            {},
-          );
           results.failed++;
           results.errors.push({
             requestId: deletionRequest.id,

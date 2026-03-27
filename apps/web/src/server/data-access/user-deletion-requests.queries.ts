@@ -113,7 +113,8 @@ export class UserDeletionRequestsQueries {
           eq(userDeletionRequests.status, "pending"),
           lte(userDeletionRequests.scheduledDeletionAt, new Date()),
         ),
-      );
+      )
+      .limit(50);
   }
 
   /**

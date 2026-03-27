@@ -9,12 +9,12 @@
  */
 
 import "dotenv/config";
-import { createHash } from "crypto";
 import { asc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { neonConfig, Pool } from "@neondatabase/serverless";
 import ws from "ws";
 import { auditLogs } from "../src/server/db/schema/audit-logs";
+import { computeHash } from "../src/server/services/audit-log.service";
 
 neonConfig.webSocketConstructor = ws;
 
@@ -26,31 +26,6 @@ if (!DATABASE_URL) {
 
 const pool = new Pool({ connectionString: DATABASE_URL });
 const db = drizzle(pool);
-
-function computeHash(log: {
-  eventType: string;
-  resourceType: string;
-  resourceId: string | null;
-  userId: string;
-  organizationId: string;
-  action: string;
-  category: string;
-  createdAt: Date;
-  metadata: Record<string, unknown> | null;
-}): string {
-  const hashInput = JSON.stringify({
-    eventType: log.eventType,
-    resourceType: log.resourceType,
-    resourceId: log.resourceId ?? "",
-    userId: log.userId,
-    organizationId: log.organizationId,
-    action: log.action,
-    category: log.category,
-    createdAt: log.createdAt.toISOString(),
-    metadata: log.metadata ?? {},
-  });
-  return createHash("sha256").update(hashInput).digest("hex");
-}
 
 async function main() {
   console.log("Starting audit log hash chain backfill...\n");
