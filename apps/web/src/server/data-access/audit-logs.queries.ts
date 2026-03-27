@@ -63,7 +63,7 @@ export class AuditLogsQueries {
         userId: logEntry.userId,
         organizationId: logEntry.organizationId,
         action: logEntry.action,
-        category: logEntry.category,
+        category: logEntry.category ?? "mutation",
         createdAt: logEntry.createdAt ?? new Date(),
         metadata: logEntry.metadata ?? null,
       });
