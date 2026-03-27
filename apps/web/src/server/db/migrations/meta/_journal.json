@@ -498,6 +498,13 @@
       "when": 1774620466081,
       "tag": "0076_add-transcription-retry-columns",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1774623000000,
+      "tag": "0077_add-feedback-blob-path-audit-index",
+      "breakpoints": true
     }
   ]
 }

@@ -1,1 +1,0 @@
-ALTER TABLE "data_exports" ADD COLUMN "blob_path" text;
