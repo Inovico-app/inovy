@@ -157,7 +157,8 @@ export const auth = betterAuth({
       trustedProviders: ["google", "microsoft"],
     },
     storeStateStrategy: "cookie",
-    storeAccountCookie: true,
+    // Prevent oversized request headers (431) from large provider account payloads (Microsoft can be much larger than Google).
+    storeAccountCookie: false,
     updateAccountOnSignIn: true,
   },
   databaseHooks: {
