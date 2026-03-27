@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Collapsible,
@@ -10,13 +11,19 @@ import {
 import { KnowledgeUsageIndicator } from "@/features/knowledge-base/components/knowledge-usage-indicator";
 import type { SummaryResult } from "@/server/cache/summary.cache";
 import { FeedbackWidget } from "./feedback-widget";
-import { CheckCircle2Icon, ChevronDown } from "lucide-react";
+import { CheckCircle2Icon, ChevronDown, Copy } from "lucide-react";
 import { useState } from "react";
 import { useJumpToTimestamp } from "../hooks/use-jump-to-timestamp";
+import { useCopyToClipboard } from "../hooks/use-copy-to-clipboard";
 import { EditSummaryDialog } from "./edit-summary-dialog";
 import { SummaryVersionHistoryDialog } from "./summary-version-history-dialog";
 import { TimestampButton } from "./timestamp-button";
 import { UserNotesEditor } from "./user-notes-editor";
+import { CopyBlockButton } from "./copy-block-button";
+import {
+  formatBlockAsMarkdown,
+  formatFullSummaryAsMarkdown,
+} from "../lib/format-summary-markdown";
 import { useTranslations } from "next-intl";
 
 interface EnhancedSummarySectionProps {
@@ -44,6 +51,7 @@ export function EnhancedSummarySection({
   const [quotesOpen, setQuotesOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(true);
   const jumpToTimestamp = useJumpToTimestamp();
+  const { copyToClipboard: copyAll } = useCopyToClipboard();
 
   if (!summary) {
     return (
@@ -78,6 +86,18 @@ export function EnhancedSummarySection({
             )}
           </div>
           <div className="flex items-center gap-2 print:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="opacity-50 hover:opacity-100 transition-opacity"
+              onClick={() =>
+                void copyAll(formatFullSummaryAsMarkdown(summary.content))
+              }
+              aria-label={t("summary.copyAll")}
+            >
+              <Copy className="size-3.5" />
+              {t("summary.copyAll")}
+            </Button>
             <SummaryVersionHistoryDialog recordingId={recordingId} />
             <EditSummaryDialog
               recordingId={recordingId}
@@ -94,11 +114,20 @@ export function EnhancedSummarySection({
               <h3 className="font-semibold text-base">
                 {t("summary.overview")}
               </h3>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform print:hidden ${
-                  overviewOpen ? "rotate-180" : ""
-                }`}
-              />
+              <div className="flex items-center gap-1">
+                <CopyBlockButton
+                  text={formatBlockAsMarkdown(
+                    "overview",
+                    summary.content.overview,
+                  )}
+                  label={t("summary.copyOverview")}
+                />
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform print:hidden ${
+                    overviewOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </div>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-2 px-2">
               <p className="text-sm text-muted-foreground leading-relaxed">
@@ -115,11 +144,17 @@ export function EnhancedSummarySection({
               <h3 className="font-semibold text-base">
                 Key Topics ({summary.content.topics.length})
               </h3>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform print:hidden ${
-                  topicsOpen ? "rotate-180" : ""
-                }`}
-              />
+              <div className="flex items-center gap-1">
+                <CopyBlockButton
+                  text={formatBlockAsMarkdown("topics", summary.content.topics)}
+                  label={t("summary.copyTopics")}
+                />
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform print:hidden ${
+                    topicsOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </div>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-2 px-2">
               <ul className="space-y-2">
@@ -144,11 +179,20 @@ export function EnhancedSummarySection({
               <h3 className="font-semibold text-base">
                 Decisions ({summary.content.decisions.length})
               </h3>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform print:hidden ${
-                  decisionsOpen ? "rotate-180" : ""
-                }`}
-              />
+              <div className="flex items-center gap-1">
+                <CopyBlockButton
+                  text={formatBlockAsMarkdown(
+                    "decisions",
+                    summary.content.decisions,
+                  )}
+                  label={t("summary.copyDecisions")}
+                />
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform print:hidden ${
+                    decisionsOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </div>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-2 px-2">
               <ul className="space-y-2">
@@ -178,11 +222,20 @@ export function EnhancedSummarySection({
                   Speaker Contributions (
                   {summary.content.speakerContributions.length})
                 </h3>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform print:hidden ${
-                    contributionsOpen ? "rotate-180" : ""
-                  }`}
-                />
+                <div className="flex items-center gap-1">
+                  <CopyBlockButton
+                    text={formatBlockAsMarkdown(
+                      "speakerContributions",
+                      summary.content.speakerContributions,
+                    )}
+                    label={t("summary.copySpeakerContributions")}
+                  />
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform print:hidden ${
+                      contributionsOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-2 px-2">
                 <div className="space-y-4">
@@ -216,11 +269,20 @@ export function EnhancedSummarySection({
                 <h3 className="font-semibold text-base">
                   Important Quotes ({summary.content.importantQuotes.length})
                 </h3>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform print:hidden ${
-                    quotesOpen ? "rotate-180" : ""
-                  }`}
-                />
+                <div className="flex items-center gap-1">
+                  <CopyBlockButton
+                    text={formatBlockAsMarkdown(
+                      "importantQuotes",
+                      summary.content.importantQuotes,
+                    )}
+                    label={t("summary.copyImportantQuotes")}
+                  />
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform print:hidden ${
+                      quotesOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-2 px-2">
                 <div className="space-y-3">
