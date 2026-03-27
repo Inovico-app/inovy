@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 import { AlertCircle } from "lucide-react";
@@ -16,6 +17,10 @@ export default function DashboardError({ error, reset }: DashboardErrorProps) {
       component: "DashboardError",
       error: error instanceof Error ? error : new Error(String(error)),
       digest: error.digest,
+    });
+    Sentry.captureException(error, {
+      tags: { boundary: "dashboard" },
+      contexts: { error_info: { digest: error.digest } },
     });
   }, [error]);
 
@@ -43,12 +48,9 @@ export default function DashboardError({ error, reset }: DashboardErrorProps) {
           <Button variant="outline" onClick={reset}>
             Try Again
           </Button>
-          <Button onClick={() => window.location.reload()}>
-            Refresh Page
-          </Button>
+          <Button onClick={() => window.location.reload()}>Refresh Page</Button>
         </div>
       </div>
     </div>
   );
 }
-
