@@ -11,7 +11,7 @@ const exportIdSchema = z.object({
 
 export async function GET(
   request: Request,
-  props: { params: Promise<{ exportId: string }> }
+  props: { params: Promise<{ exportId: string }> },
 ) {
   const params = await props.params;
   try {
@@ -20,7 +20,7 @@ export async function GET(
     if (!validationResult.success) {
       return NextResponse.json(
         { error: "Invalid export ID format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -38,7 +38,7 @@ export async function GET(
     if (!userId || !organizationId) {
       return NextResponse.json(
         { error: "User or organization not found" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -46,7 +46,7 @@ export async function GET(
     const exportResult = await GdprExportService.getExportById(
       exportId,
       userId,
-      organizationId
+      organizationId,
     );
 
     if (exportResult.isErr()) {
@@ -54,13 +54,13 @@ export async function GET(
       if (error.code === "NOT_FOUND") {
         return NextResponse.json(
           { error: "Export not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
       if (error.code === "FORBIDDEN") {
         return NextResponse.json(
           { error: "You do not have access to this export" },
-          { status: 403 }
+          { status: 403 },
         );
       }
       if (error.code === "BAD_REQUEST") {
@@ -68,7 +68,7 @@ export async function GET(
       }
       return NextResponse.json(
         { error: "Failed to get export" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -78,21 +78,60 @@ export async function GET(
     if (export_.status !== "completed") {
       return NextResponse.json(
         { error: `Export is ${export_.status}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Retrieve file data from database
+    // Stream from Azure Blob Storage (new exports)
+    if (export_.blobPath) {
+      const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+      if (!connectionString) {
+        return NextResponse.json(
+          { error: "Storage not configured" },
+          { status: 500 },
+        );
+      }
+
+      const containerName =
+        process.env.AZURE_STORAGE_PRIVATE_CONTAINER ?? "private";
+      const { BlobServiceClient } = await import("@azure/storage-blob");
+      const blobServiceClient =
+        BlobServiceClient.fromConnectionString(connectionString);
+      const containerClient =
+        blobServiceClient.getContainerClient(containerName);
+      const blobClient = containerClient.getBlobClient(export_.blobPath);
+
+      const downloadResponse = await blobClient.download();
+      const readableStream = downloadResponse.readableStreamBody;
+
+      if (!readableStream) {
+        return NextResponse.json(
+          { error: "Failed to download export" },
+          { status: 500 },
+        );
+      }
+
+      return new NextResponse(readableStream as unknown as ReadableStream, {
+        headers: {
+          "Content-Type": "application/zip",
+          "Content-Disposition": `attachment; filename="user-data-export.zip"`,
+          ...(export_.fileSize
+            ? { "Content-Length": String(export_.fileSize) }
+            : {}),
+        },
+      });
+    }
+
+    // Fall back to DB-stored fileData (legacy exports)
     const fileData = await DataExportsQueries.getExportFileData(exportId);
 
     if (!fileData) {
       return NextResponse.json(
         { error: "Export file not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    // Stream file data as response
     // Convert Buffer to Uint8Array for NextResponse compatibility
     const fileDataArray = new Uint8Array(fileData);
     return new NextResponse(fileDataArray, {
@@ -110,8 +149,7 @@ export async function GET(
     });
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

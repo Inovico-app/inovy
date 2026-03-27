@@ -24,7 +24,7 @@ export class DataExportsQueries {
 
   static async getExportsByUserId(
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<DataExport[]> {
     return await db
       .select()
@@ -32,8 +32,8 @@ export class DataExportsQueries {
       .where(
         and(
           eq(dataExports.userId, userId),
-          eq(dataExports.organizationId, organizationId)
-        )
+          eq(dataExports.organizationId, organizationId),
+        ),
       )
       .orderBy(desc(dataExports.createdAt));
   }
@@ -43,13 +43,14 @@ export class DataExportsQueries {
     status: ExportStatus,
     updates?: {
       fileData?: Buffer;
+      blobPath?: string;
       fileSize?: number;
       recordingsCount?: number;
       tasksCount?: number;
       conversationsCount?: number;
       errorMessage?: string | null;
       completedAt?: Date;
-    }
+    },
   ): Promise<DataExport | undefined> {
     const [updated] = await db
       .update(dataExports)
@@ -71,4 +72,3 @@ export class DataExportsQueries {
     return export_?.fileData ?? null;
   }
 }
-

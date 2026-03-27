@@ -1,3 +1,4 @@
+import { BlobServiceClient } from "@azure/storage-blob";
 import { logger } from "@/lib/logger";
 import {
   ActionErrors,
@@ -92,7 +93,7 @@ export class GdprExportService {
   static async createExportRequest(
     userId: string,
     organizationId: string,
-    filters?: ExportFilters
+    filters?: ExportFilters,
   ): Promise<ActionResult<DataExport>> {
     try {
       const expiresAt = addDays(new Date(), 7);
@@ -124,7 +125,7 @@ export class GdprExportService {
             exportId: export_.id,
             error,
           });
-        }
+        },
       );
 
       return ok(export_);
@@ -138,8 +139,8 @@ export class GdprExportService {
         ActionErrors.internal(
           "Failed to create export request",
           error as Error,
-          "GdprExportService.createExportRequest"
-        )
+          "GdprExportService.createExportRequest",
+        ),
       );
     }
   }
@@ -151,7 +152,7 @@ export class GdprExportService {
     userId: string,
     organizationId: string,
     exportId: string,
-    filters?: ExportFilters
+    filters?: ExportFilters,
   ): Promise<ActionResult<void>> {
     try {
       // Update status to processing
@@ -168,7 +169,7 @@ export class GdprExportService {
       const dataResult = await this.aggregateUserData(
         userId,
         organizationId,
-        filters
+        filters,
       );
 
       if (dataResult.isErr()) {
@@ -183,9 +184,29 @@ export class GdprExportService {
       // Create ZIP archive
       const zipBuffer = await this.createZipArchive(data);
 
-      // Store file data in database
+      // Upload to Azure Blob Storage
+      const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+      if (!connectionString) {
+        throw new Error("AZURE_STORAGE_CONNECTION_STRING not configured");
+      }
+
+      const containerName =
+        process.env.AZURE_STORAGE_PRIVATE_CONTAINER ?? "private";
+      const blobPath = `gdpr-exports/${organizationId}/${exportId}.zip`;
+
+      const blobServiceClient =
+        BlobServiceClient.fromConnectionString(connectionString);
+      const containerClient =
+        blobServiceClient.getContainerClient(containerName);
+      const blockBlobClient = containerClient.getBlockBlobClient(blobPath);
+
+      await blockBlobClient.upload(zipBuffer, zipBuffer.length, {
+        blobHTTPHeaders: { blobContentType: "application/zip" },
+      });
+
+      // Update export record with blobPath instead of fileData
       await DataExportsQueries.updateExportStatus(exportId, "completed", {
-        fileData: zipBuffer,
+        blobPath,
         fileSize: zipBuffer.length,
         recordingsCount: data.recordings.length,
         tasksCount: data.tasks.length,
@@ -223,8 +244,8 @@ export class GdprExportService {
         ActionErrors.internal(
           "Failed to generate export",
           error as Error,
-          "GdprExportService.generateExport"
-        )
+          "GdprExportService.generateExport",
+        ),
       );
     }
   }
@@ -235,7 +256,7 @@ export class GdprExportService {
   static async aggregateUserData(
     userId: string,
     organizationId: string,
-    filters?: ExportFilters
+    filters?: ExportFilters,
   ): Promise<ActionResult<UserExportData>> {
     try {
       // Get user profile using UserService
@@ -282,7 +303,7 @@ export class GdprExportService {
 
       const recordings = await RecordingsQueries.selectRecordingsByOrganization(
         organizationId,
-        recordingsQueryOptions
+        recordingsQueryOptions,
       );
 
       // Filter by date range if provided
@@ -300,7 +321,7 @@ export class GdprExportService {
 
       // Filter recordings created by this user
       const userRecordings = filteredRecordings.filter(
-        (r) => r.createdById === userId
+        (r) => r.createdById === userId,
       );
 
       // Get tasks
@@ -316,7 +337,7 @@ export class GdprExportService {
 
       const allTasks = await TasksQueries.getTasksByOrganization(
         organizationId,
-        tasksQueryFilters
+        tasksQueryFilters,
       );
 
       // Filter by date range if provided
@@ -352,7 +373,7 @@ export class GdprExportService {
         for (const recordingId of recordingIds) {
           const insights = insightsByRecording.get(recordingId) || [];
           const summaryInsight = insights.find(
-            (i) => i.insightType === "summary"
+            (i) => i.insightType === "summary",
           );
           if (summaryInsight) {
             summaries.push({
@@ -369,7 +390,7 @@ export class GdprExportService {
       // Get chat conversations and messages
       const conversations = await ChatQueries.getConversationsByOrganizationId(
         organizationId,
-        userId
+        userId,
       );
 
       // Filter by date range if provided
@@ -387,7 +408,7 @@ export class GdprExportService {
       // Filter by project if provided
       if (filters?.projectId) {
         filteredConversations = filteredConversations.filter(
-          (conv) => conv.projectId === filters.projectId
+          (conv) => conv.projectId === filters.projectId,
         );
       }
 
@@ -492,8 +513,8 @@ export class GdprExportService {
         ActionErrors.internal(
           "Failed to aggregate user data",
           error as Error,
-          "GdprExportService.aggregateUserData"
-        )
+          "GdprExportService.aggregateUserData",
+        ),
       );
     }
   }
@@ -537,14 +558,14 @@ export class GdprExportService {
   static async getExportById(
     exportId: string,
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<DataExport>> {
     try {
       const export_ = await DataExportsQueries.getExportById(exportId);
 
       if (!export_) {
         return err(
-          ActionErrors.notFound("Export", "GdprExportService.getExportById")
+          ActionErrors.notFound("Export", "GdprExportService.getExportById"),
         );
       }
 
@@ -557,8 +578,8 @@ export class GdprExportService {
           ActionErrors.forbidden(
             "You do not have access to this export",
             { exportId, userId },
-            "GdprExportService.getExportById"
-          )
+            "GdprExportService.getExportById",
+          ),
         );
       }
 
@@ -568,7 +589,7 @@ export class GdprExportService {
           createActionError("BAD_REQUEST", "Export has expired", {
             metadata: { exportId, expiresAt: export_.expiresAt },
             context: "GdprExportService.getExportById",
-          })
+          }),
         );
       }
 
@@ -583,8 +604,8 @@ export class GdprExportService {
         ActionErrors.internal(
           "Failed to get export",
           error as Error,
-          "GdprExportService.getExportById"
-        )
+          "GdprExportService.getExportById",
+        ),
       );
     }
   }
@@ -594,12 +615,12 @@ export class GdprExportService {
    */
   static async getExportsByUserId(
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<ActionResult<DataExport[]>> {
     try {
       const exports = await DataExportsQueries.getExportsByUserId(
         userId,
-        organizationId
+        organizationId,
       );
       return ok(exports);
     } catch (error) {
@@ -612,10 +633,9 @@ export class GdprExportService {
         ActionErrors.internal(
           "Failed to get exports",
           error as Error,
-          "GdprExportService.getExportsByUserId"
-        )
+          "GdprExportService.getExportsByUserId",
+        ),
       );
     }
   }
 }
-
