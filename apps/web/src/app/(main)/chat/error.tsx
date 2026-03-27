@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 import { AlertCircle } from "lucide-react";
@@ -19,6 +20,10 @@ export default function ChatError({ error, reset }: ChatErrorProps) {
       component: "ChatError",
       error: error instanceof Error ? error : new Error(String(error)),
       digest: error.digest,
+    });
+    Sentry.captureException(error, {
+      tags: { boundary: "chat" },
+      contexts: { error_info: { digest: error.digest } },
     });
   }, [error]);
 

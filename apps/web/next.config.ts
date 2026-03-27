@@ -1,3 +1,4 @@
+import { withSentryConfig } from "@sentry/nextjs";
 import path from "path";
 
 import createNextIntlPlugin from "next-intl/plugin";
@@ -162,4 +163,16 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withWorkflow(withNextIntl(nextConfig));
+export default withSentryConfig(withWorkflow(withNextIntl(nextConfig)), {
+  org: "inovy",
+  project: "sentry-inovy",
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  tunnelRoute: "/monitoring",
+  webpack: {
+    automaticVercelMonitors: true,
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
+});

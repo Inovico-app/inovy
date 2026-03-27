@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { logger } from "@/lib/logger";
 import { db } from "@/server/db";
 import { sql } from "drizzle-orm";
@@ -97,6 +98,13 @@ export async function GET(request: NextRequest) {
       component: "GET /api/cron/backup-verification",
       error: error instanceof Error ? error : new Error(String(error)),
     });
+
+    Sentry.withScope((scope) => {
+      scope.setTags({ component: "cron-backup-verification" });
+      scope.setContext("cron", { cron_job: "backup-verification" });
+      Sentry.captureException(error);
+    });
+
     return NextResponse.json(
       { error: "Internal server error", details: (error as Error).message },
       { status: 500 },

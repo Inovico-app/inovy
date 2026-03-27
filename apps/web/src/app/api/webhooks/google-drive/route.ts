@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { type NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { DriveWatchesQueries } from "@/server/data-access/drive-watches.queries";
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
             resourceId,
             messageNumber,
           },
-          error as Error
+          error as Error,
         );
       });
 
@@ -97,11 +98,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     // Always return 200 to avoid Google retries
-    logger.error(
-      "Error in Google Drive webhook handler",
-      {},
-      error as Error
-    );
+    logger.error("Error in Google Drive webhook handler", {}, error as Error);
+    Sentry.withScope((scope) => {
+      scope.setTags({ component: "google-drive-webhook" });
+      Sentry.captureException(error);
+    });
     return NextResponse.json({ success: true });
   }
 }
@@ -152,7 +153,7 @@ async function processChangeNotification(channelId: string): Promise<void> {
         pageSize: 50,
         orderBy: "modifiedTime desc",
         fields: "files(id, name, mimeType, createdTime, modifiedTime)",
-      }
+      },
     );
 
     if (filesResult.isErr()) {
@@ -162,6 +163,22 @@ async function processChangeNotification(channelId: string): Promise<void> {
         userId: watch.userId,
         channelId,
         error: filesResult.error,
+      });
+      Sentry.withScope((scope) => {
+        scope.setTags({
+          component: "google-drive-webhook",
+          operation: "fetch-files",
+        });
+        scope.setContext("drive", {
+          folder_id: watch.folderId,
+          channel_id: channelId,
+          watch_id: watch.id,
+        });
+        Sentry.captureException(
+          new Error(
+            `Failed to fetch files from Drive folder: ${filesResult.error}`,
+          ),
+        );
       });
       return;
     }
@@ -222,7 +239,7 @@ async function processChangeNotification(channelId: string): Promise<void> {
     const processResult = await DriveWatchesService.processFileUpload(
       watch.userId,
       watch.folderId,
-      recentFiles
+      recentFiles,
     );
 
     if (processResult.isErr()) {
@@ -235,6 +252,27 @@ async function processChangeNotification(channelId: string): Promise<void> {
         error: processResult.error,
         errorCode: processResult.error.code,
         errorMessage: processResult.error.message,
+      });
+      Sentry.withScope((scope) => {
+        scope.setTags({
+          component: "google-drive-webhook",
+          operation: "process-upload",
+        });
+        scope.setContext("drive", {
+          folder_id: watch.folderId,
+          channel_id: channelId,
+          watch_id: watch.id,
+          file_count: recentFiles.length,
+        });
+        scope.setContext("error_detail", {
+          error_code: processResult.error.code,
+          error_message: processResult.error.message,
+        });
+        Sentry.captureException(
+          new Error(
+            `Failed to process file uploads: ${processResult.error.message}`,
+          ),
+        );
       });
       return;
     }
@@ -255,9 +293,16 @@ async function processChangeNotification(channelId: string): Promise<void> {
         component: "processChangeNotification",
         channelId,
       },
-      error as Error
+      error as Error,
     );
+    Sentry.withScope((scope) => {
+      scope.setTags({
+        component: "google-drive-webhook",
+        operation: "change-notification",
+      });
+      scope.setContext("drive", { channel_id: channelId });
+      Sentry.captureException(error);
+    });
     // Don't throw - errors are logged but webhook should still return 200
   }
 }
-

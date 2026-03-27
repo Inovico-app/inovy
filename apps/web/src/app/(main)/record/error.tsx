@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 import { AlertCircle } from "lucide-react";
@@ -18,6 +19,10 @@ export default function RecordError({ error, reset }: RecordErrorProps) {
       component: "RecordError",
       error: error instanceof Error ? error : new Error(String(error)),
       digest: error.digest,
+    });
+    Sentry.captureException(error, {
+      tags: { boundary: "record" },
+      contexts: { error_info: { digest: error.digest } },
     });
   }, [error]);
 

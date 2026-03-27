@@ -14,7 +14,8 @@ import {
   type SvixRecordingEvent,
   type TranscriptDataEvent,
 } from "@/server/validation/bot/recall-webhook.schema";
-import { NextResponse, type NextRequest } from "next/server";
+import * as Sentry from "@sentry/nextjs";
+import { after, NextResponse, type NextRequest } from "next/server";
 
 /**
  * Recall requires 200 for all responses to avoid retries.
@@ -140,6 +141,21 @@ export async function POST(request: NextRequest) {
         error: result.error,
         event: eventType,
       });
+      after(() => {
+        Sentry.withScope((scope) => {
+          scope.setTags({ component: "recall-webhook", event_type: eventType });
+          scope.setContext("bot", { bot_id: botId });
+          scope.setContext("error_detail", {
+            error_code: result.error.code,
+            error_message: result.error.message,
+          });
+          Sentry.captureException(
+            new Error(
+              `Recall webhook processing failed: ${result.error.message}`,
+            ),
+          );
+        });
+      });
       return okResponse({ success: false, error: "Processing failed" });
     }
 
@@ -148,6 +164,12 @@ export async function POST(request: NextRequest) {
     logger.error("Error in Recall.ai webhook handler", {
       component: "POST /api/webhooks/recall",
       error: serializeError(error),
+    });
+    after(() => {
+      Sentry.withScope((scope) => {
+        scope.setTags({ component: "recall-webhook" });
+        Sentry.captureException(error);
+      });
     });
     return okResponse({ success: false, error: "Internal error" });
   }

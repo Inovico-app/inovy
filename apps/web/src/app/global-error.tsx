@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 import { AlertTriangle } from "lucide-react";
@@ -16,6 +17,10 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
       component: "GlobalError",
       error: error instanceof Error ? error : new Error(String(error)),
       digest: error.digest,
+    });
+    Sentry.captureException(error, {
+      tags: { boundary: "global" },
+      contexts: { error_info: { digest: error.digest } },
     });
   }, [error]);
 
@@ -58,4 +63,3 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
     </html>
   );
 }
-

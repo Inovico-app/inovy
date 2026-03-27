@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { logger } from "@/lib/logger";
 import { DataRetentionService } from "@/server/services/data-retention.service";
 import { type NextRequest, NextResponse } from "next/server";
@@ -60,6 +61,13 @@ export async function GET(request: NextRequest) {
       component: "GET /api/cron/data-retention",
       error: error instanceof Error ? error : new Error(String(error)),
     });
+
+    Sentry.withScope((scope) => {
+      scope.setTags({ component: "cron-data-retention" });
+      scope.setContext("cron", { cron_job: "data-retention" });
+      Sentry.captureException(error);
+    });
+
     return NextResponse.json(
       { error: "Internal server error", details: (error as Error).message },
       { status: 500 },

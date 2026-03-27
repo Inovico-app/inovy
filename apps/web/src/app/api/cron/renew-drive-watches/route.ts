@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { type NextRequest, NextResponse } from "next/server";
 import { connection } from "next/server";
 import { logger } from "@/lib/logger";
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
       });
       return NextResponse.json(
         { error: "Cron secret not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -42,9 +43,8 @@ export async function GET(request: NextRequest) {
     const twoHoursInMs = 2 * 60 * 60 * 1000;
     const thresholdMs = Date.now() + twoHoursInMs;
 
-    const expiringWatches = await DriveWatchesQueries.getExpiringWatches(
-      thresholdMs
-    );
+    const expiringWatches =
+      await DriveWatchesQueries.getExpiringWatches(thresholdMs);
 
     logger.info("Found watches to renew", {
       component: "GET /api/cron/renew-drive-watches",
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 
         const renewResult = await DriveWatchesService.renewWatch(
           watch,
-          webhookUrl
+          webhookUrl,
         );
 
         if (renewResult.isErr()) {
@@ -116,6 +116,15 @@ export async function GET(request: NextRequest) {
           watchId: watch.id,
           error: error as Error,
         });
+
+        Sentry.withScope((scope) => {
+          scope.setTags({ component: "cron-renew-drive-watches" });
+          scope.setContext("watch", {
+            watch_id: watch.id,
+            folder_id: watch.folderId,
+          });
+          Sentry.captureException(error);
+        });
       }
     }
 
@@ -130,15 +139,17 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    logger.error(
-      "Error in Drive watch renewal cron job",
-      {},
-      error as Error
-    );
+    logger.error("Error in Drive watch renewal cron job", {}, error as Error);
+
+    Sentry.withScope((scope) => {
+      scope.setTags({ component: "cron-renew-drive-watches" });
+      scope.setContext("cron", { cron_job: "renew-drive-watches" });
+      Sentry.captureException(error);
+    });
+
     return NextResponse.json(
       { error: "Internal server error", details: (error as Error).message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

@@ -1,8 +1,9 @@
+import * as Sentry from "@sentry/nextjs";
 import { logger } from "@/lib/logger";
 import { AgendaTrackerService } from "@/server/services/agenda-tracker.service";
 import { MeetingsQueries } from "@/server/data-access/meetings.queries";
 import { BotSessionsQueries } from "@/server/data-access/bot-sessions.queries";
-import { type NextRequest, NextResponse } from "next/server";
+import { after, type NextRequest, NextResponse } from "next/server";
 import { connection } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
       });
       return NextResponse.json(
         { error: "Cron secret not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -32,8 +33,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Find all in-progress meetings
-    const activeMeetings =
-      await MeetingsQueries.findActiveMeetingsWithAgenda();
+    const activeMeetings = await MeetingsQueries.findActiveMeetingsWithAgenda();
 
     if (activeMeetings.length === 0) {
       return NextResponse.json({
@@ -51,12 +51,8 @@ export async function GET(request: NextRequest) {
     }> = [];
 
     for (const meeting of activeMeetings) {
-      const botSessions = await BotSessionsQueries.findByMeetingId(
-        meeting.id
-      );
-      const activeSession = botSessions.find(
-        (s) => s.botStatus === "active"
-      );
+      const botSessions = await BotSessionsQueries.findByMeetingId(meeting.id);
+      const activeSession = botSessions.find((s) => s.botStatus === "active");
 
       if (!activeSession?.recallBotId) {
         continue;
@@ -64,7 +60,7 @@ export async function GET(request: NextRequest) {
 
       const result = await AgendaTrackerService.checkMeetingAgenda(
         meeting,
-        activeSession.recallBotId
+        activeSession.recallBotId,
       );
 
       if (result.isOk()) {
@@ -102,15 +98,27 @@ export async function GET(request: NextRequest) {
         component: "AgendaCheckCron",
         durationMs: duration,
       },
-      error as Error
+      error as Error,
     );
+
+    after(() => {
+      Sentry.withScope((scope) => {
+        scope.setTags({ component: "cron-agenda-check" });
+        scope.setContext("cron", {
+          cron_job: "agenda-check",
+          duration_ms: duration,
+        });
+        Sentry.captureException(error);
+      });
+    });
+
     return NextResponse.json(
       {
         success: false,
         error: "Internal server error",
         durationMs: duration,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
