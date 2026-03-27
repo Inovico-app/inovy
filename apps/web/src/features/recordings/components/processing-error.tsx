@@ -1,4 +1,5 @@
 import { AlertCircleIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "../../../components/ui/button";
 import {
   Card,
@@ -6,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card";
-import { getTranslations } from "next-intl/server";
 
 interface ProcessingErrorProps {
   title?: string;
@@ -15,13 +15,13 @@ interface ProcessingErrorProps {
   onRetry?: () => void;
 }
 
-export async function ProcessingError({
+export function ProcessingError({
   title,
   message,
   recordingTitle,
   onRetry,
 }: ProcessingErrorProps) {
-  const t = await getTranslations("recordings");
+  const t = useTranslations("recordings");
   const effectiveTitle = title ?? t("processingError.title");
   const effectiveMessage = message ?? t("processingError.defaultMessage");
   return (
