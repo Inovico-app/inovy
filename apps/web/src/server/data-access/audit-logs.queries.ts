@@ -235,7 +235,10 @@ export class AuditLogsQueries {
 
     const results: Array<{ log: AuditLog; isValid: boolean }> = [];
 
-    for (const log of logs) {
+    for (let i = 0; i < logs.length; i++) {
+      const log = logs[i]!;
+
+      // Verify individual hash
       const recomputedHash = computeHash({
         eventType: log.eventType,
         resourceType: log.resourceType,
@@ -247,8 +250,20 @@ export class AuditLogsQueries {
         createdAt: log.createdAt,
         metadata: log.metadata,
       });
-      const isValid = log.hash === recomputedHash;
-      results.push({ log, isValid });
+      const hashValid = log.hash === recomputedHash;
+
+      // Verify chain linkage
+      let chainValid = true;
+      if (i === 0) {
+        chainValid =
+          log.previousHash === "genesis" || log.previousHash === null;
+      } else {
+        const prevLog = logs[i - 1]!;
+        chainValid =
+          log.previousHash === prevLog.hash || log.previousHash === null;
+      }
+
+      results.push({ log, isValid: hashValid && chainValid });
     }
 
     return results;

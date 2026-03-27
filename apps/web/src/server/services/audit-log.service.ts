@@ -77,6 +77,12 @@ export class AuditLogService {
     params: CreateAuditLogParams,
   ): Promise<ActionResult<AuditLog>> {
     try {
+      // Fetch last entry's hash for chain linking
+      const lastEntry = await AuditLogsQueries.getLatestLog(
+        params.organizationId,
+      );
+      const previousHash = lastEntry?.hash ?? "genesis";
+
       // Create the log entry (without hash first)
       const logEntry: Omit<NewAuditLog, "hash"> = {
         eventType: params.eventType,
@@ -89,7 +95,7 @@ export class AuditLogService {
         ipAddress: params.ipAddress ?? null,
         userAgent: params.userAgent ?? null,
         metadata: params.metadata ?? null,
-        previousHash: null,
+        previousHash,
       };
 
       // Compute hash for this entry
