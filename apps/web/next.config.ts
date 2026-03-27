@@ -54,7 +54,8 @@ const nextConfig: NextConfig = {
       {
         source: "/status",
         destination:
-          process.env.NEXT_PUBLIC_STATUS_PAGE_URL ?? "https://status.inovy.nl",
+          process.env.NEXT_PUBLIC_STATUS_PAGE_URL?.trim() ||
+          "https://status.inovy.nl",
         permanent: false,
       },
       {
