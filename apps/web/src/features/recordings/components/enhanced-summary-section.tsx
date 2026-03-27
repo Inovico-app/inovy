@@ -21,7 +21,6 @@ import { useTranslations } from "next-intl";
 
 interface EnhancedSummarySectionProps {
   recordingId: string;
-  organizationId: string;
   summary: SummaryResult | null;
   transcriptionStatus: string;
   existingFeedback: Array<{
@@ -33,7 +32,6 @@ interface EnhancedSummarySectionProps {
 
 export function EnhancedSummarySection({
   recordingId,
-  organizationId,
   summary,
   transcriptionStatus,
   existingFeedback,
@@ -298,7 +296,6 @@ export function EnhancedSummarySection({
         <div className="pt-4 border-t">
           <FeedbackWidget
             recordingId={recordingId}
-            organizationId={organizationId}
             existingFeedback={existingFeedback}
           />
         </div>
