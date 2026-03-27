@@ -205,14 +205,18 @@ export class GdprExportService {
       });
 
       // Update export record with blobPath instead of fileData
-      await DataExportsQueries.updateExportStatus(exportId, "completed", {
-        blobPath,
-        fileSize: zipBuffer.length,
-        recordingsCount: data.recordings.length,
-        tasksCount: data.tasks.length,
-        conversationsCount: data.chatHistory.length,
-        completedAt: new Date(),
-      });
+      const completedExport = await DataExportsQueries.updateExportStatus(
+        exportId,
+        "completed",
+        {
+          blobPath,
+          fileSize: zipBuffer.length,
+          recordingsCount: data.recordings.length,
+          tasksCount: data.tasks.length,
+          conversationsCount: data.chatHistory.length,
+          completedAt: new Date(),
+        },
+      );
 
       logger.info("Export generation completed", {
         component: "GdprExportService.generateExport",
@@ -223,10 +227,42 @@ export class GdprExportService {
         conversationsCount: data.chatHistory.length,
       });
 
-      // Note: In-app notifications require recordingId and projectId which don't apply to exports
-      // Users can check export status in the settings page
-      // TODO: Implement email notification when US-006 (Email Sending Infrastructure) is available
-      // TODO: Consider extending notification schema to support export notifications (nullable recordingId/projectId)
+      // Send email notification
+      try {
+        const appUrl =
+          process.env.NEXT_PUBLIC_APP_URL ?? "https://app.inovico.nl";
+        const downloadUrl = `${appUrl}/api/gdpr-export/${exportId}`;
+        const userResult = await UserService.getUserById(userId);
+
+        if (userResult.isOk() && userResult.value.email && completedExport) {
+          const { Resend } = await import("resend");
+          const { render } = await import("@react-email/render");
+          const { GdprExportReadyEmail } =
+            await import("@/emails/templates/gdpr-export-ready");
+
+          const resend = new Resend(process.env.RESEND_API_KEY);
+          const html = await render(
+            GdprExportReadyEmail({
+              downloadUrl,
+              expiresAt: completedExport.expiresAt.toLocaleDateString("nl-NL"),
+              fileSize: `${Math.round(zipBuffer.length / 1024)} KB`,
+            }),
+          );
+
+          await resend.emails.send({
+            from: process.env.RESEND_FROM_EMAIL ?? "noreply@inovico.nl",
+            to: userResult.value.email,
+            subject: "Your data export is ready",
+            html,
+          });
+        }
+      } catch (emailError) {
+        logger.error("Failed to send export ready email", {
+          component: "GdprExportService",
+          exportId,
+          error: emailError,
+        });
+      }
 
       return ok(undefined);
     } catch (error) {
