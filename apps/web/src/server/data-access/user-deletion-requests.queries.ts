@@ -11,7 +11,7 @@ export class UserDeletionRequestsQueries {
    * Create a new deletion request
    */
   static async insert(
-    data: NewUserDeletionRequest
+    data: NewUserDeletionRequest,
   ): Promise<UserDeletionRequest> {
     const [request] = await db
       .insert(userDeletionRequests)
@@ -24,7 +24,7 @@ export class UserDeletionRequestsQueries {
    * Get deletion request by user ID
    */
   static async findByUserId(
-    userId: string
+    userId: string,
   ): Promise<UserDeletionRequest | null> {
     const [request] = await db
       .select()
@@ -35,9 +35,9 @@ export class UserDeletionRequestsQueries {
           or(
             eq(userDeletionRequests.status, "pending"),
             eq(userDeletionRequests.status, "processing"),
-            eq(userDeletionRequests.status, "completed")
-          )
-        )
+            eq(userDeletionRequests.status, "completed"),
+          ),
+        ),
       )
       .limit(1);
     return request ?? null;
@@ -66,7 +66,7 @@ export class UserDeletionRequestsQueries {
       scheduledDeletionAt?: Date;
       cancelledAt?: Date;
       cancelledBy?: string;
-    }
+    },
   ): Promise<UserDeletionRequest | null> {
     const [request] = await db
       .update(userDeletionRequests)
@@ -95,8 +95,24 @@ export class UserDeletionRequestsQueries {
           eq(userDeletionRequests.status, "completed"),
           isNull(userDeletionRequests.cancelledAt),
           sql`${userDeletionRequests.scheduledDeletionAt} IS NOT NULL`,
-          lte(userDeletionRequests.scheduledDeletionAt, new Date())
-        )
+          lte(userDeletionRequests.scheduledDeletionAt, new Date()),
+        ),
+      );
+  }
+
+  /**
+   * Get all pending deletions past their scheduled deletion date
+   * (scheduledDeletionAt <= now and status is 'pending')
+   */
+  static async getPendingDeletions(): Promise<UserDeletionRequest[]> {
+    return db
+      .select()
+      .from(userDeletionRequests)
+      .where(
+        and(
+          eq(userDeletionRequests.status, "pending"),
+          lte(userDeletionRequests.scheduledDeletionAt, new Date()),
+        ),
       );
   }
 
@@ -105,7 +121,7 @@ export class UserDeletionRequestsQueries {
    */
   static async cancel(
     id: string,
-    cancelledBy: string
+    cancelledBy: string,
   ): Promise<UserDeletionRequest | null> {
     const [request] = await db
       .update(userDeletionRequests)
@@ -120,4 +136,3 @@ export class UserDeletionRequestsQueries {
     return request ?? null;
   }
 }
-
