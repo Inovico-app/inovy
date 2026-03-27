@@ -1,8 +1,8 @@
 import { Lock, Mic, Shield } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 
-export async function AuthMarketingPanel() {
-  const t = await getTranslations("auth");
+export function AuthMarketingPanel() {
+  const t = useTranslations("auth");
 
   return (
     <div className="hidden lg:flex lg:w-1/2 flex-col justify-center bg-primary px-12 py-12 text-primary-foreground">
