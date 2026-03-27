@@ -36,6 +36,7 @@ export const dataExports = pgTable("data_exports", {
     .notNull()
     .default("pending"),
   fileData: bytea("file_data"), // ZIP file binary data
+  blobPath: text("blob_path"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   fileSize: integer("file_size"), // Size in bytes
   recordingsCount: integer("recordings_count").notNull().default(0),
@@ -50,4 +51,3 @@ export const dataExports = pgTable("data_exports", {
 
 export type DataExport = typeof dataExports.$inferSelect;
 export type NewDataExport = typeof dataExports.$inferInsert;
-
