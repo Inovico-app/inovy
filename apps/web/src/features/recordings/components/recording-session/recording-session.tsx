@@ -83,7 +83,7 @@ export function RecordingSession({
     toast.success(t("session.recordingComplete"));
     router.push(`/projects/${config.projectId}` as Route);
     router.refresh();
-  }, [session.status, config.projectId, router]);
+  }, [session.status, config.projectId, router, t]);
 
   // Show error toast (skip warnings — they are handled by the warnings useEffect)
   useEffect(() => {
