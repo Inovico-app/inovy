@@ -1,17 +1,17 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangleIcon } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 
 interface AgentDisabledBannerProps {
   organizationName?: string;
   className?: string;
 }
 
-export async function AgentDisabledBanner({
+export function AgentDisabledBanner({
   organizationName: _organizationName,
   className,
 }: AgentDisabledBannerProps) {
-  const t = await getTranslations("agentDisabled");
+  const t = useTranslations("agentDisabled");
 
   return (
     <Alert variant="destructive" className={className}>
