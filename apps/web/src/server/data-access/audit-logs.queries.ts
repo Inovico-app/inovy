@@ -36,6 +36,31 @@ export class AuditLogsQueries {
   }
 
   /**
+   * Atomically fetch the latest log and insert a new entry within a transaction.
+   * Prevents hash chain race conditions when concurrent inserts target the same org.
+   * The caller must supply the pre-computed `createdAt` and `hash` so that the
+   * timestamp used for hashing matches the value persisted to the DB.
+   */
+  static async insertWithChain(logEntry: NewAuditLog): Promise<AuditLog> {
+    const result = await db.transaction(async (tx) => {
+      const [lastLog] = await tx
+        .select()
+        .from(auditLogs)
+        .where(eq(auditLogs.organizationId, logEntry.organizationId))
+        .orderBy(desc(auditLogs.createdAt))
+        .limit(1);
+
+      const previousHash = lastLog?.hash ?? "genesis";
+      const [inserted] = await tx
+        .insert(auditLogs)
+        .values({ ...logEntry, previousHash })
+        .returning();
+      return inserted;
+    });
+    return result;
+  }
+
+  /**
    * Get the most recent audit log entry (for hash chain)
    */
   static async getLatestLog(organizationId: string): Promise<AuditLog | null> {
@@ -255,10 +280,14 @@ export class AuditLogsQueries {
       // Verify chain linkage
       let chainValid = true;
       if (i === 0) {
+        // TODO: After running backfill-audit-hash-chain.ts, remove null tolerance
+        // and treat null previousHash on non-genesis entries as invalid
         chainValid =
           log.previousHash === "genesis" || log.previousHash === null;
       } else {
         const prevLog = logs[i - 1]!;
+        // TODO: After running backfill-audit-hash-chain.ts, remove null tolerance
+        // and treat null previousHash on non-genesis entries as invalid
         chainValid =
           log.previousHash === prevLog.hash || log.previousHash === null;
       }

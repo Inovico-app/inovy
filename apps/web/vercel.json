@@ -30,7 +30,7 @@
     },
     {
       "path": "/api/cron/process-deletions",
-      "schedule": "0 2 * * *"
+      "schedule": "30 1 * * *"
     }
   ]
 }

@@ -77,14 +77,29 @@ export class AuditLogService {
     params: CreateAuditLogParams,
   ): Promise<ActionResult<AuditLog>> {
     try {
-      // Fetch last entry's hash for chain linking
-      const lastEntry = await AuditLogsQueries.getLatestLog(
-        params.organizationId,
-      );
-      const previousHash = lastEntry?.hash ?? "genesis";
+      // Pin a single timestamp so hash computation and the DB row agree exactly.
+      // Previously, hash used `new Date()` while the DB column defaulted to
+      // `defaultNow()`, causing a skew that made all hash verifications fail.
+      const createdAt = new Date();
 
-      // Create the log entry (without hash first)
-      const logEntry: Omit<NewAuditLog, "hash"> = {
+      // Compute hash for this entry (previousHash will be resolved inside the
+      // transaction in insertWithChain to avoid read-then-write race conditions)
+      const hash = computeHash({
+        eventType: params.eventType,
+        resourceType: params.resourceType as NewAuditLog["resourceType"],
+        resourceId: params.resourceId ?? null,
+        userId: params.userId,
+        organizationId: params.organizationId,
+        action: params.action as NewAuditLog["action"],
+        category: params.category ?? "mutation",
+        createdAt,
+        metadata: params.metadata ?? null,
+      });
+
+      // insertWithChain fetches the latest log and inserts atomically inside a
+      // Drizzle transaction, preventing concurrent inserts from chaining to the
+      // same predecessor. previousHash is resolved inside the transaction.
+      const auditLog = await AuditLogsQueries.insertWithChain({
         eventType: params.eventType,
         resourceType: params.resourceType as NewAuditLog["resourceType"],
         resourceId: params.resourceId ?? null,
@@ -95,27 +110,12 @@ export class AuditLogService {
         ipAddress: params.ipAddress ?? null,
         userAgent: params.userAgent ?? null,
         metadata: params.metadata ?? null,
-        previousHash,
-      };
-
-      // Compute hash for this entry
-      const hash = computeHash({
-        eventType: logEntry.eventType,
-        resourceType: logEntry.resourceType,
-        resourceId: logEntry.resourceId ?? null,
-        userId: logEntry.userId,
-        organizationId: logEntry.organizationId,
-        action: logEntry.action,
-        category: logEntry.category ?? "mutation",
-        createdAt: new Date(), // Use current timestamp for hash computation
-        metadata: logEntry.metadata ?? null,
-      });
-
-      // Insert with hash
-      const auditLog = await AuditLogsQueries.insert({
-        ...logEntry,
+        createdAt,
         hash,
-      } as NewAuditLog);
+        // previousHash is resolved atomically inside insertWithChain; supplying a
+        // placeholder here — the transaction overwrites it before insert.
+        previousHash: "genesis",
+      } satisfies NewAuditLog);
 
       logger.info("Audit log created", {
         component: "AuditLogService",

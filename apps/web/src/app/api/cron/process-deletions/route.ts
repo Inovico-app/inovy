@@ -98,6 +98,12 @@ export async function GET(request: NextRequest) {
           requestId: deletionRequest.id,
           error,
         });
+
+        Sentry.withScope((scope) => {
+          scope.setTags({ component: "cron-process-deletions" });
+          scope.setContext("deletion", { request_id: deletionRequest.id });
+          Sentry.captureException(error);
+        });
       }
     }
 

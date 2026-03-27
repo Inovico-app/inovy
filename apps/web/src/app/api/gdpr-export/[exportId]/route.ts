@@ -1,8 +1,8 @@
-import { BlobServiceClient } from "@azure/storage-blob";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { DataExportsQueries } from "@/server/data-access/data-exports.queries";
 import { GdprExportService } from "@/server/services/gdpr-export.service";
+import { getStorageProvider } from "@/server/services/storage";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -83,35 +83,39 @@ export async function GET(
       );
     }
 
-    // Stream from Azure Blob Storage (new exports)
+    // Stream from storage provider (new exports)
     if (export_.blobPath) {
-      const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
-      if (!connectionString) {
+      const storage = await getStorageProvider();
+
+      // Build the full blob URL to generate a short-lived read SAS URL
+      const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
+      const containerName =
+        process.env.AZURE_STORAGE_PRIVATE_CONTAINER ?? "private";
+
+      if (!accountName) {
         return NextResponse.json(
           { error: "Storage not configured" },
           { status: 500 },
         );
       }
 
-      const containerName =
-        process.env.AZURE_STORAGE_PRIVATE_CONTAINER ?? "private";
-      const blobServiceClient =
-        BlobServiceClient.fromConnectionString(connectionString);
-      const containerClient =
-        blobServiceClient.getContainerClient(containerName);
-      const blobClient = containerClient.getBlobClient(export_.blobPath);
+      const blobUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${export_.blobPath}`;
 
-      const downloadResponse = await blobClient.download();
-      const readableStream = downloadResponse.readableStreamBody;
+      // Use the provider's signed-URL method if available (Azure); otherwise
+      // fall back to a direct fetch of the raw blob URL (Vercel Blob).
+      const fetchUrl = storage.generateReadSasUrl
+        ? await storage.generateReadSasUrl(blobUrl, 15)
+        : blobUrl;
 
-      if (!readableStream) {
+      const response = await fetch(fetchUrl);
+      if (!response.ok || !response.body) {
         return NextResponse.json(
           { error: "Failed to download export" },
           { status: 500 },
         );
       }
 
-      return new NextResponse(readableStream as unknown as ReadableStream, {
+      return new NextResponse(response.body, {
         headers: {
           "Content-Type": "application/zip",
           "Content-Disposition": `attachment; filename="user-data-export.zip"`,
