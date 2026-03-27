@@ -9,6 +9,7 @@ import {
   BotIcon,
   Building2Icon,
   FileTextIcon,
+  MessageSquareIcon,
   ShieldCheckIcon,
   Users2Icon,
   UsersIcon,
@@ -32,6 +33,7 @@ const BASE_NAV_ITEMS: NavItemDef[] = [
     labelKey: "analytics",
   },
   { href: "/admin/agent-metrics", icon: ActivityIcon, labelKey: "metrics" },
+  { href: "/admin/feedback", icon: MessageSquareIcon, labelKey: "feedback" },
 ];
 
 const SUPER_ADMIN_NAV_ITEMS: NavItemDef[] = [

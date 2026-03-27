@@ -2,6 +2,7 @@ import type {
   RecordingArchiveStatus,
   RecordingMode,
   RecordingStatus,
+  TranscriptionStatus,
   WorkflowStatus,
 } from "../db/schema/recordings";
 
@@ -20,7 +21,10 @@ export interface RecordingDto {
   recordingDate: Date;
   recordingMode: RecordingMode;
   language: string; // ISO 639-1 language code
-  transcriptionStatus: RecordingStatus;
+  transcriptionStatus: TranscriptionStatus;
+  transcriptionRetryCount: number;
+  transcriptionNextRetryAt: Date | null;
+  transcriptionLastError: string | null;
   transcriptionText: string | null;
   redactedTranscriptionText: string | null;
   isTranscriptionManuallyEdited: boolean;

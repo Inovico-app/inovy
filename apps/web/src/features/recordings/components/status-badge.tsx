@@ -5,20 +5,21 @@ import {
   CheckCircleIcon,
   ClockIcon,
   LoaderIcon,
+  RefreshCwIcon,
 } from "lucide-react";
 import { Badge } from "../../../components/ui/badge";
-import type { RecordingStatus } from "../../../server/db/schema/recordings";
+import type { TranscriptionStatus } from "../../../server/db/schema/recordings";
 import { useTranslations } from "next-intl";
 
 interface StatusBadgeProps {
-  status: RecordingStatus;
+  status: TranscriptionStatus;
   className?: string;
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const t = useTranslations("recordings");
   const statusConfig: Record<
-    RecordingStatus,
+    TranscriptionStatus,
     {
       label: string;
       variant: "default" | "secondary" | "destructive" | "outline";
@@ -49,6 +50,13 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
       label: t("status.failed"),
       variant: "destructive",
       icon: <AlertCircleIcon className="h-3 w-3" />,
+    },
+    queued_for_retry: {
+      label: t("status.queuedForRetry"),
+      variant: "outline",
+      icon: <RefreshCwIcon className="h-3 w-3" />,
+      className:
+        "bg-amber-500/10 text-amber-700 border-amber-500/30 dark:text-amber-400",
     },
   };
 

@@ -19,6 +19,15 @@ export const recordingStatusEnum = [
 ] as const;
 export type RecordingStatus = (typeof recordingStatusEnum)[number];
 
+export const transcriptionStatusEnum = [
+  "pending",
+  "processing",
+  "completed",
+  "failed",
+  "queued_for_retry",
+] as const;
+export type TranscriptionStatus = (typeof transcriptionStatusEnum)[number];
+
 export const recordingModeEnum = ["live", "upload", "bot"] as const;
 export type RecordingMode = (typeof recordingModeEnum)[number];
 
@@ -56,10 +65,17 @@ export const recordings = pgTable(
       withTimezone: true,
     }).notNull(),
     transcriptionStatus: text("transcription_status", {
-      enum: recordingStatusEnum,
+      enum: transcriptionStatusEnum,
     })
       .notNull()
       .default("pending"),
+    transcriptionRetryCount: integer("transcription_retry_count")
+      .notNull()
+      .default(0),
+    transcriptionNextRetryAt: timestamp("transcription_next_retry_at", {
+      withTimezone: true,
+    }),
+    transcriptionLastError: text("transcription_last_error"),
     transcriptionText: text("transcription_text"),
     redactedTranscriptionText: text("redacted_transcription_text"), // Redacted version of transcript
     isTranscriptionManuallyEdited: boolean("is_transcription_manually_edited")

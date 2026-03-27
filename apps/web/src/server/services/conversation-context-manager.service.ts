@@ -16,7 +16,7 @@ import type { ChatMessage } from "@/server/db/schema/chat-messages";
 import { generateText, type ModelMessage } from "ai";
 import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../ai/middleware";
-import { connectionPool } from "./connection-pool.service";
+import { resilientModelProvider } from "./resilient-model-provider.service";
 import { PromptBuilder } from "./prompt-builder.service";
 
 // ============================================================================
@@ -207,26 +207,22 @@ export class ConversationContextManager {
         conversationText,
       });
 
-      // Call AI SDK with guardrails and retry logic
-      const completion = await connectionPool.executeWithRetry(
-        async () =>
-          connectionPool.withAnthropicAISdkClient(async (anthropic) => {
-            const guardedModel = createGuardedModel(
-              anthropic("claude-sonnet-4-6"),
-              {
-                requestType: "conversation-summary",
-                pii: { mode: "redact" },
-                audit: { enabled: false },
-              },
-            );
+      // Call AI SDK with guardrails and resilient provider fallback
+      const { result: completion } = await resilientModelProvider.execute(
+        "claude-sonnet-4-6",
+        async (model) => {
+          const guardedModel = createGuardedModel(model, {
+            requestType: "conversation-summary",
+            pii: { mode: "redact" },
+            audit: { enabled: false },
+          });
 
-            return generateText({
-              model: guardedModel,
-              system: promptResult.systemPrompt,
-              prompt: promptResult.userPrompt,
-            });
-          }),
-        "anthropic",
+          return generateText({
+            model: guardedModel,
+            system: promptResult.systemPrompt,
+            prompt: promptResult.userPrompt,
+          });
+        },
       );
 
       const responseContent = completion.text;

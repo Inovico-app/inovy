@@ -410,5 +410,26 @@
     "latency": "Latentie",
     "errorRateChart": "Foutpercentage",
     "tokenUsage": "Tokengebruik"
+  },
+  "feedback": {
+    "title": "Feedback",
+    "description": "Gebruikersfeedback op AI-gegenereerde inhoud",
+    "totalFeedback": "Totale Feedback",
+    "positiveRate": "Positief Percentage",
+    "byType": "Per Type",
+    "viewAll": "Bekijk alle feedback",
+    "date": "Datum",
+    "user": "Gebruiker",
+    "recording": "Opname",
+    "type": "Type",
+    "rating": "Beoordeling",
+    "comment": "Opmerking",
+    "filterByType": "Filter op type",
+    "filterByRating": "Filter op beoordeling",
+    "all": "Alle",
+    "positive": "Positief",
+    "negative": "Negatief",
+    "noFeedback": "Nog geen feedback",
+    "dashboardDescription": "Bekijk gebruikersfeedback op opnames"
   }
 }

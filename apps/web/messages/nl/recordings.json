@@ -82,6 +82,7 @@
     "processing": "Verwerken",
     "completed": "Voltooid",
     "failed": "Mislukt",
+    "queuedForRetry": "Wacht op herhaling",
     "checkingStatus": "Status controleren...",
     "reprocessing": "Herverwerken...",
     "processingGeneric": "Verwerken...",
@@ -577,5 +578,18 @@
     "noteItem2": "Geüploade bestanden worden altijd automatisch verwerkt",
     "noteItem3": "Je kunt verwerking altijd handmatig starten als auto-verwerking is uitgeschakeld",
     "savingLabel": "Opslaan..."
+  },
+  "feedback": {
+    "wasThisHelpful": "Was dit nuttig?",
+    "helpful": "Nuttig",
+    "notHelpful": "Niet nuttig",
+    "summary": "Samenvatting",
+    "transcription": "Transcriptie",
+    "general": "Algemeen",
+    "commentPlaceholder": "Wat kan er verbeterd worden? (optioneel)",
+    "submit": "Verstuur",
+    "feedbackSubmitted": "Feedback verstuurd",
+    "alreadySubmitted": "Je hebt dit al beoordeeld",
+    "submitError": "Feedback versturen mislukt"
   }
 }

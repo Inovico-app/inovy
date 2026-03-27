@@ -7,5 +7,6 @@
   "metrics": "Statistieken",
   "agentConfig": "Agent-configuratie",
   "organizations": "Organisaties",
-  "ariaLabel": "Beheernavigatie"
+  "ariaLabel": "Beheernavigatie",
+  "feedback": "Feedback"
 }

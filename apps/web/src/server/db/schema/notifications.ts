@@ -12,6 +12,7 @@ import { recordings } from "./recordings";
 export const notificationTypeEnum = [
   "transcription_completed",
   "transcription_failed",
+  "transcription_queued",
   "summary_completed",
   "summary_failed",
   "tasks_completed",

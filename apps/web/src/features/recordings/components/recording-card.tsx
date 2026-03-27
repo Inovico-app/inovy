@@ -60,6 +60,11 @@ const STATUS_CONFIG = {
     labelKey: "status.failed" as const,
     className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
   },
+  queued_for_retry: {
+    labelKey: "status.queuedForRetry" as const,
+    className:
+      "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+  },
 } as const;
 
 export function RecordingCard({

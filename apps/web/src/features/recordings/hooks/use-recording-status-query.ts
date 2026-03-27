@@ -2,19 +2,19 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "../../../lib/query-keys";
-import type { RecordingStatus } from "../../../server/db/schema/recordings";
+import type { TranscriptionStatus } from "../../../server/db/schema/recordings";
 import { getRecordingStatusAction } from "../actions/get-recording-status";
 
 interface UseRecordingStatusOptions {
   recordingId: string;
-  initialStatus: RecordingStatus;
+  initialStatus: TranscriptionStatus;
   enabled?: boolean;
   pollingInterval?: number; // in milliseconds
-  onStatusChange?: (newStatus: RecordingStatus) => void;
+  onStatusChange?: (newStatus: TranscriptionStatus) => void;
 }
 
 interface UseRecordingStatusReturn {
-  status: RecordingStatus;
+  status: TranscriptionStatus;
   isPolling: boolean;
   error: string | null;
 }
@@ -73,4 +73,3 @@ export function useRecordingStatus({
       : null,
   };
 }
-

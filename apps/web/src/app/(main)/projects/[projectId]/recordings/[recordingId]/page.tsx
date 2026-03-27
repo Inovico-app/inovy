@@ -21,6 +21,8 @@ import { ReprocessButton } from "@/features/recordings/components/reprocess-butt
 import { ReprocessingStatusIndicator } from "@/features/recordings/components/reprocessing-status-indicator";
 import { TranscriptionSection } from "@/features/recordings/components/transcription/transcription-section";
 import { getRecordingDetailPageData } from "@/features/recordings/server/get-recording-detail-page-data";
+import { FeedbackQueries } from "@/server/data-access/feedback.queries";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
 import type { AIInsightDto } from "@/server/dto/ai-insight.dto";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
@@ -52,6 +54,13 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
   if (!recording) {
     notFound();
   }
+
+  const authResult = await getBetterAuthSession();
+  const user = authResult.isOk() ? authResult.value.user : null;
+
+  const existingFeedback = user
+    ? await FeedbackQueries.getByUserAndRecording(user.id, recordingId)
+    : [];
 
   const t = await getTranslations("projects");
   const knowledgeUsed = extractUsedKnowledge(transcriptionInsights);
@@ -117,8 +126,14 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
         {/* AI-Generated Summary */}
         <EnhancedSummarySection
           recordingId={recordingId}
+          organizationId={recording.organizationId}
           summary={summary}
           transcriptionStatus={recording.transcriptionStatus}
+          existingFeedback={existingFeedback.map((f) => ({
+            type: f.type,
+            rating: f.rating,
+            comment: f.comment,
+          }))}
         />
 
         {/* Consent Management */}

@@ -491,6 +491,13 @@
       "when": 1774542692337,
       "tag": "0075_add-works-council-approvals",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1774620466081,
+      "tag": "0076_add-transcription-retry-columns",
+      "breakpoints": true
     }
   ]
 }

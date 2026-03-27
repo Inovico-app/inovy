@@ -11,7 +11,7 @@ import { generateText } from "ai";
 import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../ai/middleware";
 import { resolveFetchableUrl } from "@/server/services/storage";
-import { connectionPool } from "./connection-pool.service";
+import { resilientModelProvider } from "./resilient-model-provider.service";
 import { KnowledgeModule } from "./knowledge";
 import { NotificationService } from "./notification.service";
 import { PromptBuilder } from "./prompt-builder.service";
@@ -142,29 +142,41 @@ export class TranscriptionService {
           error,
         });
 
-        await Promise.all([
-          AIInsightsQueries.updateInsightStatus(
-            insight.id,
-            "failed",
-            error.message,
-          ),
-          RecordingsQueries.updateRecordingTranscriptionStatus(
-            recordingId,
-            "failed",
-          ),
-        ]);
+        await AIInsightsQueries.updateInsightStatus(
+          insight.id,
+          "failed",
+          error.message,
+        );
+
+        // Queue for deferred retry instead of permanent failure
+        const retryResult = await RecordingsQueries.queueForTranscriptionRetry(
+          recordingId,
+          error.message,
+        );
 
         if (existingRecording) {
+          const isPermanentFailure =
+            retryResult?.transcriptionStatus === "failed";
+
           await NotificationService.createNotification({
             recordingId,
             projectId: existingRecording.projectId,
             userId: existingRecording.createdById,
             organizationId: existingRecording.organizationId,
-            type: "transcription_failed",
-            title: "Transcriptie mislukt",
-            message: `De transcriptie van "${existingRecording.title}" is mislukt.`,
+            type: isPermanentFailure
+              ? "transcription_failed"
+              : "transcription_queued",
+            title: isPermanentFailure
+              ? "Transcriptie mislukt"
+              : "Transcriptie vertraagd",
+            message: isPermanentFailure
+              ? `De transcriptie van "${existingRecording.title}" is definitief mislukt na meerdere pogingen.`
+              : `De transcriptie van "${existingRecording.title}" is tijdelijk niet beschikbaar. Er wordt automatisch opnieuw geprobeerd.`,
             metadata: {
               error: error.message,
+              retryCount: retryResult?.transcriptionRetryCount ?? 0,
+              nextRetryAt:
+                retryResult?.transcriptionNextRetryAt?.toISOString() ?? null,
             },
           });
         }
@@ -444,26 +456,22 @@ export class TranscriptionService {
         language,
       });
 
-      // Call AI SDK with guardrails and retry logic
-      const completion = await connectionPool.executeWithRetry(
-        async () =>
-          connectionPool.withAnthropicAISdkClient(async (anthropic) => {
-            const guardedModel = createGuardedModel(
-              anthropic("claude-sonnet-4-6"),
-              {
-                requestType: "transcription",
-                pii: { mode: "redact" },
-                audit: { enabled: false },
-              },
-            );
+      // Call AI SDK with guardrails and resilient provider fallback
+      const { result: completion } = await resilientModelProvider.execute(
+        "claude-sonnet-4-6",
+        async (model) => {
+          const guardedModel = createGuardedModel(model, {
+            requestType: "transcription",
+            pii: { mode: "redact" },
+            audit: { enabled: false },
+          });
 
-            return generateText({
-              model: guardedModel,
-              system: promptResult.systemPrompt,
-              prompt: promptResult.userPrompt,
-            });
-          }),
-        "anthropic",
+          return generateText({
+            model: guardedModel,
+            system: promptResult.systemPrompt,
+            prompt: promptResult.userPrompt,
+          });
+        },
       );
 
       const responseContent = completion.text;
