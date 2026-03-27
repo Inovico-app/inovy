@@ -34,12 +34,12 @@ import { checkOutputGrounding } from "../../ai/middleware/output-grounding.middl
 import { getCachedProjectTemplate } from "../../cache/project-template.cache";
 import { AgentMetricsService } from "../agent-metrics.service";
 import { AgentTokenBudgetService } from "../agent-token-budget.service";
-import { connectionPool } from "../connection-pool.service";
 import { ConversationContextManager } from "../conversation-context-manager.service";
 import { ConversationIntegrityService } from "../conversation-integrity.service";
 import { KnowledgeModule } from "../knowledge";
 import { ModelProvenanceService } from "../model-provenance.service";
 import { ProjectService } from "../project.service";
+import { resilientModelProvider } from "../resilient-model-provider.service";
 import { PromptBuilder } from "../prompt-builder.service";
 import { PromptIntegrityService } from "../prompt-integrity.service";
 import {
@@ -170,10 +170,15 @@ export class ChatPipeline {
       // --- Get agent settings ---
       const agentSettings = await getCachedAgentSettings();
 
-      // --- Acquire guarded model with connection pool tracking ---
-      const tracked = connectionPool.getAnthropicAISdkClientWithTracking();
-      const anthropic = tracked.client;
-      const pooled = tracked.pooled;
+      // --- Acquire guarded model with resilient provider ---
+      const {
+        model: baseModel,
+        pooled,
+        isFallback,
+        provider: activeProvider,
+        modelId: activeModelId,
+        reportOutcome,
+      } = resilientModelProvider.getModelForStreaming(agentSettings.model);
       let streamError: Error | null = null;
       let errorMetricTracked = false;
 
@@ -182,7 +187,7 @@ export class ChatPipeline {
 
       let guardedModel;
       try {
-        guardedModel = createGuardedModel(anthropic(agentSettings.model), {
+        guardedModel = createGuardedModel(baseModel, {
           organizationId: caller.organizationId,
           userId,
           conversationId,
@@ -248,6 +253,7 @@ export class ChatPipeline {
         ],
         onError: async ({ error }) => {
           pooled.activeRequests--;
+          reportOutcome(false);
           resetToolCallCount(conversationId);
           streamError =
             error instanceof Error ? error : new Error(String(error));
@@ -275,6 +281,7 @@ export class ChatPipeline {
         },
         async onFinish({ text, usage, toolCalls, toolResults }) {
           pooled.activeRequests--;
+          reportOutcome(true);
           resetToolCallCount(conversationId);
 
           const latencyMs = Date.now() - startTime;
@@ -331,10 +338,11 @@ export class ChatPipeline {
 
           // Log model provenance for audit trail
           ModelProvenanceService.logInvocation({
-            modelId: agentSettings.model,
-            provider: "anthropic",
+            modelId: activeModelId,
+            provider: activeProvider,
             organizationId: caller.organizationId,
             conversationId,
+            isFallback,
             usage: {
               inputTokens: usage?.inputTokens,
               outputTokens: usage?.outputTokens,

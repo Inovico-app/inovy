@@ -1,7 +1,10 @@
 import type { ToolExecutionOptions } from "ai";
 import { logger } from "@/lib/logger";
 import { PIIDetectionService } from "@/server/services/pii-detection.service";
-import { circuitBreaker } from "@/server/services/circuit-breaker.service";
+import {
+  CircuitBreaker,
+  CircuitOpenError,
+} from "@/server/services/circuit-breaker.service";
 import { CriticalActionRegistry } from "@/server/services/critical-action-registry";
 
 /**
@@ -48,6 +51,29 @@ export function resetToolCallCount(conversationId: string): void {
   conversationToolCallCounts.delete(conversationId);
 }
 
+/**
+ * In-memory circuit breakers keyed by "orgId:toolName".
+ * Each tool/org combination gets its own circuit breaker instance.
+ */
+const toolCircuitBreakers = new Map<string, CircuitBreaker>();
+
+function getToolCircuitBreaker(
+  organizationId: string,
+  toolName: string,
+): CircuitBreaker {
+  const key = `${organizationId}:${toolName}`;
+  let cb = toolCircuitBreakers.get(key);
+  if (!cb) {
+    cb = new CircuitBreaker(`tool:${key}`, {
+      failureThreshold: 5,
+      failureWindowMs: 60_000,
+      resetTimeoutMs: 30_000,
+    });
+    toolCircuitBreakers.set(key, cb);
+  }
+  return cb;
+}
+
 interface SandboxOptions {
   timeoutMs?: number;
   maxOutputBytes?: number;
@@ -70,8 +96,11 @@ interface SandboxOptions {
  */
 export function sandboxExecute<TInput, TOutput>(
   executeFn: (input: TInput, options: ToolExecutionOptions) => Promise<TOutput>,
-  options: SandboxOptions = {}
-): (input: TInput, execOptions: ToolExecutionOptions) => Promise<TOutput | { error: string }> {
+  options: SandboxOptions = {},
+): (
+  input: TInput,
+  execOptions: ToolExecutionOptions,
+) => Promise<TOutput | { error: string }> {
   const {
     timeoutMs = DEFAULT_TIMEOUT_MS,
     maxOutputBytes = MAX_OUTPUT_BYTES,
@@ -82,15 +111,18 @@ export function sandboxExecute<TInput, TOutput>(
     organizationId,
   } = options;
 
-  return async (input: TInput, execOptions: ToolExecutionOptions): Promise<TOutput | { error: string }> => {
+  return async (
+    input: TInput,
+    execOptions: ToolExecutionOptions,
+  ): Promise<TOutput | { error: string }> => {
     const startTime = Date.now();
 
     // 1. Circuit breaker check — skip execution if tool is in failure state
     // organizationId is always provided by createChatTools via ToolContext;
     // the guard exists because SandboxOptions types it as optional for flexibility.
     if (organizationId) {
-      const allowed = await circuitBreaker.canExecute(organizationId, toolName);
-      if (!allowed) {
+      const cb = getToolCircuitBreaker(organizationId, toolName);
+      if (cb.getState() === "open") {
         logger.warn("Tool blocked by circuit breaker", {
           component: "ToolSandbox",
           toolName,
@@ -134,32 +166,42 @@ export function sandboxExecute<TInput, TOutput>(
       }
     }
 
-    // 4. Execute with timeout
+    // 4. Execute with timeout, wrapped by circuit breaker for failure tracking
     let result: TOutput;
-    try {
-      result = await Promise.race([
+    const timedExecution = () =>
+      Promise.race([
         executeFn(input, execOptions),
         new Promise<never>((_, reject) =>
           setTimeout(
-            () => reject(new Error(`Tool "${toolName}" timed out after ${timeoutMs}ms`)),
-            timeoutMs
-          )
+            () =>
+              reject(
+                new Error(`Tool "${toolName}" timed out after ${timeoutMs}ms`),
+              ),
+            timeoutMs,
+          ),
         ),
       ]);
 
-      // Record success for circuit breaker
+    try {
       if (organizationId) {
-        await circuitBreaker.recordSuccess(organizationId, toolName).catch(() => {});
+        const cb = getToolCircuitBreaker(organizationId, toolName);
+        result = await cb.execute(timedExecution);
+      } else {
+        result = await timedExecution();
       }
     } catch (error) {
       const latencyMs = Date.now() - startTime;
 
-      // Record failure for circuit breaker
-      if (organizationId) {
-        await circuitBreaker.recordFailure(organizationId, toolName).catch(() => {});
+      // CircuitOpenError is already handled by the state check above,
+      // but guard against race conditions
+      if (error instanceof CircuitOpenError) {
+        return {
+          error: `Tool "${toolName}" is temporarily unavailable due to repeated failures. It will recover automatically.`,
+        } as TOutput | { error: string };
       }
 
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const isTimeout = errorMessage.includes("timed out after");
 
       logger.error("Tool execution failed in sandbox", {
@@ -172,7 +214,9 @@ export function sandboxExecute<TInput, TOutput>(
         error: errorMessage,
       });
       return {
-        error: isTimeout ? errorMessage : `Tool "${toolName}" failed to execute.`,
+        error: isTimeout
+          ? errorMessage
+          : `Tool "${toolName}" failed to execute.`,
       } as TOutput | { error: string };
     }
 
@@ -188,7 +232,9 @@ export function sandboxExecute<TInput, TOutput>(
         toolName,
         latencyMs,
       });
-      return { error: "Tool returned non-serializable output." } as TOutput | { error: string };
+      return { error: "Tool returned non-serializable output." } as
+        | TOutput
+        | { error: string };
     }
 
     const originalBytes = Buffer.byteLength(serialized, "utf8");
@@ -208,7 +254,10 @@ export function sandboxExecute<TInput, TOutput>(
 
     // 6. PII redaction on output
     if (redactPII) {
-      const detections = PIIDetectionService.detectPII(serialized, PII_MIN_CONFIDENCE);
+      const detections = PIIDetectionService.detectPII(
+        serialized,
+        PII_MIN_CONFIDENCE,
+      );
       if (detections.length > 0) {
         // Apply redactions in reverse order to preserve indices
         const chars = serialized.split("");
@@ -217,7 +266,7 @@ export function sandboxExecute<TInput, TOutput>(
           chars.splice(
             detection.startIndex,
             detection.endIndex - detection.startIndex,
-            replacement
+            replacement,
           );
         }
         serialized = chars.join("");
@@ -235,9 +284,13 @@ export function sandboxExecute<TInput, TOutput>(
           result = JSON.parse(serialized) as TOutput;
         } catch {
           // If PII redaction broke JSON, return the redacted text as a message
-          return { error: "Tool output contained sensitive data that was redacted." } as TOutput | {
-            error: string;
-          };
+          return {
+            error: "Tool output contained sensitive data that was redacted.",
+          } as
+            | TOutput
+            | {
+                error: string;
+              };
         }
       }
     }

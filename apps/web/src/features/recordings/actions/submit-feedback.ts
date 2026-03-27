@@ -5,6 +5,7 @@ import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { FeedbackQueries } from "@/server/data-access/feedback.queries";
+import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { submitFeedbackSchema } from "@/server/validation/feedback/submit-feedback";
 
 export const submitFeedbackAction = authorizedActionClient
@@ -25,6 +26,14 @@ export const submitFeedbackAction = authorizedActionClient
       throw ActionErrors.unauthenticated(
         "User and organization context required",
       );
+    }
+
+    const recording = await RecordingsQueries.selectRecordingById(
+      parsedInput.recordingId,
+    );
+
+    if (!recording || recording.organizationId !== organizationId) {
+      throw ActionErrors.forbidden("Recording not found or not accessible");
     }
 
     logger.info("Submitting feedback", {

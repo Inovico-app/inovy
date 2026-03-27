@@ -26,6 +26,7 @@ export interface FeedbackItem {
   comment: string | null;
   createdAt: Date;
   recordingTitle: string | null;
+  recordingProjectId: string | null;
 }
 
 interface FeedbackTableProps {
@@ -118,9 +119,11 @@ export function FeedbackTable({ feedbackItems }: FeedbackTableProps) {
                   {format(new Date(item.createdAt), "MMM d, yyyy")}
                 </TableCell>
                 <TableCell>
-                  {item.recordingTitle ? (
+                  {item.recordingTitle && item.recordingProjectId ? (
                     <Link
-                      href={`/recordings/${item.recordingId}` as Route}
+                      href={
+                        `/projects/${item.recordingProjectId}/recordings/${item.recordingId}` as Route
+                      }
                       className="text-sm font-medium hover:underline"
                     >
                       {item.recordingTitle}
@@ -130,8 +133,8 @@ export function FeedbackTable({ feedbackItems }: FeedbackTableProps) {
                   )}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="secondary" className="capitalize">
-                    {item.type}
+                  <Badge variant="secondary">
+                    {t(item.type as "summary" | "transcription" | "general")}
                   </Badge>
                 </TableCell>
                 <TableCell>

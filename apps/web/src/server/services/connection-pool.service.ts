@@ -10,8 +10,9 @@ import OpenAI from "openai";
  * Manages pools of OpenAI and Anthropic API clients with:
  * - Round-robin load balancing
  * - Automatic retry with exponential backoff
- * - Health checks for pooled connections
  * - Metrics tracking (active connections, pool utilization)
+ *
+ * Note: Provider-level failure detection is handled by the circuit breaker service.
  */
 
 // Retry configuration for connection pool operations
@@ -20,12 +21,9 @@ import OpenAI from "openai";
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff: 1s, 2s, 4s
 const POOL_SIZE = 5;
-const HEALTH_CHECK_INTERVAL = 60000; // 60 seconds
 
 interface PooledClient<T> {
   client: T;
-  isHealthy: boolean;
-  lastHealthCheck: number;
   activeRequests: number;
 }
 
@@ -41,7 +39,6 @@ interface AnthropicClientPair {
 
 interface PoolMetrics {
   totalClients: number;
-  healthyClients: number;
   activeConnections: number;
   poolUtilization: number; // Percentage
 }
@@ -52,11 +49,9 @@ export class ConnectionPoolService {
   private anthropicPool: PooledClient<AnthropicClientPair>[] = [];
   private currentOpenAI = 0;
   private currentAnthropic = 0;
-  private healthCheckInterval: NodeJS.Timeout | null = null;
 
   private constructor() {
     this.initializePools();
-    this.startHealthChecks();
   }
 
   /**
@@ -103,8 +98,6 @@ export class ConnectionPoolService {
             aiSdkClient,
             rawClient,
           },
-          isHealthy: true,
-          lastHealthCheck: Date.now(),
           activeRequests: 0,
         });
       }
@@ -124,8 +117,6 @@ export class ConnectionPoolService {
             aiSdkClient,
             rawClient,
           },
-          isHealthy: true,
-          lastHealthCheck: Date.now(),
           activeRequests: 0,
         });
       }
@@ -139,34 +130,18 @@ export class ConnectionPoolService {
   }
 
   /**
-   * Get next healthy OpenAI client from pool (round-robin)
-   * Internal helper for selecting clients
+   * Get next OpenAI client from pool (round-robin)
    */
-  private getNextHealthyOpenAIClient(): PooledClient<OpenAIClientPair> {
+  private getNextOpenAIClient(): PooledClient<OpenAIClientPair> {
     if (this.openaiPool.length === 0) {
       throw new Error(
         "OpenAI pool is empty. Check OPENAI_API_KEY configuration.",
       );
     }
 
-    // Find next healthy client using round-robin
-    let attempts = 0;
-    while (attempts < this.openaiPool.length) {
-      const client = this.openaiPool[this.currentOpenAI];
-      this.currentOpenAI = (this.currentOpenAI + 1) % this.openaiPool.length;
-
-      if (client.isHealthy) {
-        return client;
-      }
-
-      attempts++;
-    }
-
-    // If no healthy client found, return first client anyway (will retry)
-    logger.warn("No healthy OpenAI clients found, using first client", {
-      component: "ConnectionPoolService",
-    });
-    return this.openaiPool[0];
+    const client = this.openaiPool[this.currentOpenAI];
+    this.currentOpenAI = (this.currentOpenAI + 1) % this.openaiPool.length;
+    return client;
   }
 
   /**
@@ -175,7 +150,7 @@ export class ConnectionPoolService {
    * @deprecated Use withOpenAIClient instead to track active requests
    */
   getOpenAIClient(): ReturnType<typeof createOpenAI> {
-    const pooled = this.getNextHealthyOpenAIClient();
+    const pooled = this.getNextOpenAIClient();
     return pooled.client.aiSdkClient;
   }
 
@@ -186,7 +161,7 @@ export class ConnectionPoolService {
   async withOpenAIClient<T>(
     fn: (client: ReturnType<typeof createOpenAI>) => Promise<T>,
   ): Promise<T> {
-    const pooled = this.getNextHealthyOpenAIClient();
+    const pooled = this.getNextOpenAIClient();
     pooled.activeRequests++;
     try {
       return await fn(pooled.client.aiSdkClient);
@@ -204,7 +179,7 @@ export class ConnectionPoolService {
     client: ReturnType<typeof createOpenAI>;
     pooled: PooledClient<OpenAIClientPair>;
   } {
-    const pooled = this.getNextHealthyOpenAIClient();
+    const pooled = this.getNextOpenAIClient();
     pooled.activeRequests++;
     return {
       client: pooled.client.aiSdkClient,
@@ -217,7 +192,7 @@ export class ConnectionPoolService {
    * Use this for embeddings and direct API calls
    */
   getRawOpenAIClient(): OpenAI {
-    const pooled = this.getNextHealthyOpenAIClient();
+    const pooled = this.getNextOpenAIClient();
     return pooled.client.rawClient;
   }
 
@@ -226,7 +201,7 @@ export class ConnectionPoolService {
    * This method properly tracks activeRequests for metrics
    */
   async withRawOpenAIClient<T>(fn: (client: OpenAI) => Promise<T>): Promise<T> {
-    const pooled = this.getNextHealthyOpenAIClient();
+    const pooled = this.getNextOpenAIClient();
     pooled.activeRequests++;
     try {
       return await fn(pooled.client.rawClient);
@@ -236,35 +211,19 @@ export class ConnectionPoolService {
   }
 
   /**
-   * Get next healthy Anthropic client from pool (round-robin)
-   * Internal helper for selecting clients
+   * Get next Anthropic client from pool (round-robin)
    */
-  private getNextHealthyAnthropicClient(): PooledClient<AnthropicClientPair> {
+  private getNextAnthropicClient(): PooledClient<AnthropicClientPair> {
     if (this.anthropicPool.length === 0) {
       throw new Error(
         "Anthropic pool is empty. Check ANTHROPIC_API_KEY configuration.",
       );
     }
 
-    // Find next healthy client using round-robin
-    let attempts = 0;
-    while (attempts < this.anthropicPool.length) {
-      const client = this.anthropicPool[this.currentAnthropic];
-      this.currentAnthropic =
-        (this.currentAnthropic + 1) % this.anthropicPool.length;
-
-      if (client.isHealthy) {
-        return client;
-      }
-
-      attempts++;
-    }
-
-    // If no healthy client found, return first client anyway (will retry)
-    logger.warn("No healthy Anthropic clients found, using first client", {
-      component: "ConnectionPoolService",
-    });
-    return this.anthropicPool[0];
+    const client = this.anthropicPool[this.currentAnthropic];
+    this.currentAnthropic =
+      (this.currentAnthropic + 1) % this.anthropicPool.length;
+    return client;
   }
 
   /**
@@ -272,7 +231,7 @@ export class ConnectionPoolService {
    * @deprecated Use withAnthropicRawClient instead to track active requests
    */
   getAnthropicClient(): Anthropic {
-    const pooled = this.getNextHealthyAnthropicClient();
+    const pooled = this.getNextAnthropicClient();
     return pooled.client.rawClient;
   }
 
@@ -282,7 +241,7 @@ export class ConnectionPoolService {
   async withAnthropicClient<T>(
     fn: (client: Anthropic) => Promise<T>,
   ): Promise<T> {
-    const pooled = this.getNextHealthyAnthropicClient();
+    const pooled = this.getNextAnthropicClient();
     pooled.activeRequests++;
     try {
       return await fn(pooled.client.rawClient);
@@ -297,7 +256,7 @@ export class ConnectionPoolService {
    * @deprecated Use withAnthropicAISdkClient instead to track active requests
    */
   getAnthropicAISdkClient(): ReturnType<typeof createAnthropic> {
-    const pooled = this.getNextHealthyAnthropicClient();
+    const pooled = this.getNextAnthropicClient();
     return pooled.client.aiSdkClient;
   }
 
@@ -308,7 +267,7 @@ export class ConnectionPoolService {
   async withAnthropicAISdkClient<T>(
     fn: (client: ReturnType<typeof createAnthropic>) => Promise<T>,
   ): Promise<T> {
-    const pooled = this.getNextHealthyAnthropicClient();
+    const pooled = this.getNextAnthropicClient();
     pooled.activeRequests++;
     try {
       return await fn(pooled.client.aiSdkClient);
@@ -325,7 +284,7 @@ export class ConnectionPoolService {
     client: ReturnType<typeof createAnthropic>;
     pooled: PooledClient<AnthropicClientPair>;
   } {
-    const pooled = this.getNextHealthyAnthropicClient();
+    const pooled = this.getNextAnthropicClient();
     pooled.activeRequests++;
     return {
       client: pooled.client.aiSdkClient,
@@ -365,11 +324,6 @@ export class ConnectionPoolService {
 
         await new Promise((resolve) => setTimeout(resolve, delay));
         return this.executeWithRetry(operation, serviceName, retryCount + 1);
-      }
-
-      // Mark client as unhealthy if error persists
-      if (retryCount >= MAX_RETRIES) {
-        this.markClientUnhealthy(serviceName, error);
       }
 
       throw error;
@@ -428,121 +382,9 @@ export class ConnectionPoolService {
   }
 
   /**
-   * Mark a client as unhealthy
-   * Note: Currently marks the first client as unhealthy since we don't track
-   * which specific client was used in executeWithRetry. For per-client tracking,
-   * use withOpenAIClient/withRawOpenAIClient/withAnthropicClient wrappers instead.
-   */
-  private markClientUnhealthy(
-    serviceName: "openai" | "anthropic",
-    error: unknown,
-  ): void {
-    const pool =
-      serviceName === "openai" ? this.openaiPool : this.anthropicPool;
-
-    // Mark all clients as potentially unhealthy if we've exhausted retries
-    // In a more sophisticated implementation, we'd track which specific client failed
-    const err = error instanceof Error ? error : new Error(String(error));
-    logger.error(
-      `${serviceName} client marked as unhealthy`,
-      {
-        component: "ConnectionPoolService",
-        serviceName,
-      },
-      err,
-    );
-
-    // Mark first client as unhealthy (simplified - in production, track per-client)
-    if (pool.length > 0) {
-      pool[0].isHealthy = false;
-      pool[0].lastHealthCheck = Date.now();
-    }
-  }
-
-  /**
-   * Perform health check on a client
-   */
-  private async checkClientHealth<T>(
-    client: PooledClient<T>,
-    serviceName: "openai" | "anthropic",
-  ): Promise<boolean> {
-    try {
-      // For OpenAI, we can't easily test without making an API call
-      // For Anthropic, same issue
-      // In production, you might want to implement a lightweight health check
-      // For now, we'll mark clients as healthy if they haven't failed recently
-      const timeSinceLastCheck = Date.now() - client.lastHealthCheck;
-
-      // If client was marked unhealthy more than 5 minutes ago, try to recover
-      if (!client.isHealthy && timeSinceLastCheck > 300000) {
-        logger.info(`Attempting to recover ${serviceName} client`, {
-          component: "ConnectionPoolService",
-          serviceName,
-        });
-        client.isHealthy = true;
-      }
-
-      client.lastHealthCheck = Date.now();
-      return client.isHealthy;
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      logger.warn(
-        `Health check failed for ${serviceName} client`,
-        {
-          component: "ConnectionPoolService",
-          serviceName,
-        },
-        err,
-      );
-      return false;
-    }
-  }
-
-  /**
-   * Start periodic health checks
-   */
-  private startHealthChecks(): void {
-    this.healthCheckInterval = setInterval(() => {
-      this.performHealthChecks().catch((error) => {
-        const err = error instanceof Error ? error : new Error(String(error));
-        logger.error(
-          "Error during health checks",
-          {
-            component: "ConnectionPoolService",
-          },
-          err,
-        );
-      });
-    }, HEALTH_CHECK_INTERVAL);
-  }
-
-  /**
-   * Perform health checks on all clients
-   */
-  private async performHealthChecks(): Promise<void> {
-    const openaiPromises = this.openaiPool.map((client) =>
-      this.checkClientHealth(client, "openai"),
-    );
-    const anthropicPromises = this.anthropicPool.map((client) =>
-      this.checkClientHealth(client, "anthropic"),
-    );
-
-    await Promise.all([...openaiPromises, ...anthropicPromises]);
-
-    logger.debug("Health checks completed", {
-      component: "ConnectionPoolService",
-      openaiHealthy: this.openaiPool.filter((c) => c.isHealthy).length,
-      openaiTotal: this.openaiPool.length,
-      anthropicHealthy: this.anthropicPool.filter((c) => c.isHealthy).length,
-      anthropicTotal: this.anthropicPool.length,
-    });
-  }
-
-  /**
    * Get metrics for OpenAI pool
    */
   getOpenAIMetrics(): PoolMetrics {
-    const healthyClients = this.openaiPool.filter((c) => c.isHealthy).length;
     const activeConnections = this.openaiPool.reduce(
       (sum, c) => sum + c.activeRequests,
       0,
@@ -554,7 +396,6 @@ export class ConnectionPoolService {
 
     return {
       totalClients: this.openaiPool.length,
-      healthyClients,
       activeConnections,
       poolUtilization: Math.min(100, Math.max(0, poolUtilization)),
     };
@@ -564,7 +405,6 @@ export class ConnectionPoolService {
    * Get metrics for Anthropic pool
    */
   getAnthropicMetrics(): PoolMetrics {
-    const healthyClients = this.anthropicPool.filter((c) => c.isHealthy).length;
     const activeConnections = this.anthropicPool.reduce(
       (sum, c) => sum + c.activeRequests,
       0,
@@ -576,7 +416,6 @@ export class ConnectionPoolService {
 
     return {
       totalClients: this.anthropicPool.length,
-      healthyClients,
       activeConnections,
       poolUtilization: Math.min(100, Math.max(0, poolUtilization)),
     };
@@ -599,10 +438,10 @@ export class ConnectionPoolService {
    * Cleanup resources
    */
   destroy(): void {
-    if (this.healthCheckInterval) {
-      clearInterval(this.healthCheckInterval);
-      this.healthCheckInterval = null;
-    }
+    // Reset pools
+    this.openaiPool = [];
+    this.anthropicPool = [];
+    ConnectionPoolService.instance = null;
   }
 }
 

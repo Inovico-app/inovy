@@ -10,7 +10,7 @@ import { type Meeting } from "@/server/db/schema/meetings";
 import { generateObject } from "ai";
 import { err, ok } from "neverthrow";
 import { z } from "zod";
-import { connectionPool } from "./connection-pool.service";
+import { resilientModelProvider } from "./resilient-model-provider.service";
 import { RecallApiService } from "./recall-api.service";
 
 const agendaCheckResultSchema = z.object({
@@ -152,13 +152,15 @@ export class AgendaTrackerService {
         )
         .join("\n");
 
-      const { object } = await connectionPool.executeWithRetry(
-        () =>
-          connectionPool.withAnthropicAISdkClient(async (anthropic) =>
-            generateObject({
-              model: anthropic("claude-sonnet-4-6"),
-              schema: agendaCheckResultSchema,
-              prompt: `You are analyzing a live meeting transcript to determine which agenda items have been discussed and covered.
+      const {
+        result: { object },
+      } = await resilientModelProvider.execute(
+        "claude-sonnet-4-6",
+        async (model) =>
+          generateObject({
+            model,
+            schema: agendaCheckResultSchema,
+            prompt: `You are analyzing a live meeting transcript to determine which agenda items have been discussed and covered.
 
 Agenda items to check:
 ${itemsList}
@@ -172,9 +174,7 @@ For each agenda item, determine:
 - keyPoints: bullet points of key decisions/takeaways (empty array if not covered)
 
 Use the exact agendaItemId from the list above. Only mark items as covered if there was meaningful discussion.`,
-            }),
-          ),
-        "anthropic",
+          }),
       );
 
       return ok(object);

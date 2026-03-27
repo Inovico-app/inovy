@@ -8,8 +8,8 @@ import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
 import type { Utterance } from "@/server/dto/ai-insight.dto";
 import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { parseAIJson } from "@/server/ai/parse-ai-json";
-import { connectionPool } from "@/server/services/connection-pool.service";
 import { PromptBuilder } from "@/server/services/prompt-builder.service";
+import { resilientModelProvider } from "@/server/services/resilient-model-provider.service";
 import { generateText } from "ai";
 import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../ai/middleware";
@@ -108,26 +108,22 @@ export class SummaryService {
         language: resolvedLanguage,
       });
 
-      // Call AI SDK with guardrails and retry logic
-      const completion = await connectionPool.executeWithRetry(
-        async () =>
-          connectionPool.withAnthropicAISdkClient(async (anthropic) => {
-            const guardedModel = createGuardedModel(
-              anthropic("claude-sonnet-4-6"),
-              {
-                requestType: "summary",
-                pii: { mode: "redact" },
-                audit: { enabled: false },
-              },
-            );
+      // Call AI SDK with guardrails and resilient provider fallback
+      const { result: completion } = await resilientModelProvider.execute(
+        "claude-sonnet-4-6",
+        async (model) => {
+          const guardedModel = createGuardedModel(model, {
+            requestType: "summary",
+            pii: { mode: "redact" },
+            audit: { enabled: false },
+          });
 
-            return generateText({
-              model: guardedModel,
-              system: promptResult.systemPrompt,
-              prompt: promptResult.userPrompt,
-            });
-          }),
-        "anthropic",
+          return generateText({
+            model: guardedModel,
+            system: promptResult.systemPrompt,
+            prompt: promptResult.userPrompt,
+          });
+        },
       );
 
       const responseContent = completion.text;

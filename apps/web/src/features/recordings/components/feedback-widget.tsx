@@ -108,7 +108,7 @@ export function FeedbackWidget({
 
         <div
           role="group"
-          aria-label="Feedback type"
+          aria-label={t("feedbackType")}
           className="flex items-center gap-1"
         >
           {FEEDBACK_TYPES.map((type) => (

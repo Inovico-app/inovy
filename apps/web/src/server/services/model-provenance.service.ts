@@ -114,6 +114,8 @@ export interface ProvenanceRecord {
   organizationId: string;
   /** Conversation or request identifier */
   conversationId?: string;
+  /** Whether this invocation used a fallback provider */
+  isFallback?: boolean;
   /** Token counts from the response (matches Vercel AI SDK naming) */
   usage?: {
     inputTokens?: number;
@@ -147,6 +149,7 @@ export class ModelProvenanceService {
       provider: record.provider,
       organizationId: record.organizationId,
       conversationId: record.conversationId,
+      isFallback: record.isFallback ?? false,
       inputTokens: record.usage?.inputTokens,
       outputTokens: record.usage?.outputTokens,
       totalTokens: record.usage?.totalTokens,
