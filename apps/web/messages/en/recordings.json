@@ -52,7 +52,15 @@
     "decisionsCount": "{count} decisions",
     "changeDescription": "Change Description (Optional)",
     "changeDescriptionPlaceholder": "Describe what you changed...",
-    "confidence": "{value}% confidence"
+    "confidence": "{value}% confidence",
+    "copyOverview": "Copy overview",
+    "copyTopics": "Copy key topics",
+    "copyDecisions": "Copy decisions",
+    "copySpeakerContributions": "Copy speaker contributions",
+    "copyImportantQuotes": "Copy important quotes",
+    "copyAll": "Copy full summary",
+    "copied": "Copied to clipboard",
+    "copyFailed": "Failed to copy"
   },
   "tasks": "Tasks",
   "processing": "Processing...",

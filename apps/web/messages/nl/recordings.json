@@ -52,7 +52,15 @@
     "decisionsCount": "{count} besluiten",
     "changeDescription": "Beschrijving van wijzigingen (optioneel)",
     "changeDescriptionPlaceholder": "Beschrijf wat je hebt gewijzigd...",
-    "confidence": "{value}% vertrouwen"
+    "confidence": "{value}% vertrouwen",
+    "copyOverview": "Overzicht kopiëren",
+    "copyTopics": "Onderwerpen kopiëren",
+    "copyDecisions": "Besluiten kopiëren",
+    "copySpeakerContributions": "Bijdragen kopiëren",
+    "copyImportantQuotes": "Citaten kopiëren",
+    "copyAll": "Volledige samenvatting kopiëren",
+    "copied": "Gekopieerd naar klembord",
+    "copyFailed": "Kopiëren mislukt"
   },
   "tasks": "Taken",
   "processing": "Verwerken...",
