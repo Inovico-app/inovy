@@ -107,6 +107,7 @@ function makeRequest(overrides: Record<string, unknown> = {}) {
     userId: USER_ID,
     organizationId: ORG_ID,
     status: "pending" as const,
+    requestedAt: new Date(),
     scheduledDeletionAt: new Date(),
     processedAt: null,
     cancelledBy: null,

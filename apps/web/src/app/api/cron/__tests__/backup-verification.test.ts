@@ -184,9 +184,13 @@ describe("Backup Verification", () => {
     });
 
     it("returns fail when any check fails", () => {
-      const checks = [
-        { name: "neon-postgresql", status: "fail" as const, latencyMs: 5000 },
-        { name: "azure-blob-storage", status: "pass" as const, latencyMs: 45 },
+      const checks: Array<{
+        name: string;
+        status: "pass" | "fail" | "skip";
+        latencyMs: number;
+      }> = [
+        { name: "neon-postgresql", status: "fail", latencyMs: 5000 },
+        { name: "azure-blob-storage", status: "pass", latencyMs: 45 },
       ];
 
       const overallStatus = checks.every(
@@ -199,9 +203,13 @@ describe("Backup Verification", () => {
     });
 
     it("returns fail when all checks fail", () => {
-      const checks = [
-        { name: "neon-postgresql", status: "fail" as const, latencyMs: 5000 },
-        { name: "azure-blob-storage", status: "fail" as const, latencyMs: 200 },
+      const checks: Array<{
+        name: string;
+        status: "pass" | "fail" | "skip";
+        latencyMs: number;
+      }> = [
+        { name: "neon-postgresql", status: "fail", latencyMs: 5000 },
+        { name: "azure-blob-storage", status: "fail", latencyMs: 200 },
       ];
 
       const overallStatus = checks.every(
