@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { logger } from "@/lib/logger";
 import type { WorkflowResult as SerializableResult } from "@/workflows/lib/workflow-result";
 import { failure, success } from "@/workflows/lib/workflow-result";
@@ -213,6 +214,7 @@ export async function convertRecordingIntoAiInsights(
       status: "completed",
     });
   } catch (error) {
+    const duration = Date.now() - startTime;
     const errorMsg =
       error instanceof Error ? error.message : "Unknown workflow error";
 
@@ -220,6 +222,21 @@ export async function convertRecordingIntoAiInsights(
       component: "ConvertRecordingWorkflow",
       recordingId,
       error,
+    });
+
+    Sentry.withScope((scope) => {
+      scope.setTags({ component: "workflow", workflow: "convert-recording" });
+      scope.setContext("recording", {
+        recording_id: recordingId,
+        is_reprocessing: isReprocessing,
+        recall_bot_id: recallBotId,
+      });
+      scope.setContext("workflow", {
+        status: "failed",
+        total_duration_ms: duration,
+        error_message: errorMsg,
+      });
+      Sentry.captureException(error);
     });
 
     await updateWorkflowStatus(recordingId, "failed", errorMsg);
