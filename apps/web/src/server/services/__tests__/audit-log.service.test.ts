@@ -60,11 +60,12 @@ describe("Audit Log Hash Chain", () => {
 
   describe("createAuditLog — hash chain linking", () => {
     it("sets previousHash to genesis for the first entry in an org", async () => {
-      mockedQueries.getLatestLog.mockResolvedValue(null);
-      mockedQueries.insert.mockImplementation(async (entry) => ({
+      // insertWithChain resolves previousHash internally — simulate genesis case
+      mockedQueries.insertWithChain.mockImplementation(async (entry) => ({
         ...makeAuditLogEntry(),
         ...entry,
         id: "new-log-1",
+        previousHash: "genesis",
       }));
 
       const result = await AuditLogService.createAuditLog({
@@ -78,20 +79,19 @@ describe("Audit Log Hash Chain", () => {
       });
 
       expect(result.isOk()).toBe(true);
-      const insertCall = mockedQueries.insert.mock.calls[0]?.[0];
-      expect(insertCall?.previousHash).toBe("genesis");
+      if (result.isOk()) {
+        expect(result.value.previousHash).toBe("genesis");
+      }
+      expect(mockedQueries.insertWithChain).toHaveBeenCalledOnce();
     });
 
     it("chains previousHash to the last entry hash", async () => {
-      const lastEntry = makeAuditLogEntry({
-        id: "last-log",
-        hash: "abc123def456",
-      });
-      mockedQueries.getLatestLog.mockResolvedValue(lastEntry);
-      mockedQueries.insert.mockImplementation(async (entry) => ({
+      // insertWithChain resolves previousHash internally — simulate chaining
+      mockedQueries.insertWithChain.mockImplementation(async (entry) => ({
         ...makeAuditLogEntry(),
         ...entry,
         id: "new-log-2",
+        previousHash: "abc123def456",
       }));
 
       const result = await AuditLogService.createAuditLog({
@@ -105,8 +105,33 @@ describe("Audit Log Hash Chain", () => {
       });
 
       expect(result.isOk()).toBe(true);
-      const insertCall = mockedQueries.insert.mock.calls[0]?.[0];
-      expect(insertCall?.previousHash).toBe("abc123def456");
+      if (result.isOk()) {
+        expect(result.value.previousHash).toBe("abc123def456");
+      }
+      expect(mockedQueries.insertWithChain).toHaveBeenCalledOnce();
+    });
+
+    it("passes hash and createdAt to insertWithChain", async () => {
+      mockedQueries.insertWithChain.mockImplementation(async (entry) => ({
+        ...makeAuditLogEntry(),
+        ...entry,
+        id: "new-log-3",
+        previousHash: "genesis",
+      }));
+
+      await AuditLogService.createAuditLog({
+        eventType: "test.event",
+        resourceType: "recording",
+        resourceId: "rec-3",
+        userId: "user-1",
+        organizationId: "org-1",
+        action: "create",
+        category: "mutation",
+      });
+
+      const call = mockedQueries.insertWithChain.mock.calls[0]?.[0];
+      expect(call?.hash).toMatch(/^[a-f0-9]{64}$/);
+      expect(call?.createdAt).toBeInstanceOf(Date);
     });
   });
 });
