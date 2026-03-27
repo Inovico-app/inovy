@@ -30,7 +30,7 @@ export function CopyTranscriptionButton({
       console.error("Failed to copy transcription:", error);
       toast.error(t("transcription.copyFailed"));
     }
-  }, [transcriptionText]);
+  }, [transcriptionText, t]);
 
   return (
     <Button

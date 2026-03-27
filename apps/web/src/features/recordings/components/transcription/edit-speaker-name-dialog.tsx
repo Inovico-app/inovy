@@ -63,7 +63,7 @@ export function EditSpeakerNameDialog({
         }),
       ),
     }),
-    [users],
+    [users, t],
   );
 
   // Auto-fill name when user is selected (only if name field is empty)
