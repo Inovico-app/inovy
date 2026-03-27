@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/tooltip";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { type MouseEvent, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { useCopyToClipboard } from "../hooks/use-copy-to-clipboard";
 
 interface CopyBlockButtonProps {
@@ -16,6 +17,7 @@ interface CopyBlockButtonProps {
 }
 
 export function CopyBlockButton({ text, label }: CopyBlockButtonProps) {
+  const t = useTranslations("recordings");
   const { isCopied, copyToClipboard } = useCopyToClipboard();
 
   const handleClick = useCallback(
@@ -42,7 +44,7 @@ export function CopyBlockButton({ text, label }: CopyBlockButtonProps) {
         }
       >
         <span aria-live="polite" className="sr-only">
-          {isCopied ? label.replace("Copy", "Copied") : label}
+          {isCopied ? t("summary.copied") : label}
         </span>
         <Icon className="size-3" />
       </TooltipTrigger>

@@ -11,8 +11,13 @@ import {
 import { KnowledgeUsageIndicator } from "@/features/knowledge-base/components/knowledge-usage-indicator";
 import type { SummaryResult } from "@/server/cache/summary.cache";
 import { FeedbackWidget } from "./feedback-widget";
-import { CheckCircle2Icon, ChevronDown, Copy } from "lucide-react";
-import { useState } from "react";
+import {
+  CheckCircle2Icon,
+  CheckIcon,
+  ChevronDown,
+  CopyIcon,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import { useJumpToTimestamp } from "../hooks/use-jump-to-timestamp";
 import { useCopyToClipboard } from "../hooks/use-copy-to-clipboard";
 import { EditSummaryDialog } from "./edit-summary-dialog";
@@ -51,7 +56,31 @@ export function EnhancedSummarySection({
   const [quotesOpen, setQuotesOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(true);
   const jumpToTimestamp = useJumpToTimestamp();
-  const { copyToClipboard: copyAll } = useCopyToClipboard();
+  const { isCopied: isAllCopied, copyToClipboard: copyAll } =
+    useCopyToClipboard();
+
+  const formattedBlocks = useMemo(
+    () => ({
+      overview: formatBlockAsMarkdown(
+        "overview",
+        summary?.content.overview ?? "",
+      ),
+      topics: formatBlockAsMarkdown("topics", summary?.content.topics ?? []),
+      decisions: formatBlockAsMarkdown(
+        "decisions",
+        summary?.content.decisions ?? [],
+      ),
+      speakerContributions: formatBlockAsMarkdown(
+        "speakerContributions",
+        summary?.content.speakerContributions ?? [],
+      ),
+      importantQuotes: formatBlockAsMarkdown(
+        "importantQuotes",
+        summary?.content.importantQuotes ?? [],
+      ),
+    }),
+    [summary?.content],
+  );
 
   if (!summary) {
     return (
@@ -95,7 +124,11 @@ export function EnhancedSummarySection({
               }
               aria-label={t("summary.copyAll")}
             >
-              <Copy className="size-3.5" />
+              {isAllCopied ? (
+                <CheckIcon className="size-3.5" />
+              ) : (
+                <CopyIcon className="size-3.5" />
+              )}
               {t("summary.copyAll")}
             </Button>
             <SummaryVersionHistoryDialog recordingId={recordingId} />
@@ -116,10 +149,7 @@ export function EnhancedSummarySection({
               </h3>
               <div className="flex items-center gap-1">
                 <CopyBlockButton
-                  text={formatBlockAsMarkdown(
-                    "overview",
-                    summary.content.overview,
-                  )}
+                  text={formattedBlocks.overview}
                   label={t("summary.copyOverview")}
                 />
                 <ChevronDown
@@ -146,7 +176,7 @@ export function EnhancedSummarySection({
               </h3>
               <div className="flex items-center gap-1">
                 <CopyBlockButton
-                  text={formatBlockAsMarkdown("topics", summary.content.topics)}
+                  text={formattedBlocks.topics}
                   label={t("summary.copyTopics")}
                 />
                 <ChevronDown
@@ -181,10 +211,7 @@ export function EnhancedSummarySection({
               </h3>
               <div className="flex items-center gap-1">
                 <CopyBlockButton
-                  text={formatBlockAsMarkdown(
-                    "decisions",
-                    summary.content.decisions,
-                  )}
+                  text={formattedBlocks.decisions}
                   label={t("summary.copyDecisions")}
                 />
                 <ChevronDown
@@ -224,10 +251,7 @@ export function EnhancedSummarySection({
                 </h3>
                 <div className="flex items-center gap-1">
                   <CopyBlockButton
-                    text={formatBlockAsMarkdown(
-                      "speakerContributions",
-                      summary.content.speakerContributions,
-                    )}
+                    text={formattedBlocks.speakerContributions}
                     label={t("summary.copySpeakerContributions")}
                   />
                   <ChevronDown
@@ -271,10 +295,7 @@ export function EnhancedSummarySection({
                 </h3>
                 <div className="flex items-center gap-1">
                   <CopyBlockButton
-                    text={formatBlockAsMarkdown(
-                      "importantQuotes",
-                      summary.content.importantQuotes,
-                    )}
+                    text={formattedBlocks.importantQuotes}
                     label={t("summary.copyImportantQuotes")}
                   />
                   <ChevronDown

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 
@@ -36,6 +36,14 @@ export function useCopyToClipboard(timeout = 2000): UseCopyToClipboardReturn {
     },
     [t, timeout],
   );
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   return { isCopied, copyToClipboard };
 }
