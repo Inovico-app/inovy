@@ -145,7 +145,7 @@ describe("formatFullSummaryAsMarkdown", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/nigeljanssens/Documents/projects/inovy/apps/web && pnpm vitest run src/features/recordings/lib/__tests__/format-summary-markdown.test.ts`
+Run: `cd apps/web && pnpm vitest run src/features/recordings/lib/__tests__/format-summary-markdown.test.ts`
 
 Expected: FAIL — module `../format-summary-markdown` not found.
 
@@ -240,7 +240,7 @@ export function formatFullSummaryAsMarkdown(content: SummaryContent): string {
 
 - [ ] **Step 2: Run tests to verify they pass**
 
-Run: `cd /Users/nigeljanssens/Documents/projects/inovy/apps/web && pnpm vitest run src/features/recordings/lib/__tests__/format-summary-markdown.test.ts`
+Run: `cd apps/web && pnpm vitest run src/features/recordings/lib/__tests__/format-summary-markdown.test.ts`
 
 Expected: All 10 tests PASS.
 
@@ -614,7 +614,7 @@ Replace the `CollapsibleTrigger` for Important Quotes (lines 215-224) with:
 
 - [ ] **Step 8: Verify no lint/type errors**
 
-Run: `cd /Users/nigeljanssens/Documents/projects/inovy/apps/web && pnpm tsc --noEmit`
+Run: `cd apps/web && pnpm tsc --noEmit`
 
 Expected: No type errors.
 
@@ -631,24 +631,24 @@ git commit -m "feat(recordings): integrate copy buttons into summary blocks and 
 
 - [ ] **Step 1: Run all recording tests**
 
-Run: `cd /Users/nigeljanssens/Documents/projects/inovy/apps/web && pnpm vitest run`
+Run: `cd apps/web && pnpm vitest run`
 
 Expected: All tests pass, including the new format-summary-markdown tests.
 
 - [ ] **Step 2: Run linter**
 
-Run: `cd /Users/nigeljanssens/Documents/projects/inovy/apps/web && pnpm lint`
+Run: `cd apps/web && pnpm lint`
 
 Expected: No errors.
 
 - [ ] **Step 3: Run type check**
 
-Run: `cd /Users/nigeljanssens/Documents/projects/inovy/apps/web && pnpm tsc --noEmit`
+Run: `cd apps/web && pnpm tsc --noEmit`
 
 Expected: No type errors.
 
 - [ ] **Step 4: Verify build**
 
-Run: `cd /Users/nigeljanssens/Documents/projects/inovy && pnpm build --filter=web`
+Run: `pnpm build --filter=web`
 
 Expected: Build succeeds.

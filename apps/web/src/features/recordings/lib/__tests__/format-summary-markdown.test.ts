@@ -54,6 +54,47 @@ describe("formatBlockAsMarkdown", () => {
     expect(formatBlockAsMarkdown("speakerContributions", [])).toBe("");
     expect(formatBlockAsMarkdown("importantQuotes", [])).toBe("");
   });
+
+  it("filters out whitespace-only entries from topics", () => {
+    const result = formatBlockAsMarkdown("topics", ["  ", "Topic A", ""]);
+    expect(result).toBe("## Key Topics\n\n- Topic A");
+  });
+
+  it("filters out whitespace-only entries from decisions", () => {
+    const result = formatBlockAsMarkdown("decisions", ["", "Decision 1", "  "]);
+    expect(result).toBe("## Decisions\n\n- ✅ Decision 1");
+  });
+
+  it("filters out speakers with only whitespace contributions", () => {
+    const result = formatBlockAsMarkdown("speakerContributions", [
+      { speaker: "Alice", contributions: ["  ", ""] },
+      { speaker: "Bob", contributions: ["Valid point"] },
+    ]);
+    expect(result).toBe("## Speaker Contributions\n\n### Bob\n- Valid point");
+  });
+
+  it("filters out quotes with whitespace-only text", () => {
+    const result = formatBlockAsMarkdown("importantQuotes", [
+      { speaker: "Alice", quote: "  " },
+      { speaker: "Bob", quote: "Good point" },
+    ]);
+    expect(result).toBe('## Important Quotes\n\n> "Good point" — Bob');
+  });
+
+  it("returns empty string when all entries are whitespace", () => {
+    expect(formatBlockAsMarkdown("topics", ["  ", "", "\t"])).toBe("");
+    expect(formatBlockAsMarkdown("decisions", [" "])).toBe("");
+    expect(
+      formatBlockAsMarkdown("speakerContributions", [
+        { speaker: "Alice", contributions: ["  "] },
+      ]),
+    ).toBe("");
+    expect(
+      formatBlockAsMarkdown("importantQuotes", [
+        { speaker: "Alice", quote: "  " },
+      ]),
+    ).toBe("");
+  });
 });
 
 describe("formatFullSummaryAsMarkdown", () => {

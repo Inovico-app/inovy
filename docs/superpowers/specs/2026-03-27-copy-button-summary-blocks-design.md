@@ -12,7 +12,7 @@ Add a copy-to-clipboard button to each AI-generated summary block (Overview, Key
 
 ### 1. Pure Formatting Utility
 
-**File:** `src/features/recordings/lib/format-summary-markdown.ts`
+**File:** `apps/web/src/features/recordings/lib/format-summary-markdown.ts`
 
 Two pure functions:
 
@@ -31,7 +31,7 @@ Formatting rules:
 
 ### 2. Shared Copy Hook
 
-**File:** `src/features/recordings/hooks/use-copy-to-clipboard.ts`
+**File:** `apps/web/src/features/recordings/hooks/use-copy-to-clipboard.ts`
 
 ```typescript
 useCopyToClipboard() → { isCopied: boolean, copyToClipboard: (text: string) => Promise<void> }
@@ -44,7 +44,7 @@ useCopyToClipboard() → { isCopied: boolean, copyToClipboard: (text: string) =>
 
 ### 3. CopyBlockButton Component
 
-**File:** `src/features/recordings/components/copy-block-button.tsx`
+**File:** `apps/web/src/features/recordings/components/copy-block-button.tsx`
 
 ```typescript
 interface CopyBlockButtonProps {
@@ -65,7 +65,7 @@ interface CopyBlockButtonProps {
 
 Each `CollapsibleTrigger` header row gets a `CopyBlockButton` between the title and chevron:
 
-```
+```text
 [Block Title]                    [📋] [▾]
 ```
 
@@ -101,15 +101,15 @@ Both `en` and `nl` translation files need updating.
 
 ## Files to Create
 
-1. `src/features/recordings/lib/format-summary-markdown.ts`
-2. `src/features/recordings/hooks/use-copy-to-clipboard.ts`
-3. `src/features/recordings/components/copy-block-button.tsx`
+1. `apps/web/src/features/recordings/lib/format-summary-markdown.ts`
+2. `apps/web/src/features/recordings/hooks/use-copy-to-clipboard.ts`
+3. `apps/web/src/features/recordings/components/copy-block-button.tsx`
 
 ## Files to Modify
 
-1. `src/features/recordings/components/enhanced-summary-section.tsx` — add copy buttons to each block header + "Copy All" in card header
-2. `messages/en/recordings.json` — add copy-related translation keys
-3. `messages/nl/recordings.json` — add copy-related translation keys
+1. `apps/web/src/features/recordings/components/enhanced-summary-section.tsx` — add copy buttons to each block header + "Copy All" in card header
+2. `apps/web/messages/en/recordings.json` — add copy-related translation keys
+3. `apps/web/messages/nl/recordings.json` — add copy-related translation keys
 
 ## Out of Scope
 

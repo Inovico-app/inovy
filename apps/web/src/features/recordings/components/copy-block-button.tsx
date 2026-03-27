@@ -7,7 +7,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { CheckIcon, CopyIcon } from "lucide-react";
-import { type MouseEvent, useCallback } from "react";
+import { useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useCopyToClipboard } from "../hooks/use-copy-to-clipboard";
 
@@ -20,13 +20,9 @@ export function CopyBlockButton({ text, label }: CopyBlockButtonProps) {
   const t = useTranslations("recordings");
   const { isCopied, copyToClipboard } = useCopyToClipboard();
 
-  const handleClick = useCallback(
-    (e: MouseEvent) => {
-      e.stopPropagation();
-      void copyToClipboard(text);
-    },
-    [copyToClipboard, text],
-  );
+  const handleClick = useCallback(() => {
+    void copyToClipboard(text);
+  }, [copyToClipboard, text]);
 
   const Icon = isCopied ? CheckIcon : CopyIcon;
 

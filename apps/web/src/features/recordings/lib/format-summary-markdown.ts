@@ -19,18 +19,26 @@ function formatOverview(text: string): string {
 }
 
 function formatTopics(topics: string[]): string {
-  if (topics.length === 0) return "";
-  return `## Key Topics\n\n${topics.map((t) => `- ${t}`).join("\n")}`;
+  const filtered = topics.filter((t) => t.trim() !== "");
+  if (filtered.length === 0) return "";
+  return `## Key Topics\n\n${filtered.map((t) => `- ${t}`).join("\n")}`;
 }
 
 function formatDecisions(decisions: string[]): string {
-  if (decisions.length === 0) return "";
-  return `## Decisions\n\n${decisions.map((d) => `- ✅ ${d}`).join("\n")}`;
+  const filtered = decisions.filter((d) => d.trim() !== "");
+  if (filtered.length === 0) return "";
+  return `## Decisions\n\n${filtered.map((d) => `- ✅ ${d}`).join("\n")}`;
 }
 
 function formatSpeakerContributions(speakers: SpeakerContribution[]): string {
-  if (speakers.length === 0) return "";
-  const sections = speakers.map(
+  const filtered = speakers
+    .map((s) => ({
+      ...s,
+      contributions: s.contributions.filter((c) => c.trim() !== ""),
+    }))
+    .filter((s) => s.contributions.length > 0);
+  if (filtered.length === 0) return "";
+  const sections = filtered.map(
     (s) =>
       `### ${s.speaker}\n${s.contributions.map((c) => `- ${c}`).join("\n")}`,
   );
@@ -38,8 +46,9 @@ function formatSpeakerContributions(speakers: SpeakerContribution[]): string {
 }
 
 function formatImportantQuotes(quotes: ImportantQuote[]): string {
-  if (quotes.length === 0) return "";
-  const formatted = quotes.map((q) => `> "${q.quote}" — ${q.speaker}`);
+  const filtered = quotes.filter((q) => q.quote.trim() !== "");
+  if (filtered.length === 0) return "";
+  const formatted = filtered.map((q) => `> "${q.quote}" — ${q.speaker}`);
   return `## Important Quotes\n\n${formatted.join("\n\n")}`;
 }
 

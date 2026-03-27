@@ -16,6 +16,11 @@ export function useCopyToClipboard(timeout = 2000): UseCopyToClipboardReturn {
 
   const copyToClipboard = useCallback(
     async (text: string) => {
+      if (!text.trim()) {
+        toast.error(t("summary.copyFailed"));
+        return;
+      }
+
       if (typeof window === "undefined" || !navigator?.clipboard?.writeText) {
         toast.error(t("summary.copyFailed"));
         return;
