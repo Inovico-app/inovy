@@ -37,7 +37,7 @@ export async function OrganizationList() {
                 : `${organizations.length} organization${organizations.length === 1 ? "" : "s"} in the system`}
             </CardDescription>
           </div>
-          { }
+           <Button
           <Button
             render={<Link href="/admin/organizations/create" />}
             nativeButton={false}
