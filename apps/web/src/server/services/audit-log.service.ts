@@ -77,8 +77,14 @@ export class AuditLogService {
     params: CreateAuditLogParams,
   ): Promise<ActionResult<AuditLog>> {
     try {
-      // Create the log entry (without hash first)
-      const logEntry: Omit<NewAuditLog, "hash"> = {
+      // Pin a single timestamp so the value persisted to the DB matches what
+      // is hashed inside insertWithChain's transaction.
+      const createdAt = new Date();
+
+      // insertWithChain resolves previousHash and computes the hash atomically
+      // inside a Drizzle transaction, preventing concurrent inserts from
+      // chaining to the same predecessor.
+      const auditLog = await AuditLogsQueries.insertWithChain({
         eventType: params.eventType,
         resourceType: params.resourceType as NewAuditLog["resourceType"],
         resourceId: params.resourceId ?? null,
@@ -89,27 +95,8 @@ export class AuditLogService {
         ipAddress: params.ipAddress ?? null,
         userAgent: params.userAgent ?? null,
         metadata: params.metadata ?? null,
-        previousHash: null,
-      };
-
-      // Compute hash for this entry
-      const hash = computeHash({
-        eventType: logEntry.eventType,
-        resourceType: logEntry.resourceType,
-        resourceId: logEntry.resourceId ?? null,
-        userId: logEntry.userId,
-        organizationId: logEntry.organizationId,
-        action: logEntry.action,
-        category: logEntry.category ?? "mutation",
-        createdAt: new Date(), // Use current timestamp for hash computation
-        metadata: logEntry.metadata ?? null,
+        createdAt,
       });
-
-      // Insert with hash
-      const auditLog = await AuditLogsQueries.insert({
-        ...logEntry,
-        hash,
-      } as NewAuditLog);
 
       logger.info("Audit log created", {
         component: "AuditLogService",

@@ -36,6 +36,48 @@ export class AuditLogsQueries {
   }
 
   /**
+   * Atomically fetch the latest log, compute the hash, and insert a new entry
+   * within a transaction. Prevents hash chain race conditions when concurrent
+   * inserts target the same org. Hash is computed inside the transaction after
+   * `previousHash` is resolved so the stored hash is always correct.
+   */
+  static async insertWithChain(
+    logEntry: Omit<NewAuditLog, "hash" | "previousHash"> & {
+      previousHash?: string;
+    },
+  ): Promise<AuditLog> {
+    const result = await db.transaction(async (tx) => {
+      const [lastLog] = await tx
+        .select()
+        .from(auditLogs)
+        .where(eq(auditLogs.organizationId, logEntry.organizationId))
+        .orderBy(desc(auditLogs.createdAt))
+        .limit(1);
+
+      const previousHash = lastLog?.hash ?? "genesis";
+
+      const hash = computeHash({
+        eventType: logEntry.eventType,
+        resourceType: logEntry.resourceType,
+        resourceId: logEntry.resourceId ?? null,
+        userId: logEntry.userId,
+        organizationId: logEntry.organizationId,
+        action: logEntry.action,
+        category: logEntry.category ?? "mutation",
+        createdAt: logEntry.createdAt ?? new Date(),
+        metadata: logEntry.metadata ?? null,
+      });
+
+      const [inserted] = await tx
+        .insert(auditLogs)
+        .values({ ...logEntry, previousHash, hash })
+        .returning();
+      return inserted;
+    });
+    return result;
+  }
+
+  /**
    * Get the most recent audit log entry (for hash chain)
    */
   static async getLatestLog(organizationId: string): Promise<AuditLog | null> {
@@ -235,7 +277,10 @@ export class AuditLogsQueries {
 
     const results: Array<{ log: AuditLog; isValid: boolean }> = [];
 
-    for (const log of logs) {
+    for (let i = 0; i < logs.length; i++) {
+      const log = logs[i]!;
+
+      // Verify individual hash
       const recomputedHash = computeHash({
         eventType: log.eventType,
         resourceType: log.resourceType,
@@ -247,8 +292,24 @@ export class AuditLogsQueries {
         createdAt: log.createdAt,
         metadata: log.metadata,
       });
-      const isValid = log.hash === recomputedHash;
-      results.push({ log, isValid });
+      const hashValid = log.hash === recomputedHash;
+
+      // Verify chain linkage
+      let chainValid = true;
+      if (i === 0) {
+        // TODO: After running backfill-audit-hash-chain.ts, remove null tolerance
+        // and treat null previousHash on non-genesis entries as invalid
+        chainValid =
+          log.previousHash === "genesis" || log.previousHash === null;
+      } else {
+        const prevLog = logs[i - 1]!;
+        // TODO: After running backfill-audit-hash-chain.ts, remove null tolerance
+        // and treat null previousHash on non-genesis entries as invalid
+        chainValid =
+          log.previousHash === prevLog.hash || log.previousHash === null;
+      }
+
+      results.push({ log, isValid: hashValid && chainValid });
     }
 
     return results;

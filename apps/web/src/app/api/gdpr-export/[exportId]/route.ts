@@ -2,6 +2,7 @@ import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { DataExportsQueries } from "@/server/data-access/data-exports.queries";
 import { GdprExportService } from "@/server/services/gdpr-export.service";
+import { getStorageProvider } from "@/server/services/storage";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -11,7 +12,7 @@ const exportIdSchema = z.object({
 
 export async function GET(
   request: Request,
-  props: { params: Promise<{ exportId: string }> }
+  props: { params: Promise<{ exportId: string }> },
 ) {
   const params = await props.params;
   try {
@@ -20,7 +21,7 @@ export async function GET(
     if (!validationResult.success) {
       return NextResponse.json(
         { error: "Invalid export ID format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -38,7 +39,7 @@ export async function GET(
     if (!userId || !organizationId) {
       return NextResponse.json(
         { error: "User or organization not found" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -46,7 +47,7 @@ export async function GET(
     const exportResult = await GdprExportService.getExportById(
       exportId,
       userId,
-      organizationId
+      organizationId,
     );
 
     if (exportResult.isErr()) {
@@ -54,13 +55,13 @@ export async function GET(
       if (error.code === "NOT_FOUND") {
         return NextResponse.json(
           { error: "Export not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
       if (error.code === "FORBIDDEN") {
         return NextResponse.json(
           { error: "You do not have access to this export" },
-          { status: 403 }
+          { status: 403 },
         );
       }
       if (error.code === "BAD_REQUEST") {
@@ -68,7 +69,7 @@ export async function GET(
       }
       return NextResponse.json(
         { error: "Failed to get export" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -78,21 +79,63 @@ export async function GET(
     if (export_.status !== "completed") {
       return NextResponse.json(
         { error: `Export is ${export_.status}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Retrieve file data from database
+    // Stream from storage provider (new exports)
+    if (export_.blobPath) {
+      const storage = await getStorageProvider();
+
+      // Build the full blob URL to generate a short-lived read SAS URL
+      const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
+      const containerName =
+        process.env.AZURE_STORAGE_PRIVATE_CONTAINER ?? "private";
+
+      if (!accountName) {
+        return NextResponse.json(
+          { error: "Storage not configured" },
+          { status: 500 },
+        );
+      }
+
+      const blobUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${export_.blobPath}`;
+
+      // Use the provider's signed-URL method if available (Azure); otherwise
+      // fall back to a direct fetch of the raw blob URL (Vercel Blob).
+      const fetchUrl = storage.generateReadSasUrl
+        ? await storage.generateReadSasUrl(blobUrl, 15)
+        : blobUrl;
+
+      const response = await fetch(fetchUrl);
+      if (!response.ok || !response.body) {
+        return NextResponse.json(
+          { error: "Failed to download export" },
+          { status: 500 },
+        );
+      }
+
+      return new NextResponse(response.body, {
+        headers: {
+          "Content-Type": "application/zip",
+          "Content-Disposition": `attachment; filename="user-data-export.zip"`,
+          ...(export_.fileSize
+            ? { "Content-Length": String(export_.fileSize) }
+            : {}),
+        },
+      });
+    }
+
+    // Fall back to DB-stored fileData (legacy exports)
     const fileData = await DataExportsQueries.getExportFileData(exportId);
 
     if (!fileData) {
       return NextResponse.json(
         { error: "Export file not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    // Stream file data as response
     // Convert Buffer to Uint8Array for NextResponse compatibility
     const fileDataArray = new Uint8Array(fileData);
     return new NextResponse(fileDataArray, {
@@ -110,8 +153,7 @@ export async function GET(
     });
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

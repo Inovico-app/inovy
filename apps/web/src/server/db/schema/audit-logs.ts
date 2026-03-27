@@ -1,4 +1,5 @@
 import {
+  index,
   jsonb,
   pgEnum,
   pgTable,
@@ -102,26 +103,35 @@ export const auditActionEnum = pgEnum("audit_action", [
  * Tracks all system actions for compliance and security auditing
  * Includes tamper-proofing via hash chain
  */
-export const auditLogs = pgTable("audit_logs", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  eventType: text("event_type").notNull(),
-  resourceType: auditResourceTypeEnum("resource_type").notNull(),
-  resourceId: text("resource_id"), // Can be null for system-level events
-  userId: text("user_id").notNull(), // Better Auth user ID
-  organizationId: text("organization_id").notNull(),
-  action: auditActionEnum("action").notNull(),
-  category: auditCategoryEnum("category").notNull().default("mutation"),
-  ipAddress: text("ip_address"), // IP address for audit trail
-  userAgent: text("user_agent"), // User agent for audit trail
-  metadata: jsonb("metadata").$type<Record<string, unknown> | null>(), // Additional context
-  // Tamper-proofing: hash of previous log entry + current log entry
-  // This creates an immutable chain that can detect tampering
-  previousHash: text("previous_hash"), // Hash of the previous audit log entry
-  hash: text("hash"), // Hash of this entry (computed from previousHash + current entry data)
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    eventType: text("event_type").notNull(),
+    resourceType: auditResourceTypeEnum("resource_type").notNull(),
+    resourceId: text("resource_id"), // Can be null for system-level events
+    userId: text("user_id").notNull(), // Better Auth user ID
+    organizationId: text("organization_id").notNull(),
+    action: auditActionEnum("action").notNull(),
+    category: auditCategoryEnum("category").notNull().default("mutation"),
+    ipAddress: text("ip_address"), // IP address for audit trail
+    userAgent: text("user_agent"), // User agent for audit trail
+    metadata: jsonb("metadata").$type<Record<string, unknown> | null>(), // Additional context
+    // Tamper-proofing: hash of previous log entry + current log entry
+    // This creates an immutable chain that can detect tampering
+    previousHash: text("previous_hash"), // Hash of the previous audit log entry
+    hash: text("hash"), // Hash of this entry (computed from previousHash + current entry data)
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    orgCreatedAtIdx: index("audit_logs_org_created_at_idx").on(
+      table.organizationId,
+      table.createdAt,
+    ),
+  }),
+);
 
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;

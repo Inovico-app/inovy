@@ -10,6 +10,8 @@ CREATE TABLE "feedback" (
 	CONSTRAINT "feedback_user_id_recording_id_type_unique" UNIQUE("user_id","recording_id","type")
 );
 --> statement-breakpoint
+ALTER TABLE "data_exports" ADD COLUMN "blob_path" text;--> statement-breakpoint
 ALTER TABLE "feedback" ADD CONSTRAINT "feedback_recording_id_recordings_id_fk" FOREIGN KEY ("recording_id") REFERENCES "public"."recordings"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "feedback_org_id_idx" ON "feedback" USING btree ("organization_id");--> statement-breakpoint
-CREATE INDEX "feedback_recording_id_idx" ON "feedback" USING btree ("recording_id");
+CREATE INDEX "feedback_recording_id_idx" ON "feedback" USING btree ("recording_id");--> statement-breakpoint
+CREATE INDEX "audit_logs_org_created_at_idx" ON "audit_logs" USING btree ("organization_id","created_at");

@@ -1,5 +1,5 @@
 {
-  "id": "934d48e2-040d-47e6-8929-550b32368c9e",
+  "id": "8efa2f21-b197-4c6b-956f-ff9bbcecd388",
   "prevId": "d0791b4e-2373-451e-a9e2-906e589370ed",
   "version": "7",
   "dialect": "postgresql",
@@ -475,7 +475,29 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "audit_logs_org_created_at_idx": {
+          "name": "audit_logs_org_created_at_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -2966,6 +2988,12 @@
         "file_data": {
           "name": "file_data",
           "type": "bytea",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "blob_path": {
+          "name": "blob_path",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
