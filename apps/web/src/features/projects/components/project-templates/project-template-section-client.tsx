@@ -75,7 +75,7 @@ export function ProjectTemplateSectionClient({
         setIsEditing(false);
       }
     },
-    [template, projectId, executeCreate, executeUpdate],
+    [template, projectId, executeCreate, executeUpdate, t],
   );
 
   const handleDelete = useCallback(async () => {
@@ -88,7 +88,7 @@ export function ProjectTemplateSectionClient({
     setTemplate(null);
     toast.success(t("templateDeletedSuccess"));
     setIsEditing(false);
-  }, [template, executeDelete]);
+  }, [template, executeDelete, t]);
 
   const isProcessing = isCreating || isUpdating || isDeleting;
 

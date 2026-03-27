@@ -59,6 +59,12 @@ export default function LegalLayout({
               >
                 Algemene Voorwaarden
               </Link>
+              <Link
+                href="/status"
+                className="transition-colors hover:text-foreground"
+              >
+                Status
+              </Link>
             </nav>
           </div>
         </div>
@@ -66,4 +72,3 @@ export default function LegalLayout({
     </div>
   );
 }
-

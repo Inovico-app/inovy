@@ -89,7 +89,13 @@
     "requestHistory": "Verzoekgeschiedenis",
     "restriction": "Beperking",
     "objection": "Bezwaar",
-    "withdraw": "Intrekken"
+    "withdraw": "Intrekken",
+    "cookies": {
+      "title": "Cookievoorkeuren",
+      "description": "Beheer je cookietoestemmingsvoorkeuren",
+      "info": "Inovy gebruikt alleen essentiële cookies die nodig zijn voor authenticatie en sessiebeheer. Er worden geen tracking- of marketingcookies gebruikt.",
+      "resetConsent": "Cookietoestemming opnieuw instellen"
+    }
   },
   "organization": {
     "title": "Organisatie",

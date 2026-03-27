@@ -89,7 +89,13 @@
     "requestHistory": "Request History",
     "restriction": "Restriction",
     "objection": "Objection",
-    "withdraw": "Withdraw"
+    "withdraw": "Withdraw",
+    "cookies": {
+      "title": "Cookie Preferences",
+      "description": "Manage your cookie consent preferences",
+      "info": "Inovy uses only essential cookies required for authentication and session management. No tracking or marketing cookies are used.",
+      "resetConsent": "Reset Cookie Consent"
+    }
   },
   "organization": {
     "title": "Organization",

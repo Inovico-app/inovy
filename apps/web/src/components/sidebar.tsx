@@ -11,7 +11,14 @@ import { useActiveMemberRole } from "@/hooks/use-active-member-role";
 import { OrganizationSwitcher } from "@/components/organization-switcher";
 
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, FileText, Plus, Scale } from "lucide-react";
+import {
+  Activity,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Plus,
+  Scale,
+} from "lucide-react";
 import { adminLinks, isNavActive, navLinks } from "@/lib/navigation";
 import type { Route } from "next";
 import Link from "next/link";
@@ -219,6 +226,13 @@ export function Sidebar() {
             >
               {t("sidebar.terms")}
             </Link>
+            <span className="text-muted-foreground/60 text-xs">&middot;</span>
+            <Link
+              href="/status"
+              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {t("sidebar.status")}
+            </Link>
           </nav>
         ) : (
           <div className="flex flex-col items-center gap-1">
@@ -251,6 +265,22 @@ export function Sidebar() {
                 <FileText className="h-3.5 w-3.5" />
               </TooltipTrigger>
               <TooltipContent side="right">{t("sidebar.terms")}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Link
+                    href="/status"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+                    aria-label={t("sidebar.systemStatus")}
+                  />
+                }
+              >
+                <Activity className="h-3.5 w-3.5" />
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {t("sidebar.status")}
+              </TooltipContent>
             </Tooltip>
           </div>
         )}

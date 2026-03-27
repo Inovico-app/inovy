@@ -53,6 +53,13 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: "/status",
+        destination:
+          process.env.NEXT_PUBLIC_STATUS_PAGE_URL?.trim() ||
+          "https://status.inovy.nl",
+        permanent: false,
+      },
+      {
         source: "/settings/profile/edit",
         destination: "/settings/profile",
         permanent: true,

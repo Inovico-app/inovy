@@ -6,5 +6,7 @@
   "privacy": "Privacy",
   "terms": "Voorwaarden",
   "privacyPolicy": "Privacybeleid",
-  "termsOfService": "Algemene Voorwaarden"
+  "termsOfService": "Algemene Voorwaarden",
+  "status": "Status",
+  "systemStatus": "Systeemstatus"
 }

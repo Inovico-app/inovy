@@ -10,7 +10,6 @@ import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 async function BotSettingsContentWrapper() {
-  const t = await getTranslations("settings.bot");
   const authResult = await getBetterAuthSession();
 
   if (authResult.isErr() || !authResult.value.user) {
