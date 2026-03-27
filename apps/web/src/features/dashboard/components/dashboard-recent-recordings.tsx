@@ -1,5 +1,5 @@
 import { StatusBadge } from "@/features/recordings/components/status-badge";
-import type { RecordingStatus } from "@/server/db/schema/recordings";
+import type { TranscriptionStatus } from "@/server/db/schema/recordings";
 import { FolderIcon, MicIcon } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
@@ -10,7 +10,7 @@ interface RecentRecording {
   projectId: string;
   projectName: string;
   createdAt: Date;
-  transcriptionStatus: RecordingStatus;
+  transcriptionStatus: TranscriptionStatus;
 }
 
 interface DashboardRecentRecordingsProps {

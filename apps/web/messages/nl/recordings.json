@@ -82,6 +82,7 @@
     "processing": "Verwerken",
     "completed": "Voltooid",
     "failed": "Mislukt",
+    "queuedForRetry": "Wacht op herhaling",
     "checkingStatus": "Status controleren...",
     "reprocessing": "Herverwerken...",
     "processingGeneric": "Verwerken...",

@@ -4,13 +4,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useRecordingStatus } from "../../../hooks/use-recording-status";
-import type { RecordingStatus } from "../../../server/db/schema/recordings";
+import type { TranscriptionStatus } from "../../../server/db/schema/recordings";
 import { StatusBadge } from "./status-badge";
 import { useTranslations } from "next-intl";
 
 interface RecordingDetailStatusProps {
   recordingId: string;
-  initialStatus: RecordingStatus;
+  initialStatus: TranscriptionStatus;
 }
 
 export function RecordingDetailStatus({

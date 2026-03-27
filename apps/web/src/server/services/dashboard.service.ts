@@ -9,7 +9,7 @@ import {
   getRecentProjectsForDashboard,
   getRecentRecordingsForDashboard,
 } from "../data-access/dashboard.queries";
-import type { RecordingStatus } from "../db/schema/recordings";
+import type { TranscriptionStatus } from "../db/schema/recordings";
 import type { BetterAuthUser } from "@/lib/auth";
 
 interface DashboardOverview {
@@ -31,7 +31,7 @@ interface DashboardOverview {
     projectId: string;
     projectName: string;
     createdAt: Date;
-    transcriptionStatus: RecordingStatus;
+    transcriptionStatus: TranscriptionStatus;
   }>;
 }
 

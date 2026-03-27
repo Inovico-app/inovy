@@ -2,18 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { getRecordingStatusAction } from "../features/recordings/actions/get-recording-status";
-import type { RecordingStatus } from "../server/db/schema/recordings";
+import type { TranscriptionStatus } from "../server/db/schema/recordings";
 
 interface UseRecordingStatusOptions {
   recordingId: string;
-  initialStatus: RecordingStatus;
+  initialStatus: TranscriptionStatus;
   enabled?: boolean;
   pollingInterval?: number; // in milliseconds
-  onStatusChange?: (newStatus: RecordingStatus) => void;
+  onStatusChange?: (newStatus: TranscriptionStatus) => void;
 }
 
 interface UseRecordingStatusReturn {
-  status: RecordingStatus;
+  status: TranscriptionStatus;
   isPolling: boolean;
   error: string | null;
 }
@@ -25,7 +25,7 @@ export function useRecordingStatus({
   pollingInterval = 5000, // Default: 5 seconds
   onStatusChange,
 }: UseRecordingStatusOptions): UseRecordingStatusReturn {
-  const [status, setStatus] = useState<RecordingStatus>(initialStatus);
+  const [status, setStatus] = useState<TranscriptionStatus>(initialStatus);
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,4 +82,3 @@ export function useRecordingStatus({
     error,
   };
 }
-

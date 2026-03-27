@@ -82,6 +82,7 @@
     "processing": "Processing",
     "completed": "Completed",
     "failed": "Failed",
+    "queuedForRetry": "Queued for Retry",
     "checkingStatus": "Checking status...",
     "reprocessing": "Reprocessing...",
     "processingGeneric": "Processing...",
