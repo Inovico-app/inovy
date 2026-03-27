@@ -1,3 +1,4 @@
+import { BlobServiceClient } from "@azure/storage-blob";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { DataExportsQueries } from "@/server/data-access/data-exports.queries";
@@ -94,7 +95,6 @@ export async function GET(
 
       const containerName =
         process.env.AZURE_STORAGE_PRIVATE_CONTAINER ?? "private";
-      const { BlobServiceClient } = await import("@azure/storage-blob");
       const blobServiceClient =
         BlobServiceClient.fromConnectionString(connectionString);
       const containerClient =

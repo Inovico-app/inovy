@@ -8,6 +8,7 @@ import * as archiver from "archiver";
 import { addDays } from "date-fns";
 import { err, ok } from "neverthrow";
 import { sendEmailFromTemplate } from "@/emails/client";
+import { GdprExportReadyEmail } from "@/emails/templates/gdpr-export-ready";
 import { AIInsightsQueries } from "../data-access/ai-insights.queries";
 import { ChatQueries } from "../data-access/chat.queries";
 import { DataExportsQueries } from "../data-access/data-exports.queries";
@@ -224,9 +225,6 @@ export class GdprExportService {
         const userResult = await UserService.getUserById(userId);
 
         if (userResult.isOk() && userResult.value.email && completedExport) {
-          const { GdprExportReadyEmail } =
-            await import("@/emails/templates/gdpr-export-ready");
-
           await sendEmailFromTemplate({
             to: userResult.value.email,
             subject: "Your data export is ready",
