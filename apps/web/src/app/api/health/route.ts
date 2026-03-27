@@ -1,5 +1,10 @@
 import { logger } from "@/lib/logger";
 import { db } from "@/server/db";
+import {
+  anthropicCircuitBreaker,
+  openaiCircuitBreaker,
+  deepgramCircuitBreaker,
+} from "@/server/services/circuit-breaker.service";
 import { connectionPool } from "@/server/services/connection-pool.service";
 import { createRedisClient } from "@/server/services/redis-client.factory";
 import { QdrantClientService } from "@/server/services/rag/qdrant.service";
@@ -13,6 +18,12 @@ interface CheckResult {
   utilization?: number;
 }
 
+interface CircuitBreakerStates {
+  anthropic: "closed" | "open" | "half_open";
+  openai: "closed" | "open" | "half_open";
+  deepgram: "closed" | "open" | "half_open";
+}
+
 interface HealthResponse {
   status: "healthy" | "degraded" | "unhealthy";
   timestamp: string;
@@ -23,6 +34,7 @@ interface HealthResponse {
     redis: CheckResult;
     connectionPool: CheckResult;
   };
+  circuitBreakers: CircuitBreakerStates;
 }
 
 async function checkDatabase(): Promise<CheckResult> {
@@ -97,8 +109,6 @@ function checkConnectionPool(): CheckResult {
     const metrics = connectionPool.getAllMetrics();
     const totalClients =
       metrics.openai.totalClients + metrics.anthropic.totalClients;
-    const healthyClients =
-      metrics.openai.healthyClients + metrics.anthropic.healthyClients;
     const utilization =
       totalClients > 0
         ? Math.round(
@@ -109,7 +119,7 @@ function checkConnectionPool(): CheckResult {
           ) / 100
         : 0;
 
-    const isOk = healthyClients > 0;
+    const isOk = totalClients > 0;
     return {
       status: isOk ? "ok" : "degraded",
       utilization,
@@ -141,15 +151,24 @@ export async function GET(): Promise<NextResponse<HealthResponse>> {
 
   const connectionPoolCheck = checkConnectionPool();
 
+  const circuitBreakers: CircuitBreakerStates = {
+    anthropic: anthropicCircuitBreaker.getState(),
+    openai: openaiCircuitBreaker.getState(),
+    deepgram: deepgramCircuitBreaker.getState(),
+  };
+
   const criticalDown =
     database.status === "down" ||
     qdrant.status === "down" ||
     redis.status === "down";
   const anyDegraded = connectionPoolCheck.status === "degraded";
+  const anyCircuitOpen = Object.values(circuitBreakers).some(
+    (state) => state === "open",
+  );
 
   const overallStatus = criticalDown
     ? "unhealthy"
-    : anyDegraded
+    : anyDegraded || anyCircuitOpen
       ? "degraded"
       : "healthy";
 
@@ -165,6 +184,7 @@ export async function GET(): Promise<NextResponse<HealthResponse>> {
       redis,
       connectionPool: connectionPoolCheck,
     },
+    circuitBreakers,
   };
 
   return NextResponse.json(body, { status: httpStatus });

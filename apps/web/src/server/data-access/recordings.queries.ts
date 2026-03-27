@@ -6,6 +6,7 @@ import {
   gte,
   ilike,
   inArray,
+  lte,
   max,
   sql,
 } from "drizzle-orm";
@@ -380,6 +381,84 @@ export class RecordingsQueries {
         return created;
       }
     });
+  }
+
+  // Backoff schedule for deferred retries: 5m, 15m, 1h, 4h, 12h
+  private static readonly DEFERRED_RETRY_DELAYS_MS = [
+    5 * 60 * 1000,
+    15 * 60 * 1000,
+    60 * 60 * 1000,
+    4 * 60 * 60 * 1000,
+    12 * 60 * 60 * 1000,
+  ];
+
+  private static readonly MAX_DEFERRED_RETRIES = 5;
+
+  static async queueForTranscriptionRetry(
+    id: string,
+    error: string,
+  ): Promise<Recording | undefined> {
+    const recording = await this.selectRecordingById(id);
+    if (!recording) return undefined;
+
+    const retryCount = recording.transcriptionRetryCount + 1;
+
+    if (retryCount > this.MAX_DEFERRED_RETRIES) {
+      // Mark as permanently failed
+      const [failed] = await db
+        .update(recordings)
+        .set({
+          transcriptionStatus: "failed",
+          transcriptionLastError: error,
+          updatedAt: new Date(),
+        })
+        .where(eq(recordings.id, id))
+        .returning();
+      return failed;
+    }
+
+    const delayMs =
+      this.DEFERRED_RETRY_DELAYS_MS[retryCount - 1] ??
+      this.DEFERRED_RETRY_DELAYS_MS[this.DEFERRED_RETRY_DELAYS_MS.length - 1];
+    const nextRetryAt = new Date(Date.now() + (delayMs ?? 0));
+
+    const [queued] = await db
+      .update(recordings)
+      .set({
+        transcriptionStatus: "queued_for_retry",
+        transcriptionRetryCount: retryCount,
+        transcriptionNextRetryAt: nextRetryAt,
+        transcriptionLastError: error,
+        updatedAt: new Date(),
+      })
+      .where(eq(recordings.id, id))
+      .returning();
+    return queued;
+  }
+
+  static async getRecordingsQueuedForRetry(limit = 10): Promise<Recording[]> {
+    return db
+      .select()
+      .from(recordings)
+      .where(
+        and(
+          eq(recordings.transcriptionStatus, "queued_for_retry"),
+          lte(recordings.transcriptionNextRetryAt, new Date()),
+        ),
+      )
+      .limit(limit);
+  }
+
+  static async resetTranscriptionRetry(id: string): Promise<void> {
+    await db
+      .update(recordings)
+      .set({
+        transcriptionRetryCount: 0,
+        transcriptionNextRetryAt: null,
+        transcriptionLastError: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(recordings.id, id));
   }
 
   static async selectRecordingsByOrganization(

@@ -1,203 +1,106 @@
 import { logger } from "@/lib/logger";
-import { createRedisClient, type RedisClient } from "./redis-client.factory";
+import * as Sentry from "@sentry/nextjs";
 
-/**
- * Circuit breaker states:
- * - CLOSED: normal operation, requests flow through
- * - OPEN: failures exceeded threshold, requests are rejected
- * - HALF_OPEN: after cooldown, allow one probe request to test recovery
- */
 type CircuitState = "closed" | "open" | "half_open";
 
 interface CircuitBreakerConfig {
-  /** Number of failures within the window that triggers the circuit to open */
   failureThreshold: number;
-  /** Time window in seconds for counting failures */
-  failureWindowSeconds: number;
-  /** How long the circuit stays open before moving to half-open (seconds) */
-  cooldownSeconds: number;
+  failureWindowMs: number;
+  resetTimeoutMs: number;
 }
 
 const DEFAULT_CONFIG: CircuitBreakerConfig = {
   failureThreshold: 5,
-  failureWindowSeconds: 60,
-  cooldownSeconds: 30,
+  failureWindowMs: 60_000,
+  resetTimeoutMs: 30_000,
 };
 
-/**
- * Redis-backed circuit breaker for tool execution.
- *
- * Tracks failure rates per tool per organization. When a tool fails too often
- * the circuit opens and the tool returns a graceful error without executing,
- * preventing cascading failures and wasted resources.
- *
- * Redis keys:
- * - `cb:{orgId}:{toolName}:failures` — sorted set of failure timestamps
- * - `cb:{orgId}:{toolName}:state`    — current state (closed|open|half_open)
- * - `cb:{orgId}:{toolName}:opened`   — timestamp when circuit was opened
- */
-export class CircuitBreakerService {
-  private config: CircuitBreakerConfig;
-
-  constructor(config: Partial<CircuitBreakerConfig> = {}) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
-  }
-
-  private keyPrefix(organizationId: string, toolName: string): string {
-    return `cb:${organizationId}:${toolName}`;
-  }
-
-  /**
-   * Check if a tool call is allowed. Returns false if the circuit is open.
-   */
-  async canExecute(organizationId: string, toolName: string): Promise<boolean> {
-    const redis = await createRedisClient();
-    if (!redis) return true; // Fail open if Redis unavailable
-
-    try {
-      const prefix = this.keyPrefix(organizationId, toolName);
-      const state = await this.getState(redis, prefix);
-
-      if (state === "closed") return true;
-
-      if (state === "open") {
-        // Check if cooldown has elapsed
-        const openedAt = await redis.get(`${prefix}:opened`);
-        if (openedAt) {
-          const elapsed = (Date.now() - Number(openedAt)) / 1000;
-          if (elapsed >= this.config.cooldownSeconds) {
-            // Move to half-open
-            await redis.set(`${prefix}:state`, "half_open");
-            logger.info("Circuit breaker transitioning to half-open", {
-              component: "CircuitBreaker",
-              organizationId,
-              toolName,
-              elapsedSeconds: Math.round(elapsed),
-            });
-            return true; // Allow one probe request
-          }
-        }
-        return false;
-      }
-
-      // half_open — allow the probe request
-      return true;
-    } catch (error) {
-      logger.error("Circuit breaker canExecute failed — failing open", {
-        component: "CircuitBreaker",
-        organizationId,
-        toolName,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      return true; // Fail open
-    }
-  }
-
-  /**
-   * Record a successful tool execution. Closes the circuit if it was half-open.
-   */
-  async recordSuccess(organizationId: string, toolName: string): Promise<void> {
-    const redis = await createRedisClient();
-    if (!redis) return;
-
-    try {
-      const prefix = this.keyPrefix(organizationId, toolName);
-      const state = await this.getState(redis, prefix);
-
-      if (state === "half_open") {
-        await redis.set(`${prefix}:state`, "closed");
-        await redis.del(`${prefix}:failures`);
-        await redis.del(`${prefix}:opened`);
-
-        logger.info("Circuit breaker closed after successful probe", {
-          component: "CircuitBreaker",
-          organizationId,
-          toolName,
-        });
-      }
-    } catch (error) {
-      logger.error("Circuit breaker recordSuccess failed", {
-        component: "CircuitBreaker",
-        organizationId,
-        toolName,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  /**
-   * Record a failed tool execution. Opens the circuit if threshold is exceeded.
-   */
-  async recordFailure(organizationId: string, toolName: string): Promise<void> {
-    const redis = await createRedisClient();
-    if (!redis) return;
-
-    try {
-      const prefix = this.keyPrefix(organizationId, toolName);
-      const state = await this.getState(redis, prefix);
-      const now = Date.now();
-
-      if (state === "half_open") {
-        // Probe failed — re-open the circuit
-        await redis.set(`${prefix}:state`, "open");
-        await redis.set(`${prefix}:opened`, String(now));
-        await redis.expire(`${prefix}:opened`, this.config.cooldownSeconds * 2);
-
-        logger.warn("Circuit breaker re-opened after failed probe", {
-          component: "CircuitBreaker",
-          organizationId,
-          toolName,
-        });
-        return;
-      }
-
-      // Record failure in sliding window — use unique member to prevent dedup
-      const windowStart = now - this.config.failureWindowSeconds * 1000;
-      const uniqueMember = `${now}:${crypto.randomUUID()}`;
-      await redis.zremrangebyscore(`${prefix}:failures`, 0, windowStart);
-      await redis.zadd(`${prefix}:failures`, { score: now, member: uniqueMember });
-      await redis.expire(`${prefix}:failures`, this.config.failureWindowSeconds * 2);
-
-      // Check failure count
-      const failureCount = await redis.zcard(`${prefix}:failures`);
-
-      if (failureCount >= this.config.failureThreshold) {
-        await redis.set(`${prefix}:state`, "open");
-        await redis.set(`${prefix}:opened`, String(now));
-        await redis.expire(`${prefix}:state`, this.config.cooldownSeconds * 2);
-        await redis.expire(`${prefix}:opened`, this.config.cooldownSeconds * 2);
-
-        logger.warn("Circuit breaker opened — tool failures exceeded threshold", {
-          component: "CircuitBreaker",
-          organizationId,
-          toolName,
-          failureCount,
-          threshold: this.config.failureThreshold,
-          windowSeconds: this.config.failureWindowSeconds,
-        });
-      }
-    } catch (error) {
-      logger.error("Circuit breaker recordFailure failed", {
-        component: "CircuitBreaker",
-        organizationId,
-        toolName,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  /**
-   * Get the current state of a circuit. Defaults to closed.
-   */
-  private async getState(
-    redis: RedisClient,
-    prefix: string
-  ): Promise<CircuitState> {
-    const state = await redis.get(`${prefix}:state`);
-    if (state === "open" || state === "half_open") return state as CircuitState;
-    return "closed";
+export class CircuitOpenError extends Error {
+  constructor(public readonly provider: string) {
+    super(`Circuit breaker is open for provider: ${provider}`);
+    this.name = "CircuitOpenError";
   }
 }
 
-/** Shared singleton instance */
-export const circuitBreaker = new CircuitBreakerService();
+export class CircuitBreaker {
+  private state: CircuitState = "closed";
+  private failures: number[] = [];
+  private lastStateChange: number = Date.now();
+  private readonly config: CircuitBreakerConfig;
+  private readonly provider: string;
+
+  constructor(provider: string, config?: Partial<CircuitBreakerConfig>) {
+    this.provider = provider;
+    this.config = { ...DEFAULT_CONFIG, ...config };
+  }
+
+  getState(): CircuitState {
+    if (
+      this.state === "open" &&
+      Date.now() - this.lastStateChange >= this.config.resetTimeoutMs
+    ) {
+      this.transitionTo("half_open");
+    }
+    return this.state;
+  }
+
+  async execute<T>(operation: () => Promise<T>): Promise<T> {
+    const currentState = this.getState();
+    if (currentState === "open") {
+      throw new CircuitOpenError(this.provider);
+    }
+    try {
+      const result = await operation();
+      this.recordSuccess();
+      return result;
+    } catch (error) {
+      this.recordFailure();
+      throw error;
+    }
+  }
+
+  private recordSuccess(): void {
+    if (this.state === "half_open") {
+      this.transitionTo("closed");
+    }
+  }
+
+  private recordFailure(): void {
+    if (this.state === "half_open") {
+      this.transitionTo("open");
+      return;
+    }
+    const now = Date.now();
+    this.failures.push(now);
+    const windowStart = now - this.config.failureWindowMs;
+    this.failures = this.failures.filter((t) => t > windowStart);
+    if (this.failures.length >= this.config.failureThreshold) {
+      this.transitionTo("open");
+    }
+  }
+
+  private transitionTo(newState: CircuitState): void {
+    const oldState = this.state;
+    this.state = newState;
+    this.lastStateChange = Date.now();
+    if (newState === "closed") {
+      this.failures = [];
+    }
+    logger.warn(`Circuit breaker ${this.provider}: ${oldState} → ${newState}`, {
+      component: "CircuitBreaker",
+      provider: this.provider,
+      oldState,
+      newState,
+    });
+    Sentry.addBreadcrumb({
+      category: "circuit-breaker",
+      message: `${this.provider}: ${oldState} → ${newState}`,
+      level: "warning",
+    });
+  }
+}
+
+// Singleton instances per provider
+export const anthropicCircuitBreaker = new CircuitBreaker("anthropic");
+export const openaiCircuitBreaker = new CircuitBreaker("openai");
+export const deepgramCircuitBreaker = new CircuitBreaker("deepgram");

@@ -25,6 +25,7 @@ interface FeedbackFilters {
 
 interface FeedbackWithRecording extends Feedback {
   recordingTitle: string | null;
+  recordingProjectId: string | null;
 }
 
 export class FeedbackQueries {
@@ -109,6 +110,7 @@ export class FeedbackQueries {
         comment: feedback.comment,
         createdAt: feedback.createdAt,
         recordingTitle: recordings.title,
+        recordingProjectId: recordings.projectId,
       })
       .from(feedback)
       .leftJoin(recordings, eq(feedback.recordingId, recordings.id))
