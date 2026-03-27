@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { CheckCircle2 } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 
 interface EmptyStateActionProps {
@@ -24,7 +25,7 @@ export function EmptyStateAction({
 }: EmptyStateActionProps): React.ReactNode {
   if (href) {
     return (
-      <Link href={href} className={buttonVariants({ variant })}>
+      <Link href={href as Route} className={buttonVariants({ variant })}>
         {children}
       </Link>
     );
