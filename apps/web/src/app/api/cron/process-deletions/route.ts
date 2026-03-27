@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     });
 
     const pendingDeletions =
-      await UserDeletionRequestsQueries.getPendingDeletions();
+      await UserDeletionRequestsQueries.claimPendingDeletions();
 
     if (pendingDeletions.length === 0) {
       return NextResponse.json({
@@ -115,12 +115,16 @@ export async function GET(request: NextRequest) {
       durationMs: duration,
     });
 
-    return NextResponse.json({
-      success: true,
-      results,
-      durationMs: duration,
-      timestamp: new Date().toISOString(),
-    });
+    const success = results.failed === 0;
+    return NextResponse.json(
+      {
+        success,
+        results,
+        durationMs: duration,
+        timestamp: new Date().toISOString(),
+      },
+      { status: success ? 200 : 207 },
+    );
   } catch (error) {
     const duration = Date.now() - startTime;
 

@@ -1,4 +1,4 @@
-import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
   type NewUserDeletionRequest,
@@ -115,6 +115,41 @@ export class UserDeletionRequestsQueries {
         ),
       )
       .limit(50);
+  }
+
+  /**
+   * Atomically claim pending deletions past their scheduled deletion date by
+   * transitioning them from 'pending' to 'processing' in a single statement.
+   * The WHERE clause on the UPDATE re-checks `status = 'pending'` so that
+   * concurrent cron invocations cannot claim the same rows twice.
+   */
+  static async claimPendingDeletions(
+    limit = 50,
+  ): Promise<UserDeletionRequest[]> {
+    const pending = await db
+      .select({ id: userDeletionRequests.id })
+      .from(userDeletionRequests)
+      .where(
+        and(
+          eq(userDeletionRequests.status, "pending"),
+          lte(userDeletionRequests.scheduledDeletionAt, new Date()),
+        ),
+      )
+      .limit(limit);
+
+    if (pending.length === 0) return [];
+
+    const ids = pending.map((r) => r.id);
+    return db
+      .update(userDeletionRequests)
+      .set({ status: "processing", updatedAt: new Date() })
+      .where(
+        and(
+          inArray(userDeletionRequests.id, ids),
+          eq(userDeletionRequests.status, "pending"),
+        ),
+      )
+      .returning();
   }
 
   /**

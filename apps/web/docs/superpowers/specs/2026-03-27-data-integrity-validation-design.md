@@ -159,9 +159,9 @@ New cron job that processes pending deletion requests past their `scheduledDelet
 
 ### Behavior
 
-1. Auth via `CRON_SECRET` header (existing pattern)
+1. Auth via `Authorization: Bearer ${CRON_SECRET}` (existing pattern)
 2. Query `user_deletion_requests` where `status = 'pending'` AND `scheduledDeletionAt <= now()`
-3. For each: call `GdprDeletionService.executeDeletion(userId, organizationId)`
+3. For each: call `GdprDeletionService.processDeletionRequest(requestId, userId, organizationId, null, null)`
 4. Update request status to `completed` (or `failed` with error message)
 5. Process sequentially — not parallel — to avoid overwhelming DB
 6. Structured logging + Sentry capture on failure

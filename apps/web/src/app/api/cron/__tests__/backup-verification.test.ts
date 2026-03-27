@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("@/server/db", () => ({
   db: {
@@ -60,6 +60,16 @@ describe("Backup Verification", () => {
   });
 
   describe("Blob storage check", () => {
+    const originalAzureConn = process.env.AZURE_STORAGE_CONNECTION_STRING;
+
+    afterEach(() => {
+      if (originalAzureConn !== undefined) {
+        process.env.AZURE_STORAGE_CONNECTION_STRING = originalAzureConn;
+      } else {
+        delete process.env.AZURE_STORAGE_CONNECTION_STRING;
+      }
+    });
+
     it("skips when AZURE_STORAGE_CONNECTION_STRING is not set", () => {
       const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
 

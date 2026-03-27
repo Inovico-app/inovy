@@ -36,12 +36,16 @@ export class AuditLogsQueries {
   }
 
   /**
-   * Atomically fetch the latest log and insert a new entry within a transaction.
-   * Prevents hash chain race conditions when concurrent inserts target the same org.
-   * The caller must supply the pre-computed `createdAt` and `hash` so that the
-   * timestamp used for hashing matches the value persisted to the DB.
+   * Atomically fetch the latest log, compute the hash, and insert a new entry
+   * within a transaction. Prevents hash chain race conditions when concurrent
+   * inserts target the same org. Hash is computed inside the transaction after
+   * `previousHash` is resolved so the stored hash is always correct.
    */
-  static async insertWithChain(logEntry: NewAuditLog): Promise<AuditLog> {
+  static async insertWithChain(
+    logEntry: Omit<NewAuditLog, "hash" | "previousHash"> & {
+      previousHash?: string;
+    },
+  ): Promise<AuditLog> {
     const result = await db.transaction(async (tx) => {
       const [lastLog] = await tx
         .select()
@@ -51,9 +55,22 @@ export class AuditLogsQueries {
         .limit(1);
 
       const previousHash = lastLog?.hash ?? "genesis";
+
+      const hash = computeHash({
+        eventType: logEntry.eventType,
+        resourceType: logEntry.resourceType,
+        resourceId: logEntry.resourceId ?? null,
+        userId: logEntry.userId,
+        organizationId: logEntry.organizationId,
+        action: logEntry.action,
+        category: logEntry.category,
+        createdAt: logEntry.createdAt ?? new Date(),
+        metadata: logEntry.metadata ?? null,
+      });
+
       const [inserted] = await tx
         .insert(auditLogs)
-        .values({ ...logEntry, previousHash })
+        .values({ ...logEntry, previousHash, hash })
         .returning();
       return inserted;
     });

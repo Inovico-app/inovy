@@ -77,28 +77,13 @@ export class AuditLogService {
     params: CreateAuditLogParams,
   ): Promise<ActionResult<AuditLog>> {
     try {
-      // Pin a single timestamp so hash computation and the DB row agree exactly.
-      // Previously, hash used `new Date()` while the DB column defaulted to
-      // `defaultNow()`, causing a skew that made all hash verifications fail.
+      // Pin a single timestamp so the value persisted to the DB matches what
+      // is hashed inside insertWithChain's transaction.
       const createdAt = new Date();
 
-      // Compute hash for this entry (previousHash will be resolved inside the
-      // transaction in insertWithChain to avoid read-then-write race conditions)
-      const hash = computeHash({
-        eventType: params.eventType,
-        resourceType: params.resourceType as NewAuditLog["resourceType"],
-        resourceId: params.resourceId ?? null,
-        userId: params.userId,
-        organizationId: params.organizationId,
-        action: params.action as NewAuditLog["action"],
-        category: params.category ?? "mutation",
-        createdAt,
-        metadata: params.metadata ?? null,
-      });
-
-      // insertWithChain fetches the latest log and inserts atomically inside a
-      // Drizzle transaction, preventing concurrent inserts from chaining to the
-      // same predecessor. previousHash is resolved inside the transaction.
+      // insertWithChain resolves previousHash and computes the hash atomically
+      // inside a Drizzle transaction, preventing concurrent inserts from
+      // chaining to the same predecessor.
       const auditLog = await AuditLogsQueries.insertWithChain({
         eventType: params.eventType,
         resourceType: params.resourceType as NewAuditLog["resourceType"],
@@ -111,11 +96,7 @@ export class AuditLogService {
         userAgent: params.userAgent ?? null,
         metadata: params.metadata ?? null,
         createdAt,
-        hash,
-        // previousHash is resolved atomically inside insertWithChain; supplying a
-        // placeholder here — the transaction overwrites it before insert.
-        previousHash: "genesis",
-      } satisfies NewAuditLog);
+      });
 
       logger.info("Audit log created", {
         component: "AuditLogService",
