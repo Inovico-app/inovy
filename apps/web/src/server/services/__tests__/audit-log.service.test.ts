@@ -111,15 +111,16 @@ describe("Audit Log Hash Chain", () => {
       expect(mockedQueries.insertWithChain).toHaveBeenCalledOnce();
     });
 
-    it("passes hash and createdAt to insertWithChain", async () => {
+    it("passes createdAt to insertWithChain (hash computed inside transaction)", async () => {
       mockedQueries.insertWithChain.mockImplementation(async (entry) => ({
         ...makeAuditLogEntry(),
         ...entry,
         id: "new-log-3",
         previousHash: "genesis",
+        hash: "computed-inside-transaction",
       }));
 
-      await AuditLogService.createAuditLog({
+      const result = await AuditLogService.createAuditLog({
         eventType: "test.event",
         resourceType: "recording",
         resourceId: "rec-3",
@@ -130,8 +131,9 @@ describe("Audit Log Hash Chain", () => {
       });
 
       const call = mockedQueries.insertWithChain.mock.calls[0]?.[0];
-      expect(call?.hash).toMatch(/^[a-f0-9]{64}$/);
       expect(call?.createdAt).toBeInstanceOf(Date);
+      // hash is no longer passed by caller — computed inside insertWithChain transaction
+      expect(result.isOk()).toBe(true);
     });
   });
 });
