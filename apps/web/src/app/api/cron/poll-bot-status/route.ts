@@ -1,6 +1,7 @@
+import * as Sentry from "@sentry/nextjs";
 import { logger } from "@/lib/logger";
 import { BotStatusPollService } from "@/server/services/bot-status-poll.service";
-import { type NextRequest, NextResponse } from "next/server";
+import { after, type NextRequest, NextResponse } from "next/server";
 import { connection } from "next/server";
 
 /**
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
       });
       return NextResponse.json(
         { error: "Cron secret not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -53,13 +54,26 @@ export async function GET(request: NextRequest) {
         error: result.error.message,
       });
 
+      after(() => {
+        Sentry.withScope((scope) => {
+          scope.setTags({ component: "cron-poll-bot-status" });
+          scope.setContext("cron", {
+            cron_job: "poll-bot-status",
+            error_message: result.error.message,
+          });
+          Sentry.captureException(
+            new Error(`Cron poll-bot-status failed: ${result.error.message}`),
+          );
+        });
+      });
+
       return NextResponse.json(
         {
           success: false,
           error: result.error.message,
           timestamp: new Date().toISOString(),
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -90,7 +104,7 @@ export async function GET(request: NextRequest) {
           errorMessage: error.message,
           errorStack: error.stack,
         },
-        error
+        error,
       );
     } else {
       logger.error("Error in bot status polling cron job", {
@@ -100,6 +114,17 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    after(() => {
+      Sentry.withScope((scope) => {
+        scope.setTags({ component: "cron-poll-bot-status" });
+        scope.setContext("cron", {
+          cron_job: "poll-bot-status",
+          duration_ms: duration,
+        });
+        Sentry.captureException(error);
+      });
+    });
+
     // Return generic error to client (no sensitive details)
     return NextResponse.json(
       {
@@ -108,8 +133,7 @@ export async function GET(request: NextRequest) {
         durationMs: duration,
         timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

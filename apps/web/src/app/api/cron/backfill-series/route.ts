@@ -1,8 +1,9 @@
 // src/app/api/cron/backfill-series/route.ts
+import * as Sentry from "@sentry/nextjs";
 import { logger } from "@/lib/logger";
 import { BotSeriesSubscriptionsQueries } from "@/server/data-access/bot-series-subscriptions.queries";
 import { BotBackfillService } from "@/server/services/bot-backfill.service";
-import { type NextRequest, NextResponse } from "next/server";
+import { after, type NextRequest, NextResponse } from "next/server";
 import { connection } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -91,6 +92,17 @@ export async function GET(request: NextRequest) {
       },
       error as Error,
     );
+
+    after(() => {
+      Sentry.withScope((scope) => {
+        scope.setTags({ component: "cron-backfill-series" });
+        scope.setContext("cron", {
+          cron_job: "backfill-series",
+          duration_ms: duration,
+        });
+        Sentry.captureException(error);
+      });
+    });
 
     return NextResponse.json(
       {

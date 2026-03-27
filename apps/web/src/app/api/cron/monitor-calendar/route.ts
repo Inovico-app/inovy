@@ -1,6 +1,7 @@
+import * as Sentry from "@sentry/nextjs";
 import { logger } from "@/lib/logger";
 import { BotCalendarMonitorService } from "@/server/services/bot-calendar-monitor.service";
-import { type NextRequest, NextResponse } from "next/server";
+import { after, type NextRequest, NextResponse } from "next/server";
 import { connection } from "next/server";
 
 /**
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
       });
       return NextResponse.json(
         { error: "Cron secret not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -53,13 +54,26 @@ export async function GET(request: NextRequest) {
         error: result.error.message,
       });
 
+      after(() => {
+        Sentry.withScope((scope) => {
+          scope.setTags({ component: "cron-monitor-calendar" });
+          scope.setContext("cron", {
+            cron_job: "monitor-calendar",
+            error_message: result.error.message,
+          });
+          Sentry.captureException(
+            new Error(`Cron monitor-calendar failed: ${result.error.message}`),
+          );
+        });
+      });
+
       return NextResponse.json(
         {
           success: false,
           error: result.error.message,
           timestamp: new Date().toISOString(),
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -86,8 +100,19 @@ export async function GET(request: NextRequest) {
         component: "GET /api/cron/monitor-calendar",
         durationMs: duration,
       },
-      error as Error
+      error as Error,
     );
+
+    after(() => {
+      Sentry.withScope((scope) => {
+        scope.setTags({ component: "cron-monitor-calendar" });
+        scope.setContext("cron", {
+          cron_job: "monitor-calendar",
+          duration_ms: duration,
+        });
+        Sentry.captureException(error);
+      });
+    });
 
     return NextResponse.json(
       {
@@ -97,8 +122,7 @@ export async function GET(request: NextRequest) {
         durationMs: duration,
         timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
