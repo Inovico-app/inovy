@@ -39,7 +39,17 @@ interface RecordingDetailPageProps {
 async function RecordingDetail({ params }: RecordingDetailPageProps) {
   const { projectId, recordingId } = await params;
 
-  const data = await getRecordingDetailPageData({ recordingId });
+  // Start project document fetch immediately (only needs projectId from params)
+  const projectDocumentsPromise = getCachedKnowledgeDocuments(
+    "project",
+    projectId,
+  );
+
+  const [data, authResult] = await Promise.all([
+    getRecordingDetailPageData({ recordingId }),
+    getBetterAuthSession(),
+  ]);
+
   if (!data) {
     notFound();
   }
@@ -57,26 +67,22 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
     notFound();
   }
 
-  const authResult = await getBetterAuthSession();
   const user = authResult.isOk() ? authResult.value.user : null;
 
-  const existingFeedback = user
-    ? await FeedbackQueries.getByUserAndRecording(user.id, recordingId)
-    : [];
+  // Now that we have organizationId, fetch org documents + feedback in parallel
+  const [existingFeedback, projectDocumentsRaw, orgDocumentsRaw] =
+    await Promise.all([
+      user
+        ? FeedbackQueries.getByUserAndRecording(user.id, recordingId)
+        : Promise.resolve([]),
+      projectDocumentsPromise,
+      getCachedKnowledgeDocuments("organization", organizationId),
+    ]);
 
   const t = await getTranslations("projects");
   const knowledgeUsed = extractUsedKnowledge(transcriptionInsights);
 
-  const [projectDocumentsRaw, orgDocumentsRaw] = await Promise.all([
-    getCachedKnowledgeDocuments("project", projectId),
-    getCachedKnowledgeDocuments("organization", organizationId),
-  ]);
-
-  const toSummary = (d: {
-    id: string;
-    title: string;
-    processingStatus: string;
-  }) => ({
+  const toSummary = (d: (typeof projectDocumentsRaw)[number]) => ({
     id: d.id,
     title: d.title,
     processingStatus: d.processingStatus,

@@ -6,6 +6,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import type { DocumentProcessingStatus } from "@/server/db/schema/knowledge-base-documents";
 import {
   ChevronDownIcon,
   FileTextIcon,
@@ -22,7 +23,7 @@ import { useState } from "react";
 export interface KnowledgeDocumentSummary {
   id: string;
   title: string;
-  processingStatus: string;
+  processingStatus: DocumentProcessingStatus;
 }
 
 interface KnowledgeContextIndicatorProps {
@@ -33,14 +34,18 @@ interface KnowledgeContextIndicatorProps {
 
 const MAX_VISIBLE_DOCS = 3;
 
-const STATUS_TRANSLATION_KEY = {
+const STATUS_TRANSLATION_KEY: Record<DocumentProcessingStatus, string> = {
   completed: "knowledgeContextProcessed",
   processing: "knowledgeContextProcessing",
   pending: "knowledgeContextPending",
   failed: "knowledgeContextFailed",
-} as const satisfies Record<string, string>;
+};
 
-function ProcessingStatusIcon({ status }: { status: string }) {
+function ProcessingStatusIcon({
+  status,
+}: {
+  status: DocumentProcessingStatus;
+}) {
   switch (status) {
     case "completed":
       return (
@@ -76,10 +81,7 @@ function DocumentGroup({
         {label} ({documents.length})
       </p>
       {visible.map((doc) => {
-        const statusKey =
-          STATUS_TRANSLATION_KEY[
-            doc.processingStatus as keyof typeof STATUS_TRANSLATION_KEY
-          ] ?? "knowledgeContextPending";
+        const statusKey = STATUS_TRANSLATION_KEY[doc.processingStatus];
         return (
           <div key={doc.id} className="flex items-center gap-2 text-sm">
             <FileTextIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -94,7 +96,7 @@ function DocumentGroup({
         );
       })}
       {remaining > 0 && (
-        <p className="text-xs text-muted-foreground pl-5.5">
+        <p className="text-xs text-muted-foreground pl-6">
           {t("knowledgeContextMore", { count: remaining })}
         </p>
       )}
