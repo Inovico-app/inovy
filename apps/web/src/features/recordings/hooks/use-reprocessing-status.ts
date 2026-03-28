@@ -67,8 +67,11 @@ export function useReprocessingStatus({
           errorMessage: newStatus.errorMessage,
         });
 
-        // Stop polling if not reprocessing
-        if (!newStatus.isReprocessing) {
+        // Stop polling when neither reprocessing nor workflow running
+        if (
+          !newStatus.isReprocessing &&
+          newStatus.workflowStatus !== "running"
+        ) {
           setIsPolling(false);
         }
       }
@@ -76,7 +79,9 @@ export function useReprocessingStatus({
       setError(null);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to check reprocessing status"
+        err instanceof Error
+          ? err.message
+          : "Failed to check reprocessing status",
       );
     }
   }, [recordingId, onStatusChange]);
@@ -88,8 +93,11 @@ export function useReprocessingStatus({
       return;
     }
 
-    // Only poll if reprocessing is active or we haven't checked yet
-    const shouldPoll = !reprocessingStatus || reprocessingStatus.isReprocessing;
+    // Poll if we haven't checked yet, reprocessing is active, or workflow is running
+    const shouldPoll =
+      !reprocessingStatus ||
+      reprocessingStatus.isReprocessing ||
+      reprocessingStatus.workflowStatus === "running";
 
     if (!shouldPoll) {
       setIsPolling(false);
@@ -119,4 +127,3 @@ export function useReprocessingStatus({
     refetch: fetchStatus,
   };
 }
-
