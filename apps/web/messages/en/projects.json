@@ -112,5 +112,18 @@
   "noTemplateDefined": "No template defined yet",
   "templateUpdatedSuccess": "Template updated successfully",
   "templateCreatedSuccess": "Template created successfully",
-  "templateDeletedSuccess": "Template deleted successfully"
+  "templateDeletedSuccess": "Template deleted successfully",
+  "knowledgeContext": "Knowledge context",
+  "knowledgeContextDocuments": "{count, plural, one {# document} other {# documents}} providing context",
+  "knowledgeContextProject": "Project",
+  "knowledgeContextOrg": "Organization",
+  "knowledgeContextManage": "Manage documents",
+  "knowledgeContextNoDocuments": "No documents configured",
+  "knowledgeContextAddDocuments": "Add documents",
+  "knowledgeContextDescription": "These documents provide context for AI transcriptions and summaries in this project.",
+  "knowledgeContextProcessed": "Processed",
+  "knowledgeContextProcessing": "Processing",
+  "knowledgeContextPending": "Pending",
+  "knowledgeContextFailed": "Failed",
+  "knowledgeContextMore": "+{count} more"
 }

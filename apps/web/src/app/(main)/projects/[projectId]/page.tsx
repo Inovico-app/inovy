@@ -9,9 +9,11 @@ export async function generateMetadata({
   const { projectId } = await params;
   return { title: `Project ${projectId}` };
 }
+import { ProjectKnowledgeContextCard } from "@/features/knowledge-base/components/project-knowledge-context-card";
 import { ProjectActions } from "@/features/projects/components/project-actions";
 import { RecordingList } from "@/features/recordings/components/recording-list";
 import { resolveAuthContext } from "@/lib/auth-context";
+import { getCachedKnowledgeDocuments } from "@/server/cache/knowledge-base.cache";
 import { ProjectService } from "@/server/services/project.service";
 import { RecordingService } from "@/server/services/recording.service";
 import { differenceInCalendarDays } from "date-fns";
@@ -54,10 +56,16 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
     notFound();
   }
 
-  const [projectResult, statisticsResult] = await Promise.all([
-    ProjectService.getProjectById(projectId, authResult.value),
-    RecordingService.getProjectRecordingStatistics(projectId),
-  ]);
+  const [projectResult, statisticsResult, projectDocuments, orgDocuments] =
+    await Promise.all([
+      ProjectService.getProjectById(projectId, authResult.value),
+      RecordingService.getProjectRecordingStatistics(projectId),
+      getCachedKnowledgeDocuments("project", projectId),
+      getCachedKnowledgeDocuments(
+        "organization",
+        authResult.value.organizationId,
+      ),
+    ]);
 
   if (projectResult.isErr()) {
     notFound();
@@ -221,6 +229,13 @@ async function ProjectDetail({ params, searchParams }: ProjectDetailPageProps) {
             </div>
           </CardContent>
         </Card>
+
+        {/* Knowledge Context */}
+        <ProjectKnowledgeContextCard
+          projectDocumentCount={projectDocuments.length}
+          orgDocumentCount={orgDocuments.length}
+          projectId={project.id}
+        />
 
         {/* Recordings Section */}
         <Card>

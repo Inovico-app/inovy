@@ -21,7 +21,9 @@ import { ReprocessButton } from "@/features/recordings/components/reprocess-butt
 import { ReprocessingStatusIndicator } from "@/features/recordings/components/reprocessing-status-indicator";
 import { TranscriptionSection } from "@/features/recordings/components/transcription/transcription-section";
 import { getRecordingDetailPageData } from "@/features/recordings/server/get-recording-detail-page-data";
+import { KnowledgeContextIndicator } from "@/features/knowledge-base/components/knowledge-context-indicator";
 import { FeedbackQueries } from "@/server/data-access/feedback.queries";
+import { getCachedKnowledgeDocuments } from "@/server/cache/knowledge-base.cache";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import type { AIInsightDto } from "@/server/dto/ai-insight.dto";
 import { ArrowLeftIcon } from "lucide-react";
@@ -37,7 +39,17 @@ interface RecordingDetailPageProps {
 async function RecordingDetail({ params }: RecordingDetailPageProps) {
   const { projectId, recordingId } = await params;
 
-  const data = await getRecordingDetailPageData({ recordingId });
+  // Start project document fetch immediately (only needs projectId from params)
+  const projectDocumentsPromise = getCachedKnowledgeDocuments(
+    "project",
+    projectId,
+  );
+
+  const [data, authResult] = await Promise.all([
+    getRecordingDetailPageData({ recordingId }),
+    getBetterAuthSession(),
+  ]);
+
   if (!data) {
     notFound();
   }
@@ -55,15 +67,28 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
     notFound();
   }
 
-  const authResult = await getBetterAuthSession();
   const user = authResult.isOk() ? authResult.value.user : null;
 
-  const existingFeedback = user
-    ? await FeedbackQueries.getByUserAndRecording(user.id, recordingId)
-    : [];
+  // Now that we have organizationId, fetch org documents + feedback in parallel
+  const [existingFeedback, projectDocumentsRaw, orgDocumentsRaw] =
+    await Promise.all([
+      user
+        ? FeedbackQueries.getByUserAndRecording(user.id, recordingId)
+        : Promise.resolve([]),
+      projectDocumentsPromise,
+      getCachedKnowledgeDocuments("organization", organizationId),
+    ]);
 
   const t = await getTranslations("projects");
   const knowledgeUsed = extractUsedKnowledge(transcriptionInsights);
+
+  const toSummary = (d: (typeof projectDocumentsRaw)[number]) => ({
+    id: d.id,
+    title: d.title,
+    processingStatus: d.processingStatus,
+  });
+  const projectDocuments = projectDocumentsRaw.map(toSummary);
+  const orgDocuments = orgDocumentsRaw.map(toSummary);
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -122,6 +147,13 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
             transcriptionInsights={transcriptionInsights}
           />
         </AudioTranscriptSyncWrapper>
+
+        {/* Knowledge Context */}
+        <KnowledgeContextIndicator
+          projectDocuments={projectDocuments}
+          orgDocuments={orgDocuments}
+          projectId={projectId}
+        />
 
         {/* AI-Generated Summary */}
         <EnhancedSummarySection
