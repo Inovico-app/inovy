@@ -40,7 +40,7 @@ export function parseVocabularyFile(
 }
 
 function parseCsv(content: string): ParseResult {
-  const lines = content.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  const lines = splitCsvRows(content).filter((line) => line.trim().length > 0);
 
   if (lines.length < 2) {
     return {
@@ -224,7 +224,50 @@ function parseTxt(content: string): ParseResult {
 }
 
 /**
- * Simple CSV line parser that handles quoted fields.
+ * Split CSV content into rows, preserving quoted newlines.
+ */
+function splitCsvRows(content: string): string[] {
+  const rows: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+
+    if (inQuotes) {
+      if (char === '"') {
+        if (i + 1 < content.length && content[i + 1] === '"') {
+          current += '""';
+          i++;
+        } else {
+          inQuotes = false;
+          current += char;
+        }
+      } else {
+        current += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+        current += char;
+      } else if (char === "\n") {
+        rows.push(current.replace(/\r$/, ""));
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+  }
+
+  if (current.length > 0) {
+    rows.push(current.replace(/\r$/, ""));
+  }
+
+  return rows;
+}
+
+/**
+ * Parse a single CSV line into fields, handling quoted values.
  */
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];

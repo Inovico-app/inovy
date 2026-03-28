@@ -14,6 +14,7 @@ import type {
   KnowledgeEntryDto,
 } from "@/server/dto/knowledge-base.dto";
 import { BookOpenIcon, FileTextIcon, PlusIcon, UploadIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CreateKnowledgeEntryDialog } from "./create-knowledge-entry-dialog";
 import { ImportVocabularyDialog } from "./import-vocabulary-dialog";
@@ -37,6 +38,7 @@ export function OrganizationKnowledgeBaseSection({
   organizationId,
   canEdit,
 }: OrganizationKnowledgeBaseSectionProps) {
+  const router = useRouter();
   const [entries, setEntries] = useState(() => initialEntries);
   const [documents, setDocuments] = useState(() => initialDocuments);
   const [showCreateEntryDialog, setShowCreateEntryDialog] = useState(false);
@@ -167,6 +169,7 @@ export function OrganizationKnowledgeBaseSection({
             onOpenChange={setShowImportDialog}
             scope="organization"
             scopeId={organizationId}
+            onSuccess={() => router.refresh()}
           />
         </>
       )}

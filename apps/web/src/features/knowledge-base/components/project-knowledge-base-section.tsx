@@ -23,6 +23,7 @@ import {
   PlusIcon,
   UploadIcon,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CreateKnowledgeEntryDialog } from "./create-knowledge-entry-dialog";
 import { HierarchicalKnowledgeEntryList } from "./hierarchical-knowledge-entry-list";
@@ -48,6 +49,7 @@ export function ProjectKnowledgeBaseSection({
   organizationId,
   canEdit,
 }: ProjectKnowledgeBaseSectionProps) {
+  const router = useRouter();
   const [projectEntries, setProjectEntries] = useState(
     () => initialProjectEntries,
   );
@@ -256,6 +258,7 @@ export function ProjectKnowledgeBaseSection({
             onOpenChange={setShowImportDialog}
             scope="project"
             scopeId={projectId}
+            onSuccess={() => router.refresh()}
           />
         </>
       )}

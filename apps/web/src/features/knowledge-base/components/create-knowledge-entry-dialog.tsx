@@ -241,7 +241,7 @@ export function CreateKnowledgeEntryDialog({
                     <FormLabel>Category</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                       disabled={isExecuting}
                     >
                       <FormControl>

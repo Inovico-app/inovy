@@ -63,9 +63,9 @@ export const importKnowledgeEntriesAction = authorizedActionClient
       entries.map((e) => ({
         term: e.term,
         definition: e.definition,
-        boost: e.boost ?? null,
-        category: e.category ?? "custom",
-        context: e.context ?? null,
+        boost: e.boost,
+        category: e.category,
+        context: e.context,
       })),
       auth,
     );

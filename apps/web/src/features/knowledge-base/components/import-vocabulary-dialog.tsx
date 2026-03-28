@@ -185,12 +185,19 @@ export function ImportVocabularyDialog({
                         {entry.boost != null ? `${entry.boost}x` : "---"}
                       </td>
                       <td className="px-3 py-2">
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] py-0 border ${CATEGORY_CONFIG[entry.category].color}`}
-                        >
-                          {CATEGORY_CONFIG[entry.category].label}
-                        </Badge>
+                        {(() => {
+                          const cfg =
+                            CATEGORY_CONFIG[entry.category] ??
+                            CATEGORY_CONFIG.custom;
+                          return (
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] py-0 border ${cfg.color}`}
+                            >
+                              {cfg.label}
+                            </Badge>
+                          );
+                        })()}
                       </td>
                       <td className="px-3 py-2">
                         {entry.error ? (
