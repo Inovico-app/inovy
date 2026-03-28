@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { queryKeys } from "@/lib/query-keys";
 import { restoreTranscriptionVersion } from "../actions/restore-transcription-version";
 
 interface UseRestoreTranscriptionMutationOptions {
@@ -8,9 +8,10 @@ interface UseRestoreTranscriptionMutationOptions {
 }
 
 export function useRestoreTranscriptionMutation(
-  options?: UseRestoreTranscriptionMutationOptions
+  options?: UseRestoreTranscriptionMutationOptions,
 ) {
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   return useMutation({
     mutationFn: async (input: {
@@ -20,21 +21,19 @@ export function useRestoreTranscriptionMutation(
       const result = await restoreTranscriptionVersion(input);
       if (result.serverError || !result.data) {
         throw new Error(
-          result.serverError ?? "Failed to restore transcription version"
+          result.serverError ?? "Failed to restore transcription version",
         );
       }
       return result.data;
     },
-    onSuccess: (data, variables) => {
-      // Invalidate recording query to refresh transcription
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.recordings.detail(variables.recordingId),
-      });
-
-      // Invalidate transcription history
+    onSuccess: (_data, variables) => {
+      // Invalidate transcription history (has a real useQuery consumer)
       queryClient.invalidateQueries({
         queryKey: ["transcription-history", variables.recordingId],
       });
+
+      // Refresh RSC data — recording detail is server-rendered, not RQ
+      router.refresh();
 
       toast.success("Transcriptie versie hersteld");
       options?.onSuccess?.();
@@ -43,9 +42,8 @@ export function useRestoreTranscriptionMutation(
       toast.error(
         error instanceof Error
           ? error.message
-          : "Kon transcriptie versie niet herstellen"
+          : "Kon transcriptie versie niet herstellen",
       );
     },
   });
 }
-
