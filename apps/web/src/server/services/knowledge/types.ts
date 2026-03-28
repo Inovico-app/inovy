@@ -39,6 +39,8 @@ export interface EntryInput {
   readonly definition: string;
   readonly context?: string | null;
   readonly examples?: string[] | null;
+  readonly boost?: number | null;
+  readonly category?: "medical" | "legal" | "technical" | "custom";
 }
 
 export interface UpdateEntryInput {
@@ -47,6 +49,8 @@ export interface UpdateEntryInput {
   readonly context?: string | null;
   readonly examples?: string[] | null;
   readonly isActive?: boolean;
+  readonly boost?: number | null;
+  readonly category?: "medical" | "legal" | "technical" | "custom";
 }
 
 export interface DocumentMetadataInput {

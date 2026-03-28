@@ -3,6 +3,7 @@ import {
   index,
   jsonb,
   pgTable,
+  real,
   text,
   timestamp,
   uuid,
@@ -13,6 +14,14 @@ import {
  * Stores custom terminology, abbreviations, and definitions at different scopes
  * Scope hierarchy: project → organization → global (project overrides org, org overrides global)
  */
+export const vocabularyCategoryEnum = [
+  "medical",
+  "legal",
+  "technical",
+  "custom",
+] as const;
+export type VocabularyCategory = (typeof vocabularyCategoryEnum)[number];
+
 export const knowledgeBaseScopeEnum = [
   "project",
   "organization",
@@ -31,6 +40,10 @@ export const knowledgeBaseEntries = pgTable(
     definition: text("definition").notNull(), // Full definition/expansion
     context: text("context"), // Optional context about when/how to use this term
     examples: jsonb("examples").$type<string[]>(), // Array of example usage strings
+    boost: real("boost"), // Deepgram keyword boost (0.0-2.0), null = default
+    category: text("category", { enum: vocabularyCategoryEnum })
+      .notNull()
+      .default("custom"),
     isActive: boolean("is_active").notNull().default(true), // Soft delete flag
     createdById: text("created_by_id").notNull(), // Better Auth user ID
     createdAt: timestamp("created_at", { withTimezone: true })

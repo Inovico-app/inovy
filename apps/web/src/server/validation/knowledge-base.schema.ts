@@ -38,6 +38,16 @@ export const createKnowledgeEntrySchema = z
       .nullable()
       .optional(),
     examples: z.array(z.string().max(500)).nullable().optional(),
+    boost: z
+      .number()
+      .min(0, "Boost must be at least 0")
+      .max(2, "Boost must be at most 2")
+      .nullable()
+      .optional(),
+    category: z
+      .enum(["medical", "legal", "technical", "custom"])
+      .optional()
+      .default("custom"),
   })
   .superRefine((data, ctx) => {
     if (data.scope === "global") {
@@ -90,6 +100,13 @@ export const updateKnowledgeEntrySchema = z.object({
     .optional(),
   examples: z.array(z.string().max(500)).nullable().optional(),
   isActive: z.boolean().optional(),
+  boost: z
+    .number()
+    .min(0, "Boost must be at least 0")
+    .max(2, "Boost must be at most 2")
+    .nullable()
+    .optional(),
+  category: z.enum(["medical", "legal", "technical", "custom"]).optional(),
 });
 
 export type UpdateKnowledgeEntryInput = z.infer<
