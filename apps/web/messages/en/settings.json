@@ -232,5 +232,25 @@
     "configureNotetaker": "Configure notetaker assistant",
     "configureNotetakerDescription": "Set up automatic meeting recording and transcription",
     "pending": "Pending"
+  },
+  "deleteOrg": {
+    "dangerZoneTitle": "Danger Zone",
+    "dangerZoneDescription": "Irreversible and destructive actions for this organization.",
+    "title": "Delete Organization",
+    "description": "Permanently delete this organization and all its data. This action has a 7-day grace period during which you can cancel.",
+    "confirmLabel": "Type \"{orgName}\" to confirm",
+    "confirmPlaceholder": "Organization name",
+    "scheduleButton": "Schedule Deletion",
+    "scheduling": "Scheduling...",
+    "scheduledMessage": "This organization is scheduled for deletion on {date}.",
+    "cancelButton": "Cancel Deletion",
+    "cancelling": "Cancelling...",
+    "cancelledMessage": "Organization deletion has been cancelled.",
+    "warningBanner": "This organization is scheduled for deletion on {date}.",
+    "warningBannerAction": "Cancel deletion",
+    "warningItems": "This will permanently delete all recordings, projects, meetings, tasks, documents, and member data.",
+    "scheduledSuccess": "Organization scheduled for deletion",
+    "cancelledSuccess": "Organization deletion cancelled",
+    "cancelFailed": "Failed to cancel deletion"
   }
 }

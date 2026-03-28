@@ -1,9 +1,43 @@
 import { Suspense, type ReactNode } from "react";
+import { DeletionWarningBanner } from "./deletion-warning-banner";
 import { Sidebar } from "./sidebar";
 import { TopBar } from "./top-bar";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { logger } from "@/lib/logger";
+import { OrganizationQueries } from "@/server/data-access/organization.queries";
 
 interface PageLayoutProps {
   children: ReactNode;
+}
+
+async function DeletionBannerLoader() {
+  const sessionResult = await getBetterAuthSession();
+
+  if (sessionResult.isErr()) return null;
+
+  const { organization } = sessionResult.value;
+
+  if (!organization?.id) return null;
+
+  try {
+    const orgRecord = await OrganizationQueries.findByIdDirect(organization.id);
+
+    if (!orgRecord?.scheduledDeletionAt) return null;
+
+    return (
+      <DeletionWarningBanner
+        organizationId={organization.id}
+        scheduledDeletionAt={orgRecord.scheduledDeletionAt.toISOString()}
+      />
+    );
+  } catch (error) {
+    logger.error("Failed to load deletion banner", {
+      component: "DeletionBannerLoader",
+      organizationId: organization.id,
+      error: error instanceof Error ? error : new Error(String(error)),
+    });
+    return null;
+  }
 }
 
 export function PageLayout({ children }: PageLayoutProps) {
@@ -29,10 +63,12 @@ export function PageLayout({ children }: PageLayoutProps) {
           tabIndex={-1}
           aria-label="Main content"
         >
+          <Suspense fallback={null}>
+            <DeletionBannerLoader />
+          </Suspense>
           {children}
         </main>
       </div>
     </div>
   );
 }
-

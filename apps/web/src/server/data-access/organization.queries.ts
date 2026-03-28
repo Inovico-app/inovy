@@ -19,7 +19,7 @@ export class OrganizationQueries {
    */
   static async findById(
     organizationId: string,
-    requestHeaders?: Headers
+    requestHeaders?: Headers,
   ): Promise<{
     id: string;
     name: string;
@@ -41,7 +41,7 @@ export class OrganizationQueries {
     // Find the organization with matching ID
     const orgList = Array.isArray(orgsList) ? orgsList : [];
     const org = orgList.find(
-      (o: BetterAuthOrganization) => o.id === organizationId
+      (o: BetterAuthOrganization) => o.id === organizationId,
     ) as BetterAuthOrganization | undefined;
 
     // If not found via Better Auth, fall back to direct DB query
@@ -81,7 +81,7 @@ export class OrganizationQueries {
    */
   static async getMembers(
     organizationId: string,
-    requestHeaders?: Headers
+    requestHeaders?: Headers,
   ): Promise<
     Array<{
       id: string;
@@ -155,7 +155,7 @@ export class OrganizationQueries {
    */
   static async slugExists(
     slug: string,
-    requestHeaders?: Headers
+    requestHeaders?: Headers,
   ): Promise<boolean> {
     try {
       const headersList = requestHeaders ?? (await headers());
@@ -187,7 +187,7 @@ export class OrganizationQueries {
    * @returns Organization ID or null if user has no organizations
    */
   static async getFirstOrganizationForUser(
-    userId: string
+    userId: string,
   ): Promise<string | null> {
     const [member] = await db
       .select({ organizationId: members.organizationId })
@@ -235,7 +235,7 @@ export class OrganizationQueries {
           ...org,
           memberCount: memberCountResult.length,
         };
-      })
+      }),
     );
 
     return orgsWithCounts;
@@ -253,6 +253,8 @@ export class OrganizationQueries {
     logo: string | null;
     createdAt: Date;
     metadata: string | null;
+    scheduledDeletionAt: Date | null;
+    deletionRequestedById: string | null;
   } | null> {
     const [dbOrg] = await db
       .select({
@@ -262,6 +264,8 @@ export class OrganizationQueries {
         logo: organizations.logo,
         createdAt: organizations.createdAt,
         metadata: organizations.metadata,
+        scheduledDeletionAt: organizations.scheduledDeletionAt,
+        deletionRequestedById: organizations.deletionRequestedById,
       })
       .from(organizations)
       .where(eq(organizations.id, organizationId))
@@ -372,7 +376,7 @@ export class OrganizationQueries {
    */
   static async updateAgentConfig(
     organizationId: string,
-    enabled: boolean
+    enabled: boolean,
   ): Promise<boolean> {
     const [updated] = await db
       .update(organizations)
@@ -415,4 +419,3 @@ export async function getOrganizationMembers(organizationId: string): Promise<
     };
   });
 }
-

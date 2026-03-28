@@ -75,7 +75,7 @@ async function OrganizationContent({
       <OrganizationDangerZone
         organizationId={organization.id}
         organizationName={organization.name}
-        memberCount={members.length}
+        scheduledDeletionAt={organization.scheduledDeletionAt}
       />
     </div>
   );

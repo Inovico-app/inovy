@@ -31,6 +31,14 @@
     {
       "path": "/api/cron/process-deletions",
       "schedule": "30 1 * * *"
+    },
+    {
+      "path": "/api/cron/retry-failed-transcriptions",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/organization-deletion",
+      "schedule": "0 1 * * *"
     }
   ]
 }
