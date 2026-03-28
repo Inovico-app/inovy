@@ -3,13 +3,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -49,26 +42,27 @@ export function KnowledgeEntryList({
   onCreateClick,
 }: KnowledgeEntryListProps) {
   const [editingEntry, setEditingEntry] = useState<KnowledgeEntryDto | null>(
-    null
+    null,
   );
   const [deletingEntry, setDeletingEntry] = useState<KnowledgeEntryDto | null>(
-    null
+    null,
   );
 
   if (entries.length === 0) {
     return (
-      <div className="text-center py-8">
-        <BookOpenIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-        <p className="text-muted-foreground font-medium">
-          No knowledge entries yet
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
+          <BookOpenIcon className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <p className="text-sm font-medium text-foreground">
+          No project entries yet
         </p>
-        <p className="text-sm text-muted-foreground mt-2 mb-4">
-          Create entries to define terms and their meanings for your
-          organization
+        <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+          Create entries to define terms and their meanings for this project
         </p>
         {canEdit && onCreateClick && (
-          <Button onClick={onCreateClick} variant="default" size="sm">
-            <PlusIcon className="h-4 w-4 mr-2" />
+          <Button onClick={onCreateClick} size="sm" className="mt-4">
+            <PlusIcon className="h-3.5 w-3.5 mr-1.5" />
             Add Entry
           </Button>
         )}
@@ -77,66 +71,81 @@ export function KnowledgeEntryList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {entries.map((entry) => (
-        <Card key={entry.id}>
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <CardTitle className="text-lg">{entry.term}</CardTitle>
-                <CardDescription className="mt-2 whitespace-pre-wrap">
-                  {entry.definition}
-                </CardDescription>
-                {entry.context && (
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    <strong>Context:</strong> {entry.context}
-                  </div>
-                )}
-                {entry.examples && entry.examples.length > 0 && (
-                  <div className="mt-2">
-                    <strong className="text-sm">Examples:</strong>
-                    <ul className="list-disc list-inside mt-1 text-sm text-muted-foreground">
-                      {entry.examples.map((example, idx) => (
-                        <li key={`example-${idx}-${example.slice(0, 20)}`}>{example}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-              {canEdit && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label="Entry actions" />}>
-                    <MoreVerticalIcon className="h-4 w-4" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setEditingEntry(entry)}>
-                      <PencilIcon className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => setDeletingEntry(entry)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <TrashIcon className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
+        <div
+          key={entry.id}
+          className="group flex items-start gap-3 rounded-lg border border-border/60 bg-card p-3.5 transition-colors hover:border-border"
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+            <BookOpenIcon className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <Badge variant={entry.isActive ? "default" : "secondary"}>
+              <span className="text-sm font-medium text-foreground">
+                {entry.term}
+              </span>
+              <Badge
+                variant={entry.isActive ? "default" : "secondary"}
+                className="text-[10px] py-0"
+              >
                 {entry.isActive ? "Active" : "Inactive"}
               </Badge>
             </div>
-          </CardContent>
-        </Card>
+            <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+              {entry.definition}
+            </p>
+            {entry.context && (
+              <p className="mt-1 text-xs text-muted-foreground/80">
+                <span className="font-medium">Context:</span> {entry.context}
+              </p>
+            )}
+            {entry.examples && entry.examples.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {entry.examples.map((example, idx) => (
+                  <span
+                    key={`example-${idx}-${example.slice(0, 20)}`}
+                    className="inline-block rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                  >
+                    {example}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          {canEdit && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label={`Actions for ${entry.term}`}
+                  />
+                }
+              >
+                <MoreVerticalIcon className="h-4 w-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setEditingEntry(entry)}>
+                  <PencilIcon className="h-4 w-4 mr-2" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setDeletingEntry(entry)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <TrashIcon className="h-4 w-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       ))}
 
-      {/* Edit Dialog */}
       {editingEntry && (
         <EditKnowledgeEntryDialog
           entry={editingEntry}
@@ -149,7 +158,6 @@ export function KnowledgeEntryList({
         />
       )}
 
-      {/* Delete Dialog */}
       {deletingEntry && (
         <DeleteKnowledgeEntryDialog
           entry={deletingEntry}
@@ -164,4 +172,3 @@ export function KnowledgeEntryList({
     </div>
   );
 }
-
