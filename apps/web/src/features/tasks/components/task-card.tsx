@@ -18,6 +18,7 @@ import type { TaskWithContextDto } from "@/server/dto/task.dto";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { TaskEditDialog } from "./task-edit-dialog";
+import { useOrganizationUsersQuery } from "../hooks/use-organization-users-query";
 
 interface TaskCardProps {
   task: Task | TaskWithContextDto;
@@ -62,6 +63,33 @@ export function TaskCard({
     completed: t("statusCompleted"),
     cancelled: t("statusCancelled"),
   };
+
+  const { data: orgUsers = [] } = useOrganizationUsersQuery();
+
+  const resolvedAssignee = task.assigneeId
+    ? orgUsers.find((u) => u.id === task.assigneeId)
+    : null;
+
+  const assigneeDisplay = resolvedAssignee
+    ? [resolvedAssignee.given_name, resolvedAssignee.family_name]
+        .filter(Boolean)
+        .join(" ") || resolvedAssignee.email
+    : task.assigneeName;
+
+  const assigneeInitials = resolvedAssignee
+    ? [resolvedAssignee.given_name?.[0], resolvedAssignee.family_name?.[0]]
+        .filter(Boolean)
+        .join("")
+        .toUpperCase()
+    : task.assigneeName
+      ? task.assigneeName
+          .split(/\s+/)
+          .map((w) => w[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2)
+      : null;
+
   const handleStatusToggle = () => {
     if (!onStatusChange) return;
 
@@ -180,10 +208,16 @@ export function TaskCard({
               </div>
 
               {/* Assignee */}
-              {task.assigneeName && (
-                <div className="flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  <span>{task.assigneeName}</span>
+              {assigneeDisplay && (
+                <div className="flex items-center gap-1.5">
+                  {assigneeInitials ? (
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[8px] font-medium text-primary">
+                      {assigneeInitials}
+                    </span>
+                  ) : (
+                    <User className="h-3 w-3" />
+                  )}
+                  <span>{assigneeDisplay}</span>
                 </div>
               )}
 
