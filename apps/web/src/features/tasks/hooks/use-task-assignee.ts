@@ -15,7 +15,7 @@ export function useTaskAssignee(
 ): TaskAssigneeResult {
   const { members, isLoading } = useOrganizationMembers();
 
-  return useMemo(() => {
+  const result = useMemo(() => {
     const resolvedMember = assigneeId
       ? members.find((m) => m.id === assigneeId)
       : null;
@@ -36,6 +36,8 @@ export function useTaskAssignee(
             .slice(0, 2)
         : null;
 
-    return { assigneeDisplay: display, assigneeInitials: initials, isLoading };
-  }, [assigneeId, assigneeName, members, isLoading]);
+    return { assigneeDisplay: display, assigneeInitials: initials };
+  }, [assigneeId, assigneeName, members]);
+
+  return { ...result, isLoading };
 }

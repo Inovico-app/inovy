@@ -156,10 +156,11 @@ export class TaskExtractionService {
         );
       }
 
-      // Fetch data needed for participant matching
-      const [orgMembers, insightsList] = await Promise.all([
+      // Fetch data needed for participant matching and notifications
+      const [orgMembers, insightsList, recording] = await Promise.all([
         OrganizationQueries.getMembersDirect(organizationId),
         AIInsightsQueries.getInsightsByRecordingId(recordingId),
+        RecordingsQueries.selectRecordingById(recordingId),
       ]);
 
       // Get speaker mappings from the transcription insight
@@ -245,47 +246,49 @@ export class TaskExtractionService {
         totalAttempted: extractionResult.tasks.length,
       });
 
-      // Create success notification for recording owner
-      const recording =
-        await RecordingsQueries.selectRecordingById(recordingId);
       if (recording) {
-        await NotificationService.createNotification({
-          recordingId,
-          projectId: recording.projectId,
-          userId: recording.createdById,
-          organizationId: recording.organizationId,
-          type: "tasks_completed",
-          title: "Taken geëxtraheerd",
-          message: `${createdTasks.length} ${
-            createdTasks.length === 1 ? "taak" : "taken"
-          } geëxtraheerd uit "${recording.title}".`,
-          metadata: {
-            tasksCount: createdTasks.length,
-          },
-        });
+        const notificationPromises: Promise<unknown>[] = [
+          NotificationService.createNotification({
+            recordingId,
+            projectId: recording.projectId,
+            userId: recording.createdById,
+            organizationId: recording.organizationId,
+            type: "tasks_completed",
+            title: "Taken geëxtraheerd",
+            message: `${createdTasks.length} ${
+              createdTasks.length === 1 ? "taak" : "taken"
+            } geëxtraheerd uit "${recording.title}".`,
+            metadata: {
+              tasksCount: createdTasks.length,
+            },
+          }),
+        ];
 
-        // Send task_assigned notifications to assignees
         for (const createdTask of createdTasks) {
           if (
             createdTask.assigneeId &&
             createdTask.assigneeId !== recording.createdById
           ) {
-            await NotificationService.createNotification({
-              recordingId,
-              projectId: recording.projectId,
-              userId: createdTask.assigneeId,
-              organizationId: recording.organizationId,
-              type: "task_assigned",
-              title: "Nieuwe taak toegewezen",
-              message: `Je bent toegewezen aan de taak: "${createdTask.title}"`,
-              metadata: {
-                taskId: createdTask.id,
+            notificationPromises.push(
+              NotificationService.createNotification({
                 recordingId,
-                projectId,
-              },
-            });
+                projectId: recording.projectId,
+                userId: createdTask.assigneeId,
+                organizationId: recording.organizationId,
+                type: "task_assigned",
+                title: "Nieuwe taak toegewezen",
+                message: `Je bent toegewezen aan de taak: "${createdTask.title}"`,
+                metadata: {
+                  taskId: createdTask.id,
+                  recordingId,
+                  projectId,
+                },
+              }),
+            );
           }
         }
+
+        await Promise.all(notificationPromises);
       }
 
       return ok({
