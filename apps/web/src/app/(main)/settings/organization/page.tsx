@@ -50,7 +50,9 @@ async function OrganizationContent() {
 
   const organizationId = organization.id;
   const orgName = organization.name ?? "Organization";
-  const canEdit = auth.user ? isOrganizationAdmin(auth.user) : false;
+  const canEdit = auth.user
+    ? isOrganizationAdmin(auth.user, auth.member)
+    : false;
 
   // Parallel data fetching
   const [
