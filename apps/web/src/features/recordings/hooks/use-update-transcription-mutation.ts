@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { queryKeys } from "@/lib/query-keys";
 import { updateTranscription } from "../actions/update-transcription";
@@ -9,9 +10,10 @@ interface UseUpdateTranscriptionMutationOptions {
 }
 
 export function useUpdateTranscriptionMutation(
-  options?: UseUpdateTranscriptionMutationOptions
+  options?: UseUpdateTranscriptionMutationOptions,
 ) {
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   return useMutation({
     mutationFn: async (input: UpdateTranscriptionInput) => {
@@ -21,16 +23,16 @@ export function useUpdateTranscriptionMutation(
       }
       return result.data;
     },
-    onSuccess: (data, variables) => {
-      // Invalidate recording query to refresh transcription
+    onSuccess: (_data, variables) => {
+      // Invalidate transcription history (has a real useQuery consumer)
       queryClient.invalidateQueries({
-        queryKey: queryKeys.recordings.detail(variables.recordingId),
+        queryKey: queryKeys.transcriptionHistory.byRecording(
+          variables.recordingId,
+        ),
       });
 
-      // Invalidate transcription history
-      queryClient.invalidateQueries({
-        queryKey: ["transcription-history", variables.recordingId],
-      });
+      // Refresh RSC data — recording detail is server-rendered, not RQ
+      router.refresh();
 
       toast.success("Transcriptie succesvol bijgewerkt");
       options?.onSuccess?.();
@@ -39,9 +41,8 @@ export function useUpdateTranscriptionMutation(
       toast.error(
         error instanceof Error
           ? error.message
-          : "Kon transcriptie niet bijwerken"
+          : "Kon transcriptie niet bijwerken",
       );
     },
   });
 }
-

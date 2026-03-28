@@ -123,6 +123,7 @@ function recordingTags(ctx: InvalidationContext): string[] {
   const tags: string[] = [];
   if (recordingId) {
     tags.push(CacheTags.recording(recordingId));
+    tags.push(CacheTags.transcriptionHistory(recordingId));
   }
   tags.push(...recordingListTags(ctx));
   return tags;

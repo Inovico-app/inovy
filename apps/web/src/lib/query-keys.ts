@@ -45,6 +45,11 @@ export const queryKeys = {
       [...queryKeys.projects.details(), projectId] as const,
     userProjects: () => [...queryKeys.projects.all, "user"] as const,
   },
+  transcriptionHistory: {
+    all: ["transcription-history"] as const,
+    byRecording: (recordingId: string) =>
+      [...queryKeys.transcriptionHistory.all, recordingId] as const,
+  },
   summaries: {
     all: ["summaries"] as const,
     details: () => [...queryKeys.summaries.all, "detail"] as const,
